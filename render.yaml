@@ -1,0 +1,132 @@
+services:
+  - type: web
+    name: ndahi-customer
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm run start:customer
+    healthCheckPath: /
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: API_URL
+        sync: false
+
+  - type: web
+    name: ndahi-admin
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm run start:admin
+    healthCheckPath: /login
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: API_URL
+        sync: false
+
+  - type: web
+    name: ndahi-api
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm run start:api
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ndahi-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: CUSTOMER_APP_URL
+        sync: false
+      - key: ADMIN_APP_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: ALLOWED_ADMIN_ORIGINS
+        sync: false
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: CUSTOMER_SESSION_SECONDS
+        value: "1800"
+      - key: ADMIN_SESSION_SECONDS
+        value: "1800"
+      - key: CUSTOMER_SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
+      - key: SECRET_PEPPER
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: owner
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+      - key: ADMIN_MFA_ENABLED
+        value: "true"
+      - key: ADMIN_MFA_CODE
+        sync: false
+      - key: WEBAUTHN_RP_ID
+        sync: false
+      - key: WEBAUTHN_RP_NAME
+        value: NDAHI Connect Admin
+      - key: PAYMENT_MODE
+        value: live
+      - key: FLW_API_URL
+        value: https://api.flutterwave.com/v3
+      - key: FLW_SECRET_KEY
+        sync: false
+      - key: FLW_SECRET_HASH
+        sync: false
+      - key: OTP_DELIVERY
+        value: live
+      - key: SMS_PROVIDER
+        sync: false
+      - key: SMS_API_URL
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_SENDER
+        value: NDAHI
+      - key: MIKROTIK_MODE
+        value: live
+      - key: MIKROTIK_API_URL
+        sync: false
+      - key: MIKROTIK_USER
+        sync: false
+      - key: MIKROTIK_PASSWORD
+        sync: false
+      - key: OMADA_MODE
+        value: live
+      - key: OMADA_API_URL
+        sync: false
+      - key: OMADA_API_TOKEN
+        sync: false
+      - key: OMADA_SITE_ID
+        value: Default
+
+databases:
+  - name: ndahi-postgres
+    region: frankfurt
+    plan: basic-256mb
+    postgresMajorVersion: "17"
+    connectionPool: none
+    ipAllowList: []

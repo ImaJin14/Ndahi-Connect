@@ -1,0 +1,26 @@
+const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
+  saved = sessionStorage.getItem("ndahi-login-challenge");
+if (!saved) location.replace("/login");
+const challenge = saved ? JSON.parse(saved) : null;
+if (challenge) {
+  $("#instructions").textContent = `Enter the six-digit OTP sent for ${challenge.phone}.`;
+  if (challenge.developmentOtp) $("#development").innerHTML = `<div class="success">Development OTP: <code>${challenge.developmentOtp}</code></div>`;
+}
+$("#verify").onsubmit = async (event) => {
+  event.preventDefault();
+  const button = event.submitter || event.target.querySelector("button"), original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Verifying…";
+  $("#message").textContent = "";
+  try {
+    const response = await fetch(api + "/api/account/login/verify-otp", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: challenge.challengeId, otp: new FormData(event.target).get("otp") }) }),
+      result = await response.json();
+    if (!response.ok) throw Error(result.error || "Verification failed");
+    sessionStorage.removeItem("ndahi-login-challenge");
+    location.href = "/";
+  } catch (error) {
+    $("#message").textContent = error.message;
+    button.disabled = false;
+    button.textContent = original;
+  }
+};

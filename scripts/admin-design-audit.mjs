@@ -1,0 +1,40 @@
+import { mkdir, writeFile } from "node:fs/promises";
+const out = "/tmp/ndahi-admin-design-audit";
+await mkdir(out, { recursive: true });
+const targets = await (await fetch("http://127.0.0.1:9222/json/list")).json(), target = targets.find((item) => item.type === "page");
+if (!target) throw Error("Chrome page target not found");
+const socket = new WebSocket(target.webSocketDebuggerUrl);
+await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
+let id = 0;
+const pending = new Map(), errors = [];
+socket.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  if (message.id && pending.has(message.id)) { pending.get(message.id)(message); pending.delete(message.id); }
+  if (message.method === "Runtime.exceptionThrown" || message.method === "Log.entryAdded" && message.params.entry.level === "error") errors.push(message.params);
+};
+const send = (method, params = {}) => new Promise((resolve) => { const next = ++id; pending.set(next, resolve); socket.send(JSON.stringify({ id: next, method, params })); });
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const evaluate = async (expression) => (await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result.result.value;
+const screenshot = async (name, full = false) => {
+  const result = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: full });
+  const path = `${out}/${name}.png`;
+  await writeFile(path, Buffer.from(result.result.data, "base64"));
+  return path;
+};
+await send("Runtime.enable"); await send("Log.enable"); await send("Page.enable"); await send("Network.enable");
+await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 1024, deviceScaleFactor: 1, mobile: false });
+await send("Page.navigate", { url: "http://localhost:8081/login" }); await wait(900);
+await evaluate(`document.querySelector('[name="pin"]').value='2468';document.querySelector('#login button').click()`); await wait(1200);
+const desktopTop = await screenshot("01-admin-desktop-top");
+const desktopFull = await screenshot("02-admin-desktop-full", true);
+const desktop = await evaluate(`({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,viewport:innerWidth,sections:[...document.querySelectorAll('.card h2')].map(x=>x.textContent),buttons:document.querySelectorAll('button').length,tables:document.querySelectorAll('table').length})`);
+await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+await send("Page.reload", { ignoreCache: true }); await wait(1100);
+const mobileTop = await screenshot("03-admin-mobile-top");
+await evaluate(`scrollTo(0, Math.max(0, document.documentElement.scrollHeight * .45))`); await wait(300);
+const mobileMiddle = await screenshot("04-admin-mobile-middle");
+const mobile = await evaluate(`({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,viewport:innerWidth})`);
+const report = { desktopTop, desktopFull, mobileTop, mobileMiddle, desktop, mobile, consoleErrors: errors.map((error) => error.entry?.text || error.exceptionDetails?.text || "unknown") };
+await writeFile(`${out}/report.json`, JSON.stringify(report, null, 2));
+console.log(JSON.stringify(report, null, 2));
+socket.close();

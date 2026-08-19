@@ -1,0 +1,18 @@
+import { writeFile } from 'node:fs/promises';
+const targets=await(await fetch('http://127.0.0.1:9222/json/list')).json();
+const target=targets.find(item=>item.type==='page');
+if(!target)throw Error('Chrome page target not found');
+const socket=new WebSocket(target.webSocketDebuggerUrl);
+await new Promise((resolve,reject)=>{socket.onopen=resolve;socket.onerror=reject});
+let next=0;const pending=new Map(),errors=[];
+socket.onmessage=event=>{const message=JSON.parse(event.data);if(message.id&&pending.has(message.id)){pending.get(message.id)(message);pending.delete(message.id)}if(message.method==='Runtime.exceptionThrown'||message.method==='Log.entryAdded'&&message.params.entry.level==='error')errors.push(message.params)};
+const send=(method,params={})=>new Promise(resolve=>{const id=++next;pending.set(id,resolve);socket.send(JSON.stringify({id,method,params}))});
+await send('Runtime.enable');await send('Log.enable');await send('Page.enable');await send('Network.enable');await send('Network.setCacheDisabled',{cacheDisabled:true});
+await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1024,deviceScaleFactor:1,mobile:false});
+await send('Page.navigate',{url:'http://localhost:8080/onboarding.html'});await new Promise(resolve=>setTimeout(resolve,1800));
+const selected=await send('Runtime.evaluate',{expression:"document.querySelector('[data-plan=weekly]').click();({bar:!document.querySelector('#selectionBar').hidden,name:document.querySelector('#selectionName').textContent,selectedCount:document.querySelectorAll('.plan.selected').length,selectedId:document.querySelector('.plan.selected')?.dataset.card,monthlySelected:document.querySelector('[data-card=monthly]').classList.contains('selected')})",returnByValue:true});
+const opened=await send('Runtime.evaluate',{expression:"document.querySelector('#continue').click();({modal:!document.querySelector('#checkout').hidden,title:document.querySelector('#selected').textContent})",returnByValue:true});
+const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+await writeFile('/tmp/ndahi-onboarding-interaction.png',Buffer.from(shot.result.data,'base64'));
+console.log(JSON.stringify({selected:selected.result.result.value,opened:opened.result.result.value,consoleErrors:errors.map(error=>error.entry?.text||error.exceptionDetails?.text||'unknown'),screenshot:'/tmp/ndahi-onboarding-interaction.png'},null,2));
+socket.close();if(errors.length)process.exitCode=1;

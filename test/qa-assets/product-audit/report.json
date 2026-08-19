@@ -1,0 +1,240 @@
+{
+  "report": [
+    {
+      "step": "customer-packages",
+      "screenshot": "/tmp/ndahi-product-audit/01-customer-packages.png",
+      "controls": {
+        "plans": 10,
+        "choose": true,
+        "continueHidden": false
+      }
+    },
+    {
+      "step": "customer-checkout",
+      "controls": {
+        "selected": "weekly",
+        "modal": true,
+        "fields": [
+          "name",
+          "phone",
+          "email",
+          "network"
+        ]
+      },
+      "screenshot": "/tmp/ndahi-product-audit/02-customer-checkout.png"
+    },
+    {
+      "step": "checkout-close",
+      "controls": {
+        "closed": true
+      }
+    },
+    {
+      "step": "customer-login",
+      "screenshot": "/tmp/ndahi-product-audit/03-customer-login.png",
+      "controls": {
+        "submit": true,
+        "back": "/onboarding.html"
+      }
+    },
+    {
+      "step": "customer-dashboard",
+      "screenshot": "/tmp/ndahi-product-audit/04-customer-dashboard.png",
+      "controls": {
+        "url": "/",
+        "logout": true,
+        "redeem": true,
+        "disconnects": 0
+      }
+    },
+    {
+      "step": "admin-login",
+      "screenshot": "/tmp/ndahi-product-audit/05-admin-login.png",
+      "controls": {
+        "submit": true,
+        "pinType": "password"
+      }
+    },
+    {
+      "step": "admin-dashboard",
+      "screenshot": "/tmp/ndahi-product-audit/06-admin-dashboard.png",
+      "controls": {
+        "url": "/",
+        "buttons": [
+          {
+            "text": "Logout",
+            "id": "logout",
+            "data": []
+          },
+          {
+            "text": "Sync MikroTik usage",
+            "id": "syncUsage",
+            "data": []
+          },
+          {
+            "text": "Check Omada",
+            "id": "checkOmada",
+            "data": []
+          },
+          {
+            "text": "Set up authenticator MFA",
+            "id": "enrollMfa",
+            "data": []
+          },
+          {
+            "text": "Create",
+            "id": "",
+            "data": []
+          },
+          {
+            "text": "Save changes",
+            "id": "",
+            "data": []
+          },
+          {
+            "text": "Cancel",
+            "id": "",
+            "data": [
+              "cancelEdit"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Edit",
+            "id": "",
+            "data": [
+              "editBundle"
+            ]
+          },
+          {
+            "text": "Generate voucher",
+            "id": "",
+            "data": []
+          },
+          {
+            "text": "Suspend",
+            "id": "",
+            "data": [
+              "customer",
+              "suspended"
+            ]
+          },
+          {
+            "text": "Suspend",
+            "id": "",
+            "data": [
+              "customer",
+              "suspended"
+            ]
+          },
+          {
+            "text": "Revoke",
+            "id": "",
+            "data": [
+              "voucher"
+            ]
+          },
+          {
+            "text": "Revoke",
+            "id": "",
+            "data": [
+              "voucher"
+            ]
+          },
+          {
+            "text": "Refund",
+            "id": "",
+            "data": [
+              "refund"
+            ]
+          },
+          {
+            "text": "Refund",
+            "id": "",
+            "data": [
+              "refund"
+            ]
+          }
+        ],
+        "forms": [
+          "mfa",
+          "bundle",
+          "bundleEdit",
+          "generate"
+        ]
+      }
+    },
+    {
+      "step": "customer-packages-mobile",
+      "screenshot": "/tmp/ndahi-product-audit/07-customer-packages-mobile.png",
+      "controls": {
+        "bodyWidth": 390,
+        "viewport": 390,
+        "plans": 10
+      }
+    }
+  ],
+  "consoleErrors": []
+}

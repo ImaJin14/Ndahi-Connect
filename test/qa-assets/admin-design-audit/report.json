@@ -1,0 +1,28 @@
+{
+  "desktopTop": "/tmp/ndahi-admin-design-audit/01-admin-desktop-top.png",
+  "desktopFull": "/tmp/ndahi-admin-design-audit/02-admin-desktop-full.png",
+  "mobileTop": "/tmp/ndahi-admin-design-audit/03-admin-mobile-top.png",
+  "mobileMiddle": "/tmp/ndahi-admin-design-audit/04-admin-mobile-middle.png",
+  "desktop": {
+    "height": 3052,
+    "width": 1440,
+    "viewport": 1440,
+    "sections": [
+      "Integration status",
+      "Bundle management",
+      "Generate activation code",
+      "Customers and devices",
+      "Vouchers",
+      "Payments and usage",
+      "Audit log"
+    ],
+    "buttons": 24,
+    "tables": 6
+  },
+  "mobile": {
+    "height": 3881,
+    "width": 390,
+    "viewport": 390
+  },
+  "consoleErrors": []
+}
