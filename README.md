@@ -74,7 +74,7 @@ See the local `.env` for session durations, OTP/SMS, payment, RouterOS, Omada an
 
 For production, edit the single `.env`, set `NODE_ENV=production`, and replace every local or placeholder value. The API validates this configuration at startup and refuses to run with mock adapters, JSON-file persistence, insecure URLs/cookies, placeholder secrets, disabled administrator MFA, or an unconfigured provider. Flutterwave is the only production payment processor; configure its dashboard webhook as `https://api.ndahiconnect.net/api/webhooks/flutterwave` and set the same secret hash in `FLW_SECRET_HASH`.
 
-For production persistence, create a PostgreSQL database, set `DATABASE_URL`, then run `npm run migrate:postgres`. The API automatically uses PostgreSQL when `DATABASE_URL` is present and retains atomic JSON persistence for local development. Set `DATABASE_SSL=false` only for a trusted local PostgreSQL instance.
+For production persistence, create a PostgreSQL database, set `DATABASE_URL`, then run `npm run migrate:postgres`. The API automatically uses PostgreSQL when `DATABASE_URL` is present and retains atomic JSON persistence for local development. Set `DATABASE_SSL=false` only for a trusted local instance or Render's same-region private database URL; external database connections must use TLS.
 
 After deploying the fixed `NC-XXXX-XXXX` voucher format, stop API writers and run `npm run migrate:vouchers` once with the production environment loaded. The migration updates only voucher codes in a single database transaction, preserves all related subscription state, and then re-synchronizes every voucher with the RouterOS bridge. It is idempotent and safe to re-run.
 

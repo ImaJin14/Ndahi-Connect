@@ -9,6 +9,8 @@ The root `render.yaml` provisions four resources from this GitHub repository:
 
 The Blueprint intentionally does not declare custom domains yet. Start with the Render-provided URLs, verify the full system, and attach live DNS afterward.
 
+Use `docs/render-required-values.txt` as the copy-and-fill worksheet for the Blueprint creation form. It contains no real secrets and must remain that way.
+
 ## 1. Push and connect the Blueprint
 
 1. Push the repository to GitHub.
@@ -18,6 +20,10 @@ The Blueprint intentionally does not declare custom domains yet. Start with the 
 5. Enter every value Render marks as **required during creation**.
 
 Render generates the three application secrets and obtains `DATABASE_URL` from the managed database. Do not copy the local `.env` into Render.
+
+The Blueprint sets `DATABASE_SSL=false` because `fromDatabase.connectionString` uses Render's same-region private network URL. External PostgreSQL connections must use TLS; do not reuse this setting with an external database URL.
+
+The first deployment uses `BOOTSTRAP_MODE=true`. In this mode the API exposes only health/status responses and returns HTTP 503 for all operational endpoints. After every production URL and provider secret is configured, set `BOOTSTRAP_MODE=false` on `ndahi-api` and redeploy. Never serve customers while bootstrap mode is enabled.
 
 ## 2. Initial URL variables
 

@@ -256,8 +256,9 @@ async function body(req, raw = false) {
 const bearer = (req) =>
   String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
 export function createHandler(opts = {}) {
-  const env = { ...process.env, ...opts.env };
-  if (opts.validateConfig !== false) assertProductionConfig(env);
+  const env = { ...process.env, ...opts.env },
+    bootstrapMode = env.BOOTSTRAP_MODE === "true";
+  if (opts.validateConfig !== false && !bootstrapMode) assertProductionConfig(env);
   const paymentProviders = enabledPaymentProviders(env),
     store = opts.store ||
       (env.DATABASE_URL
@@ -402,6 +403,28 @@ export function createHandler(opts = {}) {
         res.writeHead(204);
         return res.end();
       }
+    }
+    if (bootstrapMode) {
+      if (req.method === "GET" && url.pathname === "/api/health") {
+        try {
+          await store.snapshot();
+          return json(res, 200, {
+            status: "bootstrap",
+            database: "ready",
+            operational: false,
+            message: "Deployment is healthy but provider configuration is incomplete.",
+          });
+        } catch (error) {
+          return json(res, 503, { status: "unhealthy", database: "unavailable" });
+        }
+      }
+      if (req.method === "GET" && url.pathname === "/api/status") {
+        return json(res, 200, { service: "bootstrap", operational: false });
+      }
+      return json(res, 503, {
+        error: "NDAHI Connect is awaiting production configuration.",
+        operational: false,
+      });
     }
     if (req.method === "GET" && url.pathname === "/api/plans") {
       return mutate((s) => json(res, 200, { plans: catalogue(s) }));
@@ -1459,7 +1482,7 @@ export const createServer = (opts) => http.createServer(createHandler(opts));
 const main = process.argv[1] &&
   fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (main) {
-  assertProductionConfig(process.env);
+  if (process.env.BOOTSTRAP_MODE !== "true") assertProductionConfig(process.env);
   const port = Number(process.env.PORT || process.env.API_PORT || 8082);
   createServer().listen(
     port,

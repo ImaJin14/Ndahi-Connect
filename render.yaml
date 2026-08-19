@@ -50,12 +50,14 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
+      - key: BOOTSTRAP_MODE
+        value: "true"
       - key: DATABASE_URL
         fromDatabase:
           name: ndahi-postgres
           property: connectionString
       - key: DATABASE_SSL
-        value: "true"
+        value: "false"
       - key: CUSTOMER_APP_URL
         sync: false
       - key: ADMIN_APP_URL
