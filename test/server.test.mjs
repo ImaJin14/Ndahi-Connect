@@ -38,7 +38,7 @@ test("TOTP uses RFC-compatible six-digit authenticator codes", () => {
   assert.match(totpUri(generated), /^otpauth:\/\/totp\//);
 });
 
-test("bootstrap deployment exposes readiness but blocks operational APIs", async (t) => {
+test("bootstrap deployment exposes readiness and plans but blocks operational APIs", async (t) => {
   const server = createServer({
     store: createStore({ persistent: false }),
     validateConfig: false,
@@ -48,9 +48,16 @@ test("bootstrap deployment exposes readiness but blocks operational APIs", async
   t.after(() => new Promise((resolve) => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`,
     health = await fetch(`${base}/api/health`),
-    plansResponse = await fetch(`${base}/api/plans`);
+    plansResponse = await fetch(`${base}/api/plans`),
+    purchaseResponse = await fetch(`${base}/api/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phone: "670000001", planId: "daily" }),
+    });
   assert.equal(health.status, 200);
   assert.equal((await health.json()).operational, false);
-  assert.equal(plansResponse.status, 503);
-  assert.equal((await plansResponse.json()).operational, false);
+  assert.equal(plansResponse.status, 200);
+  assert.equal((await plansResponse.json()).plans.length, plans.length);
+  assert.equal(purchaseResponse.status, 503);
+  assert.equal((await purchaseResponse.json()).operational, false);
 });

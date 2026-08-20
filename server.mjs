@@ -401,6 +401,9 @@ export function createHandler(opts = {}) {
         return res.end();
       }
     }
+    if (req.method === "GET" && url.pathname === "/api/plans") {
+      return mutate((s) => json(res, 200, { plans: catalogue(s) }));
+    }
     if (bootstrapMode) {
       if (req.method === "GET" && url.pathname === "/api/health") {
         try {
@@ -422,9 +425,6 @@ export function createHandler(opts = {}) {
         error: "NDAHI Connect is awaiting production configuration.",
         operational: false,
       });
-    }
-    if (req.method === "GET" && url.pathname === "/api/plans") {
-      return mutate((s) => json(res, 200, { plans: catalogue(s) }));
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
       return json(res, 200, {
