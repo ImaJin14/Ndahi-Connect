@@ -9,7 +9,7 @@
     "start:customer": "APP_KIND=customer node static-server.mjs",
     "start:admin": "APP_KIND=admin node static-server.mjs",
     "test": "node --test",
-    "check": "node --check server.mjs && node --check static-server.mjs && node --check lib/payments.mjs && node --check lib/sms.mjs && node --check lib/routeros.mjs && node --check lib/omada.mjs && node --check lib/postgres-store.mjs && node --check customer-app/app.js && node --check customer-app/login.js && node --check customer-app/verify.js && node --check customer-app/onboarding.js && node --check admin-app/app.js && node --check admin-app/login.js",
+    "check": "node --check server.mjs && node --check static-server.mjs && node --check lib/payments.mjs && node --check lib/routeros.mjs && node --check lib/omada.mjs && node --check lib/postgres-store.mjs && node --check customer-app/app.js && node --check customer-app/login.js && node --check customer-app/verify.js && node --check customer-app/onboarding.js && node --check admin-app/app.js && node --check admin-app/login.js",
     "build": "npm run check",
     "load-test": "node test/load-300.mjs",
     "migrate:postgres": "psql $DATABASE_URL -f migrations/001_ndahi_state.sql",

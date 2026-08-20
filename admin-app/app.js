@@ -92,7 +92,7 @@ async function load() {
     rows(x.customers, (c) =>
       `<tr><td>${c.name}</td><td>${c.phone}</td><td>${
         c.status || "active"
-      }</td><td><button data-customer="${c.id}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button></td></tr>`)
+      }</td><td><button data-customer="${c.id}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${c.id}">Reset authenticator</button>` : ""}</td></tr>`)
   }</table><h3>Active device sessions</h3><table>${
     rows(x.sessions, (s) =>
       `<tr><td>${s.label}</td><td>${s.deviceId}</td><td>${s.status}</td><td>${
@@ -304,6 +304,12 @@ $("#app").onclick = async (e) => {
     await call("/api/admin/vouchers/revoke", {
       method: "POST",
       body: JSON.stringify({ voucherId: e.target.dataset.voucher }),
+    });
+  } else if (e.target.dataset.resetAuthenticator) {
+    if (!confirm("Reset this customer's authenticator? Their active portal sessions will be signed out.")) return;
+    await call("/api/admin/customers/reset-authenticator", {
+      method: "POST",
+      body: JSON.stringify({ customerId: e.target.dataset.resetAuthenticator }),
     });
   } else if (e.target.dataset.customer) {
     const restoring = e.target.dataset.suspended === "true";

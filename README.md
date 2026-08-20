@@ -38,18 +38,18 @@ npm run start:admin
 npm run start:api
 ```
 
-For local plain HTTP only, `.env` sets `SESSION_COOKIE_SECURE=false`. Production must set it to `true`. Mock mode displays customer OTPs in development. No Mobile Money PIN is ever requested or stored.
+For local plain HTTP only, `.env` sets `SESSION_COOKIE_SECURE=false`. Production must set it to `true`. No Mobile Money PIN is ever requested or stored.
 
 ## Security model
 
-- Customer login: phone + bound activation code, then a hashed six-digit OTP with five-minute expiry, five attempts and phone/IP throttling.
+- Customer login: phone + bound activation code, then first-time TOTP authenticator enrollment and a rotating six-digit code with five attempts and phone/IP throttling.
 - Administrator login: named accounts with Argon2id password hashes, phishing-resistant WebAuthn passkeys, optional TOTP fallback, role authorization, five failures per IP per 15 minutes, CSRF protection in production, and a separate strict session cookie.
 - Browser requests use credentialed CORS. Admin endpoints allow only `ALLOWED_ADMIN_ORIGINS`; there is no wildcard CORS. Customer-origin requests to admin operations are rejected before authentication.
 - All administrator operations perform server-side role/session checks. Customer and admin cookies cannot substitute for each other.
 - Admin login/logout, bundle creation, voucher generation/revocation, customer suspension, refunds, payment corrections, device disconnects, MFA changes and zone configuration changes are audited.
 - Secrets and provider/RouterOS credentials remain backend environment variables and are never emitted in frontend configuration.
 
-The admin dashboard supports authenticator-app TOTP enrollment through an `otpauth://` setup URI, confirmation with a time-windowed six-digit code, and MFA-protected subsequent logins. `ADMIN_MFA_ENABLED=true` with `ADMIN_MFA_CODE` remains available only as an environment-managed recovery mechanism.
+The customer portal and admin dashboard support Google Authenticator and other RFC-compatible TOTP apps through an `otpauth://` setup URI. `ADMIN_MFA_ENABLED=true` with `ADMIN_MFA_CODE` remains available only as an environment-managed administrator recovery mechanism.
 
 ## Configuration
 
@@ -70,7 +70,7 @@ WEBAUTHN_RP_ID=admin.ndahiconnect.net
 SECRET_PEPPER=<high-entropy hashing pepper>
 ```
 
-See the local `.env` for session durations, OTP/SMS, payment, RouterOS, Omada and PostgreSQL settings. Live adapters require credentials issued by each provider; mock mode does not claim they are live.
+See the local `.env` for session durations, payment, RouterOS, Omada and PostgreSQL settings. Live adapters require credentials issued by each provider; mock mode does not claim they are live.
 
 For production, edit the single `.env`, set `NODE_ENV=production`, and replace every local or placeholder value. The API validates this configuration at startup and refuses to run with mock adapters, JSON-file persistence, insecure URLs/cookies, placeholder secrets, disabled administrator MFA, or an unconfigured provider. Flutterwave is the only production payment processor; configure its dashboard webhook as `https://api.ndahiconnect.net/api/webhooks/flutterwave` and set the same secret hash in `FLW_SECRET_HASH`.
 

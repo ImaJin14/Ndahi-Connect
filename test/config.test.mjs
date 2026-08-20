@@ -17,9 +17,6 @@ const production = {
   ALLOWED_ADMIN_ORIGINS: "https://admin.ndahi.test",
   SESSION_COOKIE_SECURE: "true",
   ADMIN_MFA_ENABLED: "true",
-  OTP_DELIVERY: "live",
-  SMS_API_URL: "https://sms.ndahi.test/send",
-  SMS_API_KEY: "sms-secret",
   MIKROTIK_MODE: "live",
   MIKROTIK_API_URL: "https://router.ndahi.test",
   MIKROTIK_USER: "service",
@@ -43,7 +40,6 @@ test("production configuration rejects mock and fallback infrastructure", () => 
   assert.ok(errors.some((error) => error.includes("DATABASE_URL")));
   assert.ok(errors.some((error) => error.includes("PAYMENT_MODE")));
   assert.ok(errors.some((error) => error.includes("MIKROTIK_MODE")));
-  assert.ok(errors.some((error) => error.includes("OTP_DELIVERY")));
 });
 
 test("development keeps mocks explicitly available for automated tests", () => {

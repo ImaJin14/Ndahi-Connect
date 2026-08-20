@@ -3,8 +3,8 @@ const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector
 if (!saved) location.replace("/login");
 const challenge = saved ? JSON.parse(saved) : null;
 if (challenge) {
-  $("#instructions").textContent = `Enter the six-digit OTP sent for ${challenge.phone}.`;
-  if (challenge.developmentOtp) $("#development").innerHTML = `<div class="success">Development OTP: <code>${challenge.developmentOtp}</code></div>`;
+  $("#instructions").textContent = challenge.message;
+  if (challenge.enrollmentRequired) $("#development").innerHTML = `<div class="success"><strong>First-time setup</strong><p>In Google Authenticator, tap +, choose Enter a setup key, use account <code>${challenge.phone}</code>, and enter this time-based key:</p><code>${challenge.secret}</code></div>`;
 }
 $("#verify").onsubmit = async (event) => {
   event.preventDefault();
@@ -13,7 +13,7 @@ $("#verify").onsubmit = async (event) => {
   button.textContent = "Verifying…";
   $("#message").textContent = "";
   try {
-    const response = await fetch(api + "/api/account/login/verify-otp", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: challenge.challengeId, otp: new FormData(event.target).get("otp") }) }),
+    const response = await fetch(api + "/api/account/login/verify-authenticator", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: challenge.challengeId, otp: new FormData(event.target).get("otp") }) }),
       result = await response.json();
     if (!response.ok) throw Error(result.error || "Verification failed");
     sessionStorage.removeItem("ndahi-login-challenge");

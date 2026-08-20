@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer, createStore, plans } from "../server.mjs";
-import { activationCode, hashSecret, normalizeActivationCode } from "../lib/security.mjs";
+import { activationCode, hashSecret, normalizeActivationCode, totpCode } from "../lib/security.mjs";
 import { migrateVoucherCodes } from "../lib/voucher-migration.mjs";
 async function fixture(options = {}) {
   const store = createStore({ persistent: false }),
@@ -140,27 +140,26 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   assert.equal(one.response.status, 200);
   assert.equal(two.response.status, 200);
   assert.equal(three.response.status, 409);
-  const otp = await f.call("/api/account/login/request-otp", "POST", {
+  const otp = await f.call("/api/account/login/request-authenticator", "POST", {
     phone: "670000001",
     code: paid.json.access.code,
   });
   assert.equal(otp.response.status, 200);
   const snapshot = await f.store.snapshot();
-  assert.ok(snapshot.otpChallenges[0].otpHash);
-  assert.equal(snapshot.otpChallenges[0].otp, undefined);
-  const bad = await f.call("/api/account/login/verify-otp", "POST", {
+  assert.ok(snapshot.otpChallenges[0].enrollmentSecret);
+  const bad = await f.call("/api/account/login/verify-authenticator", "POST", {
     challengeId: otp.json.challengeId,
     otp: "000000",
   });
   assert.equal(bad.response.status, 401);
-  const verified = await f.call("/api/account/login/verify-otp", "POST", {
+  const verified = await f.call("/api/account/login/verify-authenticator", "POST", {
     challengeId: otp.json.challengeId,
-    otp: otp.json.developmentOtp,
+    otp: totpCode(otp.json.secret),
   });
   assert.equal(verified.response.status, 200);
-  const reused = await f.call("/api/account/login/verify-otp", "POST", {
+  const reused = await f.call("/api/account/login/verify-authenticator", "POST", {
     challengeId: otp.json.challengeId,
-    otp: otp.json.developmentOtp,
+    otp: totpCode(otp.json.secret),
   });
   assert.equal(reused.response.status, 401);
   const dash = await f.call(
@@ -225,7 +224,7 @@ test("stacking and Student Daily same-day renewal are rejected; exhausted non-da
     409,
   );
 });
-test("OTP throttles after five requests and locks after five incorrect attempts", async (t) => {
+test("authenticator login throttles requests and locks after five incorrect attempts", async (t) => {
   const f = await fixture();
   t.after(f.close);
   const b = await f.call("/api/purchase", "POST", {
@@ -236,23 +235,23 @@ test("OTP throttles after five requests and locks after five incorrect attempts"
     credentials = { phone: "670000030", code: p.json.access.code };
   let ch;
   for (let i = 0; i < 5; i++) {
-    ch = await f.call("/api/account/login/request-otp", "POST", credentials);
+    ch = await f.call("/api/account/login/request-authenticator", "POST", credentials);
   }
   assert.equal(
-    (await f.call("/api/account/login/request-otp", "POST", credentials))
+    (await f.call("/api/account/login/request-authenticator", "POST", credentials))
       .response.status,
     429,
   );
   for (let i = 0; i < 5; i++) {
-    await f.call("/api/account/login/verify-otp", "POST", {
+    await f.call("/api/account/login/verify-authenticator", "POST", {
       challengeId: ch.json.challengeId,
       otp: "111111",
     });
   }
   assert.equal(
-    (await f.call("/api/account/login/verify-otp", "POST", {
+    (await f.call("/api/account/login/verify-authenticator", "POST", {
       challengeId: ch.json.challengeId,
-      otp: ch.json.developmentOtp,
+      otp: totpCode(ch.json.secret),
     })).response.status,
     401,
   );
@@ -267,10 +266,10 @@ test("voucher expiry and dashboard session expiry are enforced", async (t) => {
     }),
     p = await f.call(`/api/payments/${b.json.payment.id}/confirm`, "POST"),
     credentials = { phone: "670000040", code: p.json.access.code },
-    otp = await f.call("/api/account/login/request-otp", "POST", credentials),
-    login = await f.call("/api/account/login/verify-otp", "POST", {
+    otp = await f.call("/api/account/login/request-authenticator", "POST", credentials),
+    login = await f.call("/api/account/login/verify-authenticator", "POST", {
       challengeId: otp.json.challengeId,
-      otp: otp.json.developmentOtp,
+      otp: totpCode(otp.json.secret, current.getTime()),
     });
   current = new Date(current.getTime() + 31 * 60_000);
   assert.equal(

@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { totpCode } from "../lib/security.mjs";
 
 const out = "/tmp/ndahi-product-audit";
 await mkdir(out, { recursive: true });
@@ -77,7 +78,8 @@ const voucher = database.vouchers.find((item) => item.status === "active");
 const customer = voucher && database.customers.find((item) => item.id === voucher.customerId);
 if (voucher && customer) {
   await evaluate(`document.querySelector('[name="phone"]').value=${JSON.stringify(customer.phone)};document.querySelector('[name="code"]').value=${JSON.stringify(voucher.code.toLowerCase().replaceAll("-", ""))};document.querySelector('#login button').click()`);
-  const otp = await waitFor(`JSON.parse(sessionStorage.getItem('ndahi-login-challenge') || 'null')?.developmentOtp`);
+  const secret = await waitFor(`JSON.parse(sessionStorage.getItem('ndahi-login-challenge') || 'null')?.secret`);
+  const otp = totpCode(secret);
   await waitFor(`location.pathname === '/verify.html'`);
   await evaluate(`document.querySelector('[name="otp"]').value=${JSON.stringify(otp)};document.querySelector('#verify button').click()`);
   await wait(1100);

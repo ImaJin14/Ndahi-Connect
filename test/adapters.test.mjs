@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { FlutterwavePaymentAdapter } from "../lib/payments.mjs";
-import { HttpSmsAdapter } from "../lib/sms.mjs";
 import { RouterOSAdapter, routerVoucherPayload } from "../lib/routeros.mjs";
 import { OmadaAdapter } from "../lib/omada.mjs";
 
@@ -73,17 +72,12 @@ test("Flutterwave verifies transactions and authenticates signed webhooks", asyn
   });
 });
 
-test("SMS, MikroTik and Omada adapters keep credentials server-side", async () => {
+test("MikroTik and Omada adapters keep credentials server-side", async () => {
   const calls = [];
   await withFetch(async (url, options) => {
     calls.push({ url, options });
     return response(url.includes("/aps") ? { data: [{ name: "AP-1" }] } : []);
   }, async () => {
-    await new HttpSmsAdapter({
-      url: "https://sms.test/send",
-      apiKey: "secret",
-      sender: "NDAHI",
-    }).sendOtp({ phone: "670000001", code: "123456" });
     await new RouterOSAdapter({
       url: "https://router.test",
       username: "api",
@@ -95,7 +89,7 @@ test("SMS, MikroTik and Omada adapters keep credentials server-side", async () =
       siteId: "campus",
     }).status();
     assert.equal(status.accessPoints.length, 1);
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 2);
     assert.ok(calls.every((call) => !call.url.includes("secret")));
   });
 });

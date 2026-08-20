@@ -14,7 +14,6 @@ import {
   activationCode,
   hashSecret,
   normalizeActivationCode,
-  otpCode,
   safeEqual,
   secureToken,
   totpSecret,
@@ -23,7 +22,6 @@ import {
 } from "./lib/security.mjs";
 import { paymentAdapters } from "./lib/payments.mjs";
 import { routerAdapter } from "./lib/routeros.mjs";
-import { smsAdapter } from "./lib/sms.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
 import { createPostgresStore } from "./lib/postgres-store.mjs";
 import { assertProductionConfig, enabledPaymentProviders } from "./lib/config.mjs";
@@ -270,7 +268,6 @@ export function createHandler(opts = {}) {
         : createStore()),
     pays = opts.payments || paymentAdapters(env),
     router = opts.router || routerAdapter(env),
-    sms = opts.sms || smsAdapter(env),
     omada = opts.omada || omadaAdapter(env),
     clock = opts.now || (() => new Date()),
     customerSecret = env.CUSTOMER_SESSION_SECRET || env.SECRET_PEPPER ||
@@ -672,7 +669,8 @@ export function createHandler(opts = {}) {
       });
     }
     if (
-      req.method === "POST" && url.pathname === "/api/account/login/request-otp"
+      req.method === "POST" &&
+      url.pathname === "/api/account/login/request-authenticator"
     ) {
       const i = await body(req);
       return mutate(async (s) => {
@@ -695,41 +693,36 @@ export function createHandler(opts = {}) {
           sec(s, "dashboard.login.failed", req);
           return json(res, 401, { error: generic });
         }
-        const otp = otpCode(),
+        const enrollmentSecret = c.totpSecret ? null : totpSecret(),
           ch = {
             id: randomUUID(),
             customerId: c.id,
             phone: ph,
             ip: ip(req),
-            otpHash: hashSecret(otp, pepper),
+            enrollmentSecret,
             attempts: 0,
             used: false,
             createdAt: clock().toISOString(),
             expiresAt: new Date(clock().getTime() + 3e5).toISOString(),
           };
-        try {
-          await sms.sendOtp({ phone: ph, code: otp });
-        } catch (error) {
-          sec(s, "otp.delivery_failed", req, { message: error.message });
-          return json(res, 502, {
-            error:
-              "The verification code could not be sent. Try again shortly.",
-          });
-        }
         s.otpChallenges.push(ch);
         const out = {
           challengeId: ch.id,
-          message: "A six-digit code was sent to the verified phone.",
+          enrollmentRequired: Boolean(enrollmentSecret),
+          message: enrollmentSecret
+            ? "Add NDAHI Connect to your authenticator app, then enter its six-digit code."
+            : "Enter the six-digit code from your authenticator app.",
         };
-        if (
-          env.NODE_ENV !== "production" &&
-          (env.OTP_DELIVERY || "mock") === "mock"
-        ) out.developmentOtp = otp;
+        if (enrollmentSecret) {
+          out.secret = enrollmentSecret;
+          out.uri = totpUri(enrollmentSecret, ph);
+        }
         return json(res, 200, out);
       });
     }
     if (
-      req.method === "POST" && url.pathname === "/api/account/login/verify-otp"
+      req.method === "POST" &&
+      url.pathname === "/api/account/login/verify-authenticator"
     ) {
       const i = await body(req);
       return mutate(async (s) => {
@@ -742,7 +735,9 @@ export function createHandler(opts = {}) {
             error: "The verification code is invalid or expired.",
           });
         }
-        if (!safeEqual(ch.otpHash, hashSecret(i.otp, pepper))) {
+        const customer = s.customers.find((x) => x.id === ch.customerId),
+          secret = customer?.totpSecret || ch.enrollmentSecret;
+        if (!customer || !verifyTotp(secret, i.otp, clock().getTime())) {
           ch.attempts++;
           sec(s, "otp.failed", req);
           return json(res, 401, {
@@ -751,6 +746,13 @@ export function createHandler(opts = {}) {
           });
         }
         ch.used = true;
+        if (!customer.totpSecret) {
+          customer.totpSecret = ch.enrollmentSecret;
+          customer.totpEnrolledAt = clock().toISOString();
+          log(s, "customer.authenticator.enrolled", {
+            customerId: customer.id,
+          });
+        }
         const token = secureToken(),
           seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
           expiresAt = new Date(clock().getTime() + seconds * 1000)
@@ -796,8 +798,9 @@ export function createHandler(opts = {}) {
           v = s.vouchers.filter((x) => x.customerId === c.id).map((x) =>
             view(x, s)
           );
+        const { totpSecret: _totpSecret, ...safeCustomer } = c;
         return json(res, 200, {
-          customer: c,
+          customer: safeCustomer,
           activeBundle: v.find((x) => x.status === "active") || null,
           vouchers: v,
           payments: s.payments.filter((x) => x.customerId === c.id).slice(
@@ -1010,7 +1013,10 @@ export function createHandler(opts = {}) {
                 s.vouchers.filter((v) => v.planId === p.id).length,
               ]),
             ),
-            customers: s.customers,
+            customers: s.customers.map(({ totpSecret: _secret, ...customer }) => ({
+              ...customer,
+              authenticatorEnrolled: Boolean(_secret),
+            })),
             vouchers: s.vouchers.map((v) => view(v, s, true)),
             payments: s.payments.slice(0, 100),
             sessions: s.sessions.slice(-100).reverse(),
@@ -1348,7 +1354,24 @@ export function createHandler(opts = {}) {
             customerId: c.id,
             status: c.status,
           });
-          return json(res, 200, { customer: c });
+          const { totpSecret: _totpSecret, ...safeCustomer } = c;
+          return json(res, 200, { customer: safeCustomer });
+        }
+        if (
+          req.method === "POST" &&
+          url.pathname === "/api/admin/customers/reset-authenticator"
+        ) {
+          const c = s.customers.find((x) => x.id === i.customerId);
+          if (!c) return json(res, 404, { error: "Customer not found." });
+          delete c.totpSecret;
+          delete c.totpEnrolledAt;
+          s.dashboardSessions = s.dashboardSessions.filter((x) =>
+            x.customerId !== c.id
+          );
+          audit(s, "customer.authenticator_reset", req, {
+            customerId: c.id,
+          });
+          return json(res, 200, { reset: true });
         }
         if (
           req.method === "POST" && url.pathname === "/api/admin/payments/refund"

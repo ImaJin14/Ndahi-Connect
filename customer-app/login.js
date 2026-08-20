@@ -9,11 +9,11 @@ $("#login").onsubmit = async (event) => {
   event.preventDefault();
   const button = event.submitter || event.target.querySelector("button"), original = button.textContent;
   button.disabled = true;
-  button.textContent = "Sending code…";
+  button.textContent = "Continue…";
   $("#message").textContent = "";
   try {
-    const input = Object.fromEntries(new FormData(event.target)), result = await call("/api/account/login/request-otp", input);
-    sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ challengeId: result.challengeId, phone: input.phone, developmentOtp: result.developmentOtp || null, message: result.message }));
+    const input = Object.fromEntries(new FormData(event.target)), result = await call("/api/account/login/request-authenticator", input);
+    sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone: input.phone }));
     location.href = "/verify.html";
   } catch (error) {
     $("#message").textContent = error.message;

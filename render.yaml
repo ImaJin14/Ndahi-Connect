@@ -104,16 +104,6 @@ services:
         sync: false
       - key: FLW_SECRET_HASH
         sync: false
-      - key: OTP_DELIVERY
-        value: live
-      - key: SMS_PROVIDER
-        sync: false
-      - key: SMS_API_URL
-        sync: false
-      - key: SMS_API_KEY
-        sync: false
-      - key: SMS_SENDER
-        value: NDAHI
       - key: MIKROTIK_MODE
         value: live
       - key: MIKROTIK_API_URL
