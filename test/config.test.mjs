@@ -45,4 +45,5 @@ test("production configuration rejects mock and fallback infrastructure", () => 
 
 test("development keeps mocks explicitly available for automated tests", () => {
   assert.deepEqual(enabledPaymentProviders({ NODE_ENV: "test", PAYMENT_MODE: "mock" }), ["mock"]);
+  assert.deepEqual(enabledPaymentProviders({ NODE_ENV: "production", PAYMENT_MODE: "flutterwave" }), ["flutterwave"]);
 });

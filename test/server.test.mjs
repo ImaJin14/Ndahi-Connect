@@ -52,7 +52,10 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
     purchaseResponse = await fetch(`${base}/api/purchase`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phone: "670000001", planId: "daily" }),
+      body: JSON.stringify({
+        phone: "670000001", email: "customer@example.com",
+        network: "mtn", planId: "daily",
+      }),
     }),
     adminLogin = await fetch(`${base}/api/admin/login`, {
       method: "POST",
@@ -115,4 +118,35 @@ test("admin password login requires a separate one-time MFA challenge", async (t
     body: JSON.stringify({ challengeId: challenge.challengeId, mfaCode: "123456" }),
   });
   assert.equal(reused.status, 401);
+});
+
+test("bootstrap mode allows Flutterwave checkout when payment credentials are ready", async (t) => {
+  const server = createServer({
+    store: createStore({ persistent: false }),
+    validateConfig: false,
+    payments: {
+      flutterwave: {
+        configured: () => true,
+        createPayment: async () => ({ providerReference: "123456" }),
+      },
+    },
+    env: {
+      BOOTSTRAP_MODE: "true",
+      PAYMENT_MODE: "live",
+      CUSTOMER_APP_URL: "http://customer.test",
+    },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`,
+    response = await fetch(`${base}/api/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Customer", phone: "670000001", email: "customer@example.com",
+        network: "mtn", planId: "daily",
+      }),
+    });
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).payment.provider, "flutterwave");
 });

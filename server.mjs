@@ -259,8 +259,7 @@ export function createHandler(opts = {}) {
   const env = { ...process.env, ...opts.env },
     bootstrapMode = env.BOOTSTRAP_MODE === "true";
   if (opts.validateConfig !== false && !bootstrapMode) assertProductionConfig(env);
-  const paymentProviders = enabledPaymentProviders(env),
-    store = opts.store ||
+  const store = opts.store ||
       (env.DATABASE_URL
         ? createPostgresStore({
           connectionString: env.DATABASE_URL,
@@ -269,6 +268,10 @@ export function createHandler(opts = {}) {
         })
         : createStore()),
     pays = opts.payments || paymentAdapters(env),
+    paymentProviders = enabledPaymentProviders(env).filter((provider) =>
+      provider === "mock" || typeof pays[provider]?.configured !== "function" ||
+      pays[provider].configured()
+    ),
     router = opts.router || routerAdapter(env),
     omada = opts.omada || omadaAdapter(env),
     clock = opts.now || (() => new Date()),
@@ -419,7 +422,17 @@ export function createHandler(opts = {}) {
             status: "bootstrap",
             database: "ready",
             operational: false,
-            message: "Deployment is healthy but provider configuration is incomplete.",
+            capabilities: {
+              plans: true,
+              payments: paymentProviders.includes("flutterwave"),
+              customerAccounts: true,
+              administration: true,
+              networkProvisioning: Boolean(
+                env.MIKROTIK_API_URL && env.MIKROTIK_USER &&
+                  env.MIKROTIK_PASSWORD
+              ),
+            },
+            message: "Deployment is running with capability-based setup controls.",
           });
         } catch (error) {
           return json(res, 503, { status: "unhealthy", database: "unavailable" });
@@ -428,10 +441,6 @@ export function createHandler(opts = {}) {
       if (req.method === "GET" && url.pathname === "/api/status") {
         return json(res, 200, { service: "bootstrap", operational: false });
       }
-      return json(res, 503, {
-        error: "NDAHI Connect is awaiting production configuration.",
-        operational: false,
-      });
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
       return json(res, 200, {
@@ -457,6 +466,16 @@ export function createHandler(opts = {}) {
       if (!phoneOk(i.phone) || (env.PAYMENT_MODE !== "mock" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(i.email || "")))) {
         return json(res, 400, {
           error: "Enter a valid Cameroon phone number and email address.",
+        });
+      }
+      const provider = env.PAYMENT_MODE === "mock" ? "mock" : "flutterwave";
+      if (!paymentProviders.includes(provider)) {
+        return json(res, 503, {
+          error: provider === "flutterwave"
+            ? "Flutterwave payments are not configured yet. Add FLW_SECRET_KEY and FLW_SECRET_HASH to the API service in Render."
+            : "Payments are not configured.",
+          code: "PAYMENT_PROVIDER_NOT_CONFIGURED",
+          operational: false,
         });
       }
       return mutate(async (s) => {
@@ -498,8 +517,7 @@ export function createHandler(opts = {}) {
               "Student Daily can only be activated once per Cameroon calendar day.",
           });
         }
-        const provider = env.PAYMENT_MODE === "mock" ? "mock" : "flutterwave",
-          p = {
+        const p = {
             id: randomUUID(),
             customerId: c.id,
             planId: plan.id,
@@ -514,10 +532,7 @@ export function createHandler(opts = {}) {
             status: "pending",
             createdAt: clock().toISOString(),
           },
-          made = paymentProviders.includes(provider)
-            ? await pays[provider].createPayment(p)
-            : null;
-        if (!made) return json(res, 400, { error: "Selected payment provider is not available." });
+          made = await pays[provider].createPayment(p);
         p.providerReference = made.providerReference;
         if (made.checkoutUrl) p.checkoutUrl = made.checkoutUrl;
         if (
