@@ -26,7 +26,7 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
   for (const id of ["continue", "closeCheckout"]) assert.match(files.onboardingJs, new RegExp(`#${id}.*\\.onclick`));
   assert.match(files.onboardingJs, /#purchase"\)\.onsubmit/);
-  assert.match(files.onboardingJs, /openProvider\.onclick/);
+  assert.match(files.onboardingJs, /ndahi-flutterwave/);
   assert.match(files.onboardingJs, /confirm\.onclick/);
   assert.match(files.adminLoginJs, /#login"\)\.onsubmit/);
   for (const id of ["bundle", "bundleEdit", "generate"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onsubmit`));

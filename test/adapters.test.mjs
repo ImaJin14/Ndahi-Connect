@@ -24,7 +24,16 @@ test("Flutterwave creates a Cameroon francophone mobile money charge", async () 
   const calls = [];
   await withFetch(async (url, options) => {
     calls.push({ url, options });
-    return response({ status: "success", data: { id: 12345, status: "pending" } });
+    return response({
+      status: "success",
+      data: { id: 12345, status: "pending" },
+      meta: {
+        authorization: {
+          mode: "redirect",
+          redirect_url: "https://checkout.flutterwave.test/authorize/12345",
+        },
+      },
+    });
   }, async () => {
     const adapter = new FlutterwavePaymentAdapter({
       apiUrl: "https://flutterwave.test/v3",
@@ -42,6 +51,8 @@ test("Flutterwave creates a Cameroon francophone mobile money charge", async () 
       planId: "weekly",
     });
     assert.equal(result.providerReference, "12345");
+    assert.equal(result.authorizationMode, "redirect");
+    assert.equal(result.checkoutUrl, "https://checkout.flutterwave.test/authorize/12345");
     assert.equal(calls.length, 1);
     assert.match(calls[0].url, /charges\?type=mobile_money_franco$/);
     const body = JSON.parse(calls[0].options.body);

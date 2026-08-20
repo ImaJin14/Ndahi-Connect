@@ -534,6 +534,7 @@ export function createHandler(opts = {}) {
           },
           made = await pays[provider].createPayment(p);
         p.providerReference = made.providerReference;
+        p.authorizationMode = made.authorizationMode || "callback";
         if (made.checkoutUrl) p.checkoutUrl = made.checkoutUrl;
         if (
           s.payments.some((x) => x.providerReference === p.providerReference)
@@ -554,6 +555,7 @@ export function createHandler(opts = {}) {
             mode: env.PAYMENT_MODE || "mock",
             message: "Approve the payment request on your phone.",
             url: made.checkoutUrl,
+            authorizationMode: p.authorizationMode,
           },
         });
       });

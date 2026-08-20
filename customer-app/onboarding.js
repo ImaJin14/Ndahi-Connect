@@ -114,6 +114,11 @@ async function waitForPayment(paymentId, phone) {
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
   const button = event.submitter;
+  const paymentWindow = window.open(
+    "about:blank",
+    "ndahi-flutterwave",
+    "popup,width=520,height=760",
+  );
   button.disabled = true;
   button.textContent = "Creating payment…";
   try {
@@ -129,15 +134,15 @@ $("#purchase").onsubmit = async (event) => {
       created.checkout.mode === "mock"
         ? ' <button id="confirm">Simulate payment approval</button>'
         : created.checkout.url
-        ? ' <button id="openProvider">Continue to secure payment</button>'
-        : " Approve it on your phone."
+        ? " Complete approval in the secure Flutterwave window."
+        : " Approve the prompt sent to your phone."
     }<br><span id="paymentStatus">Waiting for verified confirmation…</span></div>`;
-    const openProvider = $("#openProvider");
-    if (openProvider) openProvider.onclick = () => {
+    if (created.checkout.url) {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
-      window.open(destination.href, "_blank", "noopener,noreferrer");
-    };
+      if (paymentWindow) paymentWindow.location.replace(destination.href);
+      else $("#message").innerHTML += `<p><a class="button" href="${destination.href}" target="_blank" rel="noopener">Open secure payment</a></p>`;
+    } else paymentWindow?.close();
     const confirm = $("#confirm");
     if (confirm) {
       confirm.onclick = async () => {
@@ -160,6 +165,7 @@ $("#purchase").onsubmit = async (event) => {
       });
     }
   } catch (error) {
+    paymentWindow?.close();
     $("#message").innerHTML = `<p class="error">${error.message}</p>`;
   } finally {
     button.disabled = false;
