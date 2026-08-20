@@ -96,6 +96,10 @@ services:
         sync: false
       - key: WEBAUTHN_RP_NAME
         value: NDAHI Connect Admin
+      - key: CUSTOMER_WEBAUTHN_RP_ID
+        value: portal.ndahiconnect.net
+      - key: CUSTOMER_WEBAUTHN_RP_NAME
+        value: NDAHI Connect
       - key: PAYMENT_MODE
         value: live
       - key: FLW_API_URL

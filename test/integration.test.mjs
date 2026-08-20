@@ -157,6 +157,19 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
     otp: totpCode(otp.json.secret),
   });
   assert.equal(verified.response.status, 200);
+  const returning = await f.call(
+    "/api/account/login/request-authenticator",
+    "POST",
+    { phone: "670000001" },
+  );
+  assert.equal(returning.response.status, 200);
+  assert.equal(returning.json.enrollmentRequired, false);
+  assert.equal(returning.json.secret, undefined);
+  assert.equal((await f.call(
+    "/api/account/login/verify-authenticator",
+    "POST",
+    { challengeId: returning.json.challengeId, otp: totpCode(otp.json.secret) },
+  )).response.status, 200);
   const reused = await f.call("/api/account/login/verify-authenticator", "POST", {
     challengeId: otp.json.challengeId,
     otp: totpCode(otp.json.secret),

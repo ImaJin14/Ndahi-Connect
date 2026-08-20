@@ -11,6 +11,7 @@ const production = {
   ADMIN_USERNAME: "owner",
   ADMIN_BOOTSTRAP_PASSWORD: "strong-admin-bootstrap-credential",
   WEBAUTHN_RP_ID: "admin.ndahi.test",
+  CUSTOMER_WEBAUTHN_RP_ID: "portal.ndahi.test",
   CUSTOMER_APP_URL: "https://portal.ndahi.test",
   ADMIN_APP_URL: "https://admin.ndahi.test",
   API_URL: "https://api.ndahi.test",

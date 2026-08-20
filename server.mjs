@@ -55,6 +55,7 @@ export const blank = () => ({
     adminSessions: [],
     adminUsers: [],
     adminPasskeyChallenges: [],
+    customerPasskeyChallenges: [],
     adminLoginChallenges: [],
     otpChallenges: [],
     adminMfaChallenges: [],
@@ -293,7 +294,10 @@ export function createHandler(opts = {}) {
       : env.NODE_ENV === "production",
     adminOrigin = env.ADMIN_APP_URL || "http://localhost:8081",
     rpID = env.WEBAUTHN_RP_ID || new URL(adminOrigin).hostname,
-    rpName = env.WEBAUTHN_RP_NAME || "NDAHI Connect Admin";
+    rpName = env.WEBAUTHN_RP_NAME || "NDAHI Connect Admin",
+    customerRpID = env.CUSTOMER_WEBAUTHN_RP_ID ||
+      new URL(customerOrigin).hostname,
+    customerRpName = env.CUSTOMER_WEBAUTHN_RP_NAME || "NDAHI Connect";
   const mutate = (fn) =>
       store.transaction(async (s) => {
         clean(s, clock(), router);
@@ -689,10 +693,11 @@ export function createHandler(opts = {}) {
           });
         }
         const c = s.customers.find((x) => x.phone === ph),
-          v = s.vouchers.find((x) =>
+          enrolled = Boolean(c?.totpSecret || c?.passkeys?.length),
+          v = !enrolled && s.vouchers.find((x) =>
             safeEqual(x.code, normalizeActivationCode(i.code))
           );
-        if (!c || !v || v.customerId !== c.id) {
+        if (!c || (!enrolled && (!v || v.customerId !== c.id))) {
           sec(s, "dashboard.login.failed", req);
           return json(res, 401, { error: generic });
         }
@@ -776,6 +781,86 @@ export function createHandler(opts = {}) {
         });
       });
     }
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/account/passkey/options"
+    ) {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const c = s.customers.find((x) =>
+          x.phone === phone(i.phone) && x.status !== "suspended"
+        );
+        if (!c?.passkeys?.length) {
+          return json(res, 404, {
+            error: "No passkey is enrolled for this customer account.",
+          });
+        }
+        const options = await generateAuthenticationOptions({
+          rpID: customerRpID,
+          userVerification: "required",
+          allowCredentials: c.passkeys.map((key) => ({
+            id: key.id,
+            transports: key.transports,
+          })),
+        });
+        const challenge = {
+          id: randomUUID(), customerId: c.id, challenge: options.challenge,
+          type: "authentication",
+          expiresAt: new Date(clock().getTime() + 5 * 60_000).toISOString(),
+        };
+        s.customerPasskeyChallenges.push(challenge);
+        return json(res, 200, { challengeId: challenge.id, options });
+      });
+    }
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/account/passkey/verify"
+    ) {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const challenge = s.customerPasskeyChallenges.find((x) =>
+            x.id === i.challengeId && x.type === "authentication"
+          ),
+          c = challenge && s.customers.find((x) =>
+            x.id === challenge.customerId && x.status !== "suspended"
+          ),
+          key = c?.passkeys?.find((x) => x.id === i.response?.id);
+        if (!challenge || !c || !key || new Date(challenge.expiresAt) <= clock()) {
+          return json(res, 401, { error: "Passkey challenge is invalid or expired." });
+        }
+        const verification = await verifyAuthenticationResponse({
+          response: i.response,
+          expectedChallenge: challenge.challenge,
+          expectedOrigin: customerOrigin,
+          expectedRPID: customerRpID,
+          requireUserVerification: true,
+          credential: {
+            id: key.id,
+            publicKey: Buffer.from(key.publicKey, "base64url"),
+            counter: key.counter,
+            transports: key.transports,
+          },
+        });
+        if (!verification.verified) {
+          return json(res, 401, { error: "Passkey verification failed." });
+        }
+        key.counter = verification.authenticationInfo.newCounter;
+        s.customerPasskeyChallenges = s.customerPasskeyChallenges.filter((x) =>
+          x.id !== challenge.id
+        );
+        const token = secureToken(),
+          seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
+          expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
+        s.dashboardSessions.push({
+          tokenHash: hashSecret(token, customerSecret), customerId: c.id,
+          role: "customer", expiresAt,
+        });
+        sec(s, "customer.passkey_login.succeeded", req, { customerId: c.id });
+        return json(res, 200, { authenticated: true, expiresAt }, {
+          "set-cookie": cookie("customer_session", token, seconds, secureCookies),
+        });
+      });
+    }
     if (req.method === "POST" && url.pathname === "/api/account/logout") {
       return mutate(async (s) => {
         const token = cookies(req).customer_session;
@@ -801,9 +886,17 @@ export function createHandler(opts = {}) {
           v = s.vouchers.filter((x) => x.customerId === c.id).map((x) =>
             view(x, s)
           );
-        const { totpSecret: _totpSecret, ...safeCustomer } = c;
+        const {
+          totpSecret: _totpSecret,
+          passkeys: customerPasskeys = [],
+          ...safeCustomer
+        } = c;
         return json(res, 200, {
-          customer: safeCustomer,
+          customer: {
+            ...safeCustomer,
+            authenticatorEnrolled: Boolean(_totpSecret),
+            passkeys: customerPasskeys.length,
+          },
           activeBundle: v.find((x) => x.status === "active") || null,
           vouchers: v,
           payments: s.payments.filter((x) => x.customerId === c.id).slice(
@@ -812,6 +905,77 @@ export function createHandler(opts = {}) {
           ),
           sessionExpiresAt: a.expiresAt,
         });
+      });
+    }
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/account/passkeys/options"
+    ) {
+      return mutate(async (s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId);
+        if (!c) return json(res, 401, { error: "Customer session expired." });
+        const options = await generateRegistrationOptions({
+          rpName: customerRpName,
+          rpID: customerRpID,
+          userName: c.phone,
+          userID: Buffer.from(c.id),
+          attestationType: "none",
+          excludeCredentials: (c.passkeys || []).map((key) => ({
+            id: key.id, transports: key.transports,
+          })),
+          authenticatorSelection: {
+            residentKey: "preferred", userVerification: "required",
+          },
+        });
+        const challenge = {
+          id: randomUUID(), customerId: c.id, challenge: options.challenge,
+          type: "registration",
+          expiresAt: new Date(clock().getTime() + 5 * 60_000).toISOString(),
+        };
+        s.customerPasskeyChallenges.push(challenge);
+        return json(res, 200, { challengeId: challenge.id, options });
+      });
+    }
+    if (
+      req.method === "POST" &&
+      url.pathname === "/api/account/passkeys/verify"
+    ) {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId),
+          challenge = c && s.customerPasskeyChallenges.find((x) =>
+            x.id === i.challengeId && x.customerId === c.id &&
+            x.type === "registration"
+          );
+        if (!challenge || new Date(challenge.expiresAt) <= clock()) {
+          return json(res, 400, { error: "Passkey enrollment expired." });
+        }
+        const verification = await verifyRegistrationResponse({
+          response: i.response,
+          expectedChallenge: challenge.challenge,
+          expectedOrigin: customerOrigin,
+          expectedRPID: customerRpID,
+          requireUserVerification: true,
+        });
+        if (!verification.verified || !verification.registrationInfo) {
+          return json(res, 400, { error: "Passkey enrollment failed." });
+        }
+        const credential = verification.registrationInfo.credential;
+        c.passkeys ??= [];
+        c.passkeys.push({
+          id: credential.id,
+          publicKey: Buffer.from(credential.publicKey).toString("base64url"),
+          counter: credential.counter,
+          transports: credential.transports,
+          createdAt: clock().toISOString(),
+        });
+        s.customerPasskeyChallenges = s.customerPasskeyChallenges.filter((x) =>
+          x.id !== challenge.id
+        );
+        log(s, "customer.passkey.enrolled", { customerId: c.id });
+        return json(res, 200, { enrolled: true, passkeys: c.passkeys.length });
       });
     }
     if (
@@ -1079,9 +1243,14 @@ export function createHandler(opts = {}) {
                 s.vouchers.filter((v) => v.planId === p.id).length,
               ]),
             ),
-            customers: s.customers.map(({ totpSecret: _secret, ...customer }) => ({
+            customers: s.customers.map(({
+              totpSecret: _secret,
+              passkeys: customerPasskeys = [],
+              ...customer
+            }) => ({
               ...customer,
               authenticatorEnrolled: Boolean(_secret),
+              passkeys: customerPasskeys.length,
             })),
             vouchers: s.vouchers.map((v) => view(v, s, true)),
             payments: s.payments.slice(0, 100),
@@ -1443,6 +1612,7 @@ export function createHandler(opts = {}) {
           if (!c) return json(res, 404, { error: "Customer not found." });
           delete c.totpSecret;
           delete c.totpEnrolledAt;
+          c.passkeys = [];
           s.dashboardSessions = s.dashboardSessions.filter((x) =>
             x.customerId !== c.id
           );
