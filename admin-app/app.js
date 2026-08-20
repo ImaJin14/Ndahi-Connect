@@ -41,6 +41,7 @@ async function load() {
     );
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
+${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${name}: ${ready ? "ready" : "needs setup"}</span>`).join("")}</div></section>` : ""}
 <div class="metrics">${
     Object.entries(x.metrics).map(([k, v]) =>
       `<div class="metric"><b>${v}</b>${k}</div>`

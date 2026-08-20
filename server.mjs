@@ -275,7 +275,9 @@ export function createHandler(opts = {}) {
     adminSecret = env.ADMIN_SESSION_SECRET || env.SECRET_PEPPER ||
       "development-admin-secret",
     pepper = env.SECRET_PEPPER || "development-only-pepper",
-    adminHash = hashSecret(env.ADMIN_BOOTSTRAP_PASSWORD || env.ADMIN_PIN || "2468", adminSecret),
+    adminBootstrapCredential = env.ADMIN_BOOTSTRAP_PASSWORD || env.ADMIN_PIN ||
+      (env.NODE_ENV === "production" ? secureToken() : "2468"),
+    adminHash = hashSecret(adminBootstrapCredential, adminSecret),
     generic =
       "Unable to verify those credentials. Check the details and try again.",
     customerOrigin = env.CUSTOMER_APP_URL || "http://localhost:8080",
@@ -404,7 +406,7 @@ export function createHandler(opts = {}) {
     if (req.method === "GET" && url.pathname === "/api/plans") {
       return mutate((s) => json(res, 200, { plans: catalogue(s) }));
     }
-    if (bootstrapMode) {
+    if (bootstrapMode && !url.pathname.startsWith("/api/admin/")) {
       if (req.method === "GET" && url.pathname === "/api/health") {
         try {
           await store.snapshot();
@@ -1029,6 +1031,18 @@ export function createHandler(opts = {}) {
               mikrotik: env.MIKROTIK_MODE || "mock",
               omada: env.OMADA_MODE || "not-configured",
               payments: env.PAYMENT_MODE || "mock",
+            },
+            deployment: {
+              mode: bootstrapMode ? "setup" : "operational",
+              operational: !bootstrapMode,
+              providers: {
+                flutterwave: Boolean(env.FLW_SECRET_KEY && env.FLW_SECRET_HASH),
+                mikrotik: Boolean(
+                  env.MIKROTIK_API_URL && env.MIKROTIK_USER &&
+                    env.MIKROTIK_PASSWORD
+                ),
+                omada: Boolean(env.OMADA_API_URL && env.OMADA_API_TOKEN),
+              },
             },
             profile: {
               username: adminUser?.username || "legacy-admin",

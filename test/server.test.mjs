@@ -53,6 +53,14 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ phone: "670000001", planId: "daily" }),
+    }),
+    adminLogin = await fetch(`${base}/api/admin/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: "owner", password: "2468" }),
+    }),
+    adminDashboard = await fetch(`${base}/api/admin/dashboard`, {
+      headers: { cookie: adminLogin.headers.get("set-cookie").split(";")[0] },
     });
   assert.equal(health.status, 200);
   assert.equal((await health.json()).operational, false);
@@ -60,4 +68,7 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
   assert.equal((await plansResponse.json()).plans.length, plans.length);
   assert.equal(purchaseResponse.status, 503);
   assert.equal((await purchaseResponse.json()).operational, false);
+  assert.equal(adminLogin.status, 200);
+  assert.equal(adminDashboard.status, 200);
+  assert.equal((await adminDashboard.json()).deployment.mode, "setup");
 });
