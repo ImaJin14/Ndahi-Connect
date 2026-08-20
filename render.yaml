@@ -7,6 +7,8 @@ services:
     buildCommand: npm ci
     startCommand: npm run start:customer
     healthCheckPath: /
+    domains:
+      - portal.ndahiconnect.net
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 30
     envVars:
@@ -25,6 +27,8 @@ services:
     buildCommand: npm ci
     startCommand: npm run start:admin
     healthCheckPath: /login
+    domains:
+      - admin.ndahiconnect.net
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 30
     envVars:
@@ -43,6 +47,8 @@ services:
     buildCommand: npm ci
     startCommand: npm run start:api
     healthCheckPath: /api/health
+    domains:
+      - api.ndahiconnect.net
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 60
     envVars:

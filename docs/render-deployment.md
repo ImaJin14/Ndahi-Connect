@@ -91,6 +91,11 @@ Enroll only temporary passkeys on the Render hostname. WebAuthn credentials are 
 
 ## 5. Connect live DNS
 
+The Blueprint now declares all three production domains. After syncing it,
+Render displays the exact DNS target for each service. Create the records shown
+by Render at the DNS provider for `ndahiconnect.net`; do not guess Render's
+targets or copy the temporary service URLs as IP addresses.
+
 Add each domain to its matching Render service:
 
 | Service | Domain |
