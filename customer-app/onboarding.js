@@ -42,7 +42,7 @@ function choose(id) {
   document.querySelectorAll(".plan").forEach((card) =>
     card.classList.toggle("selected", card.dataset.card === id)
   );
-  $("#selectionBar").hidden = false;
+  $("#selectionBar").hidden = true;
   $("#selectionName").textContent = `${selected.name} — ${
     money(selected.price)
   }`;
@@ -58,19 +58,21 @@ function choose(id) {
       : "30 days"
   }`;
 }
-$("#plans").onclick = (event) => {
-  if (event.target.dataset.plan) choose(event.target.dataset.plan);
-};
-choose(recommended);
-$("#continue").onclick = () => {
-  checkoutTrigger = document.activeElement;
-  $("#selected").textContent = `Buy ${selected.name} — ${
-    money(selected.price)
-  }`;
+function openCheckout(trigger) {
+  checkoutTrigger = trigger;
+  $("#selected").textContent = `Buy ${selected.name} — ${money(selected.price)}`;
   $("#checkout").hidden = false;
   document.body.classList.add("modal-open");
   $("#closeCheckout").focus();
+}
+$("#plans").onclick = (event) => {
+  if (event.target.dataset.plan) {
+    choose(event.target.dataset.plan);
+    openCheckout(event.target);
+  }
 };
+choose(recommended);
+$("#continue").onclick = () => openCheckout($("#continue"));
 function closeCheckout() {
   $("#checkout").hidden = true;
   document.body.classList.remove("modal-open");
@@ -83,16 +85,43 @@ $("#checkout").onclick = (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !$("#checkout").hidden) closeCheckout();
 });
+async function beginAccountSecurity(paid, phone) {
+  const challenge = await call("/api/account/login/request-authenticator", {
+    method: "POST",
+    body: JSON.stringify({ phone, code: paid.access.code }),
+  });
+  sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({
+    ...challenge,
+    phone,
+    setup: true,
+  }));
+  location.href = "/verify.html?setup=1";
+}
+async function waitForPayment(paymentId, phone) {
+  const started = Date.now();
+  while (Date.now() - started < 10 * 60_000) {
+    const status = await call(`/api/payments/${paymentId}/status`);
+    if (status.payment.status === "paid" && status.access?.code) {
+      return beginAccountSecurity(status, phone);
+    }
+    if (["failed", "refunded"].includes(status.payment.status)) {
+      throw Error(`Payment ${status.payment.status}. Choose a plan to try again.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  throw Error("Payment confirmation is taking longer than expected. You can safely return and sign in after approval.");
+}
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
   const button = event.submitter;
   button.disabled = true;
   button.textContent = "Creating payment…";
   try {
-    const created = await call("/api/purchase", {
+    const purchaseInput = Object.fromEntries(new FormData(event.target)),
+      created = await call("/api/purchase", {
       method: "POST",
       body: JSON.stringify({
-        ...Object.fromEntries(new FormData(event.target)),
+        ...purchaseInput,
         planId: selected.id,
       }),
     });
@@ -102,12 +131,12 @@ $("#purchase").onsubmit = async (event) => {
         : created.checkout.url
         ? ' <button id="openProvider">Continue to secure payment</button>'
         : " Approve it on your phone."
-    }</div>`;
+    }<br><span id="paymentStatus">Waiting for verified confirmation…</span></div>`;
     const openProvider = $("#openProvider");
     if (openProvider) openProvider.onclick = () => {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
-      location.assign(destination.href);
+      window.open(destination.href, "_blank", "noopener,noreferrer");
     };
     const confirm = $("#confirm");
     if (confirm) {
@@ -118,13 +147,17 @@ $("#purchase").onsubmit = async (event) => {
             method: "POST",
             body: "{}",
           });
-          $("#message").innerHTML =
-            `<div class="success"><b>Payment confirmed</b><br>Your activation code: <code>${paid.access.code}</code><br>Save it privately, then <a href="/login">sign in to your dashboard</a>.</div>`;
+          await beginAccountSecurity(paid, purchaseInput.phone);
         } catch (error) {
           $("#message").innerHTML = `<p class="error">${error.message}</p>`;
           confirm.disabled = false;
         }
       };
+    }
+    if (created.checkout.mode !== "mock") {
+      waitForPayment(created.payment.id, purchaseInput.phone).catch((error) => {
+        $("#message").innerHTML = `<p class="error">${error.message}</p>`;
+      });
     }
   } catch (error) {
     $("#message").innerHTML = `<p class="error">${error.message}</p>`;

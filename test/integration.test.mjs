@@ -104,6 +104,12 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   );
   assert.equal(paid.response.status, 200);
   assert.match(paid.json.access.code, /^NC-[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/);
+  const paymentStatus = await f.call(
+    `/api/payments/${buy.json.payment.id}/status`,
+  );
+  assert.equal(paymentStatus.response.status, 200);
+  assert.equal(paymentStatus.json.payment.status, "paid");
+  assert.equal(paymentStatus.json.access.code, paid.json.access.code);
   const duplicate = await f.call(
     `/api/payments/${buy.json.payment.id}/confirm`,
     "POST",

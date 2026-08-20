@@ -557,6 +557,22 @@ export function createHandler(opts = {}) {
         complete(s, s.payments.find((x) => x.id === id), null, res)
       );
     }
+    if (
+      req.method === "GET" &&
+      /^\/api\/payments\/[^/]+\/status$/.test(url.pathname)
+    ) {
+      return mutate((s) => {
+        const id = url.pathname.split("/")[3],
+          payment = s.payments.find((x) => x.id === id),
+          voucher = payment?.status === "paid" &&
+            s.vouchers.find((x) => x.paymentId === payment.id);
+        if (!payment) return json(res, 404, { error: "Payment not found." });
+        return json(res, 200, {
+          payment: { id: payment.id, status: payment.status },
+          ...(voucher ? { access: { code: voucher.code } } : {}),
+        });
+      });
+    }
     if (req.method === "POST" && url.pathname === "/api/webhooks/flutterwave") {
       const provider = "flutterwave", raw = await body(req, true);
       let data;
