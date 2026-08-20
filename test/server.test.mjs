@@ -72,3 +72,47 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
   assert.equal(adminDashboard.status, 200);
   assert.equal((await adminDashboard.json()).deployment.mode, "setup");
 });
+
+test("admin password login requires a separate one-time MFA challenge", async (t) => {
+  const server = createServer({
+    store: createStore({ persistent: false }),
+    validateConfig: false,
+    env: {
+      ADMIN_PIN: "9999",
+      ADMIN_MFA_ENABLED: "true",
+      ADMIN_MFA_CODE: "123456",
+      CUSTOMER_APP_URL: "http://customer.test",
+    },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`,
+    passwordStep = await fetch(`${base}/api/admin/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: "owner", password: "9999" }),
+    }),
+    challenge = await passwordStep.json();
+  assert.equal(passwordStep.status, 202);
+  assert.equal(passwordStep.headers.get("set-cookie"), null);
+  assert.equal(challenge.mfaRequired, true);
+  const badMfa = await fetch(`${base}/api/admin/login/mfa`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ challengeId: challenge.challengeId, mfaCode: "000000" }),
+  });
+  assert.equal(badMfa.status, 401);
+  const validMfa = await fetch(`${base}/api/admin/login/mfa`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ challengeId: challenge.challengeId, mfaCode: "123456" }),
+  });
+  assert.equal(validMfa.status, 200);
+  assert.match(validMfa.headers.get("set-cookie"), /admin_session=/);
+  const reused = await fetch(`${base}/api/admin/login/mfa`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ challengeId: challenge.challengeId, mfaCode: "123456" }),
+  });
+  assert.equal(reused.status, 401);
+});

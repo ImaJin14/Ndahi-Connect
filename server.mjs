@@ -55,6 +55,7 @@ export const blank = () => ({
     adminSessions: [],
     adminUsers: [],
     adminPasskeyChallenges: [],
+    adminLoginChallenges: [],
     otpChallenges: [],
     adminMfaChallenges: [],
     securityEvents: [],
@@ -911,25 +912,26 @@ export function createHandler(opts = {}) {
           s.adminUsers.push(user);
         }
         const mfaEnabled = env.ADMIN_MFA_ENABLED === "true" ||
-            s.adminProfile?.mfaEnabled,
-          validMfa = s.adminProfile?.totpSecret
-            ? verifyTotp(
-              s.adminProfile.totpSecret,
-              i.mfaCode,
-              clock().getTime(),
-            )
-            : env.ADMIN_MFA_CODE
-            ? safeEqual(i.mfaCode || "", env.ADMIN_MFA_CODE)
-            : s.adminProfile?.mfaCodeHash &&
-              safeEqual(
-                hashSecret(i.mfaCode, adminSecret),
-                s.adminProfile.mfaCodeHash,
-              );
-        if (mfaEnabled && !validMfa) {
-          sec(s, "admin.mfa.failed", req);
-          return json(res, 401, {
-            error: "Administrator MFA verification required.",
+          s.adminProfile?.mfaEnabled;
+        if (mfaEnabled) {
+          const challenge = {
+            id: secureToken(24),
+            userId: user.id,
+            ip: ip(req),
+            attempts: 0,
+            used: false,
+            expiresAt: new Date(clock().getTime() + 5 * 60_000).toISOString(),
+          };
+          s.adminLoginChallenges = (s.adminLoginChallenges || []).filter((x) =>
+            new Date(x.expiresAt) > clock() && !x.used
+          );
+          s.adminLoginChallenges.push(challenge);
+          audit(s, "admin.login.password_verified", req, { userId: user.id });
+          return json(res, 202, {
+            authenticated: false,
             mfaRequired: true,
+            challengeId: challenge.id,
+            expiresAt: challenge.expiresAt,
           });
         }
         const token = secureToken(),
@@ -949,6 +951,68 @@ export function createHandler(opts = {}) {
         req.adminActor = user.username;
         audit(s, "admin.login.succeeded", req);
         return json(res, 200, { authenticated: true, expiresAt, mfaEnabled, user: { username: user.username, role: user.role } }, {
+          "set-cookie": cookie("admin_session", token, seconds, secureCookies),
+        });
+      });
+    }
+    if (
+      req.method === "POST" && url.pathname === "/api/admin/login/mfa"
+    ) {
+      const i = await body(req);
+      return mutate((s) => {
+        const challenge = (s.adminLoginChallenges || []).find((x) =>
+            safeEqual(x.id, i.challengeId) && !x.used
+          ),
+          user = challenge && s.adminUsers.find((x) =>
+            x.id === challenge.userId && x.active !== false
+          );
+        if (
+          !challenge || !user || challenge.ip !== ip(req) ||
+          new Date(challenge.expiresAt) <= clock() || challenge.attempts >= 5
+        ) {
+          return json(res, 401, {
+            error: "The MFA challenge is invalid or expired. Sign in again.",
+          });
+        }
+        const validMfa = s.adminProfile?.totpSecret
+          ? verifyTotp(s.adminProfile.totpSecret, i.mfaCode, clock().getTime())
+          : env.ADMIN_MFA_CODE
+          ? safeEqual(i.mfaCode || "", env.ADMIN_MFA_CODE)
+          : s.adminProfile?.mfaCodeHash && safeEqual(
+            hashSecret(i.mfaCode, adminSecret),
+            s.adminProfile.mfaCodeHash,
+          );
+        if (!validMfa) {
+          challenge.attempts++;
+          sec(s, "admin.mfa.failed", req, { userId: user.id });
+          return json(res, 401, {
+            error: "The authenticator code is invalid or expired.",
+            attemptsRemaining: Math.max(0, 5 - challenge.attempts),
+          });
+        }
+        challenge.used = true;
+        const token = secureToken(),
+          seconds = Number(env.ADMIN_SESSION_SECONDS || 1800),
+          expiresAt = new Date(clock().getTime() + seconds * 1000)
+            .toISOString(),
+          csrfToken = secureToken();
+        s.adminSessions.push({
+          tokenHash: hashSecret(token, adminSecret),
+          userId: user.id,
+          role: user.role,
+          csrfToken,
+          createdAt: clock().toISOString(),
+          lastSeenAt: clock().toISOString(),
+          expiresAt,
+        });
+        req.adminActor = user.username;
+        audit(s, "admin.login.succeeded", req);
+        return json(res, 200, {
+          authenticated: true,
+          expiresAt,
+          mfaEnabled: true,
+          user: { username: user.username, role: user.role },
+        }, {
           "set-cookie": cookie("admin_session", token, seconds, secureCookies),
         });
       });
