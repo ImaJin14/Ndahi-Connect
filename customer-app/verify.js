@@ -17,7 +17,7 @@ $("#verify").onsubmit = async (event) => {
       result = await response.json();
     if (!response.ok) throw Error(result.error || "Verification failed");
     sessionStorage.removeItem("ndahi-login-challenge");
-    location.href = "/";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.message;
     button.disabled = false;

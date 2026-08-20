@@ -7,7 +7,11 @@ localStorage.setItem("ndahi-device", deviceId);
 async function call(path, options = {}) {
   const response = await fetch(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.headers || {}) } }),
     result = await response.json();
-  if (response.status === 401) { location.href = "/login"; throw Error("Login required"); }
+  if (response.status === 401 || response.status === 503) {
+    if (response.status === 503) sessionStorage.setItem("ndahi-login-notice", result.error || "Customer access is temporarily unavailable while setup is completed.");
+    location.replace("/login");
+    throw Error(response.status === 401 ? "Login required" : "Service setup incomplete");
+  }
   if (!response.ok) throw Error(result.error || "Request failed");
   return result;
 }

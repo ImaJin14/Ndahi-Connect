@@ -25,6 +25,11 @@ async function call(path, options = {}) {
     location.href = "/login";
     throw Error("Login required");
   }
+  if (r.status === 503) {
+    sessionStorage.setItem("ndahi-admin-login-notice", j.error || "Administration is temporarily unavailable while setup is completed.");
+    location.replace("/login");
+    throw Error("Service setup incomplete");
+  }
   if (!r.ok) throw Error(j.error);
   return j;
 }

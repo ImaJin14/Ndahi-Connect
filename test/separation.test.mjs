@@ -68,8 +68,18 @@ test("customer application has no admin dashboard route or admin assets", async 
   const server = createStaticServer("customer"), base = await listen(server);
   t.after(() => new Promise((r) => server.close(r)));
   assert.equal((await fetch(base + "/admin")).status, 404);
-  const home = await (await fetch(base + "/")).text();
-  assert.doesNotMatch(home, /administrat|api\/admin/i);
+  const home = await fetch(base + "/", { redirect: "manual" });
+  assert.equal(home.status, 302);
+  assert.equal(home.headers.get("location"), "/login");
+  assert.equal((await fetch(base + "/dashboard")).status, 200);
+});
+test("admin domain root redirects to login and dashboard has a dedicated route", async (t) => {
+  const server = createStaticServer("admin"), base = await listen(server);
+  t.after(() => new Promise((r) => server.close(r)));
+  const home = await fetch(base + "/", { redirect: "manual" });
+  assert.equal(home.status, 302);
+  assert.equal(home.headers.get("location"), "/login");
+  assert.equal((await fetch(base + "/dashboard")).status, 200);
 });
 test("role cookies are isolated, origins enforced, and logout targets the correct session", async (t) => {
   const f = await setup();

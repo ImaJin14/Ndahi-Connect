@@ -21,6 +21,10 @@ export function createStaticServer(
       });
       return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind })}`);
     }
+    if (url.pathname === "/" || url.pathname === "/index.html") {
+      res.writeHead(302, { location: "/login", "cache-control": "no-store" });
+      return res.end();
+    }
     if (url.pathname === "/vendor/webauthn.js") {
       const data = await readFile(join(
         process.cwd(),
@@ -34,7 +38,7 @@ export function createStaticServer(
       return res.end(data);
     }
     let path = url.pathname;
-    if (path === "/") path = "/index.html";
+    if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404);

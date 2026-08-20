@@ -1,5 +1,10 @@
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let passkeyLoginRunning = false;
+const loginNotice = sessionStorage.getItem("ndahi-login-notice");
+if (loginNotice) {
+  $("#message").textContent = loginNotice;
+  sessionStorage.removeItem("ndahi-login-notice");
+}
 async function call(path, data) {
   const response = await fetch(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }),
     result = await response.json();
@@ -51,7 +56,7 @@ $("#customerPasskeyLogin").onclick = async () => {
     });
     result = await response.json();
     if (!response.ok) throw Error(result.error || "Passkey verification failed");
-    location.href = "/";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.name === "AbortError" ||
         /abort signal/i.test(error.message)

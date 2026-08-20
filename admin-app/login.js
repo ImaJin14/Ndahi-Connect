@@ -2,6 +2,11 @@ const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector);
 let passkeyLoginRunning = false;
 let mfaChallengeId = "";
+const loginNotice = sessionStorage.getItem("ndahi-admin-login-notice");
+if (loginNotice) {
+  $("#message").textContent = loginNotice;
+  sessionStorage.removeItem("ndahi-admin-login-notice");
+}
 
 function showMfaStep(challengeId) {
   mfaChallengeId = challengeId;
@@ -46,7 +51,7 @@ $("#login").onsubmit = async (event) => {
       result = await response.json();
     if (!response.ok) throw Error(result.error || "Unable to sign in");
     if (result.mfaRequired) return showMfaStep(result.challengeId);
-    location.href = "/";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.message;
   } finally {
@@ -74,7 +79,7 @@ $("#mfaLogin").onsubmit = async (event) => {
       }),
       result = await response.json();
     if (!response.ok) throw Error(result.error || "MFA verification failed");
-    location.href = "/";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.message;
   } finally {
@@ -120,7 +125,7 @@ $("#passkeyLogin").onclick = async () => {
     });
     result = await response.json();
     if (!response.ok) throw Error(result.error || "Passkey verification failed");
-    location.href = "/";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.name === "AbortError" ||
         /abort signal/i.test(error.message)
