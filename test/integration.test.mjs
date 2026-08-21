@@ -9,6 +9,7 @@ async function fixture(options = {}) {
       store,
       router: options.router,
       omada: options.omada,
+      email: options.email,
       now: options.now,
       env: {
         PAYMENT_MODE: "mock",
@@ -87,6 +88,44 @@ test("activation codes are fixed-length, human-readable, unique and opaque", () 
   assert.equal([...codes][0].length, 12);
   assert.equal(normalizeActivationCode("nc abcd 5678"), "NC-ABCD-5678");
   assert.notEqual(hashSecret("123456", "pepper"), "123456");
+});
+test("verified payment emails the voucher and delivery failure never reverses payment", async (t) => {
+  const sent = [], successful = await fixture({
+    email: {
+      configured: () => true,
+      sendVoucher: async (message) => {
+        sent.push(message);
+        return { messageId: "email-success" };
+      },
+    },
+  });
+  t.after(successful.close);
+  const purchase = await successful.call("/api/purchase", "POST", {
+    name: "Ada", phone: "670000009", email: "ada@example.com", planId: "weekly",
+  });
+  const confirmed = await successful.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+  assert.equal(confirmed.response.status, 200);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].voucher.code, confirmed.json.access.code);
+  assert.equal((await successful.store.snapshot()).vouchers[0].emailStatus, "sent");
+
+  const failed = await fixture({
+    email: {
+      configured: () => true,
+      sendVoucher: async () => { throw new Error("Temporary mail outage"); },
+    },
+  });
+  t.after(failed.close);
+  const secondPurchase = await failed.call("/api/purchase", "POST", {
+    name: "Grace", phone: "670000008", email: "grace@example.com", planId: "weekly",
+  });
+  const secondConfirmation = await failed.call(`/api/payments/${secondPurchase.json.payment.id}/confirm`, "POST");
+  assert.equal(secondConfirmation.response.status, 200);
+  const state = await failed.store.snapshot();
+  assert.equal(state.payments[0].status, "paid");
+  assert.equal(state.vouchers[0].status, "active");
+  assert.equal(state.vouchers[0].emailStatus, "failed");
+  assert.equal(state.vouchers[0].emailAttempts, 1);
 });
 test("payment, binding, limits, disconnect reuse, OTP and dashboard security", async (t) => {
   const f = await fixture();

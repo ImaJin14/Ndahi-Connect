@@ -62,6 +62,8 @@ ADMIN_BOOTSTRAP_PASSWORD=<unique password of at least 14 characters>
 ADMIN_MFA_CODE=<temporary six-digit recovery code>
 FLW_SECRET_KEY=<Flutterwave secret key>
 FLW_SECRET_HASH=<Flutterwave webhook secret hash>
+EMAIL_API_KEY=<Resend API key beginning with re_>
+EMAIL_FROM=NDAHI Connect <connect@updates.ndahiconnect.net>
 MIKROTIK_API_URL=<HTTPS address reachable from Render>
 MIKROTIK_USER=<restricted bridge user>
 MIKROTIK_PASSWORD=<bridge password>
@@ -70,6 +72,12 @@ OMADA_API_TOKEN=<controller token>
 ```
 
 Production validation deliberately stops the API if a provider remains mocked, a URL is insecure, or a required secret is absent.
+
+For voucher confirmations, add `updates.ndahiconnect.net` in Resend and copy the
+SPF and DKIM records Resend supplies into IONOS DNS. Wait until Resend marks the
+domain verified before setting `BOOTSTRAP_MODE=false`. The API sends only after
+Flutterwave verification and records delivery status on the voucher; a failed
+email does not reverse payment or deactivate access.
 
 MikroTik and Omada endpoints on a private campus LAN are not directly reachable from Render. Route them through the restricted on-site management bridge, a VPN, or a mutually authenticated tunnel. Never expose the router administration UI directly.
 

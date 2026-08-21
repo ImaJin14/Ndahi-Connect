@@ -109,10 +109,11 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
   }</table></section>
 <section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><table>${
     rows(x.vouchers, (v) =>
-      `<tr><td><code>${v.code}</code></td><td>${v.plan?.name}</td><td>${v.status}</td><td>${v.activeDevices}/${v.deviceLimit}</td><td>${
+      `<tr><td><code>${v.code}</code></td><td>${v.plan?.name}</td><td>${v.status}</td><td>${v.emailStatus || "not sent"}</td><td>${v.activeDevices}/${v.deviceLimit}</td><td>${
         v.status === "active"
           ? `<button data-voucher="${v.id}">Revoke</button>`
           : ""
+      }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${v.id}">Retry email</button>` : ""
       }</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><table>${
@@ -305,6 +306,12 @@ $("#app").onclick = async (e) => {
       $("#bundleMessage").textContent = error.message;
       return;
     }
+  } else if (e.target.dataset.resendEmail) {
+    const result = await call("/api/admin/vouchers/resend-email", {
+      method: "POST",
+      body: JSON.stringify({ voucherId: e.target.dataset.resendEmail }),
+    });
+    if (!result.sent) throw Error(result.error || "Email could not be sent.");
   } else if (e.target.dataset.voucher) {
     if (!confirm("Revoke this voucher and disconnect its access?")) return;
     await call("/api/admin/vouchers/revoke", {

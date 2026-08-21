@@ -108,6 +108,14 @@ services:
         sync: false
       - key: FLW_SECRET_HASH
         sync: false
+      - key: EMAIL_MODE
+        value: live
+      - key: EMAIL_API_URL
+        value: https://api.resend.com
+      - key: EMAIL_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
       - key: MIKROTIK_MODE
         value: live
       - key: MIKROTIK_API_URL

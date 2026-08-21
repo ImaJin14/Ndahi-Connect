@@ -21,6 +21,7 @@ import {
   verifyTotp,
 } from "./lib/security.mjs";
 import { paymentAdapters } from "./lib/payments.mjs";
+import { emailAdapter } from "./lib/email.mjs";
 import { routerAdapter } from "./lib/routeros.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
 import { createPostgresStore } from "./lib/postgres-store.mjs";
@@ -274,6 +275,7 @@ export function createHandler(opts = {}) {
     ),
     router = opts.router || routerAdapter(env),
     omada = opts.omada || omadaAdapter(env),
+    email = opts.email || emailAdapter(env),
     clock = opts.now || (() => new Date()),
     customerSecret = env.CUSTOMER_SESSION_SECRET || env.SECRET_PEPPER ||
       "development-customer-secret",
@@ -317,10 +319,43 @@ export function createHandler(opts = {}) {
         new Date(x.expiresAt) > clock()
       );
     };
+  async function deliverVoucherEmail(s, voucher, force = false) {
+    const customer = s.customers.find((item) => item.id === voucher.customerId),
+      payment = s.payments.find((item) => item.id === voucher.paymentId),
+      plan = findPlan(s, voucher.planId);
+    if (voucher.emailStatus === "sent") return true;
+    if (!customer?.email || !payment || !plan || !email.configured()) {
+      voucher.emailStatus = "pending";
+      voucher.emailLastError = !customer?.email
+        ? "Customer email is missing."
+        : "Email provider is not configured.";
+      return false;
+    }
+    if (!force && voucher.emailNextAttemptAt && new Date(voucher.emailNextAttemptAt) > clock()) return false;
+    voucher.emailAttempts = Number(voucher.emailAttempts || 0) + 1;
+    voucher.emailLastAttemptAt = clock().toISOString();
+    try {
+      const result = await email.sendVoucher({ customer, payment, plan, voucher });
+      voucher.emailStatus = "sent";
+      voucher.emailSentAt = clock().toISOString();
+      voucher.emailMessageId = result.messageId;
+      delete voucher.emailLastError;
+      delete voucher.emailNextAttemptAt;
+      log(s, "voucher.email_sent", { voucherId: voucher.id });
+      return true;
+    } catch (error) {
+      voucher.emailStatus = "failed";
+      voucher.emailLastError = String(error.message || "Email delivery failed.").slice(0, 240);
+      voucher.emailNextAttemptAt = new Date(clock().getTime() + Math.min(30, 2 ** voucher.emailAttempts) * 60000).toISOString();
+      log(s, "voucher.email_failed", { voucherId: voucher.id, attempt: voucher.emailAttempts });
+      return false;
+    }
+  }
   async function complete(s, p, ref, res) {
     if (!p) return json(res, 404, { error: "Payment not found." });
     const old = s.vouchers.find((v) => v.paymentId === p.id);
     if (p.status === "paid" && old) {
+      if (old.emailStatus !== "sent" && Number(old.emailAttempts || 0) < 5) await deliverVoucherEmail(s, old);
       return json(res, 200, {
         idempotent: true,
         voucher: view(old, s),
@@ -373,6 +408,8 @@ export function createHandler(opts = {}) {
         quotaBytes: plan.quotaGb === null ? null : plan.quotaGb * GB,
         usedBytes: 0,
         deviceLimit: plan.deviceLimit,
+        emailStatus: "pending",
+        emailAttempts: 0,
       };
     s.vouchers.unshift(v);
     log(s, "voucher.activated", { voucherId: v.id, plan: plan.name });
@@ -383,6 +420,7 @@ export function createHandler(opts = {}) {
       v.routerSyncStatus = "pending";
       v.routerError = e.message;
     }
+    await deliverVoucherEmail(s, v, true);
     return json(res, 200, {
       voucher: view(v, s),
       access: {
@@ -425,6 +463,7 @@ export function createHandler(opts = {}) {
             capabilities: {
               plans: true,
               payments: paymentProviders.includes("flutterwave"),
+              emailDelivery: email.configured(),
               customerAccounts: true,
               administration: true,
               networkProvisioning: Boolean(
@@ -578,15 +617,21 @@ export function createHandler(opts = {}) {
       req.method === "GET" &&
       /^\/api\/payments\/[^/]+\/status$/.test(url.pathname)
     ) {
-      return mutate((s) => {
+      return mutate(async (s) => {
         const id = url.pathname.split("/")[3],
           payment = s.payments.find((x) => x.id === id),
           voucher = payment?.status === "paid" &&
             s.vouchers.find((x) => x.paymentId === payment.id);
         if (!payment) return json(res, 404, { error: "Payment not found." });
+        if (voucher?.emailStatus !== "sent" && Number(voucher?.emailAttempts || 0) < 5) {
+          await deliverVoucherEmail(s, voucher);
+        }
         return json(res, 200, {
           payment: { id: payment.id, status: payment.status },
-          ...(voucher ? { access: { code: voucher.code } } : {}),
+          ...(voucher ? {
+            access: { code: voucher.code },
+            email: { status: voucher.emailStatus, sentAt: voucher.emailSentAt },
+          } : {}),
         });
       });
     }
@@ -1297,6 +1342,7 @@ export function createHandler(opts = {}) {
               mikrotik: env.MIKROTIK_MODE || "mock",
               omada: env.OMADA_MODE || "not-configured",
               payments: env.PAYMENT_MODE || "mock",
+              email: env.EMAIL_MODE || "not-configured",
             },
             deployment: {
               mode: bootstrapMode ? "setup" : "operational",
@@ -1308,6 +1354,7 @@ export function createHandler(opts = {}) {
                     env.MIKROTIK_PASSWORD
                 ),
                 omada: Boolean(env.OMADA_API_URL && env.OMADA_API_TOKEN),
+                email: email.configured(),
               },
             },
             profile: {
@@ -1322,6 +1369,20 @@ export function createHandler(opts = {}) {
           });
         }
         const i = req.method === "POST" ? await body(req) : {};
+        if (
+          req.method === "POST" &&
+          url.pathname === "/api/admin/vouchers/resend-email"
+        ) {
+          const voucher = s.vouchers.find((item) => item.id === i.voucherId);
+          if (!voucher) return json(res, 404, { error: "Voucher not found." });
+          const sent = await deliverVoucherEmail(s, voucher, true);
+          audit(s, "voucher.email_retried", req, { voucherId: voucher.id, sent });
+          return json(res, 200, {
+            sent,
+            emailStatus: voucher.emailStatus,
+            error: sent ? undefined : voucher.emailLastError,
+          });
+        }
         if (req.method === "POST" && url.pathname === "/api/admin/users") {
           const username = String(i.username || "").trim().toLowerCase(),
             role = String(i.role || "auditor"), password = String(i.password || "");

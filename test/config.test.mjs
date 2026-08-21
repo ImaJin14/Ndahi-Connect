@@ -29,6 +29,10 @@ const production = {
   FLW_API_URL: "https://api.flutterwave.test/v3",
   FLW_SECRET_KEY: "flutterwave-secret-key",
   FLW_SECRET_HASH: "flutterwave-webhook-secret",
+  EMAIL_MODE: "live",
+  EMAIL_API_URL: "https://api.resend.com",
+  EMAIL_API_KEY: "resend-secret-key",
+  EMAIL_FROM: "NDAHI Connect <connect@updates.ndahi.test>",
 };
 
 test("production configuration accepts fully live infrastructure", () => {
