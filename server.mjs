@@ -651,7 +651,7 @@ export function createHandler(opts = {}) {
             }
           }
         }
-        if (voucher?.emailStatus !== "sent" && Number(voucher?.emailAttempts || 0) < 5) {
+        if (voucher && voucher.emailStatus !== "sent" && Number(voucher.emailAttempts || 0) < 5) {
           await deliverVoucherEmail(s, voucher);
         }
         return json(res, 200, {

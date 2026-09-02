@@ -212,3 +212,43 @@ test("MeSomb checkout and webhook verification issue one voucher", async (t) => 
   assert.equal((await duplicate.json()).idempotent, true);
   assert.equal((await store.snapshot()).vouchers.length, 1);
 });
+
+test("pending MeSomb status does not treat a missing voucher as an email record", async (t) => {
+  const store = createStore({ persistent: false });
+  const server = createServer({
+    store,
+    validateConfig: false,
+    payments: {
+      mesomb: {
+        configured: () => true,
+        createPayment: async () => ({ providerReference: "mesomb-pending-2" }),
+        verifyPayment: async (payment) => ({
+          status: "pending",
+          providerReference: payment.providerReference,
+          transactionReference: payment.id,
+          amount: payment.amount,
+          currency: payment.currency,
+        }),
+      },
+    },
+    env: { PAYMENT_MODE: "mesomb", CUSTOMER_APP_URL: "http://customer.test" },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`,
+    purchase = await fetch(`${base}/api/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Customer", phone: "670000002", email: "pending@example.com",
+        network: "orange", planId: "weekly",
+      }),
+    }),
+    created = await purchase.json(),
+    status = await fetch(`${base}/api/payments/${created.payment.id}/status`),
+    result = await status.json();
+  assert.equal(status.status, 200);
+  assert.equal(result.payment.status, "pending");
+  assert.equal("access" in result, false);
+  assert.equal((await store.snapshot()).vouchers.length, 0);
+});
