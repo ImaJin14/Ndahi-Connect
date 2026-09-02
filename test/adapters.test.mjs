@@ -125,6 +125,7 @@ test("MeSomb creates, verifies, signs, and refunds Cameroon payments", async () 
   assert.equal(calls[0][1].payer, "670000001");
   assert.equal(calls[0][1].service, "MTN");
   assert.equal(calls[0][1].trxID, "payment-1");
+  assert.equal(calls[0][1].fees, false);
   assert.equal(calls[0][1].mode, "asynchronous");
   const verified = await adapter.verifyPayment(payment);
   assert.equal(verified.status, "paid");

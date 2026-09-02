@@ -16,6 +16,12 @@ async function call(path, options = {}) {
   return result;
 }
 const { plans, paymentProvider } = await call("/api/plans"), recommended = "monthly";
+if (paymentProvider === "mesomb") {
+  $("#purchase button").insertAdjacentHTML(
+    "beforebegin",
+    '<p class="trust">MeSomb\'s service fee is added separately to the package price and shown in your Mobile Money approval prompt.</p>',
+  );
+}
 $("#plans").innerHTML = plans.map((plan) =>
   `<article class="plan" data-card="${plan.id}"><div class="plan-badge"></div><h3>${plan.name}</h3><div class="plan-price">${
     money(plan.price)
