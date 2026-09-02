@@ -65,6 +65,7 @@ export const blank = () => ({
     bundles: [],
     bundleOverrides: {},
     events: [],
+    providerEvents: [],
     adminProfile: { mfaEnabled: false },
     zone: { id: "student-zone-1", status: "online", notes: "" },
   }),
@@ -358,6 +359,7 @@ export function createHandler(opts = {}) {
       if (old.emailStatus !== "sent" && Number(old.emailAttempts || 0) < 5) await deliverVoucherEmail(s, old);
       return json(res, 200, {
         idempotent: true,
+        payment: { id: p.id, status: p.status },
         voucher: view(old, s),
         access: { code: old.code },
       });
@@ -422,6 +424,7 @@ export function createHandler(opts = {}) {
     }
     await deliverVoucherEmail(s, v, true);
     return json(res, 200, {
+      payment: { id: p.id, status: p.status },
       voucher: view(v, s),
       access: {
         ssid: "NDAHI Connect",
@@ -462,7 +465,7 @@ export function createHandler(opts = {}) {
             operational: false,
             capabilities: {
               plans: true,
-              payments: paymentProviders.includes("flutterwave"),
+              payments: paymentProviders.length > 0,
               emailDelivery: email.configured(),
               customerAccounts: true,
               administration: true,
@@ -507,12 +510,12 @@ export function createHandler(opts = {}) {
           error: "Enter a valid Cameroon phone number and email address.",
         });
       }
-      const provider = env.PAYMENT_MODE === "mock" ? "mock" : "flutterwave";
+      const provider = env.PAYMENT_MODE === "mock"
+        ? "mock"
+        : env.PAYMENT_MODE === "mesomb" ? "mesomb" : "flutterwave";
       if (!paymentProviders.includes(provider)) {
         return json(res, 503, {
-          error: provider === "flutterwave"
-            ? "Flutterwave payments are not configured yet. Add FLW_SECRET_KEY and FLW_SECRET_HASH to the API service in Render."
-            : "Payments are not configured.",
+          error: `${provider === "mesomb" ? "MeSomb" : "Flutterwave"} payments are not configured on the API service.`,
           code: "PAYMENT_PROVIDER_NOT_CONFIGURED",
           operational: false,
         });
@@ -623,6 +626,31 @@ export function createHandler(opts = {}) {
           voucher = payment?.status === "paid" &&
             s.vouchers.find((x) => x.paymentId === payment.id);
         if (!payment) return json(res, 404, { error: "Payment not found." });
+        if (payment.provider === "mesomb" && payment.status === "pending") {
+          const lastCheck = Number(new Date(payment.lastVerificationAt || 0));
+          if (clock().getTime() - lastCheck >= 5000) {
+            payment.lastVerificationAt = clock().toISOString();
+            try {
+              const verified = await pays.mesomb.verifyPayment(payment);
+              if (
+                verified.transactionReference !== payment.id ||
+                verified.amount < payment.amount ||
+                verified.currency !== payment.currency
+              ) {
+                log(s, "payment.verification_mismatch", {
+                  paymentId: payment.id,
+                  provider: payment.provider,
+                });
+              } else if (verified.status === "paid") {
+                return complete(s, payment, verified.providerReference, res);
+              } else {
+                payment.status = verified.status;
+              }
+            } catch (error) {
+              payment.verificationError = String(error.message || error).slice(0, 240);
+            }
+          }
+        }
         if (voucher?.emailStatus !== "sent" && Number(voucher?.emailAttempts || 0) < 5) {
           await deliverVoucherEmail(s, voucher);
         }
@@ -665,6 +693,52 @@ export function createHandler(opts = {}) {
           return json(res, 400, {
             error: "Verified payment details do not match this order.",
           });
+        }
+        if (verified.status === "paid") {
+          return complete(s, p, verified.providerReference, res);
+        }
+        p.status = verified.status;
+        return json(res, 200, { accepted: true, status: p.status });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/webhooks/mesomb") {
+      const provider = "mesomb", raw = await body(req, true);
+      let data;
+      try {
+        data = await pays[provider].handleWebhook(
+          raw,
+          req.headers["x-mesomb-webhook-signature"],
+        );
+      } catch {
+        return json(res, 401, { error: "Invalid webhook signature." });
+      }
+      return mutate(async (s) => {
+        s.providerEvents ??= [];
+        if (data.eventId && s.providerEvents.includes(data.eventId)) {
+          return json(res, 200, { accepted: true, idempotent: true });
+        }
+        const p = s.payments.find((x) => x.id === data.paymentId);
+        if (!p || p.provider !== provider) {
+          return json(res, 404, { error: "Payment not found." });
+        }
+        let verified;
+        try {
+          verified = await pays.mesomb.verifyPayment(p);
+        } catch {
+          return json(res, 502, { error: "Unable to verify payment with MeSomb." });
+        }
+        if (
+          verified.transactionReference !== p.id ||
+          verified.amount < p.amount ||
+          verified.currency !== p.currency
+        ) {
+          return json(res, 400, {
+            error: "Verified payment details do not match this order.",
+          });
+        }
+        if (data.eventId) {
+          s.providerEvents.unshift(data.eventId);
+          s.providerEvents = s.providerEvents.slice(0, 1000);
         }
         if (verified.status === "paid") {
           return complete(s, p, verified.providerReference, res);
@@ -1348,7 +1422,8 @@ export function createHandler(opts = {}) {
               mode: bootstrapMode ? "setup" : "operational",
               operational: !bootstrapMode,
               providers: {
-                flutterwave: Boolean(env.FLW_SECRET_KEY && env.FLW_SECRET_HASH),
+                [env.PAYMENT_MODE === "mesomb" ? "mesomb" : "flutterwave"]:
+                  paymentProviders.length > 0,
                 mikrotik: Boolean(
                   env.MIKROTIK_API_URL && env.MIKROTIK_USER &&
                     env.MIKROTIK_PASSWORD

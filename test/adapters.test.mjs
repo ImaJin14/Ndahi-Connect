@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { FlutterwavePaymentAdapter } from "../lib/payments.mjs";
+import { FlutterwavePaymentAdapter, MeSombPaymentAdapter } from "../lib/payments.mjs";
 import { RouterOSAdapter, routerVoucherPayload } from "../lib/routeros.mjs";
 import { OmadaAdapter } from "../lib/omada.mjs";
 
@@ -81,6 +81,66 @@ test("Flutterwave verifies transactions and authenticates signed webhooks", asyn
     assert.equal(event.paymentId, "p1");
     assert.equal(event.transactionId, 12345);
   });
+});
+
+test("MeSomb creates, verifies, signs, and refunds Cameroon payments", async () => {
+  const calls = [];
+  const transaction = {
+    pk: "mesomb-transaction-1",
+    status: "SUCCESS",
+    amount: 500,
+    currency: "XAF",
+    getData: () => ({ pk: "mesomb-transaction-1", status: "SUCCESS", amount: 500, currency: "XAF" }),
+  };
+  const client = {
+    async makeCollect(input) {
+      calls.push(["collect", input]);
+      return {
+        success: true,
+        transaction: { ...transaction, status: "PENDING" },
+        isOperationSuccess: () => true,
+        isTransactionSuccess: () => false,
+      };
+    },
+    async checkTransactions(ids, source) {
+      calls.push(["check", ids, source]);
+      return [transaction];
+    },
+    async refundTransaction(id, input) {
+      calls.push(["refund", id, input]);
+      return { isTransactionSuccess: () => true };
+    },
+  };
+  const adapter = new MeSombPaymentAdapter({
+    applicationKey: "app", accessKey: "access", secretKey: "secret",
+    webhookSecret: "whsec_test", client,
+  });
+  const payment = {
+    id: "payment-1", amount: 500, currency: "XAF", payerPhone: "670000001",
+    email: "student@example.test", customerName: "Student Name", network: "mtn",
+    planId: "weekly", providerReference: "mesomb-transaction-1",
+  };
+  const created = await adapter.createPayment(payment);
+  assert.equal(created.status, "pending");
+  assert.equal(calls[0][1].payer, "670000001");
+  assert.equal(calls[0][1].service, "MTN");
+  assert.equal(calls[0][1].trxID, "payment-1");
+  assert.equal(calls[0][1].mode, "asynchronous");
+  const verified = await adapter.verifyPayment(payment);
+  assert.equal(verified.status, "paid");
+  assert.equal(verified.transactionReference, "payment-1");
+  assert.deepEqual(calls[1], ["check", ["payment-1"], "EXTERNAL"]);
+  const timestamp = Math.floor(Date.now() / 1000),
+    raw = JSON.stringify({
+      id: "event-1", event_type: "payment.transaction.succeeded",
+      data: { object: { id: "mesomb-transaction-1", reference: "payment-1" } },
+    }),
+    signature = createHmac("sha256", "whsec_test")
+      .update(`${timestamp}.${raw}`).digest("hex"),
+    event = await adapter.handleWebhook(raw, `t=${timestamp},v1=${signature}`);
+  assert.equal(event.eventId, "event-1");
+  assert.equal(event.paymentId, "payment-1");
+  assert.equal((await adapter.refundPayment(payment)).status, "refunded");
 });
 
 test("MikroTik and Omada adapters keep credentials server-side", async () => {

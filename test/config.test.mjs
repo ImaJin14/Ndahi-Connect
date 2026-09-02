@@ -50,4 +50,20 @@ test("production configuration rejects mock and fallback infrastructure", () => 
 test("development keeps mocks explicitly available for automated tests", () => {
   assert.deepEqual(enabledPaymentProviders({ NODE_ENV: "test", PAYMENT_MODE: "mock" }), ["mock"]);
   assert.deepEqual(enabledPaymentProviders({ NODE_ENV: "production", PAYMENT_MODE: "flutterwave" }), ["flutterwave"]);
+  assert.deepEqual(enabledPaymentProviders({ NODE_ENV: "production", PAYMENT_MODE: "mesomb" }), ["mesomb"]);
+});
+
+test("production validates only the selected payment provider", () => {
+  const mesomb = {
+    ...production,
+    PAYMENT_MODE: "mesomb",
+    MESOMB_APPLICATION_KEY: "mesomb-application-key",
+    MESOMB_ACCESS_KEY: "mesomb-access-key",
+    MESOMB_SECRET_KEY: "mesomb-secret-key",
+    MESOMB_WEBHOOK_SECRET: "whsec_mesomb-webhook-key",
+    FLW_SECRET_KEY: "",
+    FLW_SECRET_HASH: "",
+  };
+  assert.doesNotThrow(() => assertProductionConfig(mesomb));
+  assert.deepEqual(enabledPaymentProviders(mesomb), ["mesomb"]);
 });

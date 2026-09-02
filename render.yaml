@@ -101,7 +101,15 @@ services:
       - key: CUSTOMER_WEBAUTHN_RP_NAME
         value: NDAHI Connect
       - key: PAYMENT_MODE
-        value: live
+        value: mesomb
+      - key: MESOMB_APPLICATION_KEY
+        sync: false
+      - key: MESOMB_ACCESS_KEY
+        sync: false
+      - key: MESOMB_SECRET_KEY
+        sync: false
+      - key: MESOMB_WEBHOOK_SECRET
+        sync: false
       - key: FLW_API_URL
         value: https://api.flutterwave.com/v3
       - key: FLW_SECRET_KEY

@@ -20,6 +20,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@hachther/mesomb": "^3.0.2",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.2",
     "argon2": "^0.45.1",

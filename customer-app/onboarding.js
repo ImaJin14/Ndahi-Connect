@@ -116,7 +116,7 @@ $("#purchase").onsubmit = async (event) => {
   const button = event.submitter;
   const paymentWindow = window.open(
     "about:blank",
-    "ndahi-flutterwave",
+    "ndahi-payment",
     "popup,width=520,height=760",
   );
   button.disabled = true;
@@ -134,7 +134,7 @@ $("#purchase").onsubmit = async (event) => {
       created.checkout.mode === "mock"
         ? ' <button id="confirm">Simulate payment approval</button>'
         : created.checkout.url
-        ? " Complete approval in the secure Flutterwave window."
+        ? " Complete approval in the secure payment window."
         : " Approve the prompt sent to your phone."
     }<br><span id="paymentStatus">Waiting for verified confirmation…</span></div>`;
     if (created.checkout.url) {

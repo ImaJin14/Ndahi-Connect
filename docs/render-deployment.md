@@ -60,6 +60,10 @@ Provide these in the Blueprint creation form or the API service Environment page
 ```dotenv
 ADMIN_BOOTSTRAP_PASSWORD=<unique password of at least 14 characters>
 ADMIN_MFA_CODE=<temporary six-digit recovery code>
+MESOMB_APPLICATION_KEY=<MeSomb application key>
+MESOMB_ACCESS_KEY=<MeSomb access key>
+MESOMB_SECRET_KEY=<MeSomb secret key>
+MESOMB_WEBHOOK_SECRET=<MeSomb endpoint signing secret beginning with whsec_>
 FLW_SECRET_KEY=<Flutterwave secret key>
 FLW_SECRET_HASH=<Flutterwave webhook secret hash>
 EMAIL_API_KEY=<Resend API key beginning with re_>
@@ -70,6 +74,8 @@ MIKROTIK_PASSWORD=<bridge password>
 OMADA_API_URL=<HTTPS address reachable from Render>
 OMADA_API_TOKEN=<controller token>
 ```
+
+`PAYMENT_MODE=mesomb` makes MeSomb the only visible and active payment provider. Keep the Flutterwave values stored for the later approval switch; they are ignored while MeSomb is selected. Configure the MeSomb webhook endpoint as `https://api.ndahiconnect.net/api/webhooks/mesomb` and subscribe to payment transaction success/failure events.
 
 Production validation deliberately stops the API if a provider remains mocked, a URL is insecure, or a required secret is absent.
 

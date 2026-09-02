@@ -150,3 +150,65 @@ test("bootstrap mode allows Flutterwave checkout when payment credentials are re
   assert.equal(response.status, 201);
   assert.equal((await response.json()).payment.provider, "flutterwave");
 });
+
+test("MeSomb checkout and webhook verification issue one voucher", async (t) => {
+  const store = createStore({ persistent: false });
+  const mesomb = {
+    configured: () => true,
+    createPayment: async () => ({
+      providerReference: "mesomb-pending-1",
+      status: "pending",
+      authorizationMode: "mobile_money_prompt",
+    }),
+    handleWebhook: async () => ({
+      eventId: "mesomb-event-1",
+      paymentId: paymentId,
+      transactionId: "mesomb-paid-1",
+    }),
+    verifyPayment: async (payment) => ({
+      status: "paid",
+      providerReference: "mesomb-paid-1",
+      transactionReference: payment.id,
+      amount: payment.amount,
+      currency: payment.currency,
+    }),
+  };
+  let paymentId;
+  const server = createServer({
+    store,
+    validateConfig: false,
+    payments: { mesomb },
+    env: { PAYMENT_MODE: "mesomb", CUSTOMER_APP_URL: "http://customer.test" },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`,
+    purchase = await fetch(`${base}/api/purchase`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Customer", phone: "670000001", email: "customer@example.com",
+        network: "mtn", planId: "daily",
+      }),
+    }),
+    created = await purchase.json();
+  assert.equal(purchase.status, 201);
+  assert.equal(created.payment.provider, "mesomb");
+  paymentId = created.payment.id;
+  const webhook = () => fetch(`${base}/api/webhooks/mesomb`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-mesomb-webhook-signature": "verified-by-adapter",
+    },
+    body: JSON.stringify({ id: "mesomb-event-1" }),
+  });
+  const confirmed = await webhook(), confirmedBody = await confirmed.json();
+  assert.equal(confirmed.status, 200);
+  assert.equal(confirmedBody.payment.status, "paid");
+  assert.match(confirmedBody.access.code, /^NC-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  const duplicate = await webhook();
+  assert.equal(duplicate.status, 200);
+  assert.equal((await duplicate.json()).idempotent, true);
+  assert.equal((await store.snapshot()).vouchers.length, 1);
+});
