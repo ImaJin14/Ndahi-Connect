@@ -453,7 +453,10 @@ export function createHandler(opts = {}) {
       }
     }
     if (req.method === "GET" && url.pathname === "/api/plans") {
-      return mutate((s) => json(res, 200, { plans: catalogue(s) }));
+      return mutate((s) => json(res, 200, {
+        plans: catalogue(s),
+        paymentProvider: paymentProviders[0] || null,
+      }));
     }
     if (bootstrapMode && !url.pathname.startsWith("/api/admin/")) {
       if (req.method === "GET" && url.pathname === "/api/health") {
@@ -595,6 +598,7 @@ export function createHandler(opts = {}) {
           payment: p,
           checkout: {
             mode: env.PAYMENT_MODE || "mock",
+            provider,
             message: "Approve the payment request on your phone.",
             url: made.checkoutUrl,
             authorizationMode: p.authorizationMode,

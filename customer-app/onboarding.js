@@ -15,7 +15,7 @@ async function call(path, options = {}) {
   if (!response.ok) throw Error(result.error);
   return result;
 }
-const { plans } = await call("/api/plans"), recommended = "monthly";
+const { plans, paymentProvider } = await call("/api/plans"), recommended = "monthly";
 $("#plans").innerHTML = plans.map((plan) =>
   `<article class="plan" data-card="${plan.id}"><div class="plan-badge"></div><h3>${plan.name}</h3><div class="plan-price">${
     money(plan.price)
@@ -86,6 +86,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !$("#checkout").hidden) closeCheckout();
 });
 async function beginAccountSecurity(paid, phone) {
+  const emailMessage = paid.email?.status === "sent"
+    ? " A purchase confirmation has been sent to your email."
+    : " Your voucher is ready; email delivery will continue automatically.";
+  $("#message").innerHTML = `<div class="success"><strong>Payment confirmed.</strong>${emailMessage}<br>Preparing your secure account…</div>`;
   const challenge = await call("/api/account/login/request-authenticator", {
     method: "POST",
     body: JSON.stringify({ phone, code: paid.access.code }),
@@ -95,6 +99,7 @@ async function beginAccountSecurity(paid, phone) {
     phone,
     setup: true,
   }));
+  await new Promise((resolve) => setTimeout(resolve, 900));
   location.href = "/verify.html?setup=1";
 }
 async function waitForPayment(paymentId, phone) {
@@ -114,11 +119,13 @@ async function waitForPayment(paymentId, phone) {
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
   const button = event.submitter;
-  const paymentWindow = window.open(
-    "about:blank",
-    "ndahi-payment",
-    "popup,width=520,height=760",
-  );
+  const paymentWindow = paymentProvider === "flutterwave"
+    ? window.open(
+      "about:blank",
+      "ndahi-payment",
+      "popup,width=520,height=760",
+    )
+    : null;
   button.disabled = true;
   button.textContent = "Creating payment…";
   try {
@@ -137,7 +144,7 @@ $("#purchase").onsubmit = async (event) => {
         ? " Complete approval in the secure payment window."
         : " Approve the prompt sent to your phone."
     }<br><span id="paymentStatus">Waiting for verified confirmation…</span></div>`;
-    if (created.checkout.url) {
+    if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
       if (paymentWindow) paymentWindow.location.replace(destination.href);

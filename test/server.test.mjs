@@ -68,7 +68,9 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
   assert.equal(health.status, 200);
   assert.equal((await health.json()).operational, false);
   assert.equal(plansResponse.status, 200);
-  assert.equal((await plansResponse.json()).plans.length, plans.length);
+  const plansBody = await plansResponse.json();
+  assert.equal(plansBody.plans.length, plans.length);
+  assert.equal(plansBody.paymentProvider, null);
   assert.equal(purchaseResponse.status, 503);
   assert.equal((await purchaseResponse.json()).operational, false);
   assert.equal(adminLogin.status, 200);
@@ -194,6 +196,7 @@ test("MeSomb checkout and webhook verification issue one voucher", async (t) => 
     created = await purchase.json();
   assert.equal(purchase.status, 201);
   assert.equal(created.payment.provider, "mesomb");
+  assert.equal(created.checkout.provider, "mesomb");
   paymentId = created.payment.id;
   const webhook = () => fetch(`${base}/api/webhooks/mesomb`, {
     method: "POST",
