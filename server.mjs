@@ -26,13 +26,17 @@ import { routerAdapter } from "./lib/routeros.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
 import { createPostgresStore } from "./lib/postgres-store.mjs";
 import { assertProductionConfig, enabledPaymentProviders } from "./lib/config.mjs";
-const TZ = "Africa/Douala", PUB = join(process.cwd(), "public"), GB = 1e9;
+const PUB = join(process.cwd(), "public"), GB = 1e9;
+const legacyPlans = [
+  ["plus", "Student Plus", 3000, 15, 720, 1],
+  ["connect20", "Connect 20", 4000, 20, 720, 2],
+].map(([id, name, price, quotaGb, validityHours, deviceLimit]) => ({
+  id, name, price, quotaGb, validityHours, deviceLimit, discontinued: true,
+}));
 export const plans = [
   ["daily", "Student Daily", 100, 1, 24, 1],
   ["weekly", "Student Weekly", 500, 5, 168, 1],
   ["monthly", "Student Monthly", 2000, 10, 720, 1],
-  ["plus", "Student Plus", 3000, 15, 720, 1],
-  ["connect20", "Connect 20", 4000, 20, 720, 2],
   ["connect30", "Connect 30", 5500, 30, 720, 2],
   ["family", "Connect Family", 10000, 50, 720, 3],
   ["connect75", "Connect 75", 12500, 75, 720, 3],
@@ -57,6 +61,7 @@ export const blank = () => ({
     adminUsers: [],
     adminPasskeyChallenges: [],
     customerPasskeyChallenges: [],
+    customerMfaChallenges: [],
     adminLoginChallenges: [],
     otpChallenges: [],
     adminMfaChallenges: [],
@@ -69,16 +74,18 @@ export const blank = () => ({
     adminProfile: { mfaEnabled: false },
     zone: { id: "student-zone-1", status: "online", notes: "" },
   }),
+  ensureState = (state) => {
+    for (const [key, value] of Object.entries(blank())) {
+      if (Array.isArray(value) && !Array.isArray(state[key])) state[key] = [];
+    }
+    state.bundleOverrides ??= {};
+    state.adminProfile ??= { mfaEnabled: false };
+    state.zone ??= { id: "student-zone-1", status: "online", notes: "" };
+    return state;
+  },
   phone = (v) =>
     String(v || "").replace(/[\s()-]/g, "").replace(/^\+?237(?=6)/, ""),
   phoneOk = (v) => /^6\d{8}$/.test(phone(v)),
-  day = (d) =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: TZ,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(d),
   ip = (req) =>
     String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "")
       .split(",")[0].trim();
@@ -128,8 +135,18 @@ const audit = (s, action, req, meta = {}) => {
     `${name}=${encodeURIComponent(value)}; Path=${
       name === "admin_session" ? "/api/admin" : "/api/account"
     }; HttpOnly; SameSite=${name === "admin_session" ? "Strict" : "Lax"}; Max-Age=${maxAge}${secure ? "; Secure" : ""}`;
-const catalogue = (s) => [...plans, ...s.bundles];
-const findPlan = (s, id) => catalogue(s).find((plan) => plan.id === id);
+const catalogue = (s) => [...plans, ...s.bundles.filter((plan) => plan.discontinued !== true)];
+const findPlan = (s, id) => [...plans, ...legacyPlans, ...s.bundles].find((plan) => plan.id === id);
+const purchasablePlan = (s, id) => catalogue(s).find((plan) => plan.id === id);
+const dailyEligibleAt = (s, customerId) => {
+  const last = s.payments.filter((payment) =>
+    payment.customerId === customerId && payment.planId === "daily" &&
+    payment.status === "paid"
+  ).sort((a, b) => +new Date(b.confirmedAt || b.createdAt) - +new Date(a.confirmedAt || a.createdAt))[0];
+  return last
+    ? new Date(+new Date(last.confirmedAt || last.createdAt) + 7 * 24 * 36e5)
+    : null;
+};
 const uniqueActivationCode = (s) => {
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = activationCode();
@@ -306,6 +323,7 @@ export function createHandler(opts = {}) {
     customerRpName = env.CUSTOMER_WEBAUTHN_RP_NAME || "NDAHI Connect";
   const mutate = (fn) =>
       store.transaction(async (s) => {
+        ensureState(s);
         clean(s, clock(), router);
         return fn(s);
       }),
@@ -319,6 +337,18 @@ export function createHandler(opts = {}) {
         safeEqual(x.tokenHash, hashSecret(token, secret)) &&
         new Date(x.expiresAt) > clock()
       );
+    },
+    issueCustomerSession = (s, customerId, res) => {
+      const token = secureToken(),
+        seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
+        expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
+      s.dashboardSessions.push({
+        tokenHash: hashSecret(token, customerSecret), customerId,
+        role: "customer", expiresAt,
+      });
+      return json(res, 200, { authenticated: true, expiresAt }, {
+        "set-cookie": cookie("customer_session", token, seconds, secureCookies),
+      });
     };
   async function deliverVoucherEmail(s, voucher, force = false) {
     const customer = s.customers.find((item) => item.id === voucher.customerId),
@@ -373,25 +403,47 @@ export function createHandler(opts = {}) {
       });
     }
     const c = s.customers.find((x) => x.id === p.customerId),
-      plan = findPlan(s, p.planId);
-    if (
-      s.vouchers.some((v) => v.customerId === c.id && v.status === "active")
-    ) {
+      plan = purchasablePlan(s, p.planId);
+    if (!c || !plan) {
+      p.status = "failed";
+      p.failureReason = "This package is no longer available.";
+      return json(res, 409, { error: p.failureReason });
+    }
+    const activeVoucher = s.vouchers.find((v) =>
+      v.customerId === c.id && v.status === "active"
+    );
+    if (activeVoucher && activeVoucher.id !== p.replaceVoucherId &&
+      activeVoucher.id !== p.upgradeFromVoucherId) {
       return json(res, 409, {
         error:
           "Your current bundle still has quota. Bundles cannot be stacked.",
       });
     }
-    if (
-      plan.id === "daily" &&
-      s.vouchers.some((v) =>
-        v.customerId === c.id && v.planId === "daily" &&
-        day(new Date(v.activatedAt)) === day(clock())
-      )
-    ) {
-      return json(res, 409, {
-        error:
-          "Student Daily can only be activated once per Cameroon calendar day.",
+    if (plan.id === "daily") {
+      const eligibleAt = dailyEligibleAt(s, c.id);
+      if (eligibleAt && eligibleAt > clock()) {
+        p.status = "failed";
+        p.failureReason = `Student Daily is available again on ${eligibleAt.toISOString()}.`;
+        return json(res, 409, {
+          error: p.failureReason, nextEligibleAt: eligibleAt.toISOString(),
+        });
+      }
+    }
+    if (activeVoucher) {
+      activeVoucher.status = p.action === "renew" ? "renewed" : "switched";
+      activeVoucher.replacedAt = clock().toISOString();
+      activeVoucher.replacedByPaymentId = p.id;
+      try {
+        await router.disconnectVoucher(activeVoucher.id);
+        activeVoucher.routerSyncStatus = "disconnected";
+      } catch (error) {
+        activeVoucher.routerSyncStatus = "pending";
+        activeVoucher.routerError = String(error.message || error).slice(0, 240);
+      }
+      log(s, "voucher.replaced", {
+        voucherId: activeVoucher.id,
+        paymentId: p.id,
+        newPlanId: plan.id,
       });
     }
     p.status = "paid";
@@ -506,9 +558,10 @@ export function createHandler(opts = {}) {
         stateVersion: Array.isArray(s.auditLogs) ? "readable" : "invalid",
       }));
     }
-    if (req.method === "POST" && url.pathname === "/api/purchase") {
+    if (req.method === "POST" && ["/api/purchase", "/api/account/plan/purchase"].includes(url.pathname)) {
       const i = await body(req);
-      if (!phoneOk(i.phone) || (env.PAYMENT_MODE !== "mock" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(i.email || "")))) {
+      const accountPurchase = url.pathname.startsWith("/api/account/");
+      if (!accountPurchase && (!phoneOk(i.phone) || (env.PAYMENT_MODE !== "mock" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(i.email || ""))))) {
         return json(res, 400, {
           error: "Enter a valid Cameroon phone number and email address.",
         });
@@ -524,13 +577,19 @@ export function createHandler(opts = {}) {
         });
       }
       return mutate(async (s) => {
-        const plan = findPlan(s, i.planId);
+        const accountSession = accountPurchase && auth(req, s, "dashboardSessions"),
+          plan = purchasablePlan(s, i.planId);
+        if (accountPurchase && !accountSession) {
+          return json(res, 401, { error: "Customer session expired." });
+        }
         if (!plan) {
           return json(res, 400, {
-            error: "Choose a valid package and Cameroon phone number.",
+            error: "This package is unavailable or discontinued.",
           });
         }
-        let c = s.customers.find((x) => x.phone === phone(i.phone));
+        let c = accountSession
+          ? s.customers.find((x) => x.id === accountSession.customerId)
+          : s.customers.find((x) => x.phone === phone(i.phone));
         if (!c) {
           c = {
             id: randomUUID(),
@@ -541,25 +600,54 @@ export function createHandler(opts = {}) {
           };
           s.customers.push(c);
         }
+        if (!c) return json(res, 401, { error: "Customer account not found." });
         if (i.email) c.email = String(i.email).trim().toLowerCase().slice(0, 254);
-        if (
-          s.vouchers.some((v) => v.customerId === c.id && v.status === "active")
-        ) {
+        const requestKey = String(i.requestKey || "").slice(0, 100),
+          duplicate = requestKey && s.payments.find((x) =>
+            x.customerId === c.id && x.requestKey === requestKey
+          );
+        if (duplicate) {
+          return json(res, 200, {
+            idempotent: true,
+            payment: duplicate,
+            checkout: {
+              mode: env.PAYMENT_MODE || "mock", provider: duplicate.provider,
+              url: duplicate.checkoutUrl, authorizationMode: duplicate.authorizationMode,
+            },
+          });
+        }
+        const activeVoucher = s.vouchers.find((v) =>
+          v.customerId === c.id && v.status === "active"
+        ), latestVoucher = s.vouchers.find((v) => v.customerId === c.id),
+          action = accountPurchase ? String(i.action || "") : i.upgrade ? "switch" : "purchase";
+        if (accountPurchase && !["renew", "switch"].includes(action)) {
+          return json(res, 400, { error: "Choose renew or switch plan." });
+        }
+        if (action === "renew" && (!latestVoucher || latestVoucher.planId !== plan.id)) {
+          return json(res, 409, { error: "You can only renew your current purchasable plan." });
+        }
+        if (action === "switch" && latestVoucher?.planId === plan.id) {
+          return json(res, 409, { error: "Choose a different package or renew your current one." });
+        }
+        if (activeVoucher && action === "purchase") {
           return json(res, 409, {
             error:
               "Your current bundle is still active. Bundles cannot be stacked.",
           });
         }
-        if (
-          plan.id === "daily" &&
-          s.vouchers.some((v) =>
-            v.customerId === c.id && v.planId === "daily" &&
-            day(new Date(v.activatedAt)) === day(clock())
-          )
-        ) {
+        if (activeVoucher && i.upgrade && !accountPurchase) {
+          const activePlan = findPlan(s, activeVoucher.planId);
+          if (!activePlan || plan.price <= activePlan.price) {
+            return json(res, 400, {
+              error: "Choose a package above your current bundle to upgrade.",
+            });
+          }
+        }
+        const nextEligibleAt = plan.id === "daily" && dailyEligibleAt(s, c.id);
+        if (nextEligibleAt && nextEligibleAt > clock()) {
           return json(res, 409, {
-            error:
-              "Student Daily can only be activated once per Cameroon calendar day.",
+            error: `Student Daily is available again on ${nextEligibleAt.toISOString()}.`,
+            nextEligibleAt: nextEligibleAt.toISOString(),
           });
         }
         const p = {
@@ -576,6 +664,14 @@ export function createHandler(opts = {}) {
             provider,
             status: "pending",
             createdAt: clock().toISOString(),
+            action,
+            ...(requestKey ? { requestKey } : {}),
+            ...(provider === "mesomb" ? {
+              paymentExpiresAt: new Date(
+                clock().getTime() + Number(env.PAYMENT_PENDING_SECONDS || 300) * 1000,
+              ).toISOString(),
+            } : {}),
+            ...(activeVoucher ? { replaceVoucherId: activeVoucher.id } : {}),
           },
           made = await pays[provider].createPayment(p);
         p.providerReference = made.providerReference;
@@ -631,14 +727,16 @@ export function createHandler(opts = {}) {
             s.vouchers.find((x) => x.paymentId === payment.id);
         if (!payment) return json(res, 404, { error: "Payment not found." });
         if (payment.provider === "mesomb" && payment.status === "pending") {
-          const lastCheck = Number(new Date(payment.lastVerificationAt || 0));
-          if (clock().getTime() - lastCheck >= 5000) {
+          const lastCheck = Number(new Date(payment.lastVerificationAt || 0)),
+            expired = payment.paymentExpiresAt &&
+              new Date(payment.paymentExpiresAt) <= clock();
+          if (expired || clock().getTime() - lastCheck >= 5000) {
             payment.lastVerificationAt = clock().toISOString();
             try {
               const verified = await pays.mesomb.verifyPayment(payment);
               if (
                 verified.transactionReference !== payment.id ||
-                verified.amount < payment.amount ||
+                Number(verified.amount) !== payment.amount ||
                 verified.currency !== payment.currency
               ) {
                 log(s, "payment.verification_mismatch", {
@@ -653,13 +751,22 @@ export function createHandler(opts = {}) {
             } catch (error) {
               payment.verificationError = String(error.message || error).slice(0, 240);
             }
+            if (expired && payment.status === "pending") {
+              payment.status = "failed";
+              payment.failureReason = "Payment approval timed out.";
+              payment.failedAt = clock().toISOString();
+            }
           }
         }
         if (voucher && voucher.emailStatus !== "sent" && Number(voucher.emailAttempts || 0) < 5) {
           await deliverVoucherEmail(s, voucher);
         }
         return json(res, 200, {
-          payment: { id: payment.id, status: payment.status },
+          payment: {
+            id: payment.id,
+            status: payment.status,
+            ...(payment.failureReason ? { failureReason: payment.failureReason } : {}),
+          },
           ...(voucher ? {
             access: { code: voucher.code },
             email: { status: voucher.emailStatus, sentAt: voucher.emailSentAt },
@@ -691,7 +798,7 @@ export function createHandler(opts = {}) {
         }
         if (
           verified.transactionReference !== p.id ||
-          verified.amount < p.amount ||
+          Number(verified.amount) !== p.amount ||
           verified.currency !== p.currency
         ) {
           return json(res, 400, {
@@ -733,7 +840,7 @@ export function createHandler(opts = {}) {
         }
         if (
           verified.transactionReference !== p.id ||
-          verified.amount < p.amount ||
+          Number(verified.amount) !== p.amount ||
           verified.currency !== p.currency
         ) {
           return json(res, 400, {
@@ -831,6 +938,57 @@ export function createHandler(opts = {}) {
         return json(res, 200, { voucher: view(v, s), session });
       });
     }
+    if (req.method === "POST" && url.pathname === "/api/account/setup/pin") {
+      const i = await body(req);
+      if (!/^\d{4}$/.test(String(i.pin || ""))) {
+        return json(res, 400, { error: "PIN must contain exactly 4 numeric digits." });
+      }
+      if (i.pin !== i.confirmPin) {
+        return json(res, 400, { error: "PIN entries do not match." });
+      }
+      return mutate(async (s) => {
+        const c = s.customers.find((x) => x.phone === phone(i.phone)),
+          voucher = c && s.vouchers.find((x) =>
+            x.customerId === c.id && safeEqual(x.code, normalizeActivationCode(i.code)) &&
+            ["active", "exhausted", "expired"].includes(x.status)
+          );
+        if (!c || !voucher || c.pinHash) {
+          sec(s, "customer.pin_setup.failed", req);
+          return json(res, 401, { error: generic });
+        }
+        c.pinHash = await argon2.hash(i.pin, { type: argon2.argon2id });
+        c.pinCreatedAt = clock().toISOString();
+        log(s, "customer.pin.created", { customerId: c.id });
+        return issueCustomerSession(s, c.id, res);
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/login/pin") {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const ph = phone(i.phone), cutoff = new Date(clock().getTime() - 15 * 60_000),
+          failures = s.securityEvents.filter((event) =>
+            event.type === "customer.pin.failed" && new Date(event.at) > cutoff &&
+            (event.ip === ip(req) || event.meta?.phone === ph)
+          );
+        if (failures.length >= 5) {
+          sec(s, "customer.pin.throttled", req, { phone: ph });
+          return json(res, 429, { error: "Too many incorrect PIN attempts. Try again in 15 minutes." });
+        }
+        const c = s.customers.find((x) => x.phone === ph && x.status !== "suspended");
+        if (c && !c.pinHash && c.totpSecret) {
+          return json(res, 409, { error: "Use your existing authenticator to sign in.", authenticatorRequired: true });
+        }
+        if (!c?.pinHash || !/^\d{4}$/.test(String(i.pin || "")) ||
+          !(await argon2.verify(c.pinHash, i.pin))) {
+          sec(s, "customer.pin.failed", req, { phone: ph });
+          return json(res, 401, {
+            error: generic, attemptsRemaining: Math.max(0, 4 - failures.length),
+          });
+        }
+        sec(s, "customer.pin_login.succeeded", req, { customerId: c.id });
+        return issueCustomerSession(s, c.id, res);
+      });
+    }
     if (
       req.method === "POST" &&
       url.pathname === "/api/account/login/request-authenticator"
@@ -848,22 +1006,16 @@ export function createHandler(opts = {}) {
             error: "Too many OTP requests. Try again later.",
           });
         }
-        const c = s.customers.find((x) => x.phone === ph),
-          enrolled = Boolean(c?.totpSecret || c?.passkeys?.length),
-          v = !enrolled && s.vouchers.find((x) =>
-            safeEqual(x.code, normalizeActivationCode(i.code))
-          );
-        if (!c || (!enrolled && (!v || v.customerId !== c.id))) {
+        const c = s.customers.find((x) => x.phone === ph);
+        if (!c?.totpSecret || c.status === "suspended") {
           sec(s, "dashboard.login.failed", req);
           return json(res, 401, { error: generic });
         }
-        const enrollmentSecret = c.totpSecret ? null : totpSecret(),
-          ch = {
+        const ch = {
             id: randomUUID(),
             customerId: c.id,
             phone: ph,
             ip: ip(req),
-            enrollmentSecret,
             attempts: 0,
             used: false,
             createdAt: clock().toISOString(),
@@ -872,15 +1024,9 @@ export function createHandler(opts = {}) {
         s.otpChallenges.push(ch);
         const out = {
           challengeId: ch.id,
-          enrollmentRequired: Boolean(enrollmentSecret),
-          message: enrollmentSecret
-            ? "Add NDAHI Connect to your authenticator app, then enter its six-digit code."
-            : "Enter the six-digit code from your authenticator app.",
+          enrollmentRequired: false,
+          message: "Enter the six-digit code from your authenticator app.",
         };
-        if (enrollmentSecret) {
-          out.secret = enrollmentSecret;
-          out.uri = totpUri(enrollmentSecret, ph);
-        }
         return json(res, 200, out);
       });
     }
@@ -899,9 +1045,8 @@ export function createHandler(opts = {}) {
             error: "The verification code is invalid or expired.",
           });
         }
-        const customer = s.customers.find((x) => x.id === ch.customerId),
-          secret = customer?.totpSecret || ch.enrollmentSecret;
-        if (!customer || !verifyTotp(secret, i.otp, clock().getTime())) {
+        const customer = s.customers.find((x) => x.id === ch.customerId);
+        if (!customer?.totpSecret || !verifyTotp(customer.totpSecret, i.otp, clock().getTime())) {
           ch.attempts++;
           sec(s, "otp.failed", req);
           return json(res, 401, {
@@ -910,13 +1055,6 @@ export function createHandler(opts = {}) {
           });
         }
         ch.used = true;
-        if (!customer.totpSecret) {
-          customer.totpSecret = ch.enrollmentSecret;
-          customer.totpEnrolledAt = clock().toISOString();
-          log(s, "customer.authenticator.enrolled", {
-            customerId: customer.id,
-          });
-        }
         const token = secureToken(),
           seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
           expiresAt = new Date(clock().getTime() + seconds * 1000)
@@ -1044,6 +1182,7 @@ export function createHandler(opts = {}) {
           );
         const {
           totpSecret: _totpSecret,
+          pinHash: _pinHash,
           passkeys: customerPasskeys = [],
           ...safeCustomer
         } = c;
@@ -1051,6 +1190,7 @@ export function createHandler(opts = {}) {
           customer: {
             ...safeCustomer,
             authenticatorEnrolled: Boolean(_totpSecret),
+            pinConfigured: Boolean(_pinHash),
             passkeys: customerPasskeys.length,
           },
           activeBundle: v.find((x) => x.status === "active") || null,
@@ -1060,7 +1200,51 @@ export function createHandler(opts = {}) {
             30,
           ),
           sessionExpiresAt: a.expiresAt,
+          availablePlans: catalogue(s),
+          currentPlan: v[0] || null,
+          dailyAvailability: (() => {
+            const eligibleAt = dailyEligibleAt(s, c.id);
+            return {
+              available: !eligibleAt || eligibleAt <= clock(),
+              nextEligibleAt: eligibleAt?.toISOString() || null,
+            };
+          })(),
         });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/security/mfa/enroll") {
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId);
+        if (!c) return json(res, 401, { error: "Customer session expired." });
+        if (c.totpSecret) return json(res, 409, { error: "Authenticator 2FA is already enabled." });
+        const secret = totpSecret(), challenge = {
+          id: randomUUID(), customerId: c.id, secret,
+          expiresAt: new Date(clock().getTime() + 10 * 60_000).toISOString(),
+        };
+        s.customerMfaChallenges.push(challenge);
+        return json(res, 200, {
+          challengeId: challenge.id, secret, uri: totpUri(secret, c.phone),
+        });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/security/mfa/confirm") {
+      const i = await body(req);
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId),
+          challenge = c && s.customerMfaChallenges.find((x) =>
+            x.id === i.challengeId && x.customerId === c.id
+          );
+        if (!challenge || new Date(challenge.expiresAt) <= clock() ||
+          !verifyTotp(challenge.secret, i.code, clock().getTime())) {
+          return json(res, 400, { error: "The authenticator code is invalid or expired." });
+        }
+        c.totpSecret = challenge.secret;
+        c.totpEnrolledAt = clock().toISOString();
+        s.customerMfaChallenges = s.customerMfaChallenges.filter((x) => x.id !== challenge.id);
+        log(s, "customer.authenticator.enrolled", { customerId: c.id });
+        return json(res, 200, { mfaEnabled: true });
       });
     }
     if (
@@ -1401,6 +1585,7 @@ export function createHandler(opts = {}) {
             ),
             customers: s.customers.map(({
               totpSecret: _secret,
+              pinHash: _pinHash,
               passkeys: customerPasskeys = [],
               ...customer
             }) => ({

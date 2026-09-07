@@ -42,7 +42,7 @@ For local plain HTTP only, `.env` sets `SESSION_COOKIE_SECURE=false`. Production
 
 ## Security model
 
-- Customer login: phone + bound activation code, then first-time TOTP authenticator enrollment and a rotating six-digit code with five attempts and phone/IP throttling.
+- Customer login: phone + a required four-digit PIN stored as an Argon2id hash, with five-attempt phone/IP throttling. The activation code is used only to create the PIN after a verified first purchase. Authenticator 2FA and passkeys are optional account-security upgrades; existing TOTP users remain supported.
 - Administrator login: named accounts with Argon2id password hashes, phishing-resistant WebAuthn passkeys, optional TOTP fallback, role authorization, five failures per IP per 15 minutes, CSRF protection in production, and a separate strict session cookie.
 - Browser requests use credentialed CORS. Admin endpoints allow only `ALLOWED_ADMIN_ORIGINS`; there is no wildcard CORS. Customer-origin requests to admin operations are rejected before authentication.
 - All administrator operations perform server-side role/session checks. Customer and admin cookies cannot substitute for each other.

@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { totpCode } from "../lib/security.mjs";
 async function listen(server) {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return `http://127.0.0.1:${server.address().port}`;
@@ -51,16 +50,9 @@ async function customerSession(f) {
     paid = await f.req(`/api/payments/${buy.json.payment.id}/confirm`, {
       method: "POST",
     }),
-    challenge = await f.req("/api/account/login/request-authenticator", {
+    login = await f.req("/api/account/setup/pin", {
       method: "POST",
-      body: { phone: "670111111", code: paid.json.access.code },
-    }),
-    login = await f.req("/api/account/login/verify-authenticator", {
-      method: "POST",
-      body: {
-        challengeId: challenge.json.challengeId,
-        otp: totpCode(challenge.json.secret),
-      },
+      body: { phone: "670111111", code: paid.json.access.code, pin: "2468", confirmPin: "2468" },
     });
   return login.cookie;
 }

@@ -3,7 +3,21 @@ const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector
 if (!saved) location.replace("/login");
 const challenge = saved ? JSON.parse(saved) : null;
 if (challenge) {
-  $("#instructions").textContent = challenge.message;
+  if (challenge.setupPin) {
+    $("#step").textContent = "Account setup";
+    $("#title").textContent = "Create your PIN.";
+    $("#instructions").textContent = "Choose exactly four numeric digits. You will use this PIN to sign in.";
+    $("#primaryLabel").firstChild.textContent = "Create PIN";
+    $("#primary").name = "pin";
+    $("#primary").type = "password";
+    $("#primary").pattern = "[0-9]{4}";
+    $("#primary").maxLength = 4;
+    $("#primary").placeholder = "••••";
+    $("#primary").autocomplete = "new-password";
+    $("#confirmLabel").hidden = false;
+    $("#confirm").required = true;
+    $("#submitLabel").textContent = "Create PIN and continue";
+  } else $("#instructions").textContent = challenge.message;
   if (challenge.enrollmentRequired) $("#development").innerHTML = `<div class="success"><strong>First-time setup</strong><p>In Google Authenticator, tap +, choose Enter a setup key, use account <code>${challenge.phone}</code>, and enter this time-based key:</p><code>${challenge.secret}</code></div>`;
 }
 $("#verify").onsubmit = async (event) => {
@@ -13,11 +27,13 @@ $("#verify").onsubmit = async (event) => {
   button.textContent = "Verifying…";
   $("#message").textContent = "";
   try {
-    const response = await fetch(api + "/api/account/login/verify-authenticator", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: challenge.challengeId, otp: new FormData(event.target).get("otp") }) }),
+    const form = Object.fromEntries(new FormData(event.target));
+    if (challenge.setupPin && form.pin !== form.confirmPin) throw Error("PIN entries do not match.");
+    const response = await fetch(api + (challenge.setupPin ? "/api/account/setup/pin" : "/api/account/login/verify-authenticator"), { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(challenge.setupPin ? { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin } : { challengeId: challenge.challengeId, otp: form.otp }) }),
       result = await response.json();
     if (!response.ok) throw Error(result.error || "Verification failed");
     sessionStorage.removeItem("ndahi-login-challenge");
-    location.href = challenge.setup ? "/dashboard?setup=passkey" : "/dashboard";
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.message;
     button.disabled = false;

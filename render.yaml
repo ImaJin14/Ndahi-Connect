@@ -102,6 +102,8 @@ services:
         value: NDAHI Connect
       - key: PAYMENT_MODE
         value: mesomb
+      - key: PAYMENT_PENDING_SECONDS
+        value: "300"
       - key: MESOMB_APPLICATION_KEY
         sync: false
       - key: MESOMB_ACCESS_KEY

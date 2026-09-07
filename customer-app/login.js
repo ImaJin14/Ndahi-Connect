@@ -18,14 +18,23 @@ $("#login").onsubmit = async (event) => {
   button.textContent = "Continue…";
   $("#message").textContent = "";
   try {
-    const input = Object.fromEntries(new FormData(event.target)), result = await call("/api/account/login/request-authenticator", input);
-    sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone: input.phone }));
-    location.href = "/verify.html";
+    const input = Object.fromEntries(new FormData(event.target));
+    await call("/api/account/login/pin", input);
+    location.href = "/dashboard";
   } catch (error) {
     $("#message").textContent = error.message;
     button.disabled = false;
     button.textContent = original;
   }
+};
+$("#authenticatorLogin").onclick = async () => {
+  const phone = document.querySelector('[name="phone"]').value;
+  if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
+  try {
+    const result = await call("/api/account/login/request-authenticator", { phone });
+    sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone }));
+    location.href = "/verify.html";
+  } catch (error) { $("#message").textContent = error.message; }
 };
 $("#customerPasskeyLogin").onclick = async () => {
   if (passkeyLoginRunning) return;

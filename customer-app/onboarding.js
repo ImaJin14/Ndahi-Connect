@@ -2,6 +2,9 @@ const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA";
 let selected, checkoutTrigger;
+const pageParams = new URLSearchParams(location.search),
+  accountAction = pageParams.get("action"),
+  upgradePurchase = pageParams.get("upgrade") === "1" || accountAction === "switch";
 async function call(path, options = {}) {
   const response = await fetch(api + path, {
       credentials: "include",
@@ -15,7 +18,24 @@ async function call(path, options = {}) {
   if (!response.ok) throw Error(result.error);
   return result;
 }
-const { plans, paymentProvider } = await call("/api/plans"), recommended = "monthly";
+const catalogue = await call("/api/plans"), paymentProvider = catalogue.paymentProvider;
+let plans = catalogue.plans, account;
+if (accountAction) {
+  try {
+    account = await call("/api/account/dashboard");
+    if (accountAction === "switch" && account.currentPlan) {
+      plans = plans.filter((plan) => plan.id !== account.currentPlan.planId);
+    }
+  } catch {
+    location.replace("/login");
+  }
+}
+const requestedPlan = pageParams.get("plan"),
+  dailyBlocked = (plan) => plan.id === "daily" && account && !account.dailyAvailability.available,
+  recommended = plans.some((plan) => plan.id === requestedPlan && !dailyBlocked(plan))
+    ? requestedPlan
+    : plans.find((plan) => plan.id === "monthly" && !dailyBlocked(plan))?.id ||
+      plans.find((plan) => !dailyBlocked(plan))?.id;
 if (paymentProvider === "mesomb") {
   $("#purchase button").insertAdjacentHTML(
     "beforebegin",
@@ -23,7 +43,7 @@ if (paymentProvider === "mesomb") {
   );
 }
 $("#plans").innerHTML = plans.map((plan) =>
-  `<article class="plan" data-card="${plan.id}"><div class="plan-badge"></div><h3>${plan.name}</h3><div class="plan-price">${
+  `<article class="plan" data-card="${plan.id}"><div class="plan-badge">${dailyBlocked(plan) ? "Available later" : plan.id === "daily" ? "Once every 7 days" : ""}</div><h3>${plan.name}</h3><div class="plan-price">${
     money(plan.price)
   } <small>/${
     plan.validityHours === 24
@@ -41,7 +61,7 @@ $("#plans").innerHTML = plans.map((plan) =>
       : "30 days"
   } validity</li><li>${plan.deviceLimit} simultaneous device${
     plan.deviceLimit === 1 ? "" : "s"
-  }</li><li>Reusable activation code</li></ul><button data-plan="${plan.id}">Choose plan</button></article>`
+  }</li><li>Reusable activation code</li>${dailyBlocked(plan) ? `<li>Next eligible: ${new Date(account.dailyAvailability.nextEligibleAt).toLocaleString()}</li>` : ""}</ul><button data-plan="${plan.id}" ${dailyBlocked(plan) ? "disabled" : ""}>${dailyBlocked(plan) ? "Unavailable" : accountAction === "renew" ? "Renew plan" : "Choose plan"}</button></article>`
 ).join("");
 function choose(id) {
   selected = plans.find((plan) => plan.id === id);
@@ -66,7 +86,10 @@ function choose(id) {
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  $("#selected").textContent = `Buy ${selected.name} — ${money(selected.price)}`;
+  const currentPlan = account?.currentPlan?.plan,
+    direction = currentPlan && selected.price > currentPlan.price ? "Upgrade" :
+      currentPlan && selected.price < currentPlan.price ? "Downgrade" : "Change";
+  $("#selected").textContent = `${accountAction === "renew" ? "Renew" : accountAction === "switch" ? direction + " to" : upgradePurchase ? "Upgrade to" : "Buy"} ${selected.name} — ${money(selected.price)}${accountAction === "switch" && currentPlan ? ` (current: ${currentPlan.name}; full package price due now)` : ""}`;
   $("#checkout").hidden = false;
   document.body.classList.add("modal-open");
   $("#closeCheckout").focus();
@@ -92,21 +115,22 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !$("#checkout").hidden) closeCheckout();
 });
 async function beginAccountSecurity(paid, phone) {
+  if (accountAction) {
+    sessionStorage.setItem("ndahi-plan-notice", `${accountAction === "renew" ? "Plan renewed" : "Plan changed"} successfully. Payment was confirmed.`);
+    location.href = "/dashboard";
+    return;
+  }
   const emailMessage = paid.email?.status === "sent"
     ? " A purchase confirmation has been sent to your email."
     : " Your voucher is ready; email delivery will continue automatically.";
   $("#message").innerHTML = `<div class="success"><strong>Payment confirmed.</strong>${emailMessage}<br>Preparing your secure account…</div>`;
-  const challenge = await call("/api/account/login/request-authenticator", {
-    method: "POST",
-    body: JSON.stringify({ phone, code: paid.access.code }),
-  });
   sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({
-    ...challenge,
     phone,
-    setup: true,
+    code: paid.access.code,
+    setupPin: true,
   }));
   await new Promise((resolve) => setTimeout(resolve, 900));
-  location.href = "/verify.html?setup=1";
+  location.href = "/verify.html?setup=pin";
 }
 async function waitForPayment(paymentId, phone) {
   const started = Date.now();
@@ -116,7 +140,7 @@ async function waitForPayment(paymentId, phone) {
       return beginAccountSecurity(status, phone);
     }
     if (["failed", "refunded"].includes(status.payment.status)) {
-      throw Error(`Payment ${status.payment.status}. Choose a plan to try again.`);
+      throw Error(status.payment.failureReason || `Payment ${status.payment.status}. Choose a plan to try again.`);
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
@@ -136,13 +160,24 @@ $("#purchase").onsubmit = async (event) => {
   button.textContent = "Creating payment…";
   try {
     const purchaseInput = Object.fromEntries(new FormData(event.target)),
-      created = await call("/api/purchase", {
+      action = accountAction,
+      requestKeyName = `ndahi-payment-${action || "purchase"}-${selected.id}`;
+    let requestKey = sessionStorage.getItem(requestKeyName);
+    if (!requestKey) {
+      requestKey = crypto.randomUUID();
+      sessionStorage.setItem(requestKeyName, requestKey);
+    }
+    const created = await call(action ? "/api/account/plan/purchase" : "/api/purchase", {
       method: "POST",
       body: JSON.stringify({
         ...purchaseInput,
         planId: selected.id,
+        upgrade: upgradePurchase,
+        action,
+        requestKey,
       }),
     });
+    if (created.payment.status === "paid") sessionStorage.removeItem(requestKeyName);
     $("#message").innerHTML = `<div class="success">Payment request created.${
       created.checkout.mode === "mock"
         ? ' <button id="confirm">Simulate payment approval</button>'
