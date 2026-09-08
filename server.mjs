@@ -1,4 +1,5 @@
 import http from "node:http";
+import { isIP } from "node:net";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, extname, join, normalize } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -87,10 +88,15 @@ export const blank = () => ({
   },
   phone = (v) =>
     String(v || "").replace(/[\s()-]/g, "").replace(/^\+?237(?=6)/, ""),
-  phoneOk = (v) => /^6\d{8}$/.test(phone(v)),
-  ip = (req) =>
-    String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "")
-      .split(",")[0].trim();
+  phoneOk = (v) => /^6\d{8}$/.test(phone(v));
+export function resolveClientIp(req, env = process.env) {
+  const peer = String(req.socket?.remoteAddress || "").replace(/^::ffff:/, "");
+  if (env.TRUST_PROXY !== "render") return peer;
+  const forwarded = String(req.headers?.["cf-connecting-ip"] || "").trim();
+  return isIP(forwarded) ? forwarded.replace(/^::ffff:/, "") : peer;
+}
+const ip = (req) => req.clientIp ||
+  String(req.socket?.remoteAddress || "").replace(/^::ffff:/, "");
 const log = (s, type, meta = {}) => {
     s.events.unshift({
       id: randomUUID(),
@@ -2318,6 +2324,7 @@ export function createHandler(opts = {}) {
   }
   return async (req, res) => {
     try {
+      req.clientIp = resolveClientIp(req, env);
       const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
       if (url.pathname.startsWith("/api/")) return await api(req, res, url);
       return json(res, 404, {

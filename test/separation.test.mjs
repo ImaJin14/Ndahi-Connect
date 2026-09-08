@@ -23,13 +23,14 @@ async function setup() {
       },
     }),
     base = await listen(server);
-  async function req(path, { method = "GET", body, cookie, origin } = {}) {
+  async function req(path, { method = "GET", body, cookie, origin, headers } = {}) {
     const response = await fetch(base + path, {
         method,
         headers: {
           "content-type": "application/json",
           ...(cookie ? { cookie } : {}),
           ...(origin ? { origin } : {}),
+          ...(headers || {}),
         },
         body: body ? JSON.stringify(body) : undefined,
       }),
@@ -174,6 +175,24 @@ test("admin login is rate limited and security actions are audited", async (t) =
     5,
   );
   assert.equal(state.auditLogs.at(0).action, "admin.login.rate_limited");
+});
+test("spoofed forwarding headers cannot bypass admin login rate limits", async (t) => {
+  const f = await setup();
+  t.after(f.close);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    assert.equal((await f.req("/api/admin/login", {
+      method: "POST",
+      body: { pin: "wrong" },
+      origin: "http://admin.test",
+      headers: { "x-forwarded-for": `198.51.100.${attempt + 1}` },
+    })).response.status, 401);
+  }
+  assert.equal((await f.req("/api/admin/login", {
+    method: "POST",
+    body: { pin: "wrong" },
+    origin: "http://admin.test",
+    headers: { "x-forwarded-for": "203.0.113.200" },
+  })).response.status, 429);
 });
 test("session cookies carry the required security attributes", async (t) => {
   const f = await setup();

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer, createStore, ensureState, plans } from "../server.mjs";
+import { createServer, createStore, ensureState, plans, resolveClientIp } from "../server.mjs";
 import { totpCode, totpSecret, totpUri, verifyTotp } from "../lib/security.mjs";
 test("public Wi-Fi catalogue is complete", () => {
   assert.deepEqual(plans.map((p) => p.price), [
@@ -25,6 +25,19 @@ test("daily is one device and other plans have their intended limits", () => {
 });
 test("all plans use direct hotspot voucher access", () => {
   assert.ok(plans.every((p) => !p.accessMode || p.accessMode === "hotspot"));
+});
+test("client IP resolution trusts only Render's protected client header", () => {
+  const req = {
+    headers: {
+      "x-forwarded-for": "198.51.100.7, 10.0.0.1",
+      "cf-connecting-ip": "203.0.113.9",
+    },
+    socket: { remoteAddress: "::ffff:127.0.0.1" },
+  };
+  assert.equal(resolveClientIp(req, {}), "127.0.0.1");
+  assert.equal(resolveClientIp(req, { TRUST_PROXY: "render" }), "203.0.113.9");
+  req.headers["cf-connecting-ip"] = "not-an-ip";
+  assert.equal(resolveClientIp(req, { TRUST_PROXY: "render" }), "127.0.0.1");
 });
 test("legacy persisted state gains passkey challenge collections", () => {
   const state = {};

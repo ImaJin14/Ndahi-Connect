@@ -28,10 +28,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Cover customer device labels, bundle names, API messages, customer data, voucher data, and administrator-controlled content.
   - Acceptance: stored HTML payloads render as text and automated injection tests pass.
 
-- [ ] **SEC-002 — Verify trusted proxy and client-IP handling**
+- [x] **SEC-002 — Verify trusted proxy and client-IP handling**
   - Confirm Render's `X-Forwarded-For` behavior.
   - Accept forwarded addresses only from trusted proxies.
   - Acceptance: spoofed forwarding headers cannot bypass application rate limits.
+  - Implementation: ignore `X-Forwarded-For`; deployments with `TRUST_PROXY=render` use Render/Cloudflare's overwritten `CF-Connecting-IP`, while other deployments use the socket peer address.
 
 - [ ] **SEC-003 — Add edge-level authentication rate limiting**
   - Cover customer PIN, voucher access, PIN reset, passkeys, TOTP, and administrator login.
@@ -491,9 +492,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 18
+- P0 pending: 17
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 1
+- Recommendation tasks complete: 2

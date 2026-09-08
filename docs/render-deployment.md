@@ -21,6 +21,8 @@ Use `docs/render-required-values.txt` as the copy-and-fill worksheet for the Blu
 
 Render generates the three application secrets and obtains `DATABASE_URL` from the managed database. Do not copy the local `.env` into Render.
 
+The API Blueprint sets `TRUST_PROXY=render`. This makes security logs and rate limits use Cloudflare's protected `CF-Connecting-IP` value. Do not set this value on a deployment that can be reached directly without Render's proxy; direct deployments intentionally use the socket peer address and ignore caller-provided forwarding headers.
+
 The Blueprint sets `DATABASE_SSL=false` because `fromDatabase.connectionString` uses Render's same-region private network URL. External PostgreSQL connections must use TLS; do not reuse this setting with an external database URL.
 
 The first deployment uses `BOOTSTRAP_MODE=true`. In this mode the API exposes only health/status responses and returns HTTP 503 for all operational endpoints. After every production URL and provider secret is configured, set `BOOTSTRAP_MODE=false` on `ndahi-api` and redeploy. Never serve customers while bootstrap mode is enabled.
