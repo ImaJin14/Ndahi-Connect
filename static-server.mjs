@@ -37,6 +37,15 @@ export function createStaticServer(
       });
       return res.end(data);
     }
+    if (url.pathname === "/shared/safe-html.js") {
+      const data = await readFile(join(process.cwd(), "shared-app/safe-html.js"));
+      res.writeHead(200, {
+        "content-type": "text/javascript; charset=utf-8",
+        "cache-control": "public, max-age=86400",
+        "x-content-type-options": "nosniff",
+      });
+      return res.end(data);
+    }
     let path = url.pathname;
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";

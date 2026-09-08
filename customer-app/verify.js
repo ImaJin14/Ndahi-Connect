@@ -1,4 +1,5 @@
 import { ApiError, consumeReturnPath, responseError, showError } from "./errors.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
   saved = sessionStorage.getItem("ndahi-login-challenge");
@@ -20,7 +21,7 @@ if (challenge) {
     $("#confirm").required = true;
     $("#submitLabel").textContent = "Create PIN and continue";
   } else $("#instructions").textContent = challenge.message;
-  if (challenge.enrollmentRequired) $("#development").innerHTML = `<div class="success"><strong>First-time setup</strong><p>In Google Authenticator, tap +, choose Enter a setup key, use account <code>${challenge.phone}</code>, and enter this time-based key:</p><code>${challenge.secret}</code></div>`;
+  if (challenge.enrollmentRequired) $("#development").innerHTML = `<div class="success"><strong>First-time setup</strong><p>In Google Authenticator, tap +, choose Enter a setup key, use account <code>${h(challenge.phone)}</code>, and enter this time-based key:</p><code>${h(challenge.secret)}</code></div>`;
 }
 $("#verify").onsubmit = async (event) => {
   event.preventDefault();

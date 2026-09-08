@@ -1,4 +1,5 @@
 import { ApiError, responseError, showError } from "./errors.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -34,7 +35,7 @@ $("#resetRequest").onsubmit = async (event) => {
   button.disabled = true;
   try {
     const result = await call("/api/account/pin-reset/request", Object.fromEntries(new FormData(event.target)));
-    $("#message").innerHTML = `<div class="success">${result.message}</div>`;
+    $("#message").innerHTML = `<div class="success">${h(result.message)}</div>`;
     event.target.reset();
   } catch (error) { showError($("#message"), error); }
   finally { button.disabled = false; }
@@ -50,7 +51,7 @@ $("#resetConfirm").onsubmit = async (event) => {
   button.disabled = true;
   try {
     const result = await call("/api/account/pin-reset/confirm", { ...input, token });
-    $("#message").innerHTML = `<div class="success">${result.message} <a href="/login">Sign in</a></div>`;
+    $("#message").innerHTML = `<div class="success">${h(result.message)} <a href="/login">Sign in</a></div>`;
     event.target.hidden = true;
   } catch (error) { showError($("#message"), error); }
   finally { button.disabled = false; }

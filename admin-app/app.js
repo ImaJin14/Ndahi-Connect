@@ -1,3 +1,5 @@
+import { escapeHtml as h } from "/shared/safe-html.js";
+
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
   rows = (items, render) => items.map(render).join("");
@@ -38,18 +40,18 @@ async function load() {
   csrfToken = x.csrfToken;
   const customerOptions = rows(
       x.customers,
-      (c) => `<option value="${c.id}">${c.name} — ${c.phone}</option>`,
+      (c) => `<option value="${h(c.id)}">${h(c.name)} — ${h(c.phone)}</option>`,
     ),
     bundleOptions = rows(
       x.bundles,
-      (b) => `<option value="${b.id}">${b.name}</option>`,
+      (b) => `<option value="${h(b.id)}">${h(b.name)}</option>`,
     );
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
-${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${name}: ${ready ? "ready" : "needs setup"}</span>`).join("")}</div></section>` : ""}
+${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${ready ? "ready" : "needs setup"}</span>`).join("")}</div></section>` : ""}
 <div class="metrics">${
     Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b>${v}</b>${k}</div>`
+      `<div class="metric"><b>${h(v)}</b>${h(k)}</div>`
     ).join("")
   }</div>
 <div class="admin-tabs" role="tablist" aria-label="Admin dashboard sections">
@@ -63,19 +65,19 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
     ["audit", "Audit"],
   ].map(([id, label]) => `<button role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${activeAdminTab === id}" tabindex="${activeAdminTab === id ? "0" : "-1"}" data-tab="${id}">${label}</button>`).join("")}
 </div><div class="tab-panels">
-<section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${x.integrations.payments}</span></div><div class="integration-grid">
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${x.integrations.mikrotik}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${x.integrations.omada === "live" ? "status-good" : "status-warning"}">${x.integrations.omada}</span></div><p>Check controller connectivity and access-point availability.</p></div><button class="secondary-action" id="checkOmada">Check connection</button></article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Account security</h3><span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span></div><p>Protect the ${x.profile.role} account with an authenticator app.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button><button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div></form></article>
+<section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
+  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${h(x.integrations.mikrotik)}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
+  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${x.integrations.omada === "live" ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>Check controller connectivity and access-point availability.</p></div><button class="secondary-action" id="checkOmada">Check connection</button></article>
+  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Account security</h3><span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span></div><p>Protect the ${h(x.profile.role)} account with an authenticator app.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button><button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div></form></article>
 </div><div id="integrationMessage" role="status" aria-live="polite"></div></section>
 <section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="tab-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
     rows(x.bundles, (b) =>
-      `<tr><td>${b.name}</td><td>${b.price} FCFA</td><td>${
-        b.quotaGb ?? "Unlimited"
-      } GB</td><td>${b.validityHours} hours</td><td>${b.deviceLimit}</td><td>${
+      `<tr><td>${h(b.name)}</td><td>${h(b.price)} FCFA</td><td>${
+        h(b.quotaGb ?? "Unlimited")
+      } GB</td><td>${h(b.validityHours)} hours</td><td>${h(b.deviceLimit)}</td><td>${
         b.custom ? "Custom" : "System"
-      }</td><td><button data-edit-bundle="${b.id}">Edit</button>${
-        b.custom ? ` <button data-delete-bundle="${b.id}">Delete</button>` : ""
+      }</td><td><button data-edit-bundle="${h(b.id)}">Edit</button>${
+        b.custom ? ` <button data-delete-bundle="${h(b.id)}">Delete</button>` : ""
       }</td></tr>`)
   }</tbody></table></section>
 <section class="card tab-panel" id="panel-voucher-create" role="tabpanel" aria-labelledby="tab-voucher-create" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
@@ -96,39 +98,39 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
 </form><div id="generated" role="status" aria-live="polite"></div></section>
 <section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><table>${
     rows(x.customers, (c) =>
-      `<tr><td>${c.name}</td><td>${c.phone}</td><td>${
-        c.status || "active"
-      }</td><td><button data-customer="${c.id}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${c.id}">Reset authenticator</button>` : ""}</td></tr>`)
+      `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${
+        h(c.status || "active")
+      }</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`)
   }</table><h3>Active device sessions</h3><table>${
     rows(x.sessions, (s) =>
-      `<tr><td>${s.label}</td><td>${s.deviceId}</td><td>${s.status}</td><td>${
+      `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${
         s.status === "online"
-          ? `<button data-session="${s.id}">Disconnect</button>`
+          ? `<button data-session="${h(s.id)}">Disconnect</button>`
           : ""
       }</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><table>${
     rows(x.vouchers, (v) =>
-      `<tr><td><code>${v.code}</code></td><td>${v.plan?.name}</td><td>${v.status}</td><td>${v.emailStatus || "not sent"}</td><td>${v.activeDevices}/${v.deviceLimit}</td><td>${
+      `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
         v.status === "active"
-          ? `<button data-voucher="${v.id}">Revoke</button>`
+          ? `<button data-voucher="${h(v.id)}">Revoke</button>`
           : ""
-      }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${v.id}">Retry email</button>` : ""
+      }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""
       }</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><table>${
     rows(x.payments, (p) =>
-      `<tr><td>${p.amount} ${p.currency}</td><td>${p.provider}</td><td>${p.providerReference}</td><td>${p.status}</td><td>${
+      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}</td><td>${
         p.status === "paid"
-          ? `<button data-refund="${p.id}">Refund</button>`
+          ? `<button data-refund="${h(p.id)}">Refund</button>`
           : ""
       }</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><table>${
     rows(x.auditLogs, (a) =>
       `<tr><td>${
-        new Date(a.at).toLocaleString()
-      }</td><td>${a.action}</td><td>${a.ip}</td></tr>`)
+        h(new Date(a.at).toLocaleString())
+      }</td><td>${h(a.action)}</td><td>${h(a.ip)}</td></tr>`)
   }</table></section></div>`;
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const activateTab = (tab, moveFocus = false) => {
@@ -200,7 +202,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
       body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
     });
     const vouchers = result.vouchers || [result.voucher];
-    $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${vouchers.length} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${voucher.code}</code>`).join("")}</div>`;
+    $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
     $("#downloadVouchers").onclick = () => {
       const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
         link = document.createElement("a");
@@ -254,7 +256,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
       body: "{}",
     });
     $("#mfaEnrollment").innerHTML =
-      `<p>Add this secret to your authenticator: <code>${result.secret}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
+      `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
     $("#confirmMfa").onclick = async () => {
       await call("/api/admin/profile/mfa/confirm", {
         method: "POST",

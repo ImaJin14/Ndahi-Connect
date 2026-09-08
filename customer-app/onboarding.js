@@ -1,4 +1,5 @@
 import { responseError, saveReturnPath, showError } from "./errors.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -59,7 +60,7 @@ if (paymentProvider === "mesomb") {
   );
 }
 $("#plans").innerHTML = plans.map((plan) =>
-  `<article class="plan" data-card="${plan.id}"><div class="plan-badge">${dailyBlocked(plan) ? "Available later" : plan.id === "daily" ? "Once every 7 days" : ""}</div><h3>${plan.name}</h3><div class="plan-price">${
+  `<article class="plan" data-card="${h(plan.id)}"><div class="plan-badge">${dailyBlocked(plan) ? "Available later" : plan.id === "daily" ? "Once every 7 days" : ""}</div><h3>${h(plan.name)}</h3><div class="plan-price">${
     money(plan.price)
   } <small>/${
     plan.validityHours === 24
@@ -77,7 +78,7 @@ $("#plans").innerHTML = plans.map((plan) =>
       : "30 days"
   } validity</li><li>${plan.deviceLimit} simultaneous device${
     plan.deviceLimit === 1 ? "" : "s"
-  }</li><li>Reusable activation code</li>${dailyBlocked(plan) ? `<li>Next eligible: ${new Date(account.dailyAvailability.nextEligibleAt).toLocaleString()}</li>` : ""}</ul><button data-plan="${plan.id}" ${dailyBlocked(plan) ? "disabled" : ""}>${dailyBlocked(plan) ? "Unavailable" : accountAction === "renew" ? "Renew plan" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button></article>`
+  }</li><li>Reusable activation code</li>${dailyBlocked(plan) ? `<li>Next eligible: ${h(new Date(account.dailyAvailability.nextEligibleAt).toLocaleString())}</li>` : ""}</ul><button data-plan="${h(plan.id)}" ${dailyBlocked(plan) ? "disabled" : ""}>${dailyBlocked(plan) ? "Unavailable" : accountAction === "renew" ? "Renew plan" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button></article>`
 ).join("");
 function choose(id) {
   selected = plans.find((plan) => plan.id === id);
@@ -205,7 +206,7 @@ $("#purchase").onsubmit = async (event) => {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
       if (paymentWindow) paymentWindow.location.replace(destination.href);
-      else $("#message").innerHTML += `<p><a class="button" href="${destination.href}" target="_blank" rel="noopener">Open secure payment</a></p>`;
+      else $("#message").innerHTML += `<p><a class="button" href="${h(destination.href)}" target="_blank" rel="noopener">Open secure payment</a></p>`;
     } else paymentWindow?.close();
     const confirm = $("#confirm");
     if (confirm) {
