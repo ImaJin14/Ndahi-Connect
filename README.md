@@ -1,6 +1,6 @@
 # NDAHI Connect — separated customer, admin and API services
 
-NDAHI Connect is a zero-dependency Node.js student-zone pilot for one Starlink uplink, a MikroTik RB5009 Hotspot gateway, and an Omada EAP650-Outdoor serving approximately four buildings. Payment, voucher, quota, device-limit, persistence and RouterOS adapter behavior are preserved.
+NDAHI Connect is a Node.js platform for a wireless internet service provider (WISP) delivering managed public Wi-Fi through a Starlink uplink, MikroTik Hotspot gateway and Omada access points. It supports homes, businesses, public hotspots and community coverage areas, with payment, voucher, quota, device-limit, persistence and RouterOS adapter behavior built in.
 
 ## Application boundaries
 
@@ -42,7 +42,7 @@ For local plain HTTP only, `.env` sets `SESSION_COOKIE_SECURE=false`. Production
 
 ## Security model
 
-- Customer login: phone + a required four-digit PIN stored as an Argon2id hash, with five-attempt phone/IP throttling. The activation code is used only to create the PIN after a verified first purchase. Authenticator 2FA and passkeys are optional account-security upgrades; existing TOTP users remain supported.
+- Customer login: phone + a required four-digit PIN stored as an Argon2id hash, with five-attempt phone/IP throttling. The activation code is used only to create the PIN after a verified first purchase. Authenticator 2FA and passkeys are optional account-security upgrades; existing TOTP users remain supported. Forgotten PINs use throttled, single-use email reset links that expire after 15 minutes and invalidate existing customer sessions.
 - Administrator login: named accounts with Argon2id password hashes, phishing-resistant WebAuthn passkeys, optional TOTP fallback, role authorization, five failures per IP per 15 minutes, CSRF protection in production, and a separate strict session cookie.
 - Browser requests use credentialed CORS. Admin endpoints allow only `ALLOWED_ADMIN_ORIGINS`; there is no wildcard CORS. Customer-origin requests to admin operations are rejected before authentication.
 - All administrator operations perform server-side role/session checks. Customer and admin cookies cannot substitute for each other.

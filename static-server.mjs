@@ -40,6 +40,7 @@ export function createStaticServer(
     let path = url.pathname;
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
+    if (path === "/forgot-pin") path = "/forgot-pin.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404);
       return res.end("Not found");

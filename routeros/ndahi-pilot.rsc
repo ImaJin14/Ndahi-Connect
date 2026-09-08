@@ -1,6 +1,6 @@
-# NDAHI Connect v3 direct-device student-zone baseline for RouterOS 7.
+# NDAHI Connect v3 managed public Wi-Fi baseline for RouterOS 7.
 # Assumptions: ether1=Starlink WAN, ether2=EAP650-Outdoor uplink.
-/interface bridge add name=br-hotspot comment="NDAHI student Wi-Fi"
+/interface bridge add name=br-hotspot comment="NDAHI managed public Wi-Fi"
 /interface bridge port add bridge=br-hotspot interface=ether2
 /ip address add address=10.20.0.1/22 interface=br-hotspot
 /ip pool add name=pool-hotspot ranges=10.20.0.20-10.20.3.250

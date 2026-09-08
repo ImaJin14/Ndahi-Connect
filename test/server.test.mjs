@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer, createStore, ensureState, plans } from "../server.mjs";
 import { totpCode, totpSecret, totpUri, verifyTotp } from "../lib/security.mjs";
-test("student catalogue is complete", () => {
+test("public Wi-Fi catalogue is complete", () => {
   assert.deepEqual(plans.map((p) => p.price), [
     100,
     500,

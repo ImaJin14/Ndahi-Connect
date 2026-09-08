@@ -240,7 +240,7 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   const exposed = await f.call("/api/account?phone=670000001");
   assert.equal(exposed.response.status, 404);
 });
-test("stacking and Student Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
+test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
   const f = await fixture();
   t.after(f.close);
   async function purchase(phone, planId) {
@@ -394,7 +394,56 @@ test("new customers create a hashed 4-digit PIN and PIN login is rate limited", 
   })).response.status, 429);
 });
 
-test("Student Daily has a rolling seven-day cooldown and keeps 24-hour validity", async (t) => {
+test("forgot PIN uses a single-use emailed token and invalidates existing sessions", async (t) => {
+  let resetToken;
+  const f = await fixture({
+    email: {
+      configured: () => true,
+      sendVoucher: async () => ({ messageId: "voucher-email" }),
+      sendPinReset: async ({ token }) => {
+        resetToken = token;
+        return { messageId: "reset-email" };
+      },
+    },
+  });
+  t.after(f.close);
+  const purchase = await f.call("/api/purchase", "POST", {
+      phone: "670000045", email: "reset@example.com", planId: "weekly",
+    }),
+    paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000045", code: paid.json.access.code, pin: "1234", confirmPin: "1234",
+  });
+  const oldCookie = f.jar.customer_session;
+  const requested = await f.call("/api/account/pin-reset/request", "POST", { phone: "670000045" });
+  assert.equal(requested.response.status, 202);
+  assert.ok(resetToken);
+  const stored = await f.store.snapshot();
+  assert.notEqual(stored.pinResetChallenges[0].tokenHash, resetToken);
+  assert.equal((await f.call("/api/account/pin-reset/confirm", "POST", {
+    token: resetToken, pin: "5678", confirmPin: "8765",
+  })).response.status, 400);
+  assert.equal((await f.call("/api/account/pin-reset/confirm", "POST", {
+    token: resetToken, pin: "5678", confirmPin: "5678",
+  })).response.status, 200);
+  assert.equal((await f.call("/api/account/dashboard", "GET", null, null, {
+    cookie: oldCookie,
+  })).response.status, 401);
+  assert.equal((await f.call("/api/account/login/pin", "POST", {
+    phone: "670000045", pin: "1234",
+  })).response.status, 401);
+  assert.equal((await f.call("/api/account/login/pin", "POST", {
+    phone: "670000045", pin: "5678",
+  })).response.status, 200);
+  assert.equal((await f.call("/api/account/pin-reset/confirm", "POST", {
+    token: resetToken, pin: "9999", confirmPin: "9999",
+  })).response.status, 401);
+  const unknown = await f.call("/api/account/pin-reset/request", "POST", { phone: "670999999" });
+  assert.equal(unknown.response.status, 202);
+  assert.equal(unknown.json.message, requested.json.message);
+});
+
+test("Daily has a rolling seven-day cooldown and keeps 24-hour validity", async (t) => {
   let current = new Date("2026-09-07T10:00:00Z");
   const f = await fixture({ now: () => new Date(current) });
   t.after(f.close);
@@ -455,7 +504,7 @@ test("discontinued plans are historical-only and account renewal/switching is id
   });
   await f.store.transaction((stored) => stored.vouchers = state.vouchers);
   const dashboard = await f.call("/api/account/dashboard");
-  assert.ok(dashboard.json.vouchers.some((voucher) => voucher.plan.name === "Student Plus"));
+  assert.ok(dashboard.json.vouchers.some((voucher) => voucher.plan.name === "Connect Plus"));
   assert.ok(!dashboard.json.availablePlans.some((plan) => plan.discontinued));
 });
 

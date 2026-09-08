@@ -1,5 +1,18 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Customer login — NDAHI Connect</title><link rel="stylesheet" href="/styles.css"></head><body>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Customer login — NDAHI Connect</title><link rel="stylesheet" href="/styles.css"></head><body class="login-page">
 <header><a class="brand" href="/onboarding.html"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></a><div class="header-actions"><span class="network-state">Network online</span></div></header>
-<main><section class="card narrow"><p class="eyebrow">Customer portal</p><h1>Welcome back.</h1><p>Sign in with your phone number and 4-digit PIN. Existing authenticator accounts continue to work.</p><form id="login"><label>Phone number<input name="phone" placeholder="6XXXXXXXX" autocomplete="tel" required></label><label>4-digit PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" required></label><button>Sign in</button><button type="button" class="secondary-action" id="authenticatorLogin">Use existing authenticator</button><button type="button" class="secondary-action" id="customerPasskeyLogin">Sign in with a passkey</button></form><div id="message" class="error" role="alert" aria-live="assertive"></div><div class="onboarding-link"><span>New to NDAHI Connect?</span><a class="button" href="/onboarding.html">Get started</a></div></section></main>
+<main class="login-main">
+  <section class="login-panel" aria-labelledby="loginTitle">
+    <div class="login-heading"><div><p class="eyebrow">Customer portal</p><h1 id="loginTitle">Welcome back</h1><p>Sign in to get started.</p></div><span class="panel-network"><span aria-hidden="true"></span>Network online</span></div>
+    <form id="login" class="login-form">
+      <label>Phone number<input name="phone" placeholder="6XXXXXXXX" autocomplete="tel" inputmode="tel" required></label>
+      <label class="pin-label"><span>4-digit PIN</span><a href="/forgot-pin">Forgot PIN?</a><span class="pin-field"><input id="customerPin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" required><button type="button" id="togglePin" class="pin-toggle" aria-controls="customerPin" aria-pressed="false">Show</button></span></label>
+      <button class="login-submit">Sign in</button>
+    </form>
+    <div id="message" class="error login-message" role="alert" aria-live="assertive"></div>
+    <div class="login-alternatives"><span>or</span></div>
+    <div class="alternative-actions"><button type="button" class="text-action" id="customerPasskeyLogin">Use a passkey</button><button type="button" class="text-action" id="authenticatorLogin">Google Authenticator</button></div>
+  </section>
+  <div class="new-customer"><span>New here?</span><a href="/onboarding.html">Get Started</a></div>
+</main>
 <footer class="footer-note">Secure access · Your Mobile Money PIN is never requested</footer><script src="/config.js"></script><script src="/vendor/webauthn.js"></script><script type="module" src="/login.js"></script></body></html>

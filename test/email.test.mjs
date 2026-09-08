@@ -5,7 +5,7 @@ import { ResendEmailAdapter } from "../lib/email.mjs";
 const delivery = {
   customer: { name: "Ada & Co", email: "ada@example.com" },
   payment: { amount: 500, currency: "XAF" },
-  plan: { name: "Student Weekly", quotaGb: 5 },
+  plan: { name: "Weekly", quotaGb: 5 },
   voucher: {
     id: "voucher-123",
     code: "NC-ABCD-2345",
@@ -34,7 +34,7 @@ test("Resend sends a complete voucher confirmation with an idempotency key", asy
   assert.equal(request.options.headers["idempotency-key"], "voucher-confirmation/voucher-123");
   assert.deepEqual(body.to, ["ada@example.com"]);
   assert.match(body.text, /NC-ABCD-2345/);
-  assert.match(body.text, /Student Weekly/);
+  assert.match(body.text, /Weekly/);
   assert.match(body.html, /portal\.ndahiconnect\.net\/login/);
   assert.doesNotMatch(body.html, /Ada & Co/);
 });

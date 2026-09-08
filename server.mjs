@@ -28,15 +28,15 @@ import { createPostgresStore } from "./lib/postgres-store.mjs";
 import { assertProductionConfig, enabledPaymentProviders } from "./lib/config.mjs";
 const PUB = join(process.cwd(), "public"), GB = 1e9;
 const legacyPlans = [
-  ["plus", "Student Plus", 3000, 15, 720, 1],
+  ["plus", "Connect Plus", 3000, 15, 720, 1],
   ["connect20", "Connect 20", 4000, 20, 720, 2],
 ].map(([id, name, price, quotaGb, validityHours, deviceLimit]) => ({
   id, name, price, quotaGb, validityHours, deviceLimit, discontinued: true,
 }));
 export const plans = [
-  ["daily", "Student Daily", 100, 1, 24, 1],
-  ["weekly", "Student Weekly", 500, 5, 168, 1],
-  ["monthly", "Student Monthly", 2000, 10, 720, 1],
+  ["daily", "Daily", 100, 1, 24, 1],
+  ["weekly", "Weekly", 500, 5, 168, 1],
+  ["monthly", "Monthly", 2000, 10, 720, 1],
   ["connect30", "Connect 30", 5500, 30, 720, 2],
   ["family", "Connect Family", 10000, 50, 720, 3],
   ["connect75", "Connect 75", 12500, 75, 720, 3],
@@ -62,6 +62,7 @@ export const blank = () => ({
     adminPasskeyChallenges: [],
     customerPasskeyChallenges: [],
     customerMfaChallenges: [],
+    pinResetChallenges: [],
     adminLoginChallenges: [],
     otpChallenges: [],
     adminMfaChallenges: [],
@@ -423,7 +424,7 @@ export function createHandler(opts = {}) {
       const eligibleAt = dailyEligibleAt(s, c.id);
       if (eligibleAt && eligibleAt > clock()) {
         p.status = "failed";
-        p.failureReason = `Student Daily is available again on ${eligibleAt.toISOString()}.`;
+        p.failureReason = `Daily is available again on ${eligibleAt.toISOString()}.`;
         return json(res, 409, {
           error: p.failureReason, nextEligibleAt: eligibleAt.toISOString(),
         });
@@ -646,7 +647,7 @@ export function createHandler(opts = {}) {
         const nextEligibleAt = plan.id === "daily" && dailyEligibleAt(s, c.id);
         if (nextEligibleAt && nextEligibleAt > clock()) {
           return json(res, 409, {
-            error: `Student Daily is available again on ${nextEligibleAt.toISOString()}.`,
+            error: `Daily is available again on ${nextEligibleAt.toISOString()}.`,
             nextEligibleAt: nextEligibleAt.toISOString(),
           });
         }
@@ -936,6 +937,88 @@ export function createHandler(opts = {}) {
         session.lastSeenAt = clock().toISOString();
         log(s, "device.connected", { voucherId: v.id, deviceId });
         return json(res, 200, { voucher: view(v, s), session });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/pin-reset/request") {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const ph = phone(i.phone), cutoff = new Date(clock().getTime() - 15 * 60_000),
+          recent = s.securityEvents.filter((event) =>
+            event.type === "customer.pin_reset.requested" &&
+            new Date(event.at) > cutoff &&
+            (event.ip === ip(req) || event.meta?.phone === ph)
+          );
+        if (recent.length >= 3) {
+          return json(res, 429, { error: "Too many reset requests. Try again in 15 minutes." });
+        }
+        sec(s, "customer.pin_reset.requested", req, { phone: ph });
+        const customer = s.customers.find((item) =>
+          item.phone === ph && item.status !== "suspended" && item.pinHash && item.email
+        );
+        if (customer && email.configured()) {
+          const token = secureToken(32);
+          for (const challenge of s.pinResetChallenges) {
+            if (challenge.customerId === customer.id && !challenge.used) challenge.used = true;
+          }
+          const challenge = {
+            id: randomUUID(), customerId: customer.id,
+            tokenHash: hashSecret(token, pepper), attempts: 0, used: false,
+            createdAt: clock().toISOString(),
+            expiresAt: new Date(clock().getTime() + 15 * 60_000).toISOString(),
+          };
+          s.pinResetChallenges.push(challenge);
+          try {
+            const sent = await email.sendPinReset({ customer, token });
+            challenge.emailMessageId = sent.messageId;
+            challenge.emailSentAt = clock().toISOString();
+          } catch (error) {
+            challenge.deliveryError = String(error.message || error).slice(0, 200);
+            log(s, "customer.pin_reset.email_failed", { customerId: customer.id });
+          }
+        }
+        return json(res, 202, {
+          message: "If an eligible account matches that phone number, a reset link has been sent to its email address.",
+        });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/pin-reset/confirm") {
+      const i = await body(req);
+      if (!/^\d{4}$/.test(String(i.pin || ""))) {
+        return json(res, 400, { error: "PIN must contain exactly 4 numeric digits." });
+      }
+      if (i.pin !== i.confirmPin) {
+        return json(res, 400, { error: "PIN entries do not match." });
+      }
+      return mutate(async (s) => {
+        const tokenHash = hashSecret(String(i.token || ""), pepper),
+          challenge = s.pinResetChallenges.find((item) =>
+            !item.used && safeEqual(item.tokenHash, tokenHash)
+          ),
+          failures = s.securityEvents.filter((event) =>
+            event.type === "customer.pin_reset.failed" && event.ip === ip(req) &&
+            new Date(event.at) > new Date(clock().getTime() - 15 * 60_000)
+          );
+        if (failures.length >= 5) {
+          return json(res, 429, { error: "Too many reset attempts. Try again in 15 minutes." });
+        }
+        if (!challenge || new Date(challenge.expiresAt) <= clock()) {
+          sec(s, "customer.pin_reset.failed", req);
+          return json(res, 401, { error: "This reset link is invalid or expired." });
+        }
+        const customer = s.customers.find((item) => item.id === challenge.customerId);
+        if (!customer) {
+          challenge.used = true;
+          return json(res, 401, { error: "This reset link is invalid or expired." });
+        }
+        customer.pinHash = await argon2.hash(i.pin, { type: argon2.argon2id });
+        customer.pinUpdatedAt = clock().toISOString();
+        challenge.used = true;
+        challenge.usedAt = clock().toISOString();
+        s.dashboardSessions = s.dashboardSessions.filter((session) =>
+          session.customerId !== customer.id
+        );
+        log(s, "customer.pin_reset.completed", { customerId: customer.id });
+        return json(res, 200, { reset: true, message: "Your PIN has been reset. You can sign in now." });
       });
     }
     if (req.method === "POST" && url.pathname === "/api/account/setup/pin") {

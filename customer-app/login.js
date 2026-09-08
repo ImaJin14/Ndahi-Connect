@@ -5,6 +5,14 @@ if (loginNotice) {
   $("#message").textContent = loginNotice;
   sessionStorage.removeItem("ndahi-login-notice");
 }
+$("#togglePin").onclick = () => {
+  const input = $("#customerPin"), button = $("#togglePin"),
+    show = input.type === "password";
+  input.type = show ? "text" : "password";
+  button.textContent = show ? "Hide" : "Show";
+  button.setAttribute("aria-pressed", String(show));
+  input.focus();
+};
 async function call(path, data) {
   const response = await fetch(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }),
     result = await response.json();
