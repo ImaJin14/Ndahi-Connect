@@ -378,6 +378,90 @@ test("production customer mutations require trusted origin and session CSRF toke
     origin: "https://portal.ndahiconnect.net", "x-csrf-token": csrfToken,
   })).status, 200);
 });
+test("secret rotation preserves existing sessions and active access challenges", async (t) => {
+  const oldCustomer = "old-customer-secret-that-is-at-least-32-chars",
+    newCustomer = "new-customer-secret-that-is-at-least-32-chars",
+    oldAdmin = "old-admin-secret-that-is-at-least-32-characters",
+    newAdmin = "new-admin-secret-that-is-at-least-32-characters",
+    oldPepper = "old-pepper-secret-that-is-at-least-32-characters",
+    newPepper = "new-pepper-secret-that-is-at-least-32-characters",
+    customerToken = "existing-customer-token",
+    adminToken = "existing-admin-token",
+    accessToken = "existing-access-token",
+    store = createStore({ persistent: false });
+  await store.transaction((state) => {
+    state.customers.push({
+      id: "existing-customer", phone: "670111222", name: "Existing",
+      createdAt: new Date().toISOString(),
+    });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret(customerToken, oldCustomer),
+      customerId: "existing-customer", role: "customer", csrfToken: "customer-csrf",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    state.adminUsers.push({
+      id: "existing-admin", username: "owner", displayName: "Owner",
+      role: "owner", active: true, passkeys: [], createdAt: new Date().toISOString(),
+    });
+    state.adminSessions.push({
+      tokenHash: hashSecret(adminToken, oldAdmin), userId: "existing-admin",
+      role: "owner", csrfToken: "admin-csrf",
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+    state.vouchers.push({
+      id: "rotation-voucher", customerId: null, planId: "weekly",
+      code: "NC-ROTA-TION", status: "available", quotaBytes: 5e9,
+      usedBytes: 0, deviceLimit: 1, createdAt: new Date().toISOString(),
+    });
+    state.customerAccessChallenges.push({
+      tokenHash: hashSecret(accessToken, oldPepper), phone: "670333444",
+      voucherId: "rotation-voucher", mode: "setup", used: false,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+  });
+  const server = createServer({
+      store,
+      env: {
+        PAYMENT_MODE: "mock", SESSION_COOKIE_SECURE: "false",
+        CUSTOMER_SESSION_SECRET: newCustomer,
+        CUSTOMER_SESSION_SECRET_PREVIOUS: oldCustomer,
+        ADMIN_SESSION_SECRET: newAdmin,
+        ADMIN_SESSION_SECRET_PREVIOUS: oldAdmin,
+        SECRET_PEPPER: newPepper,
+        SECRET_PEPPER_PREVIOUS: oldPepper,
+        CUSTOMER_APP_URL: "http://customer.test",
+        ADMIN_APP_URL: "http://admin.test",
+        ALLOWED_ADMIN_ORIGINS: "http://admin.test",
+      },
+    }),
+    base = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  assert.equal((await fetch(base + "/api/account/dashboard", {
+    headers: { cookie: `customer_session=${customerToken}` },
+  })).status, 200);
+  assert.equal((await fetch(base + "/api/admin/dashboard", {
+    headers: { cookie: `admin_session=${adminToken}` },
+  })).status, 200);
+  const migrated = await store.snapshot();
+  assert.ok(migrated.dashboardSessions.some((session) =>
+    session.tokenHash === hashSecret(customerToken, newCustomer)
+  ));
+  assert.ok(migrated.adminSessions.some((session) =>
+    session.tokenHash === hashSecret(adminToken, newAdmin)
+  ));
+  const completed = await fetch(base + "/api/account/access/complete", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: accessToken, pin: "2468", confirmPin: "2468" }),
+  });
+  assert.equal(completed.status, 200);
+  const issuedToken = completed.headers.get("set-cookie").match(/customer_session=([^;]+)/)[1],
+    state = await store.snapshot();
+  assert.ok(state.dashboardSessions.some((session) =>
+    session.tokenHash === hashSecret(decodeURIComponent(issuedToken), newCustomer)
+  ));
+});
 test("administrators can create, read, update and delete custom bundles", async (t) => {
   const f = await setup();
   t.after(f.close);

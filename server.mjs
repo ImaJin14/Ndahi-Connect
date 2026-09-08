@@ -343,9 +343,12 @@ export function createHandler(opts = {}) {
     clock = opts.now || (() => new Date()),
     customerSecret = env.CUSTOMER_SESSION_SECRET || env.SECRET_PEPPER ||
       "development-customer-secret",
+    previousCustomerSecret = env.CUSTOMER_SESSION_SECRET_PREVIOUS || "",
     adminSecret = env.ADMIN_SESSION_SECRET || env.SECRET_PEPPER ||
       "development-admin-secret",
+    previousAdminSecret = env.ADMIN_SESSION_SECRET_PREVIOUS || "",
     pepper = env.SECRET_PEPPER || "development-only-pepper",
+    previousPepper = env.SECRET_PEPPER_PREVIOUS || "",
     adminBootstrapCredential = env.ADMIN_BOOTSTRAP_PASSWORD || env.ADMIN_PIN ||
       (env.NODE_ENV === "production" ? secureToken() : "2468"),
     adminHash = hashSecret(adminBootstrapCredential, adminSecret),
@@ -444,14 +447,19 @@ export function createHandler(opts = {}) {
       delete customer.pinNextAttemptAt;
       delete customer.pinLockedUntil;
     },
+    matchesRotatingHash = (value, storedHash, currentSecret, previousSecret) =>
+      safeEqual(storedHash, hashSecret(value, currentSecret)) ||
+      Boolean(previousSecret) &&
+        safeEqual(storedHash, hashSecret(value, previousSecret)),
     auth = (req, s, type) => {
       const customer = type === "dashboardSessions",
         name = customer ? "customer_session" : "admin_session",
         secret = customer ? customerSecret : adminSecret,
+        previousSecret = customer ? previousCustomerSecret : previousAdminSecret,
         token = cookies(req)[name];
       if (!token) return;
       return s[type].find((x) =>
-        safeEqual(x.tokenHash, hashSecret(token, secret)) &&
+        matchesRotatingHash(token, x.tokenHash, secret, previousSecret) &&
         new Date(x.expiresAt) > clock()
       );
     },
@@ -472,6 +480,7 @@ export function createHandler(opts = {}) {
       const token = cookies(req).customer_session;
       if (!token || !session) return;
       const seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800);
+      session.tokenHash = hashSecret(token, customerSecret);
       session.expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
       res.setHeader("set-cookie", cookie("customer_session", token, seconds, secureCookies));
     };
@@ -1180,9 +1189,10 @@ export function createHandler(opts = {}) {
         return json(res, 400, { error: "PIN must contain exactly 4 numeric digits." });
       }
       return mutate(async (s) => {
-        const tokenHash = hashSecret(String(i.token || ""), pepper),
-          challenge = s.customerAccessChallenges.find((item) =>
-            !item.used && safeEqual(item.tokenHash, tokenHash)
+        const challenge = s.customerAccessChallenges.find((item) =>
+            !item.used && matchesRotatingHash(
+              String(i.token || ""), item.tokenHash, pepper, previousPepper,
+            )
           );
         if (!challenge || new Date(challenge.expiresAt) <= clock()) {
           sec(s, "customer.access.failed", req);
@@ -1332,9 +1342,10 @@ export function createHandler(opts = {}) {
         return json(res, 400, { error: "PIN entries do not match." });
       }
       return mutate(async (s) => {
-        const tokenHash = hashSecret(String(i.token || ""), pepper),
-          challenge = s.pinResetChallenges.find((item) =>
-            !item.used && safeEqual(item.tokenHash, tokenHash)
+        const challenge = s.pinResetChallenges.find((item) =>
+            !item.used && matchesRotatingHash(
+              String(i.token || ""), item.tokenHash, pepper, previousPepper,
+            )
           ),
           failures = s.securityEvents.filter((event) =>
             event.type === "customer.pin_reset.failed" && event.ip === ip(req) &&
@@ -1599,7 +1610,9 @@ export function createHandler(opts = {}) {
         const token = cookies(req).customer_session;
         if (token) {
           s.dashboardSessions = s.dashboardSessions.filter((x) =>
-            !safeEqual(x.tokenHash, hashSecret(token, customerSecret))
+            !matchesRotatingHash(
+              token, x.tokenHash, customerSecret, previousCustomerSecret,
+            )
           );
         }
         return json(res, 200, { loggedOut: true }, {
@@ -1927,9 +1940,9 @@ export function createHandler(opts = {}) {
           ? verifyTotp(s.adminProfile.totpSecret, i.mfaCode, clock().getTime())
           : env.ADMIN_MFA_CODE
           ? safeEqual(i.mfaCode || "", env.ADMIN_MFA_CODE)
-          : s.adminProfile?.mfaCodeHash && safeEqual(
-            hashSecret(i.mfaCode, adminSecret),
-            s.adminProfile.mfaCodeHash,
+          : s.adminProfile?.mfaCodeHash && matchesRotatingHash(
+            i.mfaCode, s.adminProfile.mfaCodeHash,
+            adminSecret, previousAdminSecret,
           );
         if (!validMfa) {
           challenge.attempts++;
@@ -1975,7 +1988,9 @@ export function createHandler(opts = {}) {
         if (env.NODE_ENV === "production" && !safeEqual(req.headers["x-csrf-token"] || "", session.csrfToken || "")) return json(res, 403, { error: "Security token expired." });
         const token = cookies(req).admin_session;
         s.adminSessions = s.adminSessions.filter((x) =>
-          !safeEqual(x.tokenHash, hashSecret(token, adminSecret))
+          !matchesRotatingHash(
+            token, x.tokenHash, adminSecret, previousAdminSecret,
+          )
         );
         audit(s, "admin.logout", req);
         return json(res, 200, { loggedOut: true }, {
@@ -1990,6 +2005,9 @@ export function createHandler(opts = {}) {
           return json(res, 401, { error: "Admin session expired." });
         }
         const adminUser = s.adminUsers.find((item) => item.id === administrator.userId);
+        administrator.tokenHash = hashSecret(
+          cookies(req).admin_session, adminSecret,
+        );
         req.adminActor = adminUser?.username || "legacy-admin";
         if (env.NODE_ENV === "production" && req.method !== "GET" && req.method !== "HEAD" && !safeEqual(req.headers["x-csrf-token"] || "", administrator.csrfToken || "")) {
           return json(res, 403, { error: "Security token expired. Refresh the page and try again." });

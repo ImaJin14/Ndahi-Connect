@@ -67,3 +67,19 @@ test("production validates only the selected payment provider", () => {
   assert.doesNotThrow(() => assertProductionConfig(mesomb));
   assert.deepEqual(enabledPaymentProviders(mesomb), ["mesomb"]);
 });
+
+test("rotation overlap secrets must be strong and distinct", () => {
+  assert.doesNotThrow(() => assertProductionConfig({
+    ...production,
+    CUSTOMER_SESSION_SECRET_PREVIOUS: "q".repeat(40),
+    ADMIN_SESSION_SECRET_PREVIOUS: "b".repeat(40),
+    SECRET_PEPPER_PREVIOUS: "r".repeat(40),
+  }));
+  const errors = productionConfigErrors({
+    ...production,
+    CUSTOMER_SESSION_SECRET_PREVIOUS: "short",
+    ADMIN_SESSION_SECRET_PREVIOUS: production.ADMIN_SESSION_SECRET,
+  });
+  assert.ok(errors.includes("CUSTOMER_SESSION_SECRET_PREVIOUS must be at least 32 characters"));
+  assert.ok(errors.includes("ADMIN_SESSION_SECRET_PREVIOUS must differ from ADMIN_SESSION_SECRET"));
+});
