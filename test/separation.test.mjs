@@ -78,6 +78,48 @@ test("admin domain root redirects to login and dashboard has a dedicated route",
   assert.equal(home.headers.get("location"), "/login");
   assert.equal((await fetch(base + "/dashboard")).status, 200);
 });
+test("production customer and admin pages send hardened browser headers", async (t) => {
+  for (const kind of ["customer", "admin"]) {
+    const server = createStaticServer(kind, {
+        apiUrl: "https://api.ndahiconnect.net", production: true,
+      }),
+      base = await listen(server);
+    t.after(() => new Promise((resolve) => server.close(resolve)));
+    const response = await fetch(base + "/login"),
+      csp = response.headers.get("content-security-policy");
+    assert.match(response.headers.get("strict-transport-security"), /includeSubDomains/);
+    assert.equal(response.headers.get("x-frame-options"), "DENY");
+    assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+    assert.match(response.headers.get("permissions-policy"), /publickey-credentials-get=\(self\)/);
+    assert.match(csp, /frame-ancestors 'none'/);
+    assert.match(csp, /object-src 'none'/);
+    assert.match(csp, /upgrade-insecure-requests/);
+    assert.match(csp, /report-uri https:\/\/api\.ndahiconnect\.net\/api\/csp-report/);
+    assert.match(response.headers.get("reporting-endpoints"), /csp-endpoint=/);
+  }
+});
+
+test("API responses are non-embeddable and accept originless CSP reports", async (t) => {
+  const store = createStore({ persistent: false }),
+    server = createServer({
+      store, validateConfig: false,
+      env: { NODE_ENV: "production", BOOTSTRAP_MODE: "true" },
+    }),
+    base = await listen(server);
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const health = await fetch(base + "/api/health");
+  assert.match(health.headers.get("strict-transport-security"), /max-age=31536000/);
+  assert.equal(health.headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+  assert.equal(health.headers.get("referrer-policy"), "no-referrer");
+  assert.equal(health.headers.get("x-frame-options"), "DENY");
+  const report = await fetch(base + "/api/csp-report", {
+    method: "POST",
+    headers: { "content-type": "application/csp-report" },
+    body: JSON.stringify({ "csp-report": { "violated-directive": "script-src" } }),
+  });
+  assert.equal(report.status, 204);
+  assert.equal((await store.snapshot()).events[0].type, "security.csp_violation");
+});
 test("role cookies are isolated, origins enforced, and logout targets the correct session", async (t) => {
   const f = await setup();
   t.after(f.close);

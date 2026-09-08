@@ -270,6 +270,11 @@ function json(res, status, data, headers = {}) {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-content-type-options": "nosniff",
+    "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+    "content-security-policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    "referrer-policy": "no-referrer",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), publickey-credentials-get=()",
+    "x-frame-options": "DENY",
     ...headers,
   });
   res.end(JSON.stringify(data));
@@ -607,6 +612,12 @@ export function createHandler(opts = {}) {
     });
   }
   async function api(req, res, url) {
+    res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
+    res.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader("referrer-policy", "no-referrer");
+    res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), publickey-credentials-get=()");
+    res.setHeader("x-frame-options", "DENY");
+    res.setHeader("x-content-type-options", "nosniff");
     const origin = req.headers.origin,
       isAdmin = url.pathname.startsWith("/api/admin/");
     if (origin) {
@@ -624,11 +635,29 @@ export function createHandler(opts = {}) {
         return res.end();
       }
     }
-    const webhook = ["/api/webhooks/flutterwave", "/api/webhooks/mesomb"]
+    const serverToServer = [
+      "/api/webhooks/flutterwave", "/api/webhooks/mesomb", "/api/csp-report",
+    ]
       .includes(url.pathname);
     if (env.NODE_ENV === "production" && req.method === "POST" &&
-      !webhook && !origin) {
+      !serverToServer && !origin) {
       return json(res, 403, { error: "A trusted request origin is required." });
+    }
+    if (req.method === "POST" && url.pathname === "/api/csp-report") {
+      const raw = await body(req, true);
+      try {
+        const parsed = JSON.parse(raw || "{}"),
+          report = parsed["csp-report"] || parsed[0]?.body || parsed.body || {};
+        await mutate((s) => log(s, "security.csp_violation", {
+          document: String(report["document-uri"] || report.documentURL || "").slice(0, 300),
+          directive: String(report["violated-directive"] || report.effectiveDirective || "").slice(0, 100),
+          blocked: String(report["blocked-uri"] || report.blockedURL || "").slice(0, 300),
+        }));
+      } catch {
+        // Malformed reports are intentionally discarded without affecting clients.
+      }
+      res.writeHead(204);
+      return res.end();
     }
     if (env.NODE_ENV === "production" && req.method === "POST" &&
       customerCsrfPaths[url.pathname]) {

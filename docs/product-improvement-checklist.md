@@ -51,9 +51,10 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: automated cross-origin negative tests cover every mutation class.
   - Inventory: [`docs/security/csrf-mutation-inventory.md`](security/csrf-mutation-inventory.md).
 
-- [ ] **SEC-006 — Harden browser security headers**
+- [x] **SEC-006 — Harden browser security headers**
   - Add HSTS, `frame-ancestors`, Referrer-Policy, Permissions-Policy, and CSP reporting.
   - Acceptance: headers are verified on customer, administrator, and API production domains.
+  - Implementation: customer and administrator pages use a restrictive CSP with first-party violation reporting; API responses use `default-src 'none'`. Production pages also enable one-year HSTS with subdomains and preload.
 
 - [ ] **SEC-007 — Establish secret rotation procedures**
   - Cover session secrets, peppers, payment credentials, email credentials, RouterOS, Omada, and administrator recovery secrets.
@@ -495,9 +496,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 14
+- P0 pending: 13
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 5
+- Recommendation tasks complete: 6
