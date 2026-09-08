@@ -61,9 +61,10 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: rotation runbook and non-destructive rotation test exist.
   - Runbook: [`docs/security/secret-rotation-runbook.md`](security/secret-rotation-runbook.md).
 
-- [ ] **SEC-008 — Run dependency and source security scanning in CI**
+- [x] **SEC-008 — Run dependency and source security scanning in CI**
   - Add dependency auditing, secret scanning, and static analysis.
   - Acceptance: high-severity findings block deployment or require documented approval.
+  - Policy: [`docs/security/ci-security-gates.md`](security/ci-security-gates.md).
 
 - [ ] **SEC-009 — Commission an external penetration test**
   - Include customer authentication, vouchers, payments, admin roles, APIs, and network-management bridges.
@@ -497,9 +498,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 12
+- P0 pending: 11
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 7
+- Recommendation tasks complete: 8
