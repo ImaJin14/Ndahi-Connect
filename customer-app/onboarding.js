@@ -1,3 +1,5 @@
+import { responseError, saveReturnPath, showError } from "./errors.js";
+
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA";
@@ -14,8 +16,8 @@ async function call(path, options = {}) {
         ...(options.headers || {}),
       },
     }),
-    result = await response.json();
-  if (!response.ok) throw Error(result.error);
+    result = await response.json().catch(() => ({}));
+  if (!response.ok) throw responseError(response, result);
   return result;
 }
 const catalogue = await call("/api/plans"), paymentProvider = catalogue.paymentProvider;
@@ -26,8 +28,16 @@ if (accountAction) {
     if (accountAction === "switch" && account.currentPlan) {
       plans = plans.filter((plan) => plan.id !== account.currentPlan.planId);
     }
-  } catch {
-    location.replace("/login");
+  } catch (error) {
+    if (error.status === 401) {
+      saveReturnPath();
+      location.replace("/login");
+    } else {
+      showError($("#plans"), error, {
+        actions: [{ label: "Try again", run: () => location.reload() }],
+      });
+    }
+    await new Promise(() => {});
   }
 }
 const requestedPlan = pageParams.get("plan"),
@@ -202,19 +212,25 @@ $("#purchase").onsubmit = async (event) => {
           });
           await beginAccountSecurity(paid, purchaseInput.phone);
         } catch (error) {
-          $("#message").innerHTML = `<p class="error">${error.message}</p>`;
+          showError($("#message"), error, {
+            actions: [{ label: "Try again", run: () => location.reload() }],
+          });
           confirm.disabled = false;
         }
       };
     }
     if (created.checkout.mode !== "mock") {
       waitForPayment(created.payment.id, purchaseInput.phone).catch((error) => {
-        $("#message").innerHTML = `<p class="error">${error.message}</p>`;
+        showError($("#message"), error, {
+          actions: [{ label: "Check payment again", run: () => location.reload() }],
+        });
       });
     }
   } catch (error) {
     paymentWindow?.close();
-    $("#message").innerHTML = `<p class="error">${error.message}</p>`;
+    showError($("#message"), error, {
+      actions: [{ label: "Try again", run: () => event.target.requestSubmit() }],
+    });
   } finally {
     button.disabled = false;
     button.textContent = "Request payment";

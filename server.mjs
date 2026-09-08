@@ -354,6 +354,13 @@ export function createHandler(opts = {}) {
       return json(res, 200, { authenticated: true, expiresAt }, {
         "set-cookie": cookie("customer_session", token, seconds, secureCookies),
       });
+    },
+    refreshCustomerSession = (req, res, session) => {
+      const token = cookies(req).customer_session;
+      if (!token || !session) return;
+      const seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800);
+      session.expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
+      res.setHeader("set-cookie", cookie("customer_session", token, seconds, secureCookies));
     };
   async function deliverVoucherEmail(s, voucher, force = false) {
     const customer = s.customers.find((item) => item.id === voucher.customerId),
@@ -587,6 +594,7 @@ export function createHandler(opts = {}) {
         if (accountPurchase && !accountSession) {
           return json(res, 401, { error: "Customer session expired." });
         }
+        if (accountSession) refreshCustomerSession(req, res, accountSession);
         if (!plan) {
           return json(res, 400, {
             error: "This package is unavailable or discontinued.",
@@ -731,6 +739,11 @@ export function createHandler(opts = {}) {
           voucher = payment?.status === "paid" &&
             s.vouchers.find((x) => x.paymentId === payment.id);
         if (!payment) return json(res, 404, { error: "Payment not found." });
+        const accountSession = auth(req, s, "dashboardSessions");
+        if (accountSession?.customerId === payment.customerId &&
+          ["renew", "switch"].includes(payment.action)) {
+          refreshCustomerSession(req, res, accountSession);
+        }
         if (payment.provider === "mesomb" && payment.status === "pending") {
           const lastCheck = Number(new Date(payment.lastVerificationAt || 0)),
             expired = payment.paymentExpiresAt &&
@@ -1394,6 +1407,7 @@ export function createHandler(opts = {}) {
             error: "Dashboard session expired. Please sign in again.",
           });
         }
+        refreshCustomerSession(req, res, a);
         const c = s.customers.find((x) => x.id === a.customerId),
           v = s.vouchers.filter((x) => x.customerId === c.id).map((x) =>
             view(x, s)

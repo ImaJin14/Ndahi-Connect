@@ -1,3 +1,5 @@
+import { responseError, saveReturnPath, showError } from "./errors.js";
+
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   deviceId = localStorage.getItem("ndahi-device") || crypto.randomUUID(),
@@ -14,13 +16,13 @@ browseButton.insertAdjacentElement("afterend", upgradeButton);
 
 async function call(path, options = {}) {
   const response = await fetch(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.headers || {}) } }),
-    result = await response.json();
-  if (response.status === 401 || response.status === 503) {
-    if (response.status === 503) sessionStorage.setItem("ndahi-login-notice", result.error || "Customer access is temporarily unavailable while setup is completed.");
+    result = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    saveReturnPath();
     location.replace("/login");
-    throw Error(response.status === 401 ? "Login required" : "Service setup incomplete");
+    throw responseError(response, result);
   }
-  if (!response.ok) throw Error(result.error || "Request failed");
+  if (!response.ok) throw responseError(response, result);
   return result;
 }
 
@@ -67,7 +69,7 @@ $("#redeem").onsubmit = async (event) => {
       $("#redeemMessage").innerHTML = `<div class="success">Connected successfully. ${result.voucher.activeDevices}/${result.voucher.deviceLimit} slots are now in use.</div>`;
       await load();
     });
-  } catch (error) { $("#redeemMessage").innerHTML = `<p class="error">${error.message}</p>`; }
+  } catch (error) { showError($("#redeemMessage"), error); }
 };
 
 $("#dashboard").onclick = async (event) => {
@@ -76,7 +78,7 @@ $("#dashboard").onclick = async (event) => {
     try {
       const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: "{}" });
       $("#mfaSetup").innerHTML = `<div class="success"><p>Add this time-based key to your authenticator app:</p><code>${enrollment.secret}</code><form id="confirmMfa"><input type="hidden" name="challengeId" value="${enrollment.challengeId}"><label>Six-digit code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label><button>Confirm 2FA</button></form></div>`;
-    } catch (error) { $("#dashboardMessage").textContent = error.message; }
+    } catch (error) { showError($("#dashboardMessage"), error); }
     return;
   }
   const mfaForm = event.target.closest("#confirmMfa");
@@ -86,7 +88,7 @@ $("#dashboard").onclick = async (event) => {
       await call("/api/account/security/mfa/confirm", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(mfaForm))) });
       $("#dashboardMessage").textContent = "Authenticator 2FA enabled.";
       await load();
-    } catch (error) { $("#dashboardMessage").textContent = error.message; }
+    } catch (error) { showError($("#dashboardMessage"), error); }
     return;
   }
   const passkeyButton = event.target.closest("#addCustomerPasskey");
@@ -110,10 +112,10 @@ $("#dashboard").onclick = async (event) => {
         await load();
       });
     } catch (error) {
-      $("#dashboardMessage").textContent = error.name === "AbortError" ||
-          /abort signal/i.test(error.message)
-        ? "The browser cancelled passkey setup. Reload and try once."
-        : error.message;
+      showError($("#dashboardMessage"), error, {
+        context: "passkey",
+        actions: [{ label: "Try passkey again", run: () => passkeyButton.click() }],
+      });
     }
     return;
   }
@@ -124,14 +126,18 @@ $("#dashboard").onclick = async (event) => {
       await call("/api/account/devices/disconnect", { method: "POST", body: JSON.stringify({ sessionId: button.dataset.session }) });
       await load();
     });
-  } catch (error) { $("#dashboardMessage").textContent = error.message; }
+  } catch (error) { showError($("#dashboardMessage"), error); }
 };
 
 $("#logout").onclick = async (event) => {
   try {
     await runButton(event.currentTarget, "Logging out…", () => call("/api/account/logout", { method: "POST", body: "{}" }));
     location.href = "/login";
-  } catch (error) { $("#dashboardMessage").textContent = error.message; }
+  } catch (error) { showError($("#dashboardMessage"), error); }
 };
 
-load().catch((error) => { $("#dashboard").innerHTML = `<p class="error">${error.message}</p>`; });
+load().catch((error) => {
+  if (error.status !== 401) showError($("#dashboard"), error, {
+    actions: [{ label: "Try again", run: () => location.reload() }],
+  });
+});

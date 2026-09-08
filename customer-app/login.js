@@ -1,3 +1,5 @@
+import { consumeReturnPath, responseError, showError } from "./errors.js";
+
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let passkeyLoginRunning = false, accessToken = "", accessMode = "";
 const loginNotice = sessionStorage.getItem("ndahi-login-notice");
@@ -18,7 +20,7 @@ $("#toggleConfirmPin").onclick = () => toggleSecret("#confirmPin", "#toggleConfi
 async function call(path, data) {
   const response = await fetch(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }),
     result = await response.json();
-  if (!response.ok) throw Error(result.error || "Request failed");
+  if (!response.ok) throw responseError(response, result);
   return result;
 }
 $("#login").onsubmit = async (event) => {
@@ -54,9 +56,9 @@ $("#login").onsubmit = async (event) => {
       token: accessToken, pin: input.pin,
       ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
     });
-    location.href = "/dashboard";
+    location.href = consumeReturnPath();
   } catch (error) {
-    $("#message").textContent = error.message;
+    showError($("#message"), error);
   } finally {
     button.disabled = false;
     if (!accessToken) button.textContent = original;
@@ -84,7 +86,7 @@ $("#authenticatorLogin").onclick = async () => {
     const result = await call("/api/account/login/request-authenticator", { phone });
     sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone }));
     location.href = "/verify.html";
-  } catch (error) { $("#message").textContent = error.message; }
+  } catch (error) { showError($("#message"), error); }
 };
 $("#customerPasskeyLogin").onclick = async () => {
   if (passkeyLoginRunning) return;
@@ -104,7 +106,7 @@ $("#customerPasskeyLogin").onclick = async () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ phone }),
       }), result = await response.json();
-    if (!response.ok) throw Error(result.error || "Passkey sign-in unavailable");
+    if (!response.ok) throw responseError(response, result);
     const credential = await SimpleWebAuthnBrowser.startAuthentication({
       optionsJSON: result.options,
     });
@@ -114,13 +116,16 @@ $("#customerPasskeyLogin").onclick = async () => {
       body: JSON.stringify({ challengeId: result.challengeId, response: credential }),
     });
     result = await response.json();
-    if (!response.ok) throw Error(result.error || "Passkey verification failed");
-    location.href = "/dashboard";
+    if (!response.ok) throw responseError(response, result);
+    location.href = consumeReturnPath();
   } catch (error) {
-    $("#message").textContent = error.name === "AbortError" ||
-        /abort signal/i.test(error.message)
-      ? "The browser cancelled the passkey prompt. Reload and try once."
-      : error.message;
+    showError($("#message"), error, {
+      context: "passkey",
+      actions: [
+        { label: "Try passkey again", run: () => $("#customerPasskeyLogin").click() },
+        { label: "Use voucher and PIN", run: () => document.querySelector('[name="code"]').focus() },
+      ],
+    });
   } finally {
     passkeyLoginRunning = false;
     button.disabled = false;

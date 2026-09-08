@@ -1,3 +1,5 @@
+import { ApiError, consumeReturnPath, responseError, showError } from "./errors.js";
+
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
   saved = sessionStorage.getItem("ndahi-login-challenge");
 if (!saved) location.replace("/login");
@@ -28,14 +30,16 @@ $("#verify").onsubmit = async (event) => {
   $("#message").textContent = "";
   try {
     const form = Object.fromEntries(new FormData(event.target));
-    if (challenge.setupPin && form.pin !== form.confirmPin) throw Error("PIN entries do not match.");
+    if (challenge.setupPin && form.pin !== form.confirmPin) {
+      throw new ApiError(400, "PIN entries do not match.");
+    }
     const response = await fetch(api + (challenge.setupPin ? "/api/account/setup/pin" : "/api/account/login/verify-authenticator"), { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(challenge.setupPin ? { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin } : { challengeId: challenge.challengeId, otp: form.otp }) }),
       result = await response.json();
-    if (!response.ok) throw Error(result.error || "Verification failed");
+    if (!response.ok) throw responseError(response, result);
     sessionStorage.removeItem("ndahi-login-challenge");
-    location.href = "/dashboard";
+    location.href = consumeReturnPath();
   } catch (error) {
-    $("#message").textContent = error.message;
+    showError($("#message"), error);
     button.disabled = false;
     button.textContent = original;
   }

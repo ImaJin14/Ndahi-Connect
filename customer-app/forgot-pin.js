@@ -1,3 +1,5 @@
+import { ApiError, responseError, showError } from "./errors.js";
+
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   token = new URLSearchParams(location.search).get("token");
@@ -7,8 +9,8 @@ async function call(path, data) {
       method: "POST", credentials: "include",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
-    }), result = await response.json();
-  if (!response.ok) throw Error(result.error || "Request failed");
+    }), result = await response.json().catch(() => ({}));
+  if (!response.ok) throw responseError(response, result);
   return result;
 }
 
@@ -34,7 +36,7 @@ $("#resetRequest").onsubmit = async (event) => {
     const result = await call("/api/account/pin-reset/request", Object.fromEntries(new FormData(event.target)));
     $("#message").innerHTML = `<div class="success">${result.message}</div>`;
     event.target.reset();
-  } catch (error) { $("#message").innerHTML = `<p class="error">${error.message}</p>`; }
+  } catch (error) { showError($("#message"), error); }
   finally { button.disabled = false; }
 };
 
@@ -42,7 +44,7 @@ $("#resetConfirm").onsubmit = async (event) => {
   event.preventDefault();
   const button = event.submitter, input = Object.fromEntries(new FormData(event.target));
   if (input.pin !== input.confirmPin) {
-    $("#message").innerHTML = '<p class="error">PIN entries do not match.</p>';
+    showError($("#message"), new ApiError(400, "PIN entries do not match."));
     return;
   }
   button.disabled = true;
@@ -50,6 +52,6 @@ $("#resetConfirm").onsubmit = async (event) => {
     const result = await call("/api/account/pin-reset/confirm", { ...input, token });
     $("#message").innerHTML = `<div class="success">${result.message} <a href="/login">Sign in</a></div>`;
     event.target.hidden = true;
-  } catch (error) { $("#message").innerHTML = `<p class="error">${error.message}</p>`; }
+  } catch (error) { showError($("#message"), error); }
   finally { button.disabled = false; }
 };

@@ -352,6 +352,32 @@ test("voucher expiry and dashboard session expiry are enforced", async (t) => {
   assert.match(expired.json.error, /expired/);
 });
 
+test("authenticated account activity rolls the customer session forward", async (t) => {
+  let current = new Date("2026-09-08T10:00:00Z");
+  const f = await fixture({
+    now: () => new Date(current),
+    env: { CUSTOMER_SESSION_SECONDS: "20" },
+  });
+  t.after(f.close);
+  const purchase = await f.call("/api/purchase", "POST", {
+      phone: "670000047", planId: "weekly",
+    }),
+    paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000047", code: paid.json.access.code,
+    pin: "1234", confirmPin: "1234",
+  });
+  const initialExpiry = (await f.store.snapshot()).dashboardSessions[0].expiresAt;
+  current = new Date("2026-09-08T10:00:10Z");
+  const dashboard = await f.call("/api/account/dashboard");
+  assert.equal(dashboard.response.status, 200);
+  assert.match(dashboard.setCookie, /Max-Age=20/);
+  const refreshedExpiry = (await f.store.snapshot()).dashboardSessions[0].expiresAt;
+  assert.ok(new Date(refreshedExpiry) > new Date(initialExpiry));
+  current = new Date("2026-09-08T10:00:25Z");
+  assert.equal((await f.call("/api/account/dashboard")).response.status, 200);
+});
+
 test("new customers create a hashed 4-digit PIN and PIN login is rate limited", async (t) => {
   const f = await fixture();
   t.after(f.close);
