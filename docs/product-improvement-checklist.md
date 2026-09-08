@@ -66,9 +66,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: high-severity findings block deployment or require documented approval.
   - Policy: [`docs/security/ci-security-gates.md`](security/ci-security-gates.md).
 
-- [ ] **SEC-009 — Commission an external penetration test**
+- [!] **SEC-009 — Commission an external penetration test**
   - Include customer authentication, vouchers, payments, admin roles, APIs, and network-management bridges.
   - Acceptance: critical/high findings are resolved and retested.
+  - Blocker: an independent assessor, testing window, named contacts, and explicit authorization must be selected by the product owner.
+  - Prepared: [`penetration-test-brief.md`](security/penetration-test-brief.md) and [`penetration-test-findings.md`](security/penetration-test-findings.md).
 
 ### Data integrity and recovery
 
