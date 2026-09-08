@@ -6,8 +6,13 @@
     <div class="login-heading"><div><p class="eyebrow">Customer portal</p><h1 id="loginTitle">Welcome back</h1><p>Sign in to get started.</p></div><span class="panel-network"><span aria-hidden="true"></span>Network online</span></div>
     <form id="login" class="login-form">
       <label>Phone number<input name="phone" placeholder="6XXXXXXXX" autocomplete="tel" inputmode="tel" required></label>
-      <label class="pin-label"><span>4-digit PIN</span><a href="/forgot-pin">Forgot PIN?</a><span class="pin-field"><input id="customerPin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••" required><button type="button" id="togglePin" class="pin-toggle" aria-controls="customerPin" aria-pressed="false">Show</button></span></label>
-      <button class="login-submit">Sign in</button>
+      <label>Voucher code<input name="code" placeholder="NC-XXXX-XXXX" autocomplete="one-time-code" required></label>
+      <div id="credentialStep" class="credential-step" hidden>
+        <label class="pin-label"><span id="pinLabel">4-digit PIN</span><a id="forgotPin" href="/forgot-pin">Forgot PIN?</a><span class="pin-field"><input id="customerPin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••"><button type="button" id="togglePin" class="pin-toggle" aria-controls="customerPin" aria-pressed="false">Show</button></span></label>
+        <label id="confirmPinLabel" class="pin-label" hidden><span>Confirm 4-digit PIN</span><span class="pin-field"><input id="confirmPin" name="confirmPin" type="password" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4}" maxlength="4" placeholder="••••"><button type="button" id="toggleConfirmPin" class="pin-toggle" aria-controls="confirmPin" aria-pressed="false">Show</button></span></label>
+        <button type="button" id="changeDetails" class="change-details">Change phone or voucher</button>
+      </div>
+      <button class="login-submit" id="loginSubmit">Continue</button>
     </form>
     <div id="message" class="error login-message" role="alert" aria-live="assertive"></div>
     <div class="login-alternatives"><span>or</span></div>

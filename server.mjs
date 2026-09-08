@@ -62,6 +62,7 @@ export const blank = () => ({
     adminPasskeyChallenges: [],
     customerPasskeyChallenges: [],
     customerMfaChallenges: [],
+    customerAccessChallenges: [],
     pinResetChallenges: [],
     adminLoginChallenges: [],
     otpChallenges: [],
@@ -228,6 +229,9 @@ function clean(s, now, router) {
   }
   s.dashboardSessions = s.dashboardSessions.filter((x) =>
     new Date(x.expiresAt) > now
+  );
+  s.customerAccessChallenges = s.customerAccessChallenges.filter((x) =>
+    !x.used && new Date(x.expiresAt) > now
   );
   s.adminSessions = s.adminSessions.filter((x) => new Date(x.expiresAt) > now);
 }
@@ -937,6 +941,137 @@ export function createHandler(opts = {}) {
         session.lastSeenAt = clock().toISOString();
         log(s, "device.connected", { voucherId: v.id, deviceId });
         return json(res, 200, { voucher: view(v, s), session });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/access/begin") {
+      const i = await body(req);
+      return mutate((s) => {
+        const ph = phone(i.phone), code = normalizeActivationCode(i.code),
+          cutoff = new Date(clock().getTime() - 15 * 60_000),
+          failures = s.securityEvents.filter((event) =>
+            event.type === "customer.access.failed" && new Date(event.at) > cutoff &&
+            (event.ip === ip(req) || event.meta?.phone === ph)
+          );
+        if (failures.length >= 5) {
+          return json(res, 429, { error: "Too many access attempts. Try again in 15 minutes." });
+        }
+        const customer = s.customers.find((item) =>
+            item.phone === ph && item.status !== "suspended"
+          ),
+          voucher = s.vouchers.find((item) => safeEqual(item.code, code)),
+          linked = voucher && customer && voucher.customerId === customer.id,
+          claimable = voucher?.status === "available" && !voucher.customerId;
+        if (!phoneOk(ph) || !voucher || !customer && !claimable ||
+          customer && !linked && !claimable ||
+          linked && !["active", "expired", "exhausted"].includes(voucher.status)) {
+          sec(s, "customer.access.failed", req, { phone: ph });
+          return json(res, 401, { error: generic });
+        }
+        if (claimable && customer && s.vouchers.some((item) =>
+          item.customerId === customer.id && item.status === "active"
+        )) {
+          return json(res, 409, {
+            error: "Your account already has an active bundle. Use its voucher to sign in before adding another package.",
+          });
+        }
+        const token = secureToken(32), mode = customer?.pinHash ? "login" : "setup";
+        s.customerAccessChallenges.push({
+          tokenHash: hashSecret(token, pepper), phone: ph, voucherId: voucher.id,
+          mode, used: false, createdAt: clock().toISOString(),
+          expiresAt: new Date(clock().getTime() + 10 * 60_000).toISOString(),
+        });
+        return json(res, 200, { token, mode, expiresIn: 600 });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/access/complete") {
+      const i = await body(req);
+      if (!/^\d{4}$/.test(String(i.pin || ""))) {
+        return json(res, 400, { error: "PIN must contain exactly 4 numeric digits." });
+      }
+      return mutate(async (s) => {
+        const tokenHash = hashSecret(String(i.token || ""), pepper),
+          challenge = s.customerAccessChallenges.find((item) =>
+            !item.used && safeEqual(item.tokenHash, tokenHash)
+          );
+        if (!challenge || new Date(challenge.expiresAt) <= clock()) {
+          sec(s, "customer.access.failed", req);
+          return json(res, 401, { error: "This access attempt expired. Start again." });
+        }
+        const recentFailures = s.securityEvents.filter((event) =>
+          event.type === "customer.access.failed" &&
+          new Date(event.at) > new Date(clock().getTime() - 15 * 60_000) &&
+          (event.ip === ip(req) || event.meta?.phone === challenge.phone)
+        );
+        if (recentFailures.length >= 5) {
+          return json(res, 429, { error: "Too many access attempts. Try again in 15 minutes." });
+        }
+        const voucher = s.vouchers.find((item) => item.id === challenge.voucherId);
+        let customer = s.customers.find((item) =>
+          item.phone === challenge.phone && item.status !== "suspended"
+        );
+        const linked = voucher && customer && voucher.customerId === customer.id,
+          claimable = voucher?.status === "available" && !voucher.customerId;
+        if (!voucher || !linked && !claimable ||
+          linked && !["active", "expired", "exhausted"].includes(voucher.status)) {
+          challenge.used = true;
+          sec(s, "customer.access.failed", req, { phone: challenge.phone });
+          return json(res, 401, { error: generic });
+        }
+        const claimPlan = claimable ? findPlan(s, voucher.planId) : null;
+        if (claimable && !claimPlan) {
+          return json(res, 409, { error: "This voucher's bundle is unavailable." });
+        }
+        if (claimable && customer && s.vouchers.some((item) =>
+          item.customerId === customer.id && item.status === "active"
+        )) {
+          return json(res, 409, {
+            error: "Your account already has an active bundle. This voucher was not used.",
+          });
+        }
+        if (challenge.mode === "login") {
+          if (!customer?.pinHash || !(await argon2.verify(customer.pinHash, i.pin))) {
+            sec(s, "customer.access.failed", req, { phone: challenge.phone });
+            return json(res, 401, { error: generic });
+          }
+        } else {
+          if (i.pin !== i.confirmPin) {
+            return json(res, 400, { error: "PIN entries do not match." });
+          }
+          if (customer?.pinHash) {
+            challenge.used = true;
+            return json(res, 409, { error: "This account is already set up. Start again and sign in." });
+          }
+          if (!customer) {
+            customer = {
+              id: randomUUID(), phone: challenge.phone, name: "Voucher customer",
+              email: "", createdAt: clock().toISOString(),
+            };
+            s.customers.push(customer);
+          }
+          customer.pinHash = await argon2.hash(i.pin, { type: argon2.argon2id });
+          customer.pinCreatedAt = clock().toISOString();
+          log(s, "customer.pin.created", { customerId: customer.id });
+        }
+        if (claimable) {
+          const activatedAt = clock();
+          Object.assign(voucher, {
+            customerId: customer.id, status: "active",
+            activatedAt: activatedAt.toISOString(),
+            expiresAt: new Date(activatedAt.getTime() + claimPlan.validityHours * 36e5).toISOString(),
+          });
+          try {
+            await router.syncVoucher(voucher);
+            voucher.routerSyncStatus = "synchronized";
+          } catch (error) {
+            voucher.routerSyncStatus = "pending";
+            voucher.routerError = String(error.message || error).slice(0, 240);
+          }
+          log(s, "voucher.resale_claimed", { voucherId: voucher.id, customerId: customer.id });
+        }
+        challenge.used = true;
+        challenge.usedAt = clock().toISOString();
+        sec(s, "customer.access.succeeded", req, { customerId: customer.id });
+        return issueCustomerSession(s, customer.id, res);
       });
     }
     if (req.method === "POST" && url.pathname === "/api/account/pin-reset/request") {

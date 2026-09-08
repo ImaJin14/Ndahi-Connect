@@ -394,6 +394,68 @@ test("new customers create a hashed 4-digit PIN and PIN login is rate limited", 
   })).response.status, 429);
 });
 
+test("unified voucher access sets up new customers and signs returning customers in", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const code = activationCode();
+  await f.store.transaction((state) => {
+    state.vouchers.push({
+      id: "resale-access-voucher", customerId: null, planId: "weekly", code,
+      status: "available", activatedAt: null, expiresAt: null,
+      quotaBytes: 5e9, usedBytes: 0, deviceLimit: 1,
+      generatedByAdmin: true, resale: true, createdAt: new Date().toISOString(),
+    });
+  });
+  const begin = await f.call("/api/account/access/begin", "POST", {
+    phone: "670000046", code: code.toLowerCase().replaceAll("-", ""),
+  });
+  assert.equal(begin.response.status, 200);
+  assert.equal(begin.json.mode, "setup");
+  assert.equal((await f.call("/api/account/access/complete", "POST", {
+    token: begin.json.token, pin: "1234", confirmPin: "4321",
+  })).response.status, 400);
+  const setup = await f.call("/api/account/access/complete", "POST", {
+    token: begin.json.token, pin: "1234", confirmPin: "1234",
+  });
+  assert.equal(setup.response.status, 200);
+  let state = await f.store.snapshot();
+  const customer = state.customers.find((item) => item.phone === "670000046"),
+    voucher = state.vouchers.find((item) => item.id === "resale-access-voucher");
+  assert.match(customer.pinHash, /^\$argon2id\$/);
+  assert.equal(voucher.customerId, customer.id);
+  assert.equal(voucher.status, "active");
+  assert.ok(voucher.activatedAt);
+  assert.equal((await f.call("/api/account/dashboard")).response.status, 200);
+  assert.equal((await f.call("/api/account/access/complete", "POST", {
+    token: begin.json.token, pin: "1234", confirmPin: "1234",
+  })).response.status, 401);
+  await f.call("/api/account/logout", "POST", {});
+  const returning = await f.call("/api/account/access/begin", "POST", {
+    phone: "670000046", code,
+  });
+  assert.equal(returning.json.mode, "login");
+  assert.equal((await f.call("/api/account/access/complete", "POST", {
+    token: returning.json.token, pin: "9999",
+  })).response.status, 401);
+  assert.equal((await f.call("/api/account/access/complete", "POST", {
+    token: returning.json.token, pin: "1234",
+  })).response.status, 200);
+
+  const unusedCode = activationCode();
+  await f.store.transaction((next) => next.vouchers.push({
+    id: "second-resale-voucher", customerId: null, planId: "monthly",
+    code: unusedCode, status: "available", activatedAt: null, expiresAt: null,
+    quotaBytes: 10e9, usedBytes: 0, deviceLimit: 1,
+    generatedByAdmin: true, resale: true, createdAt: new Date().toISOString(),
+  }));
+  const stacked = await f.call("/api/account/access/begin", "POST", {
+    phone: "670000046", code: unusedCode,
+  });
+  assert.equal(stacked.response.status, 409);
+  state = await f.store.snapshot();
+  assert.equal(state.vouchers.find((item) => item.id === "second-resale-voucher").status, "available");
+});
+
 test("forgot PIN uses a single-use emailed token and invalidates existing sessions", async (t) => {
   let resetToken;
   const f = await fixture({
