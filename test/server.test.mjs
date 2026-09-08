@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer, createStore, ensureState, plans, resolveClientIp } from "../server.mjs";
+import { authEdgeScopes, createServer, createStore, ensureState, plans, resolveClientIp } from "../server.mjs";
 import { totpCode, totpSecret, totpUri, verifyTotp } from "../lib/security.mjs";
 test("public Wi-Fi catalogue is complete", () => {
   assert.deepEqual(plans.map((p) => p.price), [
@@ -38,6 +38,28 @@ test("client IP resolution trusts only Render's protected client header", () => 
   assert.equal(resolveClientIp(req, { TRUST_PROXY: "render" }), "203.0.113.9");
   req.headers["cf-connecting-ip"] = "not-an-ip";
   assert.equal(resolveClientIp(req, { TRUST_PROXY: "render" }), "127.0.0.1");
+});
+test("edge limits cover every unauthenticated authentication flow", () => {
+  assert.deepEqual(new Set(Object.values(authEdgeScopes)), new Set([
+    "customer-auth", "pin-reset", "admin-auth",
+  ]));
+  for (const path of [
+    "/api/vouchers/redeem",
+    "/api/account/access/begin",
+    "/api/account/access/complete",
+    "/api/account/setup/pin",
+    "/api/account/login/pin",
+    "/api/account/login/request-authenticator",
+    "/api/account/login/verify-authenticator",
+    "/api/account/passkey/options",
+    "/api/account/passkey/verify",
+    "/api/account/pin-reset/request",
+    "/api/account/pin-reset/confirm",
+    "/api/admin/login",
+    "/api/admin/login/mfa",
+    "/api/admin/passkey/options",
+    "/api/admin/passkey/verify",
+  ]) assert.ok(authEdgeScopes[path], `${path} must be edge-limited`);
 });
 test("legacy persisted state gains passkey challenge collections", () => {
   const state = {};

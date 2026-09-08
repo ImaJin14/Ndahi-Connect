@@ -23,6 +23,8 @@ Render generates the three application secrets and obtains `DATABASE_URL` from t
 
 The API Blueprint sets `TRUST_PROXY=render`. This makes security logs and rate limits use Cloudflare's protected `CF-Connecting-IP` value. Do not set this value on a deployment that can be reached directly without Render's proxy; direct deployments intentionally use the socket peer address and ignore caller-provided forwarding headers.
 
+Authentication requests also have durable, shared limits configured by `AUTH_EDGE_WINDOW_SECONDS`, `AUTH_EDGE_CUSTOMER_MAX`, `AUTH_EDGE_RESET_MAX`, and `AUTH_EDGE_ADMIN_MAX`. Keep these values consistent across every API instance. The defaults allow 300 customer-authentication requests, 20 PIN-reset requests, and 30 administrator-authentication requests per trusted client IP in 15 minutes; endpoint-specific failure lockouts remain stricter.
+
 The Blueprint sets `DATABASE_SSL=false` because `fromDatabase.connectionString` uses Render's same-region private network URL. External PostgreSQL connections must use TLS; do not reuse this setting with an external database URL.
 
 The first deployment uses `BOOTSTRAP_MODE=true`. In this mode the API exposes only health/status responses and returns HTTP 503 for all operational endpoints. After every production URL and provider secret is configured, set `BOOTSTRAP_MODE=false` on `ndahi-api` and redeploy. Never serve customers while bootstrap mode is enabled.

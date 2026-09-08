@@ -74,6 +74,7 @@ export const blank = () => ({
     bundleOverrides: {},
     events: [],
     providerEvents: [],
+    rateLimitEvents: [],
     adminProfile: { mfaEnabled: false },
     zone: { id: "student-zone-1", status: "online", notes: "" },
   }),
@@ -239,6 +240,9 @@ function clean(s, now, router) {
   s.customerAccessChallenges = s.customerAccessChallenges.filter((x) =>
     !x.used && new Date(x.expiresAt) > now
   );
+  s.rateLimitEvents = s.rateLimitEvents.filter((x) =>
+    new Date(x.at) > new Date(now.getTime() - 24 * 60 * 60_000)
+  );
   s.adminSessions = s.adminSessions.filter((x) => new Date(x.expiresAt) > now);
 }
 function view(v, s, includeCode = false) {
@@ -285,6 +289,23 @@ async function body(req, raw = false) {
 }
 const bearer = (req) =>
   String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+export const authEdgeScopes = Object.freeze({
+  "/api/vouchers/redeem": "customer-auth",
+  "/api/account/access/begin": "customer-auth",
+  "/api/account/access/complete": "customer-auth",
+  "/api/account/setup/pin": "customer-auth",
+  "/api/account/login/pin": "customer-auth",
+  "/api/account/login/request-authenticator": "customer-auth",
+  "/api/account/login/verify-authenticator": "customer-auth",
+  "/api/account/passkey/options": "customer-auth",
+  "/api/account/passkey/verify": "customer-auth",
+  "/api/account/pin-reset/request": "pin-reset",
+  "/api/account/pin-reset/confirm": "pin-reset",
+  "/api/admin/login": "admin-auth",
+  "/api/admin/login/mfa": "admin-auth",
+  "/api/admin/passkey/options": "admin-auth",
+  "/api/admin/passkey/verify": "admin-auth",
+});
 export function createHandler(opts = {}) {
   const env = { ...process.env, ...opts.env },
     bootstrapMode = env.BOOTSTRAP_MODE === "true";
@@ -332,6 +353,16 @@ export function createHandler(opts = {}) {
     customerRpID = env.CUSTOMER_WEBAUTHN_RP_ID ||
       new URL(customerOrigin).hostname,
     customerRpName = env.CUSTOMER_WEBAUTHN_RP_NAME || "NDAHI Connect";
+  const positiveInteger = (value, fallback) => {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+    },
+    edgeWindowMs = positiveInteger(env.AUTH_EDGE_WINDOW_SECONDS, 900) * 1000,
+    edgeLimits = {
+      "customer-auth": positiveInteger(env.AUTH_EDGE_CUSTOMER_MAX, 300),
+      "pin-reset": positiveInteger(env.AUTH_EDGE_RESET_MAX, 20),
+      "admin-auth": positiveInteger(env.AUTH_EDGE_ADMIN_MAX, 30),
+    };
   const mutate = (fn) =>
       store.transaction(async (s) => {
         ensureState(s);
@@ -520,6 +551,30 @@ export function createHandler(opts = {}) {
         res.setHeader("access-control-allow-headers", "content-type, x-csrf-token");
         res.writeHead(204);
         return res.end();
+      }
+    }
+    const edgeScope = req.method === "POST" && authEdgeScopes[url.pathname];
+    if (edgeScope) {
+      const limited = await mutate((s) => {
+        const cutoff = new Date(clock().getTime() - edgeWindowMs),
+          recent = s.rateLimitEvents.filter((event) =>
+            event.scope === edgeScope && event.ip === ip(req) &&
+            new Date(event.at) > cutoff
+          );
+        if (recent.length >= edgeLimits[edgeScope]) {
+          sec(s, "auth.edge.throttled", req, { scope: edgeScope });
+          return true;
+        }
+        s.rateLimitEvents.push({
+          id: randomUUID(), scope: edgeScope, ip: ip(req),
+          at: clock().toISOString(),
+        });
+        return false;
+      });
+      if (limited) {
+        return json(res, 429, {
+          error: "Too many authentication requests. Try again later.",
+        }, { "retry-after": String(Math.ceil(edgeWindowMs / 1000)) });
       }
     }
     if (req.method === "GET" && url.pathname === "/api/plans") {

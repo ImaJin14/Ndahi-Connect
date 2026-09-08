@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 async function listen(server) {
@@ -193,6 +196,66 @@ test("spoofed forwarding headers cannot bypass admin login rate limits", async (
     origin: "http://admin.test",
     headers: { "x-forwarded-for": "203.0.113.200" },
   })).response.status, 429);
+});
+test("edge authentication limits are shared across API instances", async (t) => {
+  const store = createStore({ persistent: false }),
+    env = {
+      PAYMENT_MODE: "mock",
+      SESSION_COOKIE_SECURE: "false",
+      CUSTOMER_SESSION_SECRET: "customer-secret",
+      ADMIN_SESSION_SECRET: "admin-secret",
+      CUSTOMER_APP_URL: "http://customer.test",
+      ADMIN_APP_URL: "http://admin.test",
+      ALLOWED_ADMIN_ORIGINS: "http://admin.test",
+      AUTH_EDGE_ADMIN_MAX: "2",
+    },
+    first = createServer({ store, env }),
+    second = createServer({ store, env }),
+    firstBase = await listen(first),
+    secondBase = await listen(second),
+    request = (base) => fetch(base + "/api/admin/passkey/options", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://admin.test" },
+      body: JSON.stringify({ username: "owner" }),
+    });
+  t.after(() => Promise.all([
+    new Promise((resolve) => first.close(resolve)),
+    new Promise((resolve) => second.close(resolve)),
+  ]));
+  assert.equal((await request(firstBase)).status, 404);
+  assert.equal((await request(secondBase)).status, 404);
+  const limited = await request(secondBase);
+  assert.equal(limited.status, 429);
+  assert.equal(limited.headers.get("retry-after"), "900");
+});
+test("edge authentication limits survive an application restart", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ndahi-rate-limit-")),
+    file = join(directory, "db.json"),
+    env = {
+      PAYMENT_MODE: "mock",
+      SESSION_COOKIE_SECURE: "false",
+      CUSTOMER_SESSION_SECRET: "customer-secret",
+      ADMIN_SESSION_SECRET: "admin-secret",
+      CUSTOMER_APP_URL: "http://customer.test",
+      ADMIN_APP_URL: "http://admin.test",
+      ALLOWED_ADMIN_ORIGINS: "http://admin.test",
+      AUTH_EDGE_ADMIN_MAX: "1",
+    },
+    request = (base) => fetch(base + "/api/admin/passkey/options", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://admin.test" },
+      body: JSON.stringify({ username: "owner" }),
+    });
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const first = createServer({ store: createStore({ file }), env }),
+    firstBase = await listen(first);
+  assert.equal((await request(firstBase)).status, 404);
+  await new Promise((resolve) => first.close(resolve));
+
+  const restarted = createServer({ store: createStore({ file }), env }),
+    restartedBase = await listen(restarted);
+  t.after(() => new Promise((resolve) => restarted.close(resolve)));
+  assert.equal((await request(restartedBase)).status, 429);
 });
 test("session cookies carry the required security attributes", async (t) => {
   const f = await setup();
