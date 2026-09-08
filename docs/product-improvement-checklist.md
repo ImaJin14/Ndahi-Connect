@@ -39,10 +39,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: limits work across multiple API instances and cannot be bypassed by restarting the application.
   - Implementation: durable pre-authentication counters are grouped into customer, PIN-reset, and administrator budgets and stored transactionally with the application state. Render defaults are configurable through `AUTH_EDGE_*` environment values.
 
-- [ ] **SEC-004 — Strengthen four-digit PIN protection**
+- [x] **SEC-004 — Strengthen four-digit PIN protection**
   - Add progressive delay, account-level temporary lock, and security-event alerts.
   - Keep passkeys and authenticator login available as safer alternatives.
   - Acceptance: distributed and repeated guessing scenarios are tested.
+  - Implementation: failed PIN attempts add 1, 2, 4, and 8-second account cooldowns, followed by a configurable 15-minute lock on the fifth failure. Lockouts emit high-severity security events; successful PIN resets or PIN sign-ins clear the failure state.
 
 - [ ] **SEC-005 — Complete CSRF coverage review**
   - Inventory every state-changing customer and administrator endpoint.
@@ -493,9 +494,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 16
+- P0 pending: 15
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 3
+- Recommendation tasks complete: 4

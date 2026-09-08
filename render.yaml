@@ -66,6 +66,10 @@ services:
         value: "20"
       - key: AUTH_EDGE_ADMIN_MAX
         value: "30"
+      - key: PIN_LOCK_SECONDS
+        value: "900"
+      - key: PIN_MAX_DELAY_SECONDS
+        value: "60"
       - key: BOOTSTRAP_MODE
         value: "true"
       - key: DATABASE_URL

@@ -35,6 +35,7 @@ async function fixture(options = {}) {
           "content-type": "application/json",
           ...(cookie ? { cookie } : {}),
           ...(extra.origin ? { origin: extra.origin } : {}),
+          ...(extra.headers || {}),
         },
         body: data ? JSON.stringify(data) : undefined,
       }),
@@ -420,8 +421,70 @@ test("new customers create a hashed 4-digit PIN and PIN login is rate limited", 
   })).response.status, 429);
 });
 
+test("PIN guesses use progressive delays and an account lock without blocking safer sign-in methods", async (t) => {
+  let current = new Date("2026-09-08T10:00:00Z");
+  const f = await fixture({
+    now: () => new Date(current),
+    env: { TRUST_PROXY: "render" },
+  });
+  t.after(f.close);
+  const purchase = await f.call("/api/purchase", "POST", {
+      phone: "670000048", planId: "weekly",
+    }),
+    paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000048", code: paid.json.access.code,
+    pin: "1234", confirmPin: "1234",
+  });
+  const customerTotp = totpSecret();
+  await f.store.transaction((state) => {
+    const customer = state.customers.find((item) => item.phone === "670000048");
+    customer.totpSecret = customerTotp;
+    customer.passkeys = [{ id: "test-passkey", transports: ["internal"] }];
+  });
+  await f.call("/api/account/logout", "POST", {});
+
+  const delays = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const failed = await f.call("/api/account/login/pin", "POST", {
+      phone: "670000048", pin: "9999",
+    }, null, { headers: { "cf-connecting-ip": `203.0.113.${attempt + 1}` } });
+    delays.push(failed.json.retryAfterSeconds);
+    assert.equal(failed.response.status, attempt === 4 ? 429 : 401);
+    if (attempt < 4) {
+      current = new Date(current.getTime() + (failed.json.retryAfterSeconds + 1) * 1000);
+    }
+  }
+  assert.deepEqual(delays, [1, 2, 4, 8, 900]);
+  const locked = await f.call("/api/account/login/pin", "POST", {
+    phone: "670000048", pin: "1234",
+  });
+  assert.equal(locked.response.status, 429);
+  assert.equal(locked.json.locked, true);
+
+  assert.equal((await f.call(
+    "/api/account/login/request-authenticator", "POST", { phone: "670000048" },
+  )).response.status, 200);
+  assert.equal((await f.call(
+    "/api/account/passkey/options", "POST", { phone: "670000048" },
+  )).response.status, 200);
+  const state = await f.store.snapshot(), customer = state.customers[0],
+    alert = state.securityEvents.find((event) => event.type === "customer.pin.locked");
+  assert.ok(customer.pinLockedUntil);
+  assert.equal(alert.meta.severity, "high");
+
+  current = new Date(current.getTime() + 901_000);
+  assert.equal((await f.call("/api/account/login/pin", "POST", {
+    phone: "670000048", pin: "1234",
+  })).response.status, 200);
+  const unlocked = (await f.store.snapshot()).customers[0];
+  assert.equal(unlocked.pinFailedAttempts, 0);
+  assert.equal(unlocked.pinLockedUntil, undefined);
+});
+
 test("unified voucher access sets up new customers and signs returning customers in", async (t) => {
-  const f = await fixture();
+  let current = new Date("2026-09-08T10:00:00Z");
+  const f = await fixture({ now: () => new Date(current) });
   t.after(f.close);
   const code = activationCode();
   await f.store.transaction((state) => {
@@ -463,6 +526,7 @@ test("unified voucher access sets up new customers and signs returning customers
   assert.equal((await f.call("/api/account/access/complete", "POST", {
     token: returning.json.token, pin: "9999",
   })).response.status, 401);
+  current = new Date(current.getTime() + 2_000);
   assert.equal((await f.call("/api/account/access/complete", "POST", {
     token: returning.json.token, pin: "1234",
   })).response.status, 200);
@@ -483,8 +547,9 @@ test("unified voucher access sets up new customers and signs returning customers
 });
 
 test("forgot PIN uses a single-use emailed token and invalidates existing sessions", async (t) => {
-  let resetToken;
+  let resetToken, current = new Date("2026-09-08T10:00:00Z");
   const f = await fixture({
+    now: () => new Date(current),
     email: {
       configured: () => true,
       sendVoucher: async () => ({ messageId: "voucher-email" }),
@@ -520,6 +585,7 @@ test("forgot PIN uses a single-use emailed token and invalidates existing sessio
   assert.equal((await f.call("/api/account/login/pin", "POST", {
     phone: "670000045", pin: "1234",
   })).response.status, 401);
+  current = new Date(current.getTime() + 2_000);
   assert.equal((await f.call("/api/account/login/pin", "POST", {
     phone: "670000045", pin: "5678",
   })).response.status, 200);

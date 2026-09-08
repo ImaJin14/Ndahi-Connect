@@ -369,6 +369,67 @@ export function createHandler(opts = {}) {
         clean(s, clock(), router);
         return fn(s);
       }),
+    pinThrottle = (customer) => {
+      if (!customer) return null;
+      const now = clock(), lockedUntil = customer.pinLockedUntil &&
+          new Date(customer.pinLockedUntil),
+        nextAttemptAt = customer.pinNextAttemptAt &&
+          new Date(customer.pinNextAttemptAt);
+      if (lockedUntil && lockedUntil > now) {
+        return {
+          locked: true,
+          retryAfterSeconds: Math.max(1, Math.ceil((lockedUntil - now) / 1000)),
+        };
+      }
+      if (lockedUntil) {
+        customer.pinFailedAttempts = 0;
+        delete customer.pinLockedUntil;
+        delete customer.pinNextAttemptAt;
+      }
+      if (nextAttemptAt && nextAttemptAt > now) {
+        return {
+          locked: false,
+          retryAfterSeconds: Math.max(1, Math.ceil((nextAttemptAt - now) / 1000)),
+        };
+      }
+      return null;
+    },
+    recordPinFailure = (s, customer, req, ph) => {
+      if (!customer) {
+        sec(s, "customer.pin.failed", req, { phone: ph });
+        return { attemptsRemaining: 0 };
+      }
+      customer.pinFailedAttempts = Number(customer.pinFailedAttempts || 0) + 1;
+      const attemptsRemaining = Math.max(0, 5 - customer.pinFailedAttempts);
+      if (!attemptsRemaining) {
+        const lockSeconds = positiveInteger(env.PIN_LOCK_SECONDS, 900);
+        customer.pinLockedUntil = new Date(
+          clock().getTime() + lockSeconds * 1000,
+        ).toISOString();
+        delete customer.pinNextAttemptAt;
+        sec(s, "customer.pin.locked", req, {
+          customerId: customer.id, severity: "high",
+          lockedUntil: customer.pinLockedUntil,
+        });
+        return { attemptsRemaining, locked: true, retryAfterSeconds: lockSeconds };
+      }
+      const delaySeconds = Math.min(
+        positiveInteger(env.PIN_MAX_DELAY_SECONDS, 60),
+        2 ** (customer.pinFailedAttempts - 1),
+      );
+      customer.pinNextAttemptAt = new Date(
+        clock().getTime() + delaySeconds * 1000,
+      ).toISOString();
+      sec(s, "customer.pin.failed", req, {
+        phone: ph, customerId: customer.id, attemptsRemaining, delaySeconds,
+      });
+      return { attemptsRemaining, locked: false, retryAfterSeconds: delaySeconds };
+    },
+    clearPinFailures = (customer) => {
+      customer.pinFailedAttempts = 0;
+      delete customer.pinNextAttemptAt;
+      delete customer.pinLockedUntil;
+    },
     auth = (req, s, type) => {
       const customer = type === "dashboardSessions",
         name = customer ? "customer_session" : "admin_session",
@@ -1103,10 +1164,26 @@ export function createHandler(opts = {}) {
           });
         }
         if (challenge.mode === "login") {
+          const throttle = pinThrottle(customer);
+          if (throttle) {
+            return json(res, 429, {
+              error: throttle.locked
+                ? "PIN sign-in is temporarily locked. Use a passkey or Google Authenticator, or try again later."
+                : "Wait briefly before trying the PIN again.",
+              ...throttle,
+            }, { "retry-after": String(throttle.retryAfterSeconds) });
+          }
           if (!customer?.pinHash || !(await argon2.verify(customer.pinHash, i.pin))) {
             sec(s, "customer.access.failed", req, { phone: challenge.phone });
-            return json(res, 401, { error: generic });
+            const failure = recordPinFailure(s, customer, req, challenge.phone);
+            return json(res, failure.locked ? 429 : 401, {
+              error: failure.locked
+                ? "PIN sign-in is temporarily locked. Use a passkey or Google Authenticator, or try again later."
+                : generic,
+              ...failure,
+            }, { "retry-after": String(failure.retryAfterSeconds || 1) });
           }
+          clearPinFailures(customer);
         } else {
           if (i.pin !== i.confirmPin) {
             return json(res, 400, { error: "PIN entries do not match." });
@@ -1221,6 +1298,7 @@ export function createHandler(opts = {}) {
         }
         customer.pinHash = await argon2.hash(i.pin, { type: argon2.argon2id });
         customer.pinUpdatedAt = clock().toISOString();
+        clearPinFailures(customer);
         challenge.used = true;
         challenge.usedAt = clock().toISOString();
         s.dashboardSessions = s.dashboardSessions.filter((session) =>
@@ -1266,17 +1344,30 @@ export function createHandler(opts = {}) {
           sec(s, "customer.pin.throttled", req, { phone: ph });
           return json(res, 429, { error: "Too many incorrect PIN attempts. Try again in 15 minutes." });
         }
-        const c = s.customers.find((x) => x.phone === ph && x.status !== "suspended");
+        const c = s.customers.find((x) => x.phone === ph && x.status !== "suspended"),
+          throttle = pinThrottle(c);
+        if (throttle) {
+          return json(res, 429, {
+            error: throttle.locked
+              ? "PIN sign-in is temporarily locked. Use a passkey or Google Authenticator, or try again later."
+              : "Wait briefly before trying the PIN again.",
+            ...throttle,
+          }, { "retry-after": String(throttle.retryAfterSeconds) });
+        }
         if (c && !c.pinHash && c.totpSecret) {
           return json(res, 409, { error: "Use your existing authenticator to sign in.", authenticatorRequired: true });
         }
         if (!c?.pinHash || !/^\d{4}$/.test(String(i.pin || "")) ||
           !(await argon2.verify(c.pinHash, i.pin))) {
-          sec(s, "customer.pin.failed", req, { phone: ph });
-          return json(res, 401, {
-            error: generic, attemptsRemaining: Math.max(0, 4 - failures.length),
-          });
+          const failure = recordPinFailure(s, c, req, ph);
+          return json(res, failure.locked ? 429 : 401, {
+            error: failure.locked
+              ? "PIN sign-in is temporarily locked. Use a passkey or Google Authenticator, or try again later."
+              : generic,
+            ...failure,
+          }, { "retry-after": String(failure.retryAfterSeconds || 1) });
         }
+        clearPinFailures(c);
         sec(s, "customer.pin_login.succeeded", req, { customerId: c.id });
         return issueCustomerSession(s, c.id, res);
       });
@@ -1476,6 +1567,9 @@ export function createHandler(opts = {}) {
         const {
           totpSecret: _totpSecret,
           pinHash: _pinHash,
+          pinFailedAttempts: _pinFailedAttempts,
+          pinNextAttemptAt: _pinNextAttemptAt,
+          pinLockedUntil: _pinLockedUntil,
           passkeys: customerPasskeys = [],
           ...safeCustomer
         } = c;
