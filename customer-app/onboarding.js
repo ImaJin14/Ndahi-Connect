@@ -22,21 +22,27 @@ async function call(path, options = {}) {
 }
 const catalogue = await call("/api/plans"), paymentProvider = catalogue.paymentProvider;
 let plans = catalogue.plans, account;
-if (accountAction) {
-  try {
-    account = await call("/api/account/dashboard");
-    if (accountAction === "switch" && account.currentPlan) {
-      plans = plans.filter((plan) => plan.id !== account.currentPlan.planId);
-    }
-  } catch (error) {
-    if (error.status === 401) {
+try {
+  account = await call("/api/account/dashboard");
+  const accountLink = document.querySelector(".header-link");
+  accountLink.textContent = "My dashboard";
+  accountLink.href = "/dashboard";
+  if (accountAction === "switch" && account.currentPlan) {
+    plans = plans.filter((plan) => plan.id !== account.currentPlan.planId);
+  } else if (accountAction === "renew" && account.currentPlan) {
+    plans = plans.filter((plan) => plan.id === account.currentPlan.planId);
+  }
+} catch (error) {
+  if (error.status === 401) {
+    if (accountAction) {
       saveReturnPath();
       location.replace("/login");
-    } else {
-      showError($("#plans"), error, {
-        actions: [{ label: "Try again", run: () => location.reload() }],
-      });
+      await new Promise(() => {});
     }
+  } else if (accountAction) {
+    showError($("#plans"), error, {
+      actions: [{ label: "Try again", run: () => location.reload() }],
+    });
     await new Promise(() => {});
   }
 }
@@ -71,7 +77,7 @@ $("#plans").innerHTML = plans.map((plan) =>
       : "30 days"
   } validity</li><li>${plan.deviceLimit} simultaneous device${
     plan.deviceLimit === 1 ? "" : "s"
-  }</li><li>Reusable activation code</li>${dailyBlocked(plan) ? `<li>Next eligible: ${new Date(account.dailyAvailability.nextEligibleAt).toLocaleString()}</li>` : ""}</ul><button data-plan="${plan.id}" ${dailyBlocked(plan) ? "disabled" : ""}>${dailyBlocked(plan) ? "Unavailable" : accountAction === "renew" ? "Renew plan" : "Choose plan"}</button></article>`
+  }</li><li>Reusable activation code</li>${dailyBlocked(plan) ? `<li>Next eligible: ${new Date(account.dailyAvailability.nextEligibleAt).toLocaleString()}</li>` : ""}</ul><button data-plan="${plan.id}" ${dailyBlocked(plan) ? "disabled" : ""}>${dailyBlocked(plan) ? "Unavailable" : accountAction === "renew" ? "Renew plan" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button></article>`
 ).join("");
 function choose(id) {
   selected = plans.find((plan) => plan.id === id);

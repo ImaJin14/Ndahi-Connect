@@ -47,3 +47,12 @@ test("interactive status and modal surfaces expose accessible state", async () =
   assert.match(dashboard, /role="status"/);
   assert.match(admin, /aria-live="assertive"/);
 });
+
+test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
+  const onboarding = await source("customer-app/onboarding.js");
+  assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);
+  assert.match(onboarding, /accountAction === "renew"/);
+  assert.match(onboarding, /plan\.id === account\.currentPlan\.planId/);
+  assert.match(onboarding, /Switch to this plan/);
+  assert.match(onboarding, /if \(accountAction\).*saveReturnPath/s);
+});
