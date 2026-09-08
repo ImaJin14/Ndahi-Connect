@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { hashSecret } from "../lib/security.mjs";
 async function listen(server) {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return `http://127.0.0.1:${server.address().port}`;
@@ -292,6 +293,48 @@ test("session cookies carry the required security attributes", async (t) => {
     body: JSON.stringify({ pin: "9999" }),
   });
   assert.match(r.headers.get("set-cookie"), /Secure/);
+});
+test("production customer mutations require trusted origin and session CSRF token", async (t) => {
+  const store = createStore({ persistent: false }), token = "customer-token",
+    csrfToken = "customer-csrf", secret = "customer-secret";
+  await store.transaction((state) => {
+    state.customers.push({
+      id: "customer-csrf-test", phone: "670123456", name: "CSRF Test",
+      status: "active", createdAt: new Date().toISOString(),
+    });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret(token, secret), customerId: "customer-csrf-test",
+      role: "customer", csrfToken,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+  });
+  const server = createServer({
+      store, validateConfig: false,
+      env: {
+        NODE_ENV: "production", SESSION_COOKIE_SECURE: "false",
+        CUSTOMER_SESSION_SECRET: secret, ADMIN_SESSION_SECRET: "admin-secret",
+        CUSTOMER_APP_URL: "https://portal.ndahiconnect.net",
+        ADMIN_APP_URL: "https://admin.ndahiconnect.net",
+        ALLOWED_ADMIN_ORIGINS: "https://admin.ndahiconnect.net",
+      },
+    }),
+    base = await listen(server),
+    request = (headers = {}) => fetch(base + "/api/account/logout", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `customer_session=${token}`,
+        ...headers,
+      },
+      body: "{}",
+    });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  assert.equal((await request()).status, 403);
+  assert.equal((await request({ origin: "https://evil.example" })).status, 403);
+  assert.equal((await request({ origin: "https://portal.ndahiconnect.net" })).status, 403);
+  assert.equal((await request({
+    origin: "https://portal.ndahiconnect.net", "x-csrf-token": csrfToken,
+  })).status, 200);
 });
 test("administrators can create, read, update and delete custom bundles", async (t) => {
   const f = await setup();

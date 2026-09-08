@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { authEdgeScopes, createServer, createStore, ensureState, plans, resolveClientIp } from "../server.mjs";
+import { authEdgeScopes, createServer, createStore, customerCsrfPaths, ensureState, plans, resolveClientIp } from "../server.mjs";
 import { totpCode, totpSecret, totpUri, verifyTotp } from "../lib/security.mjs";
 test("public Wi-Fi catalogue is complete", () => {
   assert.deepEqual(plans.map((p) => p.price), [
@@ -60,6 +60,17 @@ test("edge limits cover every unauthenticated authentication flow", () => {
     "/api/admin/passkey/options",
     "/api/admin/passkey/verify",
   ]) assert.ok(authEdgeScopes[path], `${path} must be edge-limited`);
+});
+test("customer CSRF inventory covers every session-authorized mutation", () => {
+  assert.deepEqual(Object.keys(customerCsrfPaths).sort(), [
+    "/api/account/devices/disconnect",
+    "/api/account/logout",
+    "/api/account/passkeys/options",
+    "/api/account/passkeys/verify",
+    "/api/account/plan/purchase",
+    "/api/account/security/mfa/confirm",
+    "/api/account/security/mfa/enroll",
+  ]);
 });
 test("legacy persisted state gains passkey challenge collections", () => {
   const state = {};

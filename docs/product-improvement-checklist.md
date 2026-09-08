@@ -45,10 +45,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: distributed and repeated guessing scenarios are tested.
   - Implementation: failed PIN attempts add 1, 2, 4, and 8-second account cooldowns, followed by a configurable 15-minute lock on the fifth failure. Lockouts emit high-severity security events; successful PIN resets or PIN sign-ins clear the failure state.
 
-- [ ] **SEC-005 — Complete CSRF coverage review**
+- [x] **SEC-005 — Complete CSRF coverage review**
   - Inventory every state-changing customer and administrator endpoint.
   - Confirm origin, CORS, cookie, and CSRF protections for each endpoint.
   - Acceptance: automated cross-origin negative tests cover every mutation class.
+  - Inventory: [`docs/security/csrf-mutation-inventory.md`](security/csrf-mutation-inventory.md).
 
 - [ ] **SEC-006 — Harden browser security headers**
   - Add HSTS, `frame-ancestors`, Referrer-Policy, Permissions-Policy, and CSP reporting.
@@ -494,9 +495,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 15
+- P0 pending: 14
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 4
+- Recommendation tasks complete: 5

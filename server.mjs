@@ -306,6 +306,15 @@ export const authEdgeScopes = Object.freeze({
   "/api/admin/passkey/options": "admin-auth",
   "/api/admin/passkey/verify": "admin-auth",
 });
+export const customerCsrfPaths = Object.freeze({
+  "/api/account/plan/purchase": true,
+  "/api/account/logout": true,
+  "/api/account/security/mfa/enroll": true,
+  "/api/account/security/mfa/confirm": true,
+  "/api/account/passkeys/options": true,
+  "/api/account/passkeys/verify": true,
+  "/api/account/devices/disconnect": true,
+});
 export function createHandler(opts = {}) {
   const env = { ...process.env, ...opts.env },
     bootstrapMode = env.BOOTSTRAP_MODE === "true";
@@ -443,11 +452,12 @@ export function createHandler(opts = {}) {
     },
     issueCustomerSession = (s, customerId, res) => {
       const token = secureToken(),
+        csrfToken = secureToken(),
         seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
         expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
       s.dashboardSessions.push({
         tokenHash: hashSecret(token, customerSecret), customerId,
-        role: "customer", expiresAt,
+        role: "customer", csrfToken, expiresAt,
       });
       return json(res, 200, { authenticated: true, expiresAt }, {
         "set-cookie": cookie("customer_session", token, seconds, secureCookies),
@@ -612,6 +622,23 @@ export function createHandler(opts = {}) {
         res.setHeader("access-control-allow-headers", "content-type, x-csrf-token");
         res.writeHead(204);
         return res.end();
+      }
+    }
+    const webhook = ["/api/webhooks/flutterwave", "/api/webhooks/mesomb"]
+      .includes(url.pathname);
+    if (env.NODE_ENV === "production" && req.method === "POST" &&
+      !webhook && !origin) {
+      return json(res, 403, { error: "A trusted request origin is required." });
+    }
+    if (env.NODE_ENV === "production" && req.method === "POST" &&
+      customerCsrfPaths[url.pathname]) {
+      const state = ensureState(await store.snapshot()),
+        session = auth(req, state, "dashboardSessions");
+      if (!session) return json(res, 401, { error: "Customer session expired." });
+      if (!safeEqual(req.headers["x-csrf-token"] || "", session.csrfToken || "")) {
+        return json(res, 403, {
+          error: "Security token expired. Refresh the page and try again.",
+        });
       }
     }
     const edgeScope = req.method === "POST" && authEdgeScopes[url.pathname];
@@ -1573,6 +1600,7 @@ export function createHandler(opts = {}) {
           passkeys: customerPasskeys = [],
           ...safeCustomer
         } = c;
+        a.csrfToken ??= secureToken();
         return json(res, 200, {
           customer: {
             ...safeCustomer,
@@ -1587,6 +1615,7 @@ export function createHandler(opts = {}) {
             30,
           ),
           sessionExpiresAt: a.expiresAt,
+          csrfToken: a.csrfToken,
           availablePlans: catalogue(s),
           currentPlan: v[0] || null,
           dailyAvailability: (() => {

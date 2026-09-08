@@ -6,6 +6,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   deviceId = localStorage.getItem("ndahi-device") || crypto.randomUUID(),
   fmt = (value) => value === null ? "Unlimited" : `${(value / 1e9).toFixed(2)} GB`,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
+let csrfToken = "";
 localStorage.setItem("ndahi-device", deviceId);
 const browseButton = document.querySelector(".welcome .button"),
   upgradeButton = document.createElement("a");
@@ -16,7 +17,7 @@ upgradeButton.hidden = true;
 browseButton.insertAdjacentElement("afterend", upgradeButton);
 
 async function call(path, options = {}) {
-  const response = await fetch(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.headers || {}) } }),
+  const response = await fetch(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } }),
     result = await response.json().catch(() => ({}));
   if (response.status === 401) {
     saveReturnPath();
@@ -40,6 +41,7 @@ async function load() {
     duration = current?.plan?.validityHours === 24 ? "24 hours" : current?.plan?.validityHours === 168 ? "7 days" : "30 days",
     remaining = active ? Math.max(0, new Date(active.expiresAt) - Date.now()) : 0,
     remainingText = active ? `${Math.floor(remaining / 36e5)}h ${Math.floor(remaining % 36e5 / 6e4)}m` : "Not active";
+  csrfToken = result.csrfToken;
   upgradeButton.hidden = !active;
   $("#dashboard").innerHTML = `<div class="dashboard-grid">
     <section class="surface"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>` : "<p>Choose a package to get started.</p>"}</section>

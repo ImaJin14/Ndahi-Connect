@@ -4,7 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA";
-let selected, checkoutTrigger;
+let selected, checkoutTrigger, csrfToken = "";
 const pageParams = new URLSearchParams(location.search),
   accountAction = pageParams.get("action"),
   upgradePurchase = pageParams.get("upgrade") === "1" || accountAction === "switch";
@@ -14,6 +14,7 @@ async function call(path, options = {}) {
       ...options,
       headers: {
         "content-type": "application/json",
+        ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}),
         ...(options.headers || {}),
       },
     }),
@@ -25,6 +26,7 @@ const catalogue = await call("/api/plans"), paymentProvider = catalogue.paymentP
 let plans = catalogue.plans, account;
 try {
   account = await call("/api/account/dashboard");
+  csrfToken = account.csrfToken;
   const accountLink = document.querySelector(".header-link");
   accountLink.textContent = "My dashboard";
   accountLink.href = "/dashboard";
