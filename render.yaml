@@ -1,5 +1,34 @@
 services:
   - type: cron
+    name: ndahi-postgres-backup
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    schedule: "43 1 * * *"
+    dockerfilePath: ./backups/Dockerfile
+    dockerContext: .
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ndahi-postgres
+          property: connectionString
+      - key: AWS_REGION
+        sync: false
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: BACKUP_ENCRYPTION_KEY
+        sync: false
+      - key: BACKUP_RETENTION_DAYS
+        value: "35"
+      - key: BACKUP_ALERT_WEBHOOK_URL
+        sync: false
+
+  - type: cron
     name: ndahi-data-retention
     runtime: node
     region: frankfurt

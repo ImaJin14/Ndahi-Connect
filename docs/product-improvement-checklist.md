@@ -89,9 +89,10 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: scheduled cleanup/archive jobs and documented retention periods exist.
   - Implemented: daily transactional retention worker and [`docs/operations/data-retention-policy.md`](operations/data-retention-policy.md).
 
-- [ ] **DATA-004 — Automate encrypted PostgreSQL backups**
+- [x] **DATA-004 — Automate encrypted PostgreSQL backups**
   - Configure frequency, retention, access control, and off-site protection.
   - Acceptance: backup status is monitored and failures alert operators.
+  - Implemented: daily encrypted off-site S3 backup job and [`docs/operations/postgres-backup-runbook.md`](operations/postgres-backup-runbook.md).
 
 - [ ] **DATA-005 — Perform and document database restoration drills**
   - Define recovery point and recovery time targets.
@@ -503,9 +504,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 8
+- P0 pending: 7
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 11
+- Recommendation tasks complete: 12
