@@ -37,3 +37,22 @@ test("backup policy documents frequency, retention, access, off-site storage, an
     assert.ok(policy.includes(term), `backup runbook must document ${term}`);
   }
 });
+
+test("restore drill is guarded, transactional, validated, and timed", async () => {
+  const restore = await readFile(new URL("../backups/restore.sh", import.meta.url), "utf8");
+  for (const safeguard of [
+    "restore-encrypted-backup-to-isolated-target", "RESTORE_DATABASE_URL",
+    "BACKUP_OBJECT_KEY", "sha256sum", "openssl enc -d -aes-256-cbc",
+    "ON_ERROR_STOP=1 --single-transaction", "foreign_key_violations",
+    "elapsed_seconds", "restore-reports/", "DATABASE_URL",
+  ]) assert.ok(restore.includes(safeguard), `missing restore safeguard: ${safeguard}`);
+  assert.match(restore, /RESTORE_DATABASE_URL" == "\$DATABASE_URL/);
+});
+
+test("restore runbook defines RPO, RTO, isolation, validation, and a result record", async () => {
+  const runbook = await readFile(
+    new URL("../docs/operations/postgres-restore-drill.md", import.meta.url), "utf8",
+  );
+  for (const term of ["Target RPO", "Target RTO", "isolated", "row counts", "Drill record", "Blocked"])
+    assert.ok(runbook.includes(term), `restore runbook must contain ${term}`);
+});

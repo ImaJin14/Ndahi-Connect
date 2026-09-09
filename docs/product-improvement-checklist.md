@@ -94,9 +94,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: backup status is monitored and failures alert operators.
   - Implemented: daily encrypted off-site S3 backup job and [`docs/operations/postgres-backup-runbook.md`](operations/postgres-backup-runbook.md).
 
-- [ ] **DATA-005 — Perform and document database restoration drills**
+- [!] **DATA-005 — Perform and document database restoration drills**
   - Define recovery point and recovery time targets.
   - Acceptance: a timed restore drill succeeds and the results are recorded.
+  - Prepared: guarded restore tooling, RPO/RTO targets, validation, and drill record in [`docs/operations/postgres-restore-drill.md`](operations/postgres-restore-drill.md).
+  - Blocker: requires a real encrypted DATA-004 backup, an isolated PostgreSQL target, and an authorized operator to run and record the timed drill.
 
 ### Payment and network consistency
 
