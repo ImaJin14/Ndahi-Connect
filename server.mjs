@@ -1030,7 +1030,9 @@ export function createHandler(opts = {}) {
       }
       return mutate(async (s) => {
         s.providerEvents ??= [];
-        if (data.eventId && s.providerEvents.includes(data.eventId)) {
+        if (data.eventId && s.providerEvents.some((event) =>
+          (typeof event === "string" ? event : event.eventId) === data.eventId
+        )) {
           return json(res, 200, { accepted: true, idempotent: true });
         }
         const p = s.payments.find((x) => x.id === data.paymentId);
@@ -1053,7 +1055,9 @@ export function createHandler(opts = {}) {
           });
         }
         if (data.eventId) {
-          s.providerEvents.unshift(data.eventId);
+          s.providerEvents.unshift({
+            id: randomUUID(), eventId: data.eventId, at: clock().toISOString(),
+          });
           s.providerEvents = s.providerEvents.slice(0, 1000);
         }
         if (verified.status === "paid") {

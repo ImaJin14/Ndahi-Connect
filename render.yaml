@@ -1,4 +1,20 @@
 services:
+  - type: cron
+    name: ndahi-data-retention
+    runtime: node
+    region: frankfurt
+    plan: starter
+    schedule: "17 2 * * *"
+    buildCommand: npm ci
+    startCommand: npm run retention:run
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ndahi-postgres
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "false"
+
   - type: web
     name: ndahi-customer
     runtime: node
