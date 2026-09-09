@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-08
+Last reviewed: 2026-09-09
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -74,9 +74,10 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Data integrity and recovery
 
-- [ ] **DATA-001 — Normalize the PostgreSQL data model**
+- [x] **DATA-001 — Normalize the PostgreSQL data model**
   - Replace the single JSONB state document with tables for customers, vouchers, payments, sessions, bundles, challenges, events, and audit logs.
   - Acceptance: schema has primary keys, foreign keys, indexes, unique constraints, and transactional migrations.
+  - Implemented: normalized entity tables, relational constraints/indexes, transactional schema migration, and a compatibility store adapter.
 
 - [ ] **DATA-002 — Build a zero-loss migration from JSONB state**
   - Provide validation counts, relationship checks, rollback, and a migration rehearsal.
@@ -500,9 +501,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 11
+- P0 pending: 10
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 8
+- Recommendation tasks complete: 9
