@@ -79,9 +79,10 @@ Use this document as the source of truth for product, engineering, security, and
   - Acceptance: schema has primary keys, foreign keys, indexes, unique constraints, and transactional migrations.
   - Implemented: normalized entity tables, relational constraints/indexes, transactional schema migration, and a compatibility store adapter.
 
-- [ ] **DATA-002 — Build a zero-loss migration from JSONB state**
+- [x] **DATA-002 — Build a zero-loss migration from JSONB state**
   - Provide validation counts, relationship checks, rollback, and a migration rehearsal.
   - Acceptance: production-shaped test data migrates and reconciles successfully.
+  - Implemented: transactional preflight/migration/reconciliation tooling and rollback runbook in [`docs/operations/normalized-state-migration-runbook.md`](operations/normalized-state-migration-runbook.md).
 
 - [ ] **DATA-003 — Define data retention and archival policies**
   - Cover sessions, challenges, security events, audit logs, payment records, and customer data.
@@ -501,9 +502,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 10
+- P0 pending: 9
 - P1 pending: 37
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 9
+- Recommendation tasks complete: 10
