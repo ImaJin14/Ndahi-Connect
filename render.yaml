@@ -13,13 +13,9 @@ services:
         fromDatabase:
           name: ndahi-postgres
           property: connectionString
-      - key: R2_ENDPOINT
+      - key: GCS_BUCKET_NAME
         sync: false
-      - key: R2_BUCKET_NAME
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
+      - key: GCS_SERVICE_ACCOUNT_JSON_BASE64
         sync: false
       - key: BACKUP_ENCRYPTION_KEY
         sync: false

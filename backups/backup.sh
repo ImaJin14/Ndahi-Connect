@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-required=(DATABASE_URL R2_ENDPOINT R2_BUCKET_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY BACKUP_ENCRYPTION_KEY BACKUP_ALERT_WEBHOOK_URL)
+required=(DATABASE_URL GCS_BUCKET_NAME GCS_SERVICE_ACCOUNT_JSON_BASE64 BACKUP_ENCRYPTION_KEY BACKUP_ALERT_WEBHOOK_URL)
 for name in "${required[@]}"; do
   if [[ -z "${!name:-}" ]]; then
     echo "Required backup configuration is missing: $name" >&2
@@ -41,22 +41,17 @@ object_key="ndahi-postgres/daily/${timestamp}.sql.gz.enc"
 encrypted_file="$backup_tmp_dir/database.sql.gz.enc"
 checksum_file="$backup_tmp_dir/database.sql.gz.enc.sha256"
 downloaded_file="$backup_tmp_dir/downloaded.sql.gz.enc"
-r2() { aws --endpoint-url "$R2_ENDPOINT" --region auto "$@"; }
 
-r2 s3api head-bucket --bucket "$R2_BUCKET_NAME" >/dev/null
-r2 s3api put-bucket-lifecycle-configuration --bucket "$R2_BUCKET_NAME" \
-  --lifecycle-configuration "{\"Rules\":[{\"ID\":\"expire-ndahi-backups\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"ndahi-postgres/\"},\"Expiration\":{\"Days\":$retention_days}}]}"
+node /backup/gcs.mjs configure "$retention_days"
 
 pg_dump --no-owner --no-privileges --clean --if-exists --quote-all-identifiers \
   "$DATABASE_URL" | gzip -9 | openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 \
   -pass env:BACKUP_ENCRYPTION_KEY -out "$encrypted_file"
 sha256sum "$encrypted_file" | awk '{print $1}' > "$checksum_file"
 
-r2 s3 cp "$encrypted_file" "s3://$R2_BUCKET_NAME/$object_key" --only-show-errors
-r2 s3 cp "$checksum_file" "s3://$R2_BUCKET_NAME/$object_key.sha256" --only-show-errors
-r2 s3api head-object --bucket "$R2_BUCKET_NAME" --key "$object_key" \
-  --query '{size:ContentLength,etag:ETag}' >/dev/null
-r2 s3 cp "s3://$R2_BUCKET_NAME/$object_key" "$downloaded_file" --only-show-errors
+node /backup/gcs.mjs upload "$encrypted_file" "$object_key"
+node /backup/gcs.mjs upload "$checksum_file" "$object_key.sha256"
+node /backup/gcs.mjs download "$object_key" "$downloaded_file"
 [[ "$(sha256sum "$downloaded_file" | awk '{print $1}')" == "$(cat "$checksum_file")" ]]
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
   -pass env:BACKUP_ENCRYPTION_KEY -in "$downloaded_file" | gzip -t

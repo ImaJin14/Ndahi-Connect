@@ -20,7 +20,7 @@ Never test restoration by overwriting the production database.
    PostgreSQL major version and enough storage. Set its direct URL as
    `RESTORE_DATABASE_URL`; do not use PgBouncer.
 3. Run the backup container as a Render one-off job with entrypoint
-   `/backup/restore.sh`, the backup service's R2/encryption variables, and:
+   `/backup/restore.sh`, the backup service's GCS/encryption variables, and:
 
    ```text
    BACKUP_OBJECT_KEY=ndahi-postgres/daily/YYYY-MM-DDTHH-MM-SSZ.sql.gz.enc
