@@ -17,6 +17,7 @@ test("backup workflow encrypts before off-site upload and verifies the remote co
   assert.ok(source.indexOf("openssl enc -aes-256-cbc") < source.indexOf("r2 s3 cp \"$encrypted_file\""));
   assert.doesNotMatch(source, /echo\s+["']?\$\{?BACKUP_ENCRYPTION_KEY/);
   assert.doesNotMatch(source, /put-bucket-(versioning|encryption)|put-public-access-block|--sse/);
+  assert.match(source, /--data '\{"text":"NDAHI PostgreSQL encrypted backup failed\./);
 });
 
 test("Render schedules a direct-database backup with secret configuration", async () => {

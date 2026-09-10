@@ -21,7 +21,7 @@ alert_failure() {
   if [[ -n "${BACKUP_ALERT_WEBHOOK_URL:-}" ]]; then
     curl --fail --silent --show-error --max-time 10 \
       -H 'content-type: application/json' \
-      --data '{"service":"ndahi-postgres-backup","status":"failed"}' \
+      --data '{"text":"NDAHI PostgreSQL encrypted backup failed. Check the Render cron-job logs."}' \
       "$BACKUP_ALERT_WEBHOOK_URL" >/dev/null || true
   fi
   echo "Encrypted PostgreSQL backup failed" >&2
