@@ -92,7 +92,7 @@ Use this document as the source of truth for product, engineering, security, and
 - [x] **DATA-004 — Automate encrypted PostgreSQL backups**
   - Configure frequency, retention, access control, and off-site protection.
   - Acceptance: backup status is monitored and failures alert operators.
-  - Implemented: daily encrypted off-site Google Cloud Storage backup job and [`docs/operations/postgres-backup-runbook.md`](operations/postgres-backup-runbook.md).
+  - Implemented: daily encrypted off-site Cloudflare R2 backup job and [`docs/operations/postgres-backup-runbook.md`](operations/postgres-backup-runbook.md).
 
 - [!] **DATA-005 — Perform and document database restoration drills**
   - Define recovery point and recovery time targets.

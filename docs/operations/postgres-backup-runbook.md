@@ -7,8 +7,7 @@ Last reviewed: 2026-09-09
 
 The `ndahi-postgres-backup` Render cron job creates a consistent `pg_dump`, compresses
 it, encrypts it locally with AES-256 and PBKDF2, and uploads only ciphertext to a
-dedicated off-site Google Cloud Storage bucket. Google Cloud Storage also encrypts
-stored object data at rest.
+dedicated off-site Cloudflare R2 bucket. R2 also encrypts stored object data at rest.
 The job downloads the uploaded object, decrypts it as a stream, and validates the gzip
 payload before reporting success. Render documents scheduled direct-database backups
 to off-site object storage and specifically warns against using a PgBouncer URL for dumps.
@@ -16,19 +15,20 @@ to off-site object storage and specifically warns against using a PgBouncer URL 
 ## Required configuration
 
 - `DATABASE_URL`: Render direct database connection supplied by the Blueprint.
-- `GCS_BUCKET_NAME`: dedicated private Google Cloud Storage bucket in a separate
-  security boundary from Render.
-- `GCS_SERVICE_ACCOUNT_JSON_BASE64`: base64 encoding of a dedicated Google service
-  account JSON key. Never use a personal account or paste raw JSON into logs.
+- `R2_ENDPOINT`: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` from Cloudflare.
+- `R2_BUCKET_NAME`: dedicated private R2 bucket in a separate security boundary from Render.
+- `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`: bucket-scoped R2 S3 API credentials;
+  these variable names are required by the compatible AWS CLI and do not use AWS storage.
 - `BACKUP_ENCRYPTION_KEY`: independently generated secret of at least 32 characters.
 - `BACKUP_ALERT_WEBHOOK_URL`: private operations alert endpoint.
 - `BACKUP_RETENTION_DAYS`: 35 by default and never less than seven.
 
-Grant the service account `Storage Object Admin` on this bucket and only the additional
-bucket-metadata permission needed to maintain its lifecycle rule. Prevent public access
-on the bucket. Do not reuse application credentials, store the encryption key in GCS,
-or put secrets in Git. Restrict Render environment access to infrastructure
-administrators and require MFA on Render and Google Cloud.
+Create an R2 Admin Read & Write token scoped only to this bucket so the job can verify
+the bucket and maintain its lifecycle rule. Keep the bucket's public development URL
+and custom domains disabled. Do not reuse application
+credentials, store the encryption key in R2, or put secrets in Git. Restrict Render
+environment access to infrastructure administrators and require MFA on Render and
+Cloudflare.
 
 ## Monitoring and response
 
@@ -42,6 +42,6 @@ Trigger one manual run after configuring the Blueprint. Confirm the job succeeds
 expires objects after 35 days.
 DATA-005 covers performing a timed restore with the encrypted object.
 
-References: [Cloud Storage for Firebase and Google Cloud integration](https://firebase.google.com/docs/storage/gcp-integration),
-[Google Cloud Storage encryption](https://docs.cloud.google.com/storage/docs/encryption/default-keys),
+References: [Cloudflare R2 S3 API setup](https://developers.cloudflare.com/r2/get-started/s3/),
+[R2 lifecycle rules](https://developers.cloudflare.com/r2/buckets/object-lifecycles/),
 and [Render Blueprint specification](https://render.com/docs/blueprint-spec).
