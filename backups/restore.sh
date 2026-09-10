@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 umask 077
 
-required=(RESTORE_DATABASE_URL BACKUP_OBJECT_KEY AWS_REGION S3_BUCKET_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY BACKUP_ENCRYPTION_KEY CONFIRM_DATABASE_RESTORE)
+required=(RESTORE_DATABASE_URL BACKUP_OBJECT_KEY R2_ENDPOINT R2_BUCKET_NAME AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY BACKUP_ENCRYPTION_KEY CONFIRM_DATABASE_RESTORE)
 for name in "${required[@]}"; do
   [[ -n "${!name:-}" ]] || { echo "Required restore configuration is missing: $name" >&2; exit 2; }
 done
@@ -31,11 +31,10 @@ started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 encrypted_file="$restore_tmp_dir/backup.sql.gz.enc"
 checksum_file="$restore_tmp_dir/backup.sql.gz.enc.sha256"
 sql_file="$restore_tmp_dir/backup.sql"
+r2() { aws --endpoint-url "$R2_ENDPOINT" --region auto "$@"; }
 
-aws s3 cp "s3://$S3_BUCKET_NAME/$BACKUP_OBJECT_KEY" "$encrypted_file" \
-  --region "$AWS_REGION" --only-show-errors
-aws s3 cp "s3://$S3_BUCKET_NAME/$BACKUP_OBJECT_KEY.sha256" "$checksum_file" \
-  --region "$AWS_REGION" --only-show-errors
+r2 s3 cp "s3://$R2_BUCKET_NAME/$BACKUP_OBJECT_KEY" "$encrypted_file" --only-show-errors
+r2 s3 cp "s3://$R2_BUCKET_NAME/$BACKUP_OBJECT_KEY.sha256" "$checksum_file" --only-show-errors
 expected_checksum="$(tr -d '[:space:]' < "$checksum_file")"
 [[ "$expected_checksum" =~ ^[a-f0-9]{64}$ ]]
 [[ "$(sha256sum "$encrypted_file" | awk '{print $1}')" == "$expected_checksum" ]]
@@ -55,6 +54,5 @@ report_key="ndahi-postgres/restore-reports/${completed_at//:/-}.json"
 report_file="$restore_tmp_dir/restore-report.json"
 printf '{"status":"passed","backupObject":"%s","startedAt":"%s","completedAt":"%s","elapsedSeconds":%s,"validation":%s}\n' \
   "$BACKUP_OBJECT_KEY" "$started_at" "$completed_at" "$elapsed_seconds" "$validation" > "$report_file"
-aws s3 cp "$report_file" "s3://$S3_BUCKET_NAME/$report_key" --region "$AWS_REGION" \
-  --sse AES256 --only-show-errors
+r2 s3 cp "$report_file" "s3://$R2_BUCKET_NAME/$report_key" --only-show-errors
 echo "Restore drill passed in ${elapsed_seconds}s; report: $report_key"

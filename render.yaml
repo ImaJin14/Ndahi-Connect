@@ -13,9 +13,9 @@ services:
         fromDatabase:
           name: ndahi-postgres
           property: connectionString
-      - key: AWS_REGION
+      - key: R2_ENDPOINT
         sync: false
-      - key: S3_BUCKET_NAME
+      - key: R2_BUCKET_NAME
         sync: false
       - key: AWS_ACCESS_KEY_ID
         sync: false
