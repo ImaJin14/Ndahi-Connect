@@ -1,6 +1,6 @@
 # CSRF mutation inventory
 
-Last reviewed: 2026-09-08
+Last reviewed: 2026-09-21
 
 All production browser `POST` requests require an allowed `Origin`. Requests without an origin are rejected before route handling. The only exceptions are payment webhooks, which authenticate with provider signatures and do not use browser session cookies.
 
@@ -35,6 +35,15 @@ Customer cookies are `HttpOnly`, `Secure` in production, and `SameSite=Lax`. The
 Every non-`GET`/`HEAD` route below `/api/admin/` requires the administrator cookie, an allowed administrator origin, the session-bound `X-CSRF-Token`, and an authorized role. This includes logout, users, profile security, bundles, vouchers, customers, devices, payments, network integrations, and zone configuration.
 
 Administrator cookies are `HttpOnly`, `Secure` in production, and `SameSite=Strict`.
+
+`POST /api/admin/payments/webhooks/replay` uses these same controls and is restricted
+to owner/operator roles. It queues a stored authenticated event for fresh provider
+verification and records an audit entry; it does not accept replacement payloads.
+
+`POST /api/admin/network/commands/replay` uses these same controls and is restricted
+to owner/operator roles. It requeues a stored, previously-enqueued RouterOS command
+(by ID only) for a fresh attempt cycle and records an audit entry; it does not accept
+replacement payloads.
 
 ## Signed server-to-server exceptions
 

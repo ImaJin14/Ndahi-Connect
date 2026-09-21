@@ -26,6 +26,7 @@ const fixture = () => ({
   securityEvents: [{ id: "security-1", type: "login.failed" }],
   events: [{ id: "event-1", type: "voucher.issued" }],
   providerEvents: [{ id: "provider-event-1", type: "payment.confirmed" }],
+  routerCommands: [],
   rateLimitEvents: [{ id: "rate-1", type: "customer-auth" }],
   auditLogs: [{ id: "audit-1", action: "admin.login" }],
   bundleOverrides: { daily: { price: 100 } },

@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-09
+Last reviewed: 2026-09-21
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -18,6 +18,7 @@ Use this document as the source of truth for product, engineering, security, and
 3. Mark security, data, payment, and network tasks complete only after tests pass.
 4. Mark production tasks complete only after deployment and production verification.
 5. Update the review date whenever this checklist changes materially.
+6. Update this tracker at the end of every improvement task with its status, verification results, remaining deployment steps, and revised totals.
 
 ## P0 — Launch safety and data protection
 
@@ -102,25 +103,67 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Payment and network consistency
 
-- [ ] **PAY-001 — Add automated payment reconciliation**
+- [x] **PAY-001 — Add automated payment reconciliation**
   - Compare local payments with MeSomb/Flutterwave provider status.
   - Acceptance: missing, duplicated, delayed, and mismatched payments are detected safely.
+  - Implemented: scheduled provider verification, durable per-payment findings and worker leases, and an administrator reconciliation table. Detects missing settlements/provider records/vouchers, duplicate references/vouchers, delayed orders, mismatched details/status, and verification failures without changing financial state or issuing access.
+  - Verified: 12 reconciliation tests, all 96 tests including the 300-user load test, and syntax checks passed on 2026-09-21. Deployment and live-provider verification are not yet performed.
+  - Scope: reconciles existing local orders; provider-only transactions without a local order require provider export review. See [`payment-reconciliation.md`](operations/payment-reconciliation.md) for configuration, findings, and operator procedures.
 
-- [ ] **PAY-002 — Add webhook replay and dead-letter handling**
+- [x] **PAY-002 — Add webhook replay and dead-letter handling**
   - Preserve failed provider events for controlled retry.
   - Acceptance: retries are idempotent and cannot issue duplicate vouchers.
+  - Implemented: authenticated MeSomb/Flutterwave events persist before processing; durable leases, bounded retries/backoff, dead-letter reasons, and owner/operator replay controls are available under Payments → Webhook recovery. Fulfillment and event completion commit atomically; unresolved events are excluded from retention cleanup.
+  - Verified: 15 webhook recovery tests, all 111 tests including the 300-user load test, syntax checks, and diff checks passed on 2026-09-21. Covers duplicate/concurrent delivery, restarts, timeouts, fulfillment conflicts, refunds, CSRF, permissions, and replay audit entries. Deployment and live-provider verification are not yet performed.
+  - Runbook: [`payment-webhook-recovery.md`](operations/payment-webhook-recovery.md).
 
-- [ ] **NET-001 — Add durable RouterOS command queues**
+- [x] **NET-001 — Add durable RouterOS command queues**
   - Queue voucher sync, disconnect, expiry, and usage operations outside request transactions.
   - Acceptance: commands survive process restarts and retry with bounded backoff.
+  - Implemented: voucher sync/disconnect, device disconnect, inactive-session marking, and admin usage
+    sync are recorded as durable commands (existing `events` table, `kind = 'router_command'`, no
+    migration) and applied by a background worker outside any request or webhook transaction, so a slow
+    or unreachable router can no longer hold the store's single write lock. Commands use lease-based
+    crash recovery and exponential backoff capped at one hour, up to a bounded attempt limit
+    (NET-003 adds dead-letter handling, alerting, and operator replay for commands that exhaust it).
+    Resale voucher claim/redeem and admin usage sync still resolve synchronously by processing their
+    one enqueued command inline, preserving prior response behavior.
+  - Verified: 5 router-queue tests, all 122 tests including the 300-user load test, and syntax checks
+    passed on 2026-09-21. Deployment and live-router verification are not yet performed.
+  - Runbook: [`router-command-queue.md`](operations/router-command-queue.md).
 
-- [ ] **NET-002 — Add RouterOS reconciliation**
+- [x] **NET-002 — Add RouterOS reconciliation**
   - Regularly compare application vouchers/sessions with router state.
   - Acceptance: drift is reported and safely repaired.
+  - Implemented: a periodic pass compares each voucher/session against a new `readState()` router-adapter
+    contract (vouchers' enabled state, sessions' active state). A voucher active locally but missing on
+    the router, or not active locally but still enabled on the router, is reported and repaired by
+    enqueuing the matching NET-001 command; a session the router no longer reports is corrected locally
+    with no network call needed. Entities with an in-flight repair are not re-reported. Router-only
+    records with no local match are left for manual review rather than guessed at. Findings are visible
+    on `GET /api/admin/dashboard` and in the admin dashboard under Connections.
+  - Verified: 8 reconciliation tests, all 130 tests including the 300-user load test, and syntax checks
+    passed on 2026-09-21. Deployment, live-router `readState()` support, and live-provider verification
+    are not yet performed.
+  - Runbook: [`router-reconciliation.md`](operations/router-reconciliation.md).
 
-- [ ] **NET-003 — Add network-operation dead-letter handling**
+- [x] **NET-003 — Add network-operation dead-letter handling**
   - Record permanently failed commands with reason, attempts, and operator actions.
   - Acceptance: unresolved failures are visible in the admin dashboard and alerting system.
+  - Implemented: a command dead-letters after a bounded attempt limit (`NETWORK_QUEUE_MAX_ATTEMPTS`,
+    default 8, ~1 hour of retrying) or an unretryable failure (a `sync_voucher` for a voucher that no
+    longer exists), recording reason, attempts, and timestamp; the affected voucher's `routerSyncStatus`
+    reflects it too. A single fire-and-forget Slack-compatible webhook alert (`NETWORK_ALERT_WEBHOOK_URL`,
+    same convention as the existing backup-failure alert) fires on the transition, never on repeat polls.
+    Findings are visible on `GET /api/admin/dashboard` and under Connections → Network commands, with an
+    owner/operator **Replay** action (`POST /api/admin/network/commands/replay`, same auth/CSRF/audit
+    controls as webhook replay). Reconciliation (NET-002) leaves dead-lettered commands alone rather than
+    silently resetting them, so the attempt history and one-time alert are not suppressed.
+  - Verified: 10 router-queue tests (dead-letter transition, alert dispatch and failure isolation,
+    replay validation, HTTP role/CSRF/audit) plus a reconciliation regression test, all 136 tests
+    including the 300-user load test, and syntax checks passed on 2026-09-21. Deployment, a configured
+    live alert webhook, and live-router verification are not yet performed.
+  - Runbook: [`router-command-dead-letter.md`](operations/router-command-dead-letter.md).
 
 ## P1 — Reliability, operations, and customer-critical UX
 
@@ -270,6 +313,8 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **DEP-003 — Add post-deployment smoke tests**
   - Cover health, plans, customer login, admin login entry, CORS, and provider configuration.
   - Acceptance: failed smoke tests stop or roll back a release.
+  - Deployment-timeout remediation (2026-09-21): readiness now uses a dedicated, bounded PostgreSQL schema/connectivity probe instead of loading or rewriting application state. Both bootstrap and operational health routes return `503` within four seconds on failure. Node is constrained to `22.x`, matching CI, instead of the open-ended `>=20` range that selected Node 26 in the supplied Render log.
+  - Verification: all six new health tests and syntax/diff checks passed; the full workspace suite passed 116/117 tests, with the remaining failure in administrator RouterOS usage synchronization during separate queue changes. Render redeployment and production verification remain outstanding; post-deployment smoke-test automation is not complete.
 
 - [ ] **DEP-004 — Add automatic rollback procedures**
   - Acceptance: application rollback and database forward-fix procedures are documented and rehearsed.
@@ -506,9 +551,9 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 7
+- P0 pending: 0
 - P1 pending: 37
-- P2 pending: 31
-- P3 pending: 19
+- P2 pending: 24
+- P3 pending: 17
 - Verified foundations complete: 14
-- Recommendation tasks complete: 12
+- Recommendation tasks complete: 17

@@ -22,6 +22,15 @@ import {
   verifyTotp,
 } from "./lib/security.mjs";
 import { paymentAdapters } from "./lib/payments.mjs";
+import { createWebhookProcessor, enqueuePaymentWebhook, scheduleWebhookReplay, webhookSummary } from "./lib/payment-webhooks.mjs";
+import { createPaymentReconciler, reconciliationConfig } from "./lib/payment-reconciliation.mjs";
+import {
+  createRouterCommandProcessor,
+  enqueueRouterCommand,
+  routerQueueSummary,
+  scheduleRouterCommandReplay,
+} from "./lib/router-queue.mjs";
+import { createRouterReconciler, routerReconciliationConfig } from "./lib/router-reconciliation.mjs";
 import { emailAdapter } from "./lib/email.mjs";
 import { routerAdapter } from "./lib/routeros.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
@@ -74,6 +83,7 @@ export const blank = () => ({
     bundleOverrides: {},
     events: [],
     providerEvents: [],
+    routerCommands: [],
     rateLimitEvents: [],
     adminProfile: { mfaEnabled: false },
     zone: { id: "student-zone-1", status: "online", notes: "" },
@@ -211,19 +221,20 @@ export function createStore(
     snapshot: async () => structuredClone(await load()),
   };
 }
-function clean(s, now, router) {
-  const cutoff = now - 600000;
+function clean(s, now) {
+  const cutoff = now - 600000, at = () => now;
   for (const x of s.sessions) {
     if (x.status === "online" && +new Date(x.lastSeenAt) < cutoff) {
       x.status = "inactive";
       x.disconnectedAt = now.toISOString();
-      router.markInactive(x).catch(() => {});
+      enqueueRouterCommand(s, { action: "mark_inactive", targetId: x.id }, at);
     }
   }
   for (const v of s.vouchers) {
     if (v.status === "active" && new Date(v.expiresAt) <= now) {
       v.status = "expired";
-      router.disconnectVoucher(v.id).catch(() => {});
+      enqueueRouterCommand(s, { action: "disconnect_voucher", targetId: v.id }, at);
+      v.routerSyncStatus = "pending";
     }
     if (
       v.status === "active" && v.quotaBytes !== null &&
@@ -231,7 +242,8 @@ function clean(s, now, router) {
     ) {
       v.status = "exhausted";
       v.exhaustedAt ??= now.toISOString();
-      router.disconnectVoucher(v.id).catch(() => {});
+      enqueueRouterCommand(s, { action: "disconnect_voucher", targetId: v.id }, at);
+      v.routerSyncStatus = "pending";
     }
   }
   s.dashboardSessions = s.dashboardSessions.filter((x) =>
@@ -383,7 +395,7 @@ export function createHandler(opts = {}) {
   const mutate = (fn) =>
       store.transaction(async (s) => {
         ensureState(s);
-        clean(s, clock(), router);
+        clean(s, clock());
         return fn(s);
       }),
     pinThrottle = (customer) => {
@@ -516,12 +528,16 @@ export function createHandler(opts = {}) {
       return false;
     }
   }
-  async function complete(s, p, ref, res) {
-    if (!p) return json(res, 404, { error: "Payment not found." });
+  const settlementResult = (status, body) => ({ status, body });
+  async function settlePayment(s, p, ref) {
+    if (!p) return settlementResult(404, { error: "Payment not found." });
+    if (["refunded", "refund-pending"].includes(p.status)) {
+      return settlementResult(409, { error: "Refunded payments cannot be fulfilled again." });
+    }
     const old = s.vouchers.find((v) => v.paymentId === p.id);
-    if (p.status === "paid" && old) {
+    if (old) {
       if (old.emailStatus !== "sent" && Number(old.emailAttempts || 0) < 5) await deliverVoucherEmail(s, old);
-      return json(res, 200, {
+      return settlementResult(200, {
         idempotent: true,
         payment: { id: p.id, status: p.status },
         voucher: view(old, s),
@@ -532,7 +548,7 @@ export function createHandler(opts = {}) {
       ref &&
       s.payments.some((x) => x.id !== p.id && x.providerReference === ref)
     ) {
-      return json(res, 409, {
+      return settlementResult(409, {
         error: "Duplicate provider transaction reference.",
       });
     }
@@ -541,14 +557,14 @@ export function createHandler(opts = {}) {
     if (!c || !plan) {
       p.status = "failed";
       p.failureReason = "This package is no longer available.";
-      return json(res, 409, { error: p.failureReason });
+      return settlementResult(409, { error: p.failureReason });
     }
     const activeVoucher = s.vouchers.find((v) =>
       v.customerId === c.id && v.status === "active"
     );
     if (activeVoucher && activeVoucher.id !== p.replaceVoucherId &&
       activeVoucher.id !== p.upgradeFromVoucherId) {
-      return json(res, 409, {
+      return settlementResult(409, {
         error:
           "Your current bundle still has quota. Bundles cannot be stacked.",
       });
@@ -558,7 +574,7 @@ export function createHandler(opts = {}) {
       if (eligibleAt && eligibleAt > clock()) {
         p.status = "failed";
         p.failureReason = `Daily is available again on ${eligibleAt.toISOString()}.`;
-        return json(res, 409, {
+        return settlementResult(409, {
           error: p.failureReason, nextEligibleAt: eligibleAt.toISOString(),
         });
       }
@@ -567,13 +583,8 @@ export function createHandler(opts = {}) {
       activeVoucher.status = p.action === "renew" ? "renewed" : "switched";
       activeVoucher.replacedAt = clock().toISOString();
       activeVoucher.replacedByPaymentId = p.id;
-      try {
-        await router.disconnectVoucher(activeVoucher.id);
-        activeVoucher.routerSyncStatus = "disconnected";
-      } catch (error) {
-        activeVoucher.routerSyncStatus = "pending";
-        activeVoucher.routerError = String(error.message || error).slice(0, 240);
-      }
+      enqueueRouterCommand(s, { action: "disconnect_voucher", targetId: activeVoucher.id }, clock);
+      activeVoucher.routerSyncStatus = "pending";
       log(s, "voucher.replaced", {
         voucherId: activeVoucher.id,
         paymentId: p.id,
@@ -601,15 +612,10 @@ export function createHandler(opts = {}) {
       };
     s.vouchers.unshift(v);
     log(s, "voucher.activated", { voucherId: v.id, plan: plan.name });
-    try {
-      await router.syncVoucher(v);
-      v.routerSyncStatus = "synchronized";
-    } catch (e) {
-      v.routerSyncStatus = "pending";
-      v.routerError = e.message;
-    }
+    enqueueRouterCommand(s, { action: "sync_voucher", targetId: v.id }, clock);
+    v.routerSyncStatus = "pending";
     await deliverVoucherEmail(s, v, true);
-    return json(res, 200, {
+    return settlementResult(200, {
       payment: { id: p.id, status: p.status },
       voucher: view(v, s),
       access: {
@@ -620,6 +626,41 @@ export function createHandler(opts = {}) {
       },
     });
   }
+  async function complete(s, p, ref, res) {
+    const response = await settlePayment(s, p, ref);
+    return json(res, response.status, response.body);
+  }
+  const webhookProcessor = createWebhookProcessor({
+    store, payments: pays, now: clock,
+    settle: (s, p, ref) => {
+      clean(s, clock());
+      return settlePayment(s, p, ref);
+    },
+  });
+  let healthProbe;
+  const checkHealth = () => {
+    // Coalesce concurrent probes, and never put readiness on the write queue.
+    if (!healthProbe) healthProbe = Promise.resolve().then(() =>
+      store.healthCheck ? store.healthCheck() : store.snapshot()
+    ).finally(() => { healthProbe = undefined; });
+    return healthProbe;
+  };
+  const boundedHealthCheck = async () => {
+    let timer;
+    try {
+      await Promise.race([
+        checkHealth(),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Error("Health check timed out")), 4000);
+        }),
+      ]);
+    } finally { clearTimeout(timer); }
+  };
+  const routerProcessor = createRouterCommandProcessor({
+    store, router, now: clock,
+    maxAttempts: positiveInteger(env.NETWORK_QUEUE_MAX_ATTEMPTS, 8),
+    alertWebhookUrl: env.NETWORK_ALERT_WEBHOOK_URL || undefined,
+  });
   async function api(req, res, url) {
     res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
     res.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
@@ -712,7 +753,7 @@ export function createHandler(opts = {}) {
     if (bootstrapMode && !url.pathname.startsWith("/api/admin/")) {
       if (req.method === "GET" && url.pathname === "/api/health") {
         try {
-          await store.snapshot();
+          await boundedHealthCheck();
           return json(res, 200, {
             status: "bootstrap",
             database: "ready",
@@ -750,12 +791,17 @@ export function createHandler(opts = {}) {
       });
     }
     if (req.method === "GET" && url.pathname === "/api/health") {
-      return mutate((s) => json(res, 200, {
-        status: "ready",
-        database: env.DATABASE_URL ? "postgresql" : "local",
-        checkedAt: clock().toISOString(),
-        stateVersion: Array.isArray(s.auditLogs) ? "readable" : "invalid",
-      }));
+      try {
+        await boundedHealthCheck();
+        return json(res, 200, {
+          status: "ready",
+          database: env.DATABASE_URL ? "postgresql" : "local",
+          checkedAt: clock().toISOString(),
+          stateVersion: "readable",
+        });
+      } catch {
+        return json(res, 503, { status: "unhealthy", database: "unavailable" });
+      }
     }
     if (req.method === "POST" && ["/api/purchase", "/api/account/plan/purchase"].includes(url.pathname)) {
       const i = await body(req);
@@ -979,106 +1025,34 @@ export function createHandler(opts = {}) {
         });
       });
     }
-    if (req.method === "POST" && url.pathname === "/api/webhooks/flutterwave") {
-      const provider = "flutterwave", raw = await body(req, true);
+    if (req.method === "POST" && ["/api/webhooks/flutterwave", "/api/webhooks/mesomb"].includes(url.pathname)) {
+      const provider = url.pathname.split("/").at(-1), raw = await body(req, true);
       let data;
       try {
-        data = await pays[provider].handleWebhook(
-          raw,
-          req.headers["flutterwave-signature"],
-        );
+        data = await pays[provider].handleWebhook(raw, req.headers[
+          provider === "mesomb" ? "x-mesomb-webhook-signature" : "flutterwave-signature"
+        ]);
       } catch {
         return json(res, 401, { error: "Invalid webhook signature." });
       }
-      return mutate(async (s) => {
-        const p = s.payments.find((x) => x.id === data.paymentId);
-        if (!p || p.provider !== provider) {
-          return json(res, 404, { error: "Payment not found." });
-        }
-        let verified;
-        try {
-          verified = await pays.flutterwave.verifyPayment(p, data.transactionId);
-        } catch {
-          return json(res, 502, { error: "Unable to verify payment with Flutterwave." });
-        }
-        if (
-          verified.transactionReference !== p.id ||
-          Number(verified.amount) !== p.amount ||
-          verified.currency !== p.currency
-        ) {
-          return json(res, 400, {
-            error: "Verified payment details do not match this order.",
-          });
-        }
-        if (verified.status === "paid") {
-          return complete(s, p, verified.providerReference, res);
-        }
-        p.status = verified.status;
-        return json(res, 200, { accepted: true, status: p.status });
-      });
-    }
-    if (req.method === "POST" && url.pathname === "/api/webhooks/mesomb") {
-      const provider = "mesomb", raw = await body(req, true);
-      let data;
-      try {
-        data = await pays[provider].handleWebhook(
-          raw,
-          req.headers["x-mesomb-webhook-signature"],
-        );
-      } catch {
-        return json(res, 401, { error: "Invalid webhook signature." });
-      }
-      return mutate(async (s) => {
-        s.providerEvents ??= [];
-        if (data.eventId && s.providerEvents.some((event) =>
-          (typeof event === "string" ? event : event.eventId) === data.eventId
-        )) {
-          return json(res, 200, { accepted: true, idempotent: true });
-        }
-        const p = s.payments.find((x) => x.id === data.paymentId);
-        if (!p || p.provider !== provider) {
-          return json(res, 404, { error: "Payment not found." });
-        }
-        let verified;
-        try {
-          verified = await pays.mesomb.verifyPayment(p);
-        } catch {
-          return json(res, 502, { error: "Unable to verify payment with MeSomb." });
-        }
-        if (
-          verified.transactionReference !== p.id ||
-          Number(verified.amount) !== p.amount ||
-          verified.currency !== p.currency
-        ) {
-          return json(res, 400, {
-            error: "Verified payment details do not match this order.",
-          });
-        }
-        if (data.eventId) {
-          s.providerEvents.unshift({
-            id: randomUUID(), eventId: data.eventId, at: clock().toISOString(),
-          });
-          s.providerEvents = s.providerEvents.slice(0, 1000);
-        }
-        if (verified.status === "paid") {
-          return complete(s, p, verified.providerReference, res);
-        }
-        p.status = verified.status;
-        return json(res, 200, { accepted: true, status: p.status });
-      });
+      const queued = await enqueuePaymentWebhook(store, provider, data, raw, clock);
+      if (queued.body) return json(res, queued.status, queued.body);
+      if (queued.status === "processed") return json(res, 200, { accepted: true, idempotent: true });
+      if (queued.status === "dead_letter") return json(res, 200, { accepted: true, requiresReview: true });
+      const response = await webhookProcessor.process(queued.id);
+      return json(res, response.status, response.body);
     }
     if (req.method === "POST" && url.pathname === "/api/vouchers/redeem") {
       const i = await body(req);
-      return mutate(async (s) => {
+      let routerCommandId;
+      const result = await mutate(async (s) => {
         if (
           s.securityEvents.filter((x) =>
             x.type === "redeem.failed" && x.ip === ip(req) &&
             new Date(x.at) > new Date(clock() - 9e5)
           ).length >= 20
         ) {
-          return json(res, 429, {
-            error: "Too many attempts. Try again later.",
-          });
+          return { status: 429, body: { error: "Too many attempts. Try again later." } };
         }
         const v = s.vouchers.find((x) =>
           safeEqual(x.code, normalizeActivationCode(i.code))
@@ -1096,25 +1070,26 @@ export function createHandler(opts = {}) {
         }
         if (v?.status === "available" && c) {
           if (s.vouchers.some((item) => item.customerId === c.id && item.status === "active")) {
-            return json(res, 409, { error: "This customer already has an active voucher." });
+            return { status: 409, body: { error: "This customer already has an active voucher." } };
           }
           const plan = findPlan(s, v.planId), activatedAt = clock();
-          if (!plan) return json(res, 409, { error: "This voucher's bundle is unavailable." });
+          if (!plan) return { status: 409, body: { error: "This voucher's bundle is unavailable." } };
           Object.assign(v, {
             customerId: c.id,
             status: "active",
             activatedAt: activatedAt.toISOString(),
             expiresAt: new Date(activatedAt.getTime() + plan.validityHours * 36e5).toISOString(),
           });
-          await router.syncVoucher(v);
+          routerCommandId = enqueueRouterCommand(s, { action: "sync_voucher", targetId: v.id }, clock).id;
+          v.routerSyncStatus = "pending";
           log(s, "voucher.resale_claimed", { voucherId: v.id, customerId: c.id });
         }
         if (!v || !c || v.customerId !== c.id) {
           sec(s, "redeem.failed", req);
-          return json(res, 401, { error: generic });
+          return { status: 401, body: { error: generic } };
         }
         if (v.status !== "active") {
-          return json(res, 409, { error: `This code is ${v.status}.` });
+          return { status: 409, body: { error: `This code is ${v.status}.` } };
         }
         const deviceId = String(i.deviceId || "").slice(0, 200) ||
           secureToken(16);
@@ -1126,10 +1101,10 @@ export function createHandler(opts = {}) {
           x.voucherId === v.id && x.status === "online"
         );
         if (!session && active.length >= v.deviceLimit) {
-          return json(res, 409, {
-            error:
-              `Device limit reached (${v.deviceLimit}). Disconnect another device first.`,
-          });
+          return {
+            status: 409,
+            body: { error: `Device limit reached (${v.deviceLimit}). Disconnect another device first.` },
+          };
         }
         if (!session) {
           session = {
@@ -1144,8 +1119,10 @@ export function createHandler(opts = {}) {
         }
         session.lastSeenAt = clock().toISOString();
         log(s, "device.connected", { voucherId: v.id, deviceId });
-        return json(res, 200, { voucher: view(v, s), session });
+        return { status: 200, body: { voucher: view(v, s), session } };
       });
+      if (routerCommandId) await routerProcessor.process(routerCommandId).catch(() => {});
+      return json(res, result.status, result.body);
     }
     if (req.method === "POST" && url.pathname === "/api/account/access/begin") {
       const i = await body(req);
@@ -1280,13 +1257,8 @@ export function createHandler(opts = {}) {
             activatedAt: activatedAt.toISOString(),
             expiresAt: new Date(activatedAt.getTime() + claimPlan.validityHours * 36e5).toISOString(),
           });
-          try {
-            await router.syncVoucher(voucher);
-            voucher.routerSyncStatus = "synchronized";
-          } catch (error) {
-            voucher.routerSyncStatus = "pending";
-            voucher.routerError = String(error.message || error).slice(0, 240);
-          }
+          enqueueRouterCommand(s, { action: "sync_voucher", targetId: voucher.id }, clock);
+          voucher.routerSyncStatus = "pending";
           log(s, "voucher.resale_claimed", { voucherId: voucher.id, customerId: customer.id });
         }
         challenge.used = true;
@@ -1804,7 +1776,7 @@ export function createHandler(opts = {}) {
         }
         x.status = "disconnected";
         x.disconnectedAt = clock().toISOString();
-        await router.disconnectDevice(x.deviceId);
+        enqueueRouterCommand(s, { action: "disconnect_device", targetId: x.deviceId }, clock);
         return json(res, 200, {
           message: "Device disconnected. Its slot is now available.",
           voucher: view(v, s),
@@ -2003,7 +1975,8 @@ export function createHandler(opts = {}) {
       });
     }
     if (url.pathname.startsWith("/api/admin/")) {
-      return mutate(async (s) => {
+      let routerCommandId;
+      await mutate(async (s) => {
         const administrator = auth(req, s, "adminSessions");
         if (!administrator) {
           return json(res, 401, { error: "Admin session expired." });
@@ -2024,6 +1997,18 @@ export function createHandler(opts = {}) {
         if (req.method !== "GET" && req.method !== "HEAD" && !mutationAllowed) {
           audit(s, "admin.authorization.denied", req, { role, path: url.pathname });
           return json(res, 403, { error: "Your role does not permit this action." });
+        }
+        if (req.method === "POST" && url.pathname === "/api/admin/payments/webhooks/replay") {
+          const input = await body(req);
+          const response = scheduleWebhookReplay(s, String(input.eventId || ""), clock);
+          if (response.status === 202) audit(s, "payment.webhook_replay_requested", req, { eventId: input.eventId });
+          return json(res, response.status, response.body);
+        }
+        if (req.method === "POST" && url.pathname === "/api/admin/network/commands/replay") {
+          const input = await body(req);
+          const response = scheduleRouterCommandReplay(s, String(input.commandId || ""), clock);
+          if (response.status === 202) audit(s, "network.command_replay_requested", req, { commandId: input.commandId });
+          return json(res, response.status, response.body);
         }
         if (req.method === "GET" && url.pathname === "/api/admin/dashboard") {
           const paid = s.payments.filter((x) => x.status === "paid"),
@@ -2062,6 +2047,20 @@ export function createHandler(opts = {}) {
             })),
             vouchers: s.vouchers.map((v) => view(v, s, true)),
             payments: s.payments.slice(0, 100),
+            paymentWebhooks: webhookSummary(s),
+            paymentReconciliation: {
+              enabled: reconciliationConfig(env).enabled,
+              issues: s.payments.filter((p) => p.reconciliation?.issues?.length).map((p) => ({
+                paymentId: p.id, provider: p.provider, ...p.reconciliation,
+              })),
+            },
+            networkReconciliation: {
+              enabled: routerReconciliationConfig(env).enabled,
+              issues: s.vouchers.filter((v) => v.networkReconciliation?.issue).map((v) => ({
+                voucherId: v.id, ...v.networkReconciliation,
+              })),
+            },
+            networkCommands: routerQueueSummary(s),
             sessions: s.sessions.slice(-100).reverse(),
             events: s.events.slice(0, 50),
             suspiciousAttempts: s.securityEvents.slice(0, 50),
@@ -2153,26 +2152,9 @@ export function createHandler(opts = {}) {
           req.method === "POST" &&
           url.pathname === "/api/admin/integrations/sync-usage"
         ) {
-          const readings = await router.readUsage();
-          let updated = 0;
-          for (const reading of readings) {
-            const voucher = s.vouchers.find((item) =>
-              item.id === reading.voucherId
-            );
-            if (
-              !voucher || !Number.isFinite(Number(reading.usedBytes)) ||
-              Number(reading.usedBytes) < voucher.usedBytes
-            ) continue;
-            voucher.usedBytes = Number(reading.usedBytes);
-            voucher.lastUsageSyncAt = clock().toISOString();
-            updated++;
-          }
-          clean(s, clock(), router);
-          audit(s, "integration.usage_synchronized", req, {
-            readings: readings.length,
-            updated,
-          });
-          return json(res, 200, { readings: readings.length, updated });
+          routerCommandId = enqueueRouterCommand(s, { action: "sync_usage", targetId: "global" }, clock).id;
+          audit(s, "integration.usage_sync_requested", req, {});
+          return;
         }
         if (
           req.method === "GET" &&
@@ -2396,7 +2378,10 @@ export function createHandler(opts = {}) {
               createdAt: new Date(t).toISOString(),
             };
             s.vouchers.unshift(v);
-            if (!resale) await router.syncVoucher(v);
+            if (!resale) {
+              enqueueRouterCommand(s, { action: "sync_voucher", targetId: v.id }, clock);
+              v.routerSyncStatus = "pending";
+            }
             generated.push(view(v, s, true));
           }
           audit(s, resale ? "voucher.resale_batch_generated" : "voucher.generated", req, {
@@ -2420,7 +2405,8 @@ export function createHandler(opts = {}) {
             )
           ) {
             v.status = "suspended";
-            await router.disconnectVoucher(v.id);
+            enqueueRouterCommand(s, { action: "disconnect_voucher", targetId: v.id }, clock);
+            v.routerSyncStatus = "pending";
           }
           audit(s, "customer.suspension_changed", req, {
             customerId: c.id,
@@ -2487,7 +2473,8 @@ export function createHandler(opts = {}) {
           const v = s.vouchers.find((x) => x.id === i.voucherId);
           if (!v) return json(res, 404, { error: "Voucher not found." });
           v.status = "revoked";
-          await router.disconnectVoucher(v.id);
+          enqueueRouterCommand(s, { action: "disconnect_voucher", targetId: v.id }, clock);
+          v.routerSyncStatus = "pending";
           audit(s, "voucher.revoked", req, { voucherId: v.id });
           return json(res, 200, { voucher: view(v, s) });
         }
@@ -2497,7 +2484,7 @@ export function createHandler(opts = {}) {
           );
           if (!x) return json(res, 404, { error: "Session not found." });
           x.status = "disconnected";
-          await router.disconnectDevice(x.deviceId);
+          enqueueRouterCommand(s, { action: "disconnect_device", targetId: x.deviceId }, clock);
           audit(s, "device.disconnected", req, { sessionId: x.id });
           return json(res, 200, { disconnected: true });
         }
@@ -2548,10 +2535,20 @@ export function createHandler(opts = {}) {
         }
         return json(res, 404, { error: "Not found." });
       });
+      if (routerCommandId) {
+        const result = await routerProcessor.process(routerCommandId);
+        if (result.retried) {
+          return json(res, 502, {
+            error: result.error || "MikroTik usage sync failed. It will retry automatically.",
+          });
+        }
+        return json(res, 200, { readings: result.readings ?? 0, updated: result.updated ?? 0 });
+      }
+      return;
     }
     return json(res, 404, { error: "Not found." });
   }
-  return async (req, res) => {
+  const handler = async (req, res) => {
     try {
       req.clientIp = resolveClientIp(req, env);
       const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -2574,8 +2571,61 @@ export function createHandler(opts = {}) {
       } else res.end();
     }
   };
+  handler.webhookProcessor = webhookProcessor;
+  handler.webhookReplayEnabled = env.PAYMENT_WEBHOOK_REPLAY_ENABLED !== "false";
+  handler.reconciliationConfig = reconciliationConfig(env);
+  handler.reconcilePayments = createPaymentReconciler({
+    store, payments: pays, now: clock, ...handler.reconciliationConfig,
+  });
+  handler.routerProcessor = routerProcessor;
+  handler.routerQueueEnabled = env.NETWORK_QUEUE_ENABLED !== "false";
+  handler.routerQueueIntervalMs = positiveInteger(env.NETWORK_QUEUE_INTERVAL_SECONDS, 15) * 1000;
+  handler.routerReconciliationConfig = routerReconciliationConfig(env);
+  handler.reconcileRouter = createRouterReconciler({ store, router, now: clock });
+  return handler;
 }
-export const createServer = (opts) => http.createServer(createHandler(opts));
+export const createServer = (opts) => {
+  const handler = createHandler(opts), server = http.createServer(handler);
+  let timer, webhookTimer, routerTimer, routerReconciliationTimer;
+  const runWebhooks = () => handler.webhookProcessor.run().catch(() => {
+    console.error(JSON.stringify({ level: "error", event: "payment.webhook_worker_failed" }));
+  });
+  const run = () => handler.reconcilePayments().catch(() => {
+    console.error(JSON.stringify({ level: "error", event: "payment.reconciliation_failed" }));
+  });
+  const runRouterQueue = () => handler.routerProcessor.run().catch(() => {
+    console.error(JSON.stringify({ level: "error", event: "network.command_worker_failed" }));
+  });
+  const runRouterReconciliation = () => handler.reconcileRouter().catch(() => {
+    console.error(JSON.stringify({ level: "error", event: "network.reconciliation_failed" }));
+  });
+  server.on("listening", () => {
+    if (handler.webhookReplayEnabled) {
+      void runWebhooks();
+      webhookTimer = setInterval(runWebhooks, 30000);
+      webhookTimer.unref();
+    }
+    if (handler.routerQueueEnabled) {
+      void runRouterQueue();
+      routerTimer = setInterval(runRouterQueue, handler.routerQueueIntervalMs);
+      routerTimer.unref();
+    }
+    if (handler.routerReconciliationConfig.enabled) {
+      void runRouterReconciliation();
+      routerReconciliationTimer = setInterval(runRouterReconciliation, handler.routerReconciliationConfig.intervalMs);
+      routerReconciliationTimer.unref();
+    }
+    if (!handler.reconciliationConfig.enabled) return;
+    void run();
+    timer = setInterval(run, handler.reconciliationConfig.intervalMs);
+    timer.unref();
+  });
+  server.on("close", () => {
+    clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
+    clearInterval(routerReconciliationTimer);
+  });
+  return server;
+};
 const main = process.argv[1] &&
   fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (main) {
