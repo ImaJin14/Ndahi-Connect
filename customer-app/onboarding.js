@@ -1,9 +1,11 @@
 import { responseError, saveReturnPath, showError } from "./errors.js";
+import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA";
+fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
 let selected, checkoutTrigger, csrfToken = "";
 const pageParams = new URLSearchParams(location.search),
   accountAction = pageParams.get("action"),

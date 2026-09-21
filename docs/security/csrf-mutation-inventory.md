@@ -27,6 +27,7 @@ These routes require the customer cookie, an allowed customer origin, and the ma
 - `/api/account/passkeys/options`
 - `/api/account/passkeys/verify`
 - `/api/account/devices/disconnect`
+- `/api/account/devices/connect`
 
 Customer cookies are `HttpOnly`, `Secure` in production, and `SameSite=Lax`. The CSRF token is returned only by the authenticated dashboard response.
 

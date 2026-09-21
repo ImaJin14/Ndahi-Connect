@@ -1,7 +1,12 @@
 import { consumeReturnPath, responseError, showError } from "./errors.js";
+import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let passkeyLoginRunning = false, accessToken = "", accessMode = "";
+fetchNetworkStatus(api).then((status) => {
+  applyNetworkStatus($(".network-state"), status);
+  applyNetworkStatus($(".panel-network"), status);
+});
 const loginNotice = sessionStorage.getItem("ndahi-login-notice");
 if (loginNotice) {
   $("#message").textContent = loginNotice;

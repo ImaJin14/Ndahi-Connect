@@ -169,26 +169,75 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Customer dashboard and device access
 
-- [ ] **UX-001 — Reorder the dashboard around active service status**
+- [x] **UX-001 — Reorder the dashboard around active service status**
   - Show remaining data, remaining time, plan, and connection state before device activation.
   - Acceptance: the primary account status is visible in the first viewport on desktop and mobile.
+  - Implemented: the account status grid (active bundle, connected devices, manage plan, account
+    security, history) now renders immediately after the welcome banner; the device-activation form
+    moved below it in DOM order (source order, not just CSS order, so screen readers and sighted users
+    see the same sequence). The header's connection-state indicator, previously `display:none` below
+    620px, is now visible on mobile too so connection state is present in the first viewport there as
+    well as desktop.
+  - Verified: `npm test` (131/131) and `npm run check` passed on 2026-09-21, including a new regression
+    test asserting `#dashboard` precedes `#activateDevice` in DOM order. No in-browser/visual
+    verification was performed in this environment (headless, no browser tooling available) — the
+    ordering is verified structurally, not by screenshot.
 
-- [ ] **UX-002 — Simplify authenticated device activation**
+- [x] **UX-002 — Simplify authenticated device activation**
   - Do not ask signed-in customers to re-enter their phone number and voucher code.
   - Use the authenticated account and active voucher automatically.
   - Acceptance: connecting the current device requires at most a device name and one confirmation action.
+  - Implemented: a new authenticated `POST /api/account/devices/connect` endpoint resolves the caller's
+    active voucher from their session (no phone/code in the request). The dashboard's "Connected
+    devices" card shows a one-field (device name, prefilled), one-button quick-connect form when this
+    browser isn't already an active session and a slot is free; reconnecting the same device is
+    idempotent rather than consuming a new slot. The original phone+code form is retained as a
+    collapsed "Activate a different voucher code" disclosure (open by default only when the customer
+    has no active bundle, since it's then the only way to activate one) for claiming a separate voucher.
+  - Verified: 2 new integration tests (device limit enforcement, idempotent reconnect, no-active-bundle
+    message) plus the existing CSRF-inventory exact-match test updated for the new route; `npm test`
+    (133/133) and `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-003 — Consolidate plan-management navigation**
+- [x] **UX-003 — Consolidate plan-management navigation**
   - Group browse, renew, and switch actions under one clear “Manage plan” area.
   - Acceptance: customers can identify the correct plan action without duplicate competing buttons.
+  - Implemented: removed the welcome banner's "Browse packages" button and the JS-injected "Switch
+    plan" button that duplicated `#managePlan`'s actions. `#managePlan` is now the sole plan-navigation
+    area: a customer with a current plan sees Renew (or a discontinued notice) and Change/switch plan;
+    a customer with none sees Browse packages. No page has more than one plan-navigation entry point.
+  - Verified: 1 new regression test (no button in `.welcome`, exactly the three `onboarding.html` links
+    all inside `#managePlan`) plus existing suite; `npm test` (134/134) and `npm run check` passed on
+    2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-004 — Make network status truthful and live**
+- [x] **UX-004 — Make network status truthful and live**
   - Drive visible status from service/network health rather than static text.
   - Acceptance: online, degraded, offline, maintenance, and unavailable states are supported.
+  - Implemented: `GET /api/status` (public) and `GET /api/account/dashboard` (authenticated) now report
+    the real `zone.status` instead of a hardcoded `"online"`/`"Network online"` string. A shared
+    `customer-app/network-status.js` module renders online/degraded/offline/maintenance with distinct
+    labels and dot colors, and falls back to "unavailable" when the status can't be determined (fetch
+    failure, or an unrecognized value). Wired on every customer-facing page that claimed a live status:
+    the dashboard header (from the authenticated payload it already loads), and the login and onboarding
+    pages (via `/api/status`, fetched on load since those pages have no session yet). Static HTML now
+    shows a neutral "Checking status…" until the real value loads, instead of a false claim.
+  - Verified: 2 new tests (server reflects zone status changes across both endpoints; no page hardcodes
+    an online claim and all wire up the fetch) plus existing suite; `npm test` (136/136) and
+    `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-005 — Improve empty and first-use states**
+- [x] **UX-005 — Improve empty and first-use states**
   - Cover no active bundle, no connected devices, pending voucher, exhausted bundle, and failed provisioning.
   - Acceptance: every state explains what happened and gives one clear next action.
+  - Implemented (all client-side; the data these states need — payment status, voucher status,
+    `routerSyncStatus` — was already present in the dashboard response): the "Active bundle" card
+    distinguishes never-purchased, pending-payment ("being confirmed"), exhausted, and expired states
+    with copy explaining what happened, deferring to the single Renew/Switch/Browse action already
+    consolidated in `#managePlan` (UX-003) rather than adding a second competing button. A voucher
+    stuck mid-provisioning (`routerSyncStatus: "pending"`/`"dead_letter"`) shows an inline notice.
+    "No connected devices" is distinguished from "no bundle to connect one to", and the UX-002
+    quick-connect form is itself the one clear action for the former.
+  - Verified: 1 new regression test locking in all eight distinct message branches, plus 1 integration
+    test confirming the dashboard surfaces exhausted-bundle and pending-renewal-payment data correctly;
+    `npm test` (138/138) and `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
 ### Renewal and switching
 
@@ -310,6 +359,7 @@ Use this document as the source of truth for product, engineering, security, and
 - [-] **DEP-002 — Add database migration gates**
   - Acceptance: incompatible application versions cannot deploy before required migrations.
   - Prepared (2026-09-21): read-only `npm run check:database` checks connectivity, required normalized tables, and SELECT access. The Render API Blueprint runs it as a pre-deploy command. Missing tables fail early with their names; no automatic data migration is performed. Full schema-version compatibility and production verification remain pending.
+  - PR #6 integration verification: merged main `0ae49d6`, preserving UX-001–005 and deployment checks; all 149 tests, syntax checks, and diff checks passed.
   - Confirmed incident cause: the Render Shell connects to PostgreSQL but reports `customers`, `payments`, `vouchers`, `events`, `audit_logs`, and `app_settings` absent. Its running commit is `b29b289`, so the earlier missing `healthCheck()` method came from the old instance. Prepared a Node-based `npm run migrate:postgres` runner to apply schema migrations and the existing guarded legacy-data conversion without relying on `psql`. All 141 local tests and syntax checks pass. Production migration requires the documented backup/write-pause procedure and remains outstanding.
 
 - [ ] **DEP-003 — Add post-deployment smoke tests**
@@ -555,8 +605,8 @@ These are already implemented and should remain protected by regression tests.
 Update these totals whenever tasks are completed.
 
 - P0 pending: 0
-- P1 pending: 37
+- P1 pending: 32
 - P2 pending: 24
 - P3 pending: 17
 - Verified foundations complete: 14
-- Recommendation tasks complete: 17
+- Recommendation tasks complete: 22
