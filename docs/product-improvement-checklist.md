@@ -169,9 +169,19 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Customer dashboard and device access
 
-- [ ] **UX-001 — Reorder the dashboard around active service status**
+- [x] **UX-001 — Reorder the dashboard around active service status**
   - Show remaining data, remaining time, plan, and connection state before device activation.
   - Acceptance: the primary account status is visible in the first viewport on desktop and mobile.
+  - Implemented: the account status grid (active bundle, connected devices, manage plan, account
+    security, history) now renders immediately after the welcome banner; the device-activation form
+    moved below it in DOM order (source order, not just CSS order, so screen readers and sighted users
+    see the same sequence). The header's connection-state indicator, previously `display:none` below
+    620px, is now visible on mobile too so connection state is present in the first viewport there as
+    well as desktop.
+  - Verified: `npm test` (131/131) and `npm run check` passed on 2026-09-21, including a new regression
+    test asserting `#dashboard` precedes `#activateDevice` in DOM order. No in-browser/visual
+    verification was performed in this environment (headless, no browser tooling available) — the
+    ordering is verified structurally, not by screenshot.
 
 - [ ] **UX-002 — Simplify authenticated device activation**
   - Do not ask signed-in customers to re-enter their phone number and voucher code.

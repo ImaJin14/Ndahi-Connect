@@ -48,6 +48,15 @@ test("interactive status and modal surfaces expose accessible state", async () =
   assert.match(admin, /aria-live="assertive"/);
 });
 
+test("the customer dashboard shows account status before the device-activation form", async () => {
+  const dashboard = await source("customer-app/index.html");
+  const dashboardIndex = dashboard.indexOf('id="dashboard"'),
+    activateIndex = dashboard.indexOf('id="activateDevice"');
+  assert.ok(dashboardIndex >= 0 && activateIndex >= 0, "both sections must be present");
+  assert.ok(dashboardIndex < activateIndex,
+    "remaining data, time, plan, and connection state must appear before device activation (UX-001)");
+});
+
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
   const onboarding = await source("customer-app/onboarding.js");
   assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);
