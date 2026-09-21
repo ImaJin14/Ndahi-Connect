@@ -1,4 +1,5 @@
 import { responseError, saveReturnPath, showError } from "./errors.js";
+import { applyNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -35,6 +36,7 @@ async function load() {
     remaining = active ? Math.max(0, new Date(active.expiresAt) - Date.now()) : 0,
     remainingText = active ? `${Math.floor(remaining / 36e5)}h ${Math.floor(remaining % 36e5 / 6e4)}m` : "Not active";
   csrfToken = result.csrfToken;
+  applyNetworkStatus($(".network-state"), result.zone?.status);
   $("#differentCode").open = !active;
   const thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
     quickConnect = !active ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
@@ -151,7 +153,10 @@ $("#logout").onclick = async (event) => {
 };
 
 load().catch((error) => {
-  if (error.status !== 401) showError($("#dashboard"), error, {
-    actions: [{ label: "Try again", run: () => location.reload() }],
-  });
+  if (error.status !== 401) {
+    applyNetworkStatus($(".network-state"), "unavailable");
+    showError($("#dashboard"), error, {
+      actions: [{ label: "Try again", run: () => location.reload() }],
+    });
+  }
 });

@@ -209,9 +209,20 @@ Use this document as the source of truth for product, engineering, security, and
     all inside `#managePlan`) plus existing suite; `npm test` (134/134) and `npm run check` passed on
     2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-004 — Make network status truthful and live**
+- [x] **UX-004 — Make network status truthful and live**
   - Drive visible status from service/network health rather than static text.
   - Acceptance: online, degraded, offline, maintenance, and unavailable states are supported.
+  - Implemented: `GET /api/status` (public) and `GET /api/account/dashboard` (authenticated) now report
+    the real `zone.status` instead of a hardcoded `"online"`/`"Network online"` string. A shared
+    `customer-app/network-status.js` module renders online/degraded/offline/maintenance with distinct
+    labels and dot colors, and falls back to "unavailable" when the status can't be determined (fetch
+    failure, or an unrecognized value). Wired on every customer-facing page that claimed a live status:
+    the dashboard header (from the authenticated payload it already loads), and the login and onboarding
+    pages (via `/api/status`, fetched on load since those pages have no session yet). Static HTML now
+    shows a neutral "Checking status…" until the real value loads, instead of a false claim.
+  - Verified: 2 new tests (server reflects zone status changes across both endpoints; no page hardcodes
+    an online claim and all wire up the fetch) plus existing suite; `npm test` (136/136) and
+    `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
 - [ ] **UX-005 — Improve empty and first-use states**
   - Cover no active bundle, no connected devices, pending voucher, exhausted bundle, and failed provisioning.

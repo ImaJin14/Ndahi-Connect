@@ -781,8 +781,10 @@ export function createHandler(opts = {}) {
       }
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
+      const s = await store.snapshot();
       return json(res, 200, {
-        service: "online",
+        service: s.zone.status,
+        zoneNotes: s.zone.notes || undefined,
         zone: "student-zone-1",
         coverage: "four buildings / approximately 300m radius",
         paymentMode: env.PAYMENT_MODE || "mock",
@@ -1635,6 +1637,7 @@ export function createHandler(opts = {}) {
           ),
           sessionExpiresAt: a.expiresAt,
           csrfToken: a.csrfToken,
+          zone: { status: s.zone.status, notes: s.zone.notes || undefined },
           availablePlans: catalogue(s),
           currentPlan: v[0] || null,
           dailyAvailability: (() => {

@@ -67,6 +67,27 @@ test("plan browse, renew, and switch actions are grouped under one Manage plan a
   assert.match(app, /id="managePlan"[\s\S]*onboarding\.html[\s\S]*onboarding\.html\?action=switch/);
 });
 
+test("network status is driven from the API on every customer-facing page, not hardcoded (UX-004)", async () => {
+  const files = {
+    index: await source("customer-app/index.html"),
+    login: await source("customer-app/login.html"),
+    onboarding: await source("customer-app/onboarding.html"),
+    app: await source("customer-app/app.js"),
+    loginJs: await source("customer-app/login.js"),
+    onboardingJs: await source("customer-app/onboarding.js"),
+    networkStatus: await source("customer-app/network-status.js"),
+  };
+  for (const html of [files.index, files.login, files.onboarding]) {
+    assert.doesNotMatch(html, /class="(network-state|panel-network)"[^>]*>Network online/,
+      "no page may hardcode a claimed-online status; it must be fetched and applied at runtime");
+  }
+  assert.match(files.networkStatus, /unavailable/);
+  assert.match(files.app, /applyNetworkStatus\(\$\("\.network-state"\), result\.zone\?\.status\)/);
+  assert.match(files.app, /applyNetworkStatus\(\$\("\.network-state"\), "unavailable"\)/);
+  assert.match(files.loginJs, /fetchNetworkStatus/);
+  assert.match(files.onboardingJs, /fetchNetworkStatus/);
+});
+
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
   const onboarding = await source("customer-app/onboarding.js");
   assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);

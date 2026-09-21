@@ -292,6 +292,30 @@ test("device connect without an active bundle explains there is nothing to activ
   assert.equal(noPlan.response.status, 409);
   assert.match(noPlan.json.error, /don't have an active bundle/);
 });
+test("public and authenticated status reflect the real zone state, not a static claim", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const initial = await f.call("/api/status");
+  assert.equal(initial.json.service, "online");
+  await f.store.transaction((state) => {
+    state.zone = { ...state.zone, status: "degraded", notes: "One access point is offline for repair." };
+  });
+  const degraded = await f.call("/api/status");
+  assert.equal(degraded.response.status, 200);
+  assert.equal(degraded.json.service, "degraded");
+  assert.equal(degraded.json.zoneNotes, "One access point is offline for repair.");
+  await f.store.transaction((state) => {
+    state.customers.push({ id: "c1", phone: "670000012", name: "Zone Check", email: "", pinHash: "x", createdAt: new Date().toISOString() });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret("zone-token", "customer-test-secret"), customerId: "c1",
+      role: "customer", csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00Z",
+    });
+    state.zone.status = "maintenance";
+  });
+  const dash = await f.call("/api/account/dashboard", "GET", null, null, { cookie: "customer_session=zone-token" });
+  assert.equal(dash.response.status, 200);
+  assert.equal(dash.json.zone.status, "maintenance");
+});
 test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
   const f = await fixture();
   t.after(f.close);
