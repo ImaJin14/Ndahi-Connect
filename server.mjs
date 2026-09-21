@@ -1,3 +1,4 @@
+import { databaseDiagnostic } from "./lib/database-diagnostics.mjs";
 import http from "node:http";
 import { isIP } from "node:net";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
@@ -646,15 +647,25 @@ export function createHandler(opts = {}) {
     ).finally(() => { healthProbe = undefined; });
     return healthProbe;
   };
+  let lastHealthFailure;
   const boundedHealthCheck = async () => {
     let timer;
     try {
       await Promise.race([
         checkHealth(),
         new Promise((_, reject) => {
-          timer = setTimeout(() => reject(Error("Health check timed out")), 4000);
+          timer = setTimeout(() => reject(Object.assign(Error("Health check timed out"), { code: "HEALTH_TIMEOUT" })), 4000);
         }),
       ]);
+      lastHealthFailure = undefined;
+    } catch (error) {
+      // Emit only known diagnostic codes, never connection strings or SQL errors.
+      const diagnostic = databaseDiagnostic(error), code = diagnostic.code;
+      if (lastHealthFailure !== code) console.error(JSON.stringify({
+        level: "error", event: "api.readiness_failed", ...diagnostic,
+      }));
+      lastHealthFailure = code;
+      throw error;
     } finally { clearTimeout(timer); }
   };
   const routerProcessor = createRouterCommandProcessor({
@@ -2638,17 +2649,17 @@ export function createHandler(opts = {}) {
 export const createServer = (opts) => {
   const handler = createHandler(opts), server = http.createServer(handler);
   let timer, webhookTimer, routerTimer, routerReconciliationTimer;
-  const runWebhooks = () => handler.webhookProcessor.run().catch(() => {
-    console.error(JSON.stringify({ level: "error", event: "payment.webhook_worker_failed" }));
+  const runWebhooks = () => handler.webhookProcessor.run().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "payment.webhook_worker_failed", ...databaseDiagnostic(error) }));
   });
-  const run = () => handler.reconcilePayments().catch(() => {
-    console.error(JSON.stringify({ level: "error", event: "payment.reconciliation_failed" }));
+  const run = () => handler.reconcilePayments().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "payment.reconciliation_failed", ...databaseDiagnostic(error) }));
   });
-  const runRouterQueue = () => handler.routerProcessor.run().catch(() => {
-    console.error(JSON.stringify({ level: "error", event: "network.command_worker_failed" }));
+  const runRouterQueue = () => handler.routerProcessor.run().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "network.command_worker_failed", ...databaseDiagnostic(error) }));
   });
-  const runRouterReconciliation = () => handler.reconcileRouter().catch(() => {
-    console.error(JSON.stringify({ level: "error", event: "network.reconciliation_failed" }));
+  const runRouterReconciliation = () => handler.reconcileRouter().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "network.reconciliation_failed", ...databaseDiagnostic(error) }));
   });
   server.on("listening", () => {
     if (handler.webhookReplayEnabled) {
@@ -2682,9 +2693,13 @@ const main = process.argv[1] &&
 if (main) {
   if (process.env.BOOTSTRAP_MODE !== "true") assertProductionConfig(process.env);
   const port = Number(process.env.PORT || process.env.API_PORT || 8082);
+  const host = process.env.HOST || "0.0.0.0";
   createServer().listen(
     port,
-    process.env.HOST || "0.0.0.0",
-    () => console.log(`NDAHI Connect API running on http://localhost:${port}`),
+    host,
+    () => console.log(JSON.stringify({
+      event: "api.listening", host, port, node: process.version,
+      commit: process.env.RENDER_GIT_COMMIT || "local", healthPath: "/api/health",
+    })),
   );
 }
