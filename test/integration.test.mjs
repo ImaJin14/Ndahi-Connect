@@ -241,6 +241,102 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   const exposed = await f.call("/api/account?phone=670000001");
   assert.equal(exposed.response.status, 404);
 });
+test("authenticated device connect requires no phone or code and stops at the device limit", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const buy = await f.call("/api/purchase", "POST", {
+    name: "Bo", phone: "670000010", planId: "connect30", provider: "mtn",
+  });
+  const paid = await f.call(`/api/payments/${buy.json.payment.id}/confirm`, "POST");
+  const anonymous = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(anonymous.response.status, 401);
+  const customerTotp = totpSecret();
+  await f.store.transaction((state) => {
+    state.customers.find((customer) => customer.phone === "670000010").totpSecret = customerTotp;
+  });
+  const otp = await f.call("/api/account/login/request-authenticator", "POST", {
+    phone: "670000010", code: paid.json.access.code,
+  });
+  assert.equal(otp.response.status, 200);
+  const verified = await f.call("/api/account/login/verify-authenticator", "POST", {
+    challengeId: otp.json.challengeId, otp: totpCode(customerTotp),
+  });
+  assert.equal(verified.response.status, 200);
+  const first = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(first.response.status, 200);
+  assert.equal(first.json.session.label, "Laptop");
+  assert.equal(first.json.voucher.activeDevices, 1);
+  const repeat = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(repeat.response.status, 200, "reconnecting the same device is idempotent, not a new slot");
+  assert.equal(repeat.json.voucher.activeDevices, 1);
+  const second = await f.call("/api/account/devices/connect", "POST", { deviceId: "two", label: "Phone" });
+  assert.equal(second.response.status, 200);
+  assert.equal(second.json.voucher.activeDevices, 2);
+  const third = await f.call("/api/account/devices/connect", "POST", { deviceId: "three", label: "Tablet" });
+  assert.equal(third.response.status, 409);
+  assert.match(third.json.error, /Device limit reached/);
+});
+test("device connect without an active bundle explains there is nothing to activate yet", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  await f.store.transaction((state) => {
+    state.customers.push({ id: "c1", phone: "670000011", name: "No Plan", email: "", pinHash: "x", createdAt: new Date().toISOString() });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret("session-token", "customer-test-secret"), customerId: "c1",
+      role: "customer", csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00Z",
+    });
+  });
+  const noPlan = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" }, null, {
+    cookie: "customer_session=session-token",
+  });
+  assert.equal(noPlan.response.status, 409);
+  assert.match(noPlan.json.error, /don't have an active bundle/);
+});
+test("public and authenticated status reflect the real zone state, not a static claim", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const initial = await f.call("/api/status");
+  assert.equal(initial.json.service, "online");
+  await f.store.transaction((state) => {
+    state.zone = { ...state.zone, status: "degraded", notes: "One access point is offline for repair." };
+  });
+  const degraded = await f.call("/api/status");
+  assert.equal(degraded.response.status, 200);
+  assert.equal(degraded.json.service, "degraded");
+  assert.equal(degraded.json.zoneNotes, "One access point is offline for repair.");
+  await f.store.transaction((state) => {
+    state.customers.push({ id: "c1", phone: "670000012", name: "Zone Check", email: "", pinHash: "x", createdAt: new Date().toISOString() });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret("zone-token", "customer-test-secret"), customerId: "c1",
+      role: "customer", csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00Z",
+    });
+    state.zone.status = "maintenance";
+  });
+  const dash = await f.call("/api/account/dashboard", "GET", null, null, { cookie: "customer_session=zone-token" });
+  assert.equal(dash.response.status, 200);
+  assert.equal(dash.json.zone.status, "maintenance");
+});
+test("the dashboard exposes the pending-payment and exhausted-bundle data the empty states depend on", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const buy = await f.call("/api/purchase", "POST", { name: "Amina", phone: "670000013", planId: "weekly" }),
+    paid = await f.call(`/api/payments/${buy.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000013", code: paid.json.access.code, pin: "1357", confirmPin: "1357",
+  });
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
+  const exhausted = await f.call("/api/account/dashboard");
+  assert.equal(exhausted.json.activeBundle, null, "exhausted usage must no longer count as active");
+  assert.equal(exhausted.json.currentPlan.status, "exhausted");
+  assert.ok(exhausted.json.currentPlan.eligibleForReactivation);
+  const renewal = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "renew", requestKey: "renew-pending",
+  });
+  assert.equal(renewal.response.status, 201);
+  const pending = await f.call("/api/account/dashboard");
+  assert.equal(pending.json.activeBundle, null, "the renewal has not been confirmed yet");
+  assert.ok(pending.json.payments.some((payment) => payment.id === renewal.json.payment.id && payment.status === "pending"));
+});
 test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
   const f = await fixture();
   t.after(f.close);

@@ -331,6 +331,7 @@ export const customerCsrfPaths = Object.freeze({
   "/api/account/passkeys/options": true,
   "/api/account/passkeys/verify": true,
   "/api/account/devices/disconnect": true,
+  "/api/account/devices/connect": true,
 });
 export function createHandler(opts = {}) {
   const env = { ...process.env, ...opts.env },
@@ -780,8 +781,10 @@ export function createHandler(opts = {}) {
       }
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
+      const s = await store.snapshot();
       return json(res, 200, {
-        service: "online",
+        service: s.zone.status,
+        zoneNotes: s.zone.notes || undefined,
         zone: "student-zone-1",
         coverage: "four buildings / approximately 300m radius",
         paymentMode: env.PAYMENT_MODE || "mock",
@@ -1634,6 +1637,7 @@ export function createHandler(opts = {}) {
           ),
           sessionExpiresAt: a.expiresAt,
           csrfToken: a.csrfToken,
+          zone: { status: s.zone.status, notes: s.zone.notes || undefined },
           availablePlans: catalogue(s),
           currentPlan: v[0] || null,
           dailyAvailability: (() => {
@@ -1781,6 +1785,53 @@ export function createHandler(opts = {}) {
           message: "Device disconnected. Its slot is now available.",
           voucher: view(v, s),
         });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/devices/connect") {
+      const i = await body(req);
+      return mutate(async (s) => {
+        const a = auth(req, s, "dashboardSessions");
+        if (!a) {
+          return json(res, 401, {
+            error: "Dashboard session expired. Please sign in again.",
+          });
+        }
+        const v = s.vouchers.find((v) =>
+          v.customerId === a.customerId && v.status === "active"
+        );
+        if (!v) {
+          return json(res, 409, {
+            error: "You don't have an active bundle yet. Choose a package to get started.",
+          });
+        }
+        const deviceId = String(i.deviceId || "").slice(0, 200) ||
+          secureToken(16);
+        let session = s.sessions.find((x) =>
+          x.voucherId === v.id && x.deviceId === deviceId &&
+          x.status === "online"
+        );
+        const active = s.sessions.filter((x) =>
+          x.voucherId === v.id && x.status === "online"
+        );
+        if (!session && active.length >= v.deviceLimit) {
+          return json(res, 409, {
+            error: `Device limit reached (${v.deviceLimit}). Disconnect another device first.`,
+          });
+        }
+        if (!session) {
+          session = {
+            id: randomUUID(),
+            voucherId: v.id,
+            deviceId,
+            label: String(i.label || "Device").slice(0, 80),
+            status: "online",
+            connectedAt: clock().toISOString(),
+          };
+          s.sessions.push(session);
+        }
+        session.lastSeenAt = clock().toISOString();
+        log(s, "device.connected", { voucherId: v.id, deviceId });
+        return json(res, 200, { voucher: view(v, s), session });
       });
     }
     if (req.method === "POST" && url.pathname === "/api/admin/passkey/options") {

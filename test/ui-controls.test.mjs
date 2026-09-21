@@ -22,6 +22,7 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /#redeem"\)\.onsubmit/);
   assert.match(files.customerApp, /#logout"\)\.onclick/);
   assert.match(files.customerApp, /button\[data-session\]/);
+  assert.match(files.customerApp, /#connectDevice/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
   for (const id of ["continue", "closeCheckout"]) assert.match(files.onboardingJs, new RegExp(`#${id}.*\\.onclick`));
@@ -46,6 +47,57 @@ test("interactive status and modal surfaces expose accessible state", async () =
   assert.match(onboarding, /aria-live="polite"/);
   assert.match(dashboard, /role="status"/);
   assert.match(admin, /aria-live="assertive"/);
+});
+
+test("the customer dashboard shows account status before the device-activation form", async () => {
+  const dashboard = await source("customer-app/index.html");
+  const dashboardIndex = dashboard.indexOf('id="dashboard"'),
+    activateIndex = dashboard.indexOf('id="activateDevice"');
+  assert.ok(dashboardIndex >= 0 && activateIndex >= 0, "both sections must be present");
+  assert.ok(dashboardIndex < activateIndex,
+    "remaining data, time, plan, and connection state must appear before device activation (UX-001)");
+});
+
+test("plan browse, renew, and switch actions are grouped under one Manage plan area (UX-003)", async () => {
+  const dashboard = await source("customer-app/index.html"), app = await source("customer-app/app.js");
+  assert.doesNotMatch(dashboard, /class="welcome"[\s\S]*?<a class="button"/,
+    "the welcome banner must not carry its own competing plan-navigation button");
+  assert.equal((app.match(/onboarding\.html/g) || []).length, 3,
+    "browse, renew, and switch must be the only onboarding links, all inside #managePlan");
+  assert.match(app, /id="managePlan"[\s\S]*onboarding\.html[\s\S]*onboarding\.html\?action=switch/);
+});
+
+test("network status is driven from the API on every customer-facing page, not hardcoded (UX-004)", async () => {
+  const files = {
+    index: await source("customer-app/index.html"),
+    login: await source("customer-app/login.html"),
+    onboarding: await source("customer-app/onboarding.html"),
+    app: await source("customer-app/app.js"),
+    loginJs: await source("customer-app/login.js"),
+    onboardingJs: await source("customer-app/onboarding.js"),
+    networkStatus: await source("customer-app/network-status.js"),
+  };
+  for (const html of [files.index, files.login, files.onboarding]) {
+    assert.doesNotMatch(html, /class="(network-state|panel-network)"[^>]*>Network online/,
+      "no page may hardcode a claimed-online status; it must be fetched and applied at runtime");
+  }
+  assert.match(files.networkStatus, /unavailable/);
+  assert.match(files.app, /applyNetworkStatus\(\$\("\.network-state"\), result\.zone\?\.status\)/);
+  assert.match(files.app, /applyNetworkStatus\(\$\("\.network-state"\), "unavailable"\)/);
+  assert.match(files.loginJs, /fetchNetworkStatus/);
+  assert.match(files.onboardingJs, /fetchNetworkStatus/);
+});
+
+test("the dashboard explains and gives a next step for every empty and first-use state (UX-005)", async () => {
+  const app = await source("customer-app/app.js");
+  assert.match(app, /payment is being confirmed/, "pending voucher/payment state");
+  assert.match(app, /data is used up/, "exhausted bundle state");
+  assert.match(app, /bundle expired/, "expired bundle state");
+  assert.match(app, /trouble connecting this bundle to the network/, "failed provisioning state");
+  assert.match(app, /Finishing network setup/, "in-progress provisioning state");
+  assert.match(app, /Activate a bundle to connect a device/, "no devices, no bundle state is distinct from no devices with an active bundle");
+  assert.match(app, /No devices are currently connected/, "no devices, active bundle state");
+  assert.match(app, /Choose a package to get started/, "never purchased state");
 });
 
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
