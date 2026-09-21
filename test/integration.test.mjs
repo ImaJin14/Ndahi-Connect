@@ -241,6 +241,57 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   const exposed = await f.call("/api/account?phone=670000001");
   assert.equal(exposed.response.status, 404);
 });
+test("authenticated device connect requires no phone or code and stops at the device limit", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const buy = await f.call("/api/purchase", "POST", {
+    name: "Bo", phone: "670000010", planId: "connect30", provider: "mtn",
+  });
+  const paid = await f.call(`/api/payments/${buy.json.payment.id}/confirm`, "POST");
+  const anonymous = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(anonymous.response.status, 401);
+  const customerTotp = totpSecret();
+  await f.store.transaction((state) => {
+    state.customers.find((customer) => customer.phone === "670000010").totpSecret = customerTotp;
+  });
+  const otp = await f.call("/api/account/login/request-authenticator", "POST", {
+    phone: "670000010", code: paid.json.access.code,
+  });
+  assert.equal(otp.response.status, 200);
+  const verified = await f.call("/api/account/login/verify-authenticator", "POST", {
+    challengeId: otp.json.challengeId, otp: totpCode(customerTotp),
+  });
+  assert.equal(verified.response.status, 200);
+  const first = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(first.response.status, 200);
+  assert.equal(first.json.session.label, "Laptop");
+  assert.equal(first.json.voucher.activeDevices, 1);
+  const repeat = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
+  assert.equal(repeat.response.status, 200, "reconnecting the same device is idempotent, not a new slot");
+  assert.equal(repeat.json.voucher.activeDevices, 1);
+  const second = await f.call("/api/account/devices/connect", "POST", { deviceId: "two", label: "Phone" });
+  assert.equal(second.response.status, 200);
+  assert.equal(second.json.voucher.activeDevices, 2);
+  const third = await f.call("/api/account/devices/connect", "POST", { deviceId: "three", label: "Tablet" });
+  assert.equal(third.response.status, 409);
+  assert.match(third.json.error, /Device limit reached/);
+});
+test("device connect without an active bundle explains there is nothing to activate yet", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  await f.store.transaction((state) => {
+    state.customers.push({ id: "c1", phone: "670000011", name: "No Plan", email: "", pinHash: "x", createdAt: new Date().toISOString() });
+    state.dashboardSessions.push({
+      tokenHash: hashSecret("session-token", "customer-test-secret"), customerId: "c1",
+      role: "customer", csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00Z",
+    });
+  });
+  const noPlan = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" }, null, {
+    cookie: "customer_session=session-token",
+  });
+  assert.equal(noPlan.response.status, 409);
+  assert.match(noPlan.json.error, /don't have an active bundle/);
+});
 test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
   const f = await fixture();
   t.after(f.close);

@@ -183,10 +183,20 @@ Use this document as the source of truth for product, engineering, security, and
     verification was performed in this environment (headless, no browser tooling available) — the
     ordering is verified structurally, not by screenshot.
 
-- [ ] **UX-002 — Simplify authenticated device activation**
+- [x] **UX-002 — Simplify authenticated device activation**
   - Do not ask signed-in customers to re-enter their phone number and voucher code.
   - Use the authenticated account and active voucher automatically.
   - Acceptance: connecting the current device requires at most a device name and one confirmation action.
+  - Implemented: a new authenticated `POST /api/account/devices/connect` endpoint resolves the caller's
+    active voucher from their session (no phone/code in the request). The dashboard's "Connected
+    devices" card shows a one-field (device name, prefilled), one-button quick-connect form when this
+    browser isn't already an active session and a slot is free; reconnecting the same device is
+    idempotent rather than consuming a new slot. The original phone+code form is retained as a
+    collapsed "Activate a different voucher code" disclosure (open by default only when the customer
+    has no active bundle, since it's then the only way to activate one) for claiming a separate voucher.
+  - Verified: 2 new integration tests (device limit enforcement, idempotent reconnect, no-active-bundle
+    message) plus the existing CSRF-inventory exact-match test updated for the new route; `npm test`
+    (133/133) and `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
 - [ ] **UX-003 — Consolidate plan-management navigation**
   - Group browse, renew, and switch actions under one clear “Manage plan” area.

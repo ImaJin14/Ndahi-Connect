@@ -22,6 +22,7 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /#redeem"\)\.onsubmit/);
   assert.match(files.customerApp, /#logout"\)\.onclick/);
   assert.match(files.customerApp, /button\[data-session\]/);
+  assert.match(files.customerApp, /#connectDevice/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
   for (const id of ["continue", "closeCheckout"]) assert.match(files.onboardingJs, new RegExp(`#${id}.*\\.onclick`));
