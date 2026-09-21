@@ -198,9 +198,16 @@ Use this document as the source of truth for product, engineering, security, and
     message) plus the existing CSRF-inventory exact-match test updated for the new route; `npm test`
     (133/133) and `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-003 — Consolidate plan-management navigation**
+- [x] **UX-003 — Consolidate plan-management navigation**
   - Group browse, renew, and switch actions under one clear “Manage plan” area.
   - Acceptance: customers can identify the correct plan action without duplicate competing buttons.
+  - Implemented: removed the welcome banner's "Browse packages" button and the JS-injected "Switch
+    plan" button that duplicated `#managePlan`'s actions. `#managePlan` is now the sole plan-navigation
+    area: a customer with a current plan sees Renew (or a discontinued notice) and Change/switch plan;
+    a customer with none sees Browse packages. No page has more than one plan-navigation entry point.
+  - Verified: 1 new regression test (no button in `.welcome`, exactly the three `onboarding.html` links
+    all inside `#managePlan`) plus existing suite; `npm test` (134/134) and `npm run check` passed on
+    2026-09-21. No in-browser verification performed.
 
 - [ ] **UX-004 — Make network status truthful and live**
   - Drive visible status from service/network health rather than static text.

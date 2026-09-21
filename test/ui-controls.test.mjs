@@ -58,6 +58,15 @@ test("the customer dashboard shows account status before the device-activation f
     "remaining data, time, plan, and connection state must appear before device activation (UX-001)");
 });
 
+test("plan browse, renew, and switch actions are grouped under one Manage plan area (UX-003)", async () => {
+  const dashboard = await source("customer-app/index.html"), app = await source("customer-app/app.js");
+  assert.doesNotMatch(dashboard, /class="welcome"[\s\S]*?<a class="button"/,
+    "the welcome banner must not carry its own competing plan-navigation button");
+  assert.equal((app.match(/onboarding\.html/g) || []).length, 3,
+    "browse, renew, and switch must be the only onboarding links, all inside #managePlan");
+  assert.match(app, /id="managePlan"[\s\S]*onboarding\.html[\s\S]*onboarding\.html\?action=switch/);
+});
+
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
   const onboarding = await source("customer-app/onboarding.js");
   assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);
