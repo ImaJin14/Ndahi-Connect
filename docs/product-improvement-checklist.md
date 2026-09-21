@@ -224,9 +224,20 @@ Use this document as the source of truth for product, engineering, security, and
     an online claim and all wire up the fetch) plus existing suite; `npm test` (136/136) and
     `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
-- [ ] **UX-005 — Improve empty and first-use states**
+- [x] **UX-005 — Improve empty and first-use states**
   - Cover no active bundle, no connected devices, pending voucher, exhausted bundle, and failed provisioning.
   - Acceptance: every state explains what happened and gives one clear next action.
+  - Implemented (all client-side; the data these states need — payment status, voucher status,
+    `routerSyncStatus` — was already present in the dashboard response): the "Active bundle" card
+    distinguishes never-purchased, pending-payment ("being confirmed"), exhausted, and expired states
+    with copy explaining what happened, deferring to the single Renew/Switch/Browse action already
+    consolidated in `#managePlan` (UX-003) rather than adding a second competing button. A voucher
+    stuck mid-provisioning (`routerSyncStatus: "pending"`/`"dead_letter"`) shows an inline notice.
+    "No connected devices" is distinguished from "no bundle to connect one to", and the UX-002
+    quick-connect form is itself the one clear action for the former.
+  - Verified: 1 new regression test locking in all eight distinct message branches, plus 1 integration
+    test confirming the dashboard surfaces exhausted-bundle and pending-renewal-payment data correctly;
+    `npm test` (138/138) and `npm run check` passed on 2026-09-21. No in-browser verification performed.
 
 ### Renewal and switching
 
@@ -590,8 +601,8 @@ These are already implemented and should remain protected by regression tests.
 Update these totals whenever tasks are completed.
 
 - P0 pending: 0
-- P1 pending: 37
+- P1 pending: 32
 - P2 pending: 24
 - P3 pending: 17
 - Verified foundations complete: 14
-- Recommendation tasks complete: 17
+- Recommendation tasks complete: 22

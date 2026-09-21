@@ -88,6 +88,18 @@ test("network status is driven from the API on every customer-facing page, not h
   assert.match(files.onboardingJs, /fetchNetworkStatus/);
 });
 
+test("the dashboard explains and gives a next step for every empty and first-use state (UX-005)", async () => {
+  const app = await source("customer-app/app.js");
+  assert.match(app, /payment is being confirmed/, "pending voucher/payment state");
+  assert.match(app, /data is used up/, "exhausted bundle state");
+  assert.match(app, /bundle expired/, "expired bundle state");
+  assert.match(app, /trouble connecting this bundle to the network/, "failed provisioning state");
+  assert.match(app, /Finishing network setup/, "in-progress provisioning state");
+  assert.match(app, /Activate a bundle to connect a device/, "no devices, no bundle state is distinct from no devices with an active bundle");
+  assert.match(app, /No devices are currently connected/, "no devices, active bundle state");
+  assert.match(app, /Choose a package to get started/, "never purchased state");
+});
+
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {
   const onboarding = await source("customer-app/onboarding.js");
   assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);

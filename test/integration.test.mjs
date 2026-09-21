@@ -316,6 +316,27 @@ test("public and authenticated status reflect the real zone state, not a static 
   assert.equal(dash.response.status, 200);
   assert.equal(dash.json.zone.status, "maintenance");
 });
+test("the dashboard exposes the pending-payment and exhausted-bundle data the empty states depend on", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const buy = await f.call("/api/purchase", "POST", { name: "Amina", phone: "670000013", planId: "weekly" }),
+    paid = await f.call(`/api/payments/${buy.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000013", code: paid.json.access.code, pin: "1357", confirmPin: "1357",
+  });
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
+  const exhausted = await f.call("/api/account/dashboard");
+  assert.equal(exhausted.json.activeBundle, null, "exhausted usage must no longer count as active");
+  assert.equal(exhausted.json.currentPlan.status, "exhausted");
+  assert.ok(exhausted.json.currentPlan.eligibleForReactivation);
+  const renewal = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "renew", requestKey: "renew-pending",
+  });
+  assert.equal(renewal.response.status, 201);
+  const pending = await f.call("/api/account/dashboard");
+  assert.equal(pending.json.activeBundle, null, "the renewal has not been confirmed yet");
+  assert.ok(pending.json.payments.some((payment) => payment.id === renewal.json.payment.id && payment.status === "pending"));
+});
 test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
   const f = await fixture();
   t.after(f.close);
