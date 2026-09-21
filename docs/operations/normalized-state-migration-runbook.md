@@ -16,6 +16,10 @@ rollback source.
 2. Disable API writes or stop the API service. Static services may remain online.
 3. Run `npm run migrate:postgres` with `DATABASE_URL` and `DATABASE_SSL` set for
    the target database. Do not start the normalized application if this exits nonzero.
+   The command uses Node/pg to apply the checked-in SQL files in order, then runs
+   the guarded legacy-state conversion; no `psql` executable is required. On Render,
+   use the new release's pre-deploy command after completing steps 1–2 if the live
+   Shell still belongs to an older release without these migration files.
 4. Save the JSON result. A successful legacy conversion reports `status: migrated`,
    `matched: true`, and identical `expected` and `actual` counts. A new empty database
    reports `status: fresh-database`. Re-running reports `status: already-migrated`.

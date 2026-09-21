@@ -90,6 +90,7 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: npm ci
+    preDeployCommand: npm run check:database
     startCommand: npm run start:api
     healthCheckPath: /api/health
     domains:

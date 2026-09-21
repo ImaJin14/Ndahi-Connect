@@ -307,14 +307,17 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **DEP-001 — Introduce a production-like staging environment**
   - Acceptance: migrations, provider sandboxes, and critical flows are tested before production.
 
-- [ ] **DEP-002 — Add database migration gates**
+- [-] **DEP-002 — Add database migration gates**
   - Acceptance: incompatible application versions cannot deploy before required migrations.
+  - Prepared (2026-09-21): read-only `npm run check:database` checks connectivity, required normalized tables, and SELECT access. The Render API Blueprint runs it as a pre-deploy command. Missing tables fail early with their names; no automatic data migration is performed. Full schema-version compatibility and production verification remain pending.
+  - Confirmed incident cause: the Render Shell connects to PostgreSQL but reports `customers`, `payments`, `vouchers`, `events`, `audit_logs`, and `app_settings` absent. Its running commit is `b29b289`, so the earlier missing `healthCheck()` method came from the old instance. Prepared a Node-based `npm run migrate:postgres` runner to apply schema migrations and the existing guarded legacy-data conversion without relying on `psql`. All 141 local tests and syntax checks pass. Production migration requires the documented backup/write-pause procedure and remains outstanding.
 
 - [ ] **DEP-003 — Add post-deployment smoke tests**
   - Cover health, plans, customer login, admin login entry, CORS, and provider configuration.
   - Acceptance: failed smoke tests stop or roll back a release.
   - Deployment-timeout remediation (2026-09-21): readiness now uses a dedicated, bounded PostgreSQL schema/connectivity probe instead of loading or rewriting application state. Both bootstrap and operational health routes return `503` within four seconds on failure. Node is constrained to `22.x`, matching CI, instead of the open-ended `>=20` range that selected Node 26 in the supplied Render log.
-  - Verification: all six new health tests and syntax/diff checks passed; the full workspace suite passed 116/117 tests, with the remaining failure in administrator RouterOS usage synchronization during separate queue changes. Render redeployment and production verification remain outstanding; post-deployment smoke-test automation is not complete.
+  - Confirmed evidence (2026-09-21): Render deployed `9542aa5` on Node 22 but still timed out. A Render Shell probe confirmed database connectivity and missing normalized tables; the Shell was on old commit `b29b289`. Missing schema is the confirmed blocker, not the Node version or physical router.
+  - Verification: all 141 local tests, syntax checks, and diff checks pass. Safe database failure codes/hints and a read-only pre-deploy gate are prepared. Production migration, redeployment, and smoke-test automation remain outstanding. See [API deployment readiness](operations/api-deployment-readiness.md).
 
 - [ ] **DEP-004 — Add automatic rollback procedures**
   - Acceptance: application rollback and database forward-fix procedures are documented and rehearsed.
