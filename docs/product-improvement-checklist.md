@@ -241,26 +241,89 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Renewal and switching
 
-- [ ] **UX-006 — Create a compact authenticated renewal experience**
+- [x] **UX-006 — Create a compact authenticated renewal experience**
   - Remove the acquisition hero from focused renewal tasks.
   - Show current plan, renewal date, price, eligibility, and confirmation.
   - Acceptance: renewal uses only the current eligible plan and keeps the session active.
+  - Implemented: `/onboarding.html?action=renew` hides the acquisition hero and shows only the
+    customer's current plan (status, expiry, price) plus a single card for that same plan, filtered
+    from the catalogue by `renewalEligibility()` (`customer-app/plan-presentation.js`). Ineligible
+    renewals (discontinued plan, Daily's 7-day cooldown) show the reason and next eligible time
+    instead of a purchasable card. `POST /api/account/plan/purchase` re-validates eligibility
+    server-side and is idempotent per `requestKey`. The new `GET /api/account/payments/:id/status`
+    route (owner-checked, 404 for any other customer's payment) replaces public polling for
+    authenticated flows and refreshes the customer's dashboard session on every poll, so renewal
+    confirmation never drops the session.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including dedicated
+    integration coverage for renewal eligibility (current, discontinued, no-plan), Daily cooldown
+    down to the exact eligible timestamp, session persistence through polling, and payment-status
+    ownership (401 unauthenticated, 404 for another customer's payment). Manually exercised the full
+    purchase → confirm → PIN setup → authenticated renew → poll → confirm cycle against a locally
+    running API and customer app; the dashboard reflected the renewed plan and the session cookie was
+    unchanged throughout. Subsequent rendered browser checks on 2026-09-23 verified renewal,
+    failed-payment retry, closed-page confirmation, and authenticated polling with a real browser
+    cookie jar; see the [verification runbook](operations/renewal-switching-verification.md).
 
-- [ ] **UX-007 — Create a comparative switching experience**
+- [x] **UX-007 — Create a comparative switching experience**
   - Show the current plan beside each alternative.
   - Acceptance: differences in price, data, validity, and device limits are explicit.
+  - Implemented: `/onboarding.html?action=switch` renders every non-current, non-discontinued plan as
+    a table (`comparePlans()` in `customer-app/plan-presentation.js`) with the current and proposed
+    values side by side for package price, data, validity, and simultaneous devices, plus a plain-text
+    delta per row (e.g. "500 FCFA more", "2 days shorter"). The same comparison renders again in the
+    checkout modal before payment. Unlimited-data comparisons are described in words rather than a
+    numeric delta.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including
+    `plan-presentation.test.mjs` unit coverage of `comparePlans()` (price/data/validity/device deltas,
+    both-unlimited and unlimited-either-side cases) and integration coverage confirming switching
+    charges the full destination-plan price and keeps the session across the flow. Manually verified a
+    live switch (weekly → monthly) via the running API: payment created with `action: "switch"` and
+    `replaceVoucherId` set, dashboard's `currentPlan.planId` updated to the new plan only after
+    payment confirmation. Subsequent rendered browser checks verified the full switch checkout,
+    comparisons, and session preservation on desktop and mobile (2026-09-23).
 
-- [ ] **UX-008 — Label upgrade, downgrade, and lateral changes**
+- [x] **UX-008 — Label upgrade, downgrade, and lateral changes**
   - Explain when the existing package ends and the new package begins.
   - Acceptance: consequences are visible before checkout.
+  - Implemented: each switch candidate is labeled "Upgrade — higher package price", "Downgrade —
+    lower package price", or "Lateral change — same package price" via `classifyPlanChange()`
+    (price-based, not an assumed allowance improvement). A policy line on every plan card and in the
+    checkout modal states, before payment, that the current package ends immediately on confirmation
+    with no proration or carried-over data/time, and that the full destination price is charged. The
+    checkout acknowledgement checkbox requires the customer to confirm this before submitting.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including unit coverage
+    of `classifyPlanChange()`'s three outcomes and the undefined-price fallback. Rendered browser
+    checks subsequently verified the policy disclosure, required acknowledgement, and a custom
+    same-price lateral change (2026-09-23).
 
-- [ ] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
+- [x] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
   - Avoid hidden package cards on desktop, mobile, and high zoom.
   - Acceptance: all packages are discoverable by pointer, keyboard, touch, and screen reader.
+  - Implemented: wrapping grids replace the horizontal package rail. Comparison tables remain
+    within each package, with named articles, table captions, row/column headers, and described
+    buttons. Checkout contains keyboard focus and restores it when closed.
+  - Verified: browser checks at 1440px, 390px, and 320px confirmed no horizontal page/control
+    overflow, access to the last package, keyboard focus behavior, touch selection, and accessible
+    table/article names. Desktop/mobile screenshots were inspected. The 320px check covers
+    narrow/high-zoom reflow equivalence; a hardware screen-reader audit remains separate.
 
-- [ ] **UX-010 — Review package value progression and explanation**
-  - Explain why longer-validity packages may have different price-per-GB economics.
-  - Acceptance: customers can compare value without doing manual calculations.
+- [x] **UX-010 — Keep package comparisons clear and concise**
+  - Show package price, included data, validity, and device limits clearly.
+  - Acceptance: customers can compare package totals and allowances, with explicit differences
+    between their current plan and each switching alternative.
+  - Product decision (2026-09-23): per-GB/per-day rates and their explanatory text were removed
+    at the owner's request. Packages show the total price and included allowances; switching
+    retains explicit differences in price, data, validity, and devices. Prices are unchanged.
+  - Copy decision (2026-09-23): remove the generic "One-time package" and "Available once every
+    7 days" badges and the "across full validity" suffix. Keep renewal and upgrade/downgrade/lateral
+    labels where relevant. The Daily seven-day purchase restriction remains an enforced rule,
+    explained in eligibility and checkout details rather than a promotional badge.
+  - Verified: comparison tests cover price/data/validity/device differences, unlimited allowances,
+    and custom durations. The final PR checkout, including the copy and rate-display removals,
+    passed all 166 automated tests, 13 browser scenarios, syntax checks, and the whitespace check
+    on 2026-09-23. Browser coverage includes a 36-hour package. Commands and remaining billing
+    scope are documented in the
+    [verification runbook](operations/renewal-switching-verification.md).
 
 ### Billing experience
 

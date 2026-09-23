@@ -978,17 +978,23 @@ export function createHandler(opts = {}) {
     }
     if (
       req.method === "GET" &&
-      /^\/api\/payments\/[^/]+\/status$/.test(url.pathname)
+      /^\/api\/(?:account\/)?payments\/[^/]+\/status$/.test(url.pathname)
     ) {
       return mutate(async (s) => {
-        const id = url.pathname.split("/")[3],
+        const accountPayment = url.pathname.startsWith("/api/account/"),
+          accountSession = auth(req, s, "dashboardSessions");
+        if (accountPayment && !accountSession) {
+          return json(res, 401, { error: "Customer session expired." });
+        }
+        const id = url.pathname.split("/").at(-2),
           payment = s.payments.find((x) => x.id === id),
           voucher = payment?.status === "paid" &&
             s.vouchers.find((x) => x.paymentId === payment.id);
-        if (!payment) return json(res, 404, { error: "Payment not found." });
-        const accountSession = auth(req, s, "dashboardSessions");
+        if (!payment || accountPayment && accountSession.customerId !== payment.customerId) {
+          return json(res, 404, { error: "Payment not found." });
+        }
         if (accountSession?.customerId === payment.customerId &&
-          ["renew", "switch"].includes(payment.action)) {
+          (accountPayment || ["renew", "switch"].includes(payment.action))) {
           refreshCustomerSession(req, res, accountSession);
         }
         if (payment.provider === "mesomb" && payment.status === "pending") {

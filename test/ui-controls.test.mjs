@@ -25,12 +25,12 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /#connectDevice/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
-  for (const id of ["continue", "closeCheckout"]) assert.match(files.onboardingJs, new RegExp(`#${id}.*\\.onclick`));
+  assert.match(files.onboardingJs, /#closeCheckout"\)\.onclick/);
   assert.match(files.onboardingJs, /#purchase"\)\.onsubmit/);
   assert.match(files.onboardingJs, /ndahi-payment/);
   assert.match(files.onboardingJs, /paymentProvider === "flutterwave"/);
   assert.match(files.onboardingJs, /Payment confirmed/);
-  assert.match(files.onboardingJs, /service fee is added separately/);
+  assert.match(files.onboarding, /service fee is added separately/);
   assert.match(files.onboardingJs, /confirm\.onclick/);
   assert.match(files.adminLoginJs, /#login"\)\.onsubmit/);
   for (const id of ["bundle", "bundleEdit", "generate"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onsubmit`));
@@ -104,7 +104,6 @@ test("onboarding keeps authenticated renew and switch journeys account-aware", a
   const onboarding = await source("customer-app/onboarding.js");
   assert.match(onboarding, /accountLink\.textContent = "My dashboard"/);
   assert.match(onboarding, /accountAction === "renew"/);
-  assert.match(onboarding, /plan\.id === account\.currentPlan\.planId/);
   assert.match(onboarding, /Switch to this plan/);
   assert.match(onboarding, /if \(accountAction\).*saveReturnPath/s);
 });
