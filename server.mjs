@@ -17,6 +17,8 @@ import {
   activationCode,
   hashSecret,
   normalizeActivationCode,
+  normalizeRecoveryCode,
+  recoveryCode,
   safeEqual,
   secureToken,
   totpSecret,
@@ -34,6 +36,7 @@ import {
 } from "./lib/router-queue.mjs";
 import { createRouterReconciler, routerReconciliationConfig } from "./lib/router-reconciliation.mjs";
 import { emailAdapter } from "./lib/email.mjs";
+import { createSecurityAlertService, queueSecurityAlert } from "./lib/security-alerts.mjs";
 import { routerAdapter } from "./lib/routeros.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
 import { createPostgresStore } from "./lib/postgres-store.mjs";
@@ -80,6 +83,7 @@ export const blank = () => ({
     otpChallenges: [],
     adminMfaChallenges: [],
     securityEvents: [],
+    securityAlerts: [],
     auditLogs: [],
     bundles: [],
     bundleOverrides: {},
@@ -334,8 +338,13 @@ export const customerCsrfPaths = Object.freeze({
   "/api/account/security/mfa/confirm": true,
   "/api/account/passkeys/options": true,
   "/api/account/passkeys/verify": true,
+  "/api/account/passkeys/rename": true,
+  "/api/account/passkeys/remove": true,
   "/api/account/devices/disconnect": true,
   "/api/account/devices/connect": true,
+  "/api/account/security/sessions/revoke": true,
+  "/api/account/security/logout-everywhere": true,
+  "/api/account/security/recovery-codes/generate": true,
 });
 export function createHandler(opts = {}) {
   const env = { ...process.env, ...opts.env },
@@ -445,6 +454,14 @@ export function createHandler(opts = {}) {
           customerId: customer.id, severity: "high",
           lockedUntil: customer.pinLockedUntil,
         });
+        queueSecurityAlert(s, {
+          customerId: customer.id, kind: "pin_locked",
+          subject: "Your NDAHI Connect PIN sign-in was temporarily locked",
+          lines: [
+            "Several incorrect PIN attempts locked PIN sign-in to your account for a short time.",
+            "You can still sign in with a passkey or your authenticator app.",
+          ],
+        }, clock());
         return { attemptsRemaining, locked: true, retryAfterSeconds: lockSeconds };
       }
       const delaySeconds = Math.min(
@@ -480,14 +497,18 @@ export function createHandler(opts = {}) {
         new Date(x.expiresAt) > clock()
       );
     },
-    issueCustomerSession = (s, customerId, res) => {
+    userAgentOf = (req) => String(req.headers?.["user-agent"] || "").slice(0, 200),
+    issueCustomerSession = (s, customerId, res, req) => {
       const token = secureToken(),
         csrfToken = secureToken(),
         seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
+        now = clock().toISOString(),
         expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
       s.dashboardSessions.push({
-        tokenHash: hashSecret(token, customerSecret), customerId,
+        id: randomUUID(), tokenHash: hashSecret(token, customerSecret), customerId,
         role: "customer", csrfToken, expiresAt,
+        createdAt: now, lastSeenAt: now,
+        ip: req ? ip(req) : undefined, userAgent: req ? userAgentOf(req) : undefined,
       });
       return json(res, 200, { authenticated: true, expiresAt }, {
         "set-cookie": cookie("customer_session", token, seconds, secureCookies),
@@ -499,6 +520,7 @@ export function createHandler(opts = {}) {
       const seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800);
       session.tokenHash = hashSecret(token, customerSecret);
       session.expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
+      session.lastSeenAt = clock().toISOString();
       res.setHeader("set-cookie", cookie("customer_session", token, seconds, secureCookies));
     };
   async function deliverVoucherEmail(s, voucher, force = false) {
@@ -643,6 +665,7 @@ export function createHandler(opts = {}) {
   }
   const billing = createBillingService({ store, payments: pays, email, now: clock,
     planFor: findPlan, settle: (s, p, ref) => { clean(s, clock()); return settlePayment(s, p, ref); } });
+  const securityAlerts = createSecurityAlertService({ store, email, now: clock });
   const webhookProcessor = createWebhookProcessor({
     store, payments: pays, now: clock,
     settle: (s, p, ref) => {
@@ -1281,7 +1304,7 @@ export function createHandler(opts = {}) {
         challenge.used = true;
         challenge.usedAt = clock().toISOString();
         sec(s, "customer.access.succeeded", req, { customerId: customer.id });
-        return issueCustomerSession(s, customer.id, res);
+        return issueCustomerSession(s, customer.id, res, req);
       });
     }
     if (req.method === "POST" && url.pathname === "/api/account/pin-reset/request") {
@@ -1365,6 +1388,14 @@ export function createHandler(opts = {}) {
           session.customerId !== customer.id
         );
         log(s, "customer.pin_reset.completed", { customerId: customer.id });
+        queueSecurityAlert(s, {
+          customerId: customer.id, kind: "pin_reset",
+          subject: "Your NDAHI Connect PIN was reset",
+          lines: [
+            "Your account PIN was just reset using the email link.",
+            "This also signed out every other device using your account.",
+          ],
+        }, clock());
         return json(res, 200, { reset: true, message: "Your PIN has been reset. You can sign in now." });
       });
     }
@@ -1389,7 +1420,7 @@ export function createHandler(opts = {}) {
         c.pinHash = await argon2.hash(i.pin, { type: argon2.argon2id });
         c.pinCreatedAt = clock().toISOString();
         log(s, "customer.pin.created", { customerId: c.id });
-        return issueCustomerSession(s, c.id, res);
+        return issueCustomerSession(s, c.id, res, req);
       });
     }
     if (req.method === "POST" && url.pathname === "/api/account/login/pin") {
@@ -1429,7 +1460,7 @@ export function createHandler(opts = {}) {
         }
         clearPinFailures(c);
         sec(s, "customer.pin_login.succeeded", req, { customerId: c.id });
-        return issueCustomerSession(s, c.id, res);
+        return issueCustomerSession(s, c.id, res, req);
       });
     }
     if (
@@ -1488,8 +1519,14 @@ export function createHandler(opts = {}) {
             error: "The verification code is invalid or expired.",
           });
         }
-        const customer = s.customers.find((x) => x.id === ch.customerId);
-        if (!customer?.totpSecret || !verifyTotp(customer.totpSecret, i.otp, clock().getTime())) {
+        const customer = s.customers.find((x) => x.id === ch.customerId),
+          recoveryInput = i.recoveryCode ? normalizeRecoveryCode(i.recoveryCode) : null,
+          matchedRecoveryCode = recoveryInput && customer?.recoveryCodes?.find((code) =>
+            !code.usedAt && safeEqual(code.hash, hashSecret(recoveryInput, pepper))
+          ),
+          otpValid = !recoveryInput && customer?.totpSecret &&
+            verifyTotp(customer.totpSecret, i.otp, clock().getTime());
+        if (!customer?.totpSecret || !(otpValid || matchedRecoveryCode)) {
           ch.attempts++;
           sec(s, "otp.failed", req);
           return json(res, 401, {
@@ -1498,24 +1535,21 @@ export function createHandler(opts = {}) {
           });
         }
         ch.used = true;
-        const token = secureToken(),
-          seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
-          expiresAt = new Date(clock().getTime() + seconds * 1000)
-            .toISOString();
-        s.dashboardSessions.push({
-          tokenHash: hashSecret(token, customerSecret),
-          customerId: ch.customerId,
-          role: "customer",
-          expiresAt,
-        });
-        return json(res, 200, { authenticated: true, expiresAt }, {
-          "set-cookie": cookie(
-            "customer_session",
-            token,
-            seconds,
-            secureCookies,
-          ),
-        });
+        if (matchedRecoveryCode) {
+          matchedRecoveryCode.usedAt = clock().toISOString();
+          sec(s, "customer.recovery_code_login.succeeded", req, { customerId: customer.id, severity: "high" });
+          queueSecurityAlert(s, {
+            customerId: customer.id, kind: "recovery_code_used",
+            subject: "A recovery code was used to sign in to your NDAHI Connect account",
+            lines: [
+              "A recovery code was used to sign in to your account, bypassing your authenticator app.",
+              "If this wasn't you, sign in immediately, remove any unfamiliar passkeys, and regenerate your recovery codes.",
+            ],
+          }, clock());
+        } else {
+          sec(s, "customer.otp_login.succeeded", req, { customerId: customer.id });
+        }
+        return issueCustomerSession(s, customer.id, res, req);
       });
     }
     if (
@@ -1585,17 +1619,8 @@ export function createHandler(opts = {}) {
         s.customerPasskeyChallenges = s.customerPasskeyChallenges.filter((x) =>
           x.id !== challenge.id
         );
-        const token = secureToken(),
-          seconds = Number(env.CUSTOMER_SESSION_SECONDS || 1800),
-          expiresAt = new Date(clock().getTime() + seconds * 1000).toISOString();
-        s.dashboardSessions.push({
-          tokenHash: hashSecret(token, customerSecret), customerId: c.id,
-          role: "customer", expiresAt,
-        });
         sec(s, "customer.passkey_login.succeeded", req, { customerId: c.id });
-        return json(res, 200, { authenticated: true, expiresAt }, {
-          "set-cookie": cookie("customer_session", token, seconds, secureCookies),
-        });
+        return issueCustomerSession(s, c.id, res, req);
       });
     }
     if (req.method === "POST" && url.pathname === "/api/account/logout") {
@@ -1632,6 +1657,7 @@ export function createHandler(opts = {}) {
           pinFailedAttempts: _pinFailedAttempts,
           pinNextAttemptAt: _pinNextAttemptAt,
           pinLockedUntil: _pinLockedUntil,
+          recoveryCodes: _recoveryCodes,
           passkeys: customerPasskeys = [],
           ...safeCustomer
         } = c;
@@ -1693,6 +1719,11 @@ export function createHandler(opts = {}) {
         c.totpEnrolledAt = clock().toISOString();
         s.customerMfaChallenges = s.customerMfaChallenges.filter((x) => x.id !== challenge.id);
         log(s, "customer.authenticator.enrolled", { customerId: c.id });
+        queueSecurityAlert(s, {
+          customerId: c.id, kind: "authenticator_enrolled",
+          subject: "Authenticator two-factor sign-in was enabled",
+          lines: ["Two-factor authentication with an authenticator app was just enabled on your account."],
+        }, clock());
         return json(res, 200, { mfaEnabled: true });
       });
     }
@@ -1759,12 +1790,147 @@ export function createHandler(opts = {}) {
           counter: credential.counter,
           transports: credential.transports,
           createdAt: clock().toISOString(),
+          label: String(i.label || "").trim().slice(0, 60) || `Passkey ${c.passkeys.length + 1}`,
         });
         s.customerPasskeyChallenges = s.customerPasskeyChallenges.filter((x) =>
           x.id !== challenge.id
         );
         log(s, "customer.passkey.enrolled", { customerId: c.id });
+        queueSecurityAlert(s, {
+          customerId: c.id, kind: "passkey_added",
+          subject: "A new passkey was added to your NDAHI Connect account",
+          lines: ["A new passkey was just added and can now be used to sign in to your account."],
+        }, clock());
         return json(res, 200, { enrolled: true, passkeys: c.passkeys.length });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/passkeys/rename") {
+      const i = await body(req);
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId),
+          key = c?.passkeys?.find((k) => k.id === i.passkeyId);
+        if (!c) return json(res, 401, { error: "Customer session expired." });
+        if (!key) return json(res, 404, { error: "Passkey not found." });
+        const label = String(i.label || "").trim().slice(0, 60);
+        if (!label) return json(res, 400, { error: "Enter a name for this passkey." });
+        key.label = label;
+        log(s, "customer.passkey.renamed", { customerId: c.id });
+        return json(res, 200, { renamed: true, label: key.label });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/passkeys/remove") {
+      const i = await body(req);
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId),
+          key = c?.passkeys?.find((k) => k.id === i.passkeyId);
+        if (!c) return json(res, 401, { error: "Customer session expired." });
+        if (!key) return json(res, 404, { error: "Passkey not found." });
+        c.passkeys = c.passkeys.filter((k) => k.id !== key.id);
+        log(s, "customer.passkey.removed", { customerId: c.id });
+        queueSecurityAlert(s, {
+          customerId: c.id, kind: "passkey_removed",
+          subject: "A passkey was removed from your NDAHI Connect account",
+          lines: [`The passkey "${key.label || "Passkey"}" was removed and can no longer sign in to your account.`,
+            "If you didn't remove it, sign in and review your account security."],
+        }, clock());
+        return json(res, 200, { removed: true, passkeys: c.passkeys.length });
+      });
+    }
+    if (req.method === "GET" && url.pathname === "/api/account/security") {
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions");
+        if (!a) {
+          return json(res, 401, { error: "Dashboard session expired. Please sign in again." });
+        }
+        refreshCustomerSession(req, res, a);
+        const c = s.customers.find((x) => x.id === a.customerId),
+          loginTypes = new Set([
+            "customer.pin_login.succeeded", "customer.otp_login.succeeded",
+            "customer.passkey_login.succeeded", "customer.recovery_code_login.succeeded",
+            "customer.access.succeeded",
+          ]);
+        a.csrfToken ??= secureToken();
+        return json(res, 200, {
+          sessions: s.dashboardSessions.filter((x) => x.customerId === c.id).map((x) => ({
+            id: x.id, createdAt: x.createdAt, lastSeenAt: x.lastSeenAt || x.createdAt,
+            ip: x.ip, userAgent: x.userAgent, current: x === a,
+          })).sort((x, y) => (y.current - x.current) ||
+            (Date.parse(y.lastSeenAt || 0) - Date.parse(x.lastSeenAt || 0))),
+          recentLogins: s.securityEvents.filter((e) =>
+            loginTypes.has(e.type) && e.meta?.customerId === c.id
+          ).slice(0, 20).map((e) => ({ type: e.type, at: e.at, ip: e.ip })),
+          passkeys: (c.passkeys || []).map((k) => ({
+            id: k.id, label: k.label || "Passkey", createdAt: k.createdAt,
+          })),
+          authenticatorEnrolled: Boolean(c.totpSecret),
+          pinConfigured: Boolean(c.pinHash),
+          recoveryCodesRemaining: c.totpSecret
+            ? (c.recoveryCodes || []).filter((code) => !code.usedAt).length
+            : null,
+          csrfToken: a.csrfToken,
+        });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/security/sessions/revoke") {
+      const i = await body(req);
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions");
+        if (!a) {
+          return json(res, 401, { error: "Dashboard session expired. Please sign in again." });
+        }
+        const target = s.dashboardSessions.find((x) =>
+          x.id && x.id === i.sessionId && x.customerId === a.customerId
+        );
+        if (!target) return json(res, 404, { error: "Session not found." });
+        const self = target === a;
+        s.dashboardSessions = s.dashboardSessions.filter((x) => x !== target);
+        sec(s, "customer.session.revoked", req, { customerId: a.customerId, self });
+        return self
+          ? json(res, 200, { revoked: true, loggedOut: true }, {
+            "set-cookie": cookie("customer_session", "", 0, secureCookies),
+          })
+          : json(res, 200, { revoked: true });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/security/logout-everywhere") {
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions");
+        if (!a) {
+          return json(res, 401, { error: "Dashboard session expired. Please sign in again." });
+        }
+        const count = s.dashboardSessions.filter((x) => x.customerId === a.customerId).length;
+        s.dashboardSessions = s.dashboardSessions.filter((x) => x.customerId !== a.customerId);
+        sec(s, "customer.sessions.revoked_all", req, {
+          customerId: a.customerId, severity: "high", count,
+        });
+        return json(res, 200, { loggedOut: true, sessionsRevoked: count }, {
+          "set-cookie": cookie("customer_session", "", 0, secureCookies),
+        });
+      });
+    }
+    if (req.method === "POST" && url.pathname === "/api/account/security/recovery-codes/generate") {
+      return mutate((s) => {
+        const a = auth(req, s, "dashboardSessions"),
+          c = a && s.customers.find((x) => x.id === a.customerId);
+        if (!c) return json(res, 401, { error: "Customer session expired." });
+        if (!c.totpSecret) {
+          return json(res, 409, { error: "Enable authenticator 2FA before generating recovery codes." });
+        }
+        const codes = Array.from({ length: 10 }, () => recoveryCode()),
+          generatedAt = clock().toISOString();
+        c.recoveryCodes = codes.map((code) => ({
+          hash: hashSecret(code, pepper), createdAt: generatedAt, usedAt: null,
+        }));
+        log(s, "customer.recovery_codes.generated", { customerId: c.id, count: codes.length });
+        queueSecurityAlert(s, {
+          customerId: c.id, kind: "recovery_codes_regenerated",
+          subject: "New NDAHI Connect recovery codes were generated",
+          lines: ["New account recovery codes were generated. Any previously issued codes no longer work.",
+            "If you didn't request this, sign in and review your account security."],
+        }, clock());
+        return json(res, 200, { codes, remaining: codes.length });
       });
     }
     if (
@@ -2106,6 +2272,7 @@ export function createHandler(opts = {}) {
             customers: s.customers.map(({
               totpSecret: _secret,
               pinHash: _pinHash,
+              recoveryCodes: _recoveryCodes,
               passkeys: customerPasskeys = [],
               ...customer
             }) => ({
@@ -2480,7 +2647,7 @@ export function createHandler(opts = {}) {
             customerId: c.id,
             status: c.status,
           });
-          const { totpSecret: _totpSecret, ...safeCustomer } = c;
+          const { totpSecret: _totpSecret, pinHash: _pinHash, recoveryCodes: _recoveryCodes, ...safeCustomer } = c;
           return json(res, 200, { customer: safeCustomer });
         }
         if (
@@ -2491,6 +2658,7 @@ export function createHandler(opts = {}) {
           if (!c) return json(res, 404, { error: "Customer not found." });
           delete c.totpSecret;
           delete c.totpEnrolledAt;
+          delete c.recoveryCodes;
           c.passkeys = [];
           s.dashboardSessions = s.dashboardSessions.filter((x) =>
             x.customerId !== c.id
@@ -2641,6 +2809,8 @@ export function createHandler(opts = {}) {
   };
   handler.billing = billing;
   handler.billingEnabled = env.BILLING_WORKER_ENABLED !== "false";
+  handler.securityAlerts = securityAlerts;
+  handler.securityAlertsEnabled = env.SECURITY_ALERTS_ENABLED !== "false";
   handler.webhookProcessor = webhookProcessor;
   handler.webhookReplayEnabled = env.PAYMENT_WEBHOOK_REPLAY_ENABLED !== "false";
   handler.reconciliationConfig = reconciliationConfig(env);
@@ -2656,9 +2826,12 @@ export function createHandler(opts = {}) {
 }
 export const createServer = (opts) => {
   const handler = createHandler(opts), server = http.createServer(handler);
-  let timer, webhookTimer, routerTimer, routerReconciliationTimer, billingTimer;
+  let timer, webhookTimer, routerTimer, routerReconciliationTimer, billingTimer, securityAlertsTimer;
   const runBilling = () => handler.billing.run().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "billing.worker_failed", ...databaseDiagnostic(error) }));
+  });
+  const runSecurityAlerts = () => handler.securityAlerts.run().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "security_alerts.worker_failed", ...databaseDiagnostic(error) }));
   });
   const runWebhooks = () => handler.webhookProcessor.run().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "payment.webhook_worker_failed", ...databaseDiagnostic(error) }));
@@ -2674,6 +2847,10 @@ export const createServer = (opts) => {
   });
   server.on("listening", () => {
     if (handler.billingEnabled) { billingTimer = setInterval(runBilling, 30000); billingTimer.unref(); }
+    if (handler.securityAlertsEnabled) {
+      securityAlertsTimer = setInterval(runSecurityAlerts, 30000);
+      securityAlertsTimer.unref();
+    }
     if (handler.webhookReplayEnabled) {
       void runWebhooks();
       webhookTimer = setInterval(runWebhooks, 30000);
@@ -2696,7 +2873,7 @@ export const createServer = (opts) => {
   });
   server.on("close", () => {
     clearInterval(billingTimer); clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
-    clearInterval(routerReconciliationTimer);
+    clearInterval(routerReconciliationTimer); clearInterval(securityAlertsTimer);
   });
   return server;
 };

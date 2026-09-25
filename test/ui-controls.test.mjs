@@ -23,6 +23,11 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /#logout"\)\.onclick/);
   assert.match(files.customerApp, /button\[data-session\]/);
   assert.match(files.customerApp, /#connectDevice/);
+  assert.match(files.customerApp, /data-remove-passkey/);
+  assert.match(files.customerApp, /data-rename-passkey/);
+  assert.match(files.customerApp, /data-revoke-session/);
+  assert.match(files.customerApp, /#generateRecoveryCodes/);
+  assert.match(files.customerApp, /#logoutEverywhere"\)/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
   assert.match(files.onboardingJs, /#closeCheckout"\)\.onclick/);

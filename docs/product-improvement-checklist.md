@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-25
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -89,6 +89,9 @@ Use this document as the source of truth for product, engineering, security, and
   - Cover sessions, challenges, security events, audit logs, payment records, and customer data.
   - Acceptance: scheduled cleanup/archive jobs and documented retention periods exist.
   - Implemented: daily transactional retention worker and [`docs/operations/data-retention-policy.md`](operations/data-retention-policy.md).
+  - Extended (2026-09-25): AUTH-005's new security-alert delivery records are covered
+    too (90 days online once in a terminal state, 2-year archive) so they don't grow
+    unbounded; `test/retention.test.mjs` updated accordingly.
 
 - [x] **DATA-004 — Automate encrypted PostgreSQL backups**
   - Configure frequency, retention, access control, and off-site protection.
@@ -367,23 +370,80 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Authentication and account controls
 
-- [ ] **AUTH-001 — Add customer session and device history**
+- [x] **AUTH-001 — Add customer session and device history**
   - Show recent logins, active browser sessions, and enrolled security methods.
   - Acceptance: customers can identify unfamiliar activity.
+  - Implemented: `GET /api/account/security` returns every active `dashboardSessions`
+    entry for the caller (creation time, last-seen time, IP, user agent, and which one
+    is the current browser), the last 20 recognized login events (PIN, authenticator,
+    passkey, recovery code, voucher activation) from the existing security-event log,
+    and enrolled methods (PIN, authenticator, passkey list with labels, unused
+    recovery-code count). Session records gained `id`/`createdAt`/`lastSeenAt`/`ip`/
+    `userAgent` fields at issuance (all three login paths now route through one
+    `issueCustomerSession()`); existing sessions age out within `CUSTOMER_SESSION_SECONDS`
+    as before, so no migration is needed. Rendered under a "Sessions & activity"
+    disclosure on the dashboard.
 
-- [ ] **AUTH-002 — Add “Log out everywhere”**
+- [x] **AUTH-002 — Add "Log out everywhere"**
   - Acceptance: all customer sessions are invalidated immediately and audited.
+  - Implemented: `POST /api/account/security/logout-everywhere` removes every
+    `dashboardSessions` row for the caller's customer ID, including the one making the
+    request, and logs a high-severity `customer.sessions.revoked_all` security event
+    with the count revoked. A companion `POST /api/account/security/sessions/revoke`
+    lets a customer sign out one specific session (e.g. an unfamiliar device from
+    AUTH-001) without touching the others; revoking the current one also logs it out.
+    Ownership is checked server-side (`customerId` match); a 404 is returned for
+    another customer's session ID.
 
-- [ ] **AUTH-003 — Add passkey naming and removal**
+- [x] **AUTH-003 — Add passkey naming and removal**
   - Acceptance: customers can distinguish and revoke enrolled passkeys safely.
+  - Implemented: new passkeys default to `Passkey N` or an optional customer-supplied
+    label at enrollment; `POST /api/account/passkeys/rename` and `.../passkeys/remove`
+    let an owner rename or delete an enrolled credential (404 for another customer's
+    or an unknown passkey ID). Removal queues an AUTH-005 security alert. PIN sign-in
+    always remains available, so removing every passkey cannot lock an account out.
 
-- [ ] **AUTH-004 — Add authenticator recovery codes**
+- [x] **AUTH-004 — Add authenticator recovery codes**
   - Store only hashed recovery codes and make each single-use.
   - Acceptance: regeneration invalidates previous unused codes.
+  - Implemented: `POST /api/account/security/recovery-codes/generate` (requires
+    authenticator 2FA already enabled) returns ten `XXXX-XXXX` codes once; only their
+    HMAC-SHA256 hash (existing `hashSecret`/`SECRET_PEPPER`) is stored, replacing any
+    prior batch outright so old codes stop matching immediately. `POST
+    /api/account/login/verify-authenticator` accepts a `recoveryCode` as an alternative
+    to the six-digit `otp`; a match marks that one code `usedAt` (single-use) and signs
+    in normally. An administrator's authenticator reset (`/api/admin/customers/reset-authenticator`)
+    now also clears `recoveryCodes`, so a stale code can't resurface if the customer
+    later re-enrolls TOTP — a gap fixed while wiring this up.
+  - Verification note: recovery codes require normalizing the customer's typed input
+    back to the stored `XXXX-XXXX` shape before hashing/comparing (mirrors
+    `normalizeActivationCode` for vouchers) — a hyphen-stripping-only normalizer was
+    tried first and failed a round-trip test before this fix.
 
-- [ ] **AUTH-005 — Add security notifications**
+- [x] **AUTH-005 — Add security notifications**
   - Notify customers about PIN resets, new passkeys, authenticator changes, and suspicious login activity.
   - Acceptance: notifications contain no secrets and delivery failures are tracked.
+  - Implemented: a new durable outbox (`lib/security-alerts.mjs`, stored in the existing
+    `events` table as `kind = 'security_alert'`, no migration) queues an alert inside
+    the same transaction as the triggering change and delivers it on its own 30-second
+    worker (`SECURITY_ALERTS_ENABLED`, mirrors the billing worker's claim/send/retry
+    shape) so a slow or failing email provider never blocks the request. Triggers: PIN
+    reset completed, PIN sign-in locked after repeated failures, authenticator 2FA
+    enabled, a passkey added or removed, and a recovery-code sign-in. Failed deliveries
+    retry with capped exponential backoff and move to `failed` after 8 attempts;
+    skipped (no account email) and failed states are recorded with a reason. Alert
+    bodies describe the event only ("Your PIN was reset") and never include PIN
+    digits, codes, or secrets.
+  - Verified (2026-09-25): 197/197 tests (`test/security-alerts.test.mjs` for the
+    worker's delivery/retry/skip behavior and no-secrets-in-payload check;
+    `test/auth-account.test.mjs` for all five AUTH routes, ownership checks, the
+    recovery-code login/regeneration/admin-reset paths, and that each trigger queues
+    its alert) and `npm run check` passed. 4 browser scenarios in
+    `scripts/check-security-journeys.mjs` (session list/cross-device sign-out,
+    passkey rename/remove, recovery-code generation through a real
+    `/verify.html` sign-in, log out everywhere) passed headless against a real
+    Chrome build; `sessions-desktop.png` screenshot inspected. Live email delivery
+    of security alerts is not yet verified against a deployed provider.
 
 ## P1 — Production engineering
 
@@ -691,8 +751,8 @@ These are already implemented and should remain protected by regression tests.
 Update these totals whenever tasks are completed.
 
 - P0 pending: 0
-- P1 pending: 32
+- P1 pending: 27
 - P2 pending: 24
 - P3 pending: 17
 - Verified foundations complete: 14
-- Recommendation tasks complete: 22
+- Recommendation tasks complete: 27
