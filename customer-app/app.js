@@ -42,9 +42,9 @@ async function load() {
     quickConnect = !active ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
       : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
-  const pendingPayment = result.payments.find((payment) => payment.status === "pending"),
+  const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status)),
     emptyBundleMessage = pendingPayment
-      ? "Your payment is being confirmed. This usually takes under a minute — refresh shortly."
+      ? "A payment is awaiting confirmation. Recheck it in Payment history before paying again."
       : current?.status === "exhausted"
       ? "Your last bundle's data is used up. Renew below to reconnect."
       : current?.status === "expired"
@@ -63,7 +63,7 @@ async function load() {
     <section class="surface full" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}</p><div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${result.dailyAvailability.available ? "The 100 FCFA Daily bundle is available." : `Daily is available again ${h(new Date(result.dailyAvailability.nextEligibleAt).toLocaleString())}.`}</p></section>
     <section class="surface full${securitySetup ? " security-setup" : ""}" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator 2FA is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button><div id="mfaSetup"></div>'}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button><p>${result.customer.passkeys || 0} passkey${result.customer.passkeys === 1 ? "" : "s"} enrolled</p></section>
     <section class="surface full"><h2>Bundle history</h2><div class="table-scroll"><table><thead><tr><th>Bundle</th><th>Status</th><th>Activated</th><th>Expires</th></tr></thead><tbody>${result.vouchers.map((item) => `<tr><td>${h(item.plan.name)}</td><td>${h(item.status)}</td><td>${h(new Date(item.activatedAt).toLocaleDateString())}</td><td>${h(new Date(item.expiresAt).toLocaleDateString())}</td></tr>`).join("")}</tbody></table></div></section>
-    <section class="surface full"><h2>Payment history</h2><div class="table-scroll"><table><thead><tr><th>Date</th><th>Provider</th><th>Amount</th><th>Status</th></tr></thead><tbody>${result.payments.map((payment) => `<tr><td>${h(new Date(payment.createdAt).toLocaleDateString())}</td><td>${h(payment.provider)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}</td><td>${h(payment.status)}</td></tr>`).join("")}</tbody></table></div></section>
+    <section class="surface full" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => `<tr><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.provider)}<br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${["pending", "processing", "failed", "expired", "cancelled"].includes(payment.status) || payment.refund?.status === "pending" ? `<button type="button" data-recheck-payment="${h(payment.id)}">Recheck payment / refund</button>` : ""}${payment.receiptAvailable ? `<a class="button secondary-action" href="${h(api)}/api/account/payments/${h(payment.id)}/receipt">Download receipt</a><button type="button" data-email-receipt="${h(payment.id)}">Email receipt</button><small>Receipt email: ${h(payment.receiptEmail?.status || "awaiting delivery")}</small>` : ""}${payment.status === "paid" && !payment.refund ? `<details><summary>Request a refund</summary><form data-refund-payment="${h(payment.id)}"><label>Reason<textarea name="reason" maxlength="500" required></textarea></label><p>Support will review your request. This does not confirm a refund.</p><button>Send refund request</button></form></details>` : ""}</td></tr>`).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
   const planNotice = sessionStorage.getItem("ndahi-plan-notice");
   if (planNotice) {
@@ -90,6 +90,22 @@ $("#redeem").onsubmit = async (event) => {
 };
 
 $("#dashboard").onclick = async (event) => {
+  const billingButton = event.target.closest("[data-recheck-payment], [data-email-receipt]");
+  if (billingButton) {
+    try {
+      await runButton(billingButton, "Checking…", async () => {
+        const id = billingButton.dataset.recheckPayment || billingButton.dataset.emailReceipt;
+        const result = billingButton.dataset.emailReceipt
+          ? await call("/api/account/payments/receipt-email", { method: "POST", body: JSON.stringify({ paymentId: id }) })
+          : await call(`/api/account/payments/${id}/status`);
+        await load();
+        $("#billingMessage").textContent = billingButton.dataset.emailReceipt
+          ? result.payment.receiptEmail?.status === "sent" ? "Receipt sent to your account email." : "Email delivery is pending or unavailable. You can download the receipt here."
+          : result.payment.recoveryMessage || result.payment.refund?.message || `Payment status: ${result.payment.status}.`;
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
   const mfaButton = event.target.closest("#enableCustomerMfa");
   if (mfaButton) {
     try {
@@ -147,6 +163,18 @@ $("#dashboard").onclick = async (event) => {
 };
 
 $("#dashboard").onsubmit = async (event) => {
+  const refundForm = event.target.closest("[data-refund-payment]");
+  if (refundForm) {
+    event.preventDefault();
+    try {
+      await runButton(refundForm.querySelector("button"), "Sending…", async () => {
+        await call("/api/account/payments/refund", { method: "POST", body: JSON.stringify({ paymentId: refundForm.dataset.refundPayment, reason: new FormData(refundForm).get("reason") }) });
+        await load();
+        $("#billingMessage").textContent = "Refund requested. Support will review it; you can track its status here.";
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
   const form = event.target.closest("#connectDevice");
   if (!form) return;
   event.preventDefault();

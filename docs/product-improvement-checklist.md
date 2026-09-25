@@ -212,6 +212,7 @@ Use this document as the source of truth for product, engineering, security, and
 - [x] **UX-004 — Make network status truthful and live**
   - Drive visible status from service/network health rather than static text.
   - Acceptance: online, degraded, offline, maintenance, and unavailable states are supported.
+  - Comparison (2026-09-21): local and live public screens match, but both display “Network online” while the live API reports bootstrap mode and unavailable network provisioning. Prioritize this task next; the observation does not establish a physical outage. Fresh screenshots, runtime evidence, and remaining verification limits: [local/live comparison](reviews/local-live-2026-09-21/report.md). No implementation status changed by this review.
   - Implemented: `GET /api/status` (public) and `GET /api/account/dashboard` (authenticated) now report
     the real `zone.status` instead of a hardcoded `"online"`/`"Network online"` string. A shared
     `customer-app/network-status.js` module renders online/degraded/offline/maintenance with distinct
@@ -241,43 +242,128 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Renewal and switching
 
-- [ ] **UX-006 — Create a compact authenticated renewal experience**
+- [x] **UX-006 — Create a compact authenticated renewal experience**
   - Remove the acquisition hero from focused renewal tasks.
   - Show current plan, renewal date, price, eligibility, and confirmation.
   - Acceptance: renewal uses only the current eligible plan and keeps the session active.
+  - Implemented: `/onboarding.html?action=renew` hides the acquisition hero and shows only the
+    customer's current plan (status, expiry, price) plus a single card for that same plan, filtered
+    from the catalogue by `renewalEligibility()` (`customer-app/plan-presentation.js`). Ineligible
+    renewals (discontinued plan, Daily's 7-day cooldown) show the reason and next eligible time
+    instead of a purchasable card. `POST /api/account/plan/purchase` re-validates eligibility
+    server-side and is idempotent per `requestKey`. The new `GET /api/account/payments/:id/status`
+    route (owner-checked, 404 for any other customer's payment) replaces public polling for
+    authenticated flows and refreshes the customer's dashboard session on every poll, so renewal
+    confirmation never drops the session.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including dedicated
+    integration coverage for renewal eligibility (current, discontinued, no-plan), Daily cooldown
+    down to the exact eligible timestamp, session persistence through polling, and payment-status
+    ownership (401 unauthenticated, 404 for another customer's payment). Manually exercised the full
+    purchase → confirm → PIN setup → authenticated renew → poll → confirm cycle against a locally
+    running API and customer app; the dashboard reflected the renewed plan and the session cookie was
+    unchanged throughout. Subsequent rendered browser checks on 2026-09-23 verified renewal,
+    failed-payment retry, closed-page confirmation, and authenticated polling with a real browser
+    cookie jar; see the [verification runbook](operations/renewal-switching-verification.md).
 
-- [ ] **UX-007 — Create a comparative switching experience**
+- [x] **UX-007 — Create a comparative switching experience**
   - Show the current plan beside each alternative.
   - Acceptance: differences in price, data, validity, and device limits are explicit.
+  - Implemented: `/onboarding.html?action=switch` renders every non-current, non-discontinued plan as
+    a table (`comparePlans()` in `customer-app/plan-presentation.js`) with the current and proposed
+    values side by side for package price, data, validity, and simultaneous devices, plus a plain-text
+    delta per row (e.g. "500 FCFA more", "2 days shorter"). The same comparison renders again in the
+    checkout modal before payment. Unlimited-data comparisons are described in words rather than a
+    numeric delta.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including
+    `plan-presentation.test.mjs` unit coverage of `comparePlans()` (price/data/validity/device deltas,
+    both-unlimited and unlimited-either-side cases) and integration coverage confirming switching
+    charges the full destination-plan price and keeps the session across the flow. Manually verified a
+    live switch (weekly → monthly) via the running API: payment created with `action: "switch"` and
+    `replaceVoucherId` set, dashboard's `currentPlan.planId` updated to the new plan only after
+    payment confirmation. Subsequent rendered browser checks verified the full switch checkout,
+    comparisons, and session preservation on desktop and mobile (2026-09-23).
 
-- [ ] **UX-008 — Label upgrade, downgrade, and lateral changes**
+- [x] **UX-008 — Label upgrade, downgrade, and lateral changes**
   - Explain when the existing package ends and the new package begins.
   - Acceptance: consequences are visible before checkout.
+  - Implemented: each switch candidate is labeled "Upgrade — higher package price", "Downgrade —
+    lower package price", or "Lateral change — same package price" via `classifyPlanChange()`
+    (price-based, not an assumed allowance improvement). A policy line on every plan card and in the
+    checkout modal states, before payment, that the current package ends immediately on confirmation
+    with no proration or carried-over data/time, and that the full destination price is charged. The
+    checkout acknowledgement checkbox requires the customer to confirm this before submitting.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including unit coverage
+    of `classifyPlanChange()`'s three outcomes and the undefined-price fallback. Rendered browser
+    checks subsequently verified the policy disclosure, required acknowledgement, and a custom
+    same-price lateral change (2026-09-23).
 
-- [ ] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
+- [x] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
   - Avoid hidden package cards on desktop, mobile, and high zoom.
   - Acceptance: all packages are discoverable by pointer, keyboard, touch, and screen reader.
+  - Implemented: wrapping grids replace the horizontal package rail. Comparison tables remain
+    within each package, with named articles, table captions, row/column headers, and described
+    buttons. Checkout contains keyboard focus and restores it when closed.
+  - Verified: browser checks at 1440px, 390px, and 320px confirmed no horizontal page/control
+    overflow, access to the last package, keyboard focus behavior, touch selection, and accessible
+    table/article names. Desktop/mobile screenshots were inspected. The 320px check covers
+    narrow/high-zoom reflow equivalence; a hardware screen-reader audit remains separate.
 
-- [ ] **UX-010 — Review package value progression and explanation**
-  - Explain why longer-validity packages may have different price-per-GB economics.
-  - Acceptance: customers can compare value without doing manual calculations.
+- [x] **UX-010 — Keep package comparisons clear and concise**
+  - Show package price, included data, validity, and device limits clearly.
+  - Acceptance: customers can compare package totals and allowances, with explicit differences
+    between their current plan and each switching alternative.
+  - Product decision (2026-09-23): per-GB/per-day rates and their explanatory text were removed
+    at the owner's request. Packages show the total price and included allowances; switching
+    retains explicit differences in price, data, validity, and devices. Prices are unchanged.
+  - Copy decision (2026-09-23): remove the generic "One-time package" and "Available once every
+    7 days" badges and the "across full validity" suffix. Keep renewal and upgrade/downgrade/lateral
+    labels where relevant. The Daily seven-day purchase restriction remains an enforced rule,
+    explained in eligibility and checkout details rather than a promotional badge.
+  - Verified: comparison tests cover price/data/validity/device differences, unlimited allowances,
+    and custom durations. The final PR checkout, including the copy and rate-display removals,
+    passed all 166 automated tests, 13 browser scenarios, syntax checks, and the whitespace check
+    on 2026-09-23. Browser coverage includes a 36-hour package. Commands and remaining billing
+    scope are documented in the
+    [verification runbook](operations/renewal-switching-verification.md).
 
 ### Billing experience
 
-- [ ] **BILL-001 — Add pending-payment recovery**
+- [x] **BILL-001 — Add pending-payment recovery**
   - Let customers safely resume or recheck an interrupted payment.
   - Acceptance: refresh, closed tabs, and temporary provider failures do not create duplicate charges.
+  - Implemented: durable reservations and a single unresolved checkout per customer; provider calls
+    run after commit. Lost responses resume the same order. Dashboard rechecks and saved guest
+    checkout survive refresh/tab closure; uncertain provider outcomes never create an automatic retry.
+  - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
+    provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 
-- [ ] **BILL-002 — Add customer receipts**
+- [x] **BILL-002 — Add customer receipts**
   - Provide downloadable and emailed receipts with provider reference and package details.
   - Acceptance: every paid transaction has a retrievable receipt.
+  - Implemented: immutable package/payment receipt snapshots, authenticated HTML downloads
+    (printable to PDF), emailed receipts and delivery retries, including historical paid records.
+  - Verified: ownership isolation, historical availability, snapshot stability, HTML escaping,
+    email failure/retry/idempotency, and rendered download/email actions.
 
-- [ ] **BILL-003 — Expose refund status clearly**
+- [x] **BILL-003 — Expose refund status clearly**
   - Show requested, pending, completed, and failed refund states.
   - Acceptance: customers and administrators see consistent provider-backed status.
+  - Implemented: customer requests, owner/operator approval, durable once-only provider submission,
+    separate refund references, and manual/background verification. Flutterwave initiation is kept
+    pending until payout; provider failures remain visible. Confirmed refunds revoke only associated
+    active access. Unknown submissions and historical pending refunds cannot be sent twice.
+  - Verified: all four states, repeated approval, response-loss recovery, matching dashboard status,
+    provider status mapping, and preservation of newer packages. Live-provider payout verification
+    remains an operational check.
 
-- [ ] **BILL-004 — Document switching, renewal, cancellation, and proration rules**
+- [x] **BILL-004 — Document switching, renewal, cancellation, and proration rules**
   - Acceptance: rules appear before payment and in customer-facing terms.
+  - Implemented: checkout disclosure and [billing rules](../customer-app/billing-terms.html) cover
+    prepaid/manual renewal, full-price immediate replacement, no carryover or automatic proration,
+    cancellation boundaries, pending-payment recovery, and refund review/status.
+  - Verification for BILL-001–004 (2026-09-25): 182 automated tests, 8 billing browser scenarios,
+    13 renewal/switching regression scenarios, syntax and whitespace checks passed. Screenshots
+    inspected at desktop, 390px and 320px. [Commands and deployment limits](operations/billing-experience.md).
 
 ### Authentication and account controls
 

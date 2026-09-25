@@ -1,1 +1,68 @@
-.grid{grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}.plan,.plan:nth-child(n+6),.plan:nth-child(5n){border-top:0;border-right:1px solid var(--line)}.plan:nth-child(n+6){border-top:1px solid var(--line)}.plan:nth-child(5n){border-right:0}.plan.recommended{background:var(--paper);box-shadow:none}.plan.selected{background:#f4f9e9;box-shadow:inset 0 0 0 2px var(--lime-dark)}@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.plan,.plan:nth-child(5n){border-right:1px solid var(--line)}.plan:nth-child(2n){border-right:0}.plan:nth-child(n+3){border-top:1px solid var(--line)}}@media(max-width:620px){.grid{grid-template-columns:1fr}.plan,.plan:nth-child(2n),.plan:nth-child(5n){border-right:0!important}.plan:nth-child(n+2){border-top:1px solid var(--line)}}
+.packages-page { background: #f7f9f8; }
+.packages-page .content { max-width: 1280px; }
+.packages-page .eyebrow { color: var(--forest); letter-spacing: 0; }
+.packages-page .hero .eyebrow { color: var(--lime); }
+.packages-page .hero h1 { font-size: 56px; letter-spacing: 0; }
+.packages-page .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; border: 0; border-radius: 0; background: transparent; overflow: visible; }
+.packages-page .plan, .packages-page .plan:nth-child(n) { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 20px; background: #fff; }
+.packages-page .plan.selected { box-shadow: inset 0 0 0 2px var(--lime-dark); }
+.packages-page .plan-badge { min-height: 30px; height: auto; font-size: 12px; letter-spacing: 0; color: var(--forest); }
+.packages-page .plan h3 { font: 700 22px/1.3 'DM Sans', sans-serif; overflow-wrap: anywhere; }
+.packages-page .plan-price { font-size: 24px; overflow-wrap: anywhere; }
+.packages-page button, .packages-page .button { line-height: 1.4; white-space: normal; overflow-wrap: anywhere; }
+.packages-page .plan button { min-height: 46px; margin-top: auto; }
+.packages-page button:disabled { cursor: not-allowed; }
+.packages-page .plan-details { margin-bottom: 12px; }
+#accountIntro { margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
+#accountIntro .back-link { display: inline-block; margin-bottom: 26px; }
+#accountTitle { margin: 0 0 20px; font: 700 32px/1.2 'DM Sans', sans-serif; }
+.current-plan-name { margin: 0 0 12px; font-size: 19px; font-weight: 700; overflow-wrap: anywhere; }
+.current-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 0; }
+.current-facts dt { color: #52635a; font-size: 12px; margin-bottom: 6px; }
+.current-facts dd { margin: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.packages-page .section-head h2 { font: 700 24px/1.3 'DM Sans', sans-serif; }
+.packages-page .section-head p { line-height: 1.5; }
+.packages-page.account-renew .content { max-width: 880px; }
+.packages-page.account-renew .grid { grid-template-columns: 1fr; }
+.packages-page.account-renew .plan { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
+.account-renew .plan-badge, .account-renew .plan-details, .account-renew .plan-policy, .account-renew .eligibility, .account-renew .plan button { grid-column: 1 / -1; }
+.account-renew .plan h3, .account-renew .plan-price { margin: 8px 0; }
+.account-renew .plan-price { text-align: right; }
+.packages-page.account-switch .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 370px), 1fr)); }
+.comparison { table-layout: fixed; display: table; margin: 12px 0; overflow: visible; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.comparison th, .comparison td { padding: 10px 6px; vertical-align: top; overflow-wrap: anywhere; font-size: 13px; line-height: 1.5; }
+.comparison thead th:first-child { width: 28%; }
+.comparison td small { display: block; margin-top: 3px; color: #52635a; }
+.comparison td:last-child { background: #f0f7f2; }
+.plan-policy { font-size: 14px; line-height: 1.6; color: #344f40; }
+.eligibility { font-size: 14px; line-height: 1.5; font-weight: 600; }
+.plan-notice { border-left: 3px solid #a86b06; background: #fff8e8; padding: 16px; margin-bottom: 20px; line-height: 1.6; }
+.plan-notice p { margin: 0 0 8px; }
+.plan-notice a + a { margin-left: 18px; }
+.packages-page .modal-card { overflow-y: auto; align-items: start; padding: 24px 16px; }
+.packages-page .modal-card .card { max-width: 680px; width: 100%; border-radius: 8px; padding: 26px; max-height: calc(100dvh - 48px); overflow-y: auto; }
+.packages-page .modal-card h2 { font: 700 25px/1.3 'DM Sans', sans-serif; overflow-wrap: anywhere; }
+.packages-page #checkoutPolicy { color: #344f40; font-size: 14px; line-height: 1.6; }
+.packages-page form { margin-top: 18px; }
+.packages-page fieldset { min-width: 0; display: grid; gap: 16px; border: 0; padding: 0; margin: 0; }
+.packages-page label > input, .packages-page label > select { margin-top: 7px; }
+.packages-page input[readonly] { background: #eff3f0; color: #52635a; }
+.acknowledgement { display: flex; gap: 10px; align-items: start; line-height: 1.6; font-weight: 400; }
+.packages-page .acknowledgement input { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--forest); }
+.packages-page #requestPayment { width: 100%; }
+.packages-page .success { line-height: 1.6; border-radius: 6px; }
+.packages-page .success button { display: block; margin-top: 12px; }
+.payment-return { display: inline-block; margin-top: 12px; }
+@media (max-width: 620px) {
+  .packages-page .hero h1 { font-size: 44px; }
+  .packages-page .header-actions { flex-wrap: wrap; }
+  .packages-page .header-link { font-size: 13px; }
+  .packages-page .content { padding-top: 24px; }
+  .packages-page .plan, .packages-page .plan:nth-child(n) { padding: 16px; border-right: 1px solid var(--line) !important; }
+  #accountTitle { font-size: 28px; }
+  .packages-page .modal-card .card { padding: 20px 16px; }
+  .current-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .packages-page.account-renew .plan { display: flex; }
+  .account-renew .plan-price { text-align: left; }
+}

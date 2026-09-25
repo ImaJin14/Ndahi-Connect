@@ -1,3 +1,4 @@
+import { billingPolicyVersion, createBillingService, ensureReceipt, paymentView, receiptDocument, unresolvedPayment } from "./lib/billing.mjs";
 import { databaseDiagnostic } from "./lib/database-diagnostics.mjs";
 import http from "node:http";
 import { isIP } from "node:net";
@@ -158,9 +159,9 @@ const audit = (s, action, req, meta = {}) => {
 const catalogue = (s) => [...plans, ...s.bundles.filter((plan) => plan.discontinued !== true)];
 const findPlan = (s, id) => [...plans, ...legacyPlans, ...s.bundles].find((plan) => plan.id === id);
 const purchasablePlan = (s, id) => catalogue(s).find((plan) => plan.id === id);
-const dailyEligibleAt = (s, customerId) => {
+const dailyEligibleAt = (s, customerId, excludeId) => {
   const last = s.payments.filter((payment) =>
-    payment.customerId === customerId && payment.planId === "daily" &&
+    payment.id !== excludeId && payment.customerId === customerId && payment.planId === "daily" &&
     payment.status === "paid"
   ).sort((a, b) => +new Date(b.confirmedAt || b.createdAt) - +new Date(a.confirmedAt || a.createdAt))[0];
   return last
@@ -326,6 +327,8 @@ export const authEdgeScopes = Object.freeze({
 });
 export const customerCsrfPaths = Object.freeze({
   "/api/account/plan/purchase": true,
+  "/api/account/payments/refund": true,
+  "/api/account/payments/receipt-email": true,
   "/api/account/logout": true,
   "/api/account/security/mfa/enroll": true,
   "/api/account/security/mfa/confirm": true,
@@ -501,7 +504,7 @@ export function createHandler(opts = {}) {
   async function deliverVoucherEmail(s, voucher, force = false) {
     const customer = s.customers.find((item) => item.id === voucher.customerId),
       payment = s.payments.find((item) => item.id === voucher.paymentId),
-      plan = findPlan(s, voucher.planId);
+      plan = payment?.planSnapshot || findPlan(s, voucher.planId);
     if (voucher.emailStatus === "sent") return true;
     if (!customer?.email || !payment || !plan || !email.configured()) {
       voucher.emailStatus = "pending";
@@ -554,11 +557,15 @@ export function createHandler(opts = {}) {
         error: "Duplicate provider transaction reference.",
       });
     }
+    p.status = "paid";
+    p.confirmedAt ||= clock().toISOString();
+    if (ref) p.providerReference = ref;
+    ensureReceipt(p, findPlan(s, p.planId));
     const c = s.customers.find((x) => x.id === p.customerId),
-      plan = purchasablePlan(s, p.planId);
+      plan = p.planSnapshot || purchasablePlan(s, p.planId);
     if (!c || !plan) {
-      p.status = "failed";
-      p.failureReason = "This package is no longer available.";
+      p.fulfillmentStatus = "needs_review";
+      p.failureReason = "Payment received; package activation needs support review.";
       return settlementResult(409, { error: p.failureReason });
     }
     const activeVoucher = s.vouchers.find((v) =>
@@ -566,15 +573,16 @@ export function createHandler(opts = {}) {
     );
     if (activeVoucher && activeVoucher.id !== p.replaceVoucherId &&
       activeVoucher.id !== p.upgradeFromVoucherId) {
+      p.fulfillmentStatus = "needs_review";
       return settlementResult(409, {
         error:
           "Your current bundle still has quota. Bundles cannot be stacked.",
       });
     }
     if (plan.id === "daily") {
-      const eligibleAt = dailyEligibleAt(s, c.id);
+      const eligibleAt = dailyEligibleAt(s, c.id, p.id);
       if (eligibleAt && eligibleAt > clock()) {
-        p.status = "failed";
+        p.fulfillmentStatus = "needs_review";
         p.failureReason = `Daily is available again on ${eligibleAt.toISOString()}.`;
         return settlementResult(409, {
           error: p.failureReason, nextEligibleAt: eligibleAt.toISOString(),
@@ -594,7 +602,8 @@ export function createHandler(opts = {}) {
       });
     }
     p.status = "paid";
-    p.confirmedAt = clock().toISOString();
+    p.fulfillmentStatus = "fulfilled";
+    p.confirmedAt ||= clock().toISOString();
     if (ref) p.providerReference = ref;
     const t = clock().getTime(),
       v = {
@@ -632,6 +641,8 @@ export function createHandler(opts = {}) {
     const response = await settlePayment(s, p, ref);
     return json(res, response.status, response.body);
   }
+  const billing = createBillingService({ store, payments: pays, email, now: clock,
+    planFor: findPlan, settle: (s, p, ref) => { clean(s, clock()); return settlePayment(s, p, ref); } });
   const webhookProcessor = createWebhookProcessor({
     store, payments: pays, now: clock,
     settle: (s, p, ref) => {
@@ -817,6 +828,16 @@ export function createHandler(opts = {}) {
         return json(res, 503, { status: "unhealthy", database: "unavailable" });
       }
     }
+    if (req.method === "POST" && url.pathname === "/api/purchase/recover") {
+      const input = await body(req);
+      if (!phoneOk(input.phone) || typeof input.requestKey !== "string" || !input.requestKey) return json(res, 400, { error: "Saved checkout details are required." });
+      const s = await store.snapshot(), c = s.customers.find((c) => c.phone === phone(input.phone)),
+        p = c && s.payments.find((p) => p.customerId === c.id && p.requestKey === input.requestKey);
+      if (!p) return json(res, 404, { error: "No saved payment was submitted." });
+      return json(res, 200, { payment: paymentView(p), checkout: {
+        mode: p.provider === "mock" ? "mock" : "live", provider: p.provider, url: p.checkoutUrl,
+      } });
+    }
     if (req.method === "POST" && ["/api/purchase", "/api/account/plan/purchase"].includes(url.pathname)) {
       const i = await body(req);
       const accountPurchase = url.pathname.startsWith("/api/account/");
@@ -835,18 +856,15 @@ export function createHandler(opts = {}) {
           operational: false,
         });
       }
-      return mutate(async (s) => {
+      if (provider !== "mock" && !["mtn", "orange"].includes(i.network)) return json(res, 400, { error: "Choose MTN Mobile Money or Orange Money." });
+      let reservedId;
+      await mutate(async (s) => {
         const accountSession = accountPurchase && auth(req, s, "dashboardSessions"),
           plan = purchasablePlan(s, i.planId);
         if (accountPurchase && !accountSession) {
           return json(res, 401, { error: "Customer session expired." });
         }
         if (accountSession) refreshCustomerSession(req, res, accountSession);
-        if (!plan) {
-          return json(res, 400, {
-            error: "This package is unavailable or discontinued.",
-          });
-        }
         let c = accountSession
           ? s.customers.find((x) => x.id === accountSession.customerId)
           : s.customers.find((x) => x.phone === phone(i.phone));
@@ -861,19 +879,31 @@ export function createHandler(opts = {}) {
           s.customers.push(c);
         }
         if (!c) return json(res, 401, { error: "Customer account not found." });
-        if (i.email) c.email = String(i.email).trim().toLowerCase().slice(0, 254);
+        if (c.suspended) return json(res, 403, { error: "This account is suspended. Contact support before making a payment." });
         const requestKey = String(i.requestKey || "").slice(0, 100),
           duplicate = requestKey && s.payments.find((x) =>
             x.customerId === c.id && x.requestKey === requestKey
           );
         if (duplicate) {
+          if (duplicate.planId !== i.planId || accountPurchase && duplicate.action !== i.action) {
+            return json(res, 409, { error: "This request belongs to another checkout. Resume that payment first." });
+          }
           return json(res, 200, {
             idempotent: true,
-            payment: duplicate,
+            payment: paymentView(duplicate),
             checkout: {
               mode: env.PAYMENT_MODE || "mock", provider: duplicate.provider,
               url: duplicate.checkoutUrl, authorizationMode: duplicate.authorizationMode,
             },
+          });
+        }
+        if (s.payments.some((p) => p.customerId === c.id && (unresolvedPayment(p) ||
+          ["failed", "expired", "cancelled"].includes(p.status) && p.provider !== "mock" && !p.providerFailedAt))) {
+          return json(res, 409, { code: "PAYMENT_IN_PROGRESS", error: "An earlier payment needs confirmation. Sign in to your dashboard or resume your saved checkout before paying again." });
+        }
+        if (!plan) {
+          return json(res, 400, {
+            error: "This package is unavailable or discontinued.",
           });
         }
         const activeVoucher = s.vouchers.find((v) =>
@@ -923,6 +953,9 @@ export function createHandler(opts = {}) {
             clientIp: ip(req),
             provider,
             status: "pending",
+            creationState: "reserved",
+            planSnapshot: structuredClone(plan),
+            policyVersion: billingPolicyVersion,
             createdAt: clock().toISOString(),
             action,
             ...(requestKey ? { requestKey } : {}),
@@ -932,35 +965,19 @@ export function createHandler(opts = {}) {
               ).toISOString(),
             } : {}),
             ...(activeVoucher ? { replaceVoucherId: activeVoucher.id } : {}),
-          },
-          made = await pays[provider].createPayment(p);
-        p.providerReference = made.providerReference;
-        p.authorizationMode = made.authorizationMode || "callback";
-        if (made.checkoutUrl) p.checkoutUrl = made.checkoutUrl;
-        if (
-          s.payments.some((x) => x.providerReference === p.providerReference)
-        ) {
-          return json(res, 409, {
-            error: "Duplicate provider transaction reference.",
-          });
-        }
+          };
         s.payments.unshift(p);
-        log(s, "payment.created", {
-          paymentId: p.id,
-          amount: p.amount,
-          provider,
-        });
-        return json(res, 201, {
-          payment: p,
-          checkout: {
-            mode: env.PAYMENT_MODE || "mock",
-            provider,
-            message: "Approve the payment request on your phone.",
-            url: made.checkoutUrl,
-            authorizationMode: p.authorizationMode,
-          },
-        });
+        reservedId = p.id;
+        log(s, "payment.reserved", { paymentId: p.id, amount: p.amount, provider });
       });
+      if (!reservedId) return;
+      await billing.startPayment(reservedId);
+      const p = (await store.snapshot()).payments.find((p) => p.id === reservedId);
+      return json(res, 201, { payment: paymentView(p), checkout: {
+        mode: env.PAYMENT_MODE || "mock", provider: p.provider,
+        url: p.checkoutUrl, authorizationMode: p.authorizationMode,
+        message: p.creationState === "uncertain" ? "Recheck this payment before paying again." : "Approve the payment request on your phone.",
+      } });
     }
     if (
       req.method === "POST" &&
@@ -976,68 +993,54 @@ export function createHandler(opts = {}) {
         complete(s, s.payments.find((x) => x.id === id), null, res)
       );
     }
-    if (
-      req.method === "GET" &&
-      /^\/api\/payments\/[^/]+\/status$/.test(url.pathname)
-    ) {
+    if (req.method === "GET" && /^\/api\/(?:account\/)?payments\/[^/]+\/(?:status|receipt)$/.test(url.pathname)) {
+      const id = url.pathname.split("/").at(-2), accountPayment = url.pathname.startsWith("/api/account/"),
+        receipt = url.pathname.endsWith("/receipt"), state = ensureState(await store.snapshot()),
+        session = auth(req, state, "dashboardSessions"), p = state.payments.find((p) => p.id === id);
+      if ((accountPayment || receipt) && !session) return json(res, 401, { error: "Customer session expired." });
+      if (!p || (accountPayment || receipt) && p.customerId !== session.customerId) return json(res, 404, { error: "Payment not found." });
+      if (!receipt) {
+        await billing.recheckPayment(id);
+        await billing.recheckRefund(id);
+        await billing.sendReceipt(id);
+      }
       return mutate(async (s) => {
-        const id = url.pathname.split("/")[3],
-          payment = s.payments.find((x) => x.id === id),
-          voucher = payment?.status === "paid" &&
-            s.vouchers.find((x) => x.paymentId === payment.id);
-        if (!payment) return json(res, 404, { error: "Payment not found." });
-        const accountSession = auth(req, s, "dashboardSessions");
-        if (accountSession?.customerId === payment.customerId &&
-          ["renew", "switch"].includes(payment.action)) {
-          refreshCustomerSession(req, res, accountSession);
+        const payment = s.payments.find((p) => p.id === id), a = auth(req, s, "dashboardSessions");
+        if (a?.customerId === payment.customerId) refreshCustomerSession(req, res, a);
+        const record = ensureReceipt(payment, findPlan(s, payment.planId));
+        if (receipt) {
+          if (!record) return json(res, 409, { error: "A receipt is available after confirmed payment." });
+          res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store",
+            "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+            "content-disposition": `attachment; filename="ndahi-receipt-${payment.id}.html"` });
+          return res.end(receiptDocument(record));
         }
-        if (payment.provider === "mesomb" && payment.status === "pending") {
-          const lastCheck = Number(new Date(payment.lastVerificationAt || 0)),
-            expired = payment.paymentExpiresAt &&
-              new Date(payment.paymentExpiresAt) <= clock();
-          if (expired || clock().getTime() - lastCheck >= 5000) {
-            payment.lastVerificationAt = clock().toISOString();
-            try {
-              const verified = await pays.mesomb.verifyPayment(payment);
-              if (
-                verified.transactionReference !== payment.id ||
-                Number(verified.amount) !== payment.amount ||
-                verified.currency !== payment.currency
-              ) {
-                log(s, "payment.verification_mismatch", {
-                  paymentId: payment.id,
-                  provider: payment.provider,
-                });
-              } else if (verified.status === "paid") {
-                return complete(s, payment, verified.providerReference, res);
-              } else {
-                payment.status = verified.status;
-              }
-            } catch (error) {
-              payment.verificationError = String(error.message || error).slice(0, 240);
-            }
-            if (expired && payment.status === "pending") {
-              payment.status = "failed";
-              payment.failureReason = "Payment approval timed out.";
-              payment.failedAt = clock().toISOString();
-            }
-          }
-        }
-        if (voucher && voucher.emailStatus !== "sent" && Number(voucher.emailAttempts || 0) < 5) {
-          await deliverVoucherEmail(s, voucher);
-        }
-        return json(res, 200, {
-          payment: {
-            id: payment.id,
-            status: payment.status,
-            ...(payment.failureReason ? { failureReason: payment.failureReason } : {}),
-          },
-          ...(voucher ? {
-            access: { code: voucher.code },
-            email: { status: voucher.emailStatus, sentAt: voucher.emailSentAt },
-          } : {}),
-        });
+        const voucher = payment.status === "paid" && s.vouchers.find((v) => v.paymentId === id);
+        if (voucher && voucher.emailStatus !== "sent" && Number(voucher.emailAttempts || 0) < 5) await deliverVoucherEmail(s, voucher);
+        return json(res, 200, { payment: paymentView(payment), ...(voucher ? {
+          access: { code: voucher.code }, email: { status: voucher.emailStatus, sentAt: voucher.emailSentAt },
+        } : {}) });
       });
+    }
+    if (req.method === "POST" && ["/api/account/payments/refund", "/api/account/payments/receipt-email"].includes(url.pathname)) {
+      const input = await body(req);
+      let paymentId;
+      await mutate((s) => {
+        const a = auth(req, s, "dashboardSessions");
+        if (!a) return json(res, 401, { error: "Customer session expired." });
+        const p = s.payments.find((p) => p.id === input.paymentId && p.customerId === a.customerId);
+        if (!p) return json(res, 404, { error: "Payment not found." });
+        if (!ensureReceipt(p, findPlan(s, p.planId))) return json(res, 409, { error: "A confirmed payment is required." });
+        if (url.pathname.endsWith("/refund")) {
+          billing.requestRefund(p, input.reason);
+          audit(s, "payment.refund_requested", req, { paymentId: p.id, customerId: a.customerId });
+        }
+        paymentId = p.id;
+      });
+      if (!paymentId) return;
+      if (url.pathname.endsWith("/receipt-email")) await billing.sendReceipt(paymentId);
+      const p = (await store.snapshot()).payments.find((p) => p.id === paymentId);
+      return json(res, 200, { payment: paymentView(p) });
     }
     if (req.method === "POST" && ["/api/webhooks/flutterwave", "/api/webhooks/mesomb"].includes(url.pathname)) {
       const provider = url.pathname.split("/").at(-1), raw = await body(req, true);
@@ -1058,7 +1061,7 @@ export function createHandler(opts = {}) {
     }
     if (req.method === "POST" && url.pathname === "/api/vouchers/redeem") {
       const i = await body(req);
-      let routerCommandId;
+      let routerCommandId, refundPaymentId, refundCheckId;
       const result = await mutate(async (s) => {
         if (
           s.securityEvents.filter((x) =>
@@ -1642,10 +1645,7 @@ export function createHandler(opts = {}) {
           },
           activeBundle: v.find((x) => x.status === "active") || null,
           vouchers: v,
-          payments: s.payments.filter((x) => x.customerId === c.id).slice(
-            0,
-            30,
-          ),
+          payments: s.payments.filter((x) => x.customerId === c.id).map(paymentView),
           sessionExpiresAt: a.expiresAt,
           csrfToken: a.csrfToken,
           zone: { status: s.zone.status, notes: s.zone.notes || undefined },
@@ -2037,7 +2037,7 @@ export function createHandler(opts = {}) {
       });
     }
     if (url.pathname.startsWith("/api/admin/")) {
-      let routerCommandId;
+      let routerCommandId, refundPaymentId, refundCheckId;
       await mutate(async (s) => {
         const administrator = auth(req, s, "adminSessions");
         if (!administrator) {
@@ -2059,6 +2059,12 @@ export function createHandler(opts = {}) {
         if (req.method !== "GET" && req.method !== "HEAD" && !mutationAllowed) {
           audit(s, "admin.authorization.denied", req, { role, path: url.pathname });
           return json(res, 403, { error: "Your role does not permit this action." });
+        }
+        if (req.method === "POST" && url.pathname === "/api/admin/payments/refund/check") {
+          const input = await body(req), p = s.payments.find((p) => p.id === input.paymentId);
+          if (!p?.refund) return json(res, 404, { error: "Refund not found." });
+          refundCheckId = p.id;
+          return;
         }
         if (req.method === "POST" && url.pathname === "/api/admin/payments/webhooks/replay") {
           const input = await body(req);
@@ -2498,18 +2504,16 @@ export function createHandler(opts = {}) {
           req.method === "POST" && url.pathname === "/api/admin/payments/refund"
         ) {
           const p = s.payments.find((x) => x.id === i.paymentId);
-          if (!p || p.status !== "paid") {
+          if (!p || !["paid", "refund-pending", "refunded"].includes(p.status)) {
             return json(res, 400, {
               error: "A paid payment is required.",
             });
           }
-          const result = await pays[p.provider].refundPayment(p);
-          p.status = result.status;
-          audit(s, "payment.refunded", req, {
-            paymentId: p.id,
-            providerReference: p.providerReference,
-          });
-          return json(res, 200, { payment: p });
+          billing.requestRefund(p);
+          refundPaymentId = p.id;
+          audit(s, "payment.refund_submission_requested", req, { paymentId: p.id });
+          return;
+
         }
         if (
           req.method === "POST" && url.pathname === "/api/admin/profile/mfa"
@@ -2556,12 +2560,7 @@ export function createHandler(opts = {}) {
             !p ||
             !["pending", "failed", "cancelled", "expired"].includes(i.status)
           ) return json(res, 400, { error: "Invalid payment or status." });
-          p.status = i.status;
-          audit(s, "payment.status_corrected", req, {
-            paymentId: p.id,
-            status: i.status,
-          });
-          return json(res, 200, { payment: p });
+          return json(res, 409, { error: "Payment status is provider-verified. Use payment recovery or refund verification instead of manual status changes." });
         }
         if (url.pathname === "/api/admin/zone") {
           s.zone = {
@@ -2597,6 +2596,13 @@ export function createHandler(opts = {}) {
         }
         return json(res, 404, { error: "Not found." });
       });
+      if (refundPaymentId || refundCheckId) {
+        if (refundPaymentId) await billing.submitRefund(refundPaymentId);
+        else await billing.recheckRefund(refundCheckId);
+        await mutate(() => {});
+        const p = (await store.snapshot()).payments.find((p) => p.id === (refundPaymentId || refundCheckId));
+        return json(res, 200, { payment: paymentView(p) });
+      }
       if (routerCommandId) {
         const result = await routerProcessor.process(routerCommandId);
         if (result.retried) {
@@ -2633,6 +2639,8 @@ export function createHandler(opts = {}) {
       } else res.end();
     }
   };
+  handler.billing = billing;
+  handler.billingEnabled = env.BILLING_WORKER_ENABLED !== "false";
   handler.webhookProcessor = webhookProcessor;
   handler.webhookReplayEnabled = env.PAYMENT_WEBHOOK_REPLAY_ENABLED !== "false";
   handler.reconciliationConfig = reconciliationConfig(env);
@@ -2648,7 +2656,10 @@ export function createHandler(opts = {}) {
 }
 export const createServer = (opts) => {
   const handler = createHandler(opts), server = http.createServer(handler);
-  let timer, webhookTimer, routerTimer, routerReconciliationTimer;
+  let timer, webhookTimer, routerTimer, routerReconciliationTimer, billingTimer;
+  const runBilling = () => handler.billing.run().catch((error) => {
+    console.error(JSON.stringify({ level: "error", event: "billing.worker_failed", ...databaseDiagnostic(error) }));
+  });
   const runWebhooks = () => handler.webhookProcessor.run().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "payment.webhook_worker_failed", ...databaseDiagnostic(error) }));
   });
@@ -2662,6 +2673,7 @@ export const createServer = (opts) => {
     console.error(JSON.stringify({ level: "error", event: "network.reconciliation_failed", ...databaseDiagnostic(error) }));
   });
   server.on("listening", () => {
+    if (handler.billingEnabled) { billingTimer = setInterval(runBilling, 30000); billingTimer.unref(); }
     if (handler.webhookReplayEnabled) {
       void runWebhooks();
       webhookTimer = setInterval(runWebhooks, 30000);
@@ -2683,7 +2695,7 @@ export const createServer = (opts) => {
     timer.unref();
   });
   server.on("close", () => {
-    clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
+    clearInterval(billingTimer); clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer);
   });
   return server;

@@ -120,11 +120,11 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
   }</table></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<h3>Recent payments</h3><table>${
     rows(x.payments, (p) =>
-      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}</td><td>${
-        p.status === "paid"
-          ? `<button data-refund="${h(p.id)}">Refund</button>`
+      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${
+        p.status === "paid" && (!p.refund || p.refund.status === "requested") && ["owner", "operator"].includes(x.profile?.role)
+          ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
           : ""
-      }</td></tr>`)
+      }${p.refund?.status === "pending" && ["owner", "operator"].includes(x.profile?.role) ? `<button data-check-refund="${h(p.id)}">Recheck refund</button>` : ""}</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><table>${
     rows(x.auditLogs, (a) =>
@@ -351,6 +351,8 @@ $("#app").onclick = async (e) => {
       method: "POST",
       body: JSON.stringify({ commandId: e.target.dataset.replayCommand }),
     });
+  } else if (e.target.dataset.checkRefund) {
+    await call("/api/admin/payments/refund/check", { method: "POST", body: JSON.stringify({ paymentId: e.target.dataset.checkRefund }) });
   } else if (e.target.dataset.refund) {
     if (!confirm("Request a full refund for this payment?")) return;
     await call("/api/admin/payments/refund", {
