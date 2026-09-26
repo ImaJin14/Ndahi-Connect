@@ -133,7 +133,7 @@ try {
       JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("main *")].filter((el) => el.getBoundingClientRect().right > innerWidth).slice(0, 8).map((el) => ({ tag: el.tagName, class: el.className, width: el.getBoundingClientRect().width })))));
     await page.locator("#billing").screenshot({ path: `${screenshots}/billing-${width}.png` });
   }, { width });
-  console.log(`${checks} billing browser scenarios passed. Screenshots: ${screenshots}`);
+  console.log(`${checks} billing browser scenarios passed. Screenshots saved.`);
 } finally {
   await browser?.close(); await close(website); await close(adminSite); await close(server);
 }
