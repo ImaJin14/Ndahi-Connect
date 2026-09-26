@@ -1,0 +1,456 @@
+[
+  {
+    "name": "01-local-login",
+    "url": "http://localhost:8080/login",
+    "state": {
+      "url": "http://localhost:8080/login",
+      "title": "Customer login \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nNetwork online\n\nCUSTOMER PORTAL\n\nWelcome back\n\nSign in to get started.\n\nNetwork online\nPhone number\nVoucher code\nContinue\nor\nUse a passkey\nGoogle Authenticator\nNew here?\nGet Started\nSecure access \u00b7 Your Mobile Money PIN is never requested",
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "http://localhost:8080/onboarding.html"
+        },
+        {
+          "text": "Forgot PIN?",
+          "href": "http://localhost:8080/forgot-pin"
+        },
+        {
+          "text": "Get Started",
+          "href": "http://localhost:8080/onboarding.html"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Change phone or voucher",
+          "disabled": false
+        },
+        {
+          "text": "Continue",
+          "disabled": false
+        },
+        {
+          "text": "Use a passkey",
+          "disabled": false
+        },
+        {
+          "text": "Google Authenticator",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "02-live-login",
+    "url": "https://portal.ndahiconnect.net/login",
+    "state": {
+      "url": "https://portal.ndahiconnect.net/login",
+      "title": "Customer login \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nNetwork online\n\nCUSTOMER PORTAL\n\nWelcome back\n\nSign in to get started.\n\nNetwork online\nPhone number\nVoucher code\nContinue\nor\nUse a passkey\nGoogle Authenticator\nNew here?\nGet Started\nSecure access \u00b7 Your Mobile Money PIN is never requested",
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "https://portal.ndahiconnect.net/onboarding.html"
+        },
+        {
+          "text": "Forgot PIN?",
+          "href": "https://portal.ndahiconnect.net/forgot-pin"
+        },
+        {
+          "text": "Get Started",
+          "href": "https://portal.ndahiconnect.net/onboarding.html"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Change phone or voucher",
+          "disabled": false
+        },
+        {
+          "text": "Continue",
+          "disabled": false
+        },
+        {
+          "text": "Use a passkey",
+          "disabled": false
+        },
+        {
+          "text": "Google Authenticator",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "03-local-plans",
+    "url": "http://localhost:8080/onboarding.html",
+    "state": {
+      "url": "http://localhost:8080/onboarding.html",
+      "title": "Get Started \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nNetwork online\nCustomer login\n\nMANAGED PUBLIC WI\u2011FI, MADE SIMPLE\n\nReliable Wi\u2011Fi.\nWhere you need it.\n\nFast, secure and affordable internet for homes, businesses and communities across our coverage areas.\n\nGet Started\nPublic hotspots\nHomes\nBusinesses\nCommunity spaces\nChoose the plan that fits you\n\nConnect anywhere within the NDAHI Wi\u2011Fi coverage area.\n\nSecure Mobile Money payment \u00b7 Fair-use policy applies\nONCE EVERY 7 DAYS\nDaily\n100 FCFA /day\n1 GB data\n24 hours validity\n1 simultaneous device\nReusable activation code\nChoose plan\nWeekly\n500 FCFA /week\n5 GB data\n7 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nMonthly\n2,000 FCFA /month\n10 GB data\n30 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nConnect 30\n5,500 FCFA /month\n30 GB data\n30 days validity\n2 simultaneous devices\nReusable activation code\nChoose plan\nConnect Family\n10,000 FCFA /month\n50 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect 75\n12,500 FCFA /month\n75 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect Max\n15,000 FCFA /month\n100 GB data\n30 days validity\n4 simultaneous devices\nReusable activation code\nChoose plan\nUnlimited Home\n30,000 FCFA /month\nUnlimited data\n30 days validity\n6 simultaneous devices\nReusable activation code\nChoose plan\nNDAHI Connect \u00b7 Secure, reliable Wi\u2011Fi for everyone",
+      "scrollWidth": 1425,
+      "viewport": 1440,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "http://localhost:8080/onboarding.html"
+        },
+        {
+          "text": "Customer login",
+          "href": "http://localhost:8080/login"
+        },
+        {
+          "text": "Get Started",
+          "href": "http://localhost:8080/onboarding.html#packages"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Continue to payment",
+          "disabled": false
+        },
+        {
+          "text": "\u2190 Back to packages",
+          "disabled": false
+        },
+        {
+          "text": "Request payment",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "04-live-plans",
+    "url": "https://portal.ndahiconnect.net/onboarding.html",
+    "state": {
+      "url": "https://portal.ndahiconnect.net/onboarding.html",
+      "title": "Get Started \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nNetwork online\nCustomer login\n\nMANAGED PUBLIC WI\u2011FI, MADE SIMPLE\n\nReliable Wi\u2011Fi.\nWhere you need it.\n\nFast, secure and affordable internet for homes, businesses and communities across our coverage areas.\n\nGet Started\nPublic hotspots\nHomes\nBusinesses\nCommunity spaces\nChoose the plan that fits you\n\nConnect anywhere within the NDAHI Wi\u2011Fi coverage area.\n\nSecure Mobile Money payment \u00b7 Fair-use policy applies\nONCE EVERY 7 DAYS\nDaily\n100 FCFA /day\n1 GB data\n24 hours validity\n1 simultaneous device\nReusable activation code\nChoose plan\nWeekly\n500 FCFA /week\n5 GB data\n7 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nMonthly\n2,000 FCFA /month\n10 GB data\n30 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nConnect 30\n5,500 FCFA /month\n30 GB data\n30 days validity\n2 simultaneous devices\nReusable activation code\nChoose plan\nConnect Family\n10,000 FCFA /month\n50 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect 75\n12,500 FCFA /month\n75 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect Max\n15,000 FCFA /month\n100 GB data\n30 days validity\n4 simultaneous devices\nReusable activation code\nChoose plan\nUnlimited Home\n30,000 FCFA /month\nUnlimited data\n30 days validity\n6 simultaneous devices\nReusable activation code\nChoose plan\nNDAHI Connect \u00b7 Secure, reliable Wi\u2011Fi for everyone",
+      "scrollWidth": 1425,
+      "viewport": 1440,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "https://portal.ndahiconnect.net/onboarding.html"
+        },
+        {
+          "text": "Customer login",
+          "href": "https://portal.ndahiconnect.net/login"
+        },
+        {
+          "text": "Get Started",
+          "href": "https://portal.ndahiconnect.net/onboarding.html#packages"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Continue to payment",
+          "disabled": false
+        },
+        {
+          "text": "\u2190 Back to packages",
+          "disabled": false
+        },
+        {
+          "text": "Request payment",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "05-local-mobile-plans",
+    "url": "http://localhost:8080/onboarding.html",
+    "state": {
+      "url": "http://localhost:8080/onboarding.html",
+      "title": "Get Started \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nCustomer login\n\nMANAGED PUBLIC WI\u2011FI, MADE SIMPLE\n\nReliable Wi\u2011Fi.\nWhere you need it.\n\nFast, secure and affordable internet for homes, businesses and communities across our coverage areas.\n\nGet Started\nPublic hotspots\nHomes\nBusinesses\nCommunity spaces\nChoose the plan that fits you\n\nConnect anywhere within the NDAHI Wi\u2011Fi coverage area.\n\nSecure Mobile Money payment \u00b7 Fair-use policy applies\nONCE EVERY 7 DAYS\nDaily\n100 FCFA /day\n1 GB data\n24 hours validity\n1 simultaneous device\nReusable activation code\nChoose plan\nWeekly\n500 FCFA /week\n5 GB data\n7 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nMonthly\n2,000 FCFA /month\n10 GB data\n30 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nConnect 30\n5,500 FCFA /month\n30 GB data\n30 days validity\n2 simultaneous devices\nReusable activation code\nChoose plan\nConnect Family\n10,000 FCFA /month\n50 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect 75\n12,500 FCFA /month\n75 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect Max\n15,000 FCFA /month\n100 GB data\n30 days validity\n4 simultaneous devices\nReusable activation code\nChoose plan\nUnlimited Home\n30,000 FCFA /month\nUnlimited data\n30 days validity\n6 simultaneous devices\nReusable activation code\nChoose plan\nNDAHI Connect \u00b7 Secure, reliable Wi\u2011Fi for everyone",
+      "scrollWidth": 390,
+      "viewport": 390,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "http://localhost:8080/onboarding.html"
+        },
+        {
+          "text": "Customer login",
+          "href": "http://localhost:8080/login"
+        },
+        {
+          "text": "Get Started",
+          "href": "http://localhost:8080/onboarding.html#packages"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Continue to payment",
+          "disabled": false
+        },
+        {
+          "text": "\u2190 Back to packages",
+          "disabled": false
+        },
+        {
+          "text": "Request payment",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "06-live-mobile-plans",
+    "url": "https://portal.ndahiconnect.net/onboarding.html",
+    "state": {
+      "url": "https://portal.ndahiconnect.net/onboarding.html",
+      "title": "Get Started \u2014 NDAHI Connect",
+      "text": "NC\nNDAHI\nCONNECT\nCustomer login\n\nMANAGED PUBLIC WI\u2011FI, MADE SIMPLE\n\nReliable Wi\u2011Fi.\nWhere you need it.\n\nFast, secure and affordable internet for homes, businesses and communities across our coverage areas.\n\nGet Started\nPublic hotspots\nHomes\nBusinesses\nCommunity spaces\nChoose the plan that fits you\n\nConnect anywhere within the NDAHI Wi\u2011Fi coverage area.\n\nSecure Mobile Money payment \u00b7 Fair-use policy applies\nONCE EVERY 7 DAYS\nDaily\n100 FCFA /day\n1 GB data\n24 hours validity\n1 simultaneous device\nReusable activation code\nChoose plan\nWeekly\n500 FCFA /week\n5 GB data\n7 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nMonthly\n2,000 FCFA /month\n10 GB data\n30 days validity\n1 simultaneous device\nReusable activation code\nChoose plan\nConnect 30\n5,500 FCFA /month\n30 GB data\n30 days validity\n2 simultaneous devices\nReusable activation code\nChoose plan\nConnect Family\n10,000 FCFA /month\n50 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect 75\n12,500 FCFA /month\n75 GB data\n30 days validity\n3 simultaneous devices\nReusable activation code\nChoose plan\nConnect Max\n15,000 FCFA /month\n100 GB data\n30 days validity\n4 simultaneous devices\nReusable activation code\nChoose plan\nUnlimited Home\n30,000 FCFA /month\nUnlimited data\n30 days validity\n6 simultaneous devices\nReusable activation code\nChoose plan\nNDAHI Connect \u00b7 Secure, reliable Wi\u2011Fi for everyone",
+      "scrollWidth": 390,
+      "viewport": 390,
+      "links": [
+        {
+          "text": "NC\nNDAHI\nCONNECT",
+          "href": "https://portal.ndahiconnect.net/onboarding.html"
+        },
+        {
+          "text": "Customer login",
+          "href": "https://portal.ndahiconnect.net/login"
+        },
+        {
+          "text": "Get Started",
+          "href": "https://portal.ndahiconnect.net/onboarding.html#packages"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Choose plan",
+          "disabled": false
+        },
+        {
+          "text": "Continue to payment",
+          "disabled": false
+        },
+        {
+          "text": "\u2190 Back to packages",
+          "disabled": false
+        },
+        {
+          "text": "Request payment",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "07-local-admin-login",
+    "url": "http://localhost:8081/login",
+    "state": {
+      "url": "http://localhost:8081/login",
+      "title": "Administrator login \u2014 NDAHI Connect",
+      "text": "NDAHI CONNECT ADMIN\n\nSTEP 1 OF 2\n\nAdministrator access.\n\nEnter your named account credentials, or use an enrolled passkey.\n\nUsername\nPassword\nShow\nContinue\nSign in with a passkey",
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "links": [],
+      "buttons": [
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Continue",
+          "disabled": false
+        },
+        {
+          "text": "Sign in with a passkey",
+          "disabled": false
+        },
+        {
+          "text": "Verify and sign in",
+          "disabled": false
+        },
+        {
+          "text": "Back",
+          "disabled": false
+        }
+      ]
+    }
+  },
+  {
+    "name": "08-live-admin-login",
+    "url": "https://admin.ndahiconnect.net/login",
+    "state": {
+      "url": "https://admin.ndahiconnect.net/login",
+      "title": "Administrator login \u2014 NDAHI Connect",
+      "text": "NDAHI CONNECT ADMIN\n\nSTEP 1 OF 2\n\nAdministrator access.\n\nEnter your named account credentials, or use an enrolled passkey.\n\nUsername\nPassword\nShow\nContinue\nSign in with a passkey",
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "links": [],
+      "buttons": [
+        {
+          "text": "Show",
+          "disabled": false
+        },
+        {
+          "text": "Continue",
+          "disabled": false
+        },
+        {
+          "text": "Sign in with a passkey",
+          "disabled": false
+        },
+        {
+          "text": "Verify and sign in",
+          "disabled": false
+        },
+        {
+          "text": "Back",
+          "disabled": false
+        }
+      ]
+    }
+  }
+]

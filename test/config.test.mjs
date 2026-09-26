@@ -83,3 +83,12 @@ test("rotation overlap secrets must be strong and distinct", () => {
   assert.ok(errors.includes("CUSTOMER_SESSION_SECRET_PREVIOUS must be at least 32 characters"));
   assert.ok(errors.includes("ADMIN_SESSION_SECRET_PREVIOUS must differ from ADMIN_SESSION_SECRET"));
 });
+
+
+test("saved production network connections require encryption and explicit HTTPS origins", () => {
+  const saved = { ...production, NETWORK_ROUTER_SOURCE: "saved", NETWORK_OMADA_SOURCE: "saved", NETWORK_CONFIG_KEY: "a".repeat(64), NETWORK_ALLOWED_ORIGINS: "https://router.test,https://controller.test:8043" };
+  for (const field of ["MIKROTIK_API_URL", "MIKROTIK_USER", "MIKROTIK_PASSWORD", "OMADA_API_URL", "OMADA_API_TOKEN"]) delete saved[field];
+  assert.deepEqual(productionConfigErrors(saved), []);
+  assert.ok(productionConfigErrors({ ...saved, NETWORK_CONFIG_KEY: "" }).some((v) => v.includes("NETWORK_CONFIG_KEY")));
+  assert.ok(productionConfigErrors({ ...saved, NETWORK_ALLOWED_ORIGINS: "https://router.test/path" }).some((v) => v.includes("NETWORK_ALLOWED_ORIGINS")));
+});

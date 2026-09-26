@@ -55,6 +55,24 @@ async function fixture(options = {}) {
     close: () => new Promise((r) => server.close(r)),
   };
 }
+async function authenticatedFixture(t, { planId = "weekly", ...options } = {}) {
+  const f = await fixture(options);
+  t.after(f.close);
+  const purchase = await f.call("/api/purchase", "POST", {
+    phone: "670000060", planId,
+  });
+  assert.equal(purchase.response.status, 201);
+  const paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+  assert.equal(paid.response.status, 200);
+  const setup = await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000060", code: paid.json.access.code, pin: "2468", confirmPin: "2468",
+  });
+  assert.equal(setup.response.status, 200);
+  return {
+    ...f, initialVoucher: paid.json.voucher, initialCode: paid.json.access.code,
+    initialPaymentId: purchase.json.payment.id,
+  };
+}
 test("catalogue contains the required prices, quotas, validity and device limits", () => {
   assert.deepEqual(plans.map((x) => x.price), [
     100,
@@ -756,6 +774,229 @@ test("discontinued plans are historical-only and account renewal/switching is id
   const dashboard = await f.call("/api/account/dashboard");
   assert.ok(dashboard.json.vouchers.some((voucher) => voucher.plan.name === "Connect Plus"));
   assert.ok(!dashboard.json.availablePlans.some((plan) => plan.discontinued));
+});
+
+test("account renewal requires a session and only accepts the latest purchasable plan", async (t) => {
+  const f = await authenticatedFixture(t);
+  for (const action of ["renew", "switch"]) {
+    const unauthenticated = await f.call("/api/account/plan/purchase", "POST", {
+      planId: "monthly", action,
+    }, null, { cookie: "" });
+    assert.equal(unauthenticated.response.status, 401);
+  }
+  await f.store.transaction((state) => {
+    state.vouchers.push({
+      ...state.vouchers[0], id: "older-monthly", paymentId: "older-payment",
+      planId: "monthly", status: "expired", activatedAt: "2025-01-01T00:00:00.000Z",
+      expiresAt: "2025-02-01T00:00:00.000Z",
+    });
+  });
+  const oldPlan = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "monthly", action: "renew",
+  });
+  assert.equal(oldPlan.response.status, 409);
+  const samePlan = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "switch",
+  });
+  assert.equal(samePlan.response.status, 409);
+  assert.equal((await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "purchase",
+  })).response.status, 400);
+
+  await f.store.transaction((state) => { state.vouchers[0].planId = "plus"; });
+  assert.equal((await f.call("/api/account/dashboard")).json.currentPlan.plan.discontinued, true);
+  assert.equal((await f.call("/api/account/plan/purchase", "POST", {
+    planId: "plus", action: "renew",
+  })).response.status, 400);
+  assert.equal((await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "renew",
+  })).response.status, 409);
+
+  await f.store.transaction((state) => { state.vouchers = []; });
+  assert.equal((await f.call("/api/account/dashboard")).json.currentPlan, null);
+  assert.equal((await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "renew",
+  })).response.status, 409);
+  assert.equal((await f.store.snapshot()).payments.length, 1, "rejected actions must not create payments");
+});
+
+for (const status of ["expired", "exhausted"]) {
+  test(`the latest ${status} plan can be renewed without signing in again`, async (t) => {
+    const f = await authenticatedFixture(t), sessionCookie = f.jar.customer_session;
+    await f.store.transaction((state) => {
+      if (status === "expired") state.vouchers[0].expiresAt = "2025-01-01T00:00:00.000Z";
+      else state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes;
+    });
+    const dashboard = await f.call("/api/account/dashboard");
+    assert.equal(dashboard.json.currentPlan.status, status);
+    assert.equal(dashboard.json.activeBundle, null);
+    const renewal = await f.call("/api/account/plan/purchase", "POST", {
+      planId: "weekly", action: "renew", requestKey: `renew-${status}`,
+    });
+    assert.equal(renewal.response.status, 201);
+    assert.equal((await f.call("/api/account/dashboard")).json.activeBundle, null);
+    assert.equal((await f.call(`/api/payments/${renewal.json.payment.id}/confirm`, "POST")).response.status, 200);
+    const renewed = await f.call("/api/account/dashboard");
+    assert.equal(renewed.response.status, 200);
+    assert.equal(renewed.json.activeBundle.planId, "weekly");
+    assert.equal(renewed.json.activeBundle.usedBytes, 0);
+    assert.equal(f.jar.customer_session, sessionCookie);
+  });
+}
+
+test("renewal and switching replace the plan only after payment and repeated requests are idempotent", async (t) => {
+  let current = new Date("2026-09-22T10:00:00Z");
+  const f = await authenticatedFixture(t, { now: () => current }),
+    sessionCookie = f.jar.customer_session;
+  let previousVoucher = f.initialVoucher, completed = 0;
+  for (const [action, planId] of [["renew", "weekly"], ["switch", "monthly"], ["switch", "weekly"]]) {
+    current = new Date(+current + 60000);
+    const input = { planId, action, requestKey: `replacement-${completed}` },
+      plan = plans.find((item) => item.id === planId),
+      checkout = await f.call("/api/account/plan/purchase", "POST", input);
+    assert.equal(checkout.response.status, 201);
+    assert.equal(checkout.json.payment.amount, plan.price, "replacements charge the full catalogue price");
+    assert.equal(checkout.json.payment.replaceVoucherId, previousVoucher.id);
+    const duplicateCheckout = await f.call("/api/account/plan/purchase", "POST", input);
+    assert.equal(duplicateCheckout.response.status, 200);
+    assert.equal(duplicateCheckout.json.idempotent, true);
+    assert.equal(duplicateCheckout.json.payment.id, checkout.json.payment.id);
+    const pending = await f.call("/api/account/dashboard");
+    assert.equal(pending.json.activeBundle.id, previousVoucher.id);
+    assert.equal(pending.json.activeBundle.expiresAt, previousVoucher.expiresAt);
+    assert.equal((await f.store.snapshot()).routerCommands.some((command) =>
+      command.action === "disconnect_voucher" && command.targetId === previousVoucher.id
+    ), false, "pending payment must preserve existing network access");
+
+    current = new Date(+current + 60000);
+    const confirmed = await f.call(`/api/payments/${checkout.json.payment.id}/confirm`, "POST");
+    assert.equal(confirmed.response.status, 200);
+    assert.equal(confirmed.json.voucher.activatedAt, current.toISOString());
+    assert.equal(+new Date(confirmed.json.voucher.expiresAt) - +current, plan.validityHours * 36e5);
+    assert.equal(confirmed.json.voucher.usedBytes, 0);
+    const duplicateConfirmation = await f.call(`/api/payments/${checkout.json.payment.id}/confirm`, "POST");
+    assert.equal(duplicateConfirmation.json.idempotent, true);
+    assert.equal(duplicateConfirmation.json.voucher.id, confirmed.json.voucher.id);
+    const paidRetry = await f.call("/api/account/plan/purchase", "POST", input);
+    assert.equal(paidRetry.response.status, 200);
+    assert.equal(paidRetry.json.payment.id, checkout.json.payment.id);
+    assert.equal(paidRetry.json.payment.status, "paid");
+
+    const state = await f.store.snapshot(),
+      replaced = state.vouchers.find((voucher) => voucher.id === previousVoucher.id);
+    assert.equal(replaced.status, action === "renew" ? "renewed" : "switched");
+    assert.equal(replaced.replacedAt, current.toISOString());
+    assert.equal(replaced.replacedByPaymentId, checkout.json.payment.id);
+    assert.ok(state.routerCommands.some((command) =>
+      command.action === "disconnect_voucher" && command.targetId === previousVoucher.id
+    ));
+    completed++;
+    assert.equal(state.payments.length, completed + 1);
+    assert.equal(state.vouchers.length, completed + 1);
+    assert.equal(state.vouchers.filter((voucher) => voucher.status === "active").length, 1);
+    const updated = await f.call("/api/account/dashboard");
+    assert.equal(updated.response.status, 200);
+    assert.equal(updated.json.currentPlan.id, confirmed.json.voucher.id);
+    assert.equal(f.jar.customer_session, sessionCookie);
+    previousVoucher = confirmed.json.voucher;
+  }
+});
+
+test("authenticated renewal and switching respect Daily cooldown until the exact eligible time", async (t) => {
+  let current = new Date("2026-09-22T10:00:00Z");
+  const f = await authenticatedFixture(t, {
+    planId: "daily", now: () => current, env: { CUSTOMER_SESSION_SECONDS: "691200" },
+  }), nextEligibleAt = "2026-09-29T10:00:00.000Z";
+  current = new Date("2026-09-23T10:00:00Z");
+  const renewal = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "daily", action: "renew", requestKey: "daily-renewal",
+  });
+  assert.equal(renewal.response.status, 409);
+  assert.equal(renewal.json.nextEligibleAt, nextEligibleAt);
+  const weekly = await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "switch", requestKey: "weekly-switch",
+  });
+  assert.equal(weekly.response.status, 201);
+  await f.call(`/api/payments/${weekly.json.payment.id}/confirm`, "POST");
+  const switchInput = { planId: "daily", action: "switch", requestKey: "daily-switch" },
+    blocked = await f.call("/api/account/plan/purchase", "POST", switchInput);
+  assert.equal(blocked.response.status, 409);
+  assert.equal(blocked.json.nextEligibleAt, nextEligibleAt);
+  const unavailable = await f.call("/api/account/dashboard");
+  assert.deepEqual(unavailable.json.dailyAvailability, { available: false, nextEligibleAt });
+  assert.equal((await f.store.snapshot()).payments.length, 2);
+  current = new Date(nextEligibleAt);
+  assert.equal((await f.call("/api/account/dashboard")).json.dailyAvailability.available, true);
+  const eligible = await f.call("/api/account/plan/purchase", "POST", switchInput);
+  assert.equal(eligible.response.status, 201);
+  const confirmed = await f.call(`/api/payments/${eligible.json.payment.id}/confirm`, "POST");
+  assert.equal(confirmed.response.status, 200);
+  assert.equal(+new Date(confirmed.json.voucher.expiresAt) - +current, 24 * 36e5);
+});
+
+test("account payment status requires its owner's active session and preserves the public checkout route", async (t) => {
+  let current = new Date("2026-09-22T10:00:00Z");
+  const f = await authenticatedFixture(t, {
+    now: () => current, env: { CUSTOMER_SESSION_SECONDS: "20" },
+  }), ownerCookie = f.jar.customer_session,
+    path = `/api/account/payments/${f.initialPaymentId}/status`;
+  assert.equal((await f.call(path, "GET", null, null, { cookie: "" })).response.status, 401);
+  assert.equal((await f.call(path, "GET", null, null, { cookie: "customer_session=invalid" })).response.status, 401);
+  const anotherPurchase = await f.call("/api/purchase", "POST", { phone: "670000061", planId: "weekly" }),
+    anotherPaid = await f.call(`/api/payments/${anotherPurchase.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000061", code: anotherPaid.json.access.code, pin: "1357", confirmPin: "1357",
+  });
+  const wrongOwner = await f.call(path);
+  assert.equal(wrongOwner.response.status, 404);
+  assert.equal(wrongOwner.json.access, undefined);
+  assert.equal(wrongOwner.setCookie, null);
+  assert.equal((await f.call("/api/account/payments/missing/status")).response.status, 404);
+  const owner = await f.call(path, "GET", null, null, { cookie: ownerCookie });
+  assert.equal(owner.response.status, 200);
+  assert.equal(owner.json.access.code, f.initialCode);
+  assert.match(owner.setCookie, /Path=\/api\/account;/);
+  assert.equal((await f.call(`/api/payments/${f.initialPaymentId}/status`, "GET", null, null, {
+    cookie: "",
+  })).response.status, 200);
+  current = new Date(+current + 20000);
+  assert.equal((await f.call(path, "GET", null, null, { cookie: ownerCookie })).response.status, 401);
+  assert.equal((await f.call("/api/account/plan/purchase", "POST", {
+    planId: "weekly", action: "renew",
+  }, null, { cookie: ownerCookie })).response.status, 401);
+});
+
+test("authenticated payment polling keeps the session alive through renewal and switching", async (t) => {
+  let current = new Date("2026-09-22T10:00:00Z");
+  const f = await authenticatedFixture(t, {
+    now: () => current, env: { CUSTOMER_SESSION_SECONDS: "20" },
+  }), sessionCookie = f.jar.customer_session;
+  for (const [action, planId] of [["renew", "weekly"], ["switch", "monthly"]]) {
+    current = new Date(+current + 15000);
+    const purchase = await f.call("/api/account/plan/purchase", "POST", {
+      action, planId, requestKey: `session-${action}`,
+    });
+    assert.equal(purchase.response.status, 201);
+    const expiresAfterCheckout = (await f.store.snapshot()).dashboardSessions[0].expiresAt;
+    current = new Date(+current + 15000);
+    const pending = await f.call(`/api/account/payments/${purchase.json.payment.id}/status`);
+    assert.equal(pending.response.status, 200);
+    assert.equal(pending.json.payment.status, "pending");
+    assert.match(pending.setCookie, /Path=\/api\/account;/);
+    assert.match(pending.setCookie, /Max-Age=20/);
+    assert.ok((await f.store.snapshot()).dashboardSessions[0].expiresAt > expiresAfterCheckout);
+    current = new Date(+current + 15000);
+    assert.ok(current > new Date(expiresAfterCheckout), "polling must extend the original checkout session");
+    assert.equal((await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST")).response.status, 200);
+    const paid = await f.call(`/api/account/payments/${purchase.json.payment.id}/status`);
+    assert.equal(paid.response.status, 200);
+    assert.equal(paid.json.payment.status, "paid");
+    const dashboard = await f.call("/api/account/dashboard");
+    assert.equal(dashboard.response.status, 200);
+    assert.equal(dashboard.json.activeBundle.planId, planId);
+    assert.equal(f.jar.customer_session, sessionCookie);
+    assert.equal((await f.store.snapshot()).dashboardSessions.length, 1);
+  }
 });
 
 test("customer checkout supports administrator-created bundles", async (t) => {

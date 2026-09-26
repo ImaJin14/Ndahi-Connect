@@ -1,0 +1,13 @@
+.network-setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:24px 0}
+.network-setup-grid form,#networkAdopt{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:20px;border:1px solid #d5ded8;border-radius:12px}
+#networkSetup label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+#networkSetup input,#networkSetup select{width:100%;min-width:0;box-sizing:border-box}
+#networkSetup .network-checkbox{display:flex;flex-direction:row;align-items:flex-start;gap:10px;margin:16px 0}
+#networkSetup .network-checkbox input{width:auto;margin-top:4px}
+#networkSetup button{min-height:44px;white-space:normal}
+#networkSetup button:disabled{opacity:.5;cursor:not-allowed}
+#networkMessage{font-weight:600;overflow-wrap:anywhere}
+.network-table{overflow-x:auto}.network-table pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+.network-job{padding:18px 0;border-bottom:1px solid #d5ded8;overflow-wrap:anywhere}.network-job button{margin:8px 8px 0 0}
+#networkPreview,#networkRecovery{padding:20px;border:2px solid #49765e;border-radius:12px;margin:20px 0}
+@media(max-width:720px){.network-setup-grid{grid-template-columns:1fr}.network-setup-grid form,#networkAdopt{padding:14px}}

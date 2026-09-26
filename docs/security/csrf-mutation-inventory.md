@@ -26,8 +26,15 @@ These routes require the customer cookie, an allowed customer origin, and the ma
 - `/api/account/security/mfa/confirm`
 - `/api/account/passkeys/options`
 - `/api/account/passkeys/verify`
+- `/api/account/passkeys/rename`
+- `/api/account/passkeys/remove`
 - `/api/account/devices/disconnect`
 - `/api/account/devices/connect`
+- `/api/account/security/sessions/revoke`
+- `/api/account/security/logout-everywhere`
+- `/api/account/security/recovery-codes/generate`
+- `/api/account/payments/refund`
+- `/api/account/payments/receipt-email`
 
 Customer cookies are `HttpOnly`, `Secure` in production, and `SameSite=Lax`. The CSRF token is returned only by the authenticated dashboard response.
 
@@ -60,3 +67,7 @@ These endpoints accept originless requests because payment providers call them d
 - Tokens are session-specific and compared in constant time.
 - CORS credentials are returned only for explicitly approved origins.
 - Provider webhooks remain usable without browser headers and reject invalid signatures.
+
+## Network setup
+
+`POST /api/admin/network/setup/{connection,discover,preview,apply,confirm,rollback,refresh,recovery,resolve,activate,cancel}` requires an authenticated owner and the session CSRF token in all environments. `GET /api/admin/network/setup/status` is owner-only and returns no saved secrets. All setup responses use `Cache-Control: no-store`. Physical mutations run after the authorization transaction, with transactional job claims, encrypted payloads, and audit events. Recovery-password retrieval is an audited POST.

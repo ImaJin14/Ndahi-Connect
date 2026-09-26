@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-09-25
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -89,6 +89,9 @@ Use this document as the source of truth for product, engineering, security, and
   - Cover sessions, challenges, security events, audit logs, payment records, and customer data.
   - Acceptance: scheduled cleanup/archive jobs and documented retention periods exist.
   - Implemented: daily transactional retention worker and [`docs/operations/data-retention-policy.md`](operations/data-retention-policy.md).
+  - Extended (2026-09-25): AUTH-005's new security-alert delivery records are covered
+    too (90 days online once in a terminal state, 2-year archive) so they don't grow
+    unbounded; `test/retention.test.mjs` updated accordingly.
 
 - [x] **DATA-004 — Automate encrypted PostgreSQL backups**
   - Configure frequency, retention, access control, and off-site protection.
@@ -212,6 +215,7 @@ Use this document as the source of truth for product, engineering, security, and
 - [x] **UX-004 — Make network status truthful and live**
   - Drive visible status from service/network health rather than static text.
   - Acceptance: online, degraded, offline, maintenance, and unavailable states are supported.
+  - Comparison (2026-09-21): local and live public screens match, but both display “Network online” while the live API reports bootstrap mode and unavailable network provisioning. Prioritize this task next; the observation does not establish a physical outage. Fresh screenshots, runtime evidence, and remaining verification limits: [local/live comparison](reviews/local-live-2026-09-21/report.md). No implementation status changed by this review.
   - Implemented: `GET /api/status` (public) and `GET /api/account/dashboard` (authenticated) now report
     the real `zone.status` instead of a hardcoded `"online"`/`"Network online"` string. A shared
     `customer-app/network-status.js` module renders online/degraded/offline/maintenance with distinct
@@ -241,63 +245,205 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Renewal and switching
 
-- [ ] **UX-006 — Create a compact authenticated renewal experience**
+- [x] **UX-006 — Create a compact authenticated renewal experience**
   - Remove the acquisition hero from focused renewal tasks.
   - Show current plan, renewal date, price, eligibility, and confirmation.
   - Acceptance: renewal uses only the current eligible plan and keeps the session active.
+  - Implemented: `/onboarding.html?action=renew` hides the acquisition hero and shows only the
+    customer's current plan (status, expiry, price) plus a single card for that same plan, filtered
+    from the catalogue by `renewalEligibility()` (`customer-app/plan-presentation.js`). Ineligible
+    renewals (discontinued plan, Daily's 7-day cooldown) show the reason and next eligible time
+    instead of a purchasable card. `POST /api/account/plan/purchase` re-validates eligibility
+    server-side and is idempotent per `requestKey`. The new `GET /api/account/payments/:id/status`
+    route (owner-checked, 404 for any other customer's payment) replaces public polling for
+    authenticated flows and refreshes the customer's dashboard session on every poll, so renewal
+    confirmation never drops the session.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including dedicated
+    integration coverage for renewal eligibility (current, discontinued, no-plan), Daily cooldown
+    down to the exact eligible timestamp, session persistence through polling, and payment-status
+    ownership (401 unauthenticated, 404 for another customer's payment). Manually exercised the full
+    purchase → confirm → PIN setup → authenticated renew → poll → confirm cycle against a locally
+    running API and customer app; the dashboard reflected the renewed plan and the session cookie was
+    unchanged throughout. Subsequent rendered browser checks on 2026-09-23 verified renewal,
+    failed-payment retry, closed-page confirmation, and authenticated polling with a real browser
+    cookie jar; see the [verification runbook](operations/renewal-switching-verification.md).
 
-- [ ] **UX-007 — Create a comparative switching experience**
+- [x] **UX-007 — Create a comparative switching experience**
   - Show the current plan beside each alternative.
   - Acceptance: differences in price, data, validity, and device limits are explicit.
+  - Implemented: `/onboarding.html?action=switch` renders every non-current, non-discontinued plan as
+    a table (`comparePlans()` in `customer-app/plan-presentation.js`) with the current and proposed
+    values side by side for package price, data, validity, and simultaneous devices, plus a plain-text
+    delta per row (e.g. "500 FCFA more", "2 days shorter"). The same comparison renders again in the
+    checkout modal before payment. Unlimited-data comparisons are described in words rather than a
+    numeric delta.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including
+    `plan-presentation.test.mjs` unit coverage of `comparePlans()` (price/data/validity/device deltas,
+    both-unlimited and unlimited-either-side cases) and integration coverage confirming switching
+    charges the full destination-plan price and keeps the session across the flow. Manually verified a
+    live switch (weekly → monthly) via the running API: payment created with `action: "switch"` and
+    `replaceVoucherId` set, dashboard's `currentPlan.planId` updated to the new plan only after
+    payment confirmation. Subsequent rendered browser checks verified the full switch checkout,
+    comparisons, and session preservation on desktop and mobile (2026-09-23).
 
-- [ ] **UX-008 — Label upgrade, downgrade, and lateral changes**
+- [x] **UX-008 — Label upgrade, downgrade, and lateral changes**
   - Explain when the existing package ends and the new package begins.
   - Acceptance: consequences are visible before checkout.
+  - Implemented: each switch candidate is labeled "Upgrade — higher package price", "Downgrade —
+    lower package price", or "Lateral change — same package price" via `classifyPlanChange()`
+    (price-based, not an assumed allowance improvement). A policy line on every plan card and in the
+    checkout modal states, before payment, that the current package ends immediately on confirmation
+    with no proration or carried-over data/time, and that the full destination price is charged. The
+    checkout acknowledgement checkbox requires the customer to confirm this before submitting.
+  - Verified: `npm test` (166/166) and `npm run check` passed on 2026-09-23, including unit coverage
+    of `classifyPlanChange()`'s three outcomes and the undefined-price fallback. Rendered browser
+    checks subsequently verified the policy disclosure, required acknowledgement, and a custom
+    same-price lateral change (2026-09-23).
 
-- [ ] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
+- [x] **UX-009 — Add a clear horizontal-scroll affordance or responsive alternative**
   - Avoid hidden package cards on desktop, mobile, and high zoom.
   - Acceptance: all packages are discoverable by pointer, keyboard, touch, and screen reader.
+  - Implemented: wrapping grids replace the horizontal package rail. Comparison tables remain
+    within each package, with named articles, table captions, row/column headers, and described
+    buttons. Checkout contains keyboard focus and restores it when closed.
+  - Verified: browser checks at 1440px, 390px, and 320px confirmed no horizontal page/control
+    overflow, access to the last package, keyboard focus behavior, touch selection, and accessible
+    table/article names. Desktop/mobile screenshots were inspected. The 320px check covers
+    narrow/high-zoom reflow equivalence; a hardware screen-reader audit remains separate.
 
-- [ ] **UX-010 — Review package value progression and explanation**
-  - Explain why longer-validity packages may have different price-per-GB economics.
-  - Acceptance: customers can compare value without doing manual calculations.
+- [x] **UX-010 — Keep package comparisons clear and concise**
+  - Show package price, included data, validity, and device limits clearly.
+  - Acceptance: customers can compare package totals and allowances, with explicit differences
+    between their current plan and each switching alternative.
+  - Product decision (2026-09-23): per-GB/per-day rates and their explanatory text were removed
+    at the owner's request. Packages show the total price and included allowances; switching
+    retains explicit differences in price, data, validity, and devices. Prices are unchanged.
+  - Copy decision (2026-09-23): remove the generic "One-time package" and "Available once every
+    7 days" badges and the "across full validity" suffix. Keep renewal and upgrade/downgrade/lateral
+    labels where relevant. The Daily seven-day purchase restriction remains an enforced rule,
+    explained in eligibility and checkout details rather than a promotional badge.
+  - Verified: comparison tests cover price/data/validity/device differences, unlimited allowances,
+    and custom durations. The final PR checkout, including the copy and rate-display removals,
+    passed all 166 automated tests, 13 browser scenarios, syntax checks, and the whitespace check
+    on 2026-09-23. Browser coverage includes a 36-hour package. Commands and remaining billing
+    scope are documented in the
+    [verification runbook](operations/renewal-switching-verification.md).
 
 ### Billing experience
 
-- [ ] **BILL-001 — Add pending-payment recovery**
+- [x] **BILL-001 — Add pending-payment recovery**
   - Let customers safely resume or recheck an interrupted payment.
   - Acceptance: refresh, closed tabs, and temporary provider failures do not create duplicate charges.
+  - Implemented: durable reservations and a single unresolved checkout per customer; provider calls
+    run after commit. Lost responses resume the same order. Dashboard rechecks and saved guest
+    checkout survive refresh/tab closure; uncertain provider outcomes never create an automatic retry.
+  - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
+    provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 
-- [ ] **BILL-002 — Add customer receipts**
+- [x] **BILL-002 — Add customer receipts**
   - Provide downloadable and emailed receipts with provider reference and package details.
   - Acceptance: every paid transaction has a retrievable receipt.
+  - Implemented: immutable package/payment receipt snapshots, authenticated HTML downloads
+    (printable to PDF), emailed receipts and delivery retries, including historical paid records.
+  - Verified: ownership isolation, historical availability, snapshot stability, HTML escaping,
+    email failure/retry/idempotency, and rendered download/email actions.
 
-- [ ] **BILL-003 — Expose refund status clearly**
+- [x] **BILL-003 — Expose refund status clearly**
   - Show requested, pending, completed, and failed refund states.
   - Acceptance: customers and administrators see consistent provider-backed status.
+  - Implemented: customer requests, owner/operator approval, durable once-only provider submission,
+    separate refund references, and manual/background verification. Flutterwave initiation is kept
+    pending until payout; provider failures remain visible. Confirmed refunds revoke only associated
+    active access. Unknown submissions and historical pending refunds cannot be sent twice.
+  - Verified: all four states, repeated approval, response-loss recovery, matching dashboard status,
+    provider status mapping, and preservation of newer packages. Live-provider payout verification
+    remains an operational check.
 
-- [ ] **BILL-004 — Document switching, renewal, cancellation, and proration rules**
+- [x] **BILL-004 — Document switching, renewal, cancellation, and proration rules**
   - Acceptance: rules appear before payment and in customer-facing terms.
+  - Implemented: checkout disclosure and [billing rules](../customer-app/billing-terms.html) cover
+    prepaid/manual renewal, full-price immediate replacement, no carryover or automatic proration,
+    cancellation boundaries, pending-payment recovery, and refund review/status.
+  - Verification for BILL-001–004 (2026-09-25): 182 automated tests, 8 billing browser scenarios,
+    13 renewal/switching regression scenarios, syntax and whitespace checks passed. Screenshots
+    inspected at desktop, 390px and 320px. [Commands and deployment limits](operations/billing-experience.md).
 
 ### Authentication and account controls
 
-- [ ] **AUTH-001 — Add customer session and device history**
+- [x] **AUTH-001 — Add customer session and device history**
   - Show recent logins, active browser sessions, and enrolled security methods.
   - Acceptance: customers can identify unfamiliar activity.
+  - Implemented: `GET /api/account/security` returns every active `dashboardSessions`
+    entry for the caller (creation time, last-seen time, IP, user agent, and which one
+    is the current browser), the last 20 recognized login events (PIN, authenticator,
+    passkey, recovery code, voucher activation) from the existing security-event log,
+    and enrolled methods (PIN, authenticator, passkey list with labels, unused
+    recovery-code count). Session records gained `id`/`createdAt`/`lastSeenAt`/`ip`/
+    `userAgent` fields at issuance (all three login paths now route through one
+    `issueCustomerSession()`); existing sessions age out within `CUSTOMER_SESSION_SECONDS`
+    as before, so no migration is needed. Rendered under a "Sessions & activity"
+    disclosure on the dashboard.
 
-- [ ] **AUTH-002 — Add “Log out everywhere”**
+- [x] **AUTH-002 — Add "Log out everywhere"**
   - Acceptance: all customer sessions are invalidated immediately and audited.
+  - Implemented: `POST /api/account/security/logout-everywhere` removes every
+    `dashboardSessions` row for the caller's customer ID, including the one making the
+    request, and logs a high-severity `customer.sessions.revoked_all` security event
+    with the count revoked. A companion `POST /api/account/security/sessions/revoke`
+    lets a customer sign out one specific session (e.g. an unfamiliar device from
+    AUTH-001) without touching the others; revoking the current one also logs it out.
+    Ownership is checked server-side (`customerId` match); a 404 is returned for
+    another customer's session ID.
 
-- [ ] **AUTH-003 — Add passkey naming and removal**
+- [x] **AUTH-003 — Add passkey naming and removal**
   - Acceptance: customers can distinguish and revoke enrolled passkeys safely.
+  - Implemented: new passkeys default to `Passkey N` or an optional customer-supplied
+    label at enrollment; `POST /api/account/passkeys/rename` and `.../passkeys/remove`
+    let an owner rename or delete an enrolled credential (404 for another customer's
+    or an unknown passkey ID). Removal queues an AUTH-005 security alert. PIN sign-in
+    always remains available, so removing every passkey cannot lock an account out.
 
-- [ ] **AUTH-004 — Add authenticator recovery codes**
+- [x] **AUTH-004 — Add authenticator recovery codes**
   - Store only hashed recovery codes and make each single-use.
   - Acceptance: regeneration invalidates previous unused codes.
+  - Implemented: `POST /api/account/security/recovery-codes/generate` (requires
+    authenticator 2FA already enabled) returns ten `XXXX-XXXX` codes once; only their
+    HMAC-SHA256 hash (existing `hashSecret`/`SECRET_PEPPER`) is stored, replacing any
+    prior batch outright so old codes stop matching immediately. `POST
+    /api/account/login/verify-authenticator` accepts a `recoveryCode` as an alternative
+    to the six-digit `otp`; a match marks that one code `usedAt` (single-use) and signs
+    in normally. An administrator's authenticator reset (`/api/admin/customers/reset-authenticator`)
+    now also clears `recoveryCodes`, so a stale code can't resurface if the customer
+    later re-enrolls TOTP — a gap fixed while wiring this up.
+  - Verification note: recovery codes require normalizing the customer's typed input
+    back to the stored `XXXX-XXXX` shape before hashing/comparing (mirrors
+    `normalizeActivationCode` for vouchers) — a hyphen-stripping-only normalizer was
+    tried first and failed a round-trip test before this fix.
 
-- [ ] **AUTH-005 — Add security notifications**
+- [x] **AUTH-005 — Add security notifications**
   - Notify customers about PIN resets, new passkeys, authenticator changes, and suspicious login activity.
   - Acceptance: notifications contain no secrets and delivery failures are tracked.
+  - Implemented: a new durable outbox (`lib/security-alerts.mjs`, stored in the existing
+    `events` table as `kind = 'security_alert'`, no migration) queues an alert inside
+    the same transaction as the triggering change and delivers it on its own 30-second
+    worker (`SECURITY_ALERTS_ENABLED`, mirrors the billing worker's claim/send/retry
+    shape) so a slow or failing email provider never blocks the request. Triggers: PIN
+    reset completed, PIN sign-in locked after repeated failures, authenticator 2FA
+    enabled, a passkey added or removed, and a recovery-code sign-in. Failed deliveries
+    retry with capped exponential backoff and move to `failed` after 8 attempts;
+    skipped (no account email) and failed states are recorded with a reason. Alert
+    bodies describe the event only ("Your PIN was reset") and never include PIN
+    digits, codes, or secrets.
+  - Verified (2026-09-25): 197/197 tests (`test/security-alerts.test.mjs` for the
+    worker's delivery/retry/skip behavior and no-secrets-in-payload check;
+    `test/auth-account.test.mjs` for all five AUTH routes, ownership checks, the
+    recovery-code login/regeneration/admin-reset paths, and that each trigger queues
+    its alert) and `npm run check` passed. 4 browser scenarios in
+    `scripts/check-security-journeys.mjs` (session list/cross-device sign-out,
+    passkey rename/remove, recovery-code generation through a real
+    `/verify.html` sign-in, log out everywhere) passed headless against a real
+    Chrome build; `sessions-desktop.png` screenshot inspected. Live email delivery
+    of security alerts is not yet verified against a deployed provider.
 
 ## P1 — Production engineering
 
@@ -605,8 +751,8 @@ These are already implemented and should remain protected by regression tests.
 Update these totals whenever tasks are completed.
 
 - P0 pending: 0
-- P1 pending: 32
+- P1 pending: 27
 - P2 pending: 24
 - P3 pending: 17
 - Verified foundations complete: 14
-- Recommendation tasks complete: 22
+- Recommendation tasks complete: 27

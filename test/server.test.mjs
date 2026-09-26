@@ -67,10 +67,17 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/devices/disconnect",
     "/api/account/logout",
     "/api/account/passkeys/options",
+    "/api/account/passkeys/remove",
+    "/api/account/passkeys/rename",
     "/api/account/passkeys/verify",
+    "/api/account/payments/receipt-email",
+    "/api/account/payments/refund",
     "/api/account/plan/purchase",
+    "/api/account/security/logout-everywhere",
     "/api/account/security/mfa/confirm",
     "/api/account/security/mfa/enroll",
+    "/api/account/security/recovery-codes/generate",
+    "/api/account/security/sessions/revoke",
   ]);
 });
 test("legacy persisted state gains passkey challenge collections", () => {
