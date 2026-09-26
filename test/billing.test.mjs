@@ -145,7 +145,7 @@ test("BILL-002 historical paid transactions have receipts without exposing activ
   const p = { id: "old", status: "paid", planId: "legacy", createdAt: "2025-01-01", amount: 500, currency: "XAF", provider: "mesomb", providerReference: "ref", customerName: "<script>alert(1)</script>" };
   const receipt = ensureReceipt(p, { name: "Historical", quotaGb: null, validityHours: 24, deviceLimit: 1 });
   const html = receiptDocument(receipt);
-  assert.match(html, /ref/); assert.match(html, /Unlimited/); assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /ref/); assert.match(html, /Unlimited/); assert.doesNotMatch(html, /<script\b/i);
 });
 
 test("BILL-003 customer request, administrator approval, and provider confirmation share one refund", async (t) => {
