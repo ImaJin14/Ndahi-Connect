@@ -107,3 +107,7 @@ npm run load-test
 ```
 
 Tests cover catalogue/voucher behavior, OTP/session expiry, concurrency, customer/admin route separation, cross-role cookie rejection, CORS rejection, role-specific logout, admin login throttling, audit logging and cookie attributes. The 300-user harness reports activations, redemptions, failures, median/p95 latency, active sessions, integrity counts and persistence races.
+
+### Admin network setup
+
+Owners can save encrypted MikroTik/Omada connections, discover equipment, review provisioning plans, apply tracked changes, and recover failed jobs from **Network setup**. Live writes are disabled until configured and lab-validated. See the [network provisioning runbook](docs/operations/network-provisioning.md) for private connectivity, encryption keys, supported topology, Omada version profiles, the optional HTTPS bridge, and physical-device validation requirements.

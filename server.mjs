@@ -39,6 +39,9 @@ import { emailAdapter } from "./lib/email.mjs";
 import { createSecurityAlertService, queueSecurityAlert } from "./lib/security-alerts.mjs";
 import { routerAdapter } from "./lib/routeros.mjs";
 import { omadaAdapter } from "./lib/omada.mjs";
+import { createNetworkSetup } from "./lib/network-setup.mjs";
+import { OmadaProvisioner } from "./lib/network-omada.mjs";
+import { savedRouterAdapter } from "./lib/network-runtime.mjs";
 import { createPostgresStore } from "./lib/postgres-store.mjs";
 import { assertProductionConfig, enabledPaymentProviders } from "./lib/config.mjs";
 const PUB = join(process.cwd(), "public"), GB = 1e9;
@@ -90,6 +93,7 @@ export const blank = () => ({
     events: [],
     providerEvents: [],
     routerCommands: [],
+    networkSetupJobs: [],
     rateLimitEvents: [],
     adminProfile: { mfaEnabled: false },
     zone: { id: "student-zone-1", status: "online", notes: "" },
@@ -363,7 +367,7 @@ export function createHandler(opts = {}) {
       provider === "mock" || typeof pays[provider]?.configured !== "function" ||
       pays[provider].configured()
     ),
-    router = opts.router || routerAdapter(env),
+    router = opts.router || savedRouterAdapter({ store, env, fallback: routerAdapter(env) }),
     omada = opts.omada || omadaAdapter(env),
     email = opts.email || emailAdapter(env),
     clock = opts.now || (() => new Date()),
@@ -707,6 +711,12 @@ export function createHandler(opts = {}) {
     maxAttempts: positiveInteger(env.NETWORK_QUEUE_MAX_ATTEMPTS, 8),
     alertWebhookUrl: env.NETWORK_ALERT_WEBHOOK_URL || undefined,
   });
+  const networkSetup = createNetworkSetup({ store, env, now: clock,
+    routerFactory: opts.networkRouterFactory,
+    omadaFactory: (connection) => opts.networkOmadaFactory?.(connection) || new OmadaProvisioner(connection, {
+      profile: env.OMADA_PROVISIONING_PROFILE ? JSON.parse(env.OMADA_PROVISIONING_PROFILE) : undefined,
+    }),
+  });
   async function api(req, res, url) {
     res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
     res.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
@@ -834,7 +844,7 @@ export function createHandler(opts = {}) {
         coverage: "four buildings / approximately 300m radius",
         paymentMode: env.PAYMENT_MODE || "mock",
         paymentProviders,
-        mikrotikMode: env.MIKROTIK_MODE || "mock",
+        mikrotikMode: s.networkSetup?.runtimeRouterEnabled ? "live" : env.MIKROTIK_MODE || "mock",
         omadaMode: env.OMADA_MODE || "not-configured",
       });
     }
@@ -2203,7 +2213,7 @@ export function createHandler(opts = {}) {
       });
     }
     if (url.pathname.startsWith("/api/admin/")) {
-      let routerCommandId, refundPaymentId, refundCheckId;
+      let routerCommandId, refundPaymentId, refundCheckId, networkRequest;
       await mutate(async (s) => {
         const administrator = auth(req, s, "adminSessions");
         if (!administrator) {
@@ -2225,6 +2235,14 @@ export function createHandler(opts = {}) {
         if (req.method !== "GET" && req.method !== "HEAD" && !mutationAllowed) {
           audit(s, "admin.authorization.denied", req, { role, path: url.pathname });
           return json(res, 403, { error: "Your role does not permit this action." });
+        }
+        if (url.pathname.startsWith("/api/admin/network/setup/")) {
+          if (role !== "owner") return json(res, 403, { error: "Only the owner can configure network devices." });
+          const action = url.pathname.slice("/api/admin/network/setup/".length);
+          if (!(req.method === "GET" && action === "status") && !(req.method === "POST" && ["connection", "discover", "preview", "apply", "confirm", "rollback", "refresh", "recovery", "resolve", "activate", "cancel"].includes(action))) return json(res, 405, { error: "Unsupported setup method or action." });
+          if (req.method === "POST" && !safeEqual(req.headers["x-csrf-token"] || "", administrator.csrfToken || "")) return json(res, 403, { error: "Security token expired. Refresh the page and try again." });
+          networkRequest = { action, input: req.method === "POST" ? await body(req) : {}, actor: req.adminActor };
+          return;
         }
         if (req.method === "POST" && url.pathname === "/api/admin/payments/refund/check") {
           const input = await body(req), p = s.payments.find((p) => p.id === input.paymentId);
@@ -2303,8 +2321,8 @@ export function createHandler(opts = {}) {
             administrators: s.adminUsers.map(({ id, username, displayName, role, active, passkeys = [], createdAt }) => ({ id, username, displayName, role, active, passkeys: passkeys.length, createdAt })),
             bundles: catalog,
             integrations: {
-              mikrotik: env.MIKROTIK_MODE || "mock",
-              omada: env.OMADA_MODE || "not-configured",
+              mikrotik: s.networkSetup?.runtimeRouterEnabled ? "live" : env.MIKROTIK_MODE || "mock",
+              omada: s.networkSetup?.connections?.omada?.mode === "live" ? "live" : env.OMADA_MODE || "not-configured",
               payments: env.PAYMENT_MODE || "mock",
               email: env.EMAIL_MODE || "not-configured",
             },
@@ -2314,11 +2332,11 @@ export function createHandler(opts = {}) {
               providers: {
                 [env.PAYMENT_MODE === "mesomb" ? "mesomb" : "flutterwave"]:
                   paymentProviders.length > 0,
-                mikrotik: Boolean(
+                mikrotik: Boolean(s.networkSetup?.runtimeRouterEnabled ||
                   env.MIKROTIK_API_URL && env.MIKROTIK_USER &&
                     env.MIKROTIK_PASSWORD
                 ),
-                omada: Boolean(env.OMADA_API_URL && env.OMADA_API_TOKEN),
+                omada: Boolean(s.networkSetup?.connections?.omada || env.OMADA_API_URL && env.OMADA_API_TOKEN),
                 email: email.configured(),
               },
             },
@@ -2395,6 +2413,10 @@ export function createHandler(opts = {}) {
           req.method === "GET" &&
           url.pathname === "/api/admin/integrations/omada"
         ) {
+          if (s.networkSetup?.connections?.omada || env.NETWORK_OMADA_SOURCE === "saved") {
+            networkRequest = { action: "controller-status", input: {}, actor: req.adminActor };
+            return;
+          }
           try {
             return json(res, 200, await omada.status());
           } catch (error) {
@@ -2764,6 +2786,18 @@ export function createHandler(opts = {}) {
         }
         return json(res, 404, { error: "Not found." });
       });
+      if (networkRequest) {
+        res.setHeader("cache-control", "no-store");
+        try {
+          const result = await networkSetup.handle(networkRequest.action, networkRequest.input, networkRequest.actor);
+          return json(res, networkRequest.action === "apply" ? 202 : 200, result);
+        } catch (error) {
+          const safe = error instanceof TypeError || error instanceof SyntaxError || /decrypt|authenticate data|fetch failed/i.test(error.message)
+            ? "Network setup failed. Check server configuration, credentials, and management connectivity."
+            : error.message;
+          return json(res, 400, { error: safe });
+        }
+      }
       if (refundPaymentId || refundCheckId) {
         if (refundPaymentId) await billing.submitRefund(refundPaymentId);
         else await billing.recheckRefund(refundCheckId);
@@ -2817,6 +2851,8 @@ export function createHandler(opts = {}) {
   handler.reconcilePayments = createPaymentReconciler({
     store, payments: pays, now: clock, ...handler.reconciliationConfig,
   });
+  handler.networkSetup = networkSetup;
+  handler.networkSetupEnabled = Boolean(env.NETWORK_CONFIG_KEY);
   handler.routerProcessor = routerProcessor;
   handler.routerQueueEnabled = env.NETWORK_QUEUE_ENABLED !== "false";
   handler.routerQueueIntervalMs = positiveInteger(env.NETWORK_QUEUE_INTERVAL_SECONDS, 15) * 1000;
@@ -2826,7 +2862,7 @@ export function createHandler(opts = {}) {
 }
 export const createServer = (opts) => {
   const handler = createHandler(opts), server = http.createServer(handler);
-  let timer, webhookTimer, routerTimer, routerReconciliationTimer, billingTimer, securityAlertsTimer;
+  let timer, webhookTimer, routerTimer, routerReconciliationTimer, billingTimer, securityAlertsTimer, networkSetupTimer;
   const runBilling = () => handler.billing.run().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "billing.worker_failed", ...databaseDiagnostic(error) }));
   });
@@ -2845,7 +2881,14 @@ export const createServer = (opts) => {
   const runRouterReconciliation = () => handler.reconcileRouter().catch((error) => {
     console.error(JSON.stringify({ level: "error", event: "network.reconciliation_failed", ...databaseDiagnostic(error) }));
   });
+  const resumeNetworkSetup = () => handler.networkSetup.handle("status", {}, "system").catch(() => {
+    console.error(JSON.stringify({ level: "error", event: "network.setup_worker_failed" }));
+  });
   server.on("listening", () => {
+    if (handler.networkSetupEnabled) {
+      void resumeNetworkSetup();
+      networkSetupTimer = setInterval(resumeNetworkSetup, 30000); networkSetupTimer.unref();
+    }
     if (handler.billingEnabled) { billingTimer = setInterval(runBilling, 30000); billingTimer.unref(); }
     if (handler.securityAlertsEnabled) {
       securityAlertsTimer = setInterval(runSecurityAlerts, 30000);
@@ -2872,7 +2915,7 @@ export const createServer = (opts) => {
     timer.unref();
   });
   server.on("close", () => {
-    clearInterval(billingTimer); clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
+    clearInterval(networkSetupTimer); clearInterval(billingTimer); clearInterval(timer); clearInterval(webhookTimer); clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer); clearInterval(securityAlertsTimer);
   });
   return server;

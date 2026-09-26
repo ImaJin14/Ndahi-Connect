@@ -67,3 +67,7 @@ These endpoints accept originless requests because payment providers call them d
 - Tokens are session-specific and compared in constant time.
 - CORS credentials are returned only for explicitly approved origins.
 - Provider webhooks remain usable without browser headers and reject invalid signatures.
+
+## Network setup
+
+`POST /api/admin/network/setup/{connection,discover,preview,apply,confirm,rollback,refresh,recovery,resolve,activate,cancel}` requires an authenticated owner and the session CSRF token in all environments. `GET /api/admin/network/setup/status` is owner-only and returns no saved secrets. All setup responses use `Cache-Control: no-store`. Physical mutations run after the authorization transaction, with transactional job claims, encrypted payloads, and audit events. Recovery-password retrieval is an audited POST.

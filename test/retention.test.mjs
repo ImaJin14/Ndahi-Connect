@@ -8,7 +8,7 @@ test("retention policy covers required sensitive record classes", () => {
     expiredSessionsDays: 7, expiredChallengesDays: 7, rateLimitEventsDays: 7,
     inactiveNetworkSessionsDays: 90, applicationEventsDays: 365,
     securityEventsDays: 365, securityAlertsDays: 90, auditLogsDays: 730, providerEventsDays: 730,
-    routerCommandsDays: 90,
+    routerCommandsDays: 90, networkSetupJobsDays: 90,
     paymentsOnlineDays: 2555, dormantCustomerReviewDays: 730,
     operationalArchiveDays: 730, auditAndPaymentArchiveDays: 2555,
   });
@@ -34,6 +34,9 @@ test("retention job archives before deletion and commits reported counts", async
   assert.match(providerArchive.sql, /payload->>'kind' IS DISTINCT FROM 'payment_webhook' OR payload->>'status' = 'processed'/);
   const routerCommandArchive = queries.find(({ params }) => params.includes("router_command"));
   assert.match(routerCommandArchive.sql, /payload->>'status' = 'processed'/);
+  const setupArchive = queries.find(({ params }) => params.includes("network_setup_job"));
+  assert.match(setupArchive.sql, /'completed', 'rolled_back'/);
+  assert.doesNotMatch(setupArchive.sql, /'recovery_required'|'running'|'queued'/);
   const securityAlertArchive = queries.find(({ params }) => params.includes("security_alert"));
   assert.match(securityAlertArchive.sql, /payload->>'status' <> 'pending'/);
 });
