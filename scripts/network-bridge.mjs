@@ -25,7 +25,9 @@ export function bridgeHandler({ router, username, password }) {
       const execute = () => action === "syncVoucher" ? router.syncPayload(input)
         : action === "disconnectDevice" ? router.disconnectDevice(input.deviceId)
         : action === "disconnectVoucher" ? router.disconnectVoucher(input.voucherId)
-        : router[action]();
+        : action === "readUsage" ? router.readUsage()
+        : action === "readState" ? router.readState()
+        : router.markInactive();
       const task = tail.then(execute); tail = task.catch(() => {});
       try { reply(200, await task); } finally { waiting--; }
     } catch { if (!res.headersSent) reply(502, { error: "Bridge operation failed. Check router connectivity and local service logs." }); }
