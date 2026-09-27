@@ -23,6 +23,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - run: npm run check
       - run: npm test
+      - name: Verify 300 concurrent customer journeys
+        run: npm run load-test
 
   secret-scan:
     name: Secret scanning

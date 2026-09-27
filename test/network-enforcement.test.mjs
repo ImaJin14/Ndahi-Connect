@@ -82,6 +82,13 @@ test("version-matched Omada fixture supports preview, verified update, and backu
   assert.equal(ssid.name, "NDAHI"); assert.equal(ssid.password, "new-password");
   await adapter.rollback(plan);
   assert.deepEqual(ssid, original);
+  for (const field of Object.keys(profile.ssid.fields)) {
+    const savedPath = profile.ssid.fields[field];
+    delete profile.ssid.fields[field];
+    try {
+      await assert.rejects(adapter.preview({ ssidId: "ssid1", name: "NDAHI", security: "open", vlan: 0 }), /must map all Wi-Fi settings/);
+    } finally { profile.ssid.fields[field] = savedPath; }
+  }
   const stale = await adapter.preview({ ssidId: "ssid1", name: "New name", security: "open", vlan: 0 });
   ssid.name = "External edit";
   await assert.rejects(adapter.apply(stale, async () => {}), /changed/);
