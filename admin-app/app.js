@@ -1,4 +1,5 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { mountNetworkSetup } from "/network-setup.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -57,6 +58,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
 <div class="admin-tabs" role="tablist" aria-label="Admin dashboard sections">
   ${[
     ["connections", "Connections"],
+    ...(x.profile.role === "owner" ? [["network-setup", "Network setup"]] : []),
     ["bundles", "Bundles"],
     ["voucher-create", "Generate voucher"],
     ["customers", "Customers"],
@@ -70,6 +72,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${x.integrations.omada === "live" ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>Check controller connectivity and access-point availability.</p></div><button class="secondary-action" id="checkOmada">Check connection</button></article>
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Account security</h3><span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span></div><p>Protect the ${h(x.profile.role)} account with an authenticator app.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button><button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div></form></article>
 </div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(c.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
+${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" role="tabpanel" aria-labelledby="tab-network-setup" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="tab-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
     rows(x.bundles, (b) =>
       `<tr><td>${h(b.name)}</td><td>${h(b.price)} FCFA</td><td>${
@@ -120,11 +123,11 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
   }</table></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<h3>Recent payments</h3><table>${
     rows(x.payments, (p) =>
-      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}</td><td>${
-        p.status === "paid"
-          ? `<button data-refund="${h(p.id)}">Refund</button>`
+      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${
+        p.status === "paid" && (!p.refund || p.refund.status === "requested") && ["owner", "operator"].includes(x.profile?.role)
+          ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
           : ""
-      }</td></tr>`)
+      }${p.refund?.status === "pending" && ["owner", "operator"].includes(x.profile?.role) ? `<button data-check-refund="${h(p.id)}">Recheck refund</button>` : ""}</td></tr>`)
   }</table></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><table>${
     rows(x.auditLogs, (a) =>
@@ -212,6 +215,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
       URL.revokeObjectURL(link.href);
     };
   };
+  void mountNetworkSetup($("#networkSetup"), call);
   $("#syncUsage").onclick = async () => {
     const result = await call("/api/admin/integrations/sync-usage", {
       method: "POST",
@@ -351,6 +355,8 @@ $("#app").onclick = async (e) => {
       method: "POST",
       body: JSON.stringify({ commandId: e.target.dataset.replayCommand }),
     });
+  } else if (e.target.dataset.checkRefund) {
+    await call("/api/admin/payments/refund/check", { method: "POST", body: JSON.stringify({ paymentId: e.target.dataset.checkRefund }) });
   } else if (e.target.dataset.refund) {
     if (!confirm("Request a full refund for this payment?")) return;
     await call("/api/admin/payments/refund", {

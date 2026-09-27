@@ -11,7 +11,7 @@ test("normalized PostgreSQL schema covers every state collection", async () => {
   for (const table of tables) {
     assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS ${table} \\(`));
   }
-  assert.equal(normalizedCollections.length, 22);
+  assert.equal(normalizedCollections.length, 24);
 });
 
 test("normalized PostgreSQL schema declares relational integrity and indexes", async () => {

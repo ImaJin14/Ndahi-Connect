@@ -17,6 +17,7 @@ payment records.
 | Inactive network sessions | 90 days | Archive, then remove online row | 2 years |
 | Application events | 1 year | Archive, then remove online row | 2 years |
 | Security events | 1 year | Archive, then remove online row | 2 years |
+| Security alert deliveries | 90 days (terminal state only) | Archive, then remove online row | 2 years |
 | Provider webhook events | 2 years | Archive, then remove online row | 7 years |
 | Audit logs | 2 years | Archive, then remove online row | 7 years |
 | Payment records | 7 years online | Copy to archive; keep relational source pending legal/privacy review | 7 additional years |

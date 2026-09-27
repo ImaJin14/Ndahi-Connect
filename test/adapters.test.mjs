@@ -141,7 +141,7 @@ test("MeSomb creates, verifies, signs, and refunds Cameroon payments", async () 
     event = await adapter.handleWebhook(raw, `t=${timestamp},v1=${signature}`);
   assert.equal(event.eventId, "event-1");
   assert.equal(event.paymentId, "payment-1");
-  assert.equal((await adapter.refundPayment(payment)).status, "refunded");
+  assert.equal((await adapter.refundPayment(payment)).status, "completed");
 });
 
 test("MikroTik and Omada adapters keep credentials server-side", async () => {
