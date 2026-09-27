@@ -1,0 +1,78 @@
+# Run with: promtool test rules monitoring/prometheus/alerts.test.yml
+rule_files:
+  - alerts.yml
+evaluation_interval: 1m
+tests:
+  # 60 redemptions/minute, 80% between 1 s and 1.5 s: p95 (~1.47 s) misses the
+  # 1 s target (warning) but stays under twice the target (no critical).
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_request_target_seconds{operation="voucher_redemption"}'
+        values: '1x40'
+      - series: 'ndahi_request_target_seconds{operation="dashboard"}'
+        values: '0.5x40'
+      - series: 'ndahi_request_duration_seconds_bucket{operation="voucher_redemption",outcome="success",le="1"}'
+        values: '0+12x40'
+      - series: 'ndahi_request_duration_seconds_bucket{operation="voucher_redemption",outcome="success",le="1.5"}'
+        values: '0+60x40'
+      - series: 'ndahi_request_duration_seconds_bucket{operation="voucher_redemption",outcome="success",le="2.5"}'
+        values: '0+60x40'
+      - series: 'ndahi_request_duration_seconds_bucket{operation="voucher_redemption",outcome="success",le="+Inf"}'
+        values: '0+60x40'
+      - series: 'ndahi_request_duration_seconds_count{operation="voucher_redemption",outcome="success"}'
+        values: '0+60x40'
+      # Healthy dashboard traffic must not alert.
+      - series: 'ndahi_request_duration_seconds_bucket{operation="dashboard",outcome="success",le="0.25"}'
+        values: '0+60x40'
+      - series: 'ndahi_request_duration_seconds_bucket{operation="dashboard",outcome="success",le="+Inf"}'
+        values: '0+60x40'
+      - series: 'ndahi_request_duration_seconds_count{operation="dashboard",outcome="success"}'
+        values: '0+60x40'
+      - series: 'up{job="ndahi-api"}'
+        values: '1x40'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: NdahiLatencyTargetMissed
+        exp_alerts:
+          - exp_labels:
+              operation: voucher_redemption
+              severity: warning
+              responder: platform-on-call
+            exp_annotations:
+              summary: "p95 voucher_redemption latency exceeds its target"
+              description: "p95 is 1.469s over 10 minutes."
+      - eval_time: 25m
+        alertname: NdahiLatencyCritical
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: NdahiMetricsMissing
+        exp_alerts: []
+
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_web_vital_target{metric="LCP"}'
+        values: '2500x120'
+      - series: 'ndahi_web_vital_lcp_bucket{app="customer",page="login",device="mobile",network="slow",le="2500"}'
+        values: '0+1x120'
+      - series: 'ndahi_web_vital_lcp_bucket{app="customer",page="login",device="mobile",network="slow",le="4000"}'
+        values: '0+4x120'
+      - series: 'ndahi_web_vital_lcp_bucket{app="customer",page="login",device="mobile",network="slow",le="+Inf"}'
+        values: '0+4x120'
+      - series: 'ndahi_web_vital_lcp_count{app="customer",page="login",device="mobile",network="slow"}'
+        values: '0+4x120'
+      - series: 'ndahi_web_vital_lcp_bucket{app="admin",page="login",device="mobile",network="fast",le="2500"}'
+        values: '0+4x120'
+      - series: 'ndahi_web_vital_lcp_bucket{app="admin",page="login",device="mobile",network="fast",le="+Inf"}'
+        values: '0+4x120'
+      - series: 'ndahi_web_vital_lcp_count{app="admin",page="login",device="mobile",network="fast"}'
+        values: '0+4x120'
+    alert_rule_test:
+      - eval_time: 100m
+        alertname: NdahiMobileLcpTargetMissed
+        exp_alerts:
+          - exp_labels:
+              app: customer
+              severity: warning
+              responder: frontend-owner
+            exp_annotations:
+              summary: "Mobile p75 LCP for the customer app exceeds 2.5 s"

@@ -1,0 +1,97 @@
+# Alerts for the proposed targets in docs/operations/performance.md.
+# Targets are exported by the API as ndahi_request_target_seconds and
+# ndahi_web_vital_target, so changing lib/performance.mjs updates thresholds.
+groups:
+  - name: ndahi-api-latency
+    rules:
+      - alert: NdahiLatencyTargetMissed
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, operation) (rate(ndahi_request_duration_seconds_bucket[10m])))
+          > on (operation) group_left
+          max by (operation) (ndahi_request_target_seconds)
+          and on (operation)
+          sum by (operation) (rate(ndahi_request_duration_seconds_count[10m])) * 600 >= 20
+        for: 10m
+        labels:
+          severity: warning
+          responder: platform-on-call
+        annotations:
+          summary: "p95 {{ $labels.operation }} latency exceeds its target"
+          description: "p95 is {{ $value | humanizeDuration }} over 10 minutes."
+      - alert: NdahiLatencyCritical
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, operation) (rate(ndahi_request_duration_seconds_bucket[10m])))
+          > on (operation) group_left
+          2 * max by (operation) (ndahi_request_target_seconds)
+          and on (operation)
+          sum by (operation) (rate(ndahi_request_duration_seconds_count[10m])) * 600 >= 20
+        for: 10m
+        labels:
+          severity: critical
+          responder: platform-on-call
+        annotations:
+          summary: "p95 {{ $labels.operation }} latency exceeds twice its target"
+      - alert: NdahiServerErrorRate
+        expr: |
+          sum by (operation) (rate(ndahi_request_duration_seconds_count{outcome="server_error"}[10m]))
+          / sum by (operation) (rate(ndahi_request_duration_seconds_count[10m])) > 0.02
+          and on (operation)
+          sum by (operation) (rate(ndahi_request_duration_seconds_count[10m])) * 600 >= 20
+        for: 10m
+        labels:
+          severity: critical
+          responder: platform-on-call
+        annotations:
+          summary: "More than 2% of {{ $labels.operation }} requests fail with server errors"
+      - alert: NdahiMetricsMissing
+        expr: up{job="ndahi-api"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          responder: platform-on-call
+        annotations:
+          summary: "Prometheus cannot scrape the NDAHI API metrics endpoint"
+
+  - name: ndahi-web-vitals
+    rules:
+      - alert: NdahiMobileLcpTargetMissed
+        expr: |
+          histogram_quantile(0.75,
+            sum by (le, app) (rate(ndahi_web_vital_lcp_bucket{device="mobile"}[1h])))
+          > on () group_left max(ndahi_web_vital_target{metric="LCP"})
+          and on (app)
+          sum by (app) (increase(ndahi_web_vital_lcp_count{device="mobile"}[1h])) >= 50
+        for: 30m
+        labels:
+          severity: warning
+          responder: frontend-owner
+        annotations:
+          summary: "Mobile p75 LCP for the {{ $labels.app }} app exceeds 2.5 s"
+      - alert: NdahiMobileInpTargetMissed
+        expr: |
+          histogram_quantile(0.75,
+            sum by (le, app) (rate(ndahi_web_vital_inp_bucket{device="mobile"}[1h])))
+          > on () group_left max(ndahi_web_vital_target{metric="INP"})
+          and on (app)
+          sum by (app) (increase(ndahi_web_vital_inp_count{device="mobile"}[1h])) >= 50
+        for: 30m
+        labels:
+          severity: warning
+          responder: frontend-owner
+        annotations:
+          summary: "Mobile p75 INP for the {{ $labels.app }} app exceeds 200 ms"
+      - alert: NdahiMobileClsTargetMissed
+        expr: |
+          histogram_quantile(0.75,
+            sum by (le, app) (rate(ndahi_web_vital_cls_bucket{device="mobile"}[1h])))
+          > on () group_left max(ndahi_web_vital_target{metric="CLS"})
+          and on (app)
+          sum by (app) (increase(ndahi_web_vital_cls_count{device="mobile"}[1h])) >= 50
+        for: 30m
+        labels:
+          severity: warning
+          responder: frontend-owner
+        annotations:
+          summary: "Mobile p75 CLS for the {{ $labels.app }} app exceeds 0.1"

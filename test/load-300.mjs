@@ -1,6 +1,11 @@
 import { performance } from "node:perf_hooks";
-import { createServer, createStore } from "../server.mjs";
-const store = createStore({ persistent: false }),
+import { createServer, createStore, blank } from "../server.mjs";
+import { createPostgresStore } from "../lib/postgres-store.mjs";
+// Set LOAD_TEST_DATABASE_URL to an empty, migrated database to exercise PostgreSQL.
+const databaseUrl = process.env.LOAD_TEST_DATABASE_URL;
+const store = databaseUrl
+    ? createPostgresStore({ connectionString: databaseUrl, initialState: blank, ssl: false })
+    : createStore({ persistent: false }),
   server = createServer({
     store,
     env: {
@@ -65,6 +70,7 @@ try {
         vouchers: s.vouchers.length,
         uniqueCodes: new Set(s.vouchers.map((x) => x.code)).size,
       },
+      ...(store.stats ? { store: "postgres", transactions: store.stats } : { store: "memory" }),
       persistenceRaceConditions:
         s.customers.length === 300 && s.vouchers.length === 300 &&
           s.sessions.length === 300
@@ -77,4 +83,5 @@ try {
   }
 } finally {
   await new Promise((resolve) => server.close(resolve));
+  await store.close?.();
 }

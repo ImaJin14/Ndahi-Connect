@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-09-28
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -449,32 +449,53 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Architecture and performance
 
-- [ ] **ARCH-001 — Split the API into domain modules**
+- [-] **ARCH-001 — Split the API into domain modules**
   - Separate HTTP utilities, customer auth, admin auth, vouchers, payments, bundles, network operations, and reporting.
   - Acceptance: `server.mjs` becomes composition/routing rather than the full application.
+  - Implemented: domain route factories, shared HTTP/state helpers, and per-instance services under `lib/api/`; `server.mjs` now composes routes and workers. Existing API exports, security gates, and transaction boundaries are preserved. See [API architecture](architecture/api-domains.md).
+  - Local verification: syntax checks and 224 tests passed; the 300-user load test completed with zero failed requests and no detected persistence races.
+  - Remaining: reviewed deployment and production smoke verification.
 
-- [ ] **ARCH-002 — Introduce a service/repository boundary**
+- [-] **ARCH-002 — Introduce a service/repository boundary**
   - Keep business rules independent from PostgreSQL and HTTP response handling.
   - Acceptance: core workflows are unit-testable without starting a server.
+  - Implemented: voucher redemption and checkout reservation moved to `lib/domain/` as pure services returning outcomes. The store transaction/snapshot interface is the repository, with memory and PostgreSQL implementations. See [API architecture](architecture/api-domains.md#service-and-repository-boundary-arch-002).
+  - Local verification: 10 domain unit tests run on plain state with no server or database.
+  - Remaining: production smoke verification. Remaining handlers (PIN reset, passkeys, account security, admin mutations) still keep rules inline; migrate them as they change.
 
-- [ ] **PERF-001 — Establish production performance targets**
+- [-] **PERF-001 — Establish production performance targets**
   - Define latency and throughput objectives for login, dashboard, payment creation, voucher redemption, and admin operations.
   - Acceptance: dashboards and alerts measure each target.
+  - Implemented: proposed p95 targets and throughput objective in [performance](operations/performance.md). The API exports a latency histogram per operation and target gauges at `/api/metrics` (bearer token). Prometheus scrape config, alert rules with responders, and a Grafana dashboard are in `monitoring/`.
+  - Local verification: metrics, authentication, and operation mapping tests; `promtool check rules` and `promtool test rules` pass for the warning, critical, and no-alert cases.
+  - Remaining: deploy with `PERFORMANCE_METRICS_ENABLED=true`, point Prometheus/Alertmanager at production, assign named responders, and review targets after four weeks of data.
 
-- [ ] **PERF-002 — Replace global write serialization**
+- [-] **PERF-002 — Replace global write serialization**
   - Use targeted row locking and transactions after normalization.
   - Acceptance: unrelated customer operations execute concurrently.
+  - Implemented: PostgreSQL writes only changed rows, with payload-guarded updates and deletes. Customer checkout, redemption, PIN login, dashboard, and auth throttling lock only their customer scope under a shared global lock, and retry on conflict with buffered responses. Other transactions stay exclusive. Migration 004 allows prepend ordinals; the pre-deploy check requires it.
+  - Local verification: 11 PostgreSQL 17 store tests (different customers run concurrently, the same customer serializes, no lost updates, trimming without conflicts); 300-user load test on PostgreSQL in 16 s vs 6 min 15 s before, with zero failures.
+  - Remaining: apply migration 004 and verify production latency.
 
-- [ ] **PERF-003 — Add pagination and server-side filtering**
+- [-] **PERF-003 — Add pagination and server-side filtering**
   - Cover customers, vouchers, payments, sessions, events, and audit logs.
   - Acceptance: admin pages remain responsive with production-scale datasets.
+  - Implemented: `GET /api/admin/records` with search, status filters, and pages of up to 100 for customers, vouchers, payments, sessions, events, security events, and audit logs. The admin UI uses paged tables and a server-side customer picker. The dashboard now returns only totals, and read-only admin views no longer take the global write lock.
+  - Local verification: queries over 20,000 customers, 50,000 vouchers, and 30,000 sessions complete within 250 ms. The dashboard payload stays under 50 KB with 6,000 vouchers. Browser checks cover paging, search, filters, the customer picker, the refund journey, and 390 px without overflow.
+  - Remaining: production verification with real data volumes.
 
-- [ ] **PERF-004 — Optimize and cache static assets**
+- [-] **PERF-004 — Optimize and cache static assets**
   - Add compression, immutable asset caching, versioned filenames, and image optimization.
   - Acceptance: repeat visits avoid unnecessary transfers and stale deployments.
+  - Implemented: content-revisioned `/static/` URLs rewritten in HTML, CSS, and JS; immutable caching for versioned assets; ETag revalidation for pages; Brotli/gzip; WebP hero images (47 KB desktop and 9 KB mobile instead of a 1.36 MB PNG).
+  - Local verification: on Slow 4G at 390 px, repeat-visit transfer fell from 33.8 KB to 2.7 KB on `/login` and from 65.2 KB to 2.7 KB on onboarding; every browser journey passes.
+  - Remaining: confirm deployed caching headers and 304 revalidation.
 
-- [ ] **PERF-005 — Measure Core Web Vitals on mobile networks**
+- [-] **PERF-005 — Measure Core Web Vitals on mobile networks**
   - Acceptance: agreed LCP, CLS, and INP targets are monitored in production.
+  - Implemented: proposed p75 mobile targets (LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1). A privacy-preserving `web-vitals` collector reports fixed categories to `/api/telemetry/vitals` (trusted origins only, size- and rate-limited). Histograms, alerts, and dashboard panels are split by app, page, device, and network class.
+  - Local verification: injection, validation, origin, rate-limit, and alert-rule tests. Local LCP on Slow 4G was 948 ms for `/login` and 920 ms for onboarding.
+  - Remaining: agree the targets, enable collection in production, and record the first production p75 values.
 
 ### Observability
 
@@ -756,3 +777,17 @@ Update these totals whenever tasks are completed.
 - P3 pending: 17
 - Verified foundations complete: 14
 - Recommendation tasks complete: 27
+
+## Implementation tracker
+
+| Task | Status | Verification | Remaining work |
+| --- | --- | --- | --- |
+| ARCH-001 | Implemented; production verification pending | 224 tests, syntax checks, and 300-user activation/redemption load test passed on 2026-09-27 | Deploy reviewed change and verify readiness, customer/admin flows, and network setup status/preview |
+| ARCH-002 | Implemented; production verification pending | Domain unit tests without a server or database passed on 2026-09-28 | Production smoke test; migrate remaining inline handlers as they change |
+| PERF-001 | Implemented; production verification pending | Metrics tests and promtool rule tests passed on 2026-09-28 | Enable metrics, connect Prometheus/Alertmanager, name responders, review targets |
+| PERF-002 | Implemented; production verification pending | PostgreSQL 17 store tests and PostgreSQL load test (16 s vs 6 min 15 s) passed on 2026-09-28 | Apply migration 004 and verify production latency |
+| PERF-003 | Implemented; production verification pending | 50,000-voucher query tests and admin browser checks passed on 2026-09-28 | Verify with production data volumes |
+| PERF-004 | Implemented; production verification pending | Caching/compression tests and Slow 4G measurements passed on 2026-09-28 | Confirm deployed caching headers |
+| PERF-005 | Implemented; production verification pending | Telemetry and alert tests passed on 2026-09-28 | Agree targets, enable collection, record first production p75 |
+
+Pending totals above include these tasks until production verification is recorded.
