@@ -41,6 +41,22 @@ settings. The default gate deliberately does not modify production data. It fail
 if required tables are absent; merging this PR alone does not perform migration.
 Confirm branch `main`, health path `/api/health`, and bind address `0.0.0.0`.
 
+## Migration 004 (PERF-002)
+
+The incremental PostgreSQL store requires `004_incremental_ordinals.sql`, which
+drops the non-negative `ordinal` checks so prepended rows do not renumber whole
+tables. Until it is applied, `npm run check:database` exits with
+`migration_required` and names the affected tables, so the deploy stops before the
+new API starts.
+
+Apply it with the coordinated procedure above: take a backup, set the pre-deploy
+command to `npm run migrate:postgres && npm run check:database` for one deploy,
+then restore `npm run check:database`. The migration only drops constraints and
+adds an index. Rerunning the runner on a migrated database reports
+`already-migrated` for the data step and leaves rows unchanged. To roll back the
+application, deploy the previous release; it works with the relaxed constraints.
+Restore the checks only after renumbering any negative ordinals.
+
 ## Diagnostics
 
 The read-only gate reports missing table names or a sanitized failure code. Startup

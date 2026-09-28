@@ -12,6 +12,21 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Disposable CI container: no credentials are needed or stored.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -25,6 +40,15 @@ jobs:
       - run: npm test
       - name: Verify 300 concurrent customer journeys
         run: npm run load-test
+      - name: Apply PostgreSQL migrations
+        run: node scripts/migrate-postgres.mjs
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          DATABASE_SSL: "false"
+      - name: Verify 300 concurrent customer journeys on PostgreSQL
+        run: npm run load-test
+        env:
+          LOAD_TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
 
   secret-scan:
     name: Secret scanning

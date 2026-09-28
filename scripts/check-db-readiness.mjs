@@ -22,7 +22,17 @@ if (!process.env.DATABASE_URL) {
     if (missing.length) process.exitCode = 1;
     else {
       await pool.query(required.map((table) => `SELECT 1 FROM ${table} WHERE false`).join(" UNION ALL "));
-      console.log(JSON.stringify({ status: "ready", access: "readable" }));
+      // Incremental writes need migration 004, which drops the non-negative ordinal checks.
+      const { rows: ordinalChecks } = await pool.query(
+        `SELECT conrelid::regclass::text AS name FROM pg_constraint
+         WHERE contype = 'c' AND conname = conrelid::regclass::text || '_ordinal_check'
+           AND conrelid = ANY(SELECT to_regclass(name) FROM unnest($1::text[]) AS name)`,
+        [required],
+      );
+      if (ordinalChecks.length) {
+        console.error(JSON.stringify({ status: "migration_required", migration: "004_incremental_ordinals.sql", tables: ordinalChecks.map((row) => row.name) }));
+        process.exitCode = 1;
+      } else console.log(JSON.stringify({ status: "ready", access: "readable" }));
     }
   } catch (error) {
     // Never log error.message: drivers may include usernames or connection details.

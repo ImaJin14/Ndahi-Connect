@@ -1,5 +1,6 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
+import { mountCustomerPicker, mountRecords } from "/records.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -39,10 +40,7 @@ async function call(path, options = {}) {
 async function load() {
   const x = await call("/api/admin/dashboard");
   csrfToken = x.csrfToken;
-  const customerOptions = rows(
-      x.customers,
-      (c) => `<option value="${h(c.id)}">${h(c.name)} — ${h(c.phone)}</option>`,
-    ),
+  const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
     bundleOptions = rows(
       x.bundles,
       (b) => `<option value="${h(b.id)}">${h(b.name)}</option>`,
@@ -85,7 +83,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   }</tbody></table></section>
 <section class="card tab-panel" id="panel-voucher-create" role="tabpanel" aria-labelledby="tab-voucher-create" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
   <label>Purpose<select name="purpose" id="voucherPurpose"><option value="resale">Resale inventory</option><option value="assigned">Assign to customer</option></select></label>
-  <label id="voucherCustomer" hidden>Customer<select name="customerId">${customerOptions}</select></label>
+  <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label></div>
   <label>Bundle type<select name="planMode" id="voucherPlanMode"><option value="existing">Existing bundle</option><option value="custom">Custom voucher</option></select></label>
   <label id="voucherExistingPlan">Bundle<select name="planId">${bundleOptions}</select></label>
   <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
@@ -99,42 +97,10 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
 </form><div id="generated" role="status" aria-live="polite"></div></section>
-<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><table>${
-    rows(x.customers, (c) =>
-      `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${
-        h(c.status || "active")
-      }</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`)
-  }</table><h3>Active device sessions</h3><table>${
-    rows(x.sessions, (s) =>
-      `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${
-        s.status === "online"
-          ? `<button data-session="${h(s.id)}">Disconnect</button>`
-          : ""
-      }</td></tr>`)
-  }</table></section>
-<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><table>${
-    rows(x.vouchers, (v) =>
-      `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
-        v.status === "active"
-          ? `<button data-voucher="${h(v.id)}">Revoke</button>`
-          : ""
-      }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""
-      }</td></tr>`)
-  }</table></section>
-<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<h3>Recent payments</h3><table>${
-    rows(x.payments, (p) =>
-      `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${
-        p.status === "paid" && (!p.refund || p.refund.status === "requested") && ["owner", "operator"].includes(x.profile?.role)
-          ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
-          : ""
-      }${p.refund?.status === "pending" && ["owner", "operator"].includes(x.profile?.role) ? `<button data-check-refund="${h(p.id)}">Recheck refund</button>` : ""}</td></tr>`)
-  }</table></section>
-<section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><table>${
-    rows(x.auditLogs, (a) =>
-      `<tr><td>${
-        h(new Date(a.at).toLocaleString())
-      }</td><td>${h(a.action)}</td><td>${h(a.ip)}</td></tr>`)
-  }</table></section></div>`;
+<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><div id="customerRecords"></div><div id="sessionRecords"></div></section>
+<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><div id="voucherRecords"></div></section>
+<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
+<section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const activateTab = (tab, moveFocus = false) => {
     activeAdminTab = tab.dataset.tab;
@@ -161,11 +127,14 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
       activateTab(tabs[nextIndex], true);
     };
   }
+  let customerPicker;
   const updateVoucherBuilder = () => {
     const resale = $("#voucherPurpose").value === "resale",
       custom = $("#voucherPlanMode").value === "custom",
       form = $("#generate");
     $("#voucherCustomer").hidden = resale;
+    $("#customerSelect").required = !resale;
+    if (!resale) customerPicker ??= mountCustomerPicker($("#customerSearch"), $("#customerSelect"), call);
     $("#voucherQuantity").hidden = !resale;
     $("#voucherExistingPlan").hidden = custom;
     $("#voucherCustomFields").hidden = !custom;
@@ -216,6 +185,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     };
   };
   void mountNetworkSetup($("#networkSetup"), call);
+  mountRecordViews(canManagePayments);
   $("#syncUsage").onclick = async () => {
     const result = await call("/api/admin/integrations/sync-usage", {
       method: "POST",
@@ -276,6 +246,57 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     });
     load();
   };
+}
+function mountRecordViews(canManagePayments) {
+  const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
+  void mountRecords($("#customerRecords"), {
+    call,
+    collection: "customers",
+    title: "Customers",
+    headers: ["Name", "Phone", "Status", "Actions"],
+    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`,
+  });
+  void mountRecords($("#sessionRecords"), {
+    call,
+    collection: "sessions",
+    title: "Device sessions",
+    headers: ["Device", "Device ID", "Status", "Last seen", "Actions"],
+    row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td>${s.status === "online" ? `<button data-session="${h(s.id)}">Disconnect</button>` : ""}</td></tr>`,
+  });
+  void mountRecords($("#voucherRecords"), {
+    call,
+    collection: "vouchers",
+    title: "Vouchers",
+    headers: ["Code", "Bundle", "Status", "Email", "Devices", "Actions"],
+    row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
+      v.status === "active" ? `<button data-voucher="${h(v.id)}">Revoke</button>` : ""
+    }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}</td></tr>`,
+  });
+  void mountRecords($("#paymentRecords"), {
+    call,
+    collection: "payments",
+    title: "Payments",
+    headers: ["Amount", "Provider", "Reference", "Status", "Created", "Actions"],
+    row: (p) => `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${date(p.createdAt)}</td><td>${
+      p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments
+        ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
+        : ""
+    }${p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Recheck refund</button>` : ""}</td></tr>`,
+  });
+  void mountRecords($("#auditRecords"), {
+    call,
+    collection: "audit",
+    title: "Administrator actions",
+    headers: ["Time", "Action", "Actor", "IP"],
+    row: (a) => `<tr><td>${date(a.at)}</td><td>${h(a.action)}</td><td>${h(a.actor)}</td><td>${h(a.ip)}</td></tr>`,
+  });
+  void mountRecords($("#securityRecords"), {
+    call,
+    collection: "security",
+    title: "Security events",
+    headers: ["Time", "Event", "IP"],
+    row: (e) => `<tr><td>${date(e.at)}</td><td>${h(e.type)}</td><td>${h(e.ip)}</td></tr>`,
+  });
 }
 $("#app").onclick = async (e) => {
   if (e.target.dataset.editBundle) {

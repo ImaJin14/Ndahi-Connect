@@ -63,6 +63,8 @@ services:
         value: 0.0.0.0
       - key: API_URL
         sync: false
+      - key: PERFORMANCE_METRICS_ENABLED
+        value: "true"
 
   - type: web
     name: ndahi-admin
@@ -83,6 +85,8 @@ services:
         value: 0.0.0.0
       - key: API_URL
         sync: false
+      - key: PERFORMANCE_METRICS_ENABLED
+        value: "true"
 
   - type: web
     name: ndahi-api
@@ -202,6 +206,10 @@ services:
         sync: false
       - key: OMADA_SITE_ID
         value: Default
+      - key: PERFORMANCE_METRICS_ENABLED
+        value: "true"
+      - key: METRICS_BEARER_TOKEN
+        generateValue: true
 
 databases:
   - name: ndahi-postgres

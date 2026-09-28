@@ -1,6 +1,6 @@
 import http from "node:http";
-import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { createAssetCatalog, sendAsset } from "./lib/static-assets.mjs";
+import { join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export function createStaticServer(
@@ -8,9 +8,12 @@ export function createStaticServer(
   {
     apiUrl = process.env.API_URL || "http://localhost:8082",
     production = process.env.NODE_ENV === "production",
+    telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
   } = {},
 ) {
   const root = join(process.cwd(), kind === "admin" ? "admin-app" : "customer-app");
+  let assets;
+  const getAssets = () => assets ||= createAssetCatalog(root, { telemetry }).catch((error) => { assets = undefined; throw error; });
   const reportUrl = `${apiUrl.replace(/\/$/, "")}/api/csp-report`,
     csp = [
       "default-src 'self'",
@@ -57,29 +60,6 @@ export function createStaticServer(
       res.writeHead(302, { ...securityHeaders, location: "/login", "cache-control": "no-store" });
       return res.end();
     }
-    if (url.pathname === "/vendor/webauthn.js") {
-      const data = await readFile(join(
-        process.cwd(),
-        "node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js",
-      ));
-      res.writeHead(200, {
-        ...securityHeaders,
-        "content-type": "text/javascript; charset=utf-8",
-        "cache-control": "public, max-age=86400",
-        "x-content-type-options": "nosniff",
-      });
-      return res.end(data);
-    }
-    if (url.pathname === "/shared/safe-html.js") {
-      const data = await readFile(join(process.cwd(), "shared-app/safe-html.js"));
-      res.writeHead(200, {
-        ...securityHeaders,
-        "content-type": "text/javascript; charset=utf-8",
-        "cache-control": "public, max-age=86400",
-        "x-content-type-options": "nosniff",
-      });
-      return res.end(data);
-    }
     let path = url.pathname;
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
@@ -88,27 +68,20 @@ export function createStaticServer(
       res.writeHead(404, securityHeaders);
       return res.end("Not found");
     }
-    path = normalize(path).replace(/^(\.\.(\/|\\|$))+/, "");
-    const file = join(root, path);
-    if (!file.startsWith(root)) {
-      res.writeHead(403, securityHeaders);
-      return res.end("Forbidden");
+    if (!["GET", "HEAD"].includes(req.method)) {
+      res.writeHead(405, { ...securityHeaders, allow: "GET, HEAD" });
+      return res.end();
     }
     try {
-      const data = await readFile(file),
-        types = {
-          ".html": "text/html; charset=utf-8",
-          ".css": "text/css; charset=utf-8",
-          ".js": "text/javascript; charset=utf-8",
-        };
-      res.writeHead(200, {
-        ...securityHeaders,
-        "content-type": types[extname(file)] || "application/octet-stream",
-      });
-      res.end(data);
+      const { catalog } = await getAssets(), entry = catalog.get(path);
+      if (!entry) {
+        res.writeHead(404, { ...securityHeaders, "cache-control": "no-store" });
+        return res.end("Not found");
+      }
+      sendAsset(req, res, entry, securityHeaders);
     } catch {
-      res.writeHead(404, securityHeaders);
-      res.end("Not found");
+      res.writeHead(503, { ...securityHeaders, "cache-control": "no-store" });
+      res.end("Assets temporarily unavailable");
     }
   });
 }
