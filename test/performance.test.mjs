@@ -49,7 +49,7 @@ test("static assets are versioned, compressed and immutable while pages revalida
   assert.equal(css.headers.get("cache-control"), "public, max-age=31536000, immutable");
   const text = await css.text();
   assert.match(text, /url\('\/static\/assets\/signal-hero\.[0-9a-f]{20}\.webp'\)/);
-  assert.match(text, /fonts\.googleapis\.com/, "external URLs are not rewritten");
+  assert.ok(text.includes("https://fonts.googleapis.com/css2?"), "external URLs are not rewritten");
   const etag = css.headers.get("etag"),
     again = await fetch(base + styles, { headers: { "if-none-match": etag } });
   assert.equal(again.status, 304);
@@ -143,4 +143,17 @@ test("production metrics require a strong scrape token", () => {
   assert.ok(errors({ PERFORMANCE_METRICS_ENABLED: "true" }).includes("METRICS_BEARER_TOKEN must be configured"));
   assert.ok(errors({ PERFORMANCE_METRICS_ENABLED: "true", METRICS_BEARER_TOKEN: "short-token" }).includes("METRICS_BEARER_TOKEN must be at least 32 characters"));
   assert.ok(!errors({ PERFORMANCE_METRICS_ENABLED: "true", METRICS_BEARER_TOKEN: token }).some((e) => e.startsWith("METRICS")));
+});
+
+test("CORS echoes only configured origins and rejects the opaque null origin", async (t) => {
+  const base = await api(t);
+  const allowed = await fetch(base + "/api/plans", { headers: { origin: "http://customer.test" } });
+  assert.equal(allowed.headers.get("access-control-allow-origin"), "http://customer.test");
+  for (const origin of ["null", "http://evil.test"]) {
+    const rejected = await fetch(base + "/api/plans", { headers: { origin } });
+    assert.equal(rejected.status, 403);
+    assert.equal(rejected.headers.get("access-control-allow-origin"), null);
+  }
+  const admin = await fetch(base + "/api/admin/dashboard", { headers: { origin: "http://customer.test" } });
+  assert.equal(admin.status, 403, "the customer origin cannot call administrator routes");
 });
