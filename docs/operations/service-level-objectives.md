@@ -67,7 +67,7 @@ owner and every role owner attend.
 
    ```sh
    PROMETHEUS_URL=https://prometheus.example.internal \
-   PROMETHEUS_BEARER_TOKEN_FILE=/path/to/token npm run slo:report
+   PROMETHEUS_BEARER_TOKEN=replace-with-token npm run slo:report
    ```
 
    The report lists each objective's target, 30-day achievement, budget left, event count,

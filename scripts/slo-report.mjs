@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 // Prints the 30-day service-level report for the monthly review (OBS-005) as a
@@ -68,10 +67,12 @@ export async function sloReport({ prometheusUrl, token, request = fetch, now = n
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const tokenFile = process.env.PROMETHEUS_BEARER_TOKEN_FILE;
+    if (process.env.PROMETHEUS_BEARER_TOKEN_FILE) {
+      throw new Error("PROMETHEUS_BEARER_TOKEN_FILE is no longer supported; use PROMETHEUS_BEARER_TOKEN");
+    }
     console.log(await sloReport({
       prometheusUrl: process.env.PROMETHEUS_URL || "http://localhost:9090",
-      token: tokenFile ? (await readFile(tokenFile, "utf8")).trim() : undefined,
+      token: process.env.PROMETHEUS_BEARER_TOKEN,
     }));
   } catch (error) {
     // Never echo the token or response bodies.
