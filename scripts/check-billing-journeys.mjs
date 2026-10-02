@@ -54,10 +54,24 @@ try {
   }
   await scenario("download and email a paid receipt", async (page) => {
     await page.goto(`${portal}/dashboard`);
+    const receiptButton = page.getByRole("button", { name: "View receipt", exact: true });
+    await receiptButton.click();
+    const dialog = page.getByRole("dialog", { name: "Payment receipt" });
+    await dialog.waitFor();
+    await dialog.getByText("Weekly", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "receiptClose");
+    assert.equal(page.context().pages().length, 1, "receipts stay in the dashboard instead of opening a tab");
     const download = page.waitForEvent("download");
-    await page.getByRole("link", { name: "Download receipt" }).click();
+    await dialog.getByRole("button", { name: "Download PDF" }).click();
     const file = await download;
-    assert.match(await readFile(await file.path(), "utf8"), /Weekly/);
+    assert.match(file.suggestedFilename(), /^ndahi-receipt-[\w-]+\.pdf$/);
+    assert.equal((await readFile(await file.path())).subarray(0, 5).toString(), "%PDF-");
+    assert.equal(await page.url(), `${portal}/dashboard`);
+    await dialog.screenshot({ path: `${screenshots}/receipt-popup-desktop.png` });
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "hidden" });
+    assert.equal(await receiptButton.evaluate((button) => button === document.activeElement), true,
+      "closing the receipt returns keyboard focus to its opener");
     await page.getByRole("button", { name: "Email receipt" }).click();
     await page.getByText("Receipt sent to your account email.").waitFor();
     await page.locator("#billing").screenshot({ path: `${screenshots}/billing-desktop.png` });
@@ -74,14 +88,85 @@ try {
     await adminPage.locator('[data-tab="payments"]').click();
     adminPage.on("dialog", (dialog) => dialog.accept());
     await adminPage.getByRole("button", { name: "Approve full refund" }).click();
-    await adminPage.getByRole("button", { name: "Recheck refund" }).waitFor();
+    await adminPage.getByRole("button", { name: "Check refund status" }).waitFor();
     await page.reload(); await page.getByText("Refund: pending", { exact: true }).waitFor();
     refundStatus = "completed"; now = new Date(+now + 31000);
-    await adminPage.getByRole("button", { name: "Recheck refund" }).click();
+    await adminPage.getByRole("button", { name: "Check refund status" }).click();
     await adminPage.getByText(/Refund: completed/).waitFor();
     await page.reload(); await page.getByText("Refund: completed", { exact: true }).waitFor();
     assert.equal(refundCalls, 1);
-    assert.equal(await page.getByRole("link", { name: "Download receipt" }).count(), 1);
+    assert.equal(await page.getByRole("button", { name: "View receipt" }).count(), 1);
+  });
+  await scenario("unconfirmed terminal payments have no receipt, refund or recheck actions", async (page) => {
+    await store.transaction((s) => {
+      const original = s.payments[0];
+      for (const status of ["expired", "failed", "cancelled"]) s.payments.push({
+        ...structuredClone(original), id: `terminal-${status}`, status, confirmedAt: null,
+        planSnapshot: { ...original.planSnapshot, name: `Closed ${status} package` },
+        // Historical receipt/refund fields do not make an unconfirmed payment refundable.
+        receipt: structuredClone(original.receipt), refund: { status: "pending" },
+      });
+      s.payments.push({ ...structuredClone(original), id: "expired-confirmed", status: "expired",
+        planSnapshot: { ...original.planSnapshot, name: "Historical expired package" }, refund: { status: "pending" },
+      });
+    });
+    await page.goto(`${portal}/dashboard`);
+    for (const status of ["expired", "failed", "cancelled"]) {
+      const row = page.locator("#billing tbody tr").filter({ hasText: `Closed ${status} package` });
+      await row.waitFor();
+      assert.equal(await row.getByRole("button").count(), 0, `${status} payments have no customer money actions`);
+      assert.equal(await row.getByText("Request a refund", { exact: true }).count(), 0);
+    }
+    assert.equal(await page.getByRole("button", { name: "View receipt" }).count(), 2, "confirmed receipts stay available");
+    const historical = page.locator("#billing tbody tr").filter({ hasText: "Historical expired package" });
+    assert.equal(await historical.getByRole("button", { name: /Check .* status/ }).count(), 0);
+    assert.equal(await historical.getByText("Request a refund", { exact: true }).count(), 0);
+  });
+  await scenario("receipt preview escapes provider data and rejects an HTML download", async (page) => {
+    await page.route("**/api/account/payments/*/receipt?format=json", async (route) => {
+      const response = await route.fetch(), result = await response.json();
+      result.receipt.customerName = '<img src="x" onerror="window.receiptInjected=true">';
+      await route.fulfill({ response, json: result });
+    });
+    await page.route("**/api/account/payments/*/receipt", (route) => route.fulfill({
+      contentType: "text/html", body: "<html><body>old receipt</body></html>",
+    }));
+    await page.goto(`${portal}/dashboard`);
+    await page.getByRole("button", { name: "View receipt", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Payment receipt" });
+    await dialog.getByRole("button", { name: "Download PDF" }).waitFor();
+    assert.equal(await dialog.locator("img").count(), 0);
+    assert.match(await dialog.textContent(), /<img src="x"/);
+    await dialog.getByRole("button", { name: "Download PDF" }).click();
+    await dialog.getByText("The PDF receipt is unavailable. Please try again.").waitFor();
+    assert.equal(await page.evaluate(() => window.receiptInjected), undefined);
+    assert.equal(page.context().pages().length, 1);
+  });
+  await scenario("payment history and receipts show the selected mobile money network", async (page) => {
+    await store.transaction((s) => {
+      const original = s.payments[0];
+      original.provider = "mesomb"; original.network = "mtn";
+      original.receipt.provider = "mesomb";
+      delete original.receipt.network;
+      s.payments.push({ ...structuredClone(original), id: "orange-payment", network: "orange",
+        planSnapshot: { ...original.planSnapshot, name: "Orange package" },
+        receipt: { ...original.receipt, number: "NC-orange-payment", paymentId: "orange-payment" },
+      });
+    });
+    await page.goto(`${portal}/dashboard`);
+    const mtnRow = page.locator("#billing tbody tr").filter({ hasText: "Weekly" }),
+      orangeRow = page.locator("#billing tbody tr").filter({ hasText: "Orange package" });
+    await mtnRow.waitFor(); await orangeRow.waitFor();
+    assert.match(await mtnRow.textContent(), /MTN Mobile Money/);
+    assert.match(await orangeRow.textContent(), /Orange Money/);
+    assert.doesNotMatch(await page.locator("#billing").textContent(), /mesomb/i);
+    await mtnRow.getByRole("button", { name: "View receipt" }).click();
+    const dialog = page.getByRole("dialog", { name: "Payment receipt" });
+    await dialog.getByText("MTN Mobile Money", { exact: true }).waitFor();
+    assert.doesNotMatch(await dialog.textContent(), /mesomb/i);
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await orangeRow.getByRole("button", { name: "View receipt" }).click();
+    await dialog.getByText("Orange Money", { exact: true }).waitFor();
   });
   await scenario("refund failure is visible without claiming completed payout", async (page) => {
     await store.transaction((s) => { s.payments[0].refund = { id: "rf", status: "failed", message: "Your provider reports that the refund failed. Contact support for review." }; });
@@ -166,10 +251,15 @@ try {
   });
   for (const width of [390, 320]) await scenario(`billing actions at ${width}px`, async (page) => {
     await page.goto(`${portal}/dashboard`);
-    await page.getByRole("link", { name: "Download receipt" }).waitFor();
+    await page.getByRole("button", { name: "View receipt" }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true,
       JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("main *")].filter((el) => el.getBoundingClientRect().right > innerWidth).slice(0, 8).map((el) => ({ tag: el.tagName, class: el.className, width: el.getBoundingClientRect().width })))));
     await page.locator("#billing").screenshot({ path: `${screenshots}/billing-${width}.png` });
+    await page.getByRole("button", { name: "View receipt" }).click();
+    const dialog = page.getByRole("dialog", { name: "Payment receipt" });
+    await dialog.getByRole("button", { name: "Download PDF" }).waitFor();
+    assert.equal(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth), true, "receipt fits narrow mobile screens");
+    await dialog.screenshot({ path: `${screenshots}/receipt-popup-${width}.png` });
   }, { width });
   console.log(`${checks} billing browser scenarios passed. Screenshots saved.`);
 } finally {

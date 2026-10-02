@@ -21,7 +21,7 @@ async function fixture(t, { payments, email, now, store = createStore({ persiste
     const cookie = response.headers.get("set-cookie");
     if (cookie) jar[cookie.split("=")[0]] = cookie.split(";")[0];
     const text = await response.text();
-    let json; try { json = JSON.parse(text); } catch { /* receipt HTML */ }
+    let json; try { json = JSON.parse(text); } catch { /* binary receipt */ }
     return { response, json, text };
   };
   return { store, call, jar };
@@ -114,7 +114,7 @@ test("BILL-001 mismatched verification cannot release or fulfill a payment; prov
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "new-confirmed-retry" }))).response.status, 201);
 });
 
-test("BILL-002 receipt ownership, frozen allowances, safe HTML and email failure recovery", async (t) => {
+test("BILL-002 receipt ownership, frozen allowances and email failure recovery", async (t) => {
   let failed = true, calls = 0, time = new Date();
   const f = await fixture(t, { now: () => time, email: { configured: () => true, sendVoucher: async () => ({}),
     async sendReceipt({ receipt }) { calls++; assert.equal(receipt.plan.name, "Weekly"); if (failed) throw Error("mail down"); return { messageId: "mail-1" }; },
@@ -122,10 +122,9 @@ test("BILL-002 receipt ownership, frozen allowances, safe HTML and email failure
   const id = await account(f);
   assert.equal((await f.call(`/api/account/payments/${id}/receipt`, "GET", null, "")).response.status, 401);
   await f.store.transaction((s) => { s.payments[0].planSnapshot.name = "Changed catalogue <script>bad()</script>"; });
-  const receipt = await f.call(`/api/account/payments/${id}/receipt`);
+  const receipt = await f.call(`/api/account/payments/${id}/receipt?format=json`);
   assert.equal(receipt.response.status, 200);
-  assert.match(receipt.response.headers.get("content-disposition"), /attachment/);
-  assert.match(receipt.text, /Weekly/);
+  assert.equal(receipt.json.receipt.plan.name, "Weekly");
   assert.doesNotMatch(receipt.text, /Changed catalogue/);
   let response = await f.call("/api/account/payments/receipt-email", "POST", { paymentId: id });
   assert.equal(response.json.payment.receiptEmail.status, "failed");
@@ -146,6 +145,22 @@ test("BILL-002 historical paid transactions have receipts without exposing activ
   const receipt = ensureReceipt(p, { name: "Historical", quotaGb: null, validityHours: 24, deviceLimit: 1 });
   const html = receiptDocument(receipt);
   assert.match(html, /ref/); assert.match(html, /Unlimited/); assert.doesNotMatch(html, /<script\b/i);
+});
+
+test("expired transactions reject refund requests and unconfirmed stale receipts stay unavailable", async (t) => {
+  const f = await fixture(t);
+  const id = await account(f);
+  await f.store.transaction((s) => { s.payments[0].status = "expired"; });
+  const refund = await f.call("/api/account/payments/refund", "POST", { paymentId: id });
+  assert.equal(refund.response.status, 409);
+  assert.equal((await f.store.snapshot()).payments[0].refund, undefined);
+  assert.equal((await f.call(`/api/account/payments/${id}/receipt?format=json`)).response.status, 200,
+    "a confirmed payment retains its original proof of payment");
+  await f.store.transaction((s) => { delete s.payments[0].confirmedAt; });
+  assert.equal((await f.call(`/api/account/payments/${id}/receipt?format=json`)).response.status, 409);
+  assert.equal((await f.call(`/api/account/payments/${id}/receipt`)).response.status, 409);
+  const dashboard = await f.call("/api/account/dashboard");
+  assert.equal(dashboard.json.payments[0].receiptAvailable, false);
 });
 
 test("BILL-003 customer request, administrator approval, and provider confirmation share one refund", async (t) => {

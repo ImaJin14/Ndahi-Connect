@@ -281,7 +281,7 @@ function mountRecordViews(canManagePayments) {
       p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments
         ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
         : ""
-    }${p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Recheck refund</button>` : ""}</td></tr>`,
+    }${["paid", "refund-pending"].includes(p.status) && p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Check refund status</button>` : ""}</td></tr>`,
   });
   void mountRecords($("#auditRecords"), {
     call,
