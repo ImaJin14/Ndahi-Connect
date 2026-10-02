@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { timingSafeEqual } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { RouterHotspot } from "../lib/router-hotspot.mjs";
+import { createLogger, errorFields } from "../lib/logger.mjs";
+import { validCorrelationId, withCorrelation } from "../lib/correlation.mjs";
 
-export function bridgeHandler({ router, username, password }) {
+export function bridgeHandler({ router, username, password, logger = createLogger({ service: "bridge", level: process.env.LOG_LEVEL }) }) {
   if (!username || !password || password.length < 24) throw Error("Configure a bridge service username and password of at least 24 characters.");
   const expected = Buffer.from(`Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`);
   // Serial execution prevents concurrent upserts from creating duplicate users.
@@ -13,6 +15,11 @@ export function bridgeHandler({ router, username, password }) {
     const reply = (status, value) => { res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" }); res.end(JSON.stringify(value)); };
     const actual = Buffer.from(String(req.headers.authorization || ""));
     if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return reply(401, { error: "Unauthorized" });
+    // Only the authenticated API can name the operation; anything malformed is ignored.
+    return withCorrelation({ correlationId: validCorrelationId(req.headers["x-correlation-id"]) }, () => handle(req, res, reply));
+  };
+  async function handle(req, res, reply) {
+    const started = performance.now();
     if (req.method !== "POST") return reply(405, { error: "POST required" });
     const action = req.url?.match(/^\/ndahi\/(syncVoucher|disconnectDevice|disconnectVoucher|readUsage|readState|markInactive)$/)?.[1];
     if (!action) return reply(404, { error: "Unknown bridge action" });
@@ -29,9 +36,15 @@ export function bridgeHandler({ router, username, password }) {
         : action === "readState" ? router.readState()
         : router.markInactive();
       const task = tail.then(execute); tail = task.catch(() => {});
-      try { reply(200, await task); } finally { waiting--; }
-    } catch { if (!res.headersSent) reply(502, { error: "Bridge operation failed. Check router connectivity and local service logs." }); }
-  };
+      try {
+        reply(200, await task);
+        logger.info("bridge.operation_completed", { action, durationMs: Math.round(performance.now() - started) });
+      } finally { waiting--; }
+    } catch (error) {
+      logger.error("bridge.operation_failed", { action, ...errorFields(error) });
+      if (!res.headersSent) reply(502, { error: "Bridge operation failed. Check router connectivity and local service logs." });
+    }
+  }
 }
 async function main() {
   const env = process.env, url = new URL(env.ROUTER_REST_URL || "");
@@ -40,6 +53,9 @@ async function main() {
   const router = new RouterHotspot({ url: url.origin, username: env.ROUTER_REST_USER, password: env.ROUTER_REST_PASSWORD });
   const server = https.createServer({ key: await readFile(env.BRIDGE_TLS_KEY), cert: await readFile(env.BRIDGE_TLS_CERT) }, bridgeHandler({ router, username: env.MIKROTIK_USER, password: env.MIKROTIK_PASSWORD }));
   server.requestTimeout = 20000; server.headersTimeout = 10000;
-  server.listen(Number(env.BRIDGE_PORT || 8443), env.BRIDGE_HOST || "127.0.0.1", () => console.log("NDAHI management bridge listening on its configured private interface."));
+  server.listen(Number(env.BRIDGE_PORT || 8443), env.BRIDGE_HOST || "127.0.0.1", () => createLogger({ service: "bridge", level: env.LOG_LEVEL }).info("bridge.listening"));
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(() => { console.error("Bridge startup failed. Check TLS files and required environment settings."); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(() => {
+  createLogger({ service: "bridge", level: process.env.LOG_LEVEL }).error("bridge.startup_failed", { hint: "Check TLS files and required environment settings." });
+  process.exitCode = 1;
+});

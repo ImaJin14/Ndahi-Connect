@@ -499,13 +499,20 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Observability
 
-- [ ] **OBS-001 — Add structured application logging**
+- [-] **OBS-001 — Add structured application logging**
   - Include severity, service, event, request ID, and safe identifiers.
   - Acceptance: secrets, PINs, vouchers, and personal data are excluded.
+  - Implemented (2026-10-02): `lib/logger.mjs` writes one JSON line per event with `time`, `level`, `service`, `event` and allowlisted fields only; raw exception messages are excluded; string values are redacted for email addresses, phone/account numbers, voucher and recovery codes, bearer tokens, URL credentials and API keys before truncation. Every API request gets a UUID request ID (`x-request-id` header) and one access log with a route template (identifiers become `:id`; no query strings). The API, both frontends, the retention job and the network bridge use it; `LOG_LEVEL` sets the threshold. See [application logging](operations/logging.md).
+  - Gap closed: the API's top-level error handler logged raw `Error` messages, and payment and email adapters embed provider error text that can echo phone numbers or email addresses.
+  - Local verification: 9 logger tests (allowlist, in-place redaction, UUID preservation across 500 IDs, redact-before-truncate, levels/streams, route templates, request-ID header, query/body/error-message exclusion over HTTP); full suite 273 passes, 0 failures, 11 PostgreSQL skips; 300-user load test with zero failed requests; syntax and whitespace checks passed.
+  - Remaining: confirm structured lines and request IDs in Render's API logs after deployment.
 
-- [ ] **OBS-002 — Add request correlation IDs**
+- [-] **OBS-002 — Add request correlation IDs**
   - Propagate IDs across API, payment, email, and network adapters.
   - Acceptance: one customer operation can be traced end to end.
+  - Implemented (2026-10-02): async request context, persisted operation IDs on payments/router commands/security alerts, restored worker contexts, and authenticated bridge propagation. Third-party providers receive no correlation header.
+  - Review verification: concurrent context isolation, durable router-job restoration, API headers/log IDs, privacy tests and the full suite (273 passes, 11 PostgreSQL skips) passed. Raw exception messages are excluded from error fields to prevent PIN/name leakage.
+  - Remaining: trace a real payment/email/router operation in Render and verify physical bridge logs.
 
 - [ ] **OBS-003 — Add centralized error tracking**
   - Acceptance: frontend and backend failures are grouped, alerted, and linked to releases.
@@ -779,7 +786,7 @@ Update these totals whenever tasks are completed.
 Recounted from the task list on 2026-10-02.
 
 - P0 pending: 2 (blocked: SEC-009 and DATA-005)
-- P1 pending: 18 (10 implemented awaiting production verification, 8 not started)
+- P1 pending: 18 (12 implemented awaiting production verification, 6 not started)
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14
@@ -799,5 +806,6 @@ Recounted from the task list on 2026-10-02.
 | DEP-002 | Implemented; production verification pending | Read-only database gate and 141 tests passed on 2026-09-21 | Apply migrations through the backup/write-pause procedure; observe the gate on Render |
 | DEP-003 | Implemented; production verification pending | 252 tests passed; live run passed with bootstrap opt-in on 2026-10-02 | Strict run after launch; confirm Render deployment-status events; rehearse rollback on failure |
 | DEP-005 | Implemented; production verification pending | 9 drift tests and 261-test suite passed on 2026-10-02 | Reconcile dashboard values; observe pre-deploy checks pass on all three services |
+| OBS-001 | Implemented; production verification pending | 9 logger tests, 273-test suite and 300-user load test passed on 2026-10-02 | Confirm structured logs and request IDs in Render after deployment |
 
 Pending totals above include these tasks until production verification is recorded.
