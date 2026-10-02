@@ -192,6 +192,10 @@ async function initialize() {
           activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
           showCheckout();
           $("#selected").textContent = "Resume your payment";
+          // Prefilled so a closed checkout can be started again with one click.
+          for (const field of ["name", "phone", "email", "network"]) {
+            if (saved.input[field] && $("#purchase").elements[field]) $("#purchase").elements[field].value = saved.input[field];
+          }
           $("#purchaseFields").disabled = true;
           $("#message").textContent = "Checking your existing payment…";
           if (!await checkPayment(created.payment.id, saved.input.phone)) {
@@ -220,10 +224,11 @@ function choose(id) {
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   return true;
 }
+const checkoutTitle = () =>
+  `${accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy"} ${selected.name}`;
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  const verb = accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy";
-  $("#selected").textContent = `${verb} ${selected.name}`;
+  $("#selected").textContent = checkoutTitle();
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
     : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
@@ -282,8 +287,9 @@ function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
   $("#purchaseFields").disabled = false;
+  $("#selected").textContent = checkoutTitle();
   $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
-  if ($("#viewPayment")) notice("The previous payment is no longer pending. You can choose a package again.", false);
+  if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);
   renderPlans();
 }
 async function beginAccountSecurity(paid, phone) {

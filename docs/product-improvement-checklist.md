@@ -339,6 +339,7 @@ Use this document as the source of truth for product, engineering, security, and
     checkout survive refresh/tab closure; uncertain provider outcomes never create an automatic retry.
   - Checkout expiry (2026-10-02): abandoned orders close after the approval window plus grace; customer-initiated retries use new keys. Late confirmation remains supported, with competing entitlements held for review. Closed reservations no longer consume worker batches, and payment-status reads apply expiry immediately.
   - Review verification: 308 tests passed, 12 PostgreSQL-dependent skips, syntax/whitespace checks and the 300-user memory load test passed. Live provider timeout/late-callback acceptance remains pending.
+  - Guest expiry recovery (2026-10-02): saved-checkout recovery applies expiry immediately without submitting a charge; the browser replaces stale resume controls and prefills customer details for a fresh request. Customer terms explain late-confirmation support review without guaranteeing refunds. Verified with guest/renewal browser scenarios and API regression coverage.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 

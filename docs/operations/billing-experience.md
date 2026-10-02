@@ -19,8 +19,8 @@ Same-key repeats return the existing order. Reusing a key for a different plan o
 action is rejected. Customers can recheck payments in the dashboard; authenticated
 checkout also discovers pending payments after browser storage is lost. Guest
 checkout stores the original input and random request key in local storage before
-sending it. “Resume saved payment” uses `POST /api/purchase/recover`, which only
-reads the matching phone/key reservation; it does not initiate a charge. If the
+sending it. “Resume saved payment” uses `POST /api/purchase/recover`, which
+reads the matching phone/key reservation and closes it if its approval window has passed; it does not initiate a charge. If the
 reservation never existed, the original request can be submitted with the same
 key. Recovery continues to work when the original package is discontinued.
 
