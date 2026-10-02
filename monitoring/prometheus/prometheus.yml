@@ -6,6 +6,13 @@ global:
 
 rule_files:
   - alerts.yml
+  - slo.yml
+
+# Routes alerts by responder role; see monitoring/alertmanager/alertmanager.yml (OBS-004).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["localhost:9093"]
 
 scrape_configs:
   - job_name: ndahi-api
@@ -16,3 +23,23 @@ scrape_configs:
       credentials_file: /etc/prometheus/secrets/ndahi-metrics-token
     static_configs:
       - targets: ["api.ndahiconnect.net"]
+
+  # External availability probes for the availability SLO (OBS-005), through a
+  # blackbox_exporter on this host configured with monitoring/blackbox/blackbox.yml.
+  - job_name: ndahi-probe
+    scrape_interval: 60s
+    metrics_path: /probe
+    params:
+      module: [https_200]
+    static_configs:
+      - targets:
+          - https://portal.ndahiconnect.net/login
+          - https://admin.ndahiconnect.net/login
+          - https://api.ndahiconnect.net/api/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115

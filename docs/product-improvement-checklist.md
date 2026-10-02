@@ -337,6 +337,9 @@ Use this document as the source of truth for product, engineering, security, and
   - Implemented: durable reservations and a single unresolved checkout per customer; provider calls
     run after commit. Lost responses resume the same order. Dashboard rechecks and saved guest
     checkout survive refresh/tab closure; uncertain provider outcomes never create an automatic retry.
+  - Checkout expiry (2026-10-02): abandoned orders close after the approval window plus grace; customer-initiated retries use new keys. Late confirmation remains supported, with competing entitlements held for review. Closed reservations no longer consume worker batches, and payment-status reads apply expiry immediately.
+  - Review verification: 308 tests passed, 12 PostgreSQL-dependent skips, syntax/whitespace checks and the 300-user memory load test passed. Live provider timeout/late-callback acceptance remains pending.
+  - Guest expiry recovery (2026-10-02): saved-checkout recovery applies expiry immediately without submitting a charge; the browser replaces stale resume controls and prefills customer details for a fresh request. Customer terms explain late-confirmation support review without guaranteeing refunds. Verified with guest/renewal browser scenarios and API regression coverage.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 
@@ -347,6 +350,16 @@ Use this document as the source of truth for product, engineering, security, and
     (printable to PDF), emailed receipts and delivery retries, including historical paid records.
   - Verified: ownership isolation, historical availability, snapshot stability, HTML escaping,
     email failure/retry/idempotency, and rendered download/email actions.
+  - Branded design (2026-10-02): receipts now match the voucher email (forest header with the
+    NC mark, amount paid, package card, payment details and total, Douala times) in one
+    email-safe document for download and email, with a matching plain-text email part and
+    A4 print styles. The download CSP adds `style-src 'unsafe-inline'` only. Verified by
+    6 receipt tests (content, natural allowance wording, legacy fallbacks, escaping of every
+    field, no external resources, email and download wiring), desktop/375px/PDF renders
+    in Chrome under the download CSP, and the 8 billing browser scenarios.
+  - Review verification: full suite 299 passes, zero failures, 12 PostgreSQL-dependent
+    skips; syntax and whitespace checks passed. Production receipt delivery remains
+    to be verified.
 
 - [x] **BILL-003 — Expose refund status clearly**
   - Show requested, pending, completed, and failed refund states.
@@ -419,6 +432,13 @@ Use this document as the source of truth for product, engineering, security, and
     back to the stored `XXXX-XXXX` shape before hashing/comparing (mirrors
     `normalizeActivationCode` for vouchers) — a hyphen-stripping-only normalizer was
     tried first and failed a round-trip test before this fix.
+  - Hashing change (2026-10-02, found during DEP-006): HMAC hashes keyed by `SECRET_PEPPER`
+    meant any pepper rotation silently invalidated every customer's unused codes. New codes
+    are hashed with Argon2id (OWASP minimum parameters, about 16 ms per check) and survive
+    rotation; checks run outside the store lock and the sign-in transaction re-checks the
+    code is unused. Earlier codes still match under the current or previous pepper. Verified
+    by tests for rotation, legacy codes during an overlap, concurrent reuse, and hashing at rest;
+    the 4 security browser scenarios, including recovery-code sign-in, pass in Chrome.
 
 - [x] **AUTH-005 — Add security notifications**
   - Notify customers about PIN resets, new passkeys, authenticator changes, and suspicious login activity.
@@ -499,24 +519,38 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Observability
 
-- [ ] **OBS-001 — Add structured application logging**
+- [-] **OBS-001 — Add structured application logging**
   - Include severity, service, event, request ID, and safe identifiers.
   - Acceptance: secrets, PINs, vouchers, and personal data are excluded.
+  - Implemented (2026-10-02): `lib/logger.mjs` writes one JSON line per event with `time`, `level`, `service`, `event` and allowlisted fields only; raw exception messages are excluded; string values are redacted for email addresses, phone/account numbers, voucher and recovery codes, bearer tokens, URL credentials and API keys before truncation. Every API request gets a UUID request ID (`x-request-id` header) and one access log with a route template (identifiers become `:id`; no query strings). The API, both frontends, the retention job and the network bridge use it; `LOG_LEVEL` sets the threshold. See [application logging](operations/logging.md).
+  - Gap closed: the API's top-level error handler logged raw `Error` messages, and payment and email adapters embed provider error text that can echo phone numbers or email addresses.
+  - Local verification: 9 logger tests (allowlist, in-place redaction, UUID preservation across 500 IDs, redact-before-truncate, levels/streams, route templates, request-ID header, query/body/error-message exclusion over HTTP); full suite 273 passes, 0 failures, 11 PostgreSQL skips; 300-user load test with zero failed requests; syntax and whitespace checks passed.
+  - Remaining: confirm structured lines and request IDs in Render's API logs after deployment.
 
-- [ ] **OBS-002 — Add request correlation IDs**
+- [-] **OBS-002 — Add request correlation IDs**
   - Propagate IDs across API, payment, email, and network adapters.
   - Acceptance: one customer operation can be traced end to end.
+  - Implemented (2026-10-02): async request context, persisted operation IDs on payments/router commands/security alerts, restored worker contexts, and authenticated bridge propagation. Third-party providers receive no correlation header.
+  - Review verification: concurrent context isolation, durable router-job restoration, API headers/log IDs, privacy tests and the full suite (273 passes, 11 PostgreSQL skips) passed. Raw exception messages are excluded from error fields to prevent PIN/name leakage.
+  - Remaining: trace a real payment/email/router operation in Render and verify physical bridge logs.
 
 - [ ] **OBS-003 — Add centralized error tracking**
   - Acceptance: frontend and backend failures are grouped, alerted, and linked to releases.
 
-- [ ] **OBS-004 — Add service dashboards and alerts**
+- [-] **OBS-004 — Add service dashboards and alerts**
   - Monitor API health, database, payments, email, RouterOS, Omada, authentication, and queue backlogs.
   - Acceptance: warning and critical thresholds have named responders.
+  - Implemented (2026-10-02): `lib/service-metrics.mjs` wraps the payment, email, RouterOS and Omada adapters to count each call's outcome, records readiness-probe database health, counts login responses by actor and outcome, and refreshes queue backlog, oldest-age, dead-letter and payments-needing-review gauges every 60 seconds from a partial snapshot (payments, provider events, router commands and security alerts only). Omada is probed every fifth sample when live. 20 new alert rules in five groups carry warning/critical severities and responder roles (`platform-on-call`, `payments-owner`, `network-operations`, `security-owner`); Alertmanager routes each role to its own channel with critical repeats hourly and critical-over-warning inhibition. Adds the `ndahi-services` Grafana dashboard and a CI job that validates rules, rule tests, Alertmanager config and dashboard queries with pinned, checksum-verified promtool 3.15.0 and amtool 0.34.1. See [service monitoring](operations/service-monitoring.md).
+  - Gap closed: the existing PERF-001 rule tests were documented but never run in CI.
+  - Local verification: 5 service-metrics tests (queue statistics, adapter instrumentation preserving private fields and `instanceof`, monitor sampling/failure/Omada cadence, login outcome mapping, metrics endpoint without customer data) plus a CI-only PostgreSQL partial-snapshot test; 10 promtool scenarios in which every new alert fires, plus minimum-volume and no-alert cases, mutation-checked; amtool routing for every role and severity; full suite 278 passes, 0 failures, 12 PostgreSQL skips; 300-user load test with zero failed requests; syntax and whitespace checks passed.
+  - Remaining: name a primary and backup for each responder role, deploy Prometheus, Alertmanager and the dashboards against production, create the role webhooks, and send a routing test alert to each role.
 
-- [ ] **OBS-005 — Define service-level objectives**
+- [-] **OBS-005 — Define service-level objectives**
   - Cover portal availability, payment completion, voucher provisioning, and network enforcement.
   - Acceptance: objectives and error budgets are reviewed regularly.
+  - Implemented (2026-10-02): five proposed 30-day objectives in [service-level objectives](operations/service-level-objectives.md): availability of the portal, admin and API from external blackbox probes (99.5% per endpoint), API requests without server errors (99.5%), provider-confirmed payments issuing a voucher within 10 minutes of checkout without review (99%), vouchers reaching the router within 2 minutes (99%), and disconnects within 5 minutes (99%). New indicators: checkout-to-voucher time and review failures (counted once per payment), router command delivery time from the latest queuing and dead letters, and API request outcomes excluding probes. `monitoring/prometheus/slo.yml` records error ratios over 5 minutes to 30 days, objectives and remaining budget, with multi-window fast-burn (critical) and slow-burn (warning) alerts routed to each objective's responder, plus budget-exhausted and missing-prober alerts. Adds `monitoring/blackbox/blackbox.yml` with a probe job, the `ndahi-slo` dashboard, `npm run slo:report` for the monthly review, an error-budget policy and a review log.
+  - Local verification: 4 tests (fulfillment timing and once-only review failures through a real purchase and retried webhook, delivery timing across requeue/dead-letter/replay, probe-excluding request outcomes, the review report including HTTPS enforcement and no token output); 7 promtool scenarios checking recorded ratios, budgets and every alert, including per-endpoint paging, minimum-volume and no-traffic cases, mutation-checked; blackbox, promtool and amtool checks replayed from the CI job; full suite 282 passes, 0 failures, 12 PostgreSQL skips; 300-user load test with zero failed requests; syntax and whitespace checks passed.
+  - Remaining: agree the proposed objectives with the product owner, deploy the prober and SLO rules with 31-day retention, and hold the first monthly review after 30 days of production data; reviews then continue monthly per the documented policy.
 
 ### Deployment safety
 
@@ -540,12 +574,20 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **DEP-004 — Add automatic rollback procedures**
   - Acceptance: application rollback and database forward-fix procedures are documented and rehearsed.
 
-- [ ] **DEP-005 — Add environment-drift validation**
+- [-] **DEP-005 — Add environment-drift validation**
   - Reconcile Render Blueprint defaults with live environment settings.
   - Acceptance: unexpected `BOOTSTRAP_MODE`, mock adapters, URLs, and missing secrets are detected before deployment.
+  - Implemented (2026-10-02): `npm run check:environment -- <service>` runs as the pre-deploy command on all three web services (before `check:database` on the API). It compares the live environment with `render.yaml`: pinned values (including `BOOTSTRAP_MODE`, `*_MODE`, `NODE_ENV`), generated/database values, exact HTTPS origins, Blueprint `domains` for app URLs, admin CORS origins and WebAuthn RP IDs, and the full `lib/config.mjs` production rules. While `BOOTSTRAP_MODE=true`, launch blockers and temporary hosts are warnings; after launch they fail the deploy. Launch therefore requires committing `BOOTSTRAP_MODE: "false"` to `render.yaml`. Output never includes live values. Adds the `yaml` dependency. See [environment drift validation](operations/api-deployment-readiness.md#environment-drift-validation-dep-005).
+  - Gap closed: startup validation accepted `https://portal.ndahiconnect.net/` (trailing slash), which would silently break exact-match CORS and passkey origin checks.
+  - Local verification: 9 drift tests against the real `render.yaml`; full suite 261 passes, 0 failures, 11 PostgreSQL skips; syntax and whitespace checks passed.
+  - Remaining: reconcile dashboard values listed in the runbook, then observe the pre-deploy command pass on Render for all three services.
 
-- [ ] **DEP-006 — Document incident response and ownership**
+- [-] **DEP-006 — Document incident response and ownership**
   - Acceptance: payment, security, database, and network incidents have clear escalation paths.
+  - Implemented (2026-10-02): [incident response](operations/incident-response.md) defines proposed SEV1–SEV3 severities with acknowledgement and customer-update targets; incident lead, responder and product-owner roles; an escalation path per incident type (payment, security, database, network, API/email/monitoring, portal speed) through the OBS-004 responder roles, product owner and external providers; playbooks with signals, containment, diagnosis and recovery that link the existing runbooks; a customer-status procedure; an emergency-controls table; a post-incident review template; and an external-contacts table. Named people stay in the single OBS-004 roster.
+  - Gaps found: administrators could not be deactivated, and recovery codes broke on any pepper rotation. Both are fixed: owner-only `POST /api/admin/users/deactivate` ends the account's sessions at once, refuses self-deactivation and is audited, and admin authentication now rejects inactive accounts; recovery codes moved to Argon2id (see AUTH-004). Still open, with documented workarounds: no checkout-only pause, and no admin screens for the service status or deactivation (console procedures using the audited endpoints). A dashboard-only `BOOTSTRAP_MODE` change is rejected by the DEP-005 pre-deploy check, so stopping the API requires a `render.yaml` commit or suspending the Render service.
+  - Local verification: 4 ownership tests now guard the escalation paths in CI: all 31 alerts have a severity and responder, every responder role is routed in Alertmanager and listed in the roster and escalation table, each incident type has a playbook and path, every alert has a documented first action, and every link and section anchor in the operations and security docs and this checklist resolves (mutation-checked). Full suite 286 passes, 0 failures, 12 PostgreSQL skips; syntax and whitespace checks passed.
+  - Remaining: name the responders and vendor contacts, agree the severity targets with the product owner, and run a tabletop exercise for each incident type.
 
 ## P2 — Accessibility, quality, and design consistency
 
@@ -772,12 +814,14 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
+Recounted from the task list on 2026-10-02.
+
 - P0 pending: 2 (blocked: SEC-009 and DATA-005)
-- P1 pending: 27
-- P2 pending: 24
-- P3 pending: 17
+- P1 pending: 18 (15 implemented awaiting production verification, 3 not started)
+- P2 pending: 31
+- P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 27
+- Recommendation tasks complete: 36
 
 ## Implementation tracker
 
@@ -790,5 +834,20 @@ Update these totals whenever tasks are completed.
 | PERF-003 | Implemented; production verification pending | 50,000-voucher query tests and admin browser checks passed on 2026-09-28 | Verify with production data volumes |
 | PERF-004 | Implemented; production verification pending | Caching/compression tests and Slow 4G measurements passed on 2026-09-28 | Confirm deployed caching headers |
 | PERF-005 | Implemented; production verification pending | Telemetry and alert tests passed on 2026-09-28 | Agree targets, enable collection, record first production p75 |
+| DEP-002 | Implemented; production verification pending | Read-only database gate and 141 tests passed on 2026-09-21 | Apply migrations through the backup/write-pause procedure; observe the gate on Render |
+| DEP-003 | Implemented; production verification pending | 252 tests passed; live run passed with bootstrap opt-in on 2026-10-02 | Strict run after launch; confirm Render deployment-status events; rehearse rollback on failure |
+| DEP-005 | Implemented; production verification pending | 9 drift tests and 261-test suite passed on 2026-10-02 | Reconcile dashboard values; observe pre-deploy checks pass on all three services |
+| OBS-001 | Implemented; production verification pending | 9 logger tests, 273-test suite and 300-user load test passed on 2026-10-02 | Confirm structured logs and request IDs in Render after deployment |
+| OBS-002 | Implemented; production verification pending | Correlation tests, 273-test suite and 300-user load test passed on 2026-10-02 | Trace a real purchase through Render and bridge logs |
+| OBS-004 | Implemented; named responders and production deployment pending | 5 metrics tests, 10 promtool scenarios, amtool routing and 278-test suite passed on 2026-10-02 | Name role owners, deploy Prometheus/Alertmanager/Grafana, send routing test alerts |
+| OBS-005 | Proposed objectives implemented; agreement and first review pending | 4 SLI/report tests, 7 promtool scenarios and 282-test suite passed on 2026-10-02 | Agree objectives, deploy prober and SLO rules (31-day retention), hold monthly reviews |
+| DEP-006 | Documented; named owners, agreement and exercise pending | 4 ownership/link tests, 5 deactivation and recovery-code tests, 291-test suite passed on 2026-10-02 | Fill roster and vendor contacts, agree severities, run a tabletop exercise per incident type |
 
 Pending totals above include these tasks until production verification is recorded.
+
+Review verification (2026-10-02): fixed missing failure logs on router dead-letter
+transitions and incomplete SLO data being reported as met. Added regressions for
+both. The reviewed snapshot passes 293 local tests, with 12 PostgreSQL-dependent
+skips, syntax and whitespace checks, and the 300-user memory load test with zero
+failures. Monitoring configuration/rule validation is also enforced by the new CI
+job; production installation, named responders and incident exercises remain pending.

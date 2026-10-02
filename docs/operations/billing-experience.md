@@ -19,17 +19,25 @@ Same-key repeats return the existing order. Reusing a key for a different plan o
 action is rejected. Customers can recheck payments in the dashboard; authenticated
 checkout also discovers pending payments after browser storage is lost. Guest
 checkout stores the original input and random request key in local storage before
-sending it. “Resume saved payment” uses `POST /api/purchase/recover`, which only
-reads the matching phone/key reservation; it does not initiate a charge. If the
+sending it. “Resume saved payment” uses `POST /api/purchase/recover`, which
+reads the matching phone/key reservation and closes it if its approval window has passed; it does not initiate a charge. If the
 reservation never existed, the original request can be submitted with the same
 key. Recovery continues to work when the original package is discontinued.
 
 A clock timeout, missing provider transaction, or failed connection does not prove
-that no money moved. These results keep checkout blocked while verification retries.
+that no money moved. These results keep checkout blocked during its approval window
+and grace period while verification retries.
 MeSomb is queried by external reference and Flutterwave falls back to verification
-by merchant reference if a create response was lost. Only a matching provider
-failure releases a live payment for a new checkout. Old local failed/expired/cancelled
-records require provider verification before another charge can be created.
+by merchant reference if a create response was lost. A matching provider failure permits a new checkout immediately. Otherwise the
+checkout closes after `PAYMENT_PENDING_SECONDS` (default 300) plus
+`PAYMENT_EXPIRY_GRACE_SECONDS` (default 120), permitting a customer-initiated new
+payment. Closing does not establish that no charge occurred. Same-key retries
+still return the original order; the browser releases its key for expired orders.
+Closed submitted payments are checked every ten minutes for
+`PAYMENT_LATE_CHECK_HOURS` (default 24) after closure. Signed webhooks remain
+eligible for provider verification after that window. Never-submitted reservations
+expire without contacting the provider. Paid, refunded and review-held orders are
+never closed. Old unresolved records follow the same closure rules.
 Manual administrator status overrides are rejected.
 
 Confirmed payments use their saved package allowances. If an older competing
@@ -46,6 +54,14 @@ an HTML receipt (also printable/saveable as PDF) from Payment history, including
 after refund. Requests for another customer's receipt return 404. Historical
 paid records get a receipt on retrieval or worker processing; unavailable
 historical attributes are explicitly labeled rather than invented.
+
+The receipt uses the same branded design as the voucher email (`lib/receipt.mjs`):
+amount paid, package allowances, receipt number, billed-to name, payment method,
+provider reference and total, with times in Africa/Douala. One document serves the
+download and the email, so it uses tables and inline styles that email clients keep,
+loads nothing external, and prints on one A4 page. The download's Content Security
+Policy allows inline styles only; scripts, images and network requests stay blocked.
+The email also carries a plain-text version with the same details.
 
 The billing worker sends receipts to the account email and retries failed delivery.
 The email provider receives a stable per-payment idempotency key. The same receipt

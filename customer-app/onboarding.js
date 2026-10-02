@@ -136,7 +136,7 @@ async function initialize() {
   else $(".hero").hidden = false;
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
-    if (["paid", "failed", "refunded"].includes(payment.status) && payment.requestKey &&
+    if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
       localStorage.getItem(key) === payment.requestKey) localStorage.removeItem(key);
   }
   renderPlans();
@@ -156,7 +156,8 @@ async function initialize() {
       try {
         const result = await call(`/api/account/payments/${pending.id}/status`);
         if (result.payment.status === "paid") return beginAccountSecurity(result);
-        if (["failed", "refunded"].includes(result.payment.status)) {
+        // A closed (expired) checkout no longer blocks a new payment.
+        if (["failed", "refunded", "expired"].includes(result.payment.status)) {
           localStorage.removeItem(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
           location.reload();
         } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
@@ -191,6 +192,10 @@ async function initialize() {
           activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
           showCheckout();
           $("#selected").textContent = "Resume your payment";
+          // Prefilled so a closed checkout can be started again with one click.
+          for (const field of ["name", "phone", "email", "network"]) {
+            if (saved.input[field] && $("#purchase").elements[field]) $("#purchase").elements[field].value = saved.input[field];
+          }
           $("#purchaseFields").disabled = true;
           $("#message").textContent = "Checking your existing payment…";
           if (!await checkPayment(created.payment.id, saved.input.phone)) {
@@ -219,10 +224,11 @@ function choose(id) {
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   return true;
 }
+const checkoutTitle = () =>
+  `${accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy"} ${selected.name}`;
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  const verb = accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy";
-  $("#selected").textContent = `${verb} ${selected.name}`;
+  $("#selected").textContent = checkoutTitle();
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
     : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
@@ -281,8 +287,9 @@ function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
   $("#purchaseFields").disabled = false;
+  $("#selected").textContent = checkoutTitle();
   $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
-  if ($("#viewPayment")) notice("The previous payment is no longer pending. You can choose a package again.", false);
+  if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);
   renderPlans();
 }
 async function beginAccountSecurity(paid, phone) {
@@ -306,7 +313,7 @@ async function checkPayment(paymentId, phone) {
     await beginAccountSecurity(status, phone);
     return true;
   }
-  if (["failed", "refunded"].includes(status.payment.status)) {
+  if (["failed", "refunded", "expired"].includes(status.payment.status)) {
     releaseFailedPayment();
     throw new ApiError(409, status.payment.failureReason || `Payment ${status.payment.status}. Return to packages to try again.`);
   }
@@ -358,7 +365,7 @@ $("#purchase").onsubmit = async (event) => {
       paymentWindow?.close();
       return await checkPayment(created.payment.id, purchaseInput.phone);
     }
-    if (["failed", "refunded"].includes(created.payment.status)) {
+    if (["failed", "refunded", "expired"].includes(created.payment.status)) {
       releaseFailedPayment();
       throw new ApiError(409, "This payment did not complete. You can try again.");
     }

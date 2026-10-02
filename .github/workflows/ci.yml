@@ -50,6 +50,42 @@ jobs:
         env:
           LOAD_TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
 
+  monitoring:
+    name: Monitoring rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Pinned archives; update the version and SHA-256 together from the release's sha256sums.txt.
+      PROMETHEUS_VERSION: 3.15.0
+      PROMETHEUS_SHA256: 2a542df32eac02ee17b9d844fb2aa1de00dafa5476579ba8a3ba862e9d572ea0
+      ALERTMANAGER_VERSION: 0.34.1
+      ALERTMANAGER_SHA256: 265b9d1e55ef0d5306a436018af6d2b686c2ce051f03d968f7464ecb1372a7e8
+      BLACKBOX_VERSION: 0.28.0
+      BLACKBOX_SHA256: caf5d242fb1cf6d5cb678f3f799f22703d4fafea26b03dcbbd7e1f1825e06329
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install verified promtool, amtool and blackbox_exporter
+        run: |
+          curl -fsSLo prometheus.tar.gz "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
+          curl -fsSLo alertmanager.tar.gz "https://github.com/prometheus/alertmanager/releases/download/v${ALERTMANAGER_VERSION}/alertmanager-${ALERTMANAGER_VERSION}.linux-amd64.tar.gz"
+          echo "${PROMETHEUS_SHA256}  prometheus.tar.gz" | sha256sum -c -
+          curl -fsSLo blackbox.tar.gz "https://github.com/prometheus/blackbox_exporter/releases/download/v${BLACKBOX_VERSION}/blackbox_exporter-${BLACKBOX_VERSION}.linux-amd64.tar.gz"
+          echo "${ALERTMANAGER_SHA256}  alertmanager.tar.gz" | sha256sum -c -
+          echo "${BLACKBOX_SHA256}  blackbox.tar.gz" | sha256sum -c -
+          tar xzf prometheus.tar.gz --strip-components=1 "prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool"
+          tar xzf alertmanager.tar.gz --strip-components=1 "alertmanager-${ALERTMANAGER_VERSION}.linux-amd64/amtool"
+          tar xzf blackbox.tar.gz --strip-components=1 "blackbox_exporter-${BLACKBOX_VERSION}.linux-amd64/blackbox_exporter"
+      - run: ./promtool check config --syntax-only monitoring/prometheus/prometheus.yml
+      - run: ./promtool check rules monitoring/prometheus/alerts.yml monitoring/prometheus/slo.yml
+      - run: ./promtool test rules monitoring/prometheus/alerts.test.yml monitoring/prometheus/service-alerts.test.yml monitoring/prometheus/slo.test.yml
+      - run: ./blackbox_exporter --config.check --config.file=monitoring/blackbox/blackbox.yml
+      - run: ./amtool check-config monitoring/alertmanager/alertmanager.yml
+      - name: Check dashboard queries
+        run: |
+          jq -r '.. | .expr? // empty' monitoring/grafana/*.json | while IFS= read -r expr; do
+            ./promtool promql --experimental format "$expr" > /dev/null
+          done
+
   secret-scan:
     name: Secret scanning
     runs-on: ubuntu-latest

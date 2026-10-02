@@ -27,7 +27,9 @@ Authentication requests also have durable, shared limits configured by `AUTH_EDG
 
 The Blueprint sets `DATABASE_SSL=false` because `fromDatabase.connectionString` uses Render's same-region private network URL. External PostgreSQL connections must use TLS; do not reuse this setting with an external database URL.
 
-The first deployment uses `BOOTSTRAP_MODE=true`. In this mode the API exposes only health/status responses and returns HTTP 503 for all operational endpoints. After every production URL and provider secret is configured, set `BOOTSTRAP_MODE=false` on `ndahi-api` and redeploy. Never serve customers while bootstrap mode is enabled.
+The first deployment uses `BOOTSTRAP_MODE=true`. In this mode health reports `status: "bootstrap"` and `operational: false`; plans, accounts and administration remain available, while provider and network actions depend on their configured capabilities. After every production URL and provider secret is configured, change the API's `BOOTSTRAP_MODE` value to `"false"` in `render.yaml` and merge it through a reviewed pull request. Do not change it only in the dashboard: the pre-deploy environment check rejects any value that differs from the Blueprint. Never serve customers while bootstrap mode is enabled.
+
+Every web service runs `npm run check:environment -- <service>` before it deploys (DEP-005). The check compares the live environment with `render.yaml` and fails the deploy when a pinned value differs, a generated or database value is missing, or a URL is not an exact HTTPS origin. While `BOOTSTRAP_MODE=true`, missing provider secrets and temporary `onrender.com` hosts are listed as warnings. After launch they block the deploy. See [API deployment readiness](operations/api-deployment-readiness.md#environment-drift-validation-dep-005).
 
 ## 2. Initial URL variables
 
@@ -85,7 +87,7 @@ Production validation deliberately stops the API if a provider remains mocked, a
 
 For voucher confirmations, add `updates.ndahiconnect.net` in Resend and copy the
 SPF and DKIM records Resend supplies into IONOS DNS. Wait until Resend marks the
-domain verified before setting `BOOTSTRAP_MODE=false`. The API sends only after
+domain verified before committing `BOOTSTRAP_MODE: "false"`. The API sends only after
 Flutterwave verification and records delivery status on the voucher; a failed
 email does not reverse payment or deactivate access.
 

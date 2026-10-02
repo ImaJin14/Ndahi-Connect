@@ -57,7 +57,7 @@ Configuration lives in `monitoring/`:
 | `NdahiMetricsMissing` | warning | platform on-call |
 | `NdahiMobileLcpTargetMissed`, `NdahiMobileInpTargetMissed`, `NdahiMobileClsTargetMissed` | warning | frontend owner |
 
-Route these labels to named people in Alertmanager before relying on the alerts.
+Service health alerts (database, payments, email, RouterOS, Omada, authentication and queue backlogs), Alertmanager routing and the responder roster are in [service monitoring](service-monitoring.md).
 
 ## Static asset delivery (PERF-004)
 

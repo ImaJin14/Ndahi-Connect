@@ -25,7 +25,7 @@ test("database readiness CLI fails safely when no database URL is configured", (
 test("API deployment validates the database before startup instead of running unapproved migrations", async () => {
   const blueprint = await readFile(new URL("../render.yaml", import.meta.url), "utf8");
   const api = blueprint.split("name: ndahi-api")[1].split("\n  - type:")[0];
-  assert.match(api, /preDeployCommand: npm run check:database/);
+  assert.match(api, /preDeployCommand: .*npm run check:database$/m);
   assert.doesNotMatch(api, /preDeployCommand:.*migrate/);
   const source = await readFile(new URL("../scripts/check-db-readiness.mjs", import.meta.url), "utf8");
   assert.doesNotMatch(source, /INSERT INTO|UPDATE |DELETE FROM|CREATE TABLE|ALTER TABLE/);

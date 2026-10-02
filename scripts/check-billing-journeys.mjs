@@ -117,6 +117,44 @@ try {
     await page.getByText(/still awaiting approval/).waitFor();
     assert.equal((await store.snapshot()).payments.length, 2);
   });
+  await scenario("an expired guest checkout closes and can be started again", async (page, context) => {
+    await page.goto(`${portal}/onboarding.html`);
+    await page.locator('[data-plan="weekly"]').click();
+    await page.getByLabel("Your name", { exact: true }).fill("Late Guest");
+    await page.getByLabel("Payment phone number", { exact: true }).fill("670040003");
+    await page.getByLabel("Email address", { exact: true }).fill("late@example.test");
+    await page.route("**/api/purchase", async (route) => { await route.fetch(); await route.abort("failed"); });
+    await page.locator("#requestPayment").click();
+    await page.locator("#message .error-card").waitFor();
+    await page.close();
+    // The customer returns after the approval window and grace have passed.
+    now = new Date(Date.now() + 8 * 60000);
+    const resumed = await context.newPage();
+    await resumed.goto(`${portal}/onboarding.html`);
+    await resumed.getByRole("button", { name: "Resume saved payment" }).click();
+    await resumed.getByText(/was not confirmed in time, so it was closed/).waitFor();
+    assert.equal(await resumed.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
+    assert.equal((await store.snapshot()).payments.find((x) => x.customerName === "Late Guest").status, "expired");
+    // The same dialog offers a fresh checkout with the saved details already filled in.
+    assert.equal(await resumed.locator("#selected").textContent(), "Buy Weekly");
+    assert.equal(await resumed.getByRole("button", { name: "Resume saved payment" }).count(), 0, "the stale resume notice is replaced");
+    assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "670040003");
+    await resumed.locator("#requestPayment").click();
+    await resumed.getByRole("button", { name: "Simulate payment approval" }).waitFor();
+    assert.equal((await store.snapshot()).payments.filter((x) => x.customerName === "Late Guest").length, 2);
+    await resumed.screenshot({ path: `${screenshots}/expired-checkout-restarted.png`, fullPage: true });
+  }, { signedIn: false });
+  await scenario("an expired renewal stops blocking the account", async (page) => {
+    await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", requestKey: "abandoned-renewal" }, cookie);
+    now = new Date(Date.now() + 8 * 60000);
+    await page.goto(`${portal}/onboarding.html?action=renew`);
+    await page.getByRole("button", { name: "Check payment status" }).click();
+    // The check closes the stale renewal and the page reloads without the blocking notice.
+    await page.getByRole("button", { name: "Check payment status" }).waitFor({ state: "detached" });
+    await page.waitForFunction(() => document.querySelector('[data-plan="weekly"]')?.disabled === false);
+    const renewal = (await store.snapshot()).payments.find((x) => x.requestKey === "abandoned-renewal");
+    assert.deepEqual([renewal.status, Boolean(renewal.checkoutClosedAt)], ["expired", true]);
+  });
   await scenario("billing rules are available before payment", async (page) => {
     await page.goto(`${portal}/onboarding.html?action=renew`);
     await page.locator('[data-plan="weekly"]').click();

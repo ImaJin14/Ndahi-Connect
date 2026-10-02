@@ -1,0 +1,188 @@
+# Service-level objective rule tests (OBS-005).
+# Run with: promtool test rules monitoring/prometheus/slo.test.yml
+# Histogram inputs use Prometheus 3's normalized le labels ("600.0").
+rule_files:
+  - slo.yml
+evaluation_interval: 1m
+tests:
+  # 10 provider-confirmed payments a minute; 9 get a voucher within 10 minutes.
+  # A 10% error ratio burns the 1% budget 10 times too fast: a slow burn, not a page.
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_payment_fulfillment_seconds_bucket{le="600.0"}'
+        values: '0+9x420'
+      - series: 'ndahi_payment_fulfillment_seconds_count'
+        values: '0+10x420'
+    promql_expr_test:
+      - expr: round(ndahi:slo_error_ratio:rate1h{slo="payment_completion"}, 0.0001)
+        eval_time: 2h
+        exp_samples:
+          - labels: '{slo="payment_completion"}'
+            value: 0.1
+      - expr: ndahi:slo_objective:ratio{slo="payment_completion"}
+        eval_time: 2h
+        exp_samples:
+          - labels: 'ndahi:slo_objective:ratio{slo="payment_completion",responder="payments-owner"}'
+            value: 0.99
+    alert_rule_test:
+      - eval_time: 7h
+        alertname: NdahiErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels: { slo: payment_completion, responder: payments-owner, severity: warning }
+            exp_annotations:
+              summary: "payment_completion is spending its 30-day error budget 6 times too fast"
+              description: "At this rate the monthly budget is gone in about five days. See docs/operations/service-level-objectives.md."
+      - eval_time: 7h
+        alertname: NdahiErrorBudgetFastBurn
+        exp_alerts: []
+
+  # Paid orders that fail review count against the objective: half of all
+  # outcomes fail, so the budget burns 50 times too fast and pages.
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_payment_fulfillment_seconds_bucket{le="600.0"}'
+        values: '0+1x90'
+      - series: 'ndahi_payment_fulfillment_seconds_count'
+        values: '0+1x90'
+      - series: 'ndahi_payment_fulfillment_failures_total{reason="active_bundle"}'
+        values: '0+1x90'
+    promql_expr_test:
+      - expr: ndahi:slo_error_ratio:rate30m{slo="payment_completion"}
+        eval_time: 60m
+        exp_samples:
+          - labels: 'ndahi:slo_error_ratio:rate30m{slo="payment_completion"}'
+            value: 0.5
+    alert_rule_test:
+      - eval_time: 75m
+        alertname: NdahiErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels: { slo: payment_completion, responder: payments-owner, severity: critical }
+            exp_annotations:
+              summary: "payment_completion is spending its 30-day error budget over 14 times too fast"
+              description: "At this rate the whole monthly budget is gone in about two days. See docs/operations/service-level-objectives.md."
+
+  # The portal fails every probe from minute 10; admin and API stay up.
+  # Only the portal pages, and its probe count meets the minimum.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="ndahi-probe",instance="https://portal.ndahiconnect.net/login"}'
+        values: '1x10 0x80'
+      - series: 'probe_success{job="ndahi-probe",instance="https://admin.ndahiconnect.net/login"}'
+        values: '1x90'
+      - series: 'up{job="ndahi-probe",instance="https://portal.ndahiconnect.net/login"}'
+        values: '1x90'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: NdahiErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              slo: availability
+              instance: https://portal.ndahiconnect.net/login
+              job: ndahi-probe
+              responder: platform-on-call
+              severity: critical
+            exp_annotations:
+              summary: "availability (https://portal.ndahiconnect.net/login) is spending its 30-day error budget over 14 times too fast"
+              description: "At this rate the whole monthly budget is gone in about two days. See docs/operations/service-level-objectives.md."
+      - eval_time: 60m
+        alertname: NdahiAvailabilityProbeMissing
+        exp_alerts: []
+
+  # Every voucher reaches the router, but one in 10 takes longer than two minutes.
+  # Disconnects all arrive within five minutes. Server errors stay under 0.5%.
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le="120.0"}'
+        values: '0+9x420'
+      - series: 'ndahi_network_command_delivery_seconds_count{action="sync_voucher"}'
+        values: '0+10x420'
+      - series: 'ndahi_network_command_delivery_seconds_bucket{action="disconnect_voucher",le="300.0"}'
+        values: '0+4x420'
+      - series: 'ndahi_network_command_delivery_seconds_count{action="disconnect_voucher"}'
+        values: '0+4x420'
+      - series: 'ndahi_api_requests_total{outcome="success"}'
+        values: '0+999x420'
+      - series: 'ndahi_api_requests_total{outcome="server_error"}'
+        values: '0+1x420'
+    promql_expr_test:
+      - expr: round(ndahi:slo_error_ratio:rate6h{slo!="payment_completion"}, 0.0001)
+        eval_time: 7h
+        exp_samples:
+          - labels: '{slo="voucher_provisioning"}'
+            value: 0.1
+          - labels: '{slo="network_enforcement"}'
+            value: 0
+          - labels: '{slo="api_success"}'
+            value: 0.001
+      # No payments in the window: the ratio is undefined (NaN), so no comparison can alert on it.
+      - expr: ndahi:slo_error_ratio:rate6h{slo="payment_completion"} >= 0
+        eval_time: 7h
+        exp_samples: []
+    alert_rule_test:
+      - eval_time: 7h
+        alertname: NdahiErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels: { slo: voucher_provisioning, responder: network-operations, severity: warning }
+            exp_annotations:
+              summary: "voucher_provisioning is spending its 30-day error budget 6 times too fast"
+              description: "At this rate the monthly budget is gone in about five days. See docs/operations/service-level-objectives.md."
+
+  # A dead-lettered disconnect is a failure even though it never completes.
+  # Two failures in a quiet hour stay below the minimum and must not page.
+  - interval: 1m
+    input_series:
+      - series: 'ndahi_network_commands_dead_lettered_total{action="disconnect_device"}'
+        values: '0x40 1x10 2x40'
+    promql_expr_test:
+      - expr: round(ndahi:slo_events:increase1h{slo="network_enforcement"})
+        eval_time: 90m
+        exp_samples:
+          - labels: '{slo="network_enforcement"}'
+            value: 2
+      - expr: ndahi:slo_error_ratio:rate1h{slo="network_enforcement"}
+        eval_time: 90m
+        exp_samples:
+          - labels: 'ndahi:slo_error_ratio:rate1h{slo="network_enforcement"}'
+            value: 1
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: NdahiErrorBudgetFastBurn
+        exp_alerts: []
+
+  # Two of 51 hourly probes fail (3.9%) against a 0.5% budget: 6.84 budgets spent.
+  - interval: 1h
+    input_series:
+      - series: 'probe_success{job="ndahi-probe",instance="https://api.ndahiconnect.net/api/health"}'
+        values: '1x23 0 1x23 0 1x2'
+    promql_expr_test:
+      - expr: round(ndahi:slo_error_budget_remaining:ratio30d{slo="availability"}, 0.01)
+        eval_time: 50h
+        exp_samples:
+          - labels: '{slo="availability",instance="https://api.ndahiconnect.net/api/health",job="ndahi-probe",responder="platform-on-call"}'
+            value: -6.84
+    alert_rule_test:
+      - eval_time: 50h
+        alertname: NdahiErrorBudgetExhausted
+        exp_alerts:
+          - exp_labels:
+              slo: availability
+              instance: https://api.ndahiconnect.net/api/health
+              job: ndahi-probe
+              responder: platform-on-call
+              severity: warning
+            exp_annotations:
+              summary: "availability (https://api.ndahiconnect.net/api/health) has used its whole 30-day error budget"
+              description: "Apply the error-budget policy: pause non-urgent releases and prioritize reliability work."
+
+  # The prober itself is down.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="ndahi-probe",instance="https://portal.ndahiconnect.net/login"}'
+        values: '0x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: NdahiAvailabilityProbeMissing
+        exp_alerts:
+          - exp_labels: { severity: warning, responder: platform-on-call }
+            exp_annotations:
+              summary: "The blackbox prober is not reporting; the availability SLO is blind"
