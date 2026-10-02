@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-09-28
+Last reviewed: 2026-10-02
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -529,8 +529,9 @@ Use this document as the source of truth for product, engineering, security, and
   - PR #6 integration verification: merged main `0ae49d6`, preserving UX-001–005 and deployment checks; all 149 tests, syntax checks, and diff checks passed.
   - Confirmed incident cause: the Render Shell connects to PostgreSQL but reports `customers`, `payments`, `vouchers`, `events`, `audit_logs`, and `app_settings` absent. Its running commit is `b29b289`, so the earlier missing `healthCheck()` method came from the old instance. Prepared a Node-based `npm run migrate:postgres` runner to apply schema migrations and the existing guarded legacy-data conversion without relying on `psql`. All 141 local tests and syntax checks pass. Production migration requires the documented backup/write-pause procedure and remains outstanding.
 
-- [ ] **DEP-003 — Add post-deployment smoke tests**
+- [-] **DEP-003 — Add post-deployment smoke tests**
   - Cover health, plans, customer login, admin login entry, CORS, and provider configuration.
+  - Implemented (2026-10-02): read-only `npm run check:deployment`, regression coverage and a manual/deployment-status GitHub workflow. Checks include service separation, frontend API configuration and ETag/immutable caching. Remaining: production execution, Render event integration and release rollback verification; authenticated journeys and real provider/hardware tests remain separate.
   - Acceptance: failed smoke tests stop or roll back a release.
   - Deployment-timeout remediation (2026-09-21): readiness now uses a dedicated, bounded PostgreSQL schema/connectivity probe instead of loading or rewriting application state. Both bootstrap and operational health routes return `503` within four seconds on failure. Node is constrained to `22.x`, matching CI, instead of the open-ended `>=20` range that selected Node 26 in the supplied Render log.
   - Confirmed evidence (2026-09-21): Render deployed `9542aa5` on Node 22 but still timed out. A Render Shell probe confirmed database connectivity and missing normalized tables; the Shell was on old commit `b29b289`. Missing schema is the confirmed blocker, not the Node version or physical router.
@@ -771,7 +772,7 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-- P0 pending: 0
+- P0 pending: 2 (blocked: SEC-009 and DATA-005)
 - P1 pending: 27
 - P2 pending: 24
 - P3 pending: 17

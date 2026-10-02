@@ -90,3 +90,35 @@ All 141 local tests, syntax checks, and diff checks passed. Coverage includes
 readiness timeouts, concurrent probes, sanitized errors, schema migration ordering,
 and rollback/stop behavior on a schema failure. Unit tests use fake database clients;
 the production migration and deployed PostgreSQL verification remain outstanding.
+
+## Repeatable deployment smoke checks (DEP-003)
+
+Run `npm run check:deployment` after all three services finish deploying. It uses
+production origins by default; override `CUSTOMER_APP_URL`, `ADMIN_APP_URL`, and
+`API_URL` for staging. It checks database readiness, nonempty plans and the expected
+payment provider (`SMOKE_PAYMENT_PROVIDER`, default `mesomb`), both login forms,
+frontend API configuration, revisioned asset caching, page ETag/304 responses,
+unauthenticated account/admin gates, service separation, and allowed/rejected CORS.
+All probes are read-only and bounded to ten seconds each. No credentials are needed.
+
+Bootstrap fails by default. `SMOKE_ALLOW_BOOTSTRAP=true` permits an explicit setup
+check, but must never be used to certify public-launch readiness. Provider selection
+is configuration evidence; phone authorization, settlement, email delivery and real
+hardware enforcement still need separate live acceptance tests.
+
+The Deployment smoke checks GitHub workflow can be dispatched manually and runs on
+successful GitHub deployment-status events. Render must publish such events for that
+trigger to run; otherwise dispatch it after deployment. A failed run blocks release
+acceptance: inspect the failed check and use the previous known-good Render release
+if needed. This workflow does not automatically roll back Render or migrate data.
+For a coordinated three-service release, dispatch after all three services are live.
+Apply migration 004 through the backup/write-pause procedure above before deploying.
+
+Verification on 2026-10-02: syntax checks passed; full suite reported 252 passes,
+zero failures and 11 PostgreSQL-dependent skips (no disposable database configured).
+The memory-store load harness completed 300 activations and 300 redemptions with
+zero failures and no detected persistence races. Live strict smoke checks failed on
+bootstrap status. With explicit bootstrap opt-in, all checks passed, including
+PostgreSQL readiness, MeSomb selection, both frontends, caching and CORS. This does
+not verify authenticated production journeys, live payments, migration history,
+production latency, telemetry collection or physical network enforcement.
