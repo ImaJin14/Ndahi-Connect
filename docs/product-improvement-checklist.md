@@ -337,6 +337,8 @@ Use this document as the source of truth for product, engineering, security, and
   - Implemented: durable reservations and a single unresolved checkout per customer; provider calls
     run after commit. Lost responses resume the same order. Dashboard rechecks and saved guest
     checkout survive refresh/tab closure; uncertain provider outcomes never create an automatic retry.
+  - Checkout expiry (2026-10-02): abandoned orders close after the approval window plus grace; customer-initiated retries use new keys. Late confirmation remains supported, with competing entitlements held for review. Closed reservations no longer consume worker batches, and payment-status reads apply expiry immediately.
+  - Review verification: 308 tests passed, 12 PostgreSQL-dependent skips, syntax/whitespace checks and the 300-user memory load test passed. Live provider timeout/late-callback acceptance remains pending.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 

@@ -25,11 +25,19 @@ reservation never existed, the original request can be submitted with the same
 key. Recovery continues to work when the original package is discontinued.
 
 A clock timeout, missing provider transaction, or failed connection does not prove
-that no money moved. These results keep checkout blocked while verification retries.
+that no money moved. These results keep checkout blocked during its approval window
+and grace period while verification retries.
 MeSomb is queried by external reference and Flutterwave falls back to verification
-by merchant reference if a create response was lost. Only a matching provider
-failure releases a live payment for a new checkout. Old local failed/expired/cancelled
-records require provider verification before another charge can be created.
+by merchant reference if a create response was lost. A matching provider failure permits a new checkout immediately. Otherwise the
+checkout closes after `PAYMENT_PENDING_SECONDS` (default 300) plus
+`PAYMENT_EXPIRY_GRACE_SECONDS` (default 120), permitting a customer-initiated new
+payment. Closing does not establish that no charge occurred. Same-key retries
+still return the original order; the browser releases its key for expired orders.
+Closed submitted payments are checked every ten minutes for
+`PAYMENT_LATE_CHECK_HOURS` (default 24) after closure. Signed webhooks remain
+eligible for provider verification after that window. Never-submitted reservations
+expire without contacting the provider. Paid, refunded and review-held orders are
+never closed. Old unresolved records follow the same closure rules.
 Manual administrator status overrides are rejected.
 
 Confirmed payments use their saved package allowances. If an older competing

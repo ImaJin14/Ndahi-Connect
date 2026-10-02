@@ -136,7 +136,7 @@ async function initialize() {
   else $(".hero").hidden = false;
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
-    if (["paid", "failed", "refunded"].includes(payment.status) && payment.requestKey &&
+    if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
       localStorage.getItem(key) === payment.requestKey) localStorage.removeItem(key);
   }
   renderPlans();
@@ -156,7 +156,8 @@ async function initialize() {
       try {
         const result = await call(`/api/account/payments/${pending.id}/status`);
         if (result.payment.status === "paid") return beginAccountSecurity(result);
-        if (["failed", "refunded"].includes(result.payment.status)) {
+        // A closed (expired) checkout no longer blocks a new payment.
+        if (["failed", "refunded", "expired"].includes(result.payment.status)) {
           localStorage.removeItem(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
           location.reload();
         } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
@@ -306,7 +307,7 @@ async function checkPayment(paymentId, phone) {
     await beginAccountSecurity(status, phone);
     return true;
   }
-  if (["failed", "refunded"].includes(status.payment.status)) {
+  if (["failed", "refunded", "expired"].includes(status.payment.status)) {
     releaseFailedPayment();
     throw new ApiError(409, status.payment.failureReason || `Payment ${status.payment.status}. Return to packages to try again.`);
   }
@@ -358,7 +359,7 @@ $("#purchase").onsubmit = async (event) => {
       paymentWindow?.close();
       return await checkPayment(created.payment.id, purchaseInput.phone);
     }
-    if (["failed", "refunded"].includes(created.payment.status)) {
+    if (["failed", "refunded", "expired"].includes(created.payment.status)) {
       releaseFailedPayment();
       throw new ApiError(409, "This payment did not complete. You can try again.");
     }
