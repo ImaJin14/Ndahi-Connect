@@ -44,6 +44,10 @@ Every non-`GET`/`HEAD` route below `/api/admin/` requires the administrator cook
 
 Administrator cookies are `HttpOnly`, `Secure` in production, and `SameSite=Strict`.
 
+`POST /api/admin/users/deactivate` uses these same controls and is restricted to owners. It
+refuses the caller's own account, ends the target's sessions in the same transaction, and
+records an `admin.user_deactivated` audit entry.
+
 `POST /api/admin/payments/webhooks/replay` uses these same controls and is restricted
 to owner/operator roles. It queues a stored authenticated event for fresh provider
 verification and records an audit entry; it does not accept replacement payloads.

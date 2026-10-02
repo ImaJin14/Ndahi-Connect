@@ -108,7 +108,7 @@ npm run load-test
 
 Tests cover catalogue/voucher behavior, OTP/session expiry, concurrency, customer/admin route separation, cross-role cookie rejection, CORS rejection, role-specific logout, admin login throttling, audit logging and cookie attributes. The 300-user harness reports activations, redemptions, failures, median/p95 latency, active sessions, integrity counts and persistence races.
 
-PostgreSQL store tests run when `TEST_DATABASE_URL` points at a disposable database (they use their own schema). Set `LOAD_TEST_DATABASE_URL` to an empty, migrated database to run the 300-user harness against PostgreSQL. CI runs both against a PostgreSQL 17 service. Performance targets, metrics, alerts and asset caching are described in the [performance runbook](docs/operations/performance.md).
+PostgreSQL store tests run when `TEST_DATABASE_URL` points at a disposable database (they use their own schema). Set `LOAD_TEST_DATABASE_URL` to an empty, migrated database to run the 300-user harness against PostgreSQL. CI runs both against a PostgreSQL 17 service. Performance targets, metrics, alerts and asset caching are described in the [performance runbook](docs/operations/performance.md). Service health alerts and responders are in [service monitoring](docs/operations/service-monitoring.md), objectives and error budgets in [service-level objectives](docs/operations/service-level-objectives.md), and escalation paths and incident playbooks in [incident response](docs/operations/incident-response.md).
 
 ### Admin network setup
 

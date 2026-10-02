@@ -13,7 +13,7 @@ const store = databaseUrl
       MIKROTIK_MODE: "mock", OMADA_MODE: "mock", SECRET_PEPPER: "load-test",
       BILLING_WORKER_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false",
       PAYMENT_WEBHOOK_REPLAY_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false",
-      NETWORK_RECONCILIATION_ENABLED: "false",
+      NETWORK_RECONCILIATION_ENABLED: "false", LOG_LEVEL: "warn",
     },
   });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));

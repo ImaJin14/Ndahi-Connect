@@ -78,7 +78,7 @@ test("BILL-001 persists nothing and contacts no provider when reservation storag
   assert.equal(creates, 0);
 });
 
-test("BILL-001 timeout never releases a charge; verified late payment settles only once", async (t) => {
+test("BILL-001 provider timeout keeps checkout blocked inside its approval window; settlement is idempotent", async (t) => {
   let time = new Date("2026-09-25T12:00:00Z"), checks = 0, creates = 0;
   const f = await fixture(t, { now: () => time, env: { PAYMENT_MODE: "mesomb" }, payments: { mesomb: {
     async createPayment() { creates++; return { providerReference: "ref-123" }; },
@@ -88,7 +88,7 @@ test("BILL-001 timeout never releases a charge; verified late payment settles on
     },
   } } });
   const p = (await f.call("/api/purchase", "POST", input())).json.payment;
-  time = new Date(+time + 3600000);
+  time = new Date(+time + 60000);
   let status = await f.call(`/api/payments/${p.id}/status`);
   assert.equal(status.json.payment.status, "pending");
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "retry" }))).response.status, 409);

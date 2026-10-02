@@ -2,6 +2,7 @@ import http from "node:http";
 import { createAssetCatalog, sendAsset } from "./lib/static-assets.mjs";
 import { join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createLogger, errorFields } from "./lib/logger.mjs";
 
 export function createStaticServer(
   kind = "customer",
@@ -9,6 +10,7 @@ export function createStaticServer(
     apiUrl = process.env.API_URL || "http://localhost:8082",
     production = process.env.NODE_ENV === "production",
     telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
+    logger = createLogger({ service: kind, level: process.env.LOG_LEVEL }),
   } = {},
 ) {
   const root = join(process.cwd(), kind === "admin" ? "admin-app" : "customer-app");
@@ -79,7 +81,8 @@ export function createStaticServer(
         return res.end("Not found");
       }
       sendAsset(req, res, entry, securityHeaders);
-    } catch {
+    } catch (error) {
+      logger.error("static.assets_unavailable", errorFields(error));
       res.writeHead(503, { ...securityHeaders, "cache-control": "no-store" });
       res.end("Assets temporarily unavailable");
     }
@@ -95,6 +98,6 @@ if (main) {
   createStaticServer(kind).listen(
     port,
     process.env.HOST || "0.0.0.0",
-    () => console.log(`NDAHI ${kind} app running on http://localhost:${port}`),
+    () => createLogger({ service: kind, level: process.env.LOG_LEVEL }).info("app.listening", { host: process.env.HOST || "0.0.0.0", port }),
   );
 }

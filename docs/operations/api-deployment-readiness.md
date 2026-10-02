@@ -20,7 +20,7 @@ public response or an old Shell session does not verify the failed new instance.
 3. For the coordinated migration deployment, set the API pre-deploy command to:
 
    ```bash
-   npm run migrate:postgres && npm run check:database
+   npm run check:environment -- ndahi-api && npm run migrate:postgres && npm run check:environment -- ndahi-api && npm run check:database
    ```
 
    This runs the new release's files, rather than the old instance's Shell files.
@@ -33,7 +33,7 @@ public response or an old Shell session does not verify the failed new instance.
 5. Restore the normal read-only gate, also specified in `render.yaml`:
 
    ```bash
-   npm run check:database
+   npm run check:environment -- ndahi-api && npm run check:database
    ```
 
 Apply the Blueprint changes or set the pre-deploy command in Render's service
@@ -50,8 +50,8 @@ tables. Until it is applied, `npm run check:database` exits with
 new API starts.
 
 Apply it with the coordinated procedure above: take a backup, set the pre-deploy
-command to `npm run migrate:postgres && npm run check:database` for one deploy,
-then restore `npm run check:database`. The migration only drops constraints and
+command to `npm run check:environment -- ndahi-api && npm run migrate:postgres && npm run check:database` for one deploy,
+then restore `npm run check:environment -- ndahi-api && npm run check:database`. The migration only drops constraints and
 adds an index. Rerunning the runner on a migrated database reports
 `already-migrated` for the data step and leaves rows unchanged. To roll back the
 application, deploy the previous release; it works with the relaxed constraints.
@@ -122,3 +122,44 @@ bootstrap status. With explicit bootstrap opt-in, all checks passed, including
 PostgreSQL readiness, MeSomb selection, both frontends, caching and CORS. This does
 not verify authenticated production journeys, live payments, migration history,
 production latency, telemetry collection or physical network enforcement.
+
+## Environment drift validation (DEP-005)
+
+Each web service runs `npm run check:environment -- <service>` as its Render
+pre-deploy command; the API then runs `npm run check:database`. The check reads
+`render.yaml` from the build and compares it with the environment the new release
+will use. Output names keys and committed Blueprint values only, never live values.
+
+| Finding | While `BOOTSTRAP_MODE=true` | After launch |
+| --- | --- | --- |
+| Pinned Blueprint value differs or is unset (including `BOOTSTRAP_MODE`, `*_MODE`, `NODE_ENV`) | Error | Error |
+| Generated secret or `DATABASE_URL` missing | Error | Error |
+| URL is not an exact HTTPS origin (path, trailing slash) or RP ID is not a hostname | Error | Error |
+| Frontend `API_URL` missing (it would fall back to localhost) | Error | Error |
+| Production configuration error from `lib/config.mjs` (missing provider secret, placeholder) | Warning | Error |
+| API URL, admin CORS origin or WebAuthn RP ID outside the Blueprint `domains` | Warning | Error |
+| Frontend `API_URL` outside the API's Blueprint domains | Warning | Warning |
+
+Frontends cannot see the API's bootstrap state, so their API host mismatch stays a
+warning; the DEP-003 smoke check verifies the served `config.js` after deployment.
+
+To resolve a pinned-value error, either restore the dashboard value or commit the
+new value to `render.yaml`; the Blueprint is the source of truth. Launch is the same
+kind of change: commit `BOOTSTRAP_MODE: "false"` once every warning is resolved, and
+the check then enforces the full production configuration before the release starts.
+Values entered in the dashboard only (`sync: false`) are checked through
+`lib/config.mjs` rather than individually, because some apply only to the selected
+provider or network source.
+
+Before the first deploy with this check, compare the API's dashboard values for
+`AUTH_EDGE_*`, `PIN_*`, session lengths and `DATABASE_SSL` with `render.yaml`, and
+confirm `ALLOWED_ADMIN_ORIGINS` lists only `https://admin.ndahiconnect.net`. Any
+difference will stop that deploy until it is reconciled.
+
+Verification on 2026-10-02: syntax checks passed; full suite reported 261 passes,
+zero failures and 11 PostgreSQL-dependent skips. Nine drift tests run against the
+real `render.yaml`, covering a launch-ready configuration in both modes, Blueprint
+`BOOTSTRAP_MODE` drift, pinned adapters, missing generated values, bootstrap
+downgrades, exact origins, temporary hosts, parent-domain RP IDs, malformed
+Blueprints, pre-deploy wiring, and a subprocess check that live values are never
+printed. Render execution of the pre-deploy command has not yet been observed.
