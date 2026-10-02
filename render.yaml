@@ -50,6 +50,7 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: npm ci
+    preDeployCommand: npm run check:environment -- ndahi-customer
     startCommand: npm run start:customer
     healthCheckPath: /
     domains:
@@ -72,6 +73,7 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: npm ci
+    preDeployCommand: npm run check:environment -- ndahi-admin
     startCommand: npm run start:admin
     healthCheckPath: /login
     domains:
@@ -94,7 +96,7 @@ services:
     region: frankfurt
     plan: starter
     buildCommand: npm ci
-    preDeployCommand: npm run check:database
+    preDeployCommand: npm run check:environment -- ndahi-api && npm run check:database
     startCommand: npm run start:api
     healthCheckPath: /api/health
     domains:

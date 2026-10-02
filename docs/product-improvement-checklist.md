@@ -540,9 +540,13 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **DEP-004 — Add automatic rollback procedures**
   - Acceptance: application rollback and database forward-fix procedures are documented and rehearsed.
 
-- [ ] **DEP-005 — Add environment-drift validation**
+- [-] **DEP-005 — Add environment-drift validation**
   - Reconcile Render Blueprint defaults with live environment settings.
   - Acceptance: unexpected `BOOTSTRAP_MODE`, mock adapters, URLs, and missing secrets are detected before deployment.
+  - Implemented (2026-10-02): `npm run check:environment -- <service>` runs as the pre-deploy command on all three web services (before `check:database` on the API). It compares the live environment with `render.yaml`: pinned values (including `BOOTSTRAP_MODE`, `*_MODE`, `NODE_ENV`), generated/database values, exact HTTPS origins, Blueprint `domains` for app URLs, admin CORS origins and WebAuthn RP IDs, and the full `lib/config.mjs` production rules. While `BOOTSTRAP_MODE=true`, launch blockers and temporary hosts are warnings; after launch they fail the deploy. Launch therefore requires committing `BOOTSTRAP_MODE: "false"` to `render.yaml`. Output never includes live values. Adds the `yaml` dependency. See [environment drift validation](operations/api-deployment-readiness.md#environment-drift-validation-dep-005).
+  - Gap closed: startup validation accepted `https://portal.ndahiconnect.net/` (trailing slash), which would silently break exact-match CORS and passkey origin checks.
+  - Local verification: 9 drift tests against the real `render.yaml`; full suite 261 passes, 0 failures, 11 PostgreSQL skips; syntax and whitespace checks passed.
+  - Remaining: reconcile dashboard values listed in the runbook, then observe the pre-deploy command pass on Render for all three services.
 
 - [ ] **DEP-006 — Document incident response and ownership**
   - Acceptance: payment, security, database, and network incidents have clear escalation paths.
@@ -772,12 +776,14 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
+Recounted from the task list on 2026-10-02.
+
 - P0 pending: 2 (blocked: SEC-009 and DATA-005)
-- P1 pending: 27
-- P2 pending: 24
-- P3 pending: 17
+- P1 pending: 18 (10 implemented awaiting production verification, 8 not started)
+- P2 pending: 31
+- P3 pending: 19
 - Verified foundations complete: 14
-- Recommendation tasks complete: 27
+- Recommendation tasks complete: 36
 
 ## Implementation tracker
 
@@ -790,5 +796,8 @@ Update these totals whenever tasks are completed.
 | PERF-003 | Implemented; production verification pending | 50,000-voucher query tests and admin browser checks passed on 2026-09-28 | Verify with production data volumes |
 | PERF-004 | Implemented; production verification pending | Caching/compression tests and Slow 4G measurements passed on 2026-09-28 | Confirm deployed caching headers |
 | PERF-005 | Implemented; production verification pending | Telemetry and alert tests passed on 2026-09-28 | Agree targets, enable collection, record first production p75 |
+| DEP-002 | Implemented; production verification pending | Read-only database gate and 141 tests passed on 2026-09-21 | Apply migrations through the backup/write-pause procedure; observe the gate on Render |
+| DEP-003 | Implemented; production verification pending | 252 tests passed; live run passed with bootstrap opt-in on 2026-10-02 | Strict run after launch; confirm Render deployment-status events; rehearse rollback on failure |
+| DEP-005 | Implemented; production verification pending | 9 drift tests and 261-test suite passed on 2026-10-02 | Reconcile dashboard values; observe pre-deploy checks pass on all three services |
 
 Pending totals above include these tasks until production verification is recorded.
