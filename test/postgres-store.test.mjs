@@ -196,3 +196,18 @@ test("rolled back transactions leave no partial writes", { skip }, async () => {
   }, { scope: ["customer:670000061"] }), /rollback/);
   assert.equal((await store.snapshot()).customers.length, 0);
 });
+
+test("partial snapshots read only the requested collections", { skip }, async () => {
+  await store.transaction((s) => {
+    s.customers.push({ id: "customer-1", phone: "670000001" });
+    s.payments.push({ id: "payment-1", customerId: "customer-1", status: "pending" });
+    s.routerCommands.push({ id: "router:mark_inactive:global", kind: "router_command", status: "queued" });
+    s.zone = { ...s.zone, status: "maintenance" };
+  });
+  const partial = await store.snapshot({ only: ["payments", "routerCommands"] });
+  assert.deepEqual(partial.payments.map((p) => p.id), ["payment-1"]);
+  assert.deepEqual(partial.routerCommands.map((c) => c.id), ["router:mark_inactive:global"]);
+  assert.deepEqual(partial.customers, []);
+  assert.notEqual(partial.zone?.status, "maintenance", "settings are not read");
+  assert.equal((await store.snapshot()).customers.length, 1);
+});

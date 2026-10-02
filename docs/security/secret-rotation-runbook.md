@@ -30,6 +30,8 @@ Rotate each pair separately:
 4. Keep the previous session secret for at least the configured maximum session lifetime. Keep the previous pepper for at least the longest access/reset challenge lifetime. The current defaults require 30 minutes for sessions and 15 minutes for challenges; use 60 minutes as the normal overlap window.
 5. Remove the `_PREVIOUS` value, redeploy, and verify new sign-ins again. Roll back before removal if any verification fails.
 
+Authenticator recovery codes generated since 2026-10-02 are hashed with Argon2id and do not depend on the pepper. Codes generated earlier were keyed with `SECRET_PEPPER`: they keep working during the overlap, but stop matching once `SECRET_PEPPER_PREVIOUS` is removed. Before removing it, ask customers with older codes to regenerate them from Account security; anyone locked out needs an administrator authenticator reset.
+
 ## Payment credentials
 
 ### MeSomb

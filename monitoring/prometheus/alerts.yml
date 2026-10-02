@@ -95,3 +95,209 @@ groups:
           responder: frontend-owner
         annotations:
           summary: "Mobile p75 CLS for the {{ $labels.app }} app exceeds 0.1"
+
+  # Service health (OBS-004). Thresholds, responders and first actions are in
+  # docs/operations/service-monitoring.md; responder roles route in Alertmanager.
+  - name: ndahi-platform
+    rules:
+      - alert: NdahiDatabaseUnavailable
+        expr: max(ndahi_database_up) == 0
+        for: 2m
+        labels:
+          severity: critical
+          responder: platform-on-call
+        annotations:
+          summary: "The API's readiness probe cannot reach PostgreSQL"
+      - alert: NdahiMonitorStale
+        expr: |
+          time() - max(ndahi_monitor_last_sample_timestamp_seconds) > 300
+          or (absent(ndahi_monitor_last_sample_timestamp_seconds) and on () max(up{job="ndahi-api"}) == 1)
+        for: 5m
+        labels:
+          severity: warning
+          responder: platform-on-call
+        annotations:
+          summary: "Queue and payment gauges have not refreshed for over 5 minutes"
+          description: "Backlog alerts are blind until the API monitor samples again; check monitoring.sample_failed logs."
+
+  - name: ndahi-payments
+    rules:
+      - alert: NdahiPaymentProviderErrors
+        expr: |
+          sum by (provider) (rate(ndahi_dependency_calls_total{dependency="payment",outcome="failure"}[15m]))
+          / sum by (provider) (rate(ndahi_dependency_calls_total{dependency="payment"}[15m])) > 0.2
+          and on (provider)
+          sum by (provider) (increase(ndahi_dependency_calls_total{dependency="payment"}[15m])) >= 5
+        for: 10m
+        labels:
+          severity: warning
+          responder: payments-owner
+        annotations:
+          summary: "More than 20% of {{ $labels.provider }} calls are failing"
+      - alert: NdahiPaymentProviderDown
+        expr: |
+          sum by (provider) (rate(ndahi_dependency_calls_total{dependency="payment",outcome="failure"}[10m]))
+          / sum by (provider) (rate(ndahi_dependency_calls_total{dependency="payment"}[10m])) > 0.5
+          and on (provider)
+          sum by (provider) (increase(ndahi_dependency_calls_total{dependency="payment"}[10m])) >= 5
+        for: 5m
+        labels:
+          severity: critical
+          responder: payments-owner
+        annotations:
+          summary: "Most {{ $labels.provider }} calls are failing; customers cannot pay"
+      - alert: NdahiPaymentsNeedReview
+        expr: sum(ndahi_payments_attention{reason=~"needs_review|uncertain"}) > 0
+        for: 30m
+        labels:
+          severity: warning
+          responder: payments-owner
+        annotations:
+          summary: "Payments need review or may have been charged without confirmation ({{ $value }})"
+      - alert: NdahiRefundsAwaitingApproval
+        expr: max(ndahi_payments_attention{reason="refund_requested"}) > 0
+        for: 24h
+        labels:
+          severity: warning
+          responder: payments-owner
+        annotations:
+          summary: "Customer refund requests have waited more than a day for approval"
+      - alert: NdahiPaymentsStuckPending
+        expr: max(ndahi_queue_oldest_pending_seconds{queue="payments"}) > 21600
+        for: 15m
+        labels:
+          severity: warning
+          responder: payments-owner
+        annotations:
+          summary: "A payment has been pending for more than 6 hours"
+      - alert: NdahiWebhookBacklog
+        expr: max(ndahi_queue_oldest_pending_seconds{queue="payment_webhooks"}) > 900
+        for: 5m
+        labels:
+          severity: warning
+          responder: payments-owner
+        annotations:
+          summary: "Provider payment events have waited more than 15 minutes"
+      - alert: NdahiWebhookDeadLetters
+        expr: max(ndahi_queue_dead_letters{queue="payment_webhooks"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+          responder: payments-owner
+        annotations:
+          summary: "Provider payment events stopped retrying ({{ $value }}); paid customers may lack access"
+
+  - name: ndahi-messaging
+    rules:
+      - alert: NdahiEmailDeliveryErrors
+        expr: |
+          sum(rate(ndahi_dependency_calls_total{dependency="email",outcome="failure"}[30m]))
+          / sum(rate(ndahi_dependency_calls_total{dependency="email"}[30m])) > 0.2
+          and sum(increase(ndahi_dependency_calls_total{dependency="email"}[30m])) >= 5
+        for: 15m
+        labels:
+          severity: warning
+          responder: platform-on-call
+        annotations:
+          summary: "More than 20% of voucher, receipt, alert and PIN-reset emails are failing"
+      - alert: NdahiEmailDeliveryDown
+        expr: |
+          sum(rate(ndahi_dependency_calls_total{dependency="email",outcome="failure"}[30m]))
+          / sum(rate(ndahi_dependency_calls_total{dependency="email"}[30m])) > 0.99
+          and sum(increase(ndahi_dependency_calls_total{dependency="email"}[30m])) >= 3
+        for: 10m
+        labels:
+          severity: critical
+          responder: platform-on-call
+        annotations:
+          summary: "Every email is failing; customers cannot receive vouchers or reset PINs"
+      - alert: NdahiSecurityAlertBacklog
+        expr: |
+          max(ndahi_queue_oldest_pending_seconds{queue="security_alerts"}) > 1800
+          or max(ndahi_queue_dead_letters{queue="security_alerts"}) > 0
+        for: 10m
+        labels:
+          severity: warning
+          responder: security-owner
+        annotations:
+          summary: "Customer security alerts are delayed or failed after 8 attempts"
+
+  - name: ndahi-network
+    rules:
+      - alert: NdahiRouterErrors
+        expr: |
+          sum(rate(ndahi_dependency_calls_total{dependency="router",outcome="failure"}[15m]))
+          / sum(rate(ndahi_dependency_calls_total{dependency="router"}[15m])) > 0.2
+          and sum(increase(ndahi_dependency_calls_total{dependency="router"}[15m])) >= 5
+        for: 10m
+        labels:
+          severity: warning
+          responder: network-operations
+        annotations:
+          summary: "More than 20% of RouterOS bridge calls are failing"
+      - alert: NdahiRouterUnreachable
+        expr: |
+          sum(rate(ndahi_dependency_calls_total{dependency="router",outcome="failure"}[10m]))
+          / sum(rate(ndahi_dependency_calls_total{dependency="router"}[10m])) > 0.8
+          and sum(increase(ndahi_dependency_calls_total{dependency="router"}[10m])) >= 3
+        for: 5m
+        labels:
+          severity: critical
+          responder: network-operations
+        annotations:
+          summary: "The RouterOS bridge is unreachable; vouchers are not reaching the hotspot"
+      - alert: NdahiNetworkCommandBacklog
+        expr: max(ndahi_queue_oldest_pending_seconds{queue="network_commands"}) > 900
+        for: 5m
+        labels:
+          severity: warning
+          responder: network-operations
+        annotations:
+          summary: "Router commands have waited more than 15 minutes"
+      - alert: NdahiNetworkCommandDeadLetters
+        expr: max(ndahi_queue_dead_letters{queue="network_commands"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+          responder: network-operations
+        annotations:
+          summary: "Router commands stopped retrying ({{ $value }}); customers may lack or keep access incorrectly"
+      - alert: NdahiOmadaUnreachable
+        expr: |
+          sum(rate(ndahi_dependency_calls_total{dependency="omada",outcome="failure"}[30m]))
+          / sum(rate(ndahi_dependency_calls_total{dependency="omada"}[30m])) > 0.5
+          and sum(increase(ndahi_dependency_calls_total{dependency="omada"}[30m])) >= 3
+        for: 10m
+        labels:
+          severity: warning
+          responder: network-operations
+        annotations:
+          summary: "The Omada controller is failing its status probes"
+
+  - name: ndahi-authentication
+    rules:
+      - alert: NdahiCustomerLoginFailuresHigh
+        expr: sum(rate(ndahi_auth_responses_total{actor="customer",outcome=~"rejected|throttled"}[10m])) * 60 > 10
+        for: 10m
+        labels:
+          severity: warning
+          responder: security-owner
+        annotations:
+          summary: "More than 10 customer logins per minute are rejected or throttled"
+          description: "Possible credential guessing; review customer security events and rate-limit counters."
+      - alert: NdahiAdminLoginFailures
+        expr: sum(increase(ndahi_auth_responses_total{actor="admin",outcome=~"rejected|throttled"}[15m])) >= 5
+        for: 1m
+        labels:
+          severity: warning
+          responder: security-owner
+        annotations:
+          summary: "Five or more administrator logins were rejected in 15 minutes"
+      - alert: NdahiAdminLoginAttack
+        expr: sum(increase(ndahi_auth_responses_total{actor="admin",outcome=~"rejected|throttled"}[15m])) >= 20
+        for: 1m
+        labels:
+          severity: critical
+          responder: security-owner
+        annotations:
+          summary: "Twenty or more administrator logins were rejected in 15 minutes; likely an attack"

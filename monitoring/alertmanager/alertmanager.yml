@@ -1,0 +1,70 @@
+# Routes NDAHI Connect alerts to their responder role (OBS-004). Each role's
+# Slack-compatible webhook URL is read from a file on the monitoring host; never
+# commit it. Named people for each role are in docs/operations/service-monitoring.md.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: platform-on-call
+  group_by: [alertname, provider]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  routes:
+    - matchers: ['responder="payments-owner"']
+      receiver: payments-owner
+      routes: &critical
+        - matchers: ['severity="critical"']
+          repeat_interval: 1h
+    - matchers: ['responder="network-operations"']
+      receiver: network-operations
+      routes: *critical
+    - matchers: ['responder="security-owner"']
+      receiver: security-owner
+      routes: *critical
+    - matchers: ['responder="frontend-owner"']
+      receiver: frontend-owner
+      routes: *critical
+    - matchers: ['responder="platform-on-call"']
+      receiver: platform-on-call
+      routes: *critical
+
+# A critical alert silences the warning that measures the same failure.
+inhibit_rules:
+  - source_matchers: ['alertname="NdahiPaymentProviderDown"']
+    target_matchers: ['alertname="NdahiPaymentProviderErrors"']
+    equal: [provider]
+  - source_matchers: ['alertname="NdahiEmailDeliveryDown"']
+    target_matchers: ['alertname="NdahiEmailDeliveryErrors"']
+  - source_matchers: ['alertname="NdahiRouterUnreachable"']
+    target_matchers: ['alertname="NdahiRouterErrors"']
+  - source_matchers: ['alertname="NdahiAdminLoginAttack"']
+    target_matchers: ['alertname="NdahiAdminLoginFailures"']
+  - source_matchers: ['alertname="NdahiLatencyCritical"']
+    target_matchers: ['alertname="NdahiLatencyTargetMissed"']
+    equal: [operation]
+
+receivers:
+  - name: platform-on-call
+    slack_configs:
+      - &slack_defaults
+        api_url_file: /etc/alertmanager/secrets/platform-on-call-webhook
+        send_resolved: true
+        title: '{{ .Status | toUpper }} {{ .CommonLabels.severity }}: {{ .CommonLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ if .Annotations.description }} {{ .Annotations.description }}{{ end }}{{ "\n" }}{{ end }}Runbook: docs/operations/service-monitoring.md'
+  - name: payments-owner
+    slack_configs:
+      - <<: *slack_defaults
+        api_url_file: /etc/alertmanager/secrets/payments-owner-webhook
+  - name: network-operations
+    slack_configs:
+      - <<: *slack_defaults
+        api_url_file: /etc/alertmanager/secrets/network-operations-webhook
+  - name: security-owner
+    slack_configs:
+      - <<: *slack_defaults
+        api_url_file: /etc/alertmanager/secrets/security-owner-webhook
+  - name: frontend-owner
+    slack_configs:
+      - <<: *slack_defaults
+        api_url_file: /etc/alertmanager/secrets/frontend-owner-webhook

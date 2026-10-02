@@ -107,6 +107,9 @@ export function createHandler(opts = {}) {
     }
   };
   handler.billing = billing;
+  handler.serviceMonitor = context.serviceMonitor;
+  handler.metricsRegistry = context.performanceMetrics.registry;
+  handler.monitoringEnabled = context.serviceMetrics.enabled;
   handler.logger = logger;
   handler.billingEnabled = env.BILLING_WORKER_ENABLED !== "false";
   handler.securityAlerts = securityAlerts;
@@ -139,7 +142,8 @@ export const createServer = (opts) => {
     routerReconciliationTimer,
     billingTimer,
     securityAlertsTimer,
-    networkSetupTimer;
+    networkSetupTimer,
+    monitorTimer;
   const runBilling = () =>
     handler.billing.run().catch((error) => {
       handler.logger.error("billing.worker_failed", databaseDiagnostic(error));
@@ -169,6 +173,11 @@ export const createServer = (opts) => {
       handler.logger.error("network.setup_worker_failed");
     });
   server.on("listening", () => {
+    if (handler.monitoringEnabled) {
+      void handler.serviceMonitor.run();
+      monitorTimer = setInterval(() => handler.serviceMonitor.run(), 60000);
+      monitorTimer.unref();
+    }
     if (handler.networkSetupEnabled) {
       void resumeNetworkSetup();
       networkSetupTimer = setInterval(resumeNetworkSetup, 30000);
@@ -213,6 +222,7 @@ export const createServer = (opts) => {
     clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer);
     clearInterval(securityAlertsTimer);
+    clearInterval(monitorTimer);
   });
   return server;
 };

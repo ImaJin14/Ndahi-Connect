@@ -1,0 +1,288 @@
+# Service-level objectives (OBS-005). Objectives, SLI definitions and the error-budget
+# policy are in docs/operations/service-level-objectives.md. Budgets cover 30 days, so
+# Prometheus must retain at least 31 days of data (--storage.tsdb.retention.time=31d).
+# Histogram buckets match "120" and "120.0" because Prometheus 3 normalizes le labels.
+groups:
+  - name: ndahi-slo-objectives
+    interval: 5m
+    rules:
+      - record: ndahi:slo_objective:ratio
+        expr: vector(0.995)
+        labels: { slo: availability, responder: platform-on-call }
+      - record: ndahi:slo_objective:ratio
+        expr: vector(0.995)
+        labels: { slo: api_success, responder: platform-on-call }
+      - record: ndahi:slo_objective:ratio
+        expr: vector(0.99)
+        labels: { slo: payment_completion, responder: payments-owner }
+      - record: ndahi:slo_objective:ratio
+        expr: vector(0.99)
+        labels: { slo: voucher_provisioning, responder: network-operations }
+      - record: ndahi:slo_objective:ratio
+        expr: vector(0.99)
+        labels: { slo: network_enforcement, responder: network-operations }
+
+  # Short windows feed the burn-rate alerts below.
+  - name: ndahi-slo-short-windows
+    rules:
+      - record: ndahi:slo_error_ratio:rate5m
+        expr: |
+          1 - avg_over_time(probe_success{job="ndahi-probe"}[5m])
+        labels: { slo: availability }
+      - record: ndahi:slo_error_ratio:rate30m
+        expr: |
+          1 - avg_over_time(probe_success{job="ndahi-probe"}[30m])
+        labels: { slo: availability }
+      - record: ndahi:slo_error_ratio:rate1h
+        expr: |
+          1 - avg_over_time(probe_success{job="ndahi-probe"}[1h])
+        labels: { slo: availability }
+      - record: ndahi:slo_events:increase1h
+        expr: |
+          count_over_time(probe_success{job="ndahi-probe"}[1h])
+        labels: { slo: availability }
+      - record: ndahi:slo_error_ratio:rate6h
+        expr: |
+          1 - avg_over_time(probe_success{job="ndahi-probe"}[6h])
+        labels: { slo: availability }
+      - record: ndahi:slo_events:increase6h
+        expr: |
+          count_over_time(probe_success{job="ndahi-probe"}[6h])
+        labels: { slo: availability }
+      - record: ndahi:slo_error_ratio:rate5m
+        expr: |
+          (sum(rate(ndahi_api_requests_total{outcome="server_error"}[5m])) or vector(0))
+          / sum(rate(ndahi_api_requests_total[5m]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_error_ratio:rate30m
+        expr: |
+          (sum(rate(ndahi_api_requests_total{outcome="server_error"}[30m])) or vector(0))
+          / sum(rate(ndahi_api_requests_total[30m]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_error_ratio:rate1h
+        expr: |
+          (sum(rate(ndahi_api_requests_total{outcome="server_error"}[1h])) or vector(0))
+          / sum(rate(ndahi_api_requests_total[1h]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_events:increase1h
+        expr: |
+          sum(increase(ndahi_api_requests_total[1h]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_error_ratio:rate6h
+        expr: |
+          (sum(rate(ndahi_api_requests_total{outcome="server_error"}[6h])) or vector(0))
+          / sum(rate(ndahi_api_requests_total[6h]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_events:increase6h
+        expr: |
+          sum(increase(ndahi_api_requests_total[6h]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_error_ratio:rate5m
+        expr: |
+          1 - (sum(rate(ndahi_payment_fulfillment_seconds_bucket{le=~"600(\\.0)?"}[5m])) or vector(0))
+          / ((sum(rate(ndahi_payment_fulfillment_seconds_count[5m])) or vector(0))
+            + (sum(rate(ndahi_payment_fulfillment_failures_total[5m])) or vector(0)))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_error_ratio:rate30m
+        expr: |
+          1 - (sum(rate(ndahi_payment_fulfillment_seconds_bucket{le=~"600(\\.0)?"}[30m])) or vector(0))
+          / ((sum(rate(ndahi_payment_fulfillment_seconds_count[30m])) or vector(0))
+            + (sum(rate(ndahi_payment_fulfillment_failures_total[30m])) or vector(0)))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_error_ratio:rate1h
+        expr: |
+          1 - (sum(rate(ndahi_payment_fulfillment_seconds_bucket{le=~"600(\\.0)?"}[1h])) or vector(0))
+          / ((sum(rate(ndahi_payment_fulfillment_seconds_count[1h])) or vector(0))
+            + (sum(rate(ndahi_payment_fulfillment_failures_total[1h])) or vector(0)))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_events:increase1h
+        expr: |
+          (sum(increase(ndahi_payment_fulfillment_seconds_count[1h])) or vector(0))
+          + (sum(increase(ndahi_payment_fulfillment_failures_total[1h])) or vector(0))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_error_ratio:rate6h
+        expr: |
+          1 - (sum(rate(ndahi_payment_fulfillment_seconds_bucket{le=~"600(\\.0)?"}[6h])) or vector(0))
+          / ((sum(rate(ndahi_payment_fulfillment_seconds_count[6h])) or vector(0))
+            + (sum(rate(ndahi_payment_fulfillment_failures_total[6h])) or vector(0)))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_events:increase6h
+        expr: |
+          (sum(increase(ndahi_payment_fulfillment_seconds_count[6h])) or vector(0))
+          + (sum(increase(ndahi_payment_fulfillment_failures_total[6h])) or vector(0))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_error_ratio:rate5m
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le=~"120(\\.0)?"}[5m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[5m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[5m])) or vector(0)))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_error_ratio:rate30m
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le=~"120(\\.0)?"}[30m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[30m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[30m])) or vector(0)))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_error_ratio:rate1h
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le=~"120(\\.0)?"}[1h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[1h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[1h])) or vector(0)))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_events:increase1h
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[1h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[1h])) or vector(0))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_error_ratio:rate6h
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le=~"120(\\.0)?"}[6h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[6h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[6h])) or vector(0)))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_events:increase6h
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[6h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[6h])) or vector(0))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_error_ratio:rate5m
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[5m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[5m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[5m])) or vector(0)))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_error_ratio:rate30m
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[30m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30m])) or vector(0)))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_error_ratio:rate1h
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[1h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0)))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_events:increase1h
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_error_ratio:rate6h
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[6h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0)))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_events:increase6h
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
+        labels: { slo: network_enforcement }
+
+  # The 30-day window measures attainment and the remaining error budget.
+  - name: ndahi-slo-budget
+    interval: 5m
+    rules:
+      - record: ndahi:slo_error_ratio:rate30d
+        expr: |
+          1 - avg_over_time(probe_success{job="ndahi-probe"}[30d])
+        labels: { slo: availability }
+      - record: ndahi:slo_events:increase30d
+        expr: |
+          count_over_time(probe_success{job="ndahi-probe"}[30d])
+        labels: { slo: availability }
+      - record: ndahi:slo_error_ratio:rate30d
+        expr: |
+          (sum(rate(ndahi_api_requests_total{outcome="server_error"}[30d])) or vector(0))
+          / sum(rate(ndahi_api_requests_total[30d]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_events:increase30d
+        expr: |
+          sum(increase(ndahi_api_requests_total[30d]))
+        labels: { slo: api_success }
+      - record: ndahi:slo_error_ratio:rate30d
+        expr: |
+          1 - (sum(rate(ndahi_payment_fulfillment_seconds_bucket{le=~"600(\\.0)?"}[30d])) or vector(0))
+          / ((sum(rate(ndahi_payment_fulfillment_seconds_count[30d])) or vector(0))
+            + (sum(rate(ndahi_payment_fulfillment_failures_total[30d])) or vector(0)))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_events:increase30d
+        expr: |
+          (sum(increase(ndahi_payment_fulfillment_seconds_count[30d])) or vector(0))
+          + (sum(increase(ndahi_payment_fulfillment_failures_total[30d])) or vector(0))
+        labels: { slo: payment_completion }
+      - record: ndahi:slo_error_ratio:rate30d
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action="sync_voucher",le=~"120(\\.0)?"}[30d])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[30d])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[30d])) or vector(0)))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_events:increase30d
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action="sync_voucher"}[30d])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action="sync_voucher"}[30d])) or vector(0))
+        labels: { slo: voucher_provisioning }
+      - record: ndahi:slo_error_ratio:rate30d
+        expr: |
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[30d])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0)))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_events:increase30d
+        expr: |
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
+        labels: { slo: network_enforcement }
+      - record: ndahi:slo_error_budget_remaining:ratio30d
+        expr: |
+          1 - ndahi:slo_error_ratio:rate30d
+            / on (slo) group_left (responder) (1 - ndahi:slo_objective:ratio)
+
+  # Multi-window burn-rate alerts (Google SRE workbook): a fast burn spends 2% of the
+  # 30-day budget in an hour; a slow burn spends 5% in six hours. Both windows must agree,
+  # and a minimum number of events prevents one failure at a quiet hour from paging.
+  - name: ndahi-slo-alerts
+    rules:
+      - alert: NdahiErrorBudgetFastBurn
+        expr: |
+          ndahi:slo_error_ratio:rate1h > on (slo) group_left (responder) (14.4 * (1 - ndahi:slo_objective:ratio))
+          and on (slo, instance) ndahi:slo_error_ratio:rate5m > on (slo) group_left () (14.4 * (1 - ndahi:slo_objective:ratio))
+          and on (slo, instance) ndahi:slo_events:increase1h >= 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.slo }}{{ with $labels.instance }} ({{ . }}){{ end }} is spending its 30-day error budget over 14 times too fast"
+          description: "At this rate the whole monthly budget is gone in about two days. See docs/operations/service-level-objectives.md."
+      - alert: NdahiErrorBudgetSlowBurn
+        expr: |
+          ndahi:slo_error_ratio:rate6h > on (slo) group_left (responder) (6 * (1 - ndahi:slo_objective:ratio))
+          and on (slo, instance) ndahi:slo_error_ratio:rate30m > on (slo) group_left () (6 * (1 - ndahi:slo_objective:ratio))
+          and on (slo, instance) ndahi:slo_events:increase6h >= 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.slo }}{{ with $labels.instance }} ({{ . }}){{ end }} is spending its 30-day error budget 6 times too fast"
+          description: "At this rate the monthly budget is gone in about five days. See docs/operations/service-level-objectives.md."
+      - alert: NdahiErrorBudgetExhausted
+        expr: |
+          ndahi:slo_error_budget_remaining:ratio30d < 0
+          and on (slo, instance) ndahi:slo_events:increase30d >= 20
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.slo }}{{ with $labels.instance }} ({{ . }}){{ end }} has used its whole 30-day error budget"
+          description: "Apply the error-budget policy: pause non-urgent releases and prioritize reliability work."
+      - alert: NdahiAvailabilityProbeMissing
+        expr: |
+          max(up{job="ndahi-probe"}) == 0
+          or absent(max(probe_success{job="ndahi-probe"}))
+        for: 10m
+        labels:
+          severity: warning
+          responder: platform-on-call
+        annotations:
+          summary: "The blackbox prober is not reporting; the availability SLO is blind"
