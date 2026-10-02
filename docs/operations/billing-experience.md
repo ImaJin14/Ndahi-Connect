@@ -49,19 +49,34 @@ transaction and, where appropriate, refund it.
 ## Receipts
 
 The paid payment contains an immutable receipt snapshot: receipt ID, paid date,
-provider/reference, package price, and allowances. Signed-in owners can download
-an HTML receipt (also printable/saveable as PDF) from Payment history, including
+provider/reference, mobile-money network, package price, and allowances. Signed-in
+owners open receipts in a dashboard dialog and download an actual PDF, including
 after refund. Requests for another customer's receipt return 404. Historical
 paid records get a receipt on retrieval or worker processing; unavailable
 historical attributes are explicitly labeled rather than invented.
 
 The receipt uses the same branded design as the voucher email (`lib/receipt.mjs`):
 amount paid, package allowances, receipt number, billed-to name, payment method,
-provider reference and total, with times in Africa/Douala. One document serves the
-download and the email, so it uses tables and inline styles that email clients keep,
-loads nothing external, and prints on one A4 page. The download's Content Security
-Policy allows inline styles only; scripts, images and network requests stay blocked.
-The email also carries a plain-text version with the same details.
+provider reference and total, with times in Africa/Douala. MTN Mobile Money and
+Orange Money labels come from the recorded network, rather than the payment
+processor. Old snapshots gain a network only when their saved payment records it;
+records without that information display “Mobile Money.” Frozen amounts and
+allowances are preserved.
+
+The authenticated receipt endpoint returns `application/pdf` with an attachment
+filename ending in `.pdf`. `?format=json` provides the same details for the dialog,
+plus current refund status. Both responses use `Cache-Control: no-store`. PDF
+generation (`lib/receipt-pdf.mjs`) runs outside the state transaction and loads
+no external assets. Email keeps its HTML/plain-text body and attaches the same
+PDF; fixed snapshot timestamps make attachment bytes stable across retries.
+Embedded DejaVu Sans fonts preserve extended Latin names and supported Unicode.
+Characters outside the font's coverage show `�` in the PDF; the dialog retains
+the original text. Large historical references can continue onto additional pages.
+
+Expired, failed and cancelled transactions offer no payment/refund checks or new
+refund requests in the dashboard. Confirmed payments retain their receipts. Late
+payment reconciliation continues automatically, and pending payments/refunds
+retain their relevant status checks.
 
 The billing worker sends receipts to the account email and retries failed delivery.
 The email provider receives a stable per-payment idempotency key. The same receipt

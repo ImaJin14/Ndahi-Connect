@@ -8,6 +8,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   fmt = (value) => value === null ? "Unlimited" : `${(value / 1e9).toFixed(2)} GB`,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
 let csrfToken = "";
+let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
 localStorage.setItem("ndahi-device", deviceId);
 
 async function call(path, options = {}) {
@@ -28,6 +29,102 @@ async function runButton(button, pendingText, task) {
   button.textContent = pendingText;
   try { return await task(); } finally { button.disabled = false; button.textContent = original; }
 }
+
+function paymentActions(payment) {
+  const confirmed = Boolean(payment.confirmedAt) || ["paid", "refunded", "refund-pending"].includes(payment.status),
+    receiptAvailable = confirmed && payment.receiptAvailable,
+    recheckLabel = ["paid", "refund-pending"].includes(payment.status) && payment.refund?.status === "pending" ? "Check refund status"
+      : ["pending", "processing"].includes(payment.status) ? "Check payment status" : "";
+  return `${recheckLabel ? `<button type="button" data-recheck-payment="${h(payment.id)}">${recheckLabel}</button>` : ""}${receiptAvailable ? `<button type="button" class="secondary-action" data-view-receipt="${h(payment.id)}">View receipt</button><button type="button" data-email-receipt="${h(payment.id)}">Email receipt</button><small>Receipt email: ${h(payment.receiptEmail?.status || "awaiting delivery")}</small>` : ""}${confirmed && payment.status === "paid" && !payment.refund ? `<details><summary>Request a refund</summary><form data-refund-payment="${h(payment.id)}"><label>Reason<textarea name="reason" maxlength="500" required></textarea></label><p>Support will review your request. This does not confirm a refund.</p><button>Send refund request</button></form></details>` : ""}`;
+}
+
+function receiptPreview(receipt) {
+  const details = [
+    ["Package", receipt.plan?.name || "Not recorded"],
+    ["Payment method", receipt.methodLabel || "Mobile Money"],
+    ["Payment reference", receipt.providerReference || "Not recorded for this historical payment"],
+    ["Data allowance", receipt.dataLabel || "Not recorded"],
+    ["Validity", receipt.validityLabel || "Not recorded"],
+    ["Device limit", receipt.deviceLabel || "Not recorded"],
+  ];
+  if (receipt.refundStatus) details.push(["Refund status", receipt.refundStatus]);
+  return `<div class="receipt-brand"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></div><p class="receipt-number">Receipt ${h(receipt.number)}</p><div class="receipt-total"><span>Amount paid</span><strong>${h(receipt.amountLabel)}</strong></div><p class="receipt-paid-at">Paid ${h(receipt.paidAtLabel)}</p><p class="receipt-customer"><strong>Customer</strong><br>${h(receipt.customerName || "Customer")}</p><dl class="receipt-details">${details.map(([name, value]) => `<div><dt>${h(name)}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>${receipt.refundMessage ? `<p class="receipt-note">${h(receipt.refundMessage)}</p>` : ""}<p class="receipt-note">Keep this receipt as proof of payment.</p>`;
+}
+
+async function openReceipt(button) {
+  const request = ++receiptRequest;
+  receiptController?.abort();
+  receiptController = new AbortController();
+  const signal = receiptController.signal;
+  currentReceipt = null;
+  receiptOpener = button;
+  $("#receiptDownload").hidden = true;
+  $("#receiptDownload").disabled = false;
+  $("#receiptDownload").textContent = "Download PDF";
+  $("#receiptMessage").replaceChildren();
+  $("#receiptPreview").textContent = "Loading your receipt…";
+  $("#receiptPreview").setAttribute("aria-busy", "true");
+  $("#receiptDialog").showModal();
+  document.body.classList.add("modal-open");
+  try {
+    const { receipt } = await call(`/api/account/payments/${encodeURIComponent(button.dataset.viewReceipt)}/receipt?format=json`, { signal });
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    currentReceipt = receipt;
+    $("#receiptPreview").innerHTML = receiptPreview(receipt);
+    $("#receiptDownload").hidden = false;
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) {
+      $("#receiptPreview").replaceChildren();
+      showError($("#receiptMessage"), error);
+    }
+  } finally {
+    if (request === receiptRequest) $("#receiptPreview").removeAttribute("aria-busy");
+  }
+}
+
+$("#receiptClose").onclick = () => $("#receiptDialog").close();
+$("#receiptDialog").addEventListener("close", () => {
+  receiptRequest++;
+  receiptController?.abort();
+  receiptController = null;
+  currentReceipt = null;
+  document.body.classList.remove("modal-open");
+  if (receiptOpener?.isConnected) receiptOpener.focus();
+});
+$("#receiptDownload").onclick = async (event) => {
+  const receipt = currentReceipt, request = receiptRequest, signal = receiptController?.signal, button = event.currentTarget;
+  if (!receipt) return;
+  $("#receiptMessage").replaceChildren();
+  button.disabled = true;
+  button.textContent = "Preparing PDF…";
+  try {
+    const response = await fetch(`${api}/api/account/payments/${encodeURIComponent(receipt.paymentId)}/receipt`, {
+      credentials: "include", headers: { accept: "application/pdf" }, signal,
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) { saveReturnPath(); location.replace("/login"); }
+      throw responseError(response, result);
+    }
+    const file = await response.blob();
+    if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/pdf") || await file.slice(0, 5).text() !== "%PDF-") {
+      throw responseError({ status: 409 }, { error: "The PDF receipt is unavailable. Please try again." });
+    }
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    const url = URL.createObjectURL(file), link = document.createElement("a");
+    link.href = url;
+    link.download = `ndahi-receipt-${String(receipt.paymentId).replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    $("#receiptMessage").textContent = "Your PDF receipt is ready to save.";
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) showError($("#receiptMessage"), error);
+  } finally {
+    if (request === receiptRequest) { button.disabled = false; button.textContent = "Download PDF"; }
+  }
+};
 
 const loginLabels = {
   "customer.pin_login.succeeded": "PIN sign-in",
@@ -74,7 +171,7 @@ async function load() {
     <section class="surface full" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}</p><div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${result.dailyAvailability.available ? "The 100 FCFA Daily bundle is available." : `Daily is available again ${h(new Date(result.dailyAvailability.nextEligibleAt).toLocaleString())}.`}</p></section>
     <section class="surface full${securitySetup ? " security-setup" : ""}" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator 2FA is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button><div id="mfaSetup"></div>'}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Sessions &amp; activity</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "Unknown location")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><h3>Recent sign-ins</h3>${security.recentLogins.length ? `<ul>${security.recentLogins.map((entry) => `<li>${h(loginLabels[entry.type] || entry.type)} · ${h(new Date(entry.at).toLocaleString())} · ${h(entry.ip || "Unknown location")}</li>`).join("")}</ul>` : "<p>No recent sign-in activity recorded.</p>"}</details></section>
     <section class="surface full"><h2>Bundle history</h2><div class="table-scroll"><table><thead><tr><th>Bundle</th><th>Status</th><th>Activated</th><th>Expires</th></tr></thead><tbody>${result.vouchers.map((item) => `<tr><td>${h(item.plan.name)}</td><td>${h(item.status)}</td><td>${h(new Date(item.activatedAt).toLocaleDateString())}</td><td>${h(new Date(item.expiresAt).toLocaleDateString())}</td></tr>`).join("")}</tbody></table></div></section>
-    <section class="surface full" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => `<tr><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.provider)}<br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${["pending", "processing", "failed", "expired", "cancelled"].includes(payment.status) || payment.refund?.status === "pending" ? `<button type="button" data-recheck-payment="${h(payment.id)}">Recheck payment / refund</button>` : ""}${payment.receiptAvailable ? `<a class="button secondary-action" href="${h(api)}/api/account/payments/${h(payment.id)}/receipt">Download receipt</a><button type="button" data-email-receipt="${h(payment.id)}">Email receipt</button><small>Receipt email: ${h(payment.receiptEmail?.status || "awaiting delivery")}</small>` : ""}${payment.status === "paid" && !payment.refund ? `<details><summary>Request a refund</summary><form data-refund-payment="${h(payment.id)}"><label>Reason<textarea name="reason" maxlength="500" required></textarea></label><p>Support will review your request. This does not confirm a refund.</p><button>Send refund request</button></form></details>` : ""}</td></tr>`).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
+    <section class="surface full" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => `<tr><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.methodLabel || "Mobile Money")}<br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${paymentActions(payment)}</td></tr>`).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
   const planNotice = sessionStorage.getItem("ndahi-plan-notice");
   if (planNotice) {
@@ -101,14 +198,16 @@ $("#redeem").onsubmit = async (event) => {
 };
 
 $("#dashboard").onclick = async (event) => {
+  const receiptButton = event.target.closest("[data-view-receipt]");
+  if (receiptButton) { await openReceipt(receiptButton); return; }
   const billingButton = event.target.closest("[data-recheck-payment], [data-email-receipt]");
   if (billingButton) {
     try {
-      await runButton(billingButton, "Checking…", async () => {
+      await runButton(billingButton, billingButton.dataset.emailReceipt ? "Sending…" : "Checking…", async () => {
         const id = billingButton.dataset.recheckPayment || billingButton.dataset.emailReceipt;
         const result = billingButton.dataset.emailReceipt
           ? await call("/api/account/payments/receipt-email", { method: "POST", body: JSON.stringify({ paymentId: id }) })
-          : await call(`/api/account/payments/${id}/status`);
+          : await call(`/api/account/payments/${encodeURIComponent(id)}/status`);
         await load();
         $("#billingMessage").textContent = billingButton.dataset.emailReceipt
           ? result.payment.receiptEmail?.status === "sent" ? "Receipt sent to your account email." : "Email delivery is pending or unavailable. You can download the receipt here."
