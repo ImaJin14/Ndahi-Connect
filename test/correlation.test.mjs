@@ -34,3 +34,19 @@ test('error fields exclude provider messages containing names and PINs', () => {
   const fields = errorFields(Object.assign(new Error('PIN 8642 for Alice rejected'), { code: 'E_PROVIDER' }));
   assert.deepEqual(fields, { errorName: 'Error', code: 'E_PROVIDER' });
 });
+
+test('dead-lettered router commands still emit failure logs when metrics are enabled', async () => {
+  const store = createStore({ persistent: false }), lines = [];
+  await store.transaction(s => enqueueRouterCommand(s, { action: 'mark_inactive' }));
+  let deadLetters = 0;
+  const processor = createRouterCommandProcessor({ store, maxAttempts: 1,
+    logger: createLogger({ service: 'api', write: (_, line) => lines.push(JSON.parse(line)) }),
+    metrics: { commandDeadLettered: () => deadLetters++ },
+    router: { markInactive: async () => { throw Error('unreachable'); } },
+  });
+  await processor.run();
+  assert.equal(deadLetters, 1);
+  const failure = lines.find(line => line.event === 'network.command_failed');
+  assert.equal(failure.level, 'error');
+  assert.equal(failure.state, 'dead_letter');
+});
