@@ -9,7 +9,7 @@ import { createCustomerAuthRoutes } from "./lib/api/customer-auth.mjs";
 import { createAccountRoutes } from "./lib/api/account.mjs";
 import { createAdminAuthRoutes } from "./lib/api/admin-auth.mjs";
 import { createAdminRoutes } from "./lib/api/admin.mjs";
-import { json, resolveClientIp } from "./lib/api/http.mjs";
+import { json, resolveClientIp, routeLabel } from "./lib/api/http.mjs";
 import { reconciliationConfig, createPaymentReconciler } from "./lib/payment-reconciliation.mjs";
 import {
   routerReconciliationConfig,
@@ -17,6 +17,9 @@ import {
 } from "./lib/router-reconciliation.mjs";
 import http from "node:http";
 import { databaseDiagnostic } from "./lib/database-diagnostics.mjs";
+import { randomUUID } from "node:crypto";
+import { createLogger, errorFields } from "./lib/logger.mjs";
+import { withCorrelation } from "./lib/correlation.mjs";
 import { fileURLToPath } from "node:url";
 import { normalize } from "node:path";
 import { assertProductionConfig } from "./lib/config.mjs";
@@ -43,6 +46,7 @@ export function createHandler(opts = {}) {
     routerProcessor,
     positiveInteger,
     router,
+    logger,
   } = context;
   const routes = [
     createMiddleware(context),
@@ -60,7 +64,15 @@ export function createHandler(opts = {}) {
     return json(res, 404, { error: "Not found." });
   }
 
-  const handler = async (req, res) => {
+  // Routine probes would drown out request logs; failures are still logged.
+  const quietRoutes = new Set(["/api/health", "/api/metrics"]);
+  // Each request starts a new customer operation; work it triggers inherits its IDs.
+  const handler = (req, res) => {
+    req.requestId = randomUUID();
+    res.setHeader("x-request-id", req.requestId);
+    return withCorrelation({ requestId: req.requestId, correlationId: req.requestId }, () => handle(req, res));
+  };
+  const handle = async (req, res) => {
     const started = performance.now();
     let requestPath = "";
     try {
@@ -72,23 +84,30 @@ export function createHandler(opts = {}) {
         error: "The API server does not serve application pages.",
       });
     } catch (e) {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          message: e.message,
-          at: new Date().toISOString(),
-        }),
-      );
+      if (!["Request too large", "Invalid JSON"].includes(e.message)) {
+        logger.error("http.unhandled_error", { route: routeLabel(requestPath), ...errorFields(e) });
+      }
       if (!res.headersSent) {
         json(res, e.message === "Request too large" ? 413 : 400, {
           error: e.message,
         });
       } else res.end();
     } finally {
-      context.performanceMetrics.observe(requestPath, res.statusCode || 200, (performance.now() - started) / 1000);
+      const durationMs = performance.now() - started,
+        status = res.statusCode || 200;
+      context.performanceMetrics.observe(requestPath, status, durationMs / 1000);
+      if (status >= 400 || !quietRoutes.has(requestPath)) {
+        logger[status >= 500 ? "error" : "info"]("http.request", {
+          method: req.method,
+          route: routeLabel(requestPath),
+          status,
+          durationMs: Math.round(durationMs * 10) / 10,
+        });
+      }
     }
   };
   handler.billing = billing;
+  handler.logger = logger;
   handler.billingEnabled = env.BILLING_WORKER_ENABLED !== "false";
   handler.securityAlerts = securityAlerts;
   handler.securityAlertsEnabled = env.SECURITY_ALERTS_ENABLED !== "false";
@@ -123,67 +142,31 @@ export const createServer = (opts) => {
     networkSetupTimer;
   const runBilling = () =>
     handler.billing.run().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "billing.worker_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("billing.worker_failed", databaseDiagnostic(error));
     });
   const runSecurityAlerts = () =>
     handler.securityAlerts.run().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "security_alerts.worker_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("security_alerts.worker_failed", databaseDiagnostic(error));
     });
   const runWebhooks = () =>
     handler.webhookProcessor.run().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "payment.webhook_worker_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("payment.webhook_worker_failed", databaseDiagnostic(error));
     });
   const run = () =>
     handler.reconcilePayments().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "payment.reconciliation_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("payment.reconciliation_failed", databaseDiagnostic(error));
     });
   const runRouterQueue = () =>
     handler.routerProcessor.run().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "network.command_worker_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("network.command_worker_failed", databaseDiagnostic(error));
     });
   const runRouterReconciliation = () =>
     handler.reconcileRouter().catch((error) => {
-      console.error(
-        JSON.stringify({
-          level: "error",
-          event: "network.reconciliation_failed",
-          ...databaseDiagnostic(error),
-        }),
-      );
+      handler.logger.error("network.reconciliation_failed", databaseDiagnostic(error));
     });
   const resumeNetworkSetup = () =>
     handler.networkSetup.handle("status", {}, "system").catch(() => {
-      console.error(JSON.stringify({ level: "error", event: "network.setup_worker_failed" }));
+      handler.logger.error("network.setup_worker_failed");
     });
   server.on("listening", () => {
     if (handler.networkSetupEnabled) {
@@ -239,15 +222,12 @@ if (main) {
   const port = Number(process.env.PORT || process.env.API_PORT || 8082);
   const host = process.env.HOST || "0.0.0.0";
   createServer().listen(port, host, () =>
-    console.log(
-      JSON.stringify({
-        event: "api.listening",
-        host,
-        port,
-        node: process.version,
-        commit: process.env.RENDER_GIT_COMMIT || "local",
-        healthPath: "/api/health",
-      }),
-    ),
+    createLogger({ service: "api", level: process.env.LOG_LEVEL }).info("api.listening", {
+      host,
+      port,
+      node: process.version,
+      commit: process.env.RENDER_GIT_COMMIT || "local",
+      healthPath: "/api/health",
+    }),
   );
 }
