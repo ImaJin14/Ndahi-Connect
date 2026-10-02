@@ -347,6 +347,16 @@ Use this document as the source of truth for product, engineering, security, and
     (printable to PDF), emailed receipts and delivery retries, including historical paid records.
   - Verified: ownership isolation, historical availability, snapshot stability, HTML escaping,
     email failure/retry/idempotency, and rendered download/email actions.
+  - Branded design (2026-10-02): receipts now match the voucher email (forest header with the
+    NC mark, amount paid, package card, payment details and total, Douala times) in one
+    email-safe document for download and email, with a matching plain-text email part and
+    A4 print styles. The download CSP adds `style-src 'unsafe-inline'` only. Verified by
+    6 receipt tests (content, natural allowance wording, legacy fallbacks, escaping of every
+    field, no external resources, email and download wiring), desktop/375px/PDF renders
+    in Chrome under the download CSP, and the 8 billing browser scenarios.
+  - Review verification: full suite 299 passes, zero failures, 12 PostgreSQL-dependent
+    skips; syntax and whitespace checks passed. Production receipt delivery remains
+    to be verified.
 
 - [x] **BILL-003 — Expose refund status clearly**
   - Show requested, pending, completed, and failed refund states.

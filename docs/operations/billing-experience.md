@@ -47,6 +47,14 @@ after refund. Requests for another customer's receipt return 404. Historical
 paid records get a receipt on retrieval or worker processing; unavailable
 historical attributes are explicitly labeled rather than invented.
 
+The receipt uses the same branded design as the voucher email (`lib/receipt.mjs`):
+amount paid, package allowances, receipt number, billed-to name, payment method,
+provider reference and total, with times in Africa/Douala. One document serves the
+download and the email, so it uses tables and inline styles that email clients keep,
+loads nothing external, and prints on one A4 page. The download's Content Security
+Policy allows inline styles only; scripts, images and network requests stay blocked.
+The email also carries a plain-text version with the same details.
+
 The billing worker sends receipts to the account email and retries failed delivery.
 The email provider receives a stable per-payment idempotency key. The same receipt
 remains downloadable during an email outage. “Email receipt” ensures delivery;
