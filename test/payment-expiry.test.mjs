@@ -209,3 +209,24 @@ test('closed never-submitted reservations do not consume the worker batch', asyn
   assert.equal((await f.payment(id)).status, 'paid');
   assert.equal(f.calls.verify, 1);
 });
+
+test('saved guest recovery closes an expired order without submitting another charge', async t => {
+  const f = await fixture(t);
+  const id = (await f.purchase('recover-expiry')).body.payment.id;
+  const creates = f.calls.create;
+  f.advance(421);
+  const response = await fetch(`${f.base}/api/purchase/recover`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phone: '670040001', requestKey: 'recover-expiry' }),
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.payment.id, id);
+  assert.equal(body.payment.status, 'expired');
+  assert.equal(f.calls.create, creates);
+  const missing = await fetch(`${f.base}/api/purchase/recover`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ phone: '670040002', requestKey: 'recover-expiry' }),
+  });
+  assert.equal(missing.status, 404);
+});
