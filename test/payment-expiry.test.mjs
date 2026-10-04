@@ -32,6 +32,48 @@ test("a pending checkout blocks a new one only until its window and grace pass",
   assert.ok(s.events.some((e) => e.type === "payment.checkout_expired" && e.meta.paymentId === closed.id));
 });
 
+test("a same-key retry closes its own checkout exactly at the deadline and keeps its payment", () => {
+  const s = blank(), first = reserveAt(s, 0, { requestKey: "same-key" });
+  s.payments.find((p) => p.id === first.payment.id).creationState = "accepted";
+  const replay = (seconds, input) => reserveAt(s, seconds, { requestKey: "same-key", ...input });
+  const expiredEvents = () => s.events.filter((e) => e.type === "payment.checkout_expired" && e.meta.paymentId === first.payment.id);
+  const inWindow = replay(419);
+  assert.deepEqual([inWindow.status, inWindow.body.idempotent, inWindow.body.payment.id, inWindow.body.payment.status],
+    [200, true, first.payment.id, "pending"], "still inside the grace period");
+  assert.equal(expiredEvents().length, 0);
+  assert.equal(replay(500, { planId: "monthly" }).status, 409, "a mismatched plan is still rejected");
+  assert.equal(s.payments[0].status, "pending", "a rejected replay does not close the checkout");
+  const atDeadline = replay(420);
+  assert.deepEqual([atDeadline.status, atDeadline.body.idempotent, atDeadline.body.payment.id, atDeadline.body.payment.status],
+    [200, true, first.payment.id, "expired"]);
+  const closed = s.payments.find((p) => p.id === first.payment.id);
+  assert.deepEqual([closed.checkoutClosedAt, closed.lateCheckUntil, closed.failureReason],
+    [at(420).toISOString(), at(420 + 24 * 3600).toISOString(), closedCheckoutMessage]);
+  assert.equal(expiredEvents().length, 1);
+  assert.equal(replay(421).body.payment.status, "expired");
+  assert.equal(closed.checkoutClosedAt, at(420).toISOString(), "a later replay does not move the closure");
+  assert.equal(expiredEvents().length, 1, "closure is logged once");
+  assert.equal(s.payments.length, 1, "no new payment is reserved by a replay");
+});
+
+test("a same-key retry never closes paid, refunding or review-held payments", () => {
+  const old = new Date(start.getTime() - 86400000).toISOString();
+  for (const p of [
+    { status: "paid", confirmedAt: old },
+    { status: "paid", confirmedAt: old, fulfillmentStatus: "needs_review" },
+    { status: "refund-pending", confirmedAt: old, refund: { status: "pending" } },
+  ]) {
+    const s = blank();
+    s.customers.push({ id: "c1", phone: "670000001", name: "Ada" });
+    s.payments.push({ id: "kept", customerId: "c1", planId: "weekly", provider: "mesomb", requestKey: "kept-key", createdAt: old, ...p });
+    const before = structuredClone(s.payments[0]);
+    const replay = reserveAt(s, 0, { requestKey: "kept-key" });
+    assert.deepEqual([replay.status, replay.body.idempotent, replay.body.payment.id], [200, true, "kept"]);
+    assert.deepEqual(s.payments, [before], JSON.stringify(p));
+    assert.ok(!s.events.some((e) => e.type === "payment.checkout_expired"));
+  }
+});
+
 test("payments already stuck for days are released, including ones from before this fix", () => {
   const s = blank();
   s.customers.push({ id: "c1", phone: "670000001", name: "Ada" });
@@ -143,6 +185,28 @@ test("a closed checkout stays closed while the provider says pending, and a late
   await f.handler.billing.run();
   const settled = await f.payment(id);
   assert.equal(settled.status, "paid");
+  assert.equal((await f.store.snapshot()).vouchers.filter((v) => v.paymentId === id && v.status === "active").length, 1);
+});
+
+test("a same-key purchase retry past the deadline closes the checkout without another charge, and a late success still counts", async (t) => {
+  const f = await fixture(t);
+  const first = await f.purchase("retry-expiry"), id = first.body.payment.id;
+  assert.equal(first.status, 201);
+  const creates = f.calls.create;
+  f.advance(300);
+  const inWindow = await f.purchase("retry-expiry");
+  assert.deepEqual([inWindow.status, inWindow.body.payment.id, inWindow.body.payment.status], [200, id, "pending"]);
+  f.advance(121);
+  const late = await f.purchase("retry-expiry");
+  assert.deepEqual([late.status, late.body.idempotent, late.body.payment.id, late.body.payment.status], [200, true, id, "expired"]);
+  assert.equal(f.calls.create, creates, "no new provider submission");
+  const closed = await f.payment(id);
+  assert.equal((await f.store.snapshot()).payments.filter((p) => p.customerId === closed.customerId).length, 1, "no new order");
+  assert.equal(closed.checkoutClosedAt, new Date(start.getTime() + 421000).toISOString());
+  f.statuses.set(id, "paid");
+  f.advance(600);
+  await f.handler.billing.run();
+  assert.equal((await f.payment(id)).status, "paid");
   assert.equal((await f.store.snapshot()).vouchers.filter((v) => v.paymentId === id && v.status === "active").length, 1);
 });
 
