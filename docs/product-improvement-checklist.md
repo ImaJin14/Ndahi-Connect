@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-04
+Last reviewed: 2026-10-05
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -349,6 +349,13 @@ Use this document as the source of truth for product, engineering, security, and
     queued assignments. Delivery totals are unchanged; production verification remains pending.
     Verified: 317 tests passed with 12 PostgreSQL-dependent skips, syntax/whitespace checks,
     and all 15 local billing browser scenarios, including paid guest recovery and 320/390px layouts.
+  - Delegated follow-up (2026-10-05): Claude Code fixed same-key purchase retries
+    returning stale pending status after expiry. Replays close the original order
+    without submitting another charge and preserve verified late settlement.
+    Codex reviewed the change; 13 expiry regressions, 320 full-suite tests with
+    12 PostgreSQL-dependent skips, syntax/whitespace checks, 15 billing browser
+    scenarios, and the new status-authorization suite passed. Deployment and live
+    provider acceptance remain pending.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 
@@ -606,13 +613,20 @@ Use this document as the source of truth for product, engineering, security, and
   - Include lime text, muted text, borders, disabled controls, focus rings, and status colors.
   - Acceptance: automated and manual contrast results are recorded.
 
-- [ ] **A11Y-002 — Verify keyboard-only operation**
+- [-] **A11Y-002 — Verify keyboard-only operation**
   - Cover login, PIN visibility, passkeys, checkout, plan cards, modals, dashboard, and admin tabs.
   - Acceptance: focus order is logical and no keyboard trap exists.
+  - Initial review (2026-10-05): Google Antigravity returned a partial source
+    review. Codex confirmed focus loss after expired guest recovery closes; the
+    [finding and remaining audit](operations/receipt-recovery-accessibility-review.md)
+    are recorded. The UI correction and full keyboard audit remain open.
 
-- [ ] **A11Y-003 — Verify focus management**
+- [-] **A11Y-003 — Verify focus management**
   - Cover progressive login fields, modal open/close, errors, success states, and redirects.
   - Acceptance: focus moves to the changed state or relevant heading.
+  - Verified gap (2026-10-05): after closing an expired resumed checkout, Chrome
+    focus falls to the document body. Google Antigravity owns the proposed fix
+    and close/Escape regression checks; this task is not complete.
 
 - [ ] **A11Y-004 — Test screen-reader announcements**
   - Cover errors, payment progress, voucher activation, connection state, and dynamic dashboards.
@@ -630,9 +644,15 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Testing
 
-- [ ] **TEST-001 — Add browser-driven customer journey tests**
+- [-] **TEST-001 — Add browser-driven customer journey tests**
   - Cover voucher/PIN setup, returning login, passkey fallback, forgot PIN, checkout, payment recovery, renewal, switching, and device connection.
   - Acceptance: tests run in CI against desktop and mobile viewports.
+  - Delegated coverage (2026-10-05): Copilot delivered a focused status-authorization
+    suite; Codex corrected fixture assumptions and verified it in Chrome. It
+    covers guest keys, owner/foreign/expired sessions, and paid guest recovery
+    through PIN setup to the dashboard at 390px. See the
+    [repeatable command](operations/status-authorization-browser-tests.md).
+    Broader journeys, desktop coverage, and CI wiring remain open.
 
 - [ ] **TEST-002 — Add administrator browser tests**
   - Cover authentication, bundle management, voucher generation, suspension, refunds, integrations, and audit logs.
@@ -823,7 +843,8 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-Recounted from the task list on 2026-10-02.
+Recounted from the task list on 2026-10-05. Delivery totals are unchanged;
+A11Y-002/003 and TEST-001 have moved to in progress.
 
 - P0 pending: 2 (blocked: SEC-009 and DATA-005)
 - P1 pending: 18 (15 implemented awaiting production verification, 3 not started)

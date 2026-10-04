@@ -1,6 +1,6 @@
 # Status authorization browser checks
 
-This check contributes to TEST-001/002 for payment status authorization using only an
+This check contributes to TEST-001 for payment status authorization using only an
 in-memory store, the mock payment adapter, and the local customer static assets.
 It verifies that an anonymous request, a wrong checkout key, and another
 checkout key receive `404` without a payment, activation code, or private

@@ -111,7 +111,7 @@ try {
   assert.match(allowedGuest.json.access.code, /^NC-/);
   assert.equal(allowedGuest.json.payment.requestKey, "guest-status-key", "only the authorized guest can read its saved checkout");
 
-  // TEST-002: ownership is session-bound, including legacy payments without a key.
+  // Ownership is session-bound, including legacy payments without a key.
   const owner = await createOwner("670090002", "owner-status-key");
   const ownerPaymentPath = `/api/payments/${owner.payment.id}/status`;
   await store.transaction((state) => {
@@ -133,7 +133,7 @@ try {
   await assertDenied(ownerPaymentPath, { cookie: owner.cookie });
 
   // Browser journey: resume a real paid guest checkout, complete PIN setup, and
-  // keep the entire flow usable at the narrowest supported mobile width.
+  // keep the entire flow usable at a narrow mobile width.
   const browserGuest = await purchase("670090004", "browser-paid-guest-key");
   const browserPaid = await call(`/api/payments/${browserGuest.id}/confirm`, { method: "POST" });
   assert.equal(browserPaid.response.status, 200, browserPaid.text);
@@ -176,7 +176,7 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
   assert.deepEqual(errors, []);
-  console.log("PASS TEST-001/002 status authorization and guest browser journey");
+  console.log("PASS TEST-001 status authorization and guest browser journey");
 } finally {
   await pageContext?.close();
   await browser?.close();
