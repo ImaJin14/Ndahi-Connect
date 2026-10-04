@@ -14,9 +14,9 @@ async function fixture(t, { payments, email, now, store = createStore({ persiste
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   t.after(() => new Promise((r) => { server.close(r); server.closeAllConnections(); }));
   const base = `http://127.0.0.1:${server.address().port}`, jar = {};
-  const call = async (path, method = "GET", data, cookieOverride) => {
+  const call = async (path, method = "GET", data, cookieOverride, headers = {}) => {
     const response = await fetch(base + path, { method,
-      headers: { "content-type": "application/json", cookie: cookieOverride ?? Object.values(jar).join("; ") },
+      headers: { "content-type": "application/json", cookie: cookieOverride ?? Object.values(jar).join("; "), ...headers },
       body: data ? JSON.stringify(data) : undefined });
     const cookie = response.headers.get("set-cookie");
     if (cookie) jar[cookie.split("=")[0]] = cookie.split(";")[0];
@@ -37,6 +37,64 @@ async function account(f) {
   await f.call("/api/account/setup/pin", "POST", { phone: input().phone, code: paid.json.access.code, pin: "2468", confirmPin: "2468" });
   return id;
 }
+
+test("BILL-001 guest status requires its private checkout key before provider or email work", async (t) => {
+  let checks = 0, receipts = 0;
+  const f = await fixture(t, { env: { PAYMENT_MODE: "mesomb", CUSTOMER_APP_URL: "https://portal.example.test" },
+    payments: { mesomb: {
+      async createPayment() { return { providerReference: "private-checkout-ref" }; },
+      async verifyPayment(p) {
+        checks++;
+        return { status: "paid", providerReference: "private-checkout-ref", transactionReference: p.id,
+          amount: p.amount, currency: p.currency };
+      },
+    } }, email: { configured() { return true; }, async sendVoucher() { return { messageId: "voucher-test" }; },
+      async sendReceipt() { receipts++; return { messageId: "receipt-test" }; } },
+  });
+  const key = "private-guest-checkout", purchase = await f.call("/api/purchase", "POST", input({ requestKey: key }));
+  const id = purchase.json.payment.id, path = `/api/payments/${id}/status`;
+  for (const headers of [{}, { "x-checkout-key": "wrong-key" }]) {
+    const denied = await f.call(path, "GET", null, "", headers);
+    assert.equal(denied.response.status, 404);
+    assert.deepEqual(denied.json, { error: "Payment not found." });
+  }
+  assert.equal(checks, 0, "unauthorized reads must not contact the payment provider");
+  assert.equal(receipts, 0, "unauthorized reads must not send receipts");
+  const allowed = await f.call(path, "GET", null, "", { "x-checkout-key": key });
+  assert.equal(allowed.response.status, 200);
+  assert.equal(allowed.json.payment.status, "paid");
+  assert.match(allowed.json.access.code, /^NC-/);
+  assert.equal(checks, 1);
+  const stored = (await f.store.snapshot()).payments.find((p) => p.id === id);
+  const receiptId = stored.receipt.number.slice(3);
+  const sharedReceipt = await f.call(`/api/payments/${receiptId}/status`, "GET", null, "");
+  assert.equal(sharedReceipt.response.status, 404);
+  assert.deepEqual(sharedReceipt.json, { error: "Payment not found." });
+  const preflight = await f.call(path, "OPTIONS", null, "", {
+    origin: "https://portal.example.test", "access-control-request-headers": "x-checkout-key",
+  });
+  assert.equal(preflight.response.status, 204);
+  assert.match(preflight.response.headers.get("access-control-allow-headers"), /x-checkout-key/);
+});
+
+test("BILL-001 owner sessions can read legacy status while another owner cannot use the payment ID", async (t) => {
+  const f = await fixture(t), id = await account(f);
+  const ownerCookie = Object.values(f.jar).join("; ");
+  await f.store.transaction((s) => { delete s.payments.find((p) => p.id === id).requestKey; });
+  const path = `/api/payments/${id}/status`;
+  assert.equal((await f.call(path, "GET", null, "")).response.status, 404);
+  const owned = await f.call(path, "GET", null, ownerCookie);
+  assert.equal(owned.response.status, 200);
+  assert.match(owned.json.access.code, /^NC-/);
+  const another = await f.call("/api/purchase", "POST", input({ phone: "670010002", requestKey: "other-owner" }));
+  const paid = await f.call(`/api/payments/${another.json.payment.id}/confirm`, "POST");
+  await f.call("/api/account/setup/pin", "POST", {
+    phone: "670010002", code: paid.json.access.code, pin: "2468", confirmPin: "2468",
+  });
+  const denied = await f.call(path);
+  assert.equal(denied.response.status, 404);
+  assert.deepEqual(denied.json, { error: "Payment not found." });
+});
 
 test("BILL-001 reserves before provider IO and serializes distinct checkout keys across requests", async (t) => {
   let release, entered;
@@ -89,13 +147,13 @@ test("BILL-001 provider timeout keeps checkout blocked inside its approval windo
   } } });
   const p = (await f.call("/api/purchase", "POST", input())).json.payment;
   time = new Date(+time + 60000);
-  let status = await f.call(`/api/payments/${p.id}/status`);
+  let status = await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey });
   assert.equal(status.json.payment.status, "pending");
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "retry" }))).response.status, 409);
   time = new Date(+time + 6000);
-  status = await f.call(`/api/payments/${p.id}/status`);
+  status = await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey });
   assert.equal(status.json.payment.status, "paid");
-  await f.call(`/api/payments/${p.id}/status`);
+  await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey });
   assert.equal((await f.store.snapshot()).vouchers.length, 1);
   assert.equal(creates, 1);
 });
@@ -108,9 +166,9 @@ test("BILL-001 mismatched verification cannot release or fulfill a payment; prov
       amount: mismatch ? 1 : p.amount, currency: p.currency }; },
   } } });
   const p = (await f.call("/api/purchase", "POST", input())).json.payment;
-  assert.equal((await f.call(`/api/payments/${p.id}/status`)).json.payment.status, "pending");
+  assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).json.payment.status, "pending");
   mismatch = false; time = new Date(+time + 6000);
-  assert.equal((await f.call(`/api/payments/${p.id}/status`)).json.payment.status, "failed");
+  assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).json.payment.status, "failed");
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "new-confirmed-retry" }))).response.status, 201);
 });
 

@@ -8,6 +8,7 @@ import { MockPaymentAdapter } from "../lib/payments.mjs";
 const apiPort = Number(process.env.BILLING_API_PORT || 8198), portalPort = Number(process.env.BILLING_PORT || 8197),
   adminPort = Number(process.env.BILLING_ADMIN_PORT || 8199), api = `http://127.0.0.1:${apiPort}`,
   portal = `http://127.0.0.1:${portalPort}`, admin = `http://127.0.0.1:${adminPort}`;
+const fixtureOrigins = new Set([api, portal, admin].map((url) => new URL(url).origin));
 const store = createStore({ persistent: false });
 const paymentAdapter = new MockPaymentAdapter();
 let refundStatus = "pending", refundCalls = 0, now = new Date();
@@ -46,6 +47,12 @@ try {
     await store.transaction((s) => Object.assign(s, structuredClone(baseline)));
     refundStatus = "pending"; refundCalls = 0; now = new Date();
     const context = await browser.newContext({ viewport: { width, height: 1000 }, acceptDownloads: true });
+    // Keep optional remote assets such as web fonts out of these local fixtures.
+    await context.route("**/*", (route) => {
+      const url = new URL(route.request().url());
+      return ["http:", "https:"].includes(url.protocol) && !fixtureOrigins.has(url.origin)
+        ? route.abort("blockedbyclient") : route.continue();
+    });
     if (signedIn) await context.addCookies([{ name: "customer_session", value: cookie.split("=")[1], domain: "127.0.0.1", path: "/api/account", httpOnly: true, sameSite: "Lax" }]);
     const page = await context.newPage(), errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -202,6 +209,23 @@ try {
     await page.getByText(/still awaiting approval/).waitFor();
     assert.equal((await store.snapshot()).payments.length, 2);
   });
+  await scenario("a paid guest checkout resumes through its private key and reaches PIN setup", async (page) => {
+    const input = { phone: "670040005", name: "Paid Guest", email: "paid-guest@example.test",
+      network: "mtn", planId: "weekly", requestKey: "paid-guest-private-key" };
+    const purchase = await post("/api/purchase", input);
+    await post(`/api/payments/${purchase.json.payment.id}/confirm`, {});
+    await page.goto(`${portal}/onboarding.html`);
+    await page.evaluate((saved) => localStorage.setItem("ndahi-interrupted-checkout", JSON.stringify(saved)),
+      { input, paymentId: purchase.json.payment.id });
+    await page.reload();
+    const statusRequest = page.waitForRequest((request) => request.url().endsWith(`/payments/${purchase.json.payment.id}/status`));
+    await page.getByRole("button", { name: "Resume saved payment" }).click();
+    const request = await statusRequest;
+    assert.equal(request.headers()["x-checkout-key"], input.requestKey);
+    await page.waitForURL("**/verify.html?setup=pin");
+    assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
+    assert.equal((await store.snapshot()).payments.filter((p) => p.customerName === "Paid Guest").length, 1);
+  }, { signedIn: false });
   await scenario("an expired guest checkout closes and can be started again", async (page, context) => {
     await page.goto(`${portal}/onboarding.html`);
     await page.locator('[data-plan="weekly"]').click();
@@ -222,12 +246,50 @@ try {
     assert.equal((await store.snapshot()).payments.find((x) => x.customerName === "Late Guest").status, "expired");
     // The same dialog offers a fresh checkout with the saved details already filled in.
     assert.equal(await resumed.locator("#selected").textContent(), "Buy Weekly");
+    assert.match(await resumed.locator("#checkoutSummary").textContent(), /500 FCFA\s*\/\s*7 days/);
+    assert.match(await resumed.locator("#checkoutSummary").textContent(), /5 GB data\s*·\s*1 device/);
+    assert.match(await resumed.locator("#checkoutPolicy").textContent(), /starts on payment confirmation and lasts 7 days/);
+    assert.match(await resumed.locator("#checkoutPolicy").textContent(), /Closing this page does not cancel a submitted payment/);
+    assert.match(await resumed.locator("#checkoutPolicy").textContent(), /Refund requests require support review/);
     assert.equal(await resumed.getByRole("button", { name: "Resume saved payment" }).count(), 0, "the stale resume notice is replaced");
+    assert.equal(await resumed.getByLabel("Your name", { exact: true }).inputValue(), "Late Guest");
     assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "670040003");
+    assert.equal(await resumed.getByLabel("Email address", { exact: true }).inputValue(), "late@example.test");
     await resumed.locator("#requestPayment").click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).waitFor();
     assert.equal((await store.snapshot()).payments.filter((x) => x.customerName === "Late Guest").length, 2);
     await resumed.screenshot({ path: `${screenshots}/expired-checkout-restarted.png`, fullPage: true });
+  }, { signedIn: false });
+  await scenario("an expired saved checkout cannot restart a discontinued package", async (page) => {
+    const input = { phone: "670040004", name: "Archived Guest", email: "archived@example.test",
+      network: "orange", planId: "archived-guest-package", requestKey: "archived-guest-checkout" };
+    await store.transaction((s) => { s.bundles.push({ ...s.payments[0].planSnapshot,
+      id: input.planId, name: "Archived Guest Package" }); });
+    const purchase = await post("/api/purchase", input);
+    await store.transaction((s) => { s.bundles.find((plan) => plan.id === input.planId).discontinued = true; });
+    now = new Date(Date.now() + 8 * 60000);
+    await page.goto(`${portal}/onboarding.html`);
+    await page.evaluate((saved) => localStorage.setItem("ndahi-interrupted-checkout", JSON.stringify(saved)),
+      { input, paymentId: purchase.json.payment.id });
+    await page.reload();
+    await page.getByRole("button", { name: "Resume saved payment" }).click();
+    await page.getByText(/was not confirmed in time, so it was closed/).waitFor();
+    assert.equal(await page.locator("#selected").textContent(), "Choose another package");
+    assert.match(await page.locator("#checkoutSummary").textContent(), /saved package is unavailable/);
+    assert.equal(await page.locator("#requestPayment").isDisabled(), true);
+    assert.equal(await page.locator('select[name="network"]').inputValue(), "orange");
+    assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
+    assert.equal((await store.snapshot()).payments.filter((p) => p.customerName === "Archived Guest").length, 1);
+    await page.getByRole("button", { name: "Back to packages", exact: true }).click();
+    await page.locator('[data-plan="monthly"]').click();
+    assert.equal(await page.locator("#selected").textContent(), "Buy Monthly");
+    assert.equal(await page.locator("#requestPayment").isDisabled(), false);
+    assert.equal(await page.getByLabel("Payment phone number", { exact: true }).inputValue(), input.phone);
+    await page.locator("#requestPayment").click();
+    await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
+    const payments = (await store.snapshot()).payments.filter((p) => p.customerName === "Archived Guest");
+    assert.equal(payments.length, 2);
+    assert.equal(payments[0].planId, "monthly");
   }, { signedIn: false });
   await scenario("an expired renewal stops blocking the account", async (page) => {
     await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", requestKey: "abandoned-renewal" }, cookie);

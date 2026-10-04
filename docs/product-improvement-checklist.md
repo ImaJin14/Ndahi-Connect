@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-02
+Last reviewed: 2026-10-04
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -340,6 +340,15 @@ Use this document as the source of truth for product, engineering, security, and
   - Checkout expiry (2026-10-02): abandoned orders close after the approval window plus grace; customer-initiated retries use new keys. Late confirmation remains supported, with competing entitlements held for review. Closed reservations no longer consume worker batches, and payment-status reads apply expiry immediately.
   - Review verification: 308 tests passed, 12 PostgreSQL-dependent skips, syntax/whitespace checks and the 300-user memory load test passed. Live provider timeout/late-callback acceptance remains pending.
   - Guest expiry recovery (2026-10-02): saved-checkout recovery applies expiry immediately without submitting a charge; the browser replaces stale resume controls and prefills customer details for a fresh request. Customer terms explain late-confirmation support review without guaranteeing refunds. Verified with guest/renewal browser scenarios and API regression coverage.
+  - Follow-up review (2026-10-04): expired guest retries now restore the current package
+    summary and billing rules; discontinued packages require a new selection. Guest status
+    requires the private checkout key or owner's session, so a receipt's payment ID cannot
+    disclose access codes or trigger provider/email work. Owner sessions still support
+    historical records. Deploy the API and customer app together; see the
+    [shared agent task board](operations/agent-task-board.md) for completed reviews and
+    queued assignments. Delivery totals are unchanged; production verification remains pending.
+    Verified: 317 tests passed with 12 PostgreSQL-dependent skips, syntax/whitespace checks,
+    and all 15 local billing browser scenarios, including paid guest recovery and 320/390px layouts.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 

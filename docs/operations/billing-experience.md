@@ -24,6 +24,20 @@ reads the matching phone/key reservation and closes it if its approval window ha
 reservation never existed, the original request can be submitted with the same
 key. Recovery continues to work when the original package is discontinued.
 
+Guest status reads at `GET /api/payments/:id/status` require the private request key
+in `X-Checkout-Key`, or the payment owner's active session. An ID from a shared
+receipt does not authorize status access or disclose an activation code. Missing
+or incorrect proof returns 404 before provider verification or email work; the
+response is authorized again inside the transaction. Account status reads continue
+to require the owner's session. Guests without their saved key can sign in or use
+their voucher email; historical payments without a key require the owner's session.
+Deploy the API and customer app together so guest polling sends the new header.
+
+When an expired guest payment is released, checkout shows the current package's
+price, allowances, validity, and payment rules before another request, retaining
+the saved customer details. If that package is no longer available, the customer
+must choose an eligible package before submitting another payment.
+
 A clock timeout, missing provider transaction, or failed connection does not prove
 that no money moved. These results keep checkout blocked during its approval window
 and grace period while verification retries.

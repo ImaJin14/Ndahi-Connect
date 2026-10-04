@@ -191,7 +191,9 @@ test('checking payment status closes a timed-out checkout without waiting for th
   const f = await fixture(t);
   const id = (await f.purchase('status-expiry')).body.payment.id;
   f.advance(421);
-  const response = await fetch(`${f.base}/api/payments/${id}/status`);
+  const response = await fetch(`${f.base}/api/payments/${id}/status`, {
+    headers: { "x-checkout-key": "status-expiry" },
+  });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).payment.status, 'expired');
 });
