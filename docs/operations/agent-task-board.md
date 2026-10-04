@@ -1,54 +1,61 @@
-# Agent task board
+# Shared agent task board
 
-Updated: 2026-10-04. The [product improvement checklist](../product-improvement-checklist.md)
-remains the source of truth for delivery status. Queued assignments below do not
-change its checkboxes or claim completed implementation.
+Updated: 2026-10-05. Delivery status remains in the
+[product improvement checklist](../product-improvement-checklist.md). An assignment
+does not mark its acceptance criteria complete.
 
-## Published work
+## Starting point
 
-Claude's receipt and checkout work is already on `main`, including subsequent integration
-and PDF fixes. Preserve these merged changes when reviewing older local edits.
+Use public main commit `78eacae7cdeb3be3ccc0e0d2b4427fb1d0739c75` for this round.
+[PR #20](https://github.com/ImaJin14/Ndahi-Connect/pull/20) is merged and its CI passed.
+It includes the reviewed receipt/expiry work from PRs #15–#19, private-key guest
+status authorization, and restored checkout review after expiry.
+The older working tree at the project root is preserved; do not use it as a base.
 
-| PR | Result | Status |
-| --- | --- | --- |
-| [#15](https://github.com/ImaJin14/Ndahi-Connect/pull/15) | Branded receipts | Merged |
-| [#16](https://github.com/ImaJin14/Ndahi-Connect/pull/16) | Checkout expiry and late settlement | Merged |
-| [#17](https://github.com/ImaJin14/Ndahi-Connect/pull/17) | Expired saved-checkout recovery | Merged |
-| [#18](https://github.com/ImaJin14/Ndahi-Connect/pull/18) | Integration into main | Merged |
-| [#19](https://github.com/ImaJin14/Ndahi-Connect/pull/19) | PDF receipts and terminal billing actions | Merged |
+## Assignments
 
-## Current integration and reviews
+| Agent | First task | Branch | Owned files | Acceptance |
+| --- | --- | --- | --- | --- |
+| Codex | Coordinate this round, review agent changes, validate integration, and prepare the combined PR. | `chore/agent-delegation` | This board, checklist verification notes, integration changes agreed with the relevant owner. | Record actual dispatch/results, inspect every diff, run relevant checks, and publish reviewable changes. |
+| Claude Code | **BILL-001:** apply expiry when a customer repeats the same checkout key after its approval window. | `claude/checkout-expiry-idempotency` | `lib/domain/purchases.mjs`, `test/payment-expiry.test.mjs` | Return the original payment ID as expired; submit no new charge or order; preserve late verified settlement and in-window idempotency. Add meaningful deadline/repeat-key regressions. |
+| Google Antigravity | **A11Y-002/003/005:** review receipt and recovery keyboard operation, focus, zoom and reflow. | `antigravity/receipt-recovery-accessibility` | New `docs/operations/receipt-recovery-accessibility-review.md` | Give concrete findings with source locations; distinguish source inspection from browser evidence. Verify rendered behavior at 200%/400% zoom if browser access is available. Propose UI changes for a separate review. |
+| GitHub Copilot | **TEST-001:** add focused guest and owner status-authorization browser journeys; **TEST-002** remains in its follow-up queue. | `copilot/status-browser-tests` | New `scripts/check-status-authorization-journeys.mjs`, new `docs/operations/status-authorization-browser-tests.md` | Missing/wrong/another payment's checkout key cannot reveal payment data or codes; correct guest key works; owner succeeds, another owner and expired sessions fail. Use local mock fixtures and include a narrow mobile layout. Document a repeatable command. |
 
-Codex owns the active **BILL-001** follow-up: restore package allowances and payment
-rules before restarting an expired guest checkout, preserve saved customer details,
-and require the owner's session or private checkout key for payment-status access.
-The status authorization fix addresses Claude Code's verified finding that a shared
-receipt disclosed the identifier used to retrieve an activation code. Branch:
-`fix/checkout-recovery-review`. Owned paths include the checkout UI, payment routes,
-CORS middleware, focused regressions, and this board.
+Each task has its own worktree under `/tmp/ndahi-task-claude`,
+`/tmp/ndahi-task-antigravity`, or `/tmp/ndahi-task-copilot`. Codex coordinates in
+`/tmp/ndahi-agent-delegation`. Task branches are local working branches;
+reviewed commits are integrated into the published `chore/agent-delegation` PR.
 
-| Agent | Actual review of public main at `960c8da` | Result |
-| --- | --- | --- |
-| Codex | Billing, receipts, current branch history, and integration | Implemented checkout review and guest-status authorization fixes. Syntax/whitespace checks, 317 tests, and 15 local billing browser scenarios passed; 12 PostgreSQL-dependent tests skipped locally. |
-| Claude Code | Read-only billing and webhook review | Completed. Guest status authorization finding verified and addressed by this PR. Other proposed findings require validation; the reconciliation mismatch already emits a review event. |
-| Copilot | Read-only test coverage review | Completed; no correctness blockers reported. Follow-ups cover signed-webhook route integration, expiry boundaries, receipt authorization, recovery races, and receipt-email retries. |
-| Antigravity | Read-only receipt, PDF, and onboarding review attempted | Incomplete: Google account eligibility retrieval timed out before source review. Accessibility review remains queued. |
+## Dispatch status
 
-## Queued assignments
+| Agent | Actual dispatch status |
+| --- | --- |
+| Codex | Reviewed and integrated the returned artifacts, corrected Copilot fixture assumptions, reproduced Google's focus finding in Chrome, and updated this board and checklist. |
+| Claude Code | Delivered the same-key expiry fix and three regressions through the installed Claude Code CLI. Codex verified all 13 expiry tests and the integrated full suite. |
+| GitHub Copilot | Delivered the status-authorization script and run documentation through the installed Copilot CLI. Codex corrected fixtures and verified the authorization matrix and paid guest/PIN/dashboard journey at 390px. [Run instructions](status-authorization-browser-tests.md). |
+| Google Antigravity | Returned a partial source review through the installed Antigravity CLI before its 120-second print timeout. Codex verified expired-recovery focus loss in Chrome. [Reviewed finding and remaining scope](receipt-recovery-accessibility-review.md). Full keyboard/zoom audit and UI correction remain open. |
 
-These are separate proposed follow-ups, not implemented or completed. Each owner should
-start from current `main` after the active recovery change merges and use its own branch.
+Integrated local verification on 2026-10-05: 320 automated tests passed with 12
+PostgreSQL-dependent skips; all 15 existing billing browser scenarios and the new
+status-authorization suite passed. Syntax and whitespace checks passed. No live
+provider or production verification was performed.
 
-| Owner | Task and acceptance | Proposed branch and owned paths |
-| --- | --- | --- |
-| Claude Code | **BILL-001** expiry/idempotency follow-up: review the same-key retry path, which currently returns before applying checkout expiry, and cover a retry after the deadline while preserving the original payment ID and avoiding a new charge. **TEST-003**: add meaningful MeSomb, Flutterwave, and Resend sandbox contract checks with reproducible results. | `claude/expiry-provider-contracts`; `lib/billing.mjs`, `lib/domain/purchases.mjs`, `test/payment-expiry.test.mjs`, new provider-contract tests and their run documentation. |
-| Antigravity | **A11Y-002/003/005**: verify keyboard operation, focus after errors/recovery/dialog close, and receipt/recovery reflow at 200% and 400% zoom. Record evidence and concrete findings; propose any UI fixes separately. | `antigravity/receipt-recovery-accessibility`; new accessibility verification report under `docs/operations/`. Read customer receipt and recovery UI; do not edit Codex's active paths. |
-| Copilot | **TEST-001/002**: automate customer and administrator browser journeys, including recovery, receipt ownership, refunds, and role restrictions. Cover desktop/mobile and meaningful behavior regressions, with a repeatable CI command. Include the completed review's webhook-route, deadline, authorization, recovery-race, and email-retry test gaps. | `copilot/customer-admin-browser-tests`; new browser suites and fixtures, browser-test configuration, and a dedicated CI workflow. Coordinate any shared package-script changes with Codex. |
+## Follow-up queue
 
-Claude Code's review should also clarify whether manual payment verification should be
-available after `lateCheckUntil`. The shared polling cutoff is a review question, not a
-confirmed bug or an instruction to change the late-settlement policy.
+- Claude Code: **TEST-003** provider sandbox contracts after the idempotency fix.
+  Clarify customer rechecking after `lateCheckUntil` before changing that policy.
+- Google Antigravity: fix the confirmed expired-recovery focus destination after
+  agreeing ownership of `customer-app/onboarding.js`, add close/Escape focus
+  assertions, and finish **A11Y-002/003/005** keyboard and 200%/400% zoom checks.
+  Continue **A11Y-004/006/007** separately.
+- Copilot: extend customer/admin browser coverage to signed webhook integration,
+  receipt authorization, recovery races, and receipt-email retries; agree package
+  and CI workflow edits with Codex before changing shared configuration.
+- Codex: review the next changes, reconcile checklist evidence, and prepare their PRs.
 
-Keep commits limited to the assigned work. Do not commit `.claude` settings or nested
-worktrees. Coordinate changes to another owner's paths before editing them, and update
-the source checklist only when its acceptance criteria have evidence.
+## Coordination rules
+
+Stay within assigned files and branches; coordinate shared-file edits first.
+Return changed files, validation commands/results, and unresolved findings to Codex.
+Codex handles final commits and publication after review. Do not include private
+settings, credentials, or nested `.claude` worktrees in a commit.

@@ -15,7 +15,9 @@ PostgreSQL advisory transaction lock serializes reservations across API instance
 only one unresolved checkout per customer is permitted, even with distinct keys.
 Deploy all API instances together: an older instance does not enforce these rules.
 
-Same-key repeats return the existing order. Reusing a key for a different plan or
+Same-key repeats return the existing order and apply expiry immediately when its
+approval window and grace have passed; they do not submit another charge or
+create another order. Reusing a key for a different plan or
 action is rejected. Customers can recheck payments in the dashboard; authenticated
 checkout also discovers pending payments after browser storage is lost. Guest
 checkout stores the original input and random request key in local storage before
