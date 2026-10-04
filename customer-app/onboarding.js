@@ -226,8 +226,15 @@ function choose(id) {
 }
 const checkoutTitle = () =>
   `${accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy"} ${selected.name}`;
-function openCheckout(trigger) {
-  checkoutTrigger = trigger;
+function renderCheckoutReview() {
+  if (!selected) {
+    $("#selected").textContent = "Choose another package";
+    $("#checkoutSummary").textContent = "The saved package is unavailable. Return to packages to choose an eligible package.";
+    $("#checkoutPolicy").textContent = "";
+    $("#requestPayment").textContent = "Choose another package";
+    $("#requestPayment").disabled = true;
+    return;
+  }
   $("#selected").textContent = checkoutTitle();
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
     : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
@@ -237,6 +244,11 @@ function openCheckout(trigger) {
     : "I understand that the new package starts when payment is confirmed.";
   $("#purchase").elements.acknowledge.checked = false;
   $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
+  $("#requestPayment").disabled = false;
+}
+function openCheckout(trigger) {
+  checkoutTrigger = trigger;
+  renderCheckoutReview();
   $("#message").textContent = "";
   showCheckout();
 }
@@ -287,8 +299,11 @@ function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
   $("#purchaseFields").disabled = false;
-  $("#selected").textContent = checkoutTitle();
-  $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
+  // A recovered snapshot remains valid for the original payment, but only a current,
+  // eligible package can be offered for a new charge after that payment closes.
+  selected = plans.find((plan) => plan.id === selected?.id && !dailyBlocked(plan));
+  if (accountAction === "renew" && !renewal?.eligible) selected = undefined;
+  renderCheckoutReview();
   if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);
   renderPlans();
 }
@@ -308,7 +323,20 @@ async function beginAccountSecurity(paid, phone) {
   location.href = "/verify.html?setup=pin";
 }
 async function checkPayment(paymentId, phone) {
-  const status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`);
+  let checkoutKey;
+  if (!accountAction) {
+    checkoutKey = paymentInProgress?.id === paymentId ? paymentInProgress.requestKey : undefined;
+    if (!checkoutKey) {
+      try {
+        checkoutKey = activeRequestKey && localStorage.getItem(activeRequestKey);
+        const saved = JSON.parse(localStorage.getItem(savedCheckoutKey));
+        if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.input?.requestKey;
+      } catch { /* The owner session or an in-memory checkout key may still permit recovery. */ }
+    }
+  }
+  const status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
+    headers: checkoutKey ? { "x-checkout-key": checkoutKey } : {},
+  });
   if (status.payment.status === "paid" && (accountAction || status.access?.code)) {
     await beginAccountSecurity(status, phone);
     return true;
@@ -401,7 +429,7 @@ $("#purchase").onsubmit = async (event) => {
     renderPlans();
     if (!paymentInProgress) {
       $("#purchaseFields").disabled = false;
-      $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
+      if (selected) $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
     } else $("#requestPayment").textContent = "Payment requested";
   }
 };

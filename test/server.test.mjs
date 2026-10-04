@@ -303,10 +303,13 @@ test("pending MeSomb status does not treat a missing voucher as an email record"
       body: JSON.stringify({
         name: "Customer", phone: "670000002", email: "pending@example.com",
         network: "orange", planId: "weekly",
+        requestKey: "pending-status-check",
       }),
     }),
     created = await purchase.json(),
-    status = await fetch(`${base}/api/payments/${created.payment.id}/status`),
+    status = await fetch(`${base}/api/payments/${created.payment.id}/status`, {
+      headers: { "x-checkout-key": "pending-status-check" },
+    }),
     result = await status.json();
   assert.equal(status.status, 200);
   assert.equal(result.payment.status, "pending");

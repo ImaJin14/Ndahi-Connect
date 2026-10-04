@@ -150,6 +150,7 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
     phone: "670000001",
     planId: "connect30",
     provider: "mtn",
+    requestKey: "activation-status-check",
   });
   assert.equal(buy.response.status, 201);
   const paid = await f.call(
@@ -160,6 +161,7 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   assert.match(paid.json.access.code, /^NC-[2-9A-HJKMNP-Z]{4}-[2-9A-HJKMNP-Z]{4}$/);
   const paymentStatus = await f.call(
     `/api/payments/${buy.json.payment.id}/status`,
+    "GET", null, null, { headers: { "x-checkout-key": "activation-status-check" } },
   );
   assert.equal(paymentStatus.response.status, 200);
   assert.equal(paymentStatus.json.payment.status, "paid");
@@ -934,7 +936,7 @@ test("authenticated renewal and switching respect Daily cooldown until the exact
   assert.equal(+new Date(confirmed.json.voucher.expiresAt) - +current, 24 * 36e5);
 });
 
-test("account payment status requires its owner's active session and preserves the public checkout route", async (t) => {
+test("account payment status requires its owner's active session and payment IDs cannot bypass it", async (t) => {
   let current = new Date("2026-09-22T10:00:00Z");
   const f = await authenticatedFixture(t, {
     now: () => current, env: { CUSTOMER_SESSION_SECONDS: "20" },
@@ -958,7 +960,7 @@ test("account payment status requires its owner's active session and preserves t
   assert.match(owner.setCookie, /Path=\/api\/account;/);
   assert.equal((await f.call(`/api/payments/${f.initialPaymentId}/status`, "GET", null, null, {
     cookie: "",
-  })).response.status, 200);
+  })).response.status, 404);
   current = new Date(+current + 20000);
   assert.equal((await f.call(path, "GET", null, null, { cookie: ownerCookie })).response.status, 401);
   assert.equal((await f.call("/api/account/plan/purchase", "POST", {
