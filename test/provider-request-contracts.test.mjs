@@ -1,7 +1,7 @@
 import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, open, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FlutterwavePaymentAdapter, MeSombPaymentAdapter } from "../lib/payments.mjs";
@@ -575,16 +575,28 @@ test("TEST-003 recordings hide free text, unknown fields and numeric personal da
 
 test("TEST-003 recording files are private and never overwrite existing evidence", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ndahi-contract-recordings-"));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  const handles = [];
+  t.after(async () => {
+    await Promise.all(handles.map((handle) => handle.close()));
+    await rm(directory, { recursive: true, force: true });
+  });
   const options = { env: sandboxEnv, selectedProviders: ["mesomb"], fetch: simulatedProviders(), record: directory };
   const original = globalThis.fetch;
   assert.equal((await runSandboxChecks(options)).failed, false);
-  const path = join(directory, "mesomb.json"), content = await readFile(path, "utf8");
+  const path = join(directory, "mesomb.json"), handle = await open(path, "r");
+  handles.push(handle);
+  const readRecordedFile = async () => {
+    const { size } = await handle.stat();
+    const data = Buffer.alloc(size);
+    const { bytesRead } = await handle.read(data, 0, size, 0);
+    return data.toString("utf8", 0, bytesRead);
+  };
+  const content = await readRecordedFile();
   assert.equal((await stat(path)).mode & 0o777, 0o600);
   assert.equal(content.includes("NDAHI Connect"), false);
   assert.equal(content.includes("contract-application-key"), false);
   await assert.rejects(runSandboxChecks(options), { code: "EEXIST" });
-  assert.equal(await readFile(path, "utf8"), content);
+  assert.equal(await readRecordedFile(), content);
   assert.equal(globalThis.fetch, original);
 });
 
