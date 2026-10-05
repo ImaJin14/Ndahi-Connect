@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { MockPaymentAdapter } from "../lib/payments.mjs";
@@ -6,6 +7,7 @@ import { MockPaymentAdapter } from "../lib/payments.mjs";
 // Local-only fixtures. This script never reads .env or contacts a payment provider.
 const apiPort = Number(process.env.STATUS_AUTH_API_PORT || 8298);
 const portalPort = Number(process.env.STATUS_AUTH_PORT || 8297);
+const browserWidth = Number(process.env.STATUS_AUTH_WIDTH || 390);
 const api = `http://127.0.0.1:${apiPort}`;
 const portal = `http://127.0.0.1:${portalPort}`;
 const fixtureOrigins = new Set([api, portal].map((url) => new URL(url).origin));
@@ -142,7 +144,7 @@ try {
     headless: true,
     ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}),
   });
-  pageContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  pageContext = await browser.newContext({ viewport: { width: browserWidth, height: 844 } });
   await pageContext.route("**/*", (route) => {
     const url = new URL(route.request().url());
     return ["http:", "https:"].includes(url.protocol) && !fixtureOrigins.has(url.origin)
@@ -177,6 +179,15 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
   assert.deepEqual(errors, []);
   console.log("PASS TEST-001 status authorization and guest browser journey");
+} catch (error) {
+  if (pageContext) {
+    const directory = process.env.STATUS_AUTH_SCREENSHOTS || "/tmp/ndahi-status-auth-checks";
+    await mkdir(directory, { recursive: true });
+    for (const [index, page] of pageContext.pages().entries()) {
+      await page.screenshot({ path: `${directory}/failure-${browserWidth}-${index}.png`, fullPage: true }).catch(() => {});
+    }
+  }
+  throw error;
 } finally {
   await pageContext?.close();
   await browser?.close();
