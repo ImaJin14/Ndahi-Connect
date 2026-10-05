@@ -190,6 +190,7 @@ async function initialize() {
           paymentInProgress = created.payment;
           selected = cataloguePlans.find((p) => p.id === created.payment.planId) || created.payment.plan;
           activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
+          checkoutTrigger = button;
           showCheckout();
           $("#selected").textContent = "Resume your payment";
           // Prefilled so a closed checkout can be started again with one click.
@@ -264,18 +265,65 @@ $("#plans").onclick = (event) => {
   const button = event.target.closest("button[data-plan]");
   if (button && !button.disabled && choose(button.dataset.plan)) openCheckout(button);
 };
+function isAvailableControl(element) {
+  if (!element || !element.isConnected || typeof element.getAttribute !== "function") return false;
+  if (element.disabled || element.hasAttribute("disabled") || element.matches(":disabled") || element.getAttribute("aria-disabled") === "true") {
+    return false;
+  }
+  if (element.tabIndex < 0) return false;
+  if (element.hidden || element.closest("[hidden]") || element.closest("[inert]")) return false;
+  if (typeof element.checkVisibility === "function") return element.checkVisibility({ visibilityProperty: true, opacityProperty: true });
+  const style = getComputedStyle(element);
+  if (style.visibility !== "visible" || style.opacity === "0") return false;
+  return Boolean(element.getClientRects().length);
+}
+function restoreCheckoutFocus() {
+  if (isAvailableControl(checkoutTrigger)) {
+    checkoutTrigger.focus();
+    return;
+  }
+  const planId = selected?.id || checkoutTrigger?.dataset?.plan;
+  if (planId) {
+    const matchingPlan = [...document.querySelectorAll("#plans button[data-plan]")].find((button) => button.dataset.plan === planId);
+    if (isAvailableControl(matchingPlan)) {
+      checkoutTrigger = matchingPlan;
+      matchingPlan.focus();
+      return;
+    }
+  }
+  const fallbackPlan = [...document.querySelectorAll("#plans button[data-plan]")].find(isAvailableControl);
+  if (fallbackPlan) {
+    checkoutTrigger = fallbackPlan;
+    fallbackPlan.focus();
+    return;
+  }
+  const fallbackAction = [
+    ...document.querySelectorAll("#planNotice button, #planNotice a[href], #accountIntro a[href], #pageContent button, #pageContent a[href]")
+  ].find(isAvailableControl);
+  if (fallbackAction) {
+    checkoutTrigger = fallbackAction;
+    fallbackAction.focus();
+    return;
+  }
+  const pageAction = [...document.querySelectorAll('a[href], button, [tabindex="0"]')].find((el) => !el.closest("#checkout") && isAvailableControl(el));
+  if (pageAction) {
+    checkoutTrigger = pageAction;
+    pageAction.focus();
+  }
+}
 function closeCheckout() {
   $("#checkout").hidden = true;
   document.body.classList.remove("modal-open");
   $("#pageContent").inert = false;
   $("header").inert = false;
   $("footer").inert = false;
-  checkoutTrigger?.focus();
   if (paymentInProgress || creatingPayment) {
     notice("A payment is in progress. Return to it before starting another.", false);
     $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="viewPayment">Return to payment</button>');
-    $("#viewPayment").onclick = showCheckout;
+    $("#viewPayment").onclick = () => { checkoutTrigger = $("#viewPayment"); showCheckout(); };
     $("#viewPayment").focus();
+  } else {
+    restoreCheckoutFocus();
   }
 }
 $("#closeCheckout").onclick = closeCheckout;

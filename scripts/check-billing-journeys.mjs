@@ -57,7 +57,55 @@ try {
     const page = await context.newPage(), errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     try { await work(page, context); assert.deepEqual(errors, []); console.log(`PASS ${name}`); checks++; }
+    catch (error) {
+      for (const [index, openPage] of context.pages().entries()) {
+        await openPage.screenshot({ path: `${screenshots}/failure-${checks}-${index}.png`, fullPage: true }).catch(() => {});
+      }
+      throw error;
+    }
     finally { await context.close(); }
+  }
+  await scenario("checkout restores focus after close, Escape and backdrop", async (page) => {
+    await page.goto(`${portal}/onboarding.html`);
+    const opener = page.locator('[data-plan="weekly"]');
+    for (const action of ["close", "escape", "backdrop"]) {
+      await opener.click();
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "closeCheckout");
+      await page.keyboard.press("Shift+Tab");
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "requestPayment");
+      await page.keyboard.press("Tab");
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "closeCheckout");
+      if (action === "escape") await page.keyboard.press("Escape");
+      else if (action === "backdrop") await page.locator("#checkout").click({ position: { x: 5, y: 5 } });
+      else await page.locator("#closeCheckout").click();
+      await page.locator("#checkout").waitFor({ state: "hidden" });
+      assert.equal(await opener.evaluate((button) => button === document.activeElement), true, action);
+    }
+  }, { signedIn: false });
+  for (const [action, width] of [["close", 1440], ["escape", 390], ["backdrop", 1440]]) {
+    await scenario(`failed saved checkout restores focus through ${action} at ${width}px`, async (page) => {
+      const input = { phone: "670040009", name: "Failed Guest", email: "failed@example.test",
+        network: "mtn", planId: "weekly", requestKey: `failed-focus-${action}` };
+      const purchase = await post("/api/purchase", input);
+      await store.transaction((state) => {
+        const payment = state.payments.find((payment) => payment.id === purchase.json.payment.id);
+        payment.status = "failed";
+        payment.providerFailedAt = now.toISOString();
+        payment.failureReason = "Synthetic provider failure";
+      });
+      await page.goto(`${portal}/onboarding.html`);
+      await page.evaluate((saved) => localStorage.setItem("ndahi-interrupted-checkout", JSON.stringify(saved)),
+        { input, paymentId: purchase.json.payment.id });
+      await page.reload();
+      await page.getByRole("button", { name: "Resume saved payment" }).click();
+      await page.getByText("Synthetic provider failure", { exact: true }).waitFor();
+      if (action === "escape") await page.keyboard.press("Escape");
+      else if (action === "backdrop") await page.locator("#checkout").click({ position: { x: 5, y: 5 } });
+      else await page.locator("#closeCheckout").click();
+      assert.equal(await page.locator('[data-plan="weekly"]').evaluate((button) => button === document.activeElement), true);
+      assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
+      assert.equal((await store.snapshot()).payments.filter((payment) => payment.customerName === "Failed Guest").length, 1);
+    }, { signedIn: false, width });
   }
   await scenario("download and email a paid receipt", async (page) => {
     await page.goto(`${portal}/dashboard`);
@@ -196,6 +244,11 @@ try {
     await resumed.getByRole("button", { name: "Resume saved payment" }).click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).waitFor();
     assert.equal((await store.snapshot()).payments.length, 2);
+    await resumed.keyboard.press("Escape");
+    const returnButton = resumed.getByRole("button", { name: "Return to payment" });
+    await returnButton.waitFor();
+    assert.equal(await returnButton.evaluate((button) => button === document.activeElement), true);
+    await returnButton.click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).click();
     await resumed.waitForURL("**/verify.html?setup=pin");
     assert.equal(await resumed.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
@@ -255,6 +308,11 @@ try {
     assert.equal(await resumed.getByLabel("Your name", { exact: true }).inputValue(), "Late Guest");
     assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "670040003");
     assert.equal(await resumed.getByLabel("Email address", { exact: true }).inputValue(), "late@example.test");
+    await resumed.keyboard.press("Escape");
+    const replacement = resumed.locator('[data-plan="weekly"]');
+    assert.equal(await replacement.evaluate((button) => button === document.activeElement), true,
+      "expiry replaces the stale resume opener with the current package control");
+    await replacement.click();
     await resumed.locator("#requestPayment").click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).waitFor();
     assert.equal((await store.snapshot()).payments.filter((x) => x.customerName === "Late Guest").length, 2);
@@ -281,6 +339,10 @@ try {
     assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
     assert.equal((await store.snapshot()).payments.filter((p) => p.customerName === "Archived Guest").length, 1);
     await page.getByRole("button", { name: "Back to packages", exact: true }).click();
+    assert.equal(await page.evaluate(() => {
+      const focused = document.activeElement;
+      return focused?.matches('[data-plan]') && focused.isConnected && !focused.disabled && focused.getClientRects().length > 0;
+    }), true, "a discontinued package returns focus to an available package");
     await page.locator('[data-plan="monthly"]').click();
     assert.equal(await page.locator("#selected").textContent(), "Buy Monthly");
     assert.equal(await page.locator("#requestPayment").isDisabled(), false);
