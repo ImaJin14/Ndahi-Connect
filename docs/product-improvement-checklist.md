@@ -570,8 +570,9 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Deployment safety
 
-- [ ] **DEP-001 — Introduce a production-like staging environment**
+- [-] **DEP-001 — Introduce a production-like staging environment**
   - Acceptance: migrations, provider sandboxes, and critical flows are tested before production.
+  - Prepared (2026-10-05): separate `render.staging.yaml` with isolated service/database names, staging origins, manual deploys, and production configuration validation. Four isolation/CLI/smoke-target regressions pass. [Release runbook](operations/staging-release-runbook.md). Provisioning, DNS, dedicated test credentials/hardware, migration and authenticated sandbox smoke execution remain pending.
 
 - [-] **DEP-002 — Add database migration gates**
   - Acceptance: incompatible application versions cannot deploy before required migrations.
@@ -587,8 +588,9 @@ Use this document as the source of truth for product, engineering, security, and
   - Confirmed evidence (2026-09-21): Render deployed `9542aa5` on Node 22 but still timed out. A Render Shell probe confirmed database connectivity and missing normalized tables; the Shell was on old commit `b29b289`. Missing schema is the confirmed blocker, not the Node version or physical router.
   - Verification: all 141 local tests, syntax checks, and diff checks pass. Safe database failure codes/hints and a read-only pre-deploy gate are prepared. Production migration, redeployment, and smoke-test automation remain outstanding. See [API deployment readiness](operations/api-deployment-readiness.md).
 
-- [ ] **DEP-004 — Add automatic rollback procedures**
+- [-] **DEP-004 — Add automatic rollback procedures**
   - Acceptance: application rollback and database forward-fix procedures are documented and rehearsed.
+  - Prepared (2026-10-05): [release/rollback runbook](operations/staging-release-runbook.md) records prior deploy IDs, artifact retention, disabling auto-deploys, application/schema compatibility and database forward fix. The smoke workflow now selects staging or production explicitly. Automated rollback orchestration and an actual rollback drill remain pending.
 
 - [-] **DEP-005 — Add environment-drift validation**
   - Reconcile Render Blueprint defaults with live environment settings.
@@ -619,14 +621,12 @@ Use this document as the source of truth for product, engineering, security, and
   - Initial review (2026-10-05): Google Antigravity returned a partial source
     review. Codex confirmed focus loss after expired guest recovery closes; the
     [finding and remaining audit](operations/receipt-recovery-accessibility-review.md)
-    are recorded. The UI correction and full keyboard audit remain open.
+    are recorded. The checkout UI correction is implemented and browser-verified; the full keyboard audit remains open.
 
 - [-] **A11Y-003 — Verify focus management**
   - Cover progressive login fields, modal open/close, errors, success states, and redirects.
   - Acceptance: focus moves to the changed state or relevant heading.
-  - Verified gap (2026-10-05): after closing an expired resumed checkout, Chrome
-    focus falls to the document body. Google Antigravity owns the proposed fix
-    and close/Escape regression checks; this task is not complete.
+  - Focus correction (2026-10-05): Google Antigravity delivered recovery-aware focus restoration; Codex reviewed it and added actual Chrome checks for normal close/Escape/backdrop, failed saved recovery on desktop/mobile, expired saved recovery, discontinued packages, pending-payment return and Tab/Shift+Tab trapping. The full login/error/redirect focus audit remains pending.
 
 - [ ] **A11Y-004 — Test screen-reader announcements**
   - Cover errors, payment progress, voucher activation, connection state, and dynamic dashboards.
@@ -652,14 +652,16 @@ Use this document as the source of truth for product, engineering, security, and
     covers guest keys, owner/foreign/expired sessions, and paid guest recovery
     through PIN setup to the dashboard at 390px. See the
     [repeatable command](operations/status-authorization-browser-tests.md).
-    Broader journeys, desktop coverage, and CI wiring remain open.
+    Extended (2026-10-05): pinned Playwright development dependency and separate CI browser job run status recovery at 1440px/390px, billing at desktop/390px/320px, and all four admin roles at 1440px/390px, with screenshots on failure. [CI instructions](operations/browser-ci-verification.md). Broader returning-login/passkey/forgot-PIN/switching/device journeys remain open.
 
-- [ ] **TEST-002 — Add administrator browser tests**
+- [-] **TEST-002 — Add administrator browser tests**
   - Cover authentication, bundle management, voucher generation, suspension, refunds, integrations, and audit logs.
   - Acceptance: critical role restrictions have positive and negative tests.
+  - Implemented subset (2026-10-05): Copilot delivered real admin login/UI/API role journeys; Codex corrected selectors, CSRF handling and viewport coverage. Owner/operator/reseller voucher generation succeeds, auditor is denied, and only owner can create an administrator. Denied requests cannot create an account. All roles pass at 1440px and 390px; remaining bundle/suspension/integration/audit/MFA journeys are open. Existing billing suite covers customer/admin refund approval and completion.
 
-- [ ] **TEST-003 — Add provider sandbox contract tests**
+- [-] **TEST-003 — Add provider sandbox contract tests**
   - Acceptance: MeSomb, Flutterwave, and Resend request/response assumptions are tested regularly.
+  - Prepared (2026-10-05): Claude Code delivered an offline/sandbox runner for the actual adapters; Codex reviewed network guards, bounded transports, secret-safe summaries and concurrent fetch cleanup and added 11 regression tests. Offline fixtures run in CI; a manual workflow uses dedicated `CONTRACT_*` test credentials and pre-existing synthetic transactions/emails. [Verification instructions](operations/provider-contract-verification.md). Actual provider sandbox execution, charge/refund and webhook delivery evidence remain pending.
 
 - [ ] **TEST-004 — Add automated accessibility testing**
   - Acceptance: severe accessibility violations fail CI while manual verification remains documented.
@@ -843,11 +845,11 @@ These are already implemented and should remain protected by regression tests.
 
 Update these totals whenever tasks are completed.
 
-Recounted from the task list on 2026-10-05. Delivery totals are unchanged;
-A11Y-002/003 and TEST-001 have moved to in progress.
+Recounted from the task list on 2026-10-05. Delivery totals are unchanged.
+DEP-001/004 and TEST-002/003 are now in progress; A11Y-002/003 and TEST-001 remain in progress.
 
 - P0 pending: 2 (blocked: SEC-009 and DATA-005)
-- P1 pending: 18 (15 implemented awaiting production verification, 3 not started)
+- P1 pending: 18 (15 implemented awaiting production verification, 2 prepared/in progress, 1 not started)
 - P2 pending: 31
 - P3 pending: 19
 - Verified foundations complete: 14

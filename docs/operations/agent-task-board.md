@@ -1,61 +1,59 @@
 # Shared agent task board
 
 Updated: 2026-10-05. Delivery status remains in the
-[product improvement checklist](../product-improvement-checklist.md). An assignment
-does not mark its acceptance criteria complete.
+[product improvement checklist](../product-improvement-checklist.md). Assignments
+and prepared configuration do not establish completed acceptance criteria.
 
 ## Starting point
 
-Use public main commit `78eacae7cdeb3be3ccc0e0d2b4427fb1d0739c75` for this round.
-[PR #20](https://github.com/ImaJin14/Ndahi-Connect/pull/20) is merged and its CI passed.
-It includes the reviewed receipt/expiry work from PRs #15–#19, private-key guest
-status authorization, and restored checkout review after expiry.
-The older working tree at the project root is preserved; do not use it as a base.
+[PR #21](https://github.com/ImaJin14/Ndahi-Connect/pull/21) is merged at
+`474d7e3ca673a81172431592a60221bea4e7eb99`. This round starts from that main
+revision, with a clean root checkout on `feat/quality-staging-next-batch`.
+The older superseded root drafts were discarded at the owner's request.
 
-## Assignments
+## Assignments and results
 
-| Agent | First task | Branch | Owned files | Acceptance |
+| Agent | Task | Branch | Owned files | Actual result |
 | --- | --- | --- | --- | --- |
-| Codex | Coordinate this round, review agent changes, validate integration, and prepare the combined PR. | `chore/agent-delegation` | This board, checklist verification notes, integration changes agreed with the relevant owner. | Record actual dispatch/results, inspect every diff, run relevant checks, and publish reviewable changes. |
-| Claude Code | **BILL-001:** apply expiry when a customer repeats the same checkout key after its approval window. | `claude/checkout-expiry-idempotency` | `lib/domain/purchases.mjs`, `test/payment-expiry.test.mjs` | Return the original payment ID as expired; submit no new charge or order; preserve late verified settlement and in-window idempotency. Add meaningful deadline/repeat-key regressions. |
-| Google Antigravity | **A11Y-002/003/005:** review receipt and recovery keyboard operation, focus, zoom and reflow. | `antigravity/receipt-recovery-accessibility` | New `docs/operations/receipt-recovery-accessibility-review.md` | Give concrete findings with source locations; distinguish source inspection from browser evidence. Verify rendered behavior at 200%/400% zoom if browser access is available. Propose UI changes for a separate review. |
-| GitHub Copilot | **TEST-001:** add focused guest and owner status-authorization browser journeys; **TEST-002** remains in its follow-up queue. | `copilot/status-browser-tests` | New `scripts/check-status-authorization-journeys.mjs`, new `docs/operations/status-authorization-browser-tests.md` | Missing/wrong/another payment's checkout key cannot reveal payment data or codes; correct guest key works; owner succeeds, another owner and expired sessions fail. Use local mock fixtures and include a narrow mobile layout. Document a repeatable command. |
+| Google Antigravity | A11Y-002/003 checkout recovery focus | `antigravity/checkout-focus-return` | `customer-app/onboarding.js` | Delivered through the installed Antigravity CLI. Restores a connected available opener/package/action after recovery; pending checkout returns to its payment control. Codex corrected visibility/selector handling and added Chrome regressions. |
+| GitHub Copilot | TEST-001/002 browser CI and admin authorization | `copilot/browser-ci-coverage` | `package.json`, CI workflow, status/admin journey scripts, browser verification doc | Delivered through the installed Copilot CLI. Codex corrected the password selector, CSRF fixture, both admin viewports, failure screenshots, commands and lockfile. |
+| Claude Code | TEST-003 provider contracts | `claude/provider-contracts` | Provider runner, contract tests and verification doc | Delivered the runner through the installed Claude Code CLI before its time budget elapsed. Codex completed tests/docs, tightened host/path/redirect guards, bounded transport and serialized fetch replacement. |
+| Codex | Review/integration; DEP-001/003/004 staging and release preparation | `feat/quality-staging-next-batch` | Integration changes, billing browser regressions, lockfile, staging Blueprint, environment checks, smoke workflow, runbook, checklist and this board | Reviewed every returned diff and ran isolated local tests. Separate staging resources and environment checks are prepared; remote provisioning and rollback execution remain pending. |
 
-Each task has its own worktree under `/tmp/ndahi-task-claude`,
-`/tmp/ndahi-task-antigravity`, or `/tmp/ndahi-task-copilot`. Codex coordinates in
-`/tmp/ndahi-agent-delegation`. Task branches are local working branches;
-reviewed commits are integrated into the published `chore/agent-delegation` PR.
+External agents used separate worktrees under `/tmp/ndahi-task-antigravity`,
+`/tmp/ndahi-task-copilot` and `/tmp/ndahi-task-claude`, containing public repository
+source only. They were not given private environment files or deployment access.
+Codex runs terminal/browser validation; Antigravity's headless command/browser
+capability limitations are unchanged.
 
-## Dispatch status
+## Verification
 
-| Agent | Actual dispatch status |
-| --- | --- |
-| Codex | Reviewed and integrated the returned artifacts, corrected Copilot fixture assumptions, reproduced Google's focus finding in Chrome, and updated this board and checklist. |
-| Claude Code | Delivered the same-key expiry fix and three regressions through the installed Claude Code CLI. Codex verified all 13 expiry tests and the integrated full suite. |
-| GitHub Copilot | Delivered the status-authorization script and run documentation through the installed Copilot CLI. Codex corrected fixtures and verified the authorization matrix and paid guest/PIN/dashboard journey at 390px. [Run instructions](status-authorization-browser-tests.md). |
-| Google Antigravity | Returned a partial source review through the installed Antigravity CLI before its 120-second print timeout. Codex verified expired-recovery focus loss in Chrome. [Reviewed finding and remaining scope](receipt-recovery-accessibility-review.md). Full keyboard/zoom audit and UI correction remain open. |
+On 2026-10-05 the integrated automated suite passes 335 tests with 12
+PostgreSQL-dependent local skips. The provider runner passes offline fixtures;
+11 contract regressions cover adapter behavior, guards, redaction and cleanup.
+Four staging isolation/CLI/smoke-target regressions pass. Syntax, YAML and whitespace checks
+pass. Actual browser coverage includes customer status recovery at 1440px/390px,
+all four admin roles at 1440px/390px, and billing/refund/receipt/checkout focus
+journeys (19 scenarios), including mobile screens and terminal saved-payment recovery.
 
-Integrated local verification on 2026-10-05: 320 automated tests passed with 12
-PostgreSQL-dependent skips; all 15 existing billing browser scenarios and the new
-status-authorization suite passed. Syntax and whitespace checks passed. No live
-provider or production verification was performed.
+See [browser CI verification](browser-ci-verification.md),
+[provider contracts](provider-contract-verification.md) and
+[staging/release procedures](staging-release-runbook.md). No remote staging,
+provider sandbox, production deployment or rollback drill has been performed.
 
 ## Follow-up queue
 
-- Claude Code: **TEST-003** provider sandbox contracts after the idempotency fix.
-  Clarify customer rechecking after `lateCheckUntil` before changing that policy.
-- Google Antigravity: fix the confirmed expired-recovery focus destination after
-  agreeing ownership of `customer-app/onboarding.js`, add close/Escape focus
-  assertions, and finish **A11Y-002/003/005** keyboard and 200%/400% zoom checks.
-  Continue **A11Y-004/006/007** separately.
-- Copilot: extend customer/admin browser coverage to signed webhook integration,
-  receipt authorization, recovery races, and receipt-email retries; agree package
-  and CI workflow edits with Codex before changing shared configuration.
-- Codex: review the next changes, reconcile checklist evidence, and prepare their PRs.
+- Finish the keyboard, screen-reader and 200%/400% zoom audits.
+- Extend customer/admin browser coverage to the remaining checklist journeys.
+- Configure dedicated provider test credentials, record read-only sandbox
+  evidence, and separately exercise charges, refunds and webhook delivery.
+- Provision staging with isolated DNS, database, provider accounts and hardware;
+  run migrations, strict smoke tests and a timed rollback/forward-fix drill.
+- Implement centralized error tracking (OBS-003), then continue the remaining
+  WISP, admin, localization, support and privacy features from the checklist.
 
 ## Coordination rules
 
 Stay within assigned files and branches; coordinate shared-file edits first.
-Return changed files, validation commands/results, and unresolved findings to Codex.
-Codex handles final commits and publication after review. Do not include private
-settings, credentials, or nested `.claude` worktrees in a commit.
+Codex reviews, validates, commits and publishes integration changes. Do not commit
+private settings, credentials, environment files or nested Claude worktrees.
