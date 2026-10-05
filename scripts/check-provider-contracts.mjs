@@ -626,10 +626,14 @@ const SANDBOX = { flutterwave: sandboxFlutterwave, mesomb: sandboxMeSomb, resend
 // Flutterwave's adapter uses global fetch. Serialize runs so overlapping callers
 // cannot restore another run's fetch or bypass its network guard.
 let running = Promise.resolve();
-export function runContracts(options = {}) {
-  const result = running.then(() => runContractsSerial(options));
+export function serializeProviderChecks(task) {
+  const result = running.then(task);
   running = result.catch(() => {});
   return result;
+}
+
+export function runContracts(options = {}) {
+  return serializeProviderChecks(() => runContractsSerial(options));
 }
 
 async function runContractsSerial({

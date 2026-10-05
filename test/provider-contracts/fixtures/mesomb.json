@@ -1,0 +1,166 @@
+{
+  "_provenance": "Shaped from the @hachther/mesomb 3.0.2 SDK models (TransactionResponse, Transaction, Application) and MeSomb API documentation, limited to the fields lib/payments.mjs reads. Not yet a sandbox recording: Record a manually selected exercise with scripts/exercise-provider-sandboxes.mjs --provider=<provider> --allow-writes --record=<new-directory>, then review and substitute synthetic identifiers before updating fixtures.",
+  "status": {
+    "status": 200,
+    "body": {
+      "key": "contract-application-key",
+      "name": "NDAHI Connect",
+      "countries": [
+        "CM"
+      ],
+      "balances": [
+        {
+          "country": "CM",
+          "service": "MTN",
+          "value": 0
+        }
+      ]
+    }
+  },
+  "collectPending": {
+    "status": 201,
+    "body": {
+      "success": true,
+      "message": "The payment request was sent",
+      "redirect": null,
+      "transaction": {
+        "pk": "9a4b3c2d-0000-4000-8000-00000000c011",
+        "status": "PENDING",
+        "type": "COLLECT",
+        "amount": 500,
+        "fees": 0,
+        "b_party": "670000001",
+        "message": null,
+        "service": "MTN",
+        "reference": "contract-payment-1",
+        "ts": "2026-10-05T08:00:00Z",
+        "country": "CM",
+        "currency": "XAF",
+        "fin_trx_id": null,
+        "trxamount": 500
+      },
+      "reference": "contract-payment-1",
+      "status": "PENDING"
+    }
+  },
+  "collectRedirect": {
+    "status": 201,
+    "body": {
+      "success": true,
+      "message": "Confirm the payment on the provider page",
+      "redirect": "https://mesomb.hachther.com/en/payment/confirm/contract-2/",
+      "transaction": {
+        "pk": "9a4b3c2d-0000-4000-8000-00000000c012",
+        "status": "PENDING",
+        "amount": 500,
+        "currency": "XAF",
+        "ts": "2026-10-05T08:00:00Z"
+      },
+      "reference": "contract-payment-2",
+      "status": "PENDING"
+    }
+  },
+  "collectRejected": {
+    "status": 201,
+    "body": {
+      "success": false,
+      "message": "The payer account cannot be debited",
+      "redirect": null,
+      "transaction": {
+        "pk": "9a4b3c2d-0000-4000-8000-00000000c013",
+        "status": "FAILED",
+        "amount": 500,
+        "currency": "XAF",
+        "ts": "2026-10-05T08:00:00Z"
+      },
+      "status": "FAILED"
+    }
+  },
+  "checkSuccessful": {
+    "status": 200,
+    "body": [
+      {
+        "pk": "9a4b3c2d-0000-4000-8000-00000000c011",
+        "status": "SUCCESS",
+        "type": "COLLECT",
+        "amount": 500,
+        "fees": 0,
+        "service": "MTN",
+        "reference": "contract-payment-1",
+        "ts": "2026-10-05T08:01:00Z",
+        "country": "CM",
+        "currency": "XAF"
+      }
+    ]
+  },
+  "checkFailed": {
+    "status": 200,
+    "body": [
+      {
+        "pk": "9a4b3c2d-0000-4000-8000-00000000c011",
+        "status": "FAILED",
+        "amount": 500,
+        "currency": "XAF",
+        "reference": "contract-payment-1",
+        "ts": "2026-10-05T08:01:00Z"
+      }
+    ]
+  },
+  "checkMissing": {
+    "status": 200,
+    "body": []
+  },
+  "refundSuccessful": {
+    "status": 201,
+    "body": {
+      "success": true,
+      "message": "Refund completed",
+      "redirect": null,
+      "transaction": {
+        "pk": "9a4b3c2d-0000-4000-8000-0000000000f1",
+        "status": "SUCCESS",
+        "type": "REFUND",
+        "amount": 500,
+        "currency": "XAF",
+        "ts": "2026-10-05T09:00:00Z"
+      },
+      "reference": null,
+      "status": "SUCCESS"
+    }
+  },
+  "checkRefund": {
+    "status": 200,
+    "body": [
+      {
+        "pk": "9a4b3c2d-0000-4000-8000-0000000000f1",
+        "status": "SUCCESS",
+        "type": "REFUND",
+        "amount": 500,
+        "currency": "XAF",
+        "ts": "2026-10-05T09:00:00Z"
+      }
+    ]
+  },
+  "unauthorized": {
+    "status": 401,
+    "body": {
+      "detail": "Authentication credentials were not provided correctly.",
+      "code": "authentication-failed"
+    }
+  },
+  "webhook": {
+    "body": {
+      "id": "evt-contract-1",
+      "event_type": "transaction.success",
+      "data": {
+        "object": {
+          "pk": "9a4b3c2d-0000-4000-8000-00000000c011",
+          "reference": "contract-payment-1",
+          "status": "SUCCESS",
+          "amount": 500,
+          "currency": "XAF"
+        }
+      }
+    }
+  }
+}

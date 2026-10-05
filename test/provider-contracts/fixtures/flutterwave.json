@@ -1,0 +1,188 @@
+{
+  "_provenance": "Shaped from Flutterwave v3 API documentation (francophone mobile money charge, transaction verify, refunds) and the fields lib/payments.mjs reads. Not yet a sandbox recording: Record a manually selected exercise with scripts/exercise-provider-sandboxes.mjs --provider=<provider> --allow-writes --record=<new-directory>, then review and substitute synthetic identifiers before updating fixtures.",
+  "chargeCallback": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Charge initiated",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "flw_ref": "FLW-MOCK-CONTRACT-1",
+        "amount": 500,
+        "charged_amount": 512,
+        "currency": "XAF",
+        "status": "pending",
+        "payment_type": "mobilemoneyfranco",
+        "app_fee": 12
+      },
+      "meta": {
+        "authorization": {
+          "mode": "callback",
+          "redirect_url": null
+        }
+      }
+    }
+  },
+  "chargeRedirect": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Charge initiated",
+      "data": {
+        "id": 4106582,
+        "tx_ref": "contract-payment-2",
+        "flw_ref": "FLW-MOCK-CONTRACT-2",
+        "amount": 500,
+        "currency": "XAF",
+        "status": "pending"
+      },
+      "meta": {
+        "authorization": {
+          "mode": "redirect",
+          "redirect": "https://checkout.flutterwave.com/authorize/contract-2"
+        }
+      }
+    }
+  },
+  "verifySuccessful": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Transaction fetched successfully",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "flw_ref": "FLW-MOCK-CONTRACT-1",
+        "amount": 500,
+        "charged_amount": 512,
+        "currency": "XAF",
+        "status": "successful",
+        "payment_type": "mobilemoneyfranco",
+        "app_fee": 12
+      }
+    }
+  },
+  "verifyFailed": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Transaction fetched successfully",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "amount": 500,
+        "currency": "XAF",
+        "status": "failed"
+      }
+    }
+  },
+  "verifyPending": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Transaction fetched successfully",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "amount": 500,
+        "currency": "XAF",
+        "status": "pending"
+      }
+    }
+  },
+  "notFound": {
+    "status": 400,
+    "body": {
+      "status": "error",
+      "message": "No transaction was found for this id",
+      "data": null
+    }
+  },
+  "unauthorized": {
+    "status": 401,
+    "body": {
+      "status": "error",
+      "message": "Invalid authorization key",
+      "data": null
+    }
+  },
+  "refundCompleted": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Transaction refund initiated",
+      "data": {
+        "id": 75923,
+        "tx_id": 4106581,
+        "flw_ref": "FLW-MOCK-CONTRACT-1",
+        "amount_refunded": 500,
+        "status": "completed-momo",
+        "destination": "payment_source",
+        "meta": {
+          "source": "availablebalance"
+        }
+      }
+    }
+  },
+  "refundPendingStringMeta": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Refund fetched",
+      "data": {
+        "id": 75923,
+        "TransactionId": 4106581,
+        "AmountRefunded": 500,
+        "status": "pending",
+        "meta": "{\"source\":\"availablebalance\",\"disburse_status\":\"pending\"}"
+      }
+    }
+  },
+  "refundDisburseFailed": {
+    "status": 200,
+    "body": {
+      "status": "success",
+      "message": "Refund fetched",
+      "data": {
+        "id": 75923,
+        "tx_id": 4106581,
+        "amount_refunded": 500,
+        "status": "pending",
+        "meta": {
+          "disburse_status": "failed"
+        }
+      }
+    }
+  },
+  "webhook": {
+    "_note": "Envelope of Flutterwave's newer webhook format (webhook_id, timestamp, type), signed with the flutterwave-signature HMAC the adapter requires. Data fields are assumed to match v3; unconfirmed until a sandbox delivery is recorded.",
+    "body": {
+      "webhook_id": "wbk_contract1",
+      "timestamp": 1791100000000,
+      "type": "charge.completed",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "flw_ref": "FLW-MOCK-CONTRACT-1",
+        "amount": 500,
+        "currency": "XAF",
+        "status": "successful"
+      }
+    }
+  },
+  "webhookV3": {
+    "_note": "Shape documented for v3 at https://developer.flutterwave.com/v3.0/docs/webhooks: 'event' and 'event.type' with no id. v3 authenticates with a verif-hash header carrying the plain secret hash, which the adapter does not accept.",
+    "body": {
+      "event": "charge.completed",
+      "data": {
+        "id": 4106581,
+        "tx_ref": "contract-payment-1",
+        "amount": 500,
+        "currency": "XAF",
+        "status": "successful"
+      },
+      "event.type": "MOBILEMONEYFRANCO_TRANSACTION"
+    }
+  }
+}

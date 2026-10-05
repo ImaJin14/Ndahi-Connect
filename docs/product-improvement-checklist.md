@@ -356,6 +356,11 @@ Use this document as the source of truth for product, engineering, security, and
     12 PostgreSQL-dependent skips, syntax/whitespace checks, 15 billing browser
     scenarios, and the new status-authorization suite passed. Deployment and live
     provider acceptance remain pending.
+  - Policy review (2026-10-05): Claude documented behavior after `lateCheckUntil`
+    and proposed an audited support re-verification path in the
+    [late-settlement review](operations/late-settlement-recheck-review.md).
+    The proposal awaits a product decision; billing policy and settlement behavior
+    are unchanged.
   - Verified (2026-09-25): concurrent-key, lost-response, storage-failure, restart, timeout and
     provider-verification tests, plus guest/account browser recovery. See the [billing runbook](operations/billing-experience.md).
 
@@ -662,6 +667,7 @@ Use this document as the source of truth for product, engineering, security, and
 - [-] **TEST-003 — Add provider sandbox contract tests**
   - Acceptance: MeSomb, Flutterwave, and Resend request/response assumptions are tested regularly.
   - Prepared (2026-10-05): Claude Code delivered an offline/sandbox runner for the actual adapters; Codex reviewed network guards, bounded transports, secret-safe summaries and concurrent fetch cleanup and added 11 regression tests. Offline fixtures run in CI; a manual workflow uses dedicated `CONTRACT_*` test credentials and pre-existing synthetic transactions/emails. [Verification instructions](operations/provider-contract-verification.md). Actual provider sandbox execution, charge/refund and webhook delivery evidence remain pending.
+  - Follow-up prepared (2026-10-05): Claude's request/response fixtures, SDK signing, refund/webhook and Resend retry contracts are integrated with a local sandbox exercise tool. All 25 new offline checks pass. Codex added explicit provider/write selection, request/body bounds, endpoint/recipient guards, private redacted recordings and shared fetch serialization. Fixtures remain synthetic. Actual sandbox charges/collections/email sends, refund creation and webhook delivery evidence remain pending; the Flutterwave v3 header scheme needs confirmation against a test-account delivery.
 
 - [ ] **TEST-004 — Add automated accessibility testing**
   - Acceptance: severe accessibility violations fail CI while manual verification remains documented.
