@@ -1,0 +1,47 @@
+{
+  "_provenance": "Shaped from the Resend API documentation for POST /emails, GET /emails/:id and error responses, limited to the fields lib/email.mjs reads. Not yet a sandbox recording: Record a manually selected exercise with scripts/exercise-provider-sandboxes.mjs --provider=<provider> --allow-writes --record=<new-directory>, then review and substitute synthetic identifiers before updating fixtures.",
+  "sent": {
+    "status": 200,
+    "body": {
+      "id": "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794"
+    }
+  },
+  "validationError": {
+    "status": 422,
+    "body": {
+      "statusCode": 422,
+      "name": "validation_error",
+      "message": "The `to` field must be a valid email address."
+    }
+  },
+  "unauthorized": {
+    "status": 401,
+    "body": {
+      "statusCode": 401,
+      "name": "missing_api_key",
+      "message": "Missing API key in the authorization header."
+    }
+  },
+  "idempotencyConflict": {
+    "status": 409,
+    "body": {
+      "statusCode": 409,
+      "name": "invalid_idempotent_request",
+      "message": "Same idempotency key used with a different request payload."
+    }
+  },
+  "email": {
+    "status": 200,
+    "body": {
+      "object": "email",
+      "id": "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794",
+      "to": [
+        "delivered@resend.dev"
+      ],
+      "from": "NDAHI Connect <onboarding@resend.dev>",
+      "subject": "Contract check",
+      "created_at": "2026-10-05 08:00:00.000000+00",
+      "last_event": "delivered"
+    }
+  }
+}

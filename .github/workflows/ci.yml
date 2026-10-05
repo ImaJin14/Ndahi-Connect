@@ -38,6 +38,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - run: npm run check
       - run: npm test
+      - name: Verify provider contracts with offline fixtures
+        run: npm run check:providers
       - name: Verify 300 concurrent customer journeys
         run: npm run load-test
       - name: Apply PostgreSQL migrations
@@ -49,6 +51,47 @@ jobs:
         run: npm run load-test
         env:
           LOAD_TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+  browser:
+    name: Browser authorization journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop browser journeys
+        run: STATUS_AUTH_WIDTH=1440 ADMIN_AUTH_WIDTH=1440 npm run test:browser
+        env:
+          BILLING_API_PORT: 8198
+          BILLING_PORT: 8197
+          BILLING_ADMIN_PORT: 8199
+          STATUS_AUTH_API_PORT: 8298
+          STATUS_AUTH_PORT: 8297
+          ADMIN_AUTH_API_PORT: 8398
+          ADMIN_AUTH_PORT: 8399
+      - name: Run mobile browser journeys
+        run: STATUS_AUTH_WIDTH=390 npm run check:status:authorization && ADMIN_AUTH_WIDTH=390 npm run check:admin:authorization
+        env:
+          BILLING_API_PORT: 8298
+          BILLING_PORT: 8297
+          BILLING_ADMIN_PORT: 8299
+          STATUS_AUTH_API_PORT: 8398
+          STATUS_AUTH_PORT: 8397
+          ADMIN_AUTH_API_PORT: 8498
+          ADMIN_AUTH_PORT: 8499
+      - name: Upload browser failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-screenshots
+          path: /tmp/ndahi-*-checks
+          if-no-files-found: ignore
 
   monitoring:
     name: Monitoring rules

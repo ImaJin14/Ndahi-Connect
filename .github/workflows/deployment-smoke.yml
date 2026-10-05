@@ -2,6 +2,11 @@ name: Deployment smoke checks
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: Deployment environment to check
+        type: choice
+        options: [staging, production]
+        default: staging
       allow_bootstrap:
         description: Allow a bootstrap deployment (does not certify launch readiness)
         type: boolean
@@ -11,9 +16,10 @@ permissions:
   contents: read
 jobs:
   smoke:
-    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && (github.event.deployment.environment == 'production' || github.event.deployment.environment == 'staging'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.deployment.environment }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,4 +29,7 @@ jobs:
           node-version: 22
       - run: npm run check:deployment
         env:
+          CUSTOMER_APP_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_CUSTOMER_APP_URL || 'https://staging-portal.ndahiconnect.net') || (vars.CUSTOMER_APP_URL || 'https://portal.ndahiconnect.net') }}
+          ADMIN_APP_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_ADMIN_APP_URL || 'https://staging-admin.ndahiconnect.net') || (vars.ADMIN_APP_URL || 'https://admin.ndahiconnect.net') }}
+          API_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_API_URL || 'https://staging-api.ndahiconnect.net') || (vars.API_URL || 'https://api.ndahiconnect.net') }}
           SMOKE_ALLOW_BOOTSTRAP: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_bootstrap && 'true' || 'false' }}

@@ -1,0 +1,43 @@
+name: Provider sandbox contracts
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Read-only provider contract to verify with a dedicated test account
+        type: choice
+        options: [flutterwave, mesomb, resend]
+        required: true
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: provider-sandbox
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify existing test transaction or email
+        run: npm run --silent check:providers -- --sandbox --provider="$CONTRACT_PROVIDER" --json
+        env:
+          CONTRACT_PROVIDER: ${{ inputs.provider }}
+          CONTRACT_FLW_SECRET_KEY: ${{ secrets.CONTRACT_FLW_SECRET_KEY }}
+          CONTRACT_FLW_TRANSACTION_ID: ${{ vars.CONTRACT_FLW_TRANSACTION_ID }}
+          CONTRACT_FLW_TX_REF: ${{ vars.CONTRACT_FLW_TX_REF }}
+          CONTRACT_FLW_EXPECTED_AMOUNT: ${{ vars.CONTRACT_FLW_EXPECTED_AMOUNT }}
+          CONTRACT_FLW_EXPECTED_CURRENCY: ${{ vars.CONTRACT_FLW_EXPECTED_CURRENCY }}
+          CONTRACT_FLW_EXPECTED_STATUS: ${{ vars.CONTRACT_FLW_EXPECTED_STATUS }}
+          CONTRACT_MESOMB_TEST_ACCOUNT_ACK: ${{ vars.CONTRACT_MESOMB_TEST_ACCOUNT_ACK }}
+          CONTRACT_MESOMB_APPLICATION_KEY: ${{ secrets.CONTRACT_MESOMB_APPLICATION_KEY }}
+          CONTRACT_MESOMB_ACCESS_KEY: ${{ secrets.CONTRACT_MESOMB_ACCESS_KEY }}
+          CONTRACT_MESOMB_SECRET_KEY: ${{ secrets.CONTRACT_MESOMB_SECRET_KEY }}
+          CONTRACT_MESOMB_TRANSACTION_REF: ${{ vars.CONTRACT_MESOMB_TRANSACTION_REF }}
+          CONTRACT_MESOMB_EXPECTED_AMOUNT: ${{ vars.CONTRACT_MESOMB_EXPECTED_AMOUNT }}
+          CONTRACT_MESOMB_EXPECTED_CURRENCY: ${{ vars.CONTRACT_MESOMB_EXPECTED_CURRENCY }}
+          CONTRACT_MESOMB_EXPECTED_STATUS: ${{ vars.CONTRACT_MESOMB_EXPECTED_STATUS }}
+          CONTRACT_RESEND_API_KEY: ${{ secrets.CONTRACT_RESEND_API_KEY }}
+          CONTRACT_RESEND_EMAIL_ID: ${{ vars.CONTRACT_RESEND_EMAIL_ID }}

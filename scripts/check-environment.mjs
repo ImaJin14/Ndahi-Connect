@@ -4,8 +4,12 @@ import { blueprintServices, environmentDrift } from "../lib/environment-drift.mj
 const name = process.argv[2] || process.env.RENDER_SERVICE_NAME;
 try {
   if (!name) throw new Error("Pass the Render service name, for example: npm run check:environment -- ndahi-api");
-  const services = blueprintServices(await readFile(new URL("../render.yaml", import.meta.url), "utf8"));
-  const { errors, warnings, bootstrap } = environmentDrift(name, services, process.env);
+  const file = process.env.RENDER_BLUEPRINT_FILE || "render.yaml";
+  if (!["render.yaml", "render.staging.yaml"].includes(file)) {
+    throw new Error("RENDER_BLUEPRINT_FILE must be render.yaml or render.staging.yaml");
+  }
+  const services = blueprintServices(await readFile(new URL(`../${file}`, import.meta.url), "utf8"));
+  const { errors, warnings, bootstrap } = environmentDrift(name, services, process.env, file);
   if (bootstrap) console.log("BOOTSTRAP_MODE=true: launch blockers are reported as warnings until it is committed as false.");
   for (const warning of warnings) console.log(`WARN ${warning}`);
   for (const error of errors) console.error(`ERROR ${error}`);
