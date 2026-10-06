@@ -87,7 +87,7 @@ jobs:
           ADMIN_AUTH_PORT: 8499
       - name: Upload browser failure screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-failure-screenshots
           path: /tmp/ndahi-*-checks
