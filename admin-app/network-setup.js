@@ -1,4 +1,5 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { isPending, runButton } from "/shared/pending.js";
 
 let stopPrevious = () => {};
 export async function mountNetworkSetup(root, call) {
@@ -26,7 +27,7 @@ export async function mountNetworkSetup(root, call) {
       <button>Save controller connection</button><button type="button" data-discover="omada" class="secondary-action">Discover access points</button>
     </form></div>
     <div id="networkInventory" aria-live="polite"></div>
-    <section><h3>Voucher enforcement</h3><p id="networkEnforcementStatus"></p><p>After confirming the router setup, activate it here to send vouchers, quotas, and expiry limits to this router. Individual device disconnection requires a trusted hotspot MAC mapping; browser device IDs are not sufficient.</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> I tested the hotspot and verified the router clock is synchronized.</label><button type="button" id="networkActivate">Use saved router for vouchers</button></section>
+    <section><h3>Voucher enforcement</h3><p id="networkEnforcementStatus"></p><p>After confirming the router setup, activate it here to send vouchers, quotas, and expiry limits to this router. Individual device disconnection requires a trusted hotspot MAC mapping; browser device IDs are not sufficient.</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> I tested the hotspot and verified the router clock is synchronized.</label><button type="button" id="networkActivate" disabled>Use saved router for vouchers</button></section>
     <div class="network-setup-grid">
     <form id="networkRouterConfig"><h3>2. Configure hotspot</h3>
       <label>Internet uplink<select name="wan" required><option value="">Discover router first</option></select></label>
@@ -56,9 +57,13 @@ export async function mountNetworkSetup(root, call) {
   const $ = (s) => root.querySelector(s);
   const message = (text) => { $("#networkMessage").textContent = text; };
   async function busy(button, task) {
-    button.disabled = true;
-    try { await task(); } catch (error) { message(error.message || "Network request failed."); }
-    finally { if (button.isConnected) button.disabled = false; }
+    try { await runButton(button, "Working…", task); }
+    catch (error) { message(error.message || "Network request failed."); }
+    finally {
+      if (button.id === "networkActivate" && state) {
+        button.disabled = isPending(button) || state.runtimeRouterEnabled || !state.enabled;
+      }
+    }
   }
   function renderPreview(job) {
     selectedJob = job;
@@ -82,7 +87,7 @@ export async function mountNetworkSetup(root, call) {
     if (stopped) return;
     $("#networkPrerequisites").textContent = !state.encryptionReady ? "Server setup required: configure NETWORK_CONFIG_KEY before saving connections." : `Live provisioning ${state.enabled ? "enabled" : "disabled"}. Approved management addresses: ${state.allowedOrigins.join(", ") || "none — configure NETWORK_ALLOWED_ORIGINS on the server"}.`;
     $("#networkEnforcementStatus").textContent = state.runtimeRouterEnabled ? "The saved router is active for voucher enforcement." : "Voucher operations currently use the existing server integration.";
-    $("#networkActivate").disabled = state.runtimeRouterEnabled || !state.enabled;
+    $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
     $("#networkJobs").innerHTML = state.jobs.length ? state.jobs.map((j) => `<article class="network-job"><h4>${h(j.kind)} · ${h(j.mode)} · ${h(j.status.replaceAll("_", " "))}</h4><p>${h(j.step || "Preview ready")}</p><small>${h(new Date(j.at).toLocaleString())} · ${h(j.id)}</small>
       ${j.confirmBefore && j.status === "awaiting_confirmation" ? `<p>Keep changes before ${h(new Date(j.confirmBefore).toLocaleTimeString())}; otherwise the router rolls back.</p><label class="network-checkbox"><input type="checkbox" data-tested="${h(j.id)}"> I tested Wi-Fi, voucher login, internet access, and management connectivity.</label><button data-job-action="confirm" data-id="${h(j.id)}">Keep changes</button>` : ""}
       ${["awaiting_confirmation", "recovery_required"].includes(j.status) ? `<button class="secondary-action" data-job-action="rollback" data-id="${h(j.id)}">Roll back</button><button class="secondary-action" data-job-action="refresh" data-id="${h(j.id)}">Check device status</button>` : ""}
@@ -104,7 +109,7 @@ export async function mountNetworkSetup(root, call) {
     if (state.jobs.some((j) => ["queued", "running"].includes(j.status))) timer = setTimeout(() => refresh().catch((e) => message(e.message)), 2500);
   }
   for (const [kind, id] of [["router", "#networkRouterConnection"], ["omada", "#networkOmadaConnection"]]) {
-    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => {
+    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.target.querySelector("button:not([type]), button[type=submit]"), async () => {
       const data = Object.fromEntries(new FormData(e.target));
       await request("connection", { ...data, kind });
       e.target.querySelectorAll('input[type="password"]').forEach((v) => { v.value = ""; });
@@ -128,7 +133,7 @@ export async function mountNetworkSetup(root, call) {
     message("Discovery completed.");
   }); });
   for (const [id, kind, action] of [["#networkRouterConfig", "router", null], ["#networkWifiConfig", "omada", "ssid"], ["#networkAdopt", "omada", "adopt"]]) {
-    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.submitter, async () => {
+    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.target.querySelector("button:not([type]), button[type=submit]"), async () => {
       const config = { ...Object.fromEntries(new FormData(e.target)), ...(action ? { action } : {}) };
       const result = await request("preview", { kind, config });
       e.target.querySelectorAll('input[type="password"]').forEach((v) => { v.value = ""; });

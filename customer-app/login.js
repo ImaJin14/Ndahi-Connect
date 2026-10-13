@@ -1,8 +1,12 @@
 import { consumeReturnPath, responseError, showError } from "./errors.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
+import { runButton } from "/shared/pending.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
-let passkeyLoginRunning = false, accessToken = "", accessMode = "";
+let accessToken = "", accessMode = "";
+const runLogin = (button, text, task) => runButton(button, text, task, {
+  controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin")],
+});
 fetchNetworkStatus(api).then((status) => {
   applyNetworkStatus($(".network-state"), status);
   applyNetworkStatus($(".panel-network"), status);
@@ -30,43 +34,42 @@ async function call(path, data) {
 }
 $("#login").onsubmit = async (event) => {
   event.preventDefault();
-  const button = event.submitter || event.target.querySelector("button"), original = button.textContent;
-  button.disabled = true;
-  button.textContent = "Continue…";
-  $("#message").textContent = "";
+  const button = $("#loginSubmit");
   try {
-    const input = Object.fromEntries(new FormData(event.target));
-    if (!accessToken) {
-      const result = await call("/api/account/access/begin", {
-        phone: input.phone, code: input.code,
+    await runLogin(button, accessToken ? "Signing in…" : "Checking…", async () => {
+      $("#message").textContent = "";
+      const input = Object.fromEntries(new FormData(event.target));
+      if (!accessToken) {
+        const result = await call("/api/account/access/begin", {
+          phone: input.phone, code: input.code,
+        });
+        accessToken = result.token;
+        accessMode = result.mode;
+        event.target.phone.readOnly = true;
+        event.target.code.readOnly = true;
+        $("#credentialStep").hidden = false;
+        $("#customerPin").required = true;
+        $("#pinLabel").textContent = accessMode === "setup"
+          ? "Create a 4-digit PIN" : "4-digit PIN";
+        $("#customerPin").autocomplete = accessMode === "setup"
+          ? "new-password" : "current-password";
+        $("#forgotPin").hidden = accessMode === "setup";
+        $("#confirmPinLabel").hidden = accessMode !== "setup";
+        $("#confirmPin").required = accessMode === "setup";
+        $("#customerPin").focus();
+        return;
+      }
+      await call("/api/account/access/complete", {
+        token: accessToken, pin: input.pin,
+        ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
       });
-      accessToken = result.token;
-      accessMode = result.mode;
-      event.target.phone.readOnly = true;
-      event.target.code.readOnly = true;
-      $("#credentialStep").hidden = false;
-      $("#customerPin").required = true;
-      $("#pinLabel").textContent = accessMode === "setup"
-        ? "Create a 4-digit PIN" : "4-digit PIN";
-      $("#customerPin").autocomplete = accessMode === "setup"
-        ? "new-password" : "current-password";
-      $("#forgotPin").hidden = accessMode === "setup";
-      $("#confirmPinLabel").hidden = accessMode !== "setup";
-      $("#confirmPin").required = accessMode === "setup";
-      button.textContent = accessMode === "setup" ? "Get Started" : "Sign in";
-      $("#customerPin").focus();
-      return;
-    }
-    await call("/api/account/access/complete", {
-      token: accessToken, pin: input.pin,
-      ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
+      location.href = consumeReturnPath();
     });
-    location.href = consumeReturnPath();
   } catch (error) {
     showError($("#message"), error);
   } finally {
-    button.disabled = false;
-    if (!accessToken) button.textContent = original;
+    if (!button.disabled) button.textContent = accessToken
+      ? accessMode === "setup" ? "Get Started" : "Sign in" : "Continue";
   }
 };
 $("#changeDetails").onclick = () => {
@@ -88,13 +91,15 @@ $("#authenticatorLogin").onclick = async () => {
   const phone = document.querySelector('[name="phone"]').value;
   if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
   try {
-    const result = await call("/api/account/login/request-authenticator", { phone });
-    sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone }));
-    location.href = "/verify.html";
+    await runLogin($("#authenticatorLogin"), "Checking…", async () => {
+      $("#message").textContent = "";
+      const result = await call("/api/account/login/request-authenticator", { phone });
+      sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone }));
+      location.href = "/verify.html";
+    });
   } catch (error) { showError($("#message"), error); }
 };
 $("#customerPasskeyLogin").onclick = async () => {
-  if (passkeyLoginRunning) return;
   const button = $("#customerPasskeyLogin"),
     phone = document.querySelector('[name="phone"]').value;
   if (!phone.trim()) {
@@ -102,27 +107,27 @@ $("#customerPasskeyLogin").onclick = async () => {
     document.querySelector('[name="phone"]').focus();
     return;
   }
-  passkeyLoginRunning = true;
-  button.disabled = true;
-  $("#message").textContent = "";
   try {
-    let response = await fetch(api + "/api/account/passkey/options", {
+    await runLogin(button, "Waiting for device…", async () => {
+      $("#message").textContent = "";
+      let response = await fetch(api + "/api/account/passkey/options", {
+          method: "POST", credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ phone }),
+        }), result = await response.json();
+      if (!response.ok) throw responseError(response, result);
+      const credential = await SimpleWebAuthnBrowser.startAuthentication({
+        optionsJSON: result.options,
+      });
+      response = await fetch(api + "/api/account/passkey/verify", {
         method: "POST", credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone }),
-      }), result = await response.json();
-    if (!response.ok) throw responseError(response, result);
-    const credential = await SimpleWebAuthnBrowser.startAuthentication({
-      optionsJSON: result.options,
+        body: JSON.stringify({ challengeId: result.challengeId, response: credential }),
+      });
+      result = await response.json();
+      if (!response.ok) throw responseError(response, result);
+      location.href = consumeReturnPath();
     });
-    response = await fetch(api + "/api/account/passkey/verify", {
-      method: "POST", credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ challengeId: result.challengeId, response: credential }),
-    });
-    result = await response.json();
-    if (!response.ok) throw responseError(response, result);
-    location.href = consumeReturnPath();
   } catch (error) {
     showError($("#message"), error, {
       context: "passkey",
@@ -131,8 +136,5 @@ $("#customerPasskeyLogin").onclick = async () => {
         { label: "Use voucher and PIN", run: () => document.querySelector('[name="code"]').focus() },
       ],
     });
-  } finally {
-    passkeyLoginRunning = false;
-    button.disabled = false;
   }
 };

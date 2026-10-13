@@ -1,5 +1,6 @@
 import { ApiError, consumeReturnPath, responseError, showError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { runButton } from "/shared/pending.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
   saved = sessionStorage.getItem("ndahi-login-challenge");
@@ -41,23 +42,21 @@ if (challenge && !challenge.setupPin) {
 } else $("#useRecoveryCode").hidden = true;
 $("#verify").onsubmit = async (event) => {
   event.preventDefault();
-  const button = event.submitter || event.target.querySelector("button"), original = button.textContent;
-  button.disabled = true;
-  button.textContent = "Verifying…";
-  $("#message").textContent = "";
+  const button = $("#submitLabel");
   try {
-    const form = Object.fromEntries(new FormData(event.target));
-    if (challenge.setupPin && form.pin !== form.confirmPin) {
-      throw new ApiError(400, "PIN entries do not match.");
-    }
-    const response = await fetch(api + (challenge.setupPin ? "/api/account/setup/pin" : "/api/account/login/verify-authenticator"), { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(challenge.setupPin ? { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin } : usingRecoveryCode ? { challengeId: challenge.challengeId, recoveryCode: form.recoveryCode } : { challengeId: challenge.challengeId, otp: form.otp }) }),
-      result = await response.json();
-    if (!response.ok) throw responseError(response, result);
-    sessionStorage.removeItem("ndahi-login-challenge");
-    location.href = consumeReturnPath();
+    await runButton(button, "Verifying…", async () => {
+      $("#message").textContent = "";
+      const form = Object.fromEntries(new FormData(event.target));
+      if (challenge.setupPin && form.pin !== form.confirmPin) {
+        throw new ApiError(400, "PIN entries do not match.");
+      }
+      const response = await fetch(api + (challenge.setupPin ? "/api/account/setup/pin" : "/api/account/login/verify-authenticator"), { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(challenge.setupPin ? { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin } : usingRecoveryCode ? { challengeId: challenge.challengeId, recoveryCode: form.recoveryCode } : { challengeId: challenge.challengeId, otp: form.otp }) }),
+        result = await response.json();
+      if (!response.ok) throw responseError(response, result);
+      sessionStorage.removeItem("ndahi-login-challenge");
+      location.href = consumeReturnPath();
+    }, { controls: [$("#useRecoveryCode")] });
   } catch (error) {
     showError($("#message"), error);
-    button.disabled = false;
-    button.textContent = original;
   }
 };
