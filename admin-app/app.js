@@ -1,6 +1,7 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
+import { runButton } from "/shared/pending.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -36,6 +37,15 @@ async function call(path, options = {}) {
   }
   if (!r.ok) throw Error(j.error);
   return j;
+}
+async function runAction(button, text, task, message = "#actionMessage") {
+  try {
+    await runButton(button, text, task, {
+      controls: [...(button.closest("form, tr")?.querySelectorAll("button") || [])],
+    });
+  } catch (error) {
+    ($(message) || $("#actionMessage") || $("#app")).textContent = error.message || "The action could not be completed.";
+  }
 }
 async function load() {
   const x = await call("/api/admin/dashboard");
@@ -153,52 +163,62 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   updateVoucherBuilder();
   $("#bundle").onsubmit = async (e) => {
     e.preventDefault();
-    await call("/api/admin/bundles", {
-      method: "POST",
-      body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
-    });
-    load();
+    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
+      await call("/api/admin/bundles", {
+        method: "POST",
+        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+      });
+      await load();
+    }, "#bundleMessage");
   };
   $("#bundleEdit").onsubmit = async (e) => {
     e.preventDefault();
-    await call("/api/admin/bundles/update", {
-      method: "POST",
-      body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
-    });
-    load();
+    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
+      await call("/api/admin/bundles/update", {
+        method: "POST",
+        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+      });
+      await load();
+    }, "#bundleMessage");
   };
   $("#generate").onsubmit = async (e) => {
     e.preventDefault();
-    const result = await call("/api/admin/vouchers/generate", {
-      method: "POST",
-      body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Generating…", async () => {
+      const result = await call("/api/admin/vouchers/generate", {
+        method: "POST",
+        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+      });
+      const vouchers = result.vouchers || [result.voucher];
+      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
+      $("#downloadVouchers").onclick = () => {
+        const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
+          link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+        link.download = `ndahi-vouchers-${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      };
     });
-    const vouchers = result.vouchers || [result.voucher];
-    $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
-    $("#downloadVouchers").onclick = () => {
-      const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
-        link = document.createElement("a");
-      link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-      link.download = `ndahi-vouchers-${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    };
   };
   void mountNetworkSetup($("#networkSetup"), call);
   mountRecordViews(canManagePayments);
   $("#syncUsage").onclick = async () => {
-    const result = await call("/api/admin/integrations/sync-usage", {
-      method: "POST",
-      body: "{}",
-    });
-    $("#integrationMessage").textContent =
-      `Updated ${result.updated} of ${result.readings} usage records.`;
+    await runAction($("#syncUsage"), "Syncing…", async () => {
+      const result = await call("/api/admin/integrations/sync-usage", {
+        method: "POST",
+        body: "{}",
+      });
+      $("#integrationMessage").textContent =
+        `Updated ${result.updated} of ${result.readings} usage records.`;
+    }, "#integrationMessage");
   };
   $("#checkOmada").onclick = async () => {
-    const result = await call("/api/admin/integrations/omada");
-    $("#integrationMessage").textContent = result.connected
-      ? `Omada connected (${result.accessPoints.length} access points).`
-      : result.error;
+    await runAction($("#checkOmada"), "Checking…", async () => {
+      const result = await call("/api/admin/integrations/omada");
+      $("#integrationMessage").textContent = result.connected
+        ? `Omada connected (${result.accessPoints.length} access points).`
+        : result.error;
+    }, "#integrationMessage");
   };
   $("#enrollPasskey").onclick = async () => {
     if (passkeyEnrollmentRunning) return;
@@ -225,26 +245,32 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     }
   };
   $("#enrollMfa").onclick = async () => {
-    const result = await call("/api/admin/profile/mfa/enroll", {
-      method: "POST",
-      body: "{}",
-    });
-    $("#mfaEnrollment").innerHTML =
-      `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
-    $("#confirmMfa").onclick = async () => {
-      await call("/api/admin/profile/mfa/confirm", {
+    await runAction($("#enrollMfa"), "Preparing…", async () => {
+      const result = await call("/api/admin/profile/mfa/enroll", {
         method: "POST",
-        body: JSON.stringify({ code: $("#totpCode").value }),
+        body: "{}",
       });
-      load();
-    };
+      $("#mfaEnrollment").innerHTML =
+        `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
+      $("#confirmMfa").onclick = async () => {
+        await runAction($("#confirmMfa"), "Verifying…", async () => {
+          await call("/api/admin/profile/mfa/confirm", {
+            method: "POST",
+            body: JSON.stringify({ code: $("#totpCode").value }),
+          });
+          await load();
+        }, "#integrationMessage");
+      };
+    }, "#integrationMessage");
   };
   if ($("#disableMfa")) $("#disableMfa").onclick = async () => {
-    await call("/api/admin/profile/mfa", {
-      method: "POST",
-      body: JSON.stringify({ enabled: false }),
-    });
-    load();
+    await runAction($("#disableMfa"), "Disabling…", async () => {
+      await call("/api/admin/profile/mfa", {
+        method: "POST",
+        body: JSON.stringify({ enabled: false }),
+      });
+      await load();
+    }, "#integrationMessage");
   };
 }
 function mountRecordViews(canManagePayments) {
@@ -299,8 +325,10 @@ function mountRecordViews(canManagePayments) {
   });
 }
 $("#app").onclick = async (e) => {
-  if (e.target.dataset.editBundle) {
-    const bundle = bundleIndex.get(e.target.dataset.editBundle),
+  const button = e.target.closest("button");
+  if (!button || button.disabled) return;
+  if (button.dataset.editBundle) {
+    const bundle = bundleIndex.get(button.dataset.editBundle),
       form = $("#bundleEdit");
     form.hidden = false;
     $("#bundle").hidden = true;
@@ -317,78 +345,83 @@ $("#app").onclick = async (e) => {
     form.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  if (e.target.hasAttribute("data-cancel-edit")) {
+  if (button.hasAttribute("data-cancel-edit")) {
     $("#bundleEdit").hidden = true;
     $("#bundle").hidden = false;
     return;
   }
-  if (e.target.dataset.deleteBundle) {
-    if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
-    try {
-      await call("/api/admin/bundles/delete", {
+  if (!["deleteBundle", "resendEmail", "voucher", "resetAuthenticator", "customer", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
+  await runAction(button, "Working…", async () => {
+    if (button.dataset.deleteBundle) {
+      if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
+      try {
+        await call("/api/admin/bundles/delete", {
+          method: "POST",
+          body: JSON.stringify({ bundleId: button.dataset.deleteBundle }),
+        });
+      } catch (error) {
+        $("#bundleMessage").textContent = error.message;
+        return;
+      }
+    } else if (button.dataset.resendEmail) {
+      const result = await call("/api/admin/vouchers/resend-email", {
         method: "POST",
-        body: JSON.stringify({ bundleId: e.target.dataset.deleteBundle }),
+        body: JSON.stringify({ voucherId: button.dataset.resendEmail }),
       });
-    } catch (error) {
-      $("#bundleMessage").textContent = error.message;
-      return;
-    }
-  } else if (e.target.dataset.resendEmail) {
-    const result = await call("/api/admin/vouchers/resend-email", {
-      method: "POST",
-      body: JSON.stringify({ voucherId: e.target.dataset.resendEmail }),
-    });
-    if (!result.sent) throw Error(result.error || "Email could not be sent.");
-  } else if (e.target.dataset.voucher) {
-    if (!confirm("Revoke this voucher and disconnect its access?")) return;
-    await call("/api/admin/vouchers/revoke", {
-      method: "POST",
-      body: JSON.stringify({ voucherId: e.target.dataset.voucher }),
-    });
-  } else if (e.target.dataset.resetAuthenticator) {
-    if (!confirm("Reset this customer's authenticator? Their active portal sessions will be signed out.")) return;
-    await call("/api/admin/customers/reset-authenticator", {
-      method: "POST",
-      body: JSON.stringify({ customerId: e.target.dataset.resetAuthenticator }),
-    });
-  } else if (e.target.dataset.customer) {
-    const restoring = e.target.dataset.suspended === "true";
-    if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;
-    await call("/api/admin/customers/suspend", {
-      method: "POST",
-      body: JSON.stringify({ customerId: e.target.dataset.customer, suspended: e.target.dataset.suspended !== "true" }),
-    });
-  } else if (e.target.dataset.session) {
-    if (!confirm("Disconnect this device session?")) return;
-    await call("/api/admin/devices/disconnect", {
-      method: "POST",
-      body: JSON.stringify({ sessionId: e.target.dataset.session }),
-    });
-  } else if (e.target.dataset.replayWebhook) {
-    if (!confirm("Replay this webhook after reviewing the provider transaction? The payment will be verified again before access is issued.")) return;
-    await call("/api/admin/payments/webhooks/replay", {
-      method: "POST",
-      body: JSON.stringify({ eventId: e.target.dataset.replayWebhook }),
-    });
-  } else if (e.target.dataset.replayCommand) {
-    if (!confirm("Replay this network command after resolving the underlying router problem?")) return;
-    await call("/api/admin/network/commands/replay", {
-      method: "POST",
-      body: JSON.stringify({ commandId: e.target.dataset.replayCommand }),
-    });
-  } else if (e.target.dataset.checkRefund) {
-    await call("/api/admin/payments/refund/check", { method: "POST", body: JSON.stringify({ paymentId: e.target.dataset.checkRefund }) });
-  } else if (e.target.dataset.refund) {
-    if (!confirm("Request a full refund for this payment?")) return;
-    await call("/api/admin/payments/refund", {
-      method: "POST",
-      body: JSON.stringify({ paymentId: e.target.dataset.refund }),
-    });
-  } else return;
-  load();
+      if (!result.sent) throw Error(result.error || "Email could not be sent.");
+    } else if (button.dataset.voucher) {
+      if (!confirm("Revoke this voucher and disconnect its access?")) return;
+      await call("/api/admin/vouchers/revoke", {
+        method: "POST",
+        body: JSON.stringify({ voucherId: button.dataset.voucher }),
+      });
+    } else if (button.dataset.resetAuthenticator) {
+      if (!confirm("Reset this customer's authenticator? Their active portal sessions will be signed out.")) return;
+      await call("/api/admin/customers/reset-authenticator", {
+        method: "POST",
+        body: JSON.stringify({ customerId: button.dataset.resetAuthenticator }),
+      });
+    } else if (button.dataset.customer) {
+      const restoring = button.dataset.suspended === "true";
+      if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;
+      await call("/api/admin/customers/suspend", {
+        method: "POST",
+        body: JSON.stringify({ customerId: button.dataset.customer, suspended: button.dataset.suspended !== "true" }),
+      });
+    } else if (button.dataset.session) {
+      if (!confirm("Disconnect this device session?")) return;
+      await call("/api/admin/devices/disconnect", {
+        method: "POST",
+        body: JSON.stringify({ sessionId: button.dataset.session }),
+      });
+    } else if (button.dataset.replayWebhook) {
+      if (!confirm("Replay this webhook after reviewing the provider transaction? The payment will be verified again before access is issued.")) return;
+      await call("/api/admin/payments/webhooks/replay", {
+        method: "POST",
+        body: JSON.stringify({ eventId: button.dataset.replayWebhook }),
+      });
+    } else if (button.dataset.replayCommand) {
+      if (!confirm("Replay this network command after resolving the underlying router problem?")) return;
+      await call("/api/admin/network/commands/replay", {
+        method: "POST",
+        body: JSON.stringify({ commandId: button.dataset.replayCommand }),
+      });
+    } else if (button.dataset.checkRefund) {
+      await call("/api/admin/payments/refund/check", { method: "POST", body: JSON.stringify({ paymentId: button.dataset.checkRefund }) });
+    } else if (button.dataset.refund) {
+      if (!confirm("Request a full refund for this payment?")) return;
+      await call("/api/admin/payments/refund", {
+        method: "POST",
+        body: JSON.stringify({ paymentId: button.dataset.refund }),
+      });
+    } else return;
+    await load();
+  });
 };
-$("#logout").onclick = async () => {
-  await call("/api/admin/logout", { method: "POST", body: "{}" });
-  location.href = "/login";
+$("#logout").onclick = async (event) => {
+  await runAction(event.currentTarget, "Logging out…", async () => {
+    await call("/api/admin/logout", { method: "POST", body: "{}" });
+    location.href = "/login";
+  });
 };
 load();

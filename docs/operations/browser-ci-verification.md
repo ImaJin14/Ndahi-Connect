@@ -22,6 +22,14 @@ local fixture origins. Billing also covers 390px and 320px screens; all four
 administrator roles run at both 1440px and 390px. On failure each suite captures
 the current browser page, and CI uploads the synthetic-fixture screenshots.
 
+`npm run check:pending` is also included in `test:browser`. It holds synthetic
+requests open to verify loading labels, duplicate-submission protection, competing
+sign-in controls, PIN-reset and MFA retries, admin action failures, completed
+network activation, stale record/customer searches, pagination, and visible
+saved-checkout recovery errors. Its 13 scenarios include customer sign-in at
+1440px and 390px. It uses local mock services and captures failures under
+`/tmp/ndahi-pending-checks` (override with `PENDING_SCREENSHOTS`).
+
 The focused checks do not claim the full TEST-001/002 scope. Broader coverage
 still includes provider-backed payment verification, real network/router
 behavior, production database persistence and migration interactions, passkey

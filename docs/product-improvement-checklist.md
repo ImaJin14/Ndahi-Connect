@@ -699,6 +699,12 @@ Use this document as the source of truth for product, engineering, security, and
 
 - [ ] **DES-004 — Improve loading, success, warning, and empty states**
   - Acceptance: every asynchronous customer and admin operation has a consistent state model.
+  - Partial implementation (2026-10-13): shared pending controls prevent duplicate submissions
+    and restore labels after failures across customer/admin sign-in, PIN recovery, MFA,
+    dashboard and admin actions. Network activation stays disabled after success;
+    record searches clear stale results, lock pagination and offer retry; saved-checkout
+    errors appear on the visible surface. Thirteen isolated browser scenarios cover these
+    regressions through `npm run check:pending`. The broader state-design review remains open.
 
 ## P2 — WISP operations and administration
 

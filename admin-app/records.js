@@ -16,13 +16,19 @@ export function mountRecords(container, { call, collection, title, headers, row,
     summary = container.querySelector(".records-pager span"),
     previous = container.querySelector('[data-page="prev"]'),
     next = container.querySelector('[data-page="next"]');
+  function showLoading() {
+    container.setAttribute("aria-busy", "true");
+    previous.disabled = next.disabled = true;
+    summary.textContent = "Loading records…";
+    body.innerHTML = `<tr><td colspan="${headers.length}">Loading records…</td></tr>`;
+  }
   async function load() {
     const current = ++request,
       params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status });
-    container.setAttribute("aria-busy", "true");
+    showLoading();
     try {
       const result = await call(`/api/admin/records?${params}`);
-      if (current !== request) return;
+      if (current !== request || !container.isConnected) return;
       if (status.options.length === 1 && result.statuses.length) {
         status.insertAdjacentHTML("beforeend", result.statuses.map((value) => `<option value="${h(value)}">${h(value.replaceAll("_", " "))}</option>`).join(""));
         status.hidden = false;
@@ -36,6 +42,16 @@ export function mountRecords(container, { call, collection, title, headers, row,
         : "No matching records";
       previous.disabled = result.page <= 1;
       next.disabled = result.page >= result.pages;
+    } catch (error) {
+      if (current !== request || !container.isConnected) return;
+      body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
+      summary.textContent = error.message || "Please try again.";
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "secondary-action";
+      retry.textContent = "Try again";
+      retry.onclick = () => void load();
+      summary.append(" ", retry);
     } finally {
       if (current === request) container.removeAttribute("aria-busy");
     }
@@ -43,37 +59,59 @@ export function mountRecords(container, { call, collection, title, headers, row,
   form.onsubmit = (event) => event.preventDefault();
   form.elements.q.oninput = () => {
     clearTimeout(timer);
+    state.q = form.elements.q.value.trim();
+    state.page = 1;
+    request++;
+    showLoading();
     timer = setTimeout(() => {
-      state.q = form.elements.q.value.trim();
-      state.page = 1;
       void load();
     }, 250);
   };
   status.onchange = () => {
+    clearTimeout(timer);
     state.status = status.value;
     state.page = 1;
     void load();
   };
-  previous.onclick = () => { state.page--; void load(); };
-  next.onclick = () => { state.page++; void load(); };
+  previous.onclick = () => { if (!previous.disabled) { state.page--; void load(); } };
+  next.onclick = () => { if (!next.disabled) { state.page++; void load(); } };
   return load();
 }
 
 // Customer picker backed by server-side search instead of a full customer list.
 export function mountCustomerPicker(input, select, call) {
   let timer, request = 0;
+  function showLoading() {
+    select.innerHTML = '<option value="">Searching customers…</option>';
+    select.setAttribute("aria-busy", "true");
+  }
   async function search() {
     const current = ++request,
-      params = new URLSearchParams({ collection: "customers", pageSize: 20, q: input.value.trim(), status: "active" }),
-      result = await call(`/api/admin/records?${params}`);
-    if (current !== request) return;
-    select.innerHTML = result.items.length
-      ? result.items.map((c) => `<option value="${h(c.id)}">${h(c.name)} — ${h(c.phone)}</option>`).join("")
-      : '<option value="">No matching customers</option>';
+      params = new URLSearchParams({ collection: "customers", pageSize: 20, q: input.value.trim(), status: "active" });
+    showLoading();
+    try {
+      const result = await call(`/api/admin/records?${params}`);
+      if (current !== request || !select.isConnected) return;
+      select.innerHTML = result.items.length
+        ? result.items.map((c) => `<option value="${h(c.id)}">${h(c.name)} — ${h(c.phone)}</option>`).join("")
+        : '<option value="">No matching customers</option>';
+    } catch {
+      if (current === request && select.isConnected) select.innerHTML = '<option value="">Unable to load customers. Search again.</option>';
+    } finally {
+      if (current === request) select.removeAttribute("aria-busy");
+    }
   }
   input.oninput = () => {
     clearTimeout(timer);
+    request++;
+    showLoading();
     timer = setTimeout(() => void search(), 250);
+  };
+  input.onkeydown = (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    clearTimeout(timer);
+    void search();
   };
   return search();
 }

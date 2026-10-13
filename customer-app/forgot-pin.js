@@ -1,5 +1,6 @@
 import { ApiError, responseError, showError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { runButton } from "/shared/pending.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -31,28 +32,30 @@ document.querySelectorAll(".pin-toggle").forEach((button) => {
 
 $("#resetRequest").onsubmit = async (event) => {
   event.preventDefault();
-  const button = event.submitter;
-  button.disabled = true;
+  const button = event.target.querySelector("button:not([type]), button[type=submit]");
   try {
-    const result = await call("/api/account/pin-reset/request", Object.fromEntries(new FormData(event.target)));
-    $("#message").innerHTML = `<div class="success">${h(result.message)}</div>`;
-    event.target.reset();
+    await runButton(button, "Sending…", async () => {
+      $("#message").replaceChildren();
+      const result = await call("/api/account/pin-reset/request", Object.fromEntries(new FormData(event.target)));
+      $("#message").innerHTML = `<div class="success">${h(result.message)}</div>`;
+      event.target.reset();
+    });
   } catch (error) { showError($("#message"), error); }
-  finally { button.disabled = false; }
 };
 
 $("#resetConfirm").onsubmit = async (event) => {
   event.preventDefault();
-  const button = event.submitter, input = Object.fromEntries(new FormData(event.target));
+  const button = event.target.querySelector("button:not([type]), button[type=submit]"), input = Object.fromEntries(new FormData(event.target));
   if (input.pin !== input.confirmPin) {
     showError($("#message"), new ApiError(400, "PIN entries do not match."));
     return;
   }
-  button.disabled = true;
   try {
-    const result = await call("/api/account/pin-reset/confirm", { ...input, token });
-    $("#message").innerHTML = `<div class="success">${h(result.message)} <a href="/login">Sign in</a></div>`;
-    event.target.hidden = true;
+    await runButton(button, "Resetting…", async () => {
+      $("#message").replaceChildren();
+      const result = await call("/api/account/pin-reset/confirm", { ...input, token });
+      $("#message").innerHTML = `<div class="success">${h(result.message)} <a href="/login">Sign in</a></div>`;
+      event.target.hidden = true;
+    });
   } catch (error) { showError($("#message"), error); }
-  finally { button.disabled = false; }
 };

@@ -1,6 +1,7 @@
 import { responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { runButton } from "/shared/pending.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -21,13 +22,6 @@ async function call(path, options = {}) {
   }
   if (!response.ok) throw responseError(response, result);
   return result;
-}
-
-async function runButton(button, pendingText, task) {
-  const original = button.textContent;
-  button.disabled = true;
-  button.textContent = pendingText;
-  try { return await task(); } finally { button.disabled = false; button.textContent = original; }
 }
 
 function paymentActions(payment) {
@@ -219,18 +213,10 @@ $("#dashboard").onclick = async (event) => {
   const mfaButton = event.target.closest("#enableCustomerMfa");
   if (mfaButton) {
     try {
-      const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: "{}" });
-      $("#mfaSetup").innerHTML = `<div class="success"><p>Add this time-based key to your authenticator app:</p><code>${h(enrollment.secret)}</code><form id="confirmMfa"><input type="hidden" name="challengeId" value="${h(enrollment.challengeId)}"><label>Six-digit code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label><button>Confirm 2FA</button></form></div>`;
-    } catch (error) { showError($("#dashboardMessage"), error); }
-    return;
-  }
-  const mfaForm = event.target.closest("#confirmMfa");
-  if (mfaForm && event.target.closest("button")) {
-    event.preventDefault();
-    try {
-      await call("/api/account/security/mfa/confirm", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(mfaForm))) });
-      $("#dashboardMessage").textContent = "Authenticator 2FA enabled.";
-      await load();
+      await runButton(mfaButton, "Preparing…", async () => {
+        const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: "{}" });
+        $("#mfaSetup").innerHTML = `<div class="success"><p>Add this time-based key to your authenticator app:</p><code>${h(enrollment.secret)}</code><form id="confirmMfa"><input type="hidden" name="challengeId" value="${h(enrollment.challengeId)}"><label>Six-digit code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label><button>Confirm 2FA</button></form></div>`;
+      });
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;
   }
@@ -319,6 +305,18 @@ $("#dashboard").onclick = async (event) => {
 };
 
 $("#dashboard").onsubmit = async (event) => {
+  const mfaForm = event.target.closest("#confirmMfa");
+  if (mfaForm) {
+    event.preventDefault();
+    try {
+      await runButton(mfaForm.querySelector("button"), "Verifying…", async () => {
+        await call("/api/account/security/mfa/confirm", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(mfaForm))) });
+        $("#dashboardMessage").textContent = "Authenticator 2FA enabled.";
+        await load();
+      }, { controls: [$("#enableCustomerMfa")] });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
   const renameForm = event.target.closest("[data-rename-passkey]");
   if (renameForm) {
     event.preventDefault();
@@ -358,8 +356,10 @@ $("#dashboard").onsubmit = async (event) => {
 
 $("#logout").onclick = async (event) => {
   try {
-    await runButton(event.currentTarget, "Logging out…", () => call("/api/account/logout", { method: "POST", body: "{}" }));
-    location.href = "/login";
+    await runButton(event.currentTarget, "Logging out…", async () => {
+      await call("/api/account/logout", { method: "POST", body: "{}" });
+      location.href = "/login";
+    });
   } catch (error) { showError($("#dashboardMessage"), error); }
 };
 
