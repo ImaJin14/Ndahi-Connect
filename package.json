@@ -44,10 +44,10 @@
     "fontkit": "^2.0.4",
     "pdfkit": "^0.20.2",
     "pg": "^8.23.1",
-    "web-vitals": "^6.2.2",
+    "web-vitals": "^6.2.3",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
-    "playwright": "1.63.0"
+    "playwright": "1.64.0"
   }
 }
