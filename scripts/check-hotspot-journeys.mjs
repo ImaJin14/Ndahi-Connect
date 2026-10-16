@@ -10,8 +10,10 @@ let browser, checks = 0;
 try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
-  async function scenario(name, work, { pending = false, unauthorized = false } = {}) {
-    const context = await browser.newContext(), page = await context.newPage(), posts = [], errors = [];
+  const device = (n) => ({ mac: `AA:BB:CC:DD:EE:0${n}`, address: `10.20.0.3${n}`, uptime: `${n}m`, usedBytes: n * 1e6 });
+  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false } = {}) {
+    const context = await browser.newContext(), page = await context.newPage(), posts = [], errors = [], disconnects = [];
+    let devices = fullSlots ? [device(1), device(2)] : [device(1)];
     let credentials = 0;
     page.on("pageerror", (error) => errors.push(error.message));
     await context.route("**/*", async (route) => {
@@ -27,16 +29,24 @@ try {
       let status = 200, body = {};
       if (url.pathname === "/api/account/access/begin") body = { token: "fixture-token", mode: "login" };
       if (url.pathname === "/api/network/status") body = { status: "up" };
+      if (url.pathname === "/api/account/wifi-devices") body = { deviceLimit: 2, devices, syncedAt: "2030-01-01T00:00:00Z", csrfToken: "csrf-fixture" };
+      if (url.pathname === "/api/account/wifi-devices/disconnect") {
+        const { mac } = JSON.parse(request.postData());
+        disconnects.push({ mac, csrf: request.headers()["x-csrf-token"] });
+        devices = devices.filter((item) => item.mac !== mac);
+        body = { deviceLimit: 2, devices, syncedAt: "2030-01-01T00:00:00Z" };
+      }
       if (url.pathname === "/api/account/hotspot-credentials") {
         credentials++;
         if (unauthorized) { status = 401; body = { error: "Expired session" }; }
+        else if (exhausted) { status = 409; body = { code: "QUOTA_EXHAUSTED", error: "Your bundle's data is used up. Renew or switch your plan to reconnect." }; }
         else if (pending && credentials === 1) { status = 202; body = { code: "HOTSPOT_PENDING" }; }
         else body = { username: "NC-TEST-1234", password: "NC-TEST-1234" };
       }
       return route.fulfill({ status, headers, contentType: "application/json", body: JSON.stringify(body) });
     });
     try {
-      await work({ page, posts, credentials: () => credentials });
+      await work({ page, posts, disconnects, credentials: () => credentials });
       assert.deepEqual(errors, []);
       console.log(`PASS ${name}`); checks++;
     } finally { await context.close(); }
@@ -62,6 +72,31 @@ try {
     await page.waitForURL(login);
     assert.equal(posts.length, 1);
   });
+  await scenario("a refused login with every device slot in use lets the customer free one", async ({ page, posts, disconnects }) => {
+    await page.goto(`${portal}/hotspot?router-error=1`);
+    await page.getByText("All 2 device slots on your bundle are in use", { exact: false }).waitFor();
+    assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 2);
+    await page.locator('#wifiDevices button[data-wifi-device="AA:BB:CC:DD:EE:01"]').click();
+    await page.getByText("Device disconnected.", { exact: false }).waitFor();
+    assert.deepEqual(disconnects, [{ mac: "AA:BB:CC:DD:EE:01", csrf: "csrf-fixture" }]);
+    assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 1);
+    assert.equal(posts.length, 0);
+    await page.locator("#connect").click();
+    await page.waitForURL(login);
+    assert.equal(posts.length, 1);
+  }, { fullSlots: true });
+  await scenario("a refused login with free device slots keeps the general router message", async ({ page }) => {
+    await page.goto(`${portal}/hotspot?router-error=1`);
+    await page.waitForFunction(() => document.getElementById("message").textContent.includes("not accepted"));
+    await page.waitForLoadState("networkidle");
+    assert.equal(await page.locator("#wifiDevices").isHidden(), true);
+  });
+  await scenario("a used-up bundle offers renewal instead of sending credentials", async ({ page, posts }) => {
+    await page.goto(`${portal}/hotspot`);
+    await page.getByText("Your bundle's data is used up.", { exact: false }).waitFor();
+    await page.getByRole("button", { name: "Renew or switch plan", exact: true }).waitFor();
+    assert.equal(posts.length, 0);
+  }, { exhausted: true });
   await scenario("expired customer sessions return to portal sign-in without sending credentials", async ({ page, posts }) => {
     await page.goto(`${portal}/hotspot`);
     await page.waitForURL(`${portal}/login`);

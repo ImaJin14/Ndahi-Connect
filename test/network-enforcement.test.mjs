@@ -41,6 +41,32 @@ test("Hotspot user profiles are matched by reserved name because RouterOS reject
   assert.deepEqual(writes, []);
 });
 
+test("Hotspot usage adds live sessions to logout-updated user counters", async () => {
+  const router = new RouterHotspot({}), reads = [];
+  router.request = async (path) => {
+    reads.push(path);
+    if (path === "ip/hotspot/user") return [
+      { name: "NC-ABCD-1234", comment: "ndahi:voucher:v1", "bytes-in": "100", "bytes-out": "50" },
+      { name: "NC-ABCD-5678", comment: "ndahi:voucher:v2", "bytes-in": "7", "bytes-out": "3" },
+      { name: "staff", comment: "", "bytes-in": "999", "bytes-out": "999" },
+    ];
+    return [
+      { user: "NC-ABCD-1234", "mac-address": "aa:bb:cc:dd:ee:01", address: "10.20.0.30", uptime: "4m", "bytes-in": "20", "bytes-out": "10" },
+      { user: "NC-ABCD-1234", "mac-address": "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", "bytes-in": "5", "bytes-out": "5" },
+      { user: "staff", "mac-address": "AA:BB:CC:DD:EE:03", "bytes-in": "1", "bytes-out": "1" },
+    ];
+  };
+  const usage = await router.readUsage();
+  assert.deepEqual(reads, ["ip/hotspot/user", "ip/hotspot/active"]);
+  assert.deepEqual(usage, [
+    { voucherId: "v1", usedBytes: 190, devices: [
+      { mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 30 },
+      { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 10 },
+    ] },
+    { voucherId: "v2", usedBytes: 10, devices: [] },
+  ]);
+});
+
 test("Hotspot adapter refuses to overwrite unmanaged credentials and reports unknown session mapping", async () => {
   const router = new RouterHotspot({});
   router.request = async () => [{ name: "NC-ABCD-1234", comment: "owned-by-someone-else" }];

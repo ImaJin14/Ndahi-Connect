@@ -3,6 +3,7 @@ import { applyNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
+import { wifiDeviceList } from "./wifi-devices.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -141,9 +142,11 @@ async function load() {
   csrfToken = result.csrfToken;
   applyNetworkStatus($(".network-state"), result.zone?.status);
   $("#differentCode").open = !active;
-  const wifiConnect = active && window.NDAHI_CONFIG.hotspotLoginUrl ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
+  // With a HotSpot, devices and their slots come from the router itself.
+  const hotspot = Boolean(window.NDAHI_CONFIG.hotspotLoginUrl),
+    wifiConnect = active && hotspot ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
     thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
-    quickConnect = !active ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
+    quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
       : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
   const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status)),
@@ -163,7 +166,7 @@ async function load() {
       : "";
   $("#dashboard").innerHTML = `${wifiConnect}<div class="dashboard-grid">
     <section class="surface"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>`}</section>
-    <section class="surface"><h2>Connected devices</h2>${active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}</section>
+    <section class="surface"><h2>Connected devices</h2>${hotspot && active ? wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt }) : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}</section>
     <section class="surface full" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}</p><div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${result.dailyAvailability.available ? "The 100 FCFA Daily bundle is available." : `Daily is available again ${h(new Date(result.dailyAvailability.nextEligibleAt).toLocaleString())}.`}</p></section>
     <section class="surface full${securitySetup ? " security-setup" : ""}" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator 2FA is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button><div id="mfaSetup"></div>'}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Sessions &amp; activity</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "Unknown location")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><h3>Recent sign-ins</h3>${security.recentLogins.length ? `<ul>${security.recentLogins.map((entry) => `<li>${h(loginLabels[entry.type] || entry.type)} · ${h(new Date(entry.at).toLocaleString())} · ${h(entry.ip || "Unknown location")}</li>`).join("")}</ul>` : "<p>No recent sign-in activity recorded.</p>"}</details></section>
     <section class="surface full"><h2>Bundle history</h2><div class="table-scroll"><table><thead><tr><th>Bundle</th><th>Status</th><th>Activated</th><th>Expires</th></tr></thead><tbody>${result.vouchers.map((item) => `<tr><td>${h(item.plan.name)}</td><td>${h(item.status)}</td><td>${h(new Date(item.activatedAt).toLocaleDateString())}</td><td>${h(new Date(item.expiresAt).toLocaleDateString())}</td></tr>`).join("")}</tbody></table></div></section>
@@ -293,6 +296,16 @@ $("#dashboard").onclick = async (event) => {
       await runButton(logoutEverywhereButton, "Signing out…", async () => {
         await call("/api/account/security/logout-everywhere", { method: "POST", body: "{}" });
         location.href = "/login";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const wifiDevice = event.target.closest("button[data-wifi-device]");
+  if (wifiDevice) {
+    try {
+      await runButton(wifiDevice, "Disconnecting…", async () => {
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice }) });
+        await load();
       });
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;

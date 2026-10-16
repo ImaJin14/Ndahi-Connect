@@ -11,6 +11,7 @@ import {
   routerQueueSummary,
   scheduleRouterCommandReplay,
 } from "../lib/router-queue.mjs";
+import { createUsageSyncScheduler, routerUsageSyncConfig } from "../lib/router-reconciliation.mjs";
 
 const baseTime = new Date("2026-09-21T12:00:00Z");
 const voucher = (overrides = {}) => ({
@@ -272,4 +273,54 @@ test("HTTP replay endpoint enforces operator role, production CSRF, and records 
   const s = await store.snapshot();
   assert.ok(s.auditLogs.some((a) => a.action === "network.command_replay_requested" && a.meta.commandId === id));
   assert.equal(s.routerCommands[0].status, "queued");
+});
+
+test("usage sync records router devices and cuts off a voucher whose shared total reaches its quota", async () => {
+  const store = createStore({ persistent: false });
+  await store.transaction((s) => { s.vouchers.push(voucher({ deviceLimit: 2 }), voucher({ id: "v2", code: "NC-ABCD-2346", quotaBytes: null })); });
+  await store.transaction((s) => enqueueRouterCommand(s, { action: "sync_usage" }, () => baseTime));
+  const processor = createRouterCommandProcessor({ store, now: () => baseTime, router: { readUsage: async () => [
+    { voucherId: "v1", usedBytes: 1200, devices: [
+      { mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 700 },
+      { mac: "browser-id", address: "10.20.0.31", usedBytes: 1 },
+    ] },
+    { voucherId: "v2", usedBytes: 5e9, devices: [] },
+    { voucherId: "unknown", usedBytes: 1 },
+  ] } });
+  await processor.process();
+  const s = await store.snapshot(), [v1, v2] = s.vouchers;
+  assert.equal(v1.status, "exhausted");
+  assert.equal(v1.usedBytes, 1200);
+  assert.deepEqual(v1.wifiDevices, [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 700 }]);
+  assert.equal(v1.wifiDevicesAt, baseTime.toISOString());
+  assert.equal(v1.routerSyncStatus, "pending");
+  assert.ok(s.routerCommands.some((c) => c.id === "router:disconnect_voucher:v1" && c.status === "queued"));
+  assert.equal(v2.status, "active");
+  assert.deepEqual(v2.wifiDevices, []);
+});
+
+test("automatic usage sync runs only against a real router with active vouchers", async () => {
+  assert.deepEqual(routerUsageSyncConfig({}), { enabled: true, intervalMs: 60000 });
+  assert.equal(routerUsageSyncConfig({ NETWORK_USAGE_SYNC_SECONDS: "0" }).enabled, false);
+  assert.equal(routerUsageSyncConfig({ NETWORK_USAGE_SYNC_SECONDS: "99999" }).intervalMs, 3600000);
+  const store = createStore({ persistent: false }), now = () => baseTime;
+  await store.transaction((s) => { s.vouchers.push(voucher()); });
+  const commands = async () => (await store.snapshot()).routerCommands || [];
+  assert.equal((await createUsageSyncScheduler({ store, now })()).queued, false);
+  assert.equal((await createUsageSyncScheduler({ store, now, env: { MIKROTIK_MODE: "live" } })()).queued, false);
+  assert.deepEqual(await commands(), []);
+  const legacy = createUsageSyncScheduler({ store, now, env: { MIKROTIK_MODE: "live", MIKROTIK_API_URL: "https://router.test" } });
+  assert.equal((await legacy()).queued, true);
+  assert.equal((await legacy()).queued, false);
+  await store.transaction((s) => {
+    s.routerCommands = [];
+    s.networkSetup = { runtimeRouterEnabled: true };
+  });
+  const saved = createUsageSyncScheduler({ store, now });
+  assert.equal((await saved()).queued, true);
+  assert.deepEqual((await commands()).map((c) => c.id), ["router:sync_usage:global"]);
+  await store.transaction((s) => { s.routerCommands[0].status = "dead_letter"; });
+  assert.equal((await saved()).queued, false);
+  await store.transaction((s) => { s.routerCommands = []; s.vouchers[0].status = "expired"; });
+  assert.equal((await saved()).queued, false);
 });

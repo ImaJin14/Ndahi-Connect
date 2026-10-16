@@ -8,15 +8,17 @@ function fixture() {
   const state = {
     customers: [{ id: "customer-1" }, { id: "customer-2" }], payments: [],
     networkSetup: { runtimeRouterEnabled: true, connections: { router: { mode: "live" } } },
-    vouchers: [{ id: "voucher-1", code: "NC-TEST-1234", customerId: "customer-1", status: "active", expiresAt: "2030-01-02T00:00:00Z", quotaBytes: 1000, usedBytes: 0, routerSyncStatus: "synchronized" }],
+    vouchers: [{ id: "voucher-1", code: "NC-TEST-1234", customerId: "customer-1", status: "active", activatedAt: "2029-12-31T00:00:00Z", expiresAt: "2030-01-02T00:00:00Z", quotaBytes: 1000, usedBytes: 0, deviceLimit: 2, routerSyncStatus: "synchronized" }],
+    events: [], routerCommands: [],
   };
   let session = { customerId: "customer-1" }, refreshed = false;
   const route = createAccountRoutes({ mutate: (fn) => fn(state), auth: () => session, clock: () => now, refreshCustomerSession: () => { refreshed = true; } });
   return {
     state, setSession(value) { session = value; },
-    async call() {
-      const res = { writeHead(status, headers) { this.status = status; this.headers = headers; }, end(value) { this.body = JSON.parse(value); } };
-      await route({ method: "GET" }, res, new URL("http://api.test/api/account/hotspot-credentials"));
+    async call(path = "/api/account/hotspot-credentials", input) {
+      const res = { writeHead(status, headers) { this.status = status; this.headers = headers; }, end(value) { this.body = JSON.parse(value); } },
+        req = input === undefined ? { method: "GET" } : { method: "POST", async *[Symbol.asyncIterator]() { yield JSON.stringify(input); } };
+      await route(req, res, new URL("http://api.test" + path));
       return { ...res, refreshed };
     },
   };
@@ -75,4 +77,39 @@ test("customer HotSpot configuration permits only the configured HTTPS form orig
   for (const hotspotLoginUrl of ["http://connect.test/login", "https://connect.test/other", "https://user:password@connect.test/login", "https://connect.test/login?next=external", "https://connect.test/login#fragment"]) {
     assert.throws(() => createStaticServer("customer", { hotspotLoginUrl }), /HOTSPOT_LOGIN_URL/);
   }
+});
+
+for (const [name, change, code] of [
+  ["synced usage at the quota", (f) => { f.state.vouchers[0].usedBytes = 1000; }, "QUOTA_EXHAUSTED"],
+  ["an exhausted bundle", (f) => { f.state.vouchers[0].status = "exhausted"; }, "QUOTA_EXHAUSTED"],
+  ["an expired bundle", (f) => { f.state.vouchers[0].status = "expired"; }, "BUNDLE_EXPIRED"],
+  ["a lapsed bundle", (f) => { f.state.vouchers[0].expiresAt = now.toISOString(); }, "BUNDLE_EXPIRED"],
+  ["a revoked bundle", (f) => { f.state.vouchers[0].status = "revoked"; }, undefined],
+]) test(`HotSpot login explains ${name}`, async () => {
+  const f = fixture(); change(f);
+  const result = await f.call();
+  assert.equal(result.status, 409);
+  assert.equal(result.body.code, code);
+});
+
+test("customers see and free only their own router-reported Wi-Fi devices", async () => {
+  const f = fixture(), voucher = f.state.vouchers[0];
+  voucher.wifiDevices = [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "5m", usedBytes: 10 }, { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 5 }];
+  voucher.wifiDevicesAt = now.toISOString();
+  f.state.vouchers.push({ id: "voucher-2", customerId: "customer-2", status: "active", wifiDevices: [{ mac: "AA:BB:CC:DD:EE:09" }] });
+  const list = await f.call("/api/account/wifi-devices");
+  assert.equal(list.status, 200);
+  assert.equal(list.body.deviceLimit, 2);
+  assert.deepEqual(list.body.devices.map((d) => d.mac), ["AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"]);
+  assert.match(list.body.csrfToken, /\S{16,}/);
+  const other = await f.call("/api/account/wifi-devices/disconnect", { mac: "AA:BB:CC:DD:EE:09" });
+  assert.equal(other.status, 404);
+  assert.deepEqual(f.state.routerCommands, []);
+  const freed = await f.call("/api/account/wifi-devices/disconnect", { mac: "aa:bb:cc:dd:ee:01" });
+  assert.equal(freed.status, 200);
+  assert.deepEqual(freed.body.devices.map((d) => d.mac), ["AA:BB:CC:DD:EE:02"]);
+  assert.deepEqual(f.state.routerCommands.map((c) => c.id), ["router:disconnect_device:AA:BB:CC:DD:EE:01"]);
+  assert.deepEqual(f.state.vouchers[1].wifiDevices.map((d) => d.mac), ["AA:BB:CC:DD:EE:09"]);
+  f.setSession(null);
+  assert.equal((await f.call("/api/account/wifi-devices")).status, 401);
 });

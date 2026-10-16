@@ -1,5 +1,6 @@
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
+import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
 
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
@@ -45,8 +46,46 @@ async function connect() {
       }
       throw new ApiError(409, "Your Wi-Fi access is still being prepared. Wait a moment, then try again.");
     });
-  } catch (error) { showError(message, error); }
+  } catch (error) {
+    showError(message, error, ["QUOTA_EXHAUSTED", "BUNDLE_EXPIRED"].includes(error.code)
+      ? { actions: [{ label: "Renew or switch plan", run: () => location.assign("/dashboard#managePlan") }] } : {});
+  }
 }
+
+// The router refuses a login when every device slot is taken. Show the
+// connected devices so the customer can free one and try again.
+let csrfToken = "";
+const devices = document.getElementById("wifiDevices");
+function showDevices(list) {
+  devices.innerHTML = wifiDeviceList(list);
+  devices.hidden = false;
+}
+async function explainRouterError() {
+  try {
+    const response = await fetch(config.apiUrl + "/api/account/wifi-devices", { credentials: "include", cache: "no-store" }),
+      list = await response.json();
+    if (!response.ok || !allSlotsInUse(list)) return;
+    csrfToken = list.csrfToken || "";
+    message.textContent = `All ${list.deviceLimit} device slots on your bundle are in use. Disconnect a device below, then tap Connect to Wi-Fi.`;
+    showDevices(list);
+  } catch { /* Keep the general router message. */ }
+}
+devices.onclick = async (event) => {
+  const target = event.target.closest("button[data-wifi-device]");
+  if (!target) return;
+  try {
+    await runButton(target, "Disconnecting…", async () => {
+      const response = await fetch(config.apiUrl + "/api/account/wifi-devices/disconnect", {
+          method: "POST", credentials: "include",
+          headers: { "content-type": "application/json", ...(csrfToken ? { "x-csrf-token": csrfToken } : {}) },
+          body: JSON.stringify({ mac: target.dataset.wifiDevice }),
+        }), result = await response.json();
+      if (!response.ok) throw responseError(response, result);
+      showDevices(result);
+      message.textContent = "Device disconnected. Wait a few seconds, then tap Connect to Wi-Fi.";
+    });
+  } catch (error) { showError(message, error); }
+};
 
 button.onclick = connect;
 window.addEventListener("pageshow", () => {
@@ -57,4 +96,5 @@ if (!config.hotspotLoginUrl) {
   location.replace(destination.href);
 } else if (params.has("router-error")) {
   message.textContent = "Wi-Fi login was not accepted. Stay on NDAHI Wi-Fi and try again. If this continues, contact support.";
+  void explainRouterError();
 } else void connect();
