@@ -171,7 +171,7 @@ test("restart honors a disabled live-write gate and permits cancelling a queued 
   assert.equal(result.job.status, "cancelled");
 });
 
-test("saved-router enforcement activation requires a completed live job", async () => {
+test("dashboard-provisioned router activates after owner confirmation", async () => {
   const f = await fixture();
   await assert.rejects(f.call("activate", { tested: true }), /hotspot/);
   const { job } = await f.call("preview", { kind: "router", config });
@@ -180,4 +180,76 @@ test("saved-router enforcement activation requires a completed live job", async 
   await f.call("confirm", { jobId: job.id, tested: true });
   await f.call("activate", { tested: true });
   assert.equal((await f.call("status")).runtimeRouterEnabled, true);
+});
+
+function existingVlanRouter() {
+  const adapter = new SimulatedRouter();
+  Object.assign(adapter.tables, {
+    "ip/hotspot": [{ name: "ndahi-hotspot", interface: "vlan20-hotspot", profile: "ndahi-profile", disabled: "false" }],
+    "ip/hotspot/profile": [{ name: "ndahi-profile", "hotspot-address": "10.20.0.1", "dns-name": "connect.hotspot.test", "login-by": "cookie,https", "ssl-certificate": "hotspot-test-tls" }],
+    "ip/address": [{ interface: "vlan20-hotspot", address: "10.20.0.1/22" }],
+    "ip/dhcp-server": [{ name: "dhcp1", interface: "vlan20-hotspot", "address-pool": "hs-pool-12", disabled: "false" }],
+    "ip/pool": [{ name: "hs-pool-12", ranges: "10.20.0.20-10.20.3.250" }],
+    "ip/dhcp-server/network": [{ address: "10.20.0.0/22", gateway: "10.20.0.1", "dns-server": "10.20.0.1" }],
+  });
+  adapter.ntp = { enabled: "true", status: "synchronized" };
+  adapter.deviceMode = { hotspot: "true", scheduler: "true", flagged: "false" };
+  adapter.requests = [];
+  adapter.request = async (path, method = "GET") => {
+    adapter.requests.push({ path, method });
+    assert.equal(method, "GET", "Existing hotspot adoption must not write to the router");
+    if (path === "system/ntp/client") return adapter.ntp;
+    if (path === "system/device-mode") return adapter.deviceMode;
+    throw Error("Unexpected router request");
+  };
+  adapter.verifyExistingHotspot = RouterRest.prototype.verifyExistingHotspot;
+  return adapter;
+}
+
+test("owner can activate a tested existing VLAN hotspot without topology writes or a fabricated setup job", async () => {
+  const adapter = existingVlanRouter(), before = structuredClone(adapter.tables);
+  const f = await fixture({ adapter });
+  await assert.rejects(f.call("activate", {}), /verify the hotspot/);
+  await f.call("activate", { tested: true });
+  const state = await f.store.snapshot();
+  assert.equal(state.networkSetup.runtimeRouterEnabled, true);
+  assert.equal(state.networkSetup.runtimeRouterActivation.source, "existing");
+  assert.equal(state.networkSetup.runtimeRouterActivation.interface, "vlan20-hotspot");
+  assert.equal(state.networkSetupJobs.length, 0);
+  assert.deepEqual(adapter.tables, before);
+  assert.deepEqual(adapter.requests.map((r) => r.path).sort(), ["system/device-mode", "system/ntp/client"]);
+});
+
+for (const [name, alter, error] of [
+  ["HTTPS login missing", (a) => { a.tables["ip/hotspot/profile"][0]["login-by"] = "http-chap,cookie"; }, /HTTPS login/],
+  ["certificate missing", (a) => { a.tables["ip/hotspot/profile"][0]["ssl-certificate"] = "none"; }, /certificate/],
+  ["gateway assigned to another interface", (a) => { a.tables["ip/address"][0].interface = "ether2"; }, /guest interface/],
+  ["guest DHCP disabled", (a) => { a.tables["ip/dhcp-server"][0].disabled = "true"; }, /guest DHCP/],
+  ["DHCP subnet mismatched", (a) => { a.tables["ip/dhcp-server/network"][0].address = "10.21.0.0/22"; }, /matching subnet/],
+  ["guest DNS bypasses local login name", (a) => { a.tables["ip/dhcp-server/network"][0]["dns-server"] = "1.1.1.1"; }, /gateway DNS/],
+  ["NTP not synchronized", (a) => { a.ntp.status = "waiting"; }, /NTP/],
+  ["scheduler disabled", (a) => { a.deviceMode.scheduler = "false"; }, /Scheduler/],
+  ["device flagged", (a) => { a.deviceMode.flagged = "true"; }, /device-mode/],
+  ["orphan rollback watchdog", (a) => { a.guards.add("orphan"); }, /rollback watchdogs/],
+]) {
+  test(`existing hotspot activation refuses ${name}`, async () => {
+    const adapter = existingVlanRouter(); alter(adapter);
+    const f = await fixture({ adapter });
+    await assert.rejects(f.call("activate", { tested: true }), error);
+    assert.notEqual((await f.call("status")).runtimeRouterEnabled, true);
+  });
+}
+
+test("existing hotspot activation honors the live-write gate and rechecks the saved connection revision", async () => {
+  const disabled = await fixture({ adapter: existingVlanRouter(), overrides: { NETWORK_PROVISIONING_ENABLED: "false" } });
+  await assert.rejects(disabled.call("activate", { tested: true }), /Enable live provisioning/);
+  const adapter = existingVlanRouter(), f = await fixture({ adapter });
+  const verify = adapter.verifyExistingHotspot.bind(adapter);
+  adapter.verifyExistingHotspot = async (discovery) => {
+    const result = await verify(discovery);
+    await f.store.transaction((s) => { s.networkSetup.connections.router.revision = "changed"; });
+    return result;
+  };
+  await assert.rejects(f.call("activate", { tested: true }), /outstanding provisioning/);
+  assert.notEqual((await f.call("status")).runtimeRouterEnabled, true);
 });
