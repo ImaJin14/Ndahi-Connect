@@ -210,6 +210,12 @@ services:
         sync: false
       - key: OMADA_SITE_ID
         value: Default
+      - key: WEB_PUSH_PUBLIC_KEY
+        sync: false
+      - key: WEB_PUSH_PRIVATE_KEY
+        sync: false
+      - key: WEB_PUSH_SUBJECT
+        sync: false
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
       - key: METRICS_BEARER_TOKEN
