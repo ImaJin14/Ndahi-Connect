@@ -46,7 +46,15 @@ Router provisioning uses a physical-management service account with read/write/p
 
 The saved-router adapter provisions an owned Hotspot user, byte limit, shared-user profile, and absolute-expiry scheduler. Expiry is checked every 30 seconds on the router, so synchronize its clock with NTP. Quota zero disables the voucher; an unlimited quota maps to the RouterOS zero/no-limit setting. Revocation disables the user and removes active sessions and cookies. Usage imports preserve the backend's existing monotonic-counter check.
 
-Browser device IDs are not trusted MAC addresses. Individual-device disconnection fails explicitly unless a trusted hotspot MAC mapping exists. The new adapter reports session mapping as unavailable, so reconciliation does not incorrectly mark browser sessions offline. Per-device disconnection, the branded captive-portal handoff, and quota behavior across router reboots need field validation/integration before claiming a complete live customer journey. Voucher-wide revocation is supported independently of browser IDs.
+### Bundle limits
+
+- **Device limit:** the bundle's device limit becomes the HotSpot profile's `shared-users`, so the router refuses a login beyond it.
+- **Data quota:** RouterOS adds a session's traffic to its user's counters only at logout, and gives each new session the quota remaining at login. Concurrent devices could therefore together exceed the quota. The API reads usage every `NETWORK_USAGE_SYNC_SECONDS` (default 60; `0` disables). Usage is the user's counters plus its live `/ip hotspot active` sessions. Once the total reaches the quota, the voucher becomes exhausted and is disconnected. Overshoot is bounded by one sync interval plus queue latency.
+- **When reads run:** only with the saved router active, or a configured legacy live adapter, and while a voucher is active. A dead-lettered read waits for an operator replay.
+
+Each read also records the voucher's devices as RouterOS reports them: MAC address, IP address, uptime and session traffic. These are the trusted MAC mapping for per-device disconnection. In HotSpot mode, customers see these devices on their dashboard and can disconnect one to free a slot. When the router refuses a login and every slot is in use, the connection page lists the devices so the customer can free one and retry. A customer can disconnect only a MAC address recorded on their own active voucher.
+
+Browser device IDs are not trusted MAC addresses, and disconnecting one still fails explicitly. Reconciliation still reports session mapping as unavailable, so it does not mark browser sessions offline. Quota behavior across router reboots needs field validation. Voucher-wide revocation is supported independently of device mapping.
 
 For an on-site bridge deployment, `npm run start:bridge` implements the existing `/ndahi/syncVoucher`, `/ndahi/disconnectDevice`, `/ndahi/disconnectVoucher`, `/ndahi/readUsage`, `/ndahi/readState`, and `/ndahi/markInactive` contract over HTTPS. Configure:
 

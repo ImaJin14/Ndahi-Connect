@@ -14,6 +14,8 @@ import { reconciliationConfig, createPaymentReconciler } from "./lib/payment-rec
 import {
   routerReconciliationConfig,
   createRouterReconciler,
+  routerUsageSyncConfig,
+  createUsageSyncScheduler,
 } from "./lib/router-reconciliation.mjs";
 import http from "node:http";
 import { databaseDiagnostic } from "./lib/database-diagnostics.mjs";
@@ -130,6 +132,8 @@ export function createHandler(opts = {}) {
   handler.routerQueueIntervalMs = positiveInteger(env.NETWORK_QUEUE_INTERVAL_SECONDS, 15) * 1000;
   handler.routerReconciliationConfig = routerReconciliationConfig(env);
   handler.reconcileRouter = createRouterReconciler({ store, router, now: clock });
+  handler.routerUsageSyncConfig = routerUsageSyncConfig(env);
+  handler.scheduleUsageSync = createUsageSyncScheduler({ store, env, now: clock });
   return handler;
 }
 
@@ -140,6 +144,7 @@ export const createServer = (opts) => {
     webhookTimer,
     routerTimer,
     routerReconciliationTimer,
+    usageSyncTimer,
     billingTimer,
     securityAlertsTimer,
     networkSetupTimer,
@@ -167,6 +172,10 @@ export const createServer = (opts) => {
   const runRouterReconciliation = () =>
     handler.reconcileRouter().catch((error) => {
       handler.logger.error("network.reconciliation_failed", databaseDiagnostic(error));
+    });
+  const runUsageSync = () =>
+    handler.scheduleUsageSync().catch((error) => {
+      handler.logger.error("network.usage_sync_failed", databaseDiagnostic(error));
     });
   const resumeNetworkSetup = () =>
     handler.networkSetup.handle("status", {}, "system").catch(() => {
@@ -201,6 +210,11 @@ export const createServer = (opts) => {
       routerTimer = setInterval(runRouterQueue, handler.routerQueueIntervalMs);
       routerTimer.unref();
     }
+    if (handler.routerQueueEnabled && handler.routerUsageSyncConfig.enabled) {
+      void runUsageSync();
+      usageSyncTimer = setInterval(runUsageSync, handler.routerUsageSyncConfig.intervalMs);
+      usageSyncTimer.unref();
+    }
     if (handler.routerReconciliationConfig.enabled) {
       void runRouterReconciliation();
       routerReconciliationTimer = setInterval(
@@ -221,6 +235,7 @@ export const createServer = (opts) => {
     clearInterval(webhookTimer);
     clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer);
+    clearInterval(usageSyncTimer);
     clearInterval(securityAlertsTimer);
     clearInterval(monitorTimer);
   });
