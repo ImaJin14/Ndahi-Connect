@@ -10,9 +10,18 @@ export function createStaticServer(
     apiUrl = process.env.API_URL || "http://localhost:8082",
     production = process.env.NODE_ENV === "production",
     telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
+    hotspotLoginUrl = process.env.HOTSPOT_LOGIN_URL || "",
     logger = createLogger({ service: kind, level: process.env.LOG_LEVEL }),
   } = {},
 ) {
+  let hotspotOrigin = "";
+  if (kind === "customer" && hotspotLoginUrl) {
+    const login = new URL(hotspotLoginUrl);
+    if (login.protocol !== "https:" || login.pathname !== "/login" || login.username || login.password || login.search || login.hash) {
+      throw new Error("HOTSPOT_LOGIN_URL must be an HTTPS /login URL without credentials, query, or fragment.");
+    }
+    hotspotOrigin = login.origin;
+  }
   const root = join(process.cwd(), kind === "admin" ? "admin-app" : "customer-app");
   let assets;
   const getAssets = () => assets ||= createAssetCatalog(root, { telemetry }).catch((error) => { assets = undefined; throw error; });
@@ -26,7 +35,7 @@ export function createStaticServer(
       "script-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
+      `form-action 'self'${hotspotOrigin ? ` ${hotspotOrigin}` : ""}`,
       "frame-ancestors 'none'",
       production ? "upgrade-insecure-requests" : "",
       "report-to csp-endpoint",
@@ -56,7 +65,7 @@ export function createStaticServer(
         "content-type": "text/javascript",
         "cache-control": "no-store",
       });
-      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind })}`);
+      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind, ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
     }
     if (url.pathname === "/" || url.pathname === "/index.html") {
       res.writeHead(302, { ...securityHeaders, location: "/login", "cache-control": "no-store" });
@@ -65,6 +74,7 @@ export function createStaticServer(
     let path = url.pathname;
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
+    if (path === "/hotspot" && kind === "customer") path = "/hotspot.html";
     if (path === "/forgot-pin") path = "/forgot-pin.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404, securityHeaders);

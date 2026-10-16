@@ -2,6 +2,7 @@ import { responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
+import { hotspotPath } from "./hotspot-path.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
@@ -140,7 +141,8 @@ async function load() {
   csrfToken = result.csrfToken;
   applyNetworkStatus($(".network-state"), result.zone?.status);
   $("#differentCode").open = !active;
-  const thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
+  const wifiConnect = active && window.NDAHI_CONFIG.hotspotLoginUrl ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
+    thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
     quickConnect = !active ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
       : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
@@ -159,7 +161,7 @@ async function load() {
       : active?.routerSyncStatus === "pending"
       ? "<p>Finishing network setup for this bundle…</p>"
       : "";
-  $("#dashboard").innerHTML = `<div class="dashboard-grid">
+  $("#dashboard").innerHTML = `${wifiConnect}<div class="dashboard-grid">
     <section class="surface"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>`}</section>
     <section class="surface"><h2>Connected devices</h2>${active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}</section>
     <section class="surface full" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}</p><div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${result.dailyAvailability.available ? "The 100 FCFA Daily bundle is available." : `Daily is available again ${h(new Date(result.dailyAvailability.nextEligibleAt).toLocaleString())}.`}</p></section>
@@ -187,6 +189,7 @@ $("#redeem").onsubmit = async (event) => {
       const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(event.target)), deviceId }) });
       $("#redeemMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
       await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
     });
   } catch (error) { showError($("#redeemMessage"), error); }
 };
@@ -350,6 +353,7 @@ $("#dashboard").onsubmit = async (event) => {
       const result = await call("/api/account/devices/connect", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(form)), deviceId }) });
       $("#dashboardMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
       await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
     });
   } catch (error) { showError($("#connectMessage"), error); }
 };
