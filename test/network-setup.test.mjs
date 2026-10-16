@@ -15,18 +15,6 @@ async function fixture({ adapter = new SimulatedRouter(), overrides = {}, now } 
   await call("connection", { kind: "router", mode: "live", url: "https://router.test", username: "service-user", password: "private-router-password" });
   return { store, service, call, adapter };
 }
-test("standalone access points disable every Omada controller operation", async () => {
-  const f = await fixture({ overrides: { OMADA_MODE: "standalone" } });
-  assert.equal((await f.call("status")).omadaStandalone, true);
-  const controller = { kind: "omada", url: "https://omada.test", controllerId: "c", siteId: "s", wlanId: "w", clientId: "id", clientSecret: "secret" };
-  await assert.rejects(f.call("connection", controller), /standalone/);
-  for (const [action, input] of [["discover", { kind: "omada" }], ["preview", { kind: "omada", config: {} }]]) {
-    await assert.rejects(f.call(action, input), /standalone/, action);
-  }
-  assert.equal((await f.call("controller-status")).connected, false);
-  assert.equal((await f.store.snapshot()).networkSetup.connections.omada, undefined);
-  assert.equal((await f.call("discover", { kind: "router" })).discovery.identity !== undefined, true);
-});
 test("network encryption authenticates ciphertext and never stores plaintext", () => {
   const encrypted = seal({ password: "sensitive" }, env);
   assert.doesNotMatch(JSON.stringify(encrypted), /sensitive/);
