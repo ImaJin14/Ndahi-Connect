@@ -40,6 +40,15 @@ test("production configuration accepts fully live infrastructure", () => {
   assert.deepEqual(enabledPaymentProviders(production), ["flutterwave"]);
 });
 
+test("production accepts declared standalone access points without Omada credentials", () => {
+  const { OMADA_API_URL, OMADA_API_TOKEN, ...withoutController } = production;
+  assert.doesNotThrow(() => assertProductionConfig({ ...withoutController, OMADA_MODE: "standalone" }));
+  assert.ok(productionConfigErrors(withoutController).some((error) => error.startsWith("OMADA_API_URL")));
+  assert.ok(productionConfigErrors({ ...withoutController, OMADA_MODE: "mock" }).some((error) => error === "OMADA_MODE must be live or standalone"));
+  const saved = productionConfigErrors({ ...withoutController, OMADA_MODE: "standalone", NETWORK_OMADA_SOURCE: "saved", NETWORK_CONFIG_KEY: "a".repeat(64), NETWORK_ALLOWED_ORIGINS: "https://router.ndahi.test" });
+  assert.deepEqual(saved, ["NETWORK_OMADA_SOURCE=saved requires OMADA_MODE=live"]);
+});
+
 test("production configuration rejects mock and fallback infrastructure", () => {
   const errors = productionConfigErrors({ NODE_ENV: "production", PAYMENT_MODE: "mock" });
   assert.ok(errors.some((error) => error.includes("DATABASE_URL")));

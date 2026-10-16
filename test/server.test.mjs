@@ -136,6 +136,29 @@ test("bootstrap deployment exposes readiness and plans but blocks operational AP
   assert.equal((await adminDashboard.json()).deployment.mode, "setup");
 });
 
+test("standalone access points count as ready Omada without a controller", async (t) => {
+  const server = createServer({
+    store: createStore({ persistent: false }),
+    validateConfig: false,
+    env: { BOOTSTRAP_MODE: "true", OMADA_MODE: "standalone", CUSTOMER_APP_URL: "http://customer.test" },
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`,
+    adminLogin = await fetch(`${base}/api/admin/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username: "owner", password: "2468" }),
+    }),
+    cookie = adminLogin.headers.get("set-cookie").split(";")[0],
+    dashboard = await (await fetch(`${base}/api/admin/dashboard`, { headers: { cookie } })).json(),
+    omada = await (await fetch(`${base}/api/admin/integrations/omada`, { headers: { cookie } })).json();
+  assert.equal(dashboard.deployment.providers.omada, "standalone");
+  assert.equal(dashboard.integrations.omada, "standalone");
+  assert.equal(omada.mode, "standalone");
+  assert.equal(omada.connected, false);
+});
+
 test("admin password login requires a separate one-time MFA challenge", async (t) => {
   const server = createServer({
     store: createStore({ persistent: false }),

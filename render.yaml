@@ -203,7 +203,7 @@ services:
       - key: MIKROTIK_PASSWORD
         sync: false
       - key: OMADA_MODE
-        value: live
+        value: standalone
       - key: OMADA_API_URL
         sync: false
       - key: OMADA_API_TOKEN
