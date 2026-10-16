@@ -77,6 +77,21 @@ try {
     finally { await context.close(); }
   }
 
+  await scenario("customer login cannot submit natively before its module loads", async (page) => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; }), documents = [];
+    await page.route(/\/login(\.[0-9a-f]+)?\.js$/, async (route) => { await gate; await route.continue(); });
+    page.on("request", (request) => { if (request.resourceType() === "document") documents.push(request.url()); });
+    await page.goto(`${portal}/login`, { waitUntil: "commit" });
+    await page.locator('[name="code"]').waitFor();
+    assert.equal(await page.locator("#loginSubmit").isDisabled(), true);
+    await page.locator('[name="phone"]').fill("670080001");
+    await page.locator('[name="code"]').fill("NC-ABCD-EFGH");
+    await page.locator('[name="code"]').press("Enter");
+    release(); await idle(page, "#loginSubmit");
+    assert.deepEqual(documents, [`${portal}/login`]);
+  });
+
   for (const width of [1440, 390]) await scenario(`customer login locks competing methods and restores PIN retry at ${width}px`, async (page) => {
     const begin = await hold(page, "/api/account/access/begin", { token: "fixture-access", mode: "login" }, 200);
     await page.goto(`${portal}/login`);

@@ -139,3 +139,6 @@ $("#customerPasskeyLogin").onclick = async () => {
     });
   }
 };
+// The button ships disabled so a slow captive-portal connection cannot submit
+// the form natively (credentials in a GET URL) before this module has loaded.
+$("#loginSubmit").disabled = false;
