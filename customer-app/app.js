@@ -4,6 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
 import { wifiDeviceList } from "./wifi-devices.js";
+import { mountInstallCard } from "./install.js";
 import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus } from "./usage-alerts.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -206,7 +207,7 @@ async function load() {
       : active?.routerSyncStatus === "pending"
       ? "<p>Finishing network setup for this bundle…</p>"
       : "";
-  $("#dashboard").innerHTML = `${wifiConnect}<div class="dashboard-grid">
+  $("#dashboard").innerHTML = `${wifiConnect}${active ? '<div id="installApp" hidden></div>' : ""}<div class="dashboard-grid">
     <section class="surface"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>${active.quotaBytes !== null && usage >= 50 && usage < 100 ? `<p class="usage-notice">You've used ${h(Math.floor(usage))}% of your data. ${h(fmt(active.remainingBytes))} left.</p>` : ""}${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>`}</section>
     ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts" hidden><h2>Usage alerts</h2><p id="usageAlertState"></p><button type="button" id="usageAlertToggle" hidden></button><div id="usageAlertMessage" role="status" aria-live="polite"></div></section>' : ""}
     <section class="surface"><h2>Connected devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}</section>
@@ -215,6 +216,7 @@ async function load() {
     <section class="surface full"><h2>Bundle history</h2><div class="table-scroll"><table><thead><tr><th>Bundle</th><th>Status</th><th>Activated</th><th>Expires</th></tr></thead><tbody>${result.vouchers.map((item) => `<tr><td>${h(item.plan.name)}</td><td>${h(item.status)}</td><td>${h(new Date(item.activatedAt).toLocaleDateString())}</td><td>${h(new Date(item.expiresAt).toLocaleDateString())}</td></tr>`).join("")}</tbody></table></div></section>
     <section class="surface full" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => `<tr><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.methodLabel || "Mobile Money")}<br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${paymentActions(payment)}</td></tr>`).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
+  if (active) mountInstallCard($("#installApp"));
   if (active && active.quotaBytes !== null) void setupUsageAlerts();
   if (hotspot && active) watchWifiDevices(Date.now());
   else clearTimeout(devicePoll);

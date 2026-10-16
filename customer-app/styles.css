@@ -13,3 +13,4 @@
 @media(max-width:480px){.receipt-dialog{padding:18px}.receipt-dialog-header h2{font-size:22px}.receipt-total strong{font-size:28px}.receipt-details>div{grid-template-columns:1fr;gap:6px}.receipt-details dd{text-align:left}.receipt-dialog-actions button{width:100%}}
 
 @media (max-width: 800px) { .hero { background-image: url("/assets/signal-hero-mobile.webp"); } }
+.install-card{display:flex;align-items:center;gap:16px;margin:0 0 22px;padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--lime-dark);border-radius:14px}.install-card img{flex-shrink:0;border-radius:12px}.install-copy{flex:1;min-width:0}.install-copy strong{display:block;color:var(--forest)}.install-copy p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.45}.install-actions{display:flex;gap:10px;flex-wrap:wrap}@media(max-width:620px){.install-card{flex-wrap:wrap}.install-actions{width:100%}.install-actions button{flex:1}}
