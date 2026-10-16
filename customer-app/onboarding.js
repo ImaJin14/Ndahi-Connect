@@ -370,7 +370,7 @@ async function beginAccountSecurity(paid, phone) {
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
   if (account) {
     sessionStorage.setItem("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
-    location.href = "/dashboard";
+    location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? "/hotspot" : "/dashboard";
     return;
   }
   const emailMessage = paid.email?.status === "sent"

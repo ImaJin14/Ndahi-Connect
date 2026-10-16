@@ -64,6 +64,8 @@ services:
         value: 0.0.0.0
       - key: API_URL
         sync: false
+      - key: HOTSPOT_LOGIN_URL
+        sync: false
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
 

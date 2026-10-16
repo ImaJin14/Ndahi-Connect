@@ -1,4 +1,5 @@
-import { ApiError, consumeReturnPath, responseError, showError } from "./errors.js";
+import { ApiError, responseError, showError } from "./errors.js";
+import { afterSignInPath } from "./hotspot-path.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
 
@@ -54,7 +55,7 @@ $("#verify").onsubmit = async (event) => {
         result = await response.json();
       if (!response.ok) throw responseError(response, result);
       sessionStorage.removeItem("ndahi-login-challenge");
-      location.href = consumeReturnPath();
+      location.href = afterSignInPath();
     }, { controls: [$("#useRecoveryCode")] });
   } catch (error) {
     showError($("#message"), error);

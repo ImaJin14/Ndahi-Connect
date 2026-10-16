@@ -1,4 +1,5 @@
-import { consumeReturnPath, responseError, showError } from "./errors.js";
+import { responseError, showError } from "./errors.js";
+import { afterSignInPath } from "./hotspot-path.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { runButton } from "/shared/pending.js";
 
@@ -63,7 +64,7 @@ $("#login").onsubmit = async (event) => {
         token: accessToken, pin: input.pin,
         ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
       });
-      location.href = consumeReturnPath();
+      location.href = afterSignInPath();
     });
   } catch (error) {
     showError($("#message"), error);
@@ -126,7 +127,7 @@ $("#customerPasskeyLogin").onclick = async () => {
       });
       result = await response.json();
       if (!response.ok) throw responseError(response, result);
-      location.href = consumeReturnPath();
+      location.href = afterSignInPath();
     });
   } catch (error) {
     showError($("#message"), error, {
