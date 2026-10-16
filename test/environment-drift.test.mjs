@@ -25,6 +25,7 @@ function apiEnv(overrides = {}, services = bootstrapBlueprint) {
     API_URL: "https://api.ndahiconnect.net",
     ALLOWED_ADMIN_ORIGINS: "https://admin.ndahiconnect.net",
     WEBAUTHN_RP_ID: "admin.ndahiconnect.net",
+    WEB_PUSH_SUBJECT: "mailto:connect@updates.ndahiconnect.net",
     MIKROTIK_API_URL: "https://router.ndahiconnect.net",
     OMADA_API_URL: "https://omada.ndahiconnect.net",
     EMAIL_FROM: "NDAHI Connect <connect@updates.ndahiconnect.net>",
@@ -40,6 +41,14 @@ test("render.yaml pins a launchable API configuration", () => {
   assert.ok([bootstrapText, launchedText].includes(text));
   assert.deepEqual(environmentDrift("ndahi-api", bootstrapBlueprint, apiEnv()), { errors: [], warnings: [], bootstrap: true });
   assert.deepEqual(environmentDrift("ndahi-api", launchedBlueprint, launchedEnv()), { errors: [], warnings: [], bootstrap: false });
+});
+
+test("push settings that would leave usage alerts silently off block deployment", () => {
+  const errors = (overrides) => environmentDrift("ndahi-api", launchedBlueprint, launchedEnv(overrides)).errors;
+  assert.ok(has(errors({ WEB_PUSH_SUBJECT: "NDAHI Connect <connect@updates.ndahiconnect.net>" }), /^WEB_PUSH_SUBJECT must be a mailto: or https: URI, for example mailto:connect@updates\.ndahiconnect\.net$/));
+  assert.ok(has(errors({ WEB_PUSH_PRIVATE_KEY: "" }), /^WEB_PUSH_PRIVATE_KEY is missing/));
+  assert.deepEqual(errors({ WEB_PUSH_PUBLIC_KEY: "", WEB_PUSH_PRIVATE_KEY: "", WEB_PUSH_SUBJECT: "" }), []);
+  assert.deepEqual(errors({ WEB_PUSH_SUBJECT: "https://ndahiconnect.net/contact" }), []);
 });
 
 test("a BOOTSTRAP_MODE change outside render.yaml is drift", () => {

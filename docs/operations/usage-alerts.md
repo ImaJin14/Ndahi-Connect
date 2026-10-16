@@ -18,6 +18,8 @@ Customers can get a notification on their phone when they reach 50%, 75% and 100
    WEB_PUSH_SUBJECT=mailto:<operations address>
    ```
 
+   `WEB_PUSH_SUBJECT` must be a URI, `mailto:` plus a bare address (for example `mailto:connect@updates.example.com`) or an `https://` contact page. It is not an email `From` value with a display name. Push services may use it to contact you, so prefer an address someone reads. If only some of these are set, or the subject has the wrong form, the pre-deploy environment check fails and says what to fix.
+
    Redeploy. The portal's **Usage alerts** card appears once these are set. Keep the same keys afterwards. Replacing them invalidates every customer's subscription, and each device then has to turn alerts on again.
 
 ## How it works
