@@ -29,6 +29,8 @@ function apiEnv(overrides = {}, services = bootstrapBlueprint) {
     MIKROTIK_API_URL: "https://router.ndahiconnect.net",
     OMADA_API_URL: "https://omada.ndahiconnect.net",
     EMAIL_FROM: "NDAHI Connect <connect@updates.ndahiconnect.net>",
+    COVERAGE_ACCESS_ENABLED: "true",
+    COVERAGE_ALLOWED_IPS: "203.0.113.10",
     ...overrides,
   };
 }
@@ -153,4 +155,19 @@ test("the pre-deploy command fails on drift without printing environment values"
   const unnamed = await run("", {});
   assert.equal(unnamed.code, 1);
   assert.match(unnamed.output, /Pass the Render service name/);
+});
+
+test("a coverage setting that would open the portal or lock customers out blocks deployment", () => {
+  for (const [overrides, pattern] of [
+    [{ COVERAGE_ACCESS_ENABLED: "TRUE" }, /COVERAGE_ACCESS_ENABLED must be exactly/],
+    [{ COVERAGE_ALLOWED_IPS: "" }, /COVERAGE_ALLOWED_IPS must list/],
+    [{ COVERAGE_ALLOWED_IPS: "203.0.113.0/24" }, /bare IPv4/],
+  ]) {
+    assert.ok(has(environmentDrift("ndahi-api", launchedBlueprint, launchedEnv(overrides)).errors, pattern), String(pattern));
+    assert.ok(has(environmentDrift("ndahi-api", bootstrapBlueprint, apiEnv(overrides)).errors, pattern), "bootstrap " + String(pattern));
+  }
+  const customer = (env) => environmentDrift("ndahi-customer", bootstrapBlueprint, frontendEnv(env)).errors;
+  assert.deepEqual(customer({ TRUST_PROXY: "render", COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10" }), []);
+  assert.ok(has(customer({ COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10" }), /requires TRUST_PROXY=render/));
+  assert.deepEqual(customer({ COVERAGE_ACCESS_ENABLED: "false" }), []);
 });

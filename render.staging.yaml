@@ -54,7 +54,7 @@ services:
     buildCommand: npm ci
     preDeployCommand: RENDER_BLUEPRINT_FILE=render.staging.yaml npm run check:environment -- ndahi-staging-customer
     startCommand: npm run start:customer
-    healthCheckPath: /
+    healthCheckPath: /healthz
     domains:
       - staging-portal.ndahiconnect.net
     autoDeployTrigger: off
@@ -64,6 +64,12 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
+      - key: TRUST_PROXY
+        sync: false
+      - key: COVERAGE_ACCESS_ENABLED
+        sync: false
+      - key: COVERAGE_ALLOWED_IPS
+        sync: false
       - key: API_URL
         value: https://staging-api.ndahiconnect.net
       - key: PERFORMANCE_METRICS_ENABLED
@@ -112,6 +118,10 @@ services:
         value: 0.0.0.0
       - key: TRUST_PROXY
         value: render
+      - key: COVERAGE_ACCESS_ENABLED
+        sync: false
+      - key: COVERAGE_ALLOWED_IPS
+        sync: false
       - key: AUTH_EDGE_WINDOW_SECONDS
         value: "900"
       - key: AUTH_EDGE_CUSTOMER_MAX

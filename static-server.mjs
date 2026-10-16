@@ -3,6 +3,7 @@ import { createAssetCatalog, sendAsset } from "./lib/static-assets.mjs";
 import { join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, errorFields } from "./lib/logger.mjs";
+import { createCoverageGuard } from "./lib/coverage-access.mjs";
 
 export function createStaticServer(
   kind = "customer",
@@ -12,8 +13,13 @@ export function createStaticServer(
     telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
     hotspotLoginUrl = process.env.HOTSPOT_LOGIN_URL || "",
     logger = createLogger({ service: kind, level: process.env.LOG_LEVEL }),
+    env = process.env,
   } = {},
 ) {
+  // Only the customer portal is limited to the hotspot's coverage area.
+  const coverage = kind === "customer" ? createCoverageGuard(env, { html: true }) : null,
+    // While restricted, no shared cache may hold customer responses; browsers still cache assets.
+    cache = coverage?.enabled ? { immutable: "private, max-age=31536000, immutable", revalidate: "private, no-cache" } : undefined;
   let hotspotOrigin = "";
   if (kind === "customer" && hotspotLoginUrl) {
     const login = new URL(hotspotLoginUrl);
@@ -55,6 +61,11 @@ export function createStaticServer(
     };
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
+    if (url.pathname === "/healthz") {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+      return res.end("ok");
+    }
+    if (coverage && !coverage(req, res)) return;
     if (url.pathname === "/favicon.ico") {
       res.writeHead(204, securityHeaders);
       return res.end();
@@ -90,7 +101,7 @@ export function createStaticServer(
         res.writeHead(404, { ...securityHeaders, "cache-control": "no-store" });
         return res.end("Not found");
       }
-      sendAsset(req, res, entry, securityHeaders);
+      sendAsset(req, res, entry, securityHeaders, cache);
     } catch (error) {
       logger.error("static.assets_unavailable", errorFields(error));
       res.writeHead(503, { ...securityHeaders, "cache-control": "no-store" });
