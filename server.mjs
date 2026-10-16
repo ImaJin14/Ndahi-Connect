@@ -11,6 +11,7 @@ import { createAdminAuthRoutes } from "./lib/api/admin-auth.mjs";
 import { createAdminRoutes } from "./lib/api/admin.mjs";
 import { json, resolveClientIp, routeLabel } from "./lib/api/http.mjs";
 import { reconciliationConfig, createPaymentReconciler } from "./lib/payment-reconciliation.mjs";
+import { usageAlertConfig, createUsageAlertSender } from "./lib/usage-alerts.mjs";
 import {
   routerReconciliationConfig,
   createRouterReconciler,
@@ -134,6 +135,8 @@ export function createHandler(opts = {}) {
   handler.reconcileRouter = createRouterReconciler({ store, router, now: clock });
   handler.routerUsageSyncConfig = routerUsageSyncConfig(env);
   handler.scheduleUsageSync = createUsageSyncScheduler({ store, env, now: clock });
+  handler.usageAlertConfig = usageAlertConfig(env);
+  handler.sendUsageAlerts = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
   return handler;
 }
 
@@ -145,6 +148,7 @@ export const createServer = (opts) => {
     routerTimer,
     routerReconciliationTimer,
     usageSyncTimer,
+    usageAlertTimer,
     billingTimer,
     securityAlertsTimer,
     networkSetupTimer,
@@ -172,6 +176,10 @@ export const createServer = (opts) => {
   const runRouterReconciliation = () =>
     handler.reconcileRouter().catch((error) => {
       handler.logger.error("network.reconciliation_failed", databaseDiagnostic(error));
+    });
+  const runUsageAlerts = () =>
+    handler.sendUsageAlerts().catch((error) => {
+      handler.logger.error("usage_alert.worker_failed", databaseDiagnostic(error));
     });
   const runUsageSync = () =>
     handler.scheduleUsageSync().catch((error) => {
@@ -215,6 +223,10 @@ export const createServer = (opts) => {
       usageSyncTimer = setInterval(runUsageSync, handler.routerUsageSyncConfig.intervalMs);
       usageSyncTimer.unref();
     }
+    if (handler.usageAlertConfig.enabled) {
+      usageAlertTimer = setInterval(runUsageAlerts, 15000);
+      usageAlertTimer.unref();
+    }
     if (handler.routerReconciliationConfig.enabled) {
       void runRouterReconciliation();
       routerReconciliationTimer = setInterval(
@@ -236,6 +248,7 @@ export const createServer = (opts) => {
     clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer);
     clearInterval(usageSyncTimer);
+    clearInterval(usageAlertTimer);
     clearInterval(securityAlertsTimer);
     clearInterval(monitorTimer);
   });
