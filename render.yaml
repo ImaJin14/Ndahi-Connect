@@ -125,7 +125,7 @@ services:
       - key: PIN_MAX_DELAY_SECONDS
         value: "60"
       - key: BOOTSTRAP_MODE
-        value: "true"
+        value: "false"
       - key: DATABASE_URL
         fromDatabase:
           name: ndahi-postgres

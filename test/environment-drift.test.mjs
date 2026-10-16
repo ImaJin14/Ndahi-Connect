@@ -7,8 +7,10 @@ import { parse } from "yaml";
 import { blueprintServices, environmentDrift } from "../lib/environment-drift.mjs";
 
 const text = await readFile(new URL("../render.yaml", import.meta.url), "utf8");
-const bootstrapBlueprint = blueprintServices(text);
-const launchedText = text.replace(/(key: BOOTSTRAP_MODE\n\s+value: )"true"/, '$1"false"');
+// Check both phases whichever one render.yaml currently commits.
+const bootstrapPin = /(key: BOOTSTRAP_MODE\n\s+value: )"(?:true|false)"/;
+const bootstrapText = text.replace(bootstrapPin, '$1"true"'), launchedText = text.replace(bootstrapPin, '$1"false"');
+const bootstrapBlueprint = blueprintServices(bootstrapText);
 const launchedBlueprint = blueprintServices(launchedText);
 const secret = "s".repeat(40);
 
@@ -34,7 +36,8 @@ const frontendEnv = (overrides = {}) => ({ NODE_ENV: "production", HOST: "0.0.0.
 const has = (messages, pattern) => messages.some((message) => pattern.test(message));
 
 test("render.yaml pins a launchable API configuration", () => {
-  assert.notEqual(launchedText, text);
+  assert.notEqual(launchedText, bootstrapText);
+  assert.ok([bootstrapText, launchedText].includes(text));
   assert.deepEqual(environmentDrift("ndahi-api", bootstrapBlueprint, apiEnv()), { errors: [], warnings: [], bootstrap: true });
   assert.deepEqual(environmentDrift("ndahi-api", launchedBlueprint, launchedEnv()), { errors: [], warnings: [], bootstrap: false });
 });
