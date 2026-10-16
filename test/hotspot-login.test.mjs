@@ -113,3 +113,17 @@ test("customers see and free only their own router-reported Wi-Fi devices", asyn
   f.setSession(null);
   assert.equal((await f.call("/api/account/wifi-devices")).status, 401);
 });
+
+test("issuing HotSpot credentials queues a prompt router read for the new device", async () => {
+  const f = fixture();
+  await f.call();
+  assert.deepEqual(f.state.routerCommands.map((c) => [c.id, c.status, c.nextAttemptAt]),
+    [["router:sync_usage:global", "queued", new Date(+now + 5000).toISOString()]]);
+  f.state.routerCommands[0].status = "dead_letter";
+  await f.call();
+  assert.equal(f.state.routerCommands[0].status, "dead_letter");
+  const refused = fixture();
+  refused.state.vouchers[0].routerSyncStatus = "pending";
+  await refused.call();
+  assert.deepEqual(refused.state.routerCommands, []);
+});
