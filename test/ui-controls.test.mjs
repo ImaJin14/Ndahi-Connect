@@ -43,6 +43,16 @@ test("every static customer and admin button belongs to a handled form or click 
   for (const action of ["editBundle", "cancel-edit", "deleteBundle", "voucher", "customer", "session", "refund"]) assert.ok(files.adminApp.includes(action), `missing delegated handler for ${action}`);
 });
 
+test("every delegated admin action is reachable through the click allowlist", async () => {
+  const admin = await source("admin-app/app.js"),
+    allowlist = JSON.parse(admin.match(/if \(!(\[[^\]]+\])\.some\(\(key\) => button\.dataset\[key\]\)\) return;/)[1]),
+    start = admin.indexOf('await runAction(button, "Working…"'),
+    block = admin.slice(start, admin.indexOf("} else return;", start)),
+    branches = [...new Set([...block.matchAll(/if \(button\.dataset\.(\w+)\)/g)].map((match) => match[1]))];
+  assert.ok(branches.includes("classify"));
+  assert.deepEqual(branches.toSorted(), allowlist.toSorted());
+});
+
 test("interactive status and modal surfaces expose accessible state", async () => {
   const onboarding = await source("customer-app/onboarding.html"),
     dashboard = await source("customer-app/index.html"),
