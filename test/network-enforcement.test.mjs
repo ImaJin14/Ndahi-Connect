@@ -13,7 +13,7 @@ test("Hotspot bridge arms absolute expiry before enabling users and applies quot
   const payload = { schemaVersion: 1, voucherId: "voucher-1", username: "NC-ABCD-1234", password: "NC-ABCD-1234", profileId: "weekly", expiresAt: "2035-01-01T00:00:00Z", simultaneousUsers: 2, limitBytesTotal: 5000000000, enabled: true };
   await router.syncPayload(payload);
   assert.equal(writes[0].path, "ip/hotspot/user/profile");
-  assert.equal(writes[0].payload["shared-users"], "2");
+  assert.deepEqual(writes[0].payload, { name: "ndahi-users-2", "shared-users": "2" });
   assert.equal(writes[1].path, "system/scheduler");
   assert.match(writes[1].payload["on-event"], /:timestamp/);
   assert.equal(writes[2].path, "ip/hotspot/user");
@@ -21,6 +21,24 @@ test("Hotspot bridge arms absolute expiry before enabling users and applies quot
   assert.equal(writes[2].payload.disabled, "false");
   await assert.rejects(router.syncPayload({ ...payload, voucherId: '"; /system reset-configuration' }), /Invalid/);
   await assert.rejects(router.disconnectDevice("browser-random-id"), /trusted hotspot MAC/);
+});
+
+test("Hotspot user profiles are matched by reserved name because RouterOS rejects their comments", async () => {
+  const router = new RouterHotspot({}), writes = [];
+  let profiles = [{ ".id": "*1", name: "ndahi-users-2", "shared-users": "2" }];
+  router.request = async (path, method = "GET", payload) => {
+    if (path === "ip/hotspot/user/profile" && payload && "comment" in payload) throw Error("Router request failed (400)");
+    if (method !== "GET") writes.push({ path, method, payload });
+    return path === "ip/hotspot/user/profile" ? profiles : [];
+  };
+  const payload = { schemaVersion: 1, voucherId: "voucher-1", username: "NC-ABCD-1234", password: "NC-ABCD-1234", profileId: "weekly", expiresAt: "2035-01-01T00:00:00Z", simultaneousUsers: 2, limitBytesTotal: null, enabled: true };
+  await router.syncPayload(payload);
+  assert.deepEqual(writes.map((w) => w.path), ["system/scheduler", "ip/hotspot/user"]);
+  assert.equal(writes[1].payload.profile, "ndahi-users-2");
+  profiles = [{ ".id": "*1", name: "ndahi-users-2", "shared-users": "5" }];
+  writes.length = 0;
+  await assert.rejects(router.syncPayload(payload), /unmanaged/);
+  assert.deepEqual(writes, []);
 });
 
 test("Hotspot adapter refuses to overwrite unmanaged credentials and reports unknown session mapping", async () => {
