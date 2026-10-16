@@ -21,6 +21,8 @@ MIKROTIK_MODE=live
 OMADA_MODE=live
 ```
 
+For access points managed locally without an Omada controller, set `OMADA_MODE=standalone` and leave `NETWORK_OMADA_SOURCE` unset. Production then starts without Omada credentials, the setup banner reports Omada as standalone, and the dashboard's controller connection, Wi-Fi configuration and adoption controls are disabled. Configure the SSID, VLAN and client isolation on the access point itself. Voucher enforcement does not depend on Omada. To add a controller later, set `OMADA_MODE=live` in both the Blueprint and the service, then save the controller connection.
+
 Generate the key with `node -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))'`. Store it in the deployment secret manager and backup recovery vault. All API replicas and recovery tools must use the same key. Losing or replacing it makes saved credentials, Wi-Fi recovery settings, and backup passwords unreadable. Rotation requires an offline re-encryption migration; do not simply replace the environment variable.
 
 The origin allowlist accepts exact HTTPS origins, including non-default ports. No URL credentials, paths, queries, fragments, or redirects are allowed. DNS and tunnel configuration remain deployment responsibilities. Live provisioning remains disabled until a lab test has passed and `NETWORK_PROVISIONING_ENABLED=true` is set. Connection discovery and previews work while writes are disabled. Simulation is available only outside production and never activates voucher enforcement.
