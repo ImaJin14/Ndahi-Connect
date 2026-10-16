@@ -45,7 +45,7 @@ without repeatedly submitting the same credentials automatically.
 
 For rollback, restore the three backed-up router files and remove
 `HOTSPOT_LOGIN_URL` from the customer service, then redeploy it. This feature
-handles captive login; restricting public Render access to the site's network
-requires the separate coverage access guard.
+handles captive login; to restrict the portal to the site's network, see
+[coverage-only customer access](coverage-access.md).
 
 Protocol reference: [MikroTik external authentication](https://manual.mikrotik.com/docs/authentication-authorization-accounting/hotspot-captive-portal/hotspot-customisation/).

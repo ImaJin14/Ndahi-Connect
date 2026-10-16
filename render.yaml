@@ -52,7 +52,7 @@ services:
     buildCommand: npm ci
     preDeployCommand: npm run check:environment -- ndahi-customer
     startCommand: npm run start:customer
-    healthCheckPath: /
+    healthCheckPath: /healthz
     domains:
       - portal.ndahiconnect.net
     autoDeployTrigger: checksPass
@@ -65,6 +65,12 @@ services:
       - key: API_URL
         sync: false
       - key: HOTSPOT_LOGIN_URL
+        sync: false
+      - key: TRUST_PROXY
+        sync: false
+      - key: COVERAGE_ACCESS_ENABLED
+        sync: false
+      - key: COVERAGE_ALLOWED_IPS
         sync: false
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
@@ -112,6 +118,10 @@ services:
         value: 0.0.0.0
       - key: TRUST_PROXY
         value: render
+      - key: COVERAGE_ACCESS_ENABLED
+        sync: false
+      - key: COVERAGE_ALLOWED_IPS
+        sync: false
       - key: AUTH_EDGE_WINDOW_SECONDS
         value: "900"
       - key: AUTH_EDGE_CUSTOMER_MAX

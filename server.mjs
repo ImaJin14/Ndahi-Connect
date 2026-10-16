@@ -22,6 +22,7 @@ import { databaseDiagnostic } from "./lib/database-diagnostics.mjs";
 import { randomUUID } from "node:crypto";
 import { createLogger, errorFields } from "./lib/logger.mjs";
 import { withCorrelation } from "./lib/correlation.mjs";
+import { createCoverageGuard } from "./lib/coverage-access.mjs";
 import { fileURLToPath } from "node:url";
 import { normalize } from "node:path";
 import { assertProductionConfig } from "./lib/config.mjs";
@@ -69,6 +70,12 @@ export function createHandler(opts = {}) {
   // Routine probes would drown out request logs; failures are still logged.
   const quietRoutes = new Set(["/api/health", "/api/metrics"]);
   // Each request starts a new customer operation; work it triggers inherits its IDs.
+  // Customer routes serve only the hotspot's coverage area. Administration,
+  // signed provider webhooks and operational probes stay reachable from
+  // anywhere and keep their own authentication.
+  const coverage = createCoverageGuard(env),
+    exempt = new Set(["/api/webhooks/mesomb", "/api/webhooks/flutterwave", "/api/health", "/api/metrics", "/api/csp-report", "/api/telemetry/vitals"]),
+    coverageExempt = (path) => path.startsWith("/api/admin/") || exempt.has(path);
   const handler = (req, res) => {
     req.requestId = randomUUID();
     res.setHeader("x-request-id", req.requestId);
@@ -81,6 +88,7 @@ export function createHandler(opts = {}) {
       req.clientIp = resolveClientIp(req, env);
       const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
       requestPath = url.pathname;
+      if (!coverageExempt(url.pathname) && !coverage(req, res)) return;
       if (url.pathname.startsWith("/api/")) return await api(req, res, url);
       return json(res, 404, {
         error: "The API server does not serve application pages.",
