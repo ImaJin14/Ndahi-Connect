@@ -7,6 +7,19 @@ const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
   rows = (items, render) => items.map(render).join("");
 let bundleIndex = new Map();
+const saleLabel = (v) => v.paymentId ? "Online" : v.saleType === "sold" ? "Sold" : v.saleType === "gift" ? "Gift" : v.generatedByAdmin ? "Unclassified" : "—";
+const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
+// Revenue counts settled online payments and activated vouchers sold offline; gifts are shown separately.
+function revenueSummary(sales) {
+  if (!sales) return "";
+  const bundles = (n) => `${n} bundle${n === 1 ? "" : "s"}`,
+    line = (label, n, amount) => `<tr><td>${h(label)}</td><td>${h(bundles(n))}</td><td>${h(amount)}</td></tr>`;
+  return `<h3>Revenue</h3><div class="table-scroll"><table><thead><tr><th>Source</th><th>Bundles</th><th>Amount</th></tr></thead><tbody>${
+    line("Online payments", sales.online.bundles, fcfa(sales.online.amount))}${
+    line("Voucher sales", sales.vouchers.bundles, fcfa(sales.vouchers.amount))}${
+    line("Total revenue", sales.online.bundles + sales.vouchers.bundles, fcfa(sales.online.amount + sales.vouchers.amount))}${
+    line("Gifts (not revenue)", sales.gifts.bundles, `${fcfa(sales.gifts.faceValue)} face value`)}</tbody></table></div><p class="form-help">Voucher sales count once a voucher is activated; resale codes count when a customer claims them, and revoked sales are excluded.${sales.unclassified.bundles ? ` ${h(bundles(sales.unclassified.bundles))} generated before sale tracking ${sales.unclassified.bundles === 1 ? "is" : "are"} unclassified: mark each as sold or gift in Vouchers.` : ""}</p>`;
+}
 let activeAdminTab = "connections";
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
@@ -94,6 +107,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
 <section class="card tab-panel" id="panel-voucher-create" role="tabpanel" aria-labelledby="tab-voucher-create" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
   <label>Purpose<select name="purpose" id="voucherPurpose"><option value="resale">Resale inventory</option><option value="assigned">Assign to customer</option></select></label>
   <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label></div>
+  <label>Sale type<select name="saleType" id="voucherSaleType" required><option value="">Choose…</option><option value="sold" selected>Sold — counts as revenue</option>${["owner", "operator"].includes(x.profile.role) ? '<option value="gift">Gift — complimentary, no revenue</option>' : ""}</select></label>
   <label>Bundle type<select name="planMode" id="voucherPlanMode"><option value="existing">Existing bundle</option><option value="custom">Custom voucher</option></select></label>
   <label id="voucherExistingPlan">Bundle<select name="planId">${bundleOptions}</select></label>
   <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
@@ -109,7 +123,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
 </form><div id="generated" role="status" aria-live="polite"></div></section>
 <section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><div id="customerRecords"></div><div id="sessionRecords"></div></section>
 <section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><div id="voucherRecords"></div></section>
-<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2><h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
+<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   const activateTab = (tab, moveFocus = false) => {
@@ -138,12 +152,16 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     };
   }
   let customerPicker;
-  const updateVoucherBuilder = () => {
+  const updateVoucherBuilder = (event) => {
+    const purposeChanged = event?.target?.id === "voucherPurpose";
     const resale = $("#voucherPurpose").value === "resale",
       custom = $("#voucherPlanMode").value === "custom",
       form = $("#generate");
     $("#voucherCustomer").hidden = resale;
     $("#customerSelect").required = !resale;
+    // Resale stock defaults to sold; an assigned voucher needs an explicit choice.
+    if (resale && !$("#voucherSaleType").value) $("#voucherSaleType").value = "sold";
+    if (!resale && purposeChanged) $("#voucherSaleType").value = "";
     if (!resale) customerPicker ??= mountCustomerPicker($("#customerSearch"), $("#customerSelect"), call);
     $("#voucherQuantity").hidden = !resale;
     $("#voucherExistingPlan").hidden = custom;
@@ -293,10 +311,12 @@ function mountRecordViews(canManagePayments) {
     call,
     collection: "vouchers",
     title: "Vouchers",
-    headers: ["Code", "Bundle", "Status", "Email", "Devices", "Actions"],
-    row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
+    headers: ["Code", "Bundle", "Status", "Sale", "Email", "Devices", "Actions"],
+    row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(saleLabel(v))}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
       v.status === "active" ? `<button data-voucher="${h(v.id)}">Revoke</button>` : ""
-    }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}</td></tr>`,
+    }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}${
+      v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => ` <button class="secondary-action" data-classify="${h(v.id)}" data-sale-type="${type}">Mark ${type === "sold" ? "sold" : "gift"}</button>`).join("") : ""
+    }</td></tr>`,
   });
   void mountRecords($("#paymentRecords"), {
     call,
@@ -350,7 +370,7 @@ $("#app").onclick = async (e) => {
     $("#bundle").hidden = false;
     return;
   }
-  if (!["deleteBundle", "resendEmail", "voucher", "resetAuthenticator", "customer", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -369,6 +389,11 @@ $("#app").onclick = async (e) => {
         body: JSON.stringify({ voucherId: button.dataset.resendEmail }),
       });
       if (!result.sent) throw Error(result.error || "Email could not be sent.");
+    } else if (button.dataset.classify) {
+      await call("/api/admin/vouchers/classify", {
+        method: "POST",
+        body: JSON.stringify({ voucherId: button.dataset.classify, saleType: button.dataset.saleType }),
+      });
     } else if (button.dataset.voucher) {
       if (!confirm("Revoke this voucher and disconnect its access?")) return;
       await call("/api/admin/vouchers/revoke", {
