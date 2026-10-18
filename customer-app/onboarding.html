@@ -38,8 +38,9 @@
       <form id="purchase">
         <fieldset id="purchaseFields">
           <div class="form-row"><label>Your name<input name="name" autocomplete="name" required></label><label>Payment phone number<input name="phone" type="tel" placeholder="6XXXXXXXX" autocomplete="tel" required></label></div>
-          <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+          <label><span id="emailLabel">Email address (optional)</span><input name="email" type="email" autocomplete="email"><small id="emailHint">Confirm an email in Account after signup to receive email updates, receipts and PIN recovery.</small></label>
           <dl id="accountContact" class="current-facts" hidden></dl>
+          <label id="accountPayer" hidden>Mobile Money payment number<input name="payerPhone" type="tel" inputmode="tel" placeholder="6XXXXXXXX" autocomplete="off" disabled><small>Defaults to your account number. Using another number applies only to this transaction.</small></label>
           <label>Mobile Money network<select name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></label>
           <label id="acknowledgement" class="acknowledgement" hidden><input name="acknowledge" type="checkbox"><span id="acknowledgementText"></span></label>
           <p id="providerFee" class="trust" hidden>The payment provider's service fee is added separately to the package price and shown in your Mobile Money approval prompt.</p>

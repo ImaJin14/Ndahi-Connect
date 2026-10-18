@@ -3,6 +3,8 @@ import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { durationLabel, dataLabel, classifyPlanChange, comparePlans, renewalEligibility } from "./plan-presentation.js";
 import { runButton } from "/shared/pending.js";
+import { formValues, localStore, sessionStore, randomId, requestJson } from "./compat.js";
+import { startUpdates } from "./updates.js";
 
 const savedCheckoutKey = "ndahi-interrupted-checkout";
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -18,15 +20,14 @@ let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePla
 
 fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
 async function call(path, options = {}) {
-  const response = await fetch(api + path, {
+  const { response, body: result } = await requestJson(api + path, {
     credentials: "include", ...options,
     headers: {
       "content-type": "application/json",
       ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}),
       ...(options.headers || {}),
     },
-  });
-  const result = await response.json().catch(() => ({}));
+  }, 30000);
   if (!response.ok) throw responseError(response, result);
   return result;
 }
@@ -105,14 +106,19 @@ function renderAccount() {
   for (const name of ["name", "phone", "email"]) form.elements[name].value = account.customer[name] || "";
   form.elements.name.readOnly = true;
   form.elements.phone.readOnly = true;
-  form.elements.email.readOnly = true;
+  const needsPaymentEmail = paymentProvider === "flutterwave" && !account.customer.email;
+  form.elements.email.readOnly = !needsPaymentEmail;
   form.elements.name.required = false;
   form.elements.phone.required = false;
-  form.elements.email.required = false;
+  form.elements.email.required = needsPaymentEmail;
   $("#purchase .form-row").hidden = true;
-  form.elements.email.closest("label").hidden = true;
+  form.elements.email.closest("label").hidden = !needsPaymentEmail;
   $("#accountContact").hidden = false;
-  $("#accountContact").innerHTML = `<div><dt>Payment phone</dt><dd>${h(account.customer.phone)}</dd></div><div><dt>Receipt email</dt><dd>${h(account.customer.email || "No email on account")}</dd></div>`;
+  $("#accountContact").innerHTML = `<div><dt>Account number</dt><dd>${h(account.customer.phone)}</dd></div><div><dt>Email notifications</dt><dd>${account.customer.emailLinked ? h(account.customer.email) : 'Link an email in Account to receive updates and receipts.'}</dd></div>`;
+  $("#accountPayer").hidden = false;
+  form.elements.payerPhone.disabled = false;
+  form.elements.payerPhone.required = true;
+  form.elements.payerPhone.value = account.customer.phone;
   $("#acknowledgement").hidden = false;
   form.elements.acknowledge.required = true;
 }
@@ -123,6 +129,11 @@ async function initialize() {
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
   plans = cataloguePlans;
   paymentProvider = catalogue.paymentProvider;
+  $("#purchase").elements.email.required = paymentProvider === "flutterwave";
+  if (paymentProvider === "flutterwave") {
+    $("#emailLabel").textContent = "Payment contact email";
+    $("#emailHint").textContent = "Flutterwave requires an email for this payment. Confirm an address in Account to enable email notifications.";
+  }
   $("#providerFee").hidden = paymentProvider !== "mesomb";
   try {
     account = await call("/api/account/dashboard");
@@ -146,7 +157,7 @@ async function initialize() {
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
     if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
-      localStorage.getItem(key) === payment.requestKey) localStorage.removeItem(key);
+      localStore.get(key) === payment.requestKey) localStore.remove(key);
   }
   renderPlans();
   if (!plans.length && !(accountAction === "renew" && !renewal?.eligible)) {
@@ -158,7 +169,7 @@ async function initialize() {
     activeRequestKey = `ndahi-payment-${pending.action || "purchase"}-${pending.planId}`;
     const eligibilityReason = accountAction === "renew" && !renewal.eligible
       ? `${renewal.reason}${renewal.nextEligibleAt ? ` Next eligible: ${date(renewal.nextEligibleAt)}.` : ""} ` : "";
-    notice(eligibilityReason + "A payment is already awaiting confirmation. Check its status before starting another payment.", false);
+    notice(eligibilityReason + `A payment is already awaiting confirmation${pending.payerPhone ? ` on ${pending.payerPhone}` : ""}. Check its status before starting another payment.`, false);
     $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="checkExisting">Check payment status</button> <a href="/dashboard">Back to dashboard</a>');
     $("#checkExisting").onclick = async (event) => {
       try {
@@ -167,7 +178,7 @@ async function initialize() {
           if (result.payment.status === "paid") return beginAccountSecurity(result);
           // A closed (expired) checkout no longer blocks a new payment.
           if (["failed", "refunded", "expired"].includes(result.payment.status)) {
-            localStorage.removeItem(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
+            localStore.remove(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
             location.reload();
           } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
         });
@@ -179,7 +190,7 @@ async function initialize() {
   }
   if (!pending && !accountAction) {
     let saved;
-    try { saved = JSON.parse(localStorage.getItem(savedCheckoutKey)); } catch { /* no saved checkout */ }
+    try { saved = JSON.parse(localStore.get(savedCheckoutKey)); } catch { /* no saved checkout */ }
     if (saved?.input?.requestKey) {
       notice("An interrupted checkout is saved on this browser. Resume it before starting another payment.", false);
       $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="resumeCheckout">Resume saved payment</button>');
@@ -235,6 +246,8 @@ async function initialize() {
     }
   }
 
+  const preferred = pageParams.get("plan");
+  if (preferred && choose(preferred)) openCheckout(Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred));
 }
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
@@ -267,6 +280,7 @@ function renderCheckoutReview() {
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
+  if (accountAction && !paymentInProgress) $("#purchase").elements.payerPhone.value = account.customer.phone;
   renderCheckoutReview();
   $("#message").textContent = "";
   showCheckout();
@@ -358,13 +372,14 @@ document.addEventListener("keydown", (event) => {
   }
 });
 function clearRequestKey() {
-  localStorage.removeItem(savedCheckoutKey);
-  if (activeRequestKey) localStorage.removeItem(activeRequestKey);
+  localStore.remove(savedCheckoutKey);
+  if (activeRequestKey) localStore.remove(activeRequestKey);
 }
 function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
   $("#purchaseFields").disabled = false;
+  if (accountAction) $("#purchase").elements.payerPhone.value = account.customer.phone;
   // A recovered snapshot remains valid for the original payment, but only a current,
   // eligible package can be offered for a new charge after that payment closes.
   selected = plans.find((plan) => plan.id === selected?.id && !dailyBlocked(plan));
@@ -377,15 +392,16 @@ async function beginAccountSecurity(paid, phone) {
   clearRequestKey();
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
   if (account) {
-    sessionStorage.setItem("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
+    sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
     location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? "/hotspot" : "/dashboard";
     return;
   }
   const emailMessage = paid.email?.status === "sent"
     ? " A purchase confirmation has been sent to your email."
+    : paid.email?.status === "needs_email" ? " Your voucher is ready. Link an email in Account to receive email updates."
     : " Your voucher is ready; email delivery will continue automatically.";
   $("#message").innerHTML = `<div class="success"><strong>Payment confirmed.</strong>${emailMessage}<br>Preparing your secure account...</div>`;
-  sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ phone, code: paid.access.code, setupPin: true }));
+  sessionStore.set("ndahi-login-challenge", JSON.stringify({ phone, code: paid.access.code, setupPin: true }));
   location.href = "/verify.html?setup=pin";
 }
 async function checkPayment(paymentId, phone) {
@@ -394,8 +410,8 @@ async function checkPayment(paymentId, phone) {
     checkoutKey = paymentInProgress?.id === paymentId ? paymentInProgress.requestKey : undefined;
     if (!checkoutKey) {
       try {
-        checkoutKey = activeRequestKey && localStorage.getItem(activeRequestKey);
-        const saved = JSON.parse(localStorage.getItem(savedCheckoutKey));
+        checkoutKey = activeRequestKey && localStore.get(activeRequestKey);
+        const saved = JSON.parse(localStore.get(savedCheckoutKey));
         if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.input?.requestKey;
       } catch { /* The owner session or an in-memory checkout key may still permit recovery. */ }
     }
@@ -434,7 +450,7 @@ async function waitForPayment(paymentId, phone) {
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
   if (!selected || !purchaseAccess.allowed || paymentInProgress || creatingPayment) return;
-  const purchaseInput = Object.fromEntries(new FormData(event.target));
+  const purchaseInput = formValues(event.target);
   const paymentWindow = paymentProvider === "flutterwave"
     ? window.open("about:blank", "ndahi-payment", "popup,width=520,height=760") : null;
   $("#purchaseFields").disabled = true;
@@ -444,16 +460,16 @@ $("#purchase").onsubmit = async (event) => {
   try {
     const action = accountAction;
     activeRequestKey = `ndahi-payment-${action || "purchase"}-${selected.id}`;
-    let requestKey = localStorage.getItem(activeRequestKey);
-    if (!requestKey) { requestKey = crypto.randomUUID(); localStorage.setItem(activeRequestKey, requestKey); }
-    const input = { ...(action ? { network: purchaseInput.network } : purchaseInput), planId: selected.id, upgrade: upgradePurchase, action, requestKey };
-    if (!action) localStorage.setItem(savedCheckoutKey, JSON.stringify({ input }));
+    let requestKey = localStore.get(activeRequestKey);
+    if (!requestKey) { requestKey = randomId(); localStore.set(activeRequestKey, requestKey); }
+    const input = { ...(action ? { network: purchaseInput.network, payerPhone: purchaseInput.payerPhone, email: purchaseInput.email } : purchaseInput), planId: selected.id, upgrade: upgradePurchase, action, requestKey };
+    if (!action) localStore.set(savedCheckoutKey, JSON.stringify({ input }));
     const created = await call(action ? "/api/account/plan/purchase" : "/api/purchase", {
       method: "POST",
       body: JSON.stringify(input),
     });
     paymentInProgress = created.payment;
-    if (!action) localStorage.setItem(savedCheckoutKey, JSON.stringify({ input, paymentId: created.payment.id }));
+    if (!action) localStore.set(savedCheckoutKey, JSON.stringify({ input, paymentId: created.payment.id }));
     renderPlans();
     if (created.payment.status === "paid") {
       paymentWindow?.close();
@@ -466,7 +482,7 @@ $("#purchase").onsubmit = async (event) => {
     $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
-    }<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${accountAction ? '<a class="payment-return" href="/dashboard">Back to dashboard</a>' : ""}`;
+    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${accountAction ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
     if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
@@ -487,6 +503,18 @@ $("#purchase").onsubmit = async (event) => {
     else void waitForPayment(created.payment.id, purchaseInput.phone);
   } catch (error) {
     paymentWindow?.close();
+    if (accountAction && !paymentInProgress && (["TimeoutError", "TypeError", "SyntaxError"].includes(error.name) || error.status >= 500)) {
+      try {
+        const refreshed = await call("/api/account/dashboard"), requestKey = activeRequestKey && localStore.get(activeRequestKey);
+        const recorded = requestKey && refreshed.payments.find((payment) => payment.requestKey === requestKey);
+        if (recorded) {
+          paymentInProgress = recorded;
+          if (recorded.payerPhone) $("#purchase").elements.payerPhone.value = recorded.payerPhone;
+          $("#purchaseFields").disabled = true;
+          if (recorded.status === "paid") return await checkPayment(recorded.id, account.customer.phone);
+        }
+      } catch (_) { /* Keep the original error and checkout key for recovery. */ }
+    }
     if (error.code === "OUTSIDE_COVERAGE") setPurchaseAccess({ allowed: false, message: error.message });
     showError($("#message"), error, {
       actions: [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
@@ -511,3 +539,5 @@ initialize().catch((error) => {
     actions: [{ label: "Try again", run: () => location.reload() }, { label: "Back to dashboard", run: () => { location.href = "/dashboard"; } }],
   });
 });
+
+startUpdates({ isBusy: () => creatingPayment || Boolean(paymentInProgress) || !$("#checkout").hidden });

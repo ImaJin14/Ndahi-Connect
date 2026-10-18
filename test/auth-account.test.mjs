@@ -212,7 +212,7 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   let resetToken;
   const f = await fixture(t, { email: { configured: () => true, sendPinReset: async ({ token }) => { resetToken = token; return { messageId: "m" }; } } });
   const { customerId, phone } = await account(f);
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).email = "auth005@example.test"; });
+  await f.store.transaction((s) => { Object.assign(s.customers.find((c) => c.id === customerId), { email: "auth005@example.test", emailVerifiedAt: new Date().toISOString() }); });
   await f.call("/api/account/pin-reset/request", "POST", { phone });
   await f.call("/api/account/pin-reset/confirm", "POST", { token: resetToken, pin: "1357", confirmPin: "1357" });
   await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).pinFailedAttempts = 4; });

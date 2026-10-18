@@ -32,6 +32,7 @@ async function account(f) {
   const purchase = await f.call("/api/purchase", "POST", input());
   assert.equal(purchase.response.status, 201);
   const id = purchase.json.payment.id;
+  await f.store.transaction((s) => { s.customers[0].emailVerifiedAt = new Date().toISOString(); });
   const paid = await f.call(`/api/payments/${id}/confirm`, "POST");
   assert.equal(paid.response.status, 200);
   await f.call("/api/account/setup/pin", "POST", { phone: input().phone, code: paid.json.access.code, pin: "2468", confirmPin: "2468" });

@@ -63,6 +63,16 @@ export function createStaticServer(
       res.writeHead(204, securityHeaders);
       return res.end();
     }
+    if (url.pathname === "/version.json") {
+      try {
+        const { revision } = await getAssets();
+        res.writeHead(200, { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" });
+        return res.end(JSON.stringify({ revision }));
+      } catch {
+        res.writeHead(503, { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" });
+        return res.end(JSON.stringify({ error: "Release information is unavailable." }));
+      }
+    }
     if (url.pathname === "/config.js") {
       res.writeHead(200, {
         ...securityHeaders,
