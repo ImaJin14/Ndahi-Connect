@@ -14,6 +14,16 @@ try {
 async function connect() {
   try {
     await runButton(button, "Connecting…", async () => {
+      const accessResponse = await fetch(config.apiUrl + "/api/purchase/access", {
+        cache: "no-store", signal: AbortSignal.timeout(15000),
+      }), access = await accessResponse.json();
+      if (!accessResponse.ok) throw responseError(accessResponse, access);
+      // Away from NDAHI Wi-Fi, signing in opens the account without attempting
+      // to submit credentials to the site's local router.
+      if (access.allowed === false) {
+        location.replace(destination.href);
+        return;
+      }
       const login = new URL(config.hotspotLoginUrl);
       if (login.protocol !== "https:" || login.pathname !== "/login" || login.username || login.password || login.search || login.hash) {
         throw new ApiError(503, "Wi-Fi activation is temporarily unavailable.");

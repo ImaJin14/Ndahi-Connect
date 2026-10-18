@@ -157,7 +157,7 @@ test("the pre-deploy command fails on drift without printing environment values"
   assert.match(unnamed.output, /Pass the Render service name/);
 });
 
-test("a coverage setting that would open the portal or lock customers out blocks deployment", () => {
+test("invalid API purchase coverage settings block deployment; legacy portal settings do not", () => {
   for (const [overrides, pattern] of [
     [{ COVERAGE_ACCESS_ENABLED: "TRUE" }, /COVERAGE_ACCESS_ENABLED must be exactly/],
     [{ COVERAGE_ALLOWED_IPS: "" }, /COVERAGE_ALLOWED_IPS must list/],
@@ -168,6 +168,6 @@ test("a coverage setting that would open the portal or lock customers out blocks
   }
   const customer = (env) => environmentDrift("ndahi-customer", bootstrapBlueprint, frontendEnv(env)).errors;
   assert.deepEqual(customer({ TRUST_PROXY: "render", COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10" }), []);
-  assert.ok(has(customer({ COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10" }), /requires TRUST_PROXY=render/));
+  assert.deepEqual(customer({ COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10" }), []);
   assert.deepEqual(customer({ COVERAGE_ACCESS_ENABLED: "false" }), []);
 });

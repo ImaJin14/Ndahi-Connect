@@ -11,7 +11,7 @@ try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   const device = (n) => ({ mac: `AA:BB:CC:DD:EE:0${n}`, address: `10.20.0.3${n}`, uptime: `${n}m`, usedBytes: n * 1e6 });
-  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false } = {}) {
+  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false, outside = false } = {}) {
     const context = await browser.newContext(), page = await context.newPage(), posts = [], errors = [], disconnects = [];
     let devices = fullSlots ? [device(1), device(2)] : [device(1)];
     let credentials = 0;
@@ -27,6 +27,7 @@ try {
       const headers = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET, POST, OPTIONS" };
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
+      if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
       if (url.pathname === "/api/account/access/begin") body = { token: "fixture-token", mode: "login" };
       if (url.pathname === "/api/network/status") body = { status: "up" };
       if (url.pathname === "/api/account/wifi-devices") body = { deviceLimit: 2, devices, syncedAt: "2030-01-01T00:00:00Z", csrfToken: "csrf-fixture" };
@@ -72,6 +73,17 @@ try {
     await page.waitForURL(login);
     assert.equal(posts.length, 1);
   });
+  await scenario("sign-in outside NDAHI Wi-Fi opens the account without contacting the local router", async ({ page, posts, credentials }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await page.locator("#loginSubmit").click();
+    await page.locator('[name="pin"]').fill("2468");
+    await page.locator("#loginSubmit").click();
+    await page.waitForURL(`${portal}/dashboard`);
+    assert.equal(credentials(), 0);
+    assert.deepEqual(posts, []);
+  }, { outside: true });
   await scenario("a refused login with every device slot in use lets the customer free one", async ({ page, posts, disconnects }) => {
     await page.goto(`${portal}/hotspot?router-error=1`);
     await page.getByText("All 2 device slots on your bundle are in use", { exact: false }).waitFor();

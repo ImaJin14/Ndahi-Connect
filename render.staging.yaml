@@ -64,12 +64,6 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
-      - key: TRUST_PROXY
-        sync: false
-      - key: COVERAGE_ACCESS_ENABLED
-        sync: false
-      - key: COVERAGE_ALLOWED_IPS
-        sync: false
       - key: API_URL
         value: https://staging-api.ndahiconnect.net
       - key: PERFORMANCE_METRICS_ENABLED
