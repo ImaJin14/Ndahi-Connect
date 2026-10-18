@@ -16,7 +16,7 @@ The card disappears once the app is installed. **Not now** hides it for 14 days.
 
 ## Behavior of the installed app
 
-- It is the same portal, so everything else, including coverage-only access, works as in the browser. Opened away from NDAHI Wi-Fi, it shows the "Connect to NDAHI Wi-Fi" page.
+- It is the same portal as in the browser. Customers can sign in and view their balance, expiry, history and receipts from any internet connection. When purchase coverage is enabled, buying, renewing or switching a bundle requires NDAHI Wi-Fi.
 - With no connection at all, the service worker (`customer-app/sw.js`) shows a short offline screen with **Try again**. Nothing is cached, so the app always loads the live portal.
 
 ## Changing the icons

@@ -187,7 +187,7 @@ async function load() {
   $("#differentCode").open = !active;
   // With a HotSpot, devices and their slots come from the router itself.
   const hotspot = Boolean(window.NDAHI_CONFIG.hotspotLoginUrl),
-    wifiConnect = active && hotspot ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
+    wifiConnect = active && hotspot && result.purchaseAccess?.allowed !== false ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
     thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
     quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
@@ -207,7 +207,9 @@ async function load() {
       : active?.routerSyncStatus === "pending"
       ? "<p>Finishing network setup for this bundle…</p>"
       : "";
-  $("#dashboard").innerHTML = `${wifiConnect}${active ? '<div id="installApp" hidden></div>' : ""}<div class="dashboard-grid">
+  const purchaseNotice = result.purchaseAccess?.allowed === false
+    ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
+  $("#dashboard").innerHTML = `${purchaseNotice}${wifiConnect}${active ? '<div id="installApp" hidden></div>' : ""}<div class="dashboard-grid">
     <section class="surface"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>${active.quotaBytes !== null && usage >= 50 && usage < 100 ? `<p class="usage-notice">You've used ${h(Math.floor(usage))}% of your data. ${h(fmt(active.remainingBytes))} left.</p>` : ""}${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>`}</section>
     ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts" hidden><h2>Usage alerts</h2><p id="usageAlertState"></p><button type="button" id="usageAlertToggle" hidden></button><div id="usageAlertMessage" role="status" aria-live="polite"></div></section>' : ""}
     <section class="surface"><h2>Connected devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}</section>

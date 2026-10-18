@@ -45,7 +45,9 @@ without repeatedly submitting the same credentials automatically.
 
 For rollback, restore the three backed-up router files and remove
 `HOTSPOT_LOGIN_URL` from the customer service, then redeploy it. This feature
-handles captive login; to restrict the portal to the site's network, see
-[coverage-only customer access](coverage-access.md).
+handles captive login; to restrict bundle purchases to the site's network while
+keeping account access available everywhere, see [purchase coverage access](coverage-access.md).
+With purchase coverage enabled, sign-in away from NDAHI Wi-Fi continues to the
+account page without attempting the local router handoff.
 
 Protocol reference: [MikroTik external authentication](https://manual.mikrotik.com/docs/authentication-authorization-accounting/hotspot-captive-portal/hotspot-customisation/).

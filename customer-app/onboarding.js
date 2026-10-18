@@ -13,7 +13,8 @@ const api = window.NDAHI_CONFIG.apiUrl,
   accountAction = pageParams.get("action"),
   upgradePurchase = pageParams.get("upgrade") === "1";
 let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePlans = [],
-  paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false;
+  paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false,
+  purchaseAccess = { allowed: true };
 
 fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
 async function call(path, options = {}) {
@@ -30,6 +31,12 @@ async function call(path, options = {}) {
   return result;
 }
 const dailyBlocked = (plan) => plan.id === "daily" && account && account.dailyAvailability?.available !== true;
+function setPurchaseAccess(access) {
+  purchaseAccess = access || { allowed: true };
+  $("#purchaseAccessNotice").hidden = purchaseAccess.allowed;
+  $("#purchaseAccessMessage").textContent = purchaseAccess.message || "";
+}
+$("#recheckPurchaseAccess").onclick = () => location.reload();
 function comparison(plan) {
   const current = account?.currentPlan?.plan;
   if (!current) return "";
@@ -67,7 +74,7 @@ function renderPlans() {
       ${accountAction === "switch" && (plan.quotaGb === null || account.currentPlan?.plan?.quotaGb === null) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
       ${accountAction ? `<p class="plan-policy">${h(policy(plan))}</p>` : ""}
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}
-      <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}" ${blocked || paymentInProgress || creatingPayment ? "disabled" : ""}>${blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>
+      <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}${purchaseAccess.allowed ? "" : " purchaseAccessMessage"}" ${blocked || !purchaseAccess.allowed || paymentInProgress || creatingPayment ? "disabled" : ""}>${!purchaseAccess.allowed ? "Connect to NDAHI Wi-Fi" : blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>
     </article>`;
   }).join("");
   $("#plans").setAttribute("aria-busy", "false");
@@ -112,6 +119,7 @@ function renderAccount() {
 async function initialize() {
   if (accountAction && !["renew", "switch"].includes(accountAction)) throw Error("This plan action is unavailable. Return to your dashboard to choose a plan.");
   const catalogue = await call("/api/plans");
+  setPurchaseAccess(catalogue.purchaseAccess);
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
   plans = cataloguePlans;
   paymentProvider = catalogue.paymentProvider;
@@ -230,7 +238,7 @@ async function initialize() {
 }
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
-  if (!plan || dailyBlocked(plan) || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
+  if (!plan || !purchaseAccess.allowed || dailyBlocked(plan) || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
   selected = plan;
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   return true;
@@ -254,8 +262,8 @@ function renderCheckoutReview() {
     ? "I understand that payment replaces my current package immediately, without carrying over unused data or time."
     : "I understand that the new package starts when payment is confirmed.";
   $("#purchase").elements.acknowledge.checked = false;
-  $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
-  $("#requestPayment").disabled = false;
+  $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+  $("#requestPayment").disabled = !purchaseAccess.allowed;
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
@@ -425,7 +433,7 @@ async function waitForPayment(paymentId, phone) {
 }
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
-  if (!selected || paymentInProgress || creatingPayment) return;
+  if (!selected || !purchaseAccess.allowed || paymentInProgress || creatingPayment) return;
   const purchaseInput = Object.fromEntries(new FormData(event.target));
   const paymentWindow = paymentProvider === "flutterwave"
     ? window.open("about:blank", "ndahi-payment", "popup,width=520,height=760") : null;
@@ -479,16 +487,20 @@ $("#purchase").onsubmit = async (event) => {
     else void waitForPayment(created.payment.id, purchaseInput.phone);
   } catch (error) {
     paymentWindow?.close();
+    if (error.code === "OUTSIDE_COVERAGE") setPurchaseAccess({ allowed: false, message: error.message });
     showError($("#message"), error, {
-      actions: [{ label: paymentInProgress ? "Check payment again" : "Try again",
-        run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : event.target.requestSubmit() }],
+      actions: [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
+        run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : purchaseAccess.allowed ? event.target.requestSubmit() : location.reload() }],
     });
   } finally {
     creatingPayment = false;
     renderPlans();
     if (!paymentInProgress) {
       $("#purchaseFields").disabled = false;
-      if (selected) $("#requestPayment").textContent = `Request payment - ${money(selected.price)}`;
+      if (selected) {
+        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+        $("#requestPayment").disabled = !purchaseAccess.allowed;
+      }
     } else $("#requestPayment").textContent = "Payment requested";
   }
 };
