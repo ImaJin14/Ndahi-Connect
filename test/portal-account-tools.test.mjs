@@ -281,3 +281,28 @@ test("the installed portal publishes a fresh release marker matching its no-stor
   assert.equal(response.headers.get("cache-control"), "no-cache");
   assert.ok(html.includes(`name="ndahi-release" content="${release.revision}"`));
 });
+
+test("display-name changes require owner session and CSRF and preserve historical receipt names", async (t) => {
+  const f = await fixture(t), before = (await f.store.snapshot()).payments;
+  assert.equal((await f.call("/api/account/profile/name", { csrf: "wrong", input: { name: "Marie" } })).status, 403);
+  assert.equal((await f.call("/api/account/profile/name", { session: "", input: { name: "Marie" } })).status, 401);
+  for (const name of ["", "x".repeat(101), "bad\u0000name"]) assert.equal((await f.call("/api/account/profile/name", { input: { name } })).status, 400);
+  assert.equal((await f.call("/api/account/profile/name", { input: { name: "  Marie   Ndongo " } })).status, 200);
+  assert.equal((await f.call("/api/account/dashboard")).body.customer.name, "Marie Ndongo");
+  assert.deepEqual((await f.store.snapshot()).payments, before);
+});
+
+test("dashboard reads expire only the owner's overdue checkouts without any worker or provider request", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    for (const customerId of ["c1", "c2"]) s.payments.push({ id: `overdue-${customerId}`, customerId, planId: "weekly", status: "pending", provider: "mesomb",
+      createdAt: "2030-01-01T11:00:00Z", paymentExpiresAt: "2030-01-01T11:05:00Z", amount: 500, currency: "XAF" });
+  });
+  const dashboard = await f.call("/api/account/dashboard");
+  const payment = dashboard.body.payments.find((p) => p.id === "overdue-c1");
+  assert.equal(payment.status, "expired"); assert.ok(payment.checkoutClosedAt);
+  assert.equal(payment.serverTime, "2030-01-01T12:00:00.000Z");
+  assert.equal(payment.paymentClosesAt, "2030-01-01T11:07:00.000Z");
+  assert.equal((await f.store.snapshot()).payments.find((p) => p.id === "overdue-c2").status, "pending");
+  assert.ok(!dashboard.body.payments.some((p) => p.id === "overdue-c2"));
+});

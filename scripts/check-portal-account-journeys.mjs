@@ -20,7 +20,7 @@ const server = createServer({ store, email, now: () => now, env: {
   CUSTOMER_APP_URL: portal, SESSION_COOKIE_SECURE: 'false', BILLING_WORKER_ENABLED: 'false',
   NETWORK_QUEUE_ENABLED: 'false', SECURITY_ALERTS_ENABLED: 'false',
 } });
-const website = createStaticServer('customer', { apiUrl: api });
+const website = createStaticServer('customer', { apiUrl: api, supportEmail: 'support@example.test', supportPhone: '+237 670000001' });
 const listen = (app, port) => new Promise((resolve, reject) => { app.once('error', reject); app.listen(port, '127.0.0.1', resolve); });
 const close = (app) => new Promise((resolve) => { app.close(resolve); app.closeAllConnections(); });
 const post = async (path, input, cookie = '') => {
@@ -79,6 +79,46 @@ try {
       await page.screenshot({ path: `${screenshots}/account-${width}.png`, fullPage: true });
     }, width);
   }
+  await scenario('personal welcome, name editing and safe fallback work without changing receipts', async (page) => {
+    await page.goto(`${portal}/dashboard#home`);
+    await page.getByRole('heading', { name: 'Welcome back, Portal', exact: true }).waitFor();
+    const before = (await store.snapshot()).payments;
+    await page.locator('[data-portal-tab="account"]').click();
+    await page.locator('#changeName [name="name"]').fill('Marie Ndongo');
+    await page.locator('#changeName [type="submit"]').click();
+    await page.getByText('Your display name was updated.', { exact: true }).waitFor();
+    await page.locator('[data-portal-tab="home"]').click();
+    await page.getByRole('heading', { name: 'Welcome back, Marie', exact: true }).waitFor();
+    assert.deepEqual((await store.snapshot()).payments, before);
+    await store.transaction((s) => { s.customers[0].name = '<img src=x onerror=alert(1)>'; });
+    await page.reload(); await page.getByRole('heading', { name: 'Welcome back, <img', exact: true }).waitFor();
+    assert.equal(await page.locator('#portalTitle img').count(), 0);
+  });
+  await scenario('public FAQs work without login and open the requested answer with configured support', async (page, context) => {
+    await context.clearCookies(); await page.goto(`${portal}/help#payment`);
+    await page.getByRole('heading', { name: 'Frequently asked questions', exact: true }).waitFor();
+    assert.equal(await page.locator('details').count(), 12);
+    assert.equal(await page.locator('#payment').getAttribute('open'), '');
+    await page.getByRole('link', { name: 'Email support: support@example.test', exact: true }).waitFor();
+    assert.equal(await page.locator('a[href="tel:+237670000001"]').count(), 1);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/help-mobile.png`, fullPage: true });
+  }, 320);
+  await scenario('pending history shows server deadlines and closes automatically after its window', async (page) => {
+    const created = await post('/api/account/plan/purchase', { action: 'renew', planId: 'weekly', requestKey: 'clock' }, cookie);
+    await store.transaction((s) => {
+      const p = s.payments.find((p) => p.id === created.body.payment.id);
+      p.paymentExpiresAt = new Date(+now + 1000).toISOString(); p.paymentClosesAt = new Date(+now + 2500).toISOString();
+    });
+    await page.goto(`${portal}/dashboard#payments`);
+    const row = page.locator(`[data-payment-row="${created.body.payment.id}"]`);
+    await row.locator('[data-payment-clock]').waitFor();
+    now = new Date(+now + 5000);
+    await page.waitForFunction((id) => document.querySelector(`[data-payment-row="${id}"]`).textContent.includes('expired'), created.body.payment.id);
+    assert.equal((await store.snapshot()).payments.find((p) => p.id === created.body.payment.id).status, 'expired');
+    assert.equal(await row.getByRole('button', { name: 'Check payment status', exact: true }).count(), 0);
+    await row.getByRole('button', { name: 'Copy reference', exact: true }).waitFor();
+  });
   await scenario('customers copy and download current and historical voucher codes', async (page, context) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto(`${portal}/dashboard#vouchers`);

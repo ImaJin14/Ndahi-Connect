@@ -89,3 +89,17 @@ export function mountPhoneChange({ call, customer, onChanged }) {
   form.onsubmit = (event) => { event.preventDefault(); void change(false); };
   if (passkey) passkey.onclick = () => { void change(true); };
 }
+
+export function mountNameChange({ call, onChanged }) {
+  const form = document.getElementById("changeName");
+  form.onsubmit = async (event) => {
+    event.preventDefault();
+    const input = formValues(form), message = document.getElementById("nameChangeMessage");
+    try {
+      await runButton(form.querySelector('[type="submit"]'), "Saving…", async () => {
+        await call("/api/account/profile/name", { method: "POST", body: JSON.stringify(input) });
+        form.reset(); await onChanged();
+      }, { controls: Array.from(form.elements) });
+    } catch (error) { showError(message, error); }
+  };
+}

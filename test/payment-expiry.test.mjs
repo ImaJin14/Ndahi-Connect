@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { blank } from "../lib/api/state.mjs";
 import { reservePurchase } from "../lib/domain/purchases.mjs";
-import { closeExpiredCheckout, closedCheckoutMessage, paymentView } from "../lib/billing.mjs";
+import { closeExpiredCheckout, closedCheckoutMessage, paymentView, createBillingService } from "../lib/billing.mjs";
 import { createHandler, createStore } from "../server.mjs";
 import { createLogger } from "../lib/logger.mjs";
 import { enqueuePaymentWebhook } from "../lib/payment-webhooks.mjs";
@@ -295,4 +295,30 @@ test('saved guest recovery closes an expired order without submitting another ch
     body: JSON.stringify({ phone: '670040002', requestKey: 'recover-expiry' }),
   });
   assert.equal(missing.status, 404);
+});
+
+test("all overdue checkouts close before a slow provider verification and beyond the worker page limit", async () => {
+  const store = createStore({ persistent: false });
+  await store.transaction((s) => {
+    for (let i = 0; i < 30; i++) s.payments.push({ id: `old-${i}`, billingCheckedAt: at(0).toISOString(), customerId: "c1", status: "pending", provider: "mesomb", createdAt: at(-1000).toISOString(), creationState: "accepted" });
+    s.payments.push({ id: "new", customerId: "c1", status: "pending", provider: "mesomb", createdAt: at(0).toISOString(), creationState: "accepted" });
+  });
+  let release, entered;
+  const started = new Promise((resolve) => { entered = resolve; });
+  const billing = createBillingService({ store, now: () => at(0), timing, planFor: () => null, settle: () => {}, email: {},
+    payments: { mesomb: { verifyPayment: () => { entered(); return new Promise((resolve) => { release = resolve; }); } } } });
+  const run = billing.run();
+  await started;
+  try { assert.equal((await store.snapshot()).payments.filter((p) => p.status === "expired").length, 30); }
+  finally { release(undefined); await run; }
+});
+
+test("checkout snapshots keep their grace deadline and overdue refunds remain unconfirmed", () => {
+  const s = blank(), p = reserveAt(s, 0).payment;
+  assert.equal(p.paymentClosesAt, at(420).toISOString());
+  p.creationState = "accepted";
+  assert.equal(closeExpiredCheckout(p, at(419), { pendingSeconds: 1, graceSeconds: 1 }), false);
+  const refunding = { id: "refund", status: "paid", confirmedAt: at(-90000).toISOString(), refund: { status: "pending", requestedAt: at(-90000).toISOString() } };
+  const view = paymentView(refunding, { now: at(0), timing });
+  assert.equal(view.attention, "refund_overdue"); assert.equal(view.refund.status, "pending");
 });

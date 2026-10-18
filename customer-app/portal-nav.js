@@ -19,13 +19,18 @@ function applyView(scroll = false) {
     else link.removeAttribute("aria-current");
   });
   const title = document.getElementById("portalTitle");
-  if (title) title.textContent = { home: "Your connection at a glance.", bundles: "Your bundles.", vouchers: "Your voucher codes.", payments: "Your payments.", account: "Your account." }[view];
+  if (title) title.textContent = { home: title.dataset.welcome || "Welcome back", bundles: "Your bundles.", vouchers: "Your voucher codes.", payments: "Your payments.", account: "Your account." }[view];
   if (scroll) {
     window.scrollTo(0, 0);
     if (title) title.focus({ preventScroll: true });
   }
 }
-export function mountPortalNavigation(pending = 0) {
+export function mountPortalNavigation(pending = 0, name) {
+  if (name !== undefined) {
+    const clean = String(name || "").trim();
+    const first = clean.split(/\s+/)[0];
+    document.getElementById("portalTitle").dataset.welcome = clean && !/^(customer|new customer|user|test customer)$/i.test(clean) ? `Welcome back, ${first}` : "Welcome back";
+  }
   const nav = document.getElementById("portalNav");
   nav.innerHTML = tabs.map(([id, label, path]) => `<a href="/dashboard#${id}" data-portal-tab="${id}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="${path}"/></svg>${id === "payments" && pending ? `<span class="nav-badge" aria-hidden="true">${pending}</span>` : ""}</span><span>${label}${id === "payments" && pending ? `<span class="visually-hidden">, ${pending} payment${pending === 1 ? "" : "s"} awaiting confirmation</span>` : ""}</span></a>`).join("");
   nav.hidden = false;

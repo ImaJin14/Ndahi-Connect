@@ -10,6 +10,8 @@ export function createStaticServer(
     apiUrl = process.env.API_URL || "http://localhost:8082",
     production = process.env.NODE_ENV === "production",
     telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
+    supportEmail = process.env.SUPPORT_EMAIL || "",
+    supportPhone = process.env.SUPPORT_PHONE || "",
     hotspotLoginUrl = process.env.HOTSPOT_LOGIN_URL || "",
     logger = createLogger({ service: kind, level: process.env.LOG_LEVEL }),
   } = {},
@@ -79,13 +81,14 @@ export function createStaticServer(
         "content-type": "text/javascript",
         "cache-control": "no-store",
       });
-      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind, ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
+      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind, supportEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail) ? supportEmail : "", supportPhone: /^\+?[0-9 ()-]{6,24}$/.test(supportPhone) ? supportPhone : "", ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
     }
     if (url.pathname === "/" || url.pathname === "/index.html") {
       res.writeHead(302, { ...securityHeaders, location: "/login", "cache-control": "no-store" });
       return res.end();
     }
     let path = url.pathname;
+    if (path === "/help" && kind === "customer") path = "/help.html";
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
     if (path === "/hotspot" && kind === "customer") path = "/hotspot.html";
