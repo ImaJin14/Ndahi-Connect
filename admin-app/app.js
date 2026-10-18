@@ -336,7 +336,11 @@ function mountRecordViews(canManagePayments) {
       p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments
         ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
         : ""
-    }${["paid", "refund-pending"].includes(p.status) && p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Check refund status</button>` : ""}</td></tr>`,
+    }${["paid", "refund-pending"].includes(p.status) && p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Check refund status</button>` : ""}${
+      canManagePayments && p.provider !== "mock" && !p.confirmedAt && !p.refund && ["pending", "processing", "failed", "expired", "cancelled"].includes(p.status)
+        ? ` <button class="secondary-action" data-verify-payment="${h(p.id)}">Check provider</button>`
+        : ""
+    }</td></tr>`,
   });
   void mountRecords($("#auditRecords"), {
     call,
@@ -379,7 +383,7 @@ $("#app").onclick = async (e) => {
     $("#bundle").hidden = false;
     return;
   }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -452,6 +456,12 @@ $("#app").onclick = async (e) => {
       await call("/api/admin/payments/refund", {
         method: "POST",
         body: JSON.stringify({ paymentId: button.dataset.refund }),
+      });
+    } else if (button.dataset.verifyPayment) {
+      if (!confirm("Check this unconfirmed payment with the provider now?")) return;
+      await call("/api/admin/payments/verify", {
+        method: "POST",
+        body: JSON.stringify({ paymentId: button.dataset.verifyPayment }),
       });
     } else return;
     await load();

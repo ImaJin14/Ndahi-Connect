@@ -140,8 +140,8 @@ try {
     await page.goto(`${portal}/forgot-pin${confirm ? "?token=fixture-token" : ""}`);
     if (confirm) {
       await page.locator("#newPin").fill("2468");
-      await page.locator('[name="confirmPin"]').fill("2468");
-    } else await page.locator('[name="phone"]').fill("670080001");
+      await page.locator('#resetConfirm [name="confirmPin"]').fill("2468");
+    } else await page.locator('#resetRequest [name="phone"]').fill("670080001");
     const form = confirm ? "#resetConfirm" : "#resetRequest", button = `${form} button:not([type])`;
     await submitTwice(page, form); await request.started;
     assert.equal(await page.locator(button).getAttribute("aria-busy"), "true");
