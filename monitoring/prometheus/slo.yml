@@ -147,37 +147,37 @@ groups:
         labels: { slo: voucher_provisioning }
       - record: ndahi:slo_error_ratio:rate5m
         expr: |
-          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[5m])) or vector(0))
-          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[5m])) or vector(0))
-            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[5m])) or vector(0)))
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device",le=~"300(\\.0)?"}[5m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[5m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[5m])) or vector(0)))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_error_ratio:rate30m
         expr: |
-          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[30m])) or vector(0))
-          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30m])) or vector(0))
-            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30m])) or vector(0)))
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device",le=~"300(\\.0)?"}[30m])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30m])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30m])) or vector(0)))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_error_ratio:rate1h
         expr: |
-          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[1h])) or vector(0))
-          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
-            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0)))
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device",le=~"300(\\.0)?"}[1h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[1h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[1h])) or vector(0)))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_events:increase1h
         expr: |
-          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
-          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[1h])) or vector(0))
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[1h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[1h])) or vector(0))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_error_ratio:rate6h
         expr: |
-          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[6h])) or vector(0))
-          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
-            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0)))
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device",le=~"300(\\.0)?"}[6h])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[6h])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[6h])) or vector(0)))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_events:increase6h
         expr: |
-          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
-          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[6h])) or vector(0))
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[6h])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[6h])) or vector(0))
         labels: { slo: network_enforcement }
 
   # The 30-day window measures attainment and the remaining error budget.
@@ -225,14 +225,14 @@ groups:
         labels: { slo: voucher_provisioning }
       - record: ndahi:slo_error_ratio:rate30d
         expr: |
-          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device",le=~"300(\\.0)?"}[30d])) or vector(0))
-          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
-            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0)))
+          1 - (sum(rate(ndahi_network_command_delivery_seconds_bucket{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device",le=~"300(\\.0)?"}[30d])) or vector(0))
+          / ((sum(rate(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30d])) or vector(0))
+            + (sum(rate(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30d])) or vector(0)))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_events:increase30d
         expr: |
-          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
-          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device"}[30d])) or vector(0))
+          (sum(increase(ndahi_network_command_delivery_seconds_count{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30d])) or vector(0))
+          + (sum(increase(ndahi_network_commands_dead_lettered_total{action=~"disconnect_voucher|disconnect_device|disconnect_wifi_device"}[30d])) or vector(0))
         labels: { slo: network_enforcement }
       - record: ndahi:slo_error_budget_remaining:ratio30d
         expr: |

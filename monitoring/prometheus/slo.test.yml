@@ -131,7 +131,7 @@ tests:
   # Two failures in a quiet hour stay below the minimum and must not page.
   - interval: 1m
     input_series:
-      - series: 'ndahi_network_commands_dead_lettered_total{action="disconnect_device"}'
+      - series: 'ndahi_network_commands_dead_lettered_total{action="disconnect_wifi_device"}'
         values: '0x40 1x10 2x40'
     promql_expr_test:
       - expr: round(ndahi:slo_events:increase1h{slo="network_enforcement"})

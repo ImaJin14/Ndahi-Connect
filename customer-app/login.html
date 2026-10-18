@@ -4,7 +4,7 @@
 <main class="login-main">
   <section class="login-panel" aria-labelledby="loginTitle">
     <div class="login-heading"><div><p class="eyebrow">Customer portal</p><h1 id="loginTitle">Welcome back</h1><p>Sign in to get started.</p></div><span class="panel-network"><span aria-hidden="true"></span>Checking status…</span></div>
-    <form id="login" class="login-form">
+    <form method="post" id="login" class="login-form">
       <label>Phone number<input name="phone" placeholder="6XXXXXXXX" autocomplete="tel" inputmode="tel" required></label>
       <label>Voucher code<input name="code" placeholder="NC-XXXX-XXXX" autocomplete="one-time-code" required></label>
       <div id="credentialStep" class="credential-step" hidden>
@@ -14,10 +14,12 @@
       </div>
       <button class="login-submit" id="loginSubmit" disabled>Continue</button>
     </form>
+    <section id="inlineVerification" hidden><div id="inlineEnrollment"></div><form method="post" id="inlineVerify"><label>Authenticator or recovery code<input id="inlineCode" autocomplete="one-time-code" required></label><button id="inlineSubmit">Verify and continue</button></form><button id="inlineBack" type="button">Back to voucher and PIN</button></section>
+    <p id="startupHelp" role="status" hidden>Login could not finish loading. Stay on NDAHI Wi-Fi and open this portal in Safari, Chrome or Samsung Internet. <a href="/login">Reload login</a></p><noscript>Enable JavaScript to sign in securely.</noscript>
     <div id="message" class="error login-message" role="alert" aria-live="assertive"></div>
     <div class="login-alternatives"><span>or</span></div>
     <div class="alternative-actions"><button type="button" class="text-action" id="customerPasskeyLogin">Use a passkey</button><button type="button" class="text-action" id="authenticatorLogin">Google Authenticator</button></div>
   </section>
   <div class="new-customer"><span>New here?</span><a href="/onboarding.html">Get Started</a></div>
 </main>
-<footer class="footer-note">Secure access · Your Mobile Money PIN is never requested</footer><script src="/config.js"></script><script src="/vendor/webauthn.js"></script><script type="module" src="/login.js"></script></body></html>
+<footer class="footer-note">Secure access · Your Mobile Money PIN is never requested</footer><script src="/config.js"></script><script src="/startup.js"></script><script type="module" src="/login.js"></script></body></html>

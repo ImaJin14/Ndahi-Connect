@@ -10,15 +10,28 @@ let browser, checks = 0;
 try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
-  const device = (n) => ({ mac: `AA:BB:CC:DD:EE:0${n}`, address: `10.20.0.3${n}`, uptime: `${n}m`, usedBytes: n * 1e6 });
-  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false, outside = false } = {}) {
+  const device = (n) => ({ mac: `AA:BB:CC:DD:EE:0${n}`, address: `10.20.0.3${n}`, uptime: `${n}m`, usedBytes: n * 1e6, sessionId: `*${n}`, startedAt: new Date(Date.now() - n * 60000).toISOString() });
+  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false, outside = false, storageDenied = false, missingModern = false, failedDisconnect = false, blockPasskeys = false, slowStart = false, invalidPin = false, authenticator = false, brokenModule = false, lostCompletion = false, wrongRecoveryAccount = false } = {}) {
     const context = await browser.newContext(), page = await context.newPage(), posts = [], errors = [], disconnects = [];
     let devices = fullSlots ? [device(1), device(2)] : [device(1)];
-    let credentials = 0;
+    let credentials = 0, completions = 0, pendingMac = null, operation = null;
+    if (storageDenied || missingModern) await context.addInitScript(({ storageDenied, missingModern }) => {
+      if (storageDenied) Object.defineProperty(window, "sessionStorage", { configurable: true, get() { throw new DOMException("Storage denied", "SecurityError"); } });
+      if (missingModern) {
+        Object.defineProperty(AbortSignal, "timeout", { configurable: true, value: undefined });
+        window.AbortController = undefined;
+        Object.fromEntries = undefined;
+        Element.prototype.replaceChildren = undefined;
+      }
+    }, { storageDenied, missingModern });
     page.on("pageerror", (error) => errors.push(error.message));
     await context.route("**/*", async (route) => {
       const request = route.request(), url = new URL(request.url());
-      if (url.origin === portal) return route.continue();
+      if (url.origin === portal) {
+        if (brokenModule && /\/login\.[a-f0-9]+\.js$/.test(url.pathname)) return route.abort("blockedbyclient");
+        if (blockPasskeys && /webauthn/.test(url.pathname)) return route.abort("blockedbyclient");
+        return route.continue();
+      }
       if (request.url() === login) {
         posts.push({ method: request.method(), fields: Object.fromEntries(new URLSearchParams(request.postData())) });
         return route.fulfill({ status: 200, contentType: "text/html", body: "<p>Router accepted login</p>" });
@@ -28,14 +41,36 @@ try {
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
       if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
-      if (url.pathname === "/api/account/access/begin") body = { token: "fixture-token", mode: "login" };
+      if (url.pathname === "/api/account/access/begin") {
+        if (slowStart) await new Promise((resolve) => setTimeout(resolve, 1200));
+        body = { token: "fixture-token", mode: "login" };
+      }
+      if (["/api/account/access/complete", "/api/account/login/verify-authenticator"].includes(url.pathname)) {
+        completions++;
+        if (authenticator) await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (lostCompletion) return route.abort("failed");
+      }
+      if (url.pathname === "/api/account/dashboard") body = { customer: { phone: wrongRecoveryAccount ? "670040002" : "+237670040001" } };
+      if (url.pathname === "/api/account/access/complete" && invalidPin) { status = 401; body = { error: "Check the voucher and PIN and try again." }; }
+      if (url.pathname === "/api/account/login/request-authenticator") body = { challengeId: "fixture-authenticator", enrollmentRequired: false };
       if (url.pathname === "/api/network/status") body = { status: "up" };
-      if (url.pathname === "/api/account/wifi-devices") body = { deviceLimit: 2, devices, syncedAt: "2030-01-01T00:00:00Z", csrfToken: "csrf-fixture" };
+      if (url.pathname === "/api/account/wifi-devices") {
+        if (pendingMac) {
+          operation = { ...operation, status: failedDisconnect ? "failed" : "disconnected", message: failedDisconnect ? "Could not disconnect this device. Try again or contact support." : "Disconnection confirmed." };
+          if (failedDisconnect) devices = devices.map((d) => d.mac === pendingMac ? { ...d, disconnect: operation } : d);
+          else devices = devices.filter((d) => d.mac !== pendingMac);
+          pendingMac = null;
+        }
+        body = { deviceLimit: 2, devices, syncedAt: new Date().toISOString(), csrfToken: "csrf-fixture", disconnects: operation ? [operation] : [] };
+      }
       if (url.pathname === "/api/account/wifi-devices/disconnect") {
         const { mac } = JSON.parse(request.postData());
         disconnects.push({ mac, csrf: request.headers()["x-csrf-token"] });
-        devices = devices.filter((item) => item.mac !== mac);
-        body = { deviceLimit: 2, devices, syncedAt: "2030-01-01T00:00:00Z" };
+        pendingMac = mac;
+        operation = { id: "fixture-disconnect", mac, status: "disconnecting", message: "Waiting for the router to confirm disconnection…" };
+        devices = devices.map((d) => d.mac === mac ? { ...d, disconnect: operation } : d);
+        status = 202;
+        body = { operation, deviceLimit: 2, devices, syncedAt: new Date().toISOString(), disconnects: [operation] };
       }
       if (url.pathname === "/api/account/hotspot-credentials") {
         credentials++;
@@ -47,7 +82,7 @@ try {
       return route.fulfill({ status, headers, contentType: "application/json", body: JSON.stringify(body) });
     });
     try {
-      await work({ page, posts, disconnects, credentials: () => credentials });
+      await work({ page, posts, disconnects, credentials: () => credentials, completions: () => completions });
       assert.deepEqual(errors, []);
       console.log(`PASS ${name}`); checks++;
     } finally { await context.close(); }
@@ -89,7 +124,9 @@ try {
     await page.getByText("All 2 device slots on your bundle are in use", { exact: false }).waitFor();
     assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 2);
     await page.locator('#wifiDevices button[data-wifi-device="AA:BB:CC:DD:EE:01"]').click();
-    await page.getByText("Device disconnected.", { exact: false }).waitFor();
+    await page.getByText("Disconnection requested.", { exact: false }).waitFor();
+    assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 2, "slot remains occupied while pending");
+    await page.getByText("Disconnection confirmed.", { exact: false }).waitFor();
     assert.deepEqual(disconnects, [{ mac: "AA:BB:CC:DD:EE:01", csrf: "csrf-fixture" }]);
     assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 1);
     assert.equal(posts.length, 0);
@@ -119,6 +156,76 @@ try {
     await page.waitForURL(login);
     assert.equal(posts[0].fields.dst, `${portal}/dashboard`);
   });
+  await scenario("older browsers can sign in without storage, newer timeout APIs or the optional passkey download", async ({ page, posts }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await page.locator("#loginSubmit").click();
+    await page.locator('[name="pin"]').fill("2468");
+    await page.locator("#loginSubmit").click();
+    await page.waitForURL(login);
+    assert.equal(posts.length, 1);
+  }, { storageDenied: true, missingModern: true, blockPasskeys: true, slowStart: true });
+  await scenario("a failed router disconnect leaves the device and occupied slot visible with a retry", async ({ page }) => {
+    await page.goto(`${portal}/hotspot?router-error=1`);
+    await page.locator('#wifiDevices button[data-wifi-device="AA:BB:CC:DD:EE:01"]').click();
+    await page.getByText("Disconnection requested.", { exact: false }).waitFor();
+    await page.getByRole("button", { name: "Retry disconnect", exact: true }).waitFor();
+    assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 2);
+    await page.getByText("2 of 2 device slots in use", { exact: false }).waitFor();
+  }, { fullSlots: true, failedDisconnect: true });
+  await scenario("a failed sign-in still shows a useful error without newer DOM APIs", async ({ page, posts }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await page.locator("#loginSubmit").click();
+    await page.locator('[name="pin"]').fill("1111");
+    await page.locator("#loginSubmit").click();
+    await page.getByText("Check the voucher and PIN and try again.", { exact: true }).waitFor();
+    assert.equal(await page.locator("#loginSubmit").isEnabled(), true);
+    assert.equal(posts.length, 0);
+  }, { storageDenied: true, missingModern: true, invalidPin: true });
+  await scenario("authenticator verification stays on the page when session storage is denied", async ({ page, posts }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator("#authenticatorLogin").click();
+    await page.locator("#inlineCode").fill("123456");
+    await page.locator("#inlineSubmit").click();
+    assert.equal(await page.locator("#inlineBack").isDisabled(), true, "cannot change sign-in methods during verification");
+    await page.waitForURL(login);
+    assert.equal(posts.length, 1);
+  }, { storageDenied: true, missingModern: true, authenticator: true });
+  await scenario("a lost PIN completion response recovers the expected account without replaying its challenge", async ({ page, posts, completions }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await page.locator("#loginSubmit").click();
+    await page.locator('[name="pin"]').fill("2468");
+    await page.locator("#loginSubmit").click();
+    await page.waitForURL(login);
+    assert.equal(completions(), 1);
+    assert.equal(posts.length, 1);
+  }, { lostCompletion: true });
+  await scenario("a prior session for another account cannot recover an uncertain sign-in", async ({ page, posts, completions }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator('[name="phone"]').fill("670040001");
+    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await page.locator("#loginSubmit").click();
+    await page.locator('[name="pin"]').fill("2468");
+    await page.locator("#loginSubmit").click();
+    await page.locator("#message .error-card").waitFor();
+    assert.equal(new URL(page.url()).pathname, "/login");
+    assert.equal(completions(), 1);
+    assert.equal(posts.length, 0);
+    assert.equal(await page.locator("#loginSubmit").isEnabled(), true);
+  }, { lostCompletion: true, wrongRecoveryAccount: true });
+  await scenario("failed module loading explains recovery and never submits credentials through a GET", async ({ page, posts }) => {
+    await page.goto(`${portal}/login`);
+    await page.locator("#startupHelp").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#loginSubmit").isDisabled(), true);
+    assert.equal(new URL(page.url()).search, "");
+    assert.equal(posts.length, 0);
+  }, { brokenModule: true });
   console.log(`${checks} HotSpot browser journeys passed.`);
 } finally {
   await browser?.close();

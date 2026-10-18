@@ -21,7 +21,7 @@ export function bridgeHandler({ router, username, password, logger = createLogge
   async function handle(req, res, reply) {
     const started = performance.now();
     if (req.method !== "POST") return reply(405, { error: "POST required" });
-    const action = req.url?.match(/^\/ndahi\/(syncVoucher|disconnectDevice|disconnectVoucher|readUsage|readState|markInactive)$/)?.[1];
+    const action = req.url?.match(/^\/ndahi\/(syncVoucher|disconnectDevice|disconnectWifiDevice|disconnectVoucher|readUsage|readState|markInactive)$/)?.[1];
     if (!action) return reply(404, { error: "Unknown bridge action" });
     if (waiting >= 25) return reply(429, { error: "Bridge busy; retry later" });
     let body = "";
@@ -31,6 +31,7 @@ export function bridgeHandler({ router, username, password, logger = createLogge
       waiting++;
       const execute = () => action === "syncVoucher" ? router.syncPayload(input)
         : action === "disconnectDevice" ? router.disconnectDevice(input.deviceId)
+        : action === "disconnectWifiDevice" ? router.disconnectWifiDevice(input.device)
         : action === "disconnectVoucher" ? router.disconnectVoucher(input.voucherId)
         : action === "readUsage" ? router.readUsage()
         : action === "readState" ? router.readState()

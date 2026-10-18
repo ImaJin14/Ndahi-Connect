@@ -13,7 +13,7 @@ test("Hotspot bridge arms absolute expiry before enabling users and applies quot
   const payload = { schemaVersion: 1, voucherId: "voucher-1", username: "NC-ABCD-1234", password: "NC-ABCD-1234", profileId: "weekly", expiresAt: "2035-01-01T00:00:00Z", simultaneousUsers: 2, limitBytesTotal: 5000000000, enabled: true };
   await router.syncPayload(payload);
   assert.equal(writes[0].path, "ip/hotspot/user/profile");
-  assert.deepEqual(writes[0].payload, { name: "ndahi-users-2", "shared-users": "2" });
+  assert.deepEqual(writes[0].payload, { name: "ndahi-users-2-presence-v1", "shared-users": "2", "keepalive-timeout": "2m", "idle-timeout": "none" });
   assert.equal(writes[1].path, "system/scheduler");
   assert.match(writes[1].payload["on-event"], /:timestamp/);
   assert.equal(writes[2].path, "ip/hotspot/user");
@@ -25,7 +25,7 @@ test("Hotspot bridge arms absolute expiry before enabling users and applies quot
 
 test("Hotspot user profiles are matched by reserved name because RouterOS rejects their comments", async () => {
   const router = new RouterHotspot({}), writes = [];
-  let profiles = [{ ".id": "*1", name: "ndahi-users-2", "shared-users": "2" }];
+  let profiles = [{ ".id": "*1", name: "ndahi-users-2-presence-v1", "shared-users": "2", "keepalive-timeout": "2m", "idle-timeout": "none" }];
   router.request = async (path, method = "GET", payload) => {
     if (path === "ip/hotspot/user/profile" && payload && "comment" in payload) throw Error("Router request failed (400)");
     if (method !== "GET") writes.push({ path, method, payload });
@@ -34,15 +34,15 @@ test("Hotspot user profiles are matched by reserved name because RouterOS reject
   const payload = { schemaVersion: 1, voucherId: "voucher-1", username: "NC-ABCD-1234", password: "NC-ABCD-1234", profileId: "weekly", expiresAt: "2035-01-01T00:00:00Z", simultaneousUsers: 2, limitBytesTotal: null, enabled: true };
   await router.syncPayload(payload);
   assert.deepEqual(writes.map((w) => w.path), ["system/scheduler", "ip/hotspot/user"]);
-  assert.equal(writes[1].payload.profile, "ndahi-users-2");
-  profiles = [{ ".id": "*1", name: "ndahi-users-2", "shared-users": "5" }];
+  assert.equal(writes[1].payload.profile, "ndahi-users-2-presence-v1");
+  profiles = [{ ".id": "*1", name: "ndahi-users-2-presence-v1", "shared-users": "5" }];
   writes.length = 0;
   await assert.rejects(router.syncPayload(payload), /unmanaged/);
   assert.deepEqual(writes, []);
 });
 
 test("Hotspot usage adds live sessions to logout-updated user counters", async () => {
-  const router = new RouterHotspot({}), reads = [];
+  const router = new RouterHotspot({ now: () => new Date("2030-01-01T00:10:00Z") }), reads = [];
   router.request = async (path) => {
     reads.push(path);
     if (path === "ip/hotspot/user") return [
@@ -60,8 +60,8 @@ test("Hotspot usage adds live sessions to logout-updated user counters", async (
   assert.deepEqual(reads, ["ip/hotspot/user", "ip/hotspot/active"]);
   assert.deepEqual(usage, [
     { voucherId: "v1", usedBytes: 190, devices: [
-      { mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 30 },
-      { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 10 },
+      { mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 30, sessionId: null, startedAt: "2030-01-01T00:06:00.000Z" },
+      { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 10, sessionId: null, startedAt: "2030-01-01T00:09:00.000Z" },
     ] },
     { voucherId: "v2", usedBytes: 10, devices: [] },
   ]);

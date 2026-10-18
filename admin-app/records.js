@@ -2,7 +2,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 
 // Paginated, server-filtered record table (PERF-003). Rows are rendered by the
 // caller; action buttons keep using the dashboard's delegated click handler.
-export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25 }) {
+export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0 }) {
   const state = { page: 1, q: "", status: "" };
   let timer, request = 0;
   container.innerHTML = `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
@@ -75,6 +75,14 @@ export function mountRecords(container, { call, collection, title, headers, row,
   };
   previous.onclick = () => { if (!previous.disabled) { state.page--; void load(); } };
   next.onclick = () => { if (!next.disabled) { state.page++; void load(); } };
+  if (refreshMs) {
+    const refresh = async () => {
+      if (!container.isConnected) return;
+      if (!document.hidden && !container.closest("[hidden]") && !container.contains(document.activeElement)) await load();
+      setTimeout(refresh, refreshMs);
+    };
+    setTimeout(refresh, refreshMs);
+  }
   return load();
 }
 

@@ -17,7 +17,7 @@ const listen = async (app) => {
   return `http://127.0.0.1:${app.address().port}`;
 };
 const close = (app) => new Promise((resolve) => { app.close(resolve); app.closeAllConnections(); });
-const api = await listen(server), website = createStaticServer("customer", { apiUrl: api });
+const api = await listen(server), website = createStaticServer("customer", { apiUrl: api, hotspotLoginUrl: "https://connect.coverage.test/login" });
 const portal = await listen(website);
 // Trusted origins are fixed when services are constructed. Let browser requests
 // use the fixture's configured origin; respond with the actual local origin.
@@ -120,6 +120,35 @@ try {
     await page.waitForURL(portal + "/dashboard");
     await page.getByText("Payment confirmed. Your new package is active.", { exact: true }).waitFor();
     assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
+  }, { signedIn: true });
+  await scenario("the dashboard removes a departed device after the next confirmed router reading", async (page) => {
+    await store.transaction((s) => {
+      s.vouchers[0].wifiDevices = [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "5m", usedBytes: 20,
+        sessionId: "*presence", startedAt: new Date(Date.now() - 300000).toISOString() }];
+      s.vouchers[0].wifiDevicesAt = new Date().toISOString();
+    });
+    await page.goto(portal + "/dashboard");
+    await page.getByText("Device ending EE:01", { exact: true }).waitFor();
+    const before = (await store.snapshot()).vouchers[0];
+    await store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = new Date().toISOString(); });
+    await page.getByText("No devices were reported at the last Wi-Fi check.", { exact: true }).waitFor();
+    assert.equal(await page.locator("[data-wifi-device]").count(), 0);
+    const after = (await store.snapshot()).vouchers[0];
+    assert.equal(after.usedBytes, before.usedBytes);
+    assert.equal(after.expiresAt, before.expiresAt);
+  }, { signedIn: true });
+  await scenario("a failed device refresh keeps the last devices and explains the stale reading", async (page) => {
+    await store.transaction((s) => {
+      s.vouchers[0].wifiDevices = [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "5m", usedBytes: 20,
+        sessionId: "*presence", startedAt: new Date(Date.now() - 300000).toISOString() }];
+      s.vouchers[0].wifiDevicesAt = new Date().toISOString();
+    });
+    await page.goto(portal + "/dashboard");
+    await page.getByText("Device ending EE:01", { exact: true }).waitFor();
+    await page.route("**/api/account/wifi-devices", (route) => route.fulfill({ status: 503, contentType: "application/json",
+      headers: { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" }, body: JSON.stringify({ error: "Router unavailable" }) }));
+    await page.getByText("Device updates are unavailable. The last device list may be out of date.", { exact: true }).waitFor();
+    assert.equal(await page.locator("[data-wifi-device]").count(), 1);
   }, { signedIn: true });
   console.log(`${checks} coverage browser journeys passed.`);
 } finally {

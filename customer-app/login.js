@@ -2,20 +2,23 @@ import { responseError, showError } from "./errors.js";
 import { afterSignInPath } from "./hotspot-path.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { runButton } from "/shared/pending.js";
+import { formValues, sessionStore, requestJson, loadPasskeys, markReady } from "./compat.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
+import { completeSignIn } from "./sign-in-request.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let accessToken = "", accessMode = "";
 const runLogin = (button, text, task) => runButton(button, text, task, {
-  controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin")],
+  controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin"), $("#inlineBack"), $("#inlineSubmit")],
 });
 fetchNetworkStatus(api).then((status) => {
   applyNetworkStatus($(".network-state"), status);
   applyNetworkStatus($(".panel-network"), status);
 });
-const loginNotice = sessionStorage.getItem("ndahi-login-notice");
+const loginNotice = sessionStore.get("ndahi-login-notice");
 if (loginNotice) {
   $("#message").textContent = loginNotice;
-  sessionStorage.removeItem("ndahi-login-notice");
+  sessionStore.remove("ndahi-login-notice");
 }
 function toggleSecret(inputSelector, buttonSelector) {
   const input = $(inputSelector), button = $(buttonSelector),
@@ -28,8 +31,7 @@ function toggleSecret(inputSelector, buttonSelector) {
 $("#togglePin").onclick = () => toggleSecret("#customerPin", "#togglePin");
 $("#toggleConfirmPin").onclick = () => toggleSecret("#confirmPin", "#toggleConfirmPin");
 async function call(path, data) {
-  const response = await fetch(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }),
-    result = await response.json();
+  const { response, body: result } = await requestJson(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
   if (!response.ok) throw responseError(response, result);
   return result;
 }
@@ -39,7 +41,7 @@ $("#login").onsubmit = async (event) => {
   try {
     await runLogin(button, accessToken ? "Signing in…" : "Checking…", async () => {
       $("#message").textContent = "";
-      const input = Object.fromEntries(new FormData(event.target));
+      const input = formValues(event.target);
       if (!accessToken) {
         const result = await call("/api/account/access/begin", {
           phone: input.phone, code: input.code,
@@ -60,10 +62,10 @@ $("#login").onsubmit = async (event) => {
         $("#customerPin").focus();
         return;
       }
-      await call("/api/account/access/complete", {
+      await completeSignIn(api, "/api/account/access/complete", {
         token: accessToken, pin: input.pin,
         ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
-      });
+      }, input.phone);
       location.href = afterSignInPath();
     });
   } catch (error) {
@@ -95,8 +97,8 @@ $("#authenticatorLogin").onclick = async () => {
     await runLogin($("#authenticatorLogin"), "Checking…", async () => {
       $("#message").textContent = "";
       const result = await call("/api/account/login/request-authenticator", { phone });
-      sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ ...result, phone }));
-      location.href = "/verify.html";
+      if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html";
+      else inlineAuthenticator(result, phone);
     });
   } catch (error) { showError($("#message"), error); }
 };
@@ -111,22 +113,12 @@ $("#customerPasskeyLogin").onclick = async () => {
   try {
     await runLogin(button, "Waiting for device…", async () => {
       $("#message").textContent = "";
-      let response = await fetch(api + "/api/account/passkey/options", {
-          method: "POST", credentials: "include",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ phone }),
-        }), result = await response.json();
-      if (!response.ok) throw responseError(response, result);
-      const credential = await SimpleWebAuthnBrowser.startAuthentication({
+      const passkeyBrowser = await loadPasskeys();
+      const result = await call("/api/account/passkey/options", { phone });
+      const credential = await passkeyBrowser.startAuthentication({
         optionsJSON: result.options,
       });
-      response = await fetch(api + "/api/account/passkey/verify", {
-        method: "POST", credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ challengeId: result.challengeId, response: credential }),
-      });
-      result = await response.json();
-      if (!response.ok) throw responseError(response, result);
+      await completeSignIn(api, "/api/account/passkey/verify", { challengeId: result.challengeId, response: credential }, phone);
       location.href = afterSignInPath();
     });
   } catch (error) {
@@ -142,3 +134,33 @@ $("#customerPasskeyLogin").onclick = async () => {
 // The button ships disabled so a slow captive-portal connection cannot submit
 // the form natively (credentials in a GET URL) before this module has loaded.
 $("#loginSubmit").disabled = false;
+if (!window.PublicKeyCredential || !navigator.credentials) $("#customerPasskeyLogin").hidden = true;
+markReady();
+
+function inlineAuthenticator(challenge, phone) {
+  $("#login").hidden = true;
+  $("#inlineVerification").hidden = false;
+  $("#inlineEnrollment").innerHTML = challenge.enrollmentRequired
+    ? `<p>Add this time-based key to your authenticator app:</p><code>${h(challenge.secret)}</code>` : "";
+  $("#inlineBack").onclick = () => {
+    sessionStore.remove("ndahi-login-challenge");
+    $("#inlineVerification").hidden = true;
+    $("#login").hidden = false;
+    $("#inlineCode").value = "";
+  };
+  $("#inlineVerify").onsubmit = async (event) => {
+    event.preventDefault();
+    try {
+      await runLogin($("#inlineSubmit"), "Verifying…", async () => {
+        const code = $("#inlineCode").value.trim();
+        await completeSignIn(api, "/api/account/login/verify-authenticator", {
+          challengeId: challenge.challengeId,
+          ...(/^\d{6}$/.test(code) ? { otp: code } : { recoveryCode: code }),
+        }, phone);
+        sessionStore.remove("ndahi-login-challenge");
+        location.href = afterSignInPath();
+      });
+    } catch (error) { showError($("#message"), error); }
+  };
+  $("#inlineCode").focus();
+}
