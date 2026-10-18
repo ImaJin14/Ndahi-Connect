@@ -8,6 +8,7 @@ import { createVoucherRoutes } from "./lib/api/vouchers.mjs";
 import { createCustomerAuthRoutes } from "./lib/api/customer-auth.mjs";
 import { createAccountRoutes } from "./lib/api/account.mjs";
 import { createAccountToolsRoutes } from "./lib/api/account-tools.mjs";
+import { createAccountRecoveryRoutes } from "./lib/api/account-recovery.mjs";
 import { createAccountEmailRoutes } from "./lib/api/account-email.mjs";
 import { createAdminAuthRoutes } from "./lib/api/admin-auth.mjs";
 import { createAdminRoutes } from "./lib/api/admin.mjs";
@@ -63,6 +64,7 @@ export function createHandler(opts = {}) {
     createAccountRoutes(context),
     createAccountToolsRoutes(context),
     createAccountEmailRoutes(context),
+    createAccountRecoveryRoutes(context),
     createAdminAuthRoutes(context),
     createAdminRoutes(context),
   ];
