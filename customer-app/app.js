@@ -1,6 +1,7 @@
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { sessionStore, loadPasskeys } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
 import { wifiDeviceList } from "./wifi-devices.js";
@@ -9,12 +10,16 @@ import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
-  deviceId = localStorage.getItem("ndahi-device") || crypto.randomUUID(),
+  deviceId = (() => {
+    try { const saved = localStorage.getItem("ndahi-device"); if (saved) return saved; } catch (_) {}
+    const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  })(),
   fmt = (value) => value === null ? "Unlimited" : `${(value / 1e9).toFixed(2)} GB`,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
 let csrfToken = "";
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
-localStorage.setItem("ndahi-device", deviceId);
+try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
 async function call(path, options = {}) {
   const response = await fetch(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } }),
@@ -132,23 +137,27 @@ const loginLabels = {
   "customer.access.succeeded": "Voucher activation",
 };
 
-// The router reports a newly connected device at the next usage sync, which a
-// HotSpot login requests. Refresh the list until a read newer than this page
-// arrives, for up to two minutes.
+// Keep router-reported presence current while this view is open.
 let devicePoll;
-function watchWifiDevices(since) {
+function watchWifiDevices() {
   clearTimeout(devicePoll);
-  const started = Date.now(), tick = async () => {
-    try {
-      const list = await call("/api/account/wifi-devices"), target = $("#wifiDeviceList");
-      if (!target) return;
-      target.innerHTML = wifiDeviceList(list);
-      if (Date.parse(list.syncedAt) > since) return;
-    } catch { /* Keep the last list and try again. */ }
-    if (Date.now() - started < 120000) devicePoll = setTimeout(tick, 10000);
+  const tick = async () => {
+    const target = $("#wifiDeviceList");
+    if (!target) return;
+    if (!document.hidden) {
+      try { target.innerHTML = wifiDeviceList(await call("/api/account/wifi-devices")); }
+      catch (_) {
+        const stale = target.querySelector("[data-refresh-error]") || document.createElement("p");
+        stale.dataset.refreshError = "true";
+        stale.textContent = "Device updates are unavailable. The last device list may be out of date.";
+        if (!stale.isConnected) target.appendChild(stale);
+      }
+    }
+    devicePoll = setTimeout(tick, 5000);
   };
-  devicePoll = setTimeout(tick, 10000);
+  void tick();
 }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && $("#wifiDeviceList")) watchWifiDevices(); });
 
 // Shows whether this device gets data-usage notifications and toggles them.
 async function setupUsageAlerts() {
@@ -220,12 +229,12 @@ async function load() {
   </div>`;
   if (active) mountInstallCard($("#installApp"));
   if (active && active.quotaBytes !== null) void setupUsageAlerts();
-  if (hotspot && active) watchWifiDevices(Date.now());
+  if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
-  const planNotice = sessionStorage.getItem("ndahi-plan-notice");
+  const planNotice = sessionStore.get("ndahi-plan-notice");
   if (planNotice) {
     $("#dashboardMessage").innerHTML = `<div class="success">${h(planNotice)}</div>`;
-    sessionStorage.removeItem("ndahi-plan-notice");
+    sessionStore.remove("ndahi-plan-notice");
   }
   if (securitySetup) {
     $("#accountSecurity").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -283,7 +292,8 @@ $("#dashboard").onclick = async (event) => {
         let result = await call("/api/account/passkeys/options", {
           method: "POST", body: "{}",
         });
-        const credential = await SimpleWebAuthnBrowser.startRegistration({
+        const passkeyBrowser = await loadPasskeys();
+        const credential = await passkeyBrowser.startRegistration({
           optionsJSON: result.options,
         });
         result = await call("/api/account/passkeys/verify", {
@@ -350,11 +360,12 @@ $("#dashboard").onclick = async (event) => {
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;
   }
+  if (event.target.closest("[data-refresh-wifi]")) { watchWifiDevices(); return; }
   const wifiDevice = event.target.closest("button[data-wifi-device]");
   if (wifiDevice) {
     try {
       await runButton(wifiDevice, "Disconnecting…", async () => {
-        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice }) });
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession }) });
         await load();
       });
     } catch (error) { showError($("#dashboardMessage"), error); }

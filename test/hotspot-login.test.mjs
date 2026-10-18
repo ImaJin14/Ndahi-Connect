@@ -94,7 +94,7 @@ for (const [name, change, code] of [
 
 test("customers see and free only their own router-reported Wi-Fi devices", async () => {
   const f = fixture(), voucher = f.state.vouchers[0];
-  voucher.wifiDevices = [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "5m", usedBytes: 10 }, { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 5 }];
+  voucher.wifiDevices = [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "5m", usedBytes: 10, sessionId: "*1", startedAt: "2029-12-31T23:55:00Z" }, { mac: "AA:BB:CC:DD:EE:02", address: "10.20.0.31", uptime: "1m", usedBytes: 5 }];
   voucher.wifiDevicesAt = now.toISOString();
   f.state.vouchers.push({ id: "voucher-2", customerId: "customer-2", status: "active", wifiDevices: [{ mac: "AA:BB:CC:DD:EE:09" }] });
   const list = await f.call("/api/account/wifi-devices");
@@ -106,9 +106,12 @@ test("customers see and free only their own router-reported Wi-Fi devices", asyn
   assert.equal(other.status, 404);
   assert.deepEqual(f.state.routerCommands, []);
   const freed = await f.call("/api/account/wifi-devices/disconnect", { mac: "aa:bb:cc:dd:ee:01" });
-  assert.equal(freed.status, 200);
-  assert.deepEqual(freed.body.devices.map((d) => d.mac), ["AA:BB:CC:DD:EE:02"]);
-  assert.deepEqual(f.state.routerCommands.map((c) => c.id), ["router:disconnect_device:AA:BB:CC:DD:EE:01"]);
+  assert.equal(freed.status, 202);
+  assert.deepEqual(freed.body.devices.map((d) => d.mac), ["AA:BB:CC:DD:EE:01", "AA:BB:CC:DD:EE:02"]);
+  assert.equal(freed.body.devices[0].disconnect.status, "disconnecting");
+  assert.equal(f.state.routerCommands.length, 1);
+  assert.equal(f.state.routerCommands[0].action, "disconnect_wifi_device");
+  assert.equal(f.state.routerCommands[0].device.voucherId, voucher.id);
   assert.deepEqual(f.state.vouchers[1].wifiDevices.map((d) => d.mac), ["AA:BB:CC:DD:EE:09"]);
   f.setSession(null);
   assert.equal((await f.call("/api/account/wifi-devices")).status, 401);

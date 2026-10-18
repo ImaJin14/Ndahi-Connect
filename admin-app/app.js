@@ -121,7 +121,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
 </form><div id="generated" role="status" aria-live="polite"></div></section>
-<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><div id="customerRecords"></div><div id="sessionRecords"></div></section>
+<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><div id="customerRecords"></div><div id="wifiRecords"></div><div id="sessionRecords"></div></section>
 <section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><div id="voucherRecords"></div></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
@@ -300,6 +300,15 @@ function mountRecordViews(canManagePayments) {
     headers: ["Name", "Phone", "Status", "Actions"],
     row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`,
   });
+  void mountRecords($("#wifiRecords"), {
+    call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
+    headers: ["Device", "Bundle", "Status", "Last Wi-Fi check", "Actions"],
+    row: (d) => {
+      const stale = !d.syncedAt || Date.now() - Date.parse(d.syncedAt) > 120000;
+      const pending = d.disconnect && ["disconnecting", "retrying"].includes(d.disconnect.status);
+      return `<tr><td>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
+    },
+  });
   void mountRecords($("#sessionRecords"), {
     call,
     collection: "sessions",
@@ -370,7 +379,7 @@ $("#app").onclick = async (e) => {
     $("#bundle").hidden = false;
     return;
   }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "checkRefund", "refund"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -413,6 +422,11 @@ $("#app").onclick = async (e) => {
         method: "POST",
         body: JSON.stringify({ customerId: button.dataset.customer, suspended: button.dataset.suspended !== "true" }),
       });
+    } else if (button.dataset.wifiVoucher) {
+      if (!confirm("Disconnect this Wi-Fi device? Its slot is released after router confirmation.")) return;
+      await call("/api/admin/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({
+        voucherId: button.dataset.wifiVoucher, mac: button.dataset.wifiMac, sessionId: button.dataset.wifiSession,
+      }) });
     } else if (button.dataset.session) {
       if (!confirm("Disconnect this device session?")) return;
       await call("/api/admin/devices/disconnect", {

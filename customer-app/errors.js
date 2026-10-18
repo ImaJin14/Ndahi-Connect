@@ -1,3 +1,5 @@
+import { replaceContent, sessionStore } from "./compat.js";
+
 export class ApiError extends Error {
   constructor(status, message, code) {
     super(message || "Request failed");
@@ -12,7 +14,8 @@ export function responseError(response, result = {}) {
 }
 
 export function friendlyError(error, context = "general") {
-  const name = String(error?.name || ""), message = String(error?.message || "");
+  const name = String(error && error.name || ""), message = String(error && error.message || "");
+  if (name === "TimeoutError") return { title: "Taking longer than expected", message: "Stay on NDAHI Wi-Fi and try again. Your details have been kept on this page." };
   if (context === "passkey") {
     if (name === "NotAllowedError" || name === "AbortError" || /timed out|not allowed|abort signal/i.test(message)) {
       return { title: "Passkey not completed", message: "No passkey was used. Try again or sign in with your voucher and PIN." };
@@ -61,15 +64,15 @@ export function showError(target, error, { context = "general", actions = [] } =
     }
     card.append(controls);
   }
-  target.replaceChildren(card);
+  replaceContent(target, card);
 }
 
 export function saveReturnPath(path = location.pathname + location.search) {
-  if (path.startsWith("/") && !path.startsWith("//")) sessionStorage.setItem("ndahi-return-to", path);
+  if (path.startsWith("/") && !path.startsWith("//")) sessionStore.set("ndahi-return-to", path);
 }
 
 export function consumeReturnPath(fallback = "/dashboard") {
-  const path = sessionStorage.getItem("ndahi-return-to");
-  sessionStorage.removeItem("ndahi-return-to");
-  return path?.startsWith("/") && !path.startsWith("//") ? path : fallback;
+  const path = sessionStore.get("ndahi-return-to");
+  sessionStore.remove("ndahi-return-to");
+  return path && path.startsWith("/") && !path.startsWith("//") ? path : fallback;
 }

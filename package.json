@@ -32,7 +32,7 @@
     "check:providers": "node scripts/check-provider-contracts.mjs",
     "check:providers:exercise": "node scripts/exercise-provider-sandboxes.mjs",
     "check:pending": "node scripts/check-pending-journeys.mjs",
-    "check:hotspot": "node --check customer-app/hotspot-path.js && node --check customer-app/hotspot.js && node --check scripts/prepare-hotspot-pages.mjs && node --check scripts/check-hotspot-journeys.mjs",
+    "check:hotspot": "node --check customer-app/compat.js && node --check customer-app/startup.js && node --check customer-app/sign-in-request.js && node --check customer-app/hotspot-path.js && node --check customer-app/hotspot.js && node --check lib/wifi-devices.mjs && node --check scripts/prepare-hotspot-pages.mjs && node --check scripts/check-hotspot-journeys.mjs",
     "check:hotspot:browser": "node scripts/check-hotspot-journeys.mjs"
   },
   "engines": {
