@@ -118,6 +118,7 @@ test("verified payment emails the voucher and delivery failure never reverses pa
   const purchase = await successful.call("/api/purchase", "POST", {
     name: "Ada", phone: "670000009", email: "ada@example.com", planId: "weekly",
   });
+  await successful.store.transaction((s) => { s.customers[0].emailVerifiedAt = new Date().toISOString(); });
   const confirmed = await successful.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
   assert.equal(confirmed.response.status, 200);
   assert.equal(sent.length, 1);
@@ -134,6 +135,7 @@ test("verified payment emails the voucher and delivery failure never reverses pa
   const secondPurchase = await failed.call("/api/purchase", "POST", {
     name: "Grace", phone: "670000008", email: "grace@example.com", planId: "weekly",
   });
+  await failed.store.transaction((s) => { s.customers[0].emailVerifiedAt = new Date().toISOString(); });
   const secondConfirmation = await failed.call(`/api/payments/${secondPurchase.json.payment.id}/confirm`, "POST");
   assert.equal(secondConfirmation.response.status, 200);
   const state = await failed.store.snapshot();
@@ -683,6 +685,7 @@ test("forgot PIN uses a single-use emailed token and invalidates existing sessio
   await f.call("/api/account/setup/pin", "POST", {
     phone: "670000045", code: paid.json.access.code, pin: "1234", confirmPin: "1234",
   });
+  await f.store.transaction((s) => { s.customers.find((c) => c.phone === "670000045").emailVerifiedAt = current.toISOString(); });
   const oldCookie = f.jar.customer_session;
   const requested = await f.call("/api/account/pin-reset/request", "POST", { phone: "670000045" });
   assert.equal(requested.response.status, 202);

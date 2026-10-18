@@ -84,6 +84,7 @@ try {
     await page.goto(portal + "/dashboard");
     await page.getByText("Remaining", { exact: true }).waitFor();
     await page.getByText("Your balance and payment history are available here.", { exact: false }).waitFor();
+    await page.getByRole("link", { name: "Payments", exact: true }).click();
     await page.getByRole("button", { name: "View receipt", exact: true }).click();
     await page.getByRole("dialog", { name: "Payment receipt" }).waitFor();
     await page.locator("#receiptClose").click();

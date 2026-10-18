@@ -17,7 +17,7 @@ The card disappears once the app is installed. **Not now** hides it for 14 days.
 ## Behavior of the installed app
 
 - It is the same portal as in the browser. Customers can sign in and view their balance, expiry, history and receipts from any internet connection. When purchase coverage is enabled, buying, renewing or switching a bundle requires NDAHI Wi-Fi.
-- With no connection at all, the service worker (`customer-app/sw.js`) shows a short offline screen with **Try again**. Nothing is cached, so the app always loads the live portal.
+- With no connection at all, the service worker (`customer-app/sw.js`) shows a short offline screen with **Try again**. Nothing is cached, so the app always loads the live portal. Release checks on the dashboard and checkout refresh an idle app when a new version is available and defer updates during payments or unsaved changes; see [portal update behavior](portal-account-tools.md#installed-app-updates).
 
 ## Changing the icons
 

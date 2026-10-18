@@ -31,6 +31,7 @@ let browser;
 try {
   await listen(server, apiPort); await listen(website, portalPort); await listen(adminSite, adminPort);
   const p = await post("/api/purchase", { phone: "670040001", name: "Billing Preview", email: "preview@example.test", planId: "weekly" });
+  await store.transaction((s) => { s.customers[0].emailVerifiedAt = now.toISOString(); });
   const id = p.json.payment.id;
   const paid = await post(`/api/payments/${id}/confirm`, {});
   const login = await post("/api/account/setup/pin", { phone: "670040001", code: paid.json.access.code, pin: "2468", confirmPin: "2468" });
@@ -108,7 +109,7 @@ try {
     }, { signedIn: false, width });
   }
   await scenario("download and email a paid receipt", async (page) => {
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     const receiptButton = page.getByRole("button", { name: "View receipt", exact: true });
     await receiptButton.click();
     const dialog = page.getByRole("dialog", { name: "Payment receipt" });
@@ -121,7 +122,7 @@ try {
     const file = await download;
     assert.match(file.suggestedFilename(), /^ndahi-receipt-[\w-]+\.pdf$/);
     assert.equal((await readFile(await file.path())).subarray(0, 5).toString(), "%PDF-");
-    assert.equal(await page.url(), `${portal}/dashboard`);
+    assert.equal(await page.url(), `${portal}/dashboard#payments`);
     await dialog.screenshot({ path: `${screenshots}/receipt-popup-desktop.png` });
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
@@ -132,7 +133,7 @@ try {
     await page.locator("#billing").screenshot({ path: `${screenshots}/billing-desktop.png` });
   });
   await scenario("refund request and provider pending/completed states match customer and admin", async (page, context) => {
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     await page.getByText("Request a refund", { exact: true }).click();
     await page.getByLabel("Reason", { exact: true }).fill("Connection unavailable");
     await page.getByRole("button", { name: "Send refund request" }).click();
@@ -165,7 +166,7 @@ try {
         planSnapshot: { ...original.planSnapshot, name: "Historical expired package" }, refund: { status: "pending" },
       });
     });
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     for (const status of ["expired", "failed", "cancelled"]) {
       const row = page.locator("#billing tbody tr").filter({ hasText: `Closed ${status} package` });
       await row.waitFor();
@@ -186,7 +187,7 @@ try {
     await page.route("**/api/account/payments/*/receipt", (route) => route.fulfill({
       contentType: "text/html", body: "<html><body>old receipt</body></html>",
     }));
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     await page.getByRole("button", { name: "View receipt", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Payment receipt" });
     await dialog.getByRole("button", { name: "Download PDF" }).waitFor();
@@ -208,7 +209,7 @@ try {
         receipt: { ...original.receipt, number: "NC-orange-payment", paymentId: "orange-payment" },
       });
     });
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     const mtnRow = page.locator("#billing tbody tr").filter({ hasText: "Weekly" }),
       orangeRow = page.locator("#billing tbody tr").filter({ hasText: "Orange package" });
     await mtnRow.waitFor(); await orangeRow.waitFor();
@@ -225,7 +226,7 @@ try {
   });
   await scenario("refund failure is visible without claiming completed payout", async (page) => {
     await store.transaction((s) => { s.payments[0].refund = { id: "rf", status: "failed", message: "Your provider reports that the refund failed. Contact support for review." }; });
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     await page.getByText("Refund: failed", { exact: true }).waitFor();
     assert.equal(await page.getByText("Refund: completed", { exact: true }).count(), 0);
   });
@@ -234,7 +235,7 @@ try {
     await page.locator('[data-plan="weekly"]').click();
     await page.getByLabel("Your name", { exact: true }).fill("Guest Customer");
     await page.getByLabel("Payment phone number", { exact: true }).fill("670040002");
-    await page.getByLabel("Email address", { exact: true }).fill("guest@example.test");
+    await page.locator('[name="email"]').fill("guest@example.test");
     await page.route("**/api/purchase", async (route) => { await route.fetch(); await route.abort("failed"); });
     await page.locator("#requestPayment").click();
     await page.locator("#message .error-card").waitFor();
@@ -284,7 +285,7 @@ try {
     await page.locator('[data-plan="weekly"]').click();
     await page.getByLabel("Your name", { exact: true }).fill("Late Guest");
     await page.getByLabel("Payment phone number", { exact: true }).fill("670040003");
-    await page.getByLabel("Email address", { exact: true }).fill("late@example.test");
+    await page.locator('[name="email"]').fill("late@example.test");
     await page.route("**/api/purchase", async (route) => { await route.fetch(); await route.abort("failed"); });
     await page.locator("#requestPayment").click();
     await page.locator("#message .error-card").waitFor();
@@ -307,7 +308,7 @@ try {
     assert.equal(await resumed.getByRole("button", { name: "Resume saved payment" }).count(), 0, "the stale resume notice is replaced");
     assert.equal(await resumed.getByLabel("Your name", { exact: true }).inputValue(), "Late Guest");
     assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "670040003");
-    assert.equal(await resumed.getByLabel("Email address", { exact: true }).inputValue(), "late@example.test");
+    assert.equal(await resumed.locator('[name="email"]').inputValue(), "late@example.test");
     await resumed.keyboard.press("Escape");
     const replacement = resumed.locator('[data-plan="weekly"]');
     assert.equal(await replacement.evaluate((button) => button === document.activeElement), true,
@@ -374,7 +375,7 @@ try {
     await page.getByRole("heading", { name: "Cancellation and refunds" }).waitFor();
   });
   for (const width of [390, 320]) await scenario(`billing actions at ${width}px`, async (page) => {
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#payments`);
     await page.getByRole("button", { name: "View receipt" }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true,
       JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("main *")].filter((el) => el.getBoundingClientRect().right > innerWidth).slice(0, 8).map((el) => ({ tag: el.tagName, class: el.className, width: el.getBoundingClientRect().width })))));
