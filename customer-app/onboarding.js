@@ -4,6 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { durationLabel, dataLabel, classifyPlanChange, comparePlans, renewalEligibility } from "./plan-presentation.js";
 import { runButton } from "/shared/pending.js";
 import { formValues, localStore, sessionStore, randomId, requestJson } from "./compat.js";
+import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 
 const savedCheckoutKey = "ndahi-interrupted-checkout";
@@ -166,6 +167,7 @@ async function initialize() {
   const pending = account?.payments?.find((payment) => ["pending", "processing"].includes(payment.status));
   if (pending) {
     paymentInProgress = pending;
+    showPaymentDeadline(pending);
     activeRequestKey = `ndahi-payment-${pending.action || "purchase"}-${pending.planId}`;
     const eligibilityReason = accountAction === "renew" && !renewal.eligible
       ? `${renewal.reason}${renewal.nextEligibleAt ? ` Next eligible: ${date(renewal.nextEligibleAt)}.` : ""} ` : "";
@@ -208,6 +210,7 @@ async function initialize() {
               created = await call("/api/purchase", { method: "POST", body: JSON.stringify(saved.input) });
             }
             paymentInProgress = created.payment;
+    showPaymentDeadline(created.payment);
             selected = cataloguePlans.find((p) => p.id === created.payment.planId) || created.payment.plan;
             activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
             checkoutTrigger = button;
@@ -378,6 +381,7 @@ function clearRequestKey() {
 function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
+  showPaymentDeadline(null);
   $("#purchaseFields").disabled = false;
   if (accountAction) $("#purchase").elements.payerPhone.value = account.customer.phone;
   // A recovered snapshot remains valid for the original payment, but only a current,
@@ -419,6 +423,8 @@ async function checkPayment(paymentId, phone) {
   const status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
     headers: checkoutKey ? { "x-checkout-key": checkoutKey } : {},
   });
+  if (paymentInProgress?.id === paymentId) Object.assign(paymentInProgress, status.payment);
+  showPaymentDeadline(status.payment);
   if (status.payment.status === "paid" && (accountAction || status.access?.code)) {
     await beginAccountSecurity(status, phone);
     return true;
@@ -469,6 +475,7 @@ $("#purchase").onsubmit = async (event) => {
       body: JSON.stringify(input),
     });
     paymentInProgress = created.payment;
+    showPaymentDeadline(created.payment);
     if (!action) localStore.set(savedCheckoutKey, JSON.stringify({ input, paymentId: created.payment.id }));
     renderPlans();
     if (created.payment.status === "paid") {
@@ -540,4 +547,14 @@ initialize().catch((error) => {
   });
 });
 
+function showPaymentDeadline(payment) {
+  const target = $("#checkoutPaymentTimer");
+  target.innerHTML = payment ? paymentClock(payment) : "";
+  target.hidden = !target.innerHTML;
+}
+mountPaymentTimers({ onExpired: async () => {
+  if (polling || creatingPayment) return;
+  if (paymentInProgress?.id) await waitForPayment(paymentInProgress.id, account?.customer.phone || $("#purchase").elements.phone.value);
+  else if ($("#checkExisting")) $("#checkExisting").click();
+} });
 startUpdates({ isBusy: () => creatingPayment || Boolean(paymentInProgress) || !$("#checkout").hidden });

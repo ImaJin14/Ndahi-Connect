@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-05
+Last reviewed: 2026-10-18
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -895,3 +895,14 @@ both. The reviewed snapshot passes 293 local tests, with 12 PostgreSQL-dependent
 skips, syntax and whitespace checks, and the 300-user memory load test with zero
 failures. Monitoring configuration/rule validation is also enforced by the new CI
 job; production installation, named responders and incident exercises remain pending.
+
+## Portal follow-ups (2026-10-18)
+
+- [-] **PORTAL-001 — Personal welcome, display name and public FAQs**
+  - Implemented: personalized Home, Account name editor, public `/help`, contextual tips, support contacts and existing service notes. Historical receipt names are unchanged.
+  - Verification: owner/CSRF/history tests and responsive public-help/name browser journeys; rollout verification pending.
+- [-] **PORTAL-002 — Visible payment deadlines and support escalation**
+  - Implemented: server deadline snapshots/time, countdowns, automatic visible-history refresh, owner-scoped expiry on dashboard reads and bulk worker expiry before provider IO. Overdue refunds retain their provider state and show support attention.
+  - Verification: expiry, slow-provider, ownership and browser countdown regressions; production billing-worker and provider checks pending.
+
+These are two additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md). The broader tracker still distinguishes shipped implementation from verified production operation.

@@ -28,7 +28,7 @@
       <div id="planNotice" role="status" aria-live="polite"></div>
       <div id="plans" class="grid" aria-busy="true">Loading packages...</div>
     </section>
-  </main>
+  <p class="help-link"><a href="/help">Help, FAQs and support</a></p></main>
   <section class="modal-card" id="checkout" role="dialog" aria-modal="true" aria-labelledby="selected" aria-describedby="checkoutPolicy" hidden>
     <div class="card">
       <button type="button" class="back-link" id="closeCheckout">Back to packages</button>
@@ -47,7 +47,7 @@
           <button type="submit" id="requestPayment">Request payment</button>
         </fieldset>
       </form>
-      <div id="message" role="status" aria-live="polite"></div>
+      <div id="checkoutPaymentTimer" hidden></div><p><a id="checkoutHelp" href="/help#payment" target="_blank" rel="noopener">Payment help</a></p><div id="message" role="status" aria-live="polite"></div>
     </div>
   </section>
   <footer class="footer-note">NDAHI Connect - Secure, reliable Wi-Fi for everyone</footer>

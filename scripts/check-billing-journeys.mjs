@@ -73,7 +73,7 @@ try {
       await opener.click();
       assert.equal(await page.evaluate(() => document.activeElement?.id), "closeCheckout");
       await page.keyboard.press("Shift+Tab");
-      assert.equal(await page.evaluate(() => document.activeElement?.id), "requestPayment");
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "checkoutHelp");
       await page.keyboard.press("Tab");
       assert.equal(await page.evaluate(() => document.activeElement?.id), "closeCheckout");
       if (action === "escape") await page.keyboard.press("Escape");
@@ -170,7 +170,7 @@ try {
     for (const status of ["expired", "failed", "cancelled"]) {
       const row = page.locator("#billing tbody tr").filter({ hasText: `Closed ${status} package` });
       await row.waitFor();
-      assert.equal(await row.getByRole("button").count(), 0, `${status} payments have no customer money actions`);
+      assert.equal(await row.locator("button:not([data-copy-payment])").count(), 0, `${status} payments have no customer money actions`);
       assert.equal(await row.getByText("Request a refund", { exact: true }).count(), 0);
     }
     assert.equal(await page.getByRole("button", { name: "View receipt" }).count(), 2, "confirmed receipts stay available");
@@ -358,8 +358,7 @@ try {
     await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", requestKey: "abandoned-renewal" }, cookie);
     now = new Date(Date.now() + 8 * 60000);
     await page.goto(`${portal}/onboarding.html?action=renew`);
-    await page.getByRole("button", { name: "Check payment status" }).click();
-    // The check closes the stale renewal and the page reloads without the blocking notice.
+    // Reading the account closes the stale renewal before it can block this checkout.
     await page.getByRole("button", { name: "Check payment status" }).waitFor({ state: "detached" });
     await page.waitForFunction(() => document.querySelector('[data-plan="weekly"]')?.disabled === false);
     const renewal = (await store.snapshot()).payments.find((x) => x.requestKey === "abandoned-renewal");
