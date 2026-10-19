@@ -767,6 +767,13 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **ADMIN-005 — Improve audit-log investigation tools**
   - Acceptance: logs can be filtered by actor, customer, action, date, IP, and correlation ID.
 
+- [-] **ADMIN-007 — Repair live Wi-Fi session reporting and obsolete disconnect recovery**
+  - Implemented: shared router-derived live count/list, stale-read states, coalesced device refresh, scoped disconnection, API/UI replay rejection for obsolete jobs and audited resolution without deleting attempt history. Live reconciliation no longer generates unscoped UUID disconnects.
+  - Verification: API/queue/records and browser regressions; physical-router pilot remains pending. [Admin operation notes](operations/admin-app.md).
+- [-] **ADMIN-008 — Installable admin app and persistent navigation**
+  - Implemented: distinct admin manifest/icons, browser installation/manual Apple instructions, offline retry without record caching, responsive Home/Devices/Vouchers/Payments/More navigation, and shared release checks that defer updates during unfinished work.
+  - Verification: role/navigation, narrow-screen, install/offline and update-deferral browser journeys. Physical-device installation checks remain pending.
+
 - [ ] **ADMIN-006 — Add operational reports and exports**
   - Cover revenue, active customers, voucher inventory, failed payments, network usage, reseller activity, and refunds.
   - Acceptance: exports respect role permissions and privacy rules.

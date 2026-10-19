@@ -85,6 +85,7 @@ export async function mountNetworkSetup(root, call) {
   async function refresh() {
     state = await request("status");
     if (stopped) return;
+    root.dataset.setupPending = String(state.jobs.some((j) => ["queued", "running", "awaiting_confirmation", "recovery_required"].includes(j.status)));
     $("#networkPrerequisites").textContent = !state.encryptionReady ? "Server setup required: configure NETWORK_CONFIG_KEY before saving connections." : `Live provisioning ${state.enabled ? "enabled" : "disabled"}. Approved management addresses: ${state.allowedOrigins.join(", ") || "none — configure NETWORK_ALLOWED_ORIGINS on the server"}.`;
     $("#networkEnforcementStatus").textContent = state.runtimeRouterEnabled ? "The saved router is active for voucher enforcement." : "Voucher operations currently use the existing server integration.";
     $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
@@ -104,7 +105,7 @@ export async function mountNetworkSetup(root, call) {
       const action = button.dataset.jobAction, jobId = button.dataset.id;
       const result = await request(action, { jobId, tested: root.querySelector(`[data-tested="${CSS.escape(jobId)}"]`)?.checked === true, recovered: root.querySelector(`[data-resolved="${CSS.escape(jobId)}"]`)?.checked === true });
       if (action === "recovery") {
-        const target = $("#networkRecovery"); target.hidden = false;
+        const target = $("#networkRecovery"); target.hidden = false; target.setAttribute("data-sensitive-output", "");
         target.innerHTML = `<h3>Backup recovery</h3><p>${h(result.instructions)}</p><p>File: <code>${h(result.backup)}</code></p><label>Backup password<input readonly type="password" value="${h(result.password)}"></label><button type="button" id="networkShowBackup">Show password</button><button type="button" id="networkHideRecovery">Close recovery details</button>`;
         $("#networkShowBackup").onclick = () => { const field = target.querySelector("input"); field.type = field.type === "password" ? "text" : "password"; };
         $("#networkHideRecovery").onclick = () => { target.replaceChildren(); target.hidden = true; };

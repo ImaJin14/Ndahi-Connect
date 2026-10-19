@@ -26,6 +26,7 @@ try {
   const page = await context.newPage(), errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:18981/dashboard");
+  await page.getByRole("link", { name: "More", exact: true }).click();
   await page.getByRole("tab", { name: "Network setup", exact: true }).click();
   await page.locator("#networkRouterConnection select").selectOption("simulation");
   await page.getByRole("button", { name: "Save router connection", exact: true }).click();

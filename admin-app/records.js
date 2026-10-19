@@ -4,7 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 // caller; action buttons keep using the dashboard's delegated click handler.
 export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0 }) {
   const state = { page: 1, q: "", status: "" };
-  let timer, request = 0;
+  let timer, request = 0, loaded = false;
   container.innerHTML = `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
   <input type="search" name="q" aria-label="Search ${h(title.toLowerCase())}" placeholder="Search" maxlength="100">
   <select name="status" aria-label="Filter ${h(title.toLowerCase())} by status" hidden><option value="">All statuses</option></select>
@@ -22,10 +22,10 @@ export function mountRecords(container, { call, collection, title, headers, row,
     summary.textContent = "Loading records…";
     body.innerHTML = `<tr><td colspan="${headers.length}">Loading records…</td></tr>`;
   }
-  async function load() {
+  async function load(background = false) {
     const current = ++request,
       params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status });
-    showLoading();
+    if (!background || !loaded) showLoading();
     try {
       const result = await call(`/api/admin/records?${params}`);
       if (current !== request || !container.isConnected) return;
@@ -42,9 +42,10 @@ export function mountRecords(container, { call, collection, title, headers, row,
         : "No matching records";
       previous.disabled = result.page <= 1;
       next.disabled = result.page >= result.pages;
+      loaded = true;
     } catch (error) {
       if (current !== request || !container.isConnected) return;
-      body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
+      if (!background || !loaded) body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
       summary.textContent = error.message || "Please try again.";
       const retry = document.createElement("button");
       retry.type = "button";
@@ -78,12 +79,14 @@ export function mountRecords(container, { call, collection, title, headers, row,
   if (refreshMs) {
     const refresh = async () => {
       if (!container.isConnected) return;
-      if (!document.hidden && !container.closest("[hidden]") && !container.contains(document.activeElement)) await load();
+      if (!document.hidden && !container.closest("[hidden]") && !container.querySelector("input:focus, select:focus, textarea:focus, [aria-busy='true']")) await load(true);
       setTimeout(refresh, refreshMs);
     };
     setTimeout(refresh, refreshMs);
   }
-  return load();
+  const ready = load();
+  ready.refresh = () => load(true);
+  return ready;
 }
 
 // Customer picker backed by server-side search instead of a full customer list.

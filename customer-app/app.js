@@ -418,7 +418,7 @@ $("#dashboard").onclick = async (event) => {
   if (wifiDevice) {
     try {
       await runButton(wifiDevice, "Disconnecting…", async () => {
-        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession }) });
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession, startedAt: wifiDevice.dataset.wifiStarted }) });
         watchWifiDevices();
       });
     } catch (error) { showError($("#dashboardMessage"), error); }

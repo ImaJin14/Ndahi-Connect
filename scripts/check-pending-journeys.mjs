@@ -184,6 +184,7 @@ try {
 
   await scenario("admin voucher generation and integration failures restore controls", async (page) => {
     await page.goto(`${admin}/dashboard`);
+    await page.getByRole("link", { name: "More", exact: true }).click();
     await page.getByRole("tab", { name: "Generate voucher" }).click();
     const generation = await hold(page, "/api/admin/vouchers/generate", { error: "Fixture generation failure" });
     await submitTwice(page, "#generate"); await generation.started;
@@ -202,7 +203,7 @@ try {
   }, { authenticated: true });
 
   await scenario("delegated admin actions reject duplicate clicks and recover after failure", async (page) => {
-    await page.goto(`${admin}/dashboard`);
+    await page.goto(`${admin}/dashboard#connections`);
     await page.locator("#syncUsage").waitFor();
     await page.evaluate(() => document.querySelector("#app").insertAdjacentHTML("afterbegin", '<button id="fixtureRevoke" data-voucher="fixture-voucher">Revoke fixture</button>'));
     const revoke = await hold(page, "/api/admin/vouchers/revoke", { error: "Fixture revoke failure" });
