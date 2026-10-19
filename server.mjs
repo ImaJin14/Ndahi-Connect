@@ -138,7 +138,7 @@ export function createHandler(opts = {}) {
   handler.routerQueueEnabled = env.NETWORK_QUEUE_ENABLED !== "false";
   handler.routerQueueIntervalMs = positiveInteger(env.NETWORK_QUEUE_INTERVAL_SECONDS, 15) * 1000;
   handler.routerReconciliationConfig = routerReconciliationConfig(env);
-  handler.reconcileRouter = createRouterReconciler({ store, router, now: clock });
+  handler.reconcileRouter = createRouterReconciler({ store, router, now: clock, requireScopedDisconnect: env.MIKROTIK_MODE === "live" });
   handler.routerUsageSyncConfig = routerUsageSyncConfig(env);
   handler.scheduleUsageSync = createUsageSyncScheduler({ store, env, now: clock });
   handler.usageAlertConfig = usageAlertConfig(env);

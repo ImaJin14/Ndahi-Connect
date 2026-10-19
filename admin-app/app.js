@@ -2,6 +2,9 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
+import { startUpdates } from "/shared/updates.js";
+import { activeAdminView, mountAdminNavigation } from "/navigation.js";
+import { mountAdminInstall } from "/install.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -20,7 +23,7 @@ function revenueSummary(sales) {
     line("Total revenue", sales.online.bundles + sales.vouchers.bundles, fcfa(sales.online.amount + sales.vouchers.amount))}${
     line("Gifts (not revenue)", sales.gifts.bundles, `${fcfa(sales.gifts.faceValue)} face value`)}</tbody></table></div><p class="form-help">Voucher sales count once a voucher is activated; resale codes count when a customer claims them, and revoked sales are excluded.${sales.unclassified.bundles ? ` ${h(bundles(sales.unclassified.bundles))} generated before sale tracking ${sales.unclassified.bundles === 1 ? "is" : "are"} unclassified: mark each as sold or gift in Vouchers.` : ""}</p>`;
 }
-let activeAdminTab = "connections";
+let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 window.addEventListener("unhandledrejection", (event) => {
@@ -62,6 +65,9 @@ async function runAction(button, text, task, message = "#actionMessage") {
 }
 async function load() {
   const x = await call("/api/admin/dashboard");
+  adminRole = x.profile.role;
+  wifiLive = x.wifi.live;
+  activeAdminTab = activeAdminView(adminRole);
   csrfToken = x.csrfToken;
   const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
     bundleOptions = rows(
@@ -71,28 +77,27 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
-<div class="metrics">${
+<section class="card tab-panel" data-tab-panel="home" id="panel-home"><h2>Overview</h2><div class="metrics">${
     Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b>${h(v)}</b>${h(k)}</div>`
+      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : ""}>${h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices">Active Wi-Fi sessions</a>' : h(k.replace(/([A-Z])/g, " $1"))}</div>`
     ).join("")
-  }</div>
-<div class="admin-tabs" role="tablist" aria-label="Admin dashboard sections">
+  }</div><p>Manage live connections, vouchers and payments from the navigation.</p><div class="action-row"><a class="button-link" href="/dashboard#devices">View devices</a><a class="button-link secondary-link" href="/dashboard#connections">Network commands &amp; health</a></div></section>
+<section class="card tab-panel" data-tab-panel="devices" id="panel-devices"><h2>Live Wi-Fi devices</h2><div class="device-controls"><button type="button" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>Refresh devices</button><div id="wifiSummary" role="status" aria-live="polite"></div></div><div id="wifiMessage" role="status" aria-live="polite"></div><div id="wifiRecords"></div></section>
+<section class="card more-menu" data-admin-more><h2>More</h2><div class="admin-tabs" role="tablist" aria-label="Admin dashboard sections">
   ${[
     ["connections", "Connections"],
     ...(x.profile.role === "owner" ? [["network-setup", "Network setup"]] : []),
     ["bundles", "Bundles"],
     ["voucher-create", "Generate voucher"],
     ["customers", "Customers"],
-    ["vouchers", "Vouchers"],
-    ["payments", "Payments"],
     ["audit", "Audit"],
   ].map(([id, label]) => `<button role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${activeAdminTab === id}" tabindex="${activeAdminTab === id ? "0" : "-1"}" data-tab="${id}">${label}</button>`).join("")}
-</div><div class="tab-panels">
+</div><div id="adminInstall"></div></section><div class="tab-panels">
 <section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${h(x.integrations.mikrotik)}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${["live", "standalone"].includes(x.integrations.omada) ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>${x.integrations.omada === "standalone" ? "Access points run standalone. No Omada controller is used." : "Check controller connectivity and access-point availability."}</p></div>${x.integrations.omada === "standalone" ? "" : '<button class="secondary-action" id="checkOmada">Check connection</button>'}</article>
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Account security</h3><span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span></div><p>Protect the ${h(x.profile.role)} account with an authenticator app.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button><button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div></form></article>
-</div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(c.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
+</div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
 ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" role="tabpanel" aria-labelledby="tab-network-setup" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="tab-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
     rows(x.bundles, (b) =>
@@ -120,37 +125,28 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   <label id="voucherQuantity">Quantity<input name="quantity" type="number" min="1" max="100" value="1"></label>
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
-</form><div id="generated" role="status" aria-live="polite"></div></section>
-<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and devices</h2><div id="customerRecords"></div><div id="wifiRecords"></div><div id="sessionRecords"></div></section>
-<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="tab-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><div id="voucherRecords"></div></section>
-<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="tab-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
+</form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
+<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
+<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="voucherRecords"></div></section>
+<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="admin-nav-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
-  const tabs = [...document.querySelectorAll('[role="tab"]')];
-  const activateTab = (tab, moveFocus = false) => {
-    activeAdminTab = tab.dataset.tab;
-    for (const item of tabs) {
-      const selected = item === tab;
-      item.setAttribute("aria-selected", String(selected));
-      item.tabIndex = selected ? 0 : -1;
-    }
-    for (const panel of document.querySelectorAll("[data-tab-panel]")) {
-      panel.hidden = panel.dataset.tabPanel !== activeAdminTab;
-    }
-    if (moveFocus) tab.focus();
-  };
-  for (const [index, tab] of tabs.entries()) {
-    tab.onclick = () => activateTab(tab);
-    tab.onkeydown = (event) => {
-      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-      event.preventDefault();
-      const nextIndex = event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? tabs.length - 1
-          : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-      activateTab(tabs[nextIndex], true);
-    };
+  for (const table of $("#app").querySelectorAll("table")) {
+    if (table.closest(".table-scroll")) continue;
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    table.before(wrapper); wrapper.append(table);
   }
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "devices") void refreshWifiSummary(); });
+  mountAdminInstall($("#adminInstall"));
+  renderWifiSummary(x.wifi);
+  $("#refreshWifi").onclick = async (event) => {
+    await runAction(event.currentTarget, "Requesting reading…", async () => {
+      const result = await call("/api/admin/wifi-devices/refresh", { method: "POST", body: "{}" });
+      renderWifiSummary(result);
+      $("#wifiMessage").textContent = result.state === "refreshing" || result.state === "retrying" ? "A router reading was requested. The list will update after it succeeds." : "Device reading is current.";
+    }, "#wifiMessage");
+    await refreshWifiSummary();
+  };
   let customerPicker;
   const updateVoucherBuilder = (event) => {
     const purposeChanged = event?.target?.id === "voucherPurpose";
@@ -207,7 +203,8 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
       });
       const vouchers = result.vouchers || [result.voucher];
-      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
+      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
+      $("#closeGenerated").onclick = () => { $("#generated").replaceChildren(); $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
           link = document.createElement("a");
@@ -300,21 +297,21 @@ function mountRecordViews(canManagePayments) {
     headers: ["Name", "Phone", "Status", "Actions"],
     row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`,
   });
-  void mountRecords($("#wifiRecords"), {
+  wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
     headers: ["Device", "Bundle", "Status", "Last Wi-Fi check", "Actions"],
     row: (d) => {
-      const stale = !d.syncedAt || Date.now() - Date.parse(d.syncedAt) > 120000;
+      const stale = !d.fresh;
       const pending = d.disconnect && ["disconnecting", "retrying"].includes(d.disconnect.status);
-      return `<tr><td>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
+      return `<tr><td>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" data-wifi-started="${h(d.startedAt || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
     },
   });
   void mountRecords($("#sessionRecords"), {
     call,
     collection: "sessions",
-    title: "Device sessions",
+    title: "Legacy application sessions",
     headers: ["Device", "Device ID", "Status", "Last seen", "Actions"],
-    row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td>${s.status === "online" ? `<button data-session="${h(s.id)}">Disconnect</button>` : ""}</td></tr>`,
+    row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
   void mountRecords($("#voucherRecords"), {
     call,
@@ -383,7 +380,7 @@ $("#app").onclick = async (e) => {
     $("#bundle").hidden = false;
     return;
   }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -429,8 +426,10 @@ $("#app").onclick = async (e) => {
     } else if (button.dataset.wifiVoucher) {
       if (!confirm("Disconnect this Wi-Fi device? Its slot is released after router confirmation.")) return;
       await call("/api/admin/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({
-        voucherId: button.dataset.wifiVoucher, mac: button.dataset.wifiMac, sessionId: button.dataset.wifiSession,
+        voucherId: button.dataset.wifiVoucher, mac: button.dataset.wifiMac, sessionId: button.dataset.wifiSession, startedAt: button.dataset.wifiStarted,
       }) });
+      await wifiRecords.refresh(); await refreshWifiSummary();
+      return;
     } else if (button.dataset.session) {
       if (!confirm("Disconnect this device session?")) return;
       await call("/api/admin/devices/disconnect", {
@@ -443,6 +442,9 @@ $("#app").onclick = async (e) => {
         method: "POST",
         body: JSON.stringify({ eventId: button.dataset.replayWebhook }),
       });
+    } else if (button.dataset.resolveCommand) {
+      if (!confirm("Mark this legacy job obsolete? This preserves its history and does not disconnect a device. Use a fresh Wi-Fi reading for a new disconnect.")) return;
+      await call("/api/admin/network/commands/resolve", { method: "POST", body: JSON.stringify({ commandId: button.dataset.resolveCommand }) });
     } else if (button.dataset.replayCommand) {
       if (!confirm("Replay this network command after resolving the underlying router problem?")) return;
       await call("/api/admin/network/commands/replay", {
@@ -474,3 +476,35 @@ $("#logout").onclick = async (event) => {
   });
 };
 load();
+
+function renderWifiSummary(summary) {
+  const target = $("#wifiSummary");
+  if (!target) return;
+  const states = { ready: "Router reading current", idle: "No active bundles", refreshing: "Router reading in progress", retrying: "Router unavailable; reading will retry", failed: "Router reading failed; review the connection", stale: "Waiting for a current router reading" };
+  target.textContent = `${summary.unreadVouchers && !summary.activeCount ? "Current connections unknown" : `${summary.activeCount} confirmed connected`}${summary.staleCount ? ` · ${summary.staleCount} last seen in an older reading` : ""}. ${states[summary.state] || "Reading unavailable"}.${summary.syncedAt ? ` Last successful check: ${new Date(summary.syncedAt).toLocaleString()}.` : ""}`;
+  if (!summary.live && summary.live !== undefined) target.textContent = "Connect a live router to see current Wi-Fi devices.";
+  if (summary.refresh?.canReplay && ["owner", "operator"].includes(adminRole)) {
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Retry router reading";
+    retry.onclick = async () => { await runAction(retry, "Retrying…", async () => { await call("/api/admin/network/commands/replay", { method: "POST", body: JSON.stringify({ commandId: summary.refresh.id }) }); }, "#wifiMessage"); await refreshWifiSummary(); };
+    target.append(" ", retry);
+  }
+  const metric = $("#activeSessionsMetric");
+  if (metric && wifiLive) metric.textContent = summary.unreadVouchers && !summary.activeCount ? "—" : String(summary.activeCount);
+}
+async function refreshWifiSummary() {
+  if (wifiLoading || document.hidden || !$("#wifiSummary")) return;
+  wifiLoading = true;
+  try { renderWifiSummary(await call("/api/admin/wifi-devices")); }
+  catch (error) { if ($("#wifiSummary")) $("#wifiSummary").textContent = `Unable to refresh devices: ${error.message}. Previous readings remain on screen.`; }
+  finally { wifiLoading = false; }
+}
+function watchWifiSummary() {
+  clearTimeout(wifiTimer);
+  wifiTimer = setTimeout(async () => { if (["home", "devices"].includes(activeAdminTab)) await refreshWifiSummary(); watchWifiSummary(); }, 5000);
+}
+watchWifiSummary();
+window.addEventListener("online", () => { void refreshWifiSummary(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshWifiSummary(); });
+startUpdates({ isBusy: () => passkeyEnrollmentRunning || Boolean(document.querySelector('#totpCode, [data-sensitive-output]:not(:empty), [data-setup-pending="true"]')) });

@@ -92,6 +92,7 @@ try {
     await page.locator("#adminPassword").fill(password);
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForURL("**/dashboard");
+    await page.getByRole("link", { name: "More", exact: true }).click();
     await page.getByRole("tab", { name: "Generate voucher" }).click();
     const generateButton = page.getByRole("button", { name: "Generate resale vouchers" });
     await generateButton.waitFor();

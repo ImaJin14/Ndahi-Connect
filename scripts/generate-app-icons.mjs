@@ -5,7 +5,8 @@ import { mkdir } from "node:fs/promises";
 //   node scripts/generate-app-icons.mjs
 // Maskable icons keep the mark inside the central safe zone so launchers can
 // crop them to any shape.
-const out = new URL("../customer-app/assets/icons/", import.meta.url).pathname,
+const admin = process.argv.includes("--admin");
+const out = new URL(admin ? "../admin-app/assets/icons/" : "../customer-app/assets/icons/", import.meta.url).pathname,
   icons = [
     { file: "icon-192.png", size: 192, ring: 0.74 },
     { file: "icon-512.png", size: 512, ring: 0.74 },
@@ -20,10 +21,10 @@ try {
   for (const { file, size, ring } of icons) {
     const mark = Math.round(size * ring), border = Math.max(3, Math.round(mark * 0.06)), font = Math.round(mark * 0.36);
     await page.setViewportSize({ width: size, height: size });
-    await page.setContent(`<!doctype html><html><head><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=block"><style>
+    await page.setContent(`<!doctype html><html><head>${admin ? "" : '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=block">'}<style>
       html,body{margin:0;width:${size}px;height:${size}px;background:#003b2b;display:grid;place-items:center}
       div{box-sizing:border-box;width:${mark}px;height:${mark}px;border:${border}px solid #b9ee2e;border-radius:50%;display:grid;place-items:center;color:#b9ee2e;font:700 ${font}px/1 'DM Sans',sans-serif;letter-spacing:.02em}
-    </style></head><body><div>NC</div></body></html>`, { waitUntil: "networkidle" });
+    </style></head><body><div>${admin ? "NA" : "NC"}</div></body></html>`, { waitUntil: "networkidle" });
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: out + file, omitBackground: false });
     console.log(`Wrote ${file} (${size}x${size})`);

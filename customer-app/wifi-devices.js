@@ -8,7 +8,7 @@ export function wifiDeviceList({ devices = [], deviceLimit, syncedAt, disconnect
     const operation = device.disconnect;
     const pending = operation && ["disconnecting", "retrying"].includes(operation.status);
     const disabled = pending || stale || !device.sessionId || !device.startedAt;
-    return `<div class="device"><div><b>Device ending ${h(device.mac.slice(-5))}</b><br><small>${h(device.address || "Address pending")} · ${h(size(device.usedBytes))} this session${device.uptime ? ` · online ${h(device.uptime)}` : ""}</small>${operation ? `<p role="status">${h(operation.message)}</p>` : ""}</div><button type="button" data-wifi-device="${h(device.mac)}" data-wifi-session="${h(device.sessionId || "")}" ${disabled ? "disabled" : ""}>${pending ? "Disconnecting…" : operation && operation.status === "failed" ? "Retry disconnect" : "Disconnect"}</button></div>`;
+    return `<div class="device"><div><b>Device ending ${h(device.mac.slice(-5))}</b><br><small>${h(device.address || "Address pending")} · ${h(size(device.usedBytes))} this session${device.uptime ? ` · online ${h(device.uptime)}` : ""}</small>${operation ? `<p role="status">${h(operation.message)}</p>` : ""}</div><button type="button" data-wifi-device="${h(device.mac)}" data-wifi-session="${h(device.sessionId || "")}" data-wifi-started="${h(device.startedAt || "")}" ${disabled ? "disabled" : ""}>${pending ? "Disconnecting…" : operation && operation.status === "failed" ? "Retry disconnect" : "Disconnect"}</button></div>`;
   }).join("");
   const latest = {};
   disconnects.forEach((operation) => { latest[operation.mac] = operation; });
