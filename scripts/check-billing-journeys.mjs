@@ -27,7 +27,7 @@ const post = async (path, input, cookie = "") => {
   const json = await response.json(); assert.ok(response.ok, JSON.stringify(json));
   return { response, json };
 };
-// BILL-006: guest checkouts keep only a random key, in a cookie the browser drops within a day.
+// BILL-006: guest checkouts keep only a random key, in a cookie that expires with the request.
 const portalKey = () => crypto.randomUUID().replaceAll("-", "");
 const savedCookie = async (context) => (await context.cookies(portal)).find((cookie) => cookie.name === "ndahi-checkout");
 const seedSavedCheckout = (context, saved) => context.addCookies([{ name: "ndahi-checkout",
@@ -105,14 +105,14 @@ try {
       await seedSavedCheckout(context, { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
       await page.goto(`${portal}/onboarding.html`);
       // No click needed: the visit itself checks the saved key and releases the packages.
-      await page.getByText("Synthetic provider failure", { exact: true }).waitFor();
+      await page.getByText(/This does not confirm whether money was deducted/).waitFor();
       assert.equal(await page.getByRole("button", { name: "Resume saved payment" }).count(), 0);
       assert.equal(await savedCookie(context), undefined);
       const opener = page.locator('[data-plan="weekly"]');
       await opener.click();
       // The API supplied the contact details this device no longer keeps.
-      assert.equal(await page.getByLabel("Your name", { exact: true }).inputValue(), input.name);
-      assert.equal(await page.getByLabel("Payment phone number", { exact: true }).inputValue(), input.phone);
+      assert.equal(await page.getByLabel("Your name", { exact: true }).inputValue(), "");
+      assert.equal(await page.getByLabel("Payment phone number", { exact: true }).inputValue(), "");
       if (action === "escape") await page.keyboard.press("Escape");
       else if (action === "backdrop") await page.locator("#checkout").click({ position: { x: 5, y: 5 } });
       else await page.locator("#closeCheckout").click();
@@ -251,10 +251,10 @@ try {
     await page.route("**/api/purchase", async (route) => { await route.fetch(); await route.abort("failed"); });
     await page.locator("#requestPayment").click();
     await page.locator("#message .error-card").waitFor();
-    // Only the random key and plan remain on the device, and the browser drops them within a day.
+    // Only the random key and plan remain on the device, and the browser drops them at the request deadline.
     const saved = await savedCookie(context);
-    assert.ok(saved.expires > Date.now() / 1000 + 23.9 * 3600 && saved.expires <= Date.now() / 1000 + 24 * 3600 + 60);
-    assert.deepEqual(Object.keys(JSON.parse(decodeURIComponent(saved.value))).sort(), ["planId", "requestKey"]);
+    assert.ok(saved.expires > Date.now() / 1000 + 400 && saved.expires <= Date.now() / 1000 + 420);
+    assert.deepEqual(Object.keys(JSON.parse(JSON.parse(decodeURIComponent(saved.value)).value)).sort(), ["planId", "requestKey"]);
     assert.doesNotMatch(decodeURIComponent(saved.value), /Guest Customer|670040002|guest@example/);
     assert.deepEqual(await legacyCheckoutKeys(page), []);
     await page.close();
@@ -269,7 +269,7 @@ try {
     assert.equal(await returnButton.evaluate((button) => button === document.activeElement), true);
     await returnButton.click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).click();
-    await resumed.waitForURL("**/verify.html?setup=pin");
+    await resumed.waitForURL("**/verify.html?setup=checkout");
     assert.equal(await savedCookie(context), undefined);
   }, { signedIn: false });
   await scenario("pending renewal is recovered after browser state is lost", async (page) => {
@@ -289,11 +289,11 @@ try {
     await seedSavedCheckout(context, { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
     await page.goto(`${portal}/onboarding.html`);
     await page.getByText(/saved on this device was confirmed/).waitFor();
-    const statusRequest = page.waitForRequest((request) => request.url().endsWith(`/payments/${purchase.json.payment.id}/status`));
+    const statusRequest = page.waitForRequest((request) => request.url().endsWith("/api/account/setup/checkout") && request.method() === "POST");
     await page.getByRole("button", { name: "Resume saved payment" }).click();
     const request = await statusRequest;
-    assert.equal(request.headers()["x-checkout-key"], input.requestKey);
-    await page.waitForURL("**/verify.html?setup=pin");
+    assert.equal(request.postDataJSON().requestKey, input.requestKey);
+    await page.waitForURL("**/verify.html?setup=checkout");
     assert.equal(await savedCookie(context), undefined);
     assert.equal((await store.snapshot()).payments.filter((p) => p.customerName === "Paid Guest").length, 1);
   }, { signedIn: false });
@@ -312,9 +312,9 @@ try {
     const resumed = await context.newPage();
     await resumed.goto(`${portal}/onboarding.html`);
     // The visit closes the stale checkout without a click and forgets its key.
-    await resumed.getByText(/was not confirmed in time, so it was closed/).waitFor();
+    await resumed.getByText(/This does not confirm whether money was deducted/).waitFor();
     assert.equal(await savedCookie(context), undefined);
-    assert.equal((await store.snapshot()).payments.find((x) => x.customerName === "Late Guest").status, "expired");
+    assert.equal((await store.snapshot()).payments.find((x) => x.customerName === "Late Guest").status, "pending");
     assert.equal(await resumed.getByRole("button", { name: "Resume saved payment" }).count(), 0, "no stale resume prompt");
     // A fresh checkout opens with the details the API returned already filled in.
     await resumed.locator('[data-plan="weekly"]').click();
@@ -324,14 +324,16 @@ try {
     assert.match(await resumed.locator("#checkoutPolicy").textContent(), /starts on payment confirmation and lasts 7 days/);
     assert.match(await resumed.locator("#checkoutPolicy").textContent(), /Closing this page does not cancel a submitted payment/);
     assert.match(await resumed.locator("#checkoutPolicy").textContent(), /Refund requests require support review/);
-    assert.equal(await resumed.getByLabel("Your name", { exact: true }).inputValue(), "Late Guest");
-    assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "670040003");
-    assert.equal(await resumed.locator('[name="email"]').inputValue(), "late@example.test");
+    assert.equal(await resumed.getByLabel("Your name", { exact: true }).inputValue(), "");
+    assert.equal(await resumed.getByLabel("Payment phone number", { exact: true }).inputValue(), "");
+    assert.equal(await resumed.locator('[name="email"]').inputValue(), "");
     await resumed.keyboard.press("Escape");
     const replacement = resumed.locator('[data-plan="weekly"]');
     assert.equal(await replacement.evaluate((button) => button === document.activeElement), true,
       "closing the fresh checkout returns focus to the current package control");
     await replacement.click();
+    await resumed.getByLabel("Your name", { exact: true }).fill("Late Guest");
+    await resumed.getByLabel("Payment phone number", { exact: true }).fill("670040003");
     await resumed.locator("#requestPayment").click();
     await resumed.getByRole("button", { name: "Simulate payment approval" }).waitFor();
     assert.equal((await store.snapshot()).payments.filter((x) => x.customerName === "Late Guest").length, 2);
@@ -352,7 +354,7 @@ try {
     // The approval window passes while the resumed checkout is open.
     now = new Date(Date.now() + 8 * 60000);
     await recheck.click();
-    await page.getByText(/was not confirmed in time, so it was closed/).waitFor();
+    await page.getByText(/This does not confirm whether money was deducted/).waitFor();
     assert.equal(await page.locator("#selected").textContent(), "Choose another package");
     assert.match(await page.locator("#checkoutSummary").textContent(), /saved package is unavailable/);
     assert.equal(await page.locator("#requestPayment").isDisabled(), true);
@@ -403,7 +405,7 @@ try {
     await page.getByRole("button", { name: "Resume saved payment" }).waitFor();
     assert.deepEqual(await legacyCheckoutKeys(page), []);
     const saved = await savedCookie(context);
-    assert.deepEqual(JSON.parse(decodeURIComponent(saved.value)), { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
+    assert.deepEqual(JSON.parse(JSON.parse(decodeURIComponent(saved.value)).value), { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
     await page.getByRole("button", { name: "Resume saved payment" }).click();
     await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
     assert.equal(await page.getByLabel("Your name", { exact: true }).inputValue(), input.name);
@@ -477,6 +479,65 @@ try {
     assert.equal(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth), true, "receipt fits narrow mobile screens");
     await dialog.screenshot({ path: `${screenshots}/receipt-popup-${width}.png` });
   }, { width });
+  await scenario("PIN handoff survives reload, blocked session storage and the original request deadline", async (page, context) => {
+    const input = { phone: "670040071", planId: "weekly", requestKey: portalKey() };
+    const purchase = await post("/api/purchase", input);
+    now = new Date(+now + 419000);
+    await post(`/api/payments/${purchase.json.payment.id}/confirm`, {});
+    await context.addInitScript(() => Object.defineProperty(window, "sessionStorage", { get() { throw Error("Storage blocked"); } }));
+    await seedSavedCheckout(context, { requestKey: input.requestKey, planId: input.planId, paymentId: purchase.json.payment.id });
+    await page.goto(`${portal}/onboarding.html`);
+    await page.getByRole("button", { name: "Resume saved payment" }).click();
+    await page.waitForURL("**/verify.html?setup=checkout");
+    await page.getByRole("button", { name: "Create PIN and continue" }).waitFor();
+    const setup = (await context.cookies(api + "/api/account/setup")).find((c) => c.name === "checkout_setup");
+    assert.equal(setup.httpOnly, true); assert.equal(setup.path, "/api/account/setup");
+    now = new Date(+now + 2000);
+    await page.reload();
+    await page.getByLabel("Create PIN", { exact: true }).fill("2468");
+    await page.getByLabel("Confirm PIN", { exact: true }).fill("2468");
+    // The setup succeeds on the server but its response is lost. The owner
+    // session check recovers it without trying to consume the grant twice.
+    let completions = 0;
+    await page.route("**/api/account/setup/pin", async (route) => { completions++; await route.fetch(); await route.abort("failed"); });
+    await page.getByRole("button", { name: "Create PIN and continue" }).click();
+    await page.waitForURL("**/dashboard");
+    assert.equal(completions, 1);
+    assert.equal((await context.cookies(api + "/api/account/setup")).some((c) => c.name === "checkout_setup"), false);
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
+  }, { signedIn: false, width: 390 });
+  await scenario("a lost exchange response recovers its cookie without another payment", async (page, context) => {
+    const input = { phone: "670040072", planId: "weekly", requestKey: portalKey() };
+    const purchase = await post("/api/purchase", input);
+    await post(`/api/payments/${purchase.json.payment.id}/confirm`, {});
+    await seedSavedCheckout(context, { requestKey: input.requestKey, planId: input.planId, paymentId: purchase.json.payment.id });
+    await page.route("**/api/account/setup/checkout", async (route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      await route.fetch(); await route.abort("failed");
+    });
+    await page.goto(`${portal}/onboarding.html`);
+    await page.getByRole("button", { name: "Resume saved payment" }).click();
+    await page.waitForURL("**/verify.html?setup=checkout");
+    await page.getByRole("button", { name: "Create PIN and continue" }).waitFor();
+    assert.equal(await savedCookie(context), undefined);
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
+  }, { signedIn: false });
+  await scenario("expired PIN handoff gives recovery guidance without restarting a charge", async (page, context) => {
+    const input = { phone: "670040073", planId: "weekly", requestKey: portalKey() };
+    const purchase = await post("/api/purchase", input);
+    await post(`/api/payments/${purchase.json.payment.id}/confirm`, {});
+    await seedSavedCheckout(context, { requestKey: input.requestKey, planId: input.planId, paymentId: purchase.json.payment.id });
+    await page.goto(`${portal}/onboarding.html`);
+    await page.getByRole("button", { name: "Resume saved payment" }).click();
+    await page.waitForURL("**/verify.html?setup=checkout");
+    await page.getByRole("button", { name: "Create PIN and continue" }).waitFor();
+    now = new Date(+now + 600000);
+    await page.reload();
+    await page.getByText(/Do not pay again/).first().waitFor();
+    assert.equal(await page.locator("#submitLabel").isDisabled(), true);
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
+    assert.equal((await store.snapshot()).customers.find((c) => c.phone === input.phone).pinHash, undefined);
+  }, { signedIn: false });
   console.log(`${checks} billing browser scenarios passed. Screenshots saved.`);
 } finally {
   await browser?.close(); await close(website); await close(adminSite); await close(server);

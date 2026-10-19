@@ -159,11 +159,11 @@ try {
     value: encodeURIComponent(JSON.stringify({ requestKey: browserGuestKey, planId: "weekly", paymentId: browserGuest.id })) }]);
   await page.goto(`${portal}/onboarding.html`);
   const statusRequest = page.waitForRequest((request) =>
-    request.url().endsWith(`/payments/${browserGuest.id}/status`));
+    request.url().endsWith("/api/account/setup/checkout") && request.method() === "POST");
   await page.getByRole("button", { name: "Resume saved payment" }).click();
   const request = await statusRequest;
-  assert.equal(request.headers()["x-checkout-key"], browserGuestKey);
-  await page.waitForURL("**/verify.html?setup=pin");
+  assert.equal(request.postDataJSON().requestKey, browserGuestKey);
+  await page.waitForURL("**/verify.html?setup=checkout");
   assert.equal(await page.locator("#title").textContent(), "Create your PIN.");
   await page.getByLabel("Create PIN", { exact: true }).fill("2468");
   await page.getByLabel("Confirm PIN", { exact: true }).fill("2468");

@@ -1,20 +1,22 @@
 import { ApiError, showError } from "./errors.js";
 import { afterSignInPath } from "./hotspot-path.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { formValues, sessionStore, markReady } from "./compat.js";
+import { formValues, sessionStore, markReady, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { completeSignIn } from "./sign-in-request.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
-  saved = sessionStore.get("ndahi-login-challenge");
+  saved = sessionStore.get("ndahi-login-challenge"),
+  checkoutSetup = new URLSearchParams(location.search).get("setup") === "checkout";
 let challenge = null;
 try { challenge = saved ? JSON.parse(saved) : null; }
 catch (_) { sessionStore.remove("ndahi-login-challenge"); }
 if (!challenge || typeof challenge !== "object") {
   challenge = null;
-  location.replace("/login");
+  if (!checkoutSetup) location.replace("/login");
 }
-if (challenge) {
+function configureChallenge() {
+  if (!challenge) return;
   if (challenge.setupPin) {
     $("#step").textContent = "Account setup";
     $("#title").textContent = "Create your PIN.";
@@ -54,12 +56,13 @@ $("#verify").onsubmit = async (event) => {
   try {
     await runButton(button, "Verifying…", async () => {
       $("#message").textContent = "";
+      if (!challenge) throw new ApiError(401, "Setup access is unavailable. Sign in again or contact support.");
       const form = formValues(event.target);
       if (challenge.setupPin && form.pin !== form.confirmPin) {
         throw new ApiError(400, "PIN entries do not match.");
       }
       await completeSignIn(api, challenge.setupPin ? "/api/account/setup/pin" : "/api/account/login/verify-authenticator",
-        challenge.setupPin ? { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin }
+        challenge.setupPin ? (challenge.checkoutSetup ? { checkoutSetup: true, pin: form.pin, confirmPin: form.confirmPin } : { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin })
           : usingRecoveryCode ? { challengeId: challenge.challengeId, recoveryCode: form.recoveryCode }
             : { challengeId: challenge.challengeId, otp: form.otp }, challenge.phone);
       sessionStore.remove("ndahi-login-challenge");
@@ -70,4 +73,20 @@ $("#verify").onsubmit = async (event) => {
   }
 };
 
-if (challenge) { $("#submitLabel").disabled = false; markReady(); }
+if (checkoutSetup) {
+  sessionStore.remove("ndahi-login-challenge");
+  challenge = null;
+  $("#useRecoveryCode").hidden = true;
+  requestJson(api + "/api/account/setup/checkout", { credentials: "include", cache: "no-store" }).then(function (result) {
+    if (!result.response.ok) throw new ApiError(result.response.status, result.body.error || "Setup access has expired.");
+    challenge = { checkoutSetup: true, setupPin: true, phone: result.body.phone, expiresAt: result.body.expiresAt };
+    configureChallenge(); $("#submitLabel").disabled = false; markReady();
+  }).catch(function (error) {
+    $("#title").textContent = "Finish account setup";
+    $("#instructions").textContent = "Sign in with your PIN or voucher, or contact support if setup access expired. Do not pay again.";
+    showError($("#message"), error);
+  });
+} else {
+  configureChallenge();
+  if (challenge) { $("#submitLabel").disabled = false; markReady(); }
+}

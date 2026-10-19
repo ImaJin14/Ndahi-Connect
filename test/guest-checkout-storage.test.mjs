@@ -61,14 +61,14 @@ test("BILL-006 a paid guest key stops disclosing the access code once this purch
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
 });
 
-test("BILL-006 a paid guest key expires a day after confirmation without PIN setup", async (t) => {
+test("BILL-006 a paid guest key expires at the checkout deadline without PIN setup", async (t) => {
   let time = new Date("2026-10-19T08:00:00Z");
   const f = await fixture(t, { now: () => time }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
   await f.call(`/api/payments/${id}/confirm`, "POST");
-  time = new Date(+time + 23 * 3600000);
+  time = new Date(+time + 419999);
   assert.equal((await status(f, id, input.requestKey)).response.status, 200);
-  time = new Date(+time + 3600000 + 60000);
+  time = new Date(+time + 1);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
 });
@@ -88,19 +88,16 @@ test("BILL-006 an existing customer with a PIN still sees a guest purchase confi
   assert.equal(confirmed.json.payment.status, "paid");
 });
 
-test("BILL-006 an unpaid key works until its closed payment can no longer settle late", async (t) => {
+test("BILL-006 an unpaid key expires with checkout rather than the financial polling window", async (t) => {
   let time = new Date("2026-10-19T08:00:00Z");
   const f = await fixture(t, { now: () => time }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
-  time = new Date(+time + 8 * 60000);
-  const closed = await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey });
-  assert.equal(closed.response.status, 200);
-  assert.equal(closed.json.payment.status, "expired");
-  time = new Date(+time + 23 * 3600000);
-  assert.equal((await status(f, id, input.requestKey)).json.payment.status, "expired");
-  time = new Date(+time + 3600000 + 60000);
+  time = new Date(+time + 419999);
+  assert.equal((await status(f, id, input.requestKey)).response.status, 200);
+  time = new Date(+time + 1);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
+  assert.equal((await f.store.snapshot()).payments[0].status, "pending", "credential expiry does not invent a financial outcome");
 });
 
 // Privacy boundaries: a number and a guest checkout key do not prove ownership of
@@ -158,15 +155,15 @@ test("an authenticated checkout key cannot be used for anonymous recovery or sta
   assert.equal((await f.call(`/api/account/payments/${next.json.payment.id}/status`, "GET", null, { cookie })).response.status, 200);
 });
 
-test("paid guest key lifetime stays 24 hours when financial polling is configured shorter or longer", async (t) => {
+test("paid guest key expires with its request regardless of the financial polling window", async (t) => {
   for (const hours of [1, 48]) {
     let time = new Date("2030-01-01T08:00:00Z");
     const f = await fixture(t, { now: () => time, env: { PAYMENT_LATE_CHECK_HOURS: String(hours) } }), input = guest();
     const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
     await f.call(`/api/payments/${id}/confirm`, "POST");
-    time = new Date(+time + 23 * 3600000);
+    time = new Date(+time + 419999);
     assert.equal((await status(f, id, input.requestKey)).response.status, 200);
-    time = new Date(+time + 3600000);
+    time = new Date(+time + 1);
     assert.equal((await status(f, id, input.requestKey)).response.status, 404);
     const unavailable = await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey });
     assert.equal(unavailable.response.status, 404);
@@ -180,7 +177,7 @@ test("an unpaid guest key has a hard expiry even if no worker ever closes the ch
   let time = new Date("2030-01-01T08:00:00Z");
   const f = await fixture(t, { now: () => time, env: { PAYMENT_LATE_CHECK_HOURS: "48" } }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
-  time = new Date(+time + 25 * 3600000);
+  time = new Date(+time + 420000);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
   assert.equal((await f.store.snapshot()).payments[0].status, "pending", "access expiry alone does not invent a financial outcome");

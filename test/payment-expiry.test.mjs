@@ -251,15 +251,17 @@ test("late checks stop after 24 hours, and an expired reservation is never sent"
   assert.ok(f.lines.some((l) => l.event === "payment.checkout_expired" && l.state === "never_submitted"));
 });
 
-test('checking payment status closes a timed-out checkout without waiting for the worker', async t => {
+test('an expired guest key cannot read status even before the worker closes checkout', async t => {
   const f = await fixture(t);
   const id = (await f.purchase('status-expiry')).body.payment.id;
   f.advance(421);
   const response = await fetch(`${f.base}/api/payments/${id}/status`, {
     headers: { "x-checkout-key": "status-expiry" },
   });
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).payment.status, 'expired');
+  assert.equal(response.status, 404);
+  assert.equal((await f.payment(id)).status, 'pending');
+  await f.handler.billing.run();
+  assert.equal((await f.payment(id)).status, 'expired');
 });
 
 test('closed never-submitted reservations do not consume the worker batch', async t => {
@@ -276,7 +278,7 @@ test('closed never-submitted reservations do not consume the worker batch', asyn
   assert.equal(f.calls.verify, 1);
 });
 
-test('saved guest recovery closes an expired order without submitting another charge', async t => {
+test('saved guest recovery refuses expired access without submitting another charge', async t => {
   const f = await fixture(t);
   const id = (await f.purchase('recover-expiry')).body.payment.id;
   const creates = f.calls.create;
@@ -285,10 +287,9 @@ test('saved guest recovery closes an expired order without submitting another ch
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ phone: '670040001', requestKey: 'recover-expiry' }),
   });
-  assert.equal(response.status, 200);
-  const body = await response.json();
-  assert.equal(body.payment.id, id);
-  assert.equal(body.payment.status, 'expired');
+  assert.equal(response.status, 404);
+  assert.match((await response.json()).error, /unavailable or expired/);
+  assert.equal((await f.payment(id)).status, 'pending');
   assert.equal(f.calls.create, creates);
   const missing = await fetch(`${f.base}/api/purchase/recover`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
