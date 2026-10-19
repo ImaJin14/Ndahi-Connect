@@ -24,3 +24,7 @@
 .help-page{max-width:840px;margin:auto;padding:36px 20px}.help-page .surface{margin:24px 0}.help-page details{padding:18px 0;border-bottom:1px solid var(--line)}.help-page summary{font-weight:700;cursor:pointer;line-height:1.5}.help-page p{line-height:1.65}.help-link{text-align:center;margin:24px 0}.payment-clock{font-weight:700;font-variant-numeric:tabular-nums}.welcome-name{overflow-wrap:anywhere}#changeName{max-width:520px}.payment-reference{overflow-wrap:anywhere}.payment-help{display:block;margin:8px 0}
 
 #accountRecovery form{max-width:520px;margin:20px 0}#accountBackupOutput code{overflow-wrap:anywhere;word-break:break-all}.security-notice{border-top:1px solid var(--line);padding:16px 0}.security-notice h3{font-size:17px}#otherRecovery details{margin:24px 0}#otherRecovery p{line-height:1.6}
+
+/* Device hostnames can contain long, unbroken client-supplied labels. */
+.device > div { min-width: 0; overflow-wrap: anywhere; }
+[data-main-proof] select { max-width: 100%; }

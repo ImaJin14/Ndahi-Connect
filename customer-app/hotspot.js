@@ -2,11 +2,12 @@ import { ApiError, responseError, saveReturnPath, showError } from "./errors.js"
 import { runButton } from "/shared/pending.js";
 import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
 import { requestJson, markReady } from "./compat.js";
+import { mountDeviceControls } from "./device-controls.js";
 
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);
-let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll;
+let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll, controlsMounted = false;
 try {
   const next = new URL(params.get("next") || "/dashboard", location.origin);
   if (next.origin === location.origin && !/^\/(?:hotspot|login)(?:[/.]|$)/.test(next.pathname)) destination = next;
@@ -74,6 +75,17 @@ async function refreshDevices(explain = false) {
   if (explain && !allSlotsInUse(result.body)) return;
   devices.innerHTML = wifiDeviceList(result.body);
   devices.hidden = false;
+  if (!controlsMounted) {
+    controlsMounted = true;
+    const container = document.getElementById("deviceManagement");
+    container.hidden = false;
+    void mountDeviceControls({ container, call: async (path, options = {}) => {
+      const reply = await requestJson(config.apiUrl + path, { credentials: "include", ...options,
+        headers: { "content-type": "application/json", "x-csrf-token": csrfToken } });
+      if (!reply.response.ok) throw responseError(reply.response, reply.body);
+      return reply.body;
+    }, onChanged: () => refreshDevices() });
+  }
   if (explain) message.textContent = `All ${result.body.deviceLimit} device slots on your bundle are in use. Disconnect a device below, then tap Connect to Wi-Fi after confirmation.`;
   clearTimeout(devicePoll);
   devicePoll = setTimeout(async () => {

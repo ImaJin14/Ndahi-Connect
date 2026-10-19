@@ -57,7 +57,7 @@ test("Hotspot usage adds live sessions to logout-updated user counters", async (
     ];
   };
   const usage = await router.readUsage();
-  assert.deepEqual(reads, ["ip/hotspot/user", "ip/hotspot/active"]);
+  assert.deepEqual(reads, ["ip/dhcp-server/lease", "ip/hotspot/user", "ip/hotspot/active"]);
   assert.deepEqual(usage, [
     { voucherId: "v1", usedBytes: 190, devices: [
       { mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 30, sessionId: null, startedAt: "2030-01-01T00:06:00.000Z" },
