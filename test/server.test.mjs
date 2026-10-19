@@ -41,7 +41,7 @@ test("client IP resolution trusts only Render's protected client header", () => 
 });
 test("edge limits cover every unauthenticated authentication flow", () => {
   assert.deepEqual(new Set(Object.values(authEdgeScopes)), new Set([
-    "customer-auth", "pin-reset", "admin-auth",
+    "customer-auth", "pin-reset", "admin-auth", "wifi-pairing",
   ]));
   for (const path of [
     "/api/vouchers/redeem",
@@ -67,6 +67,8 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/device-management/disconnect/options",
     "/api/account/device-management/main",
     "/api/account/device-management/main/options",
+    "/api/account/device-management/pairing/approve",
+    "/api/account/device-management/pairing/decline",
     "/api/account/devices/connect",
     "/api/account/devices/disconnect",
     "/api/account/logout",

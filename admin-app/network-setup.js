@@ -29,6 +29,7 @@ export async function mountNetworkSetup(root, call) {
     </form></div>
     <div id="networkInventory" aria-live="polite"></div>
     <section><h3>Voucher enforcement</h3><p id="networkEnforcementStatus"></p><p>Activate a tested hotspot to send vouchers, quotas, and expiry limits to this router. A hotspot configured manually is checked for HTTPS login, guest DHCP, clock synchronization, and scheduler support before activation. Individual device disconnection requires a trusted hotspot MAC mapping; browser device IDs are not sufficient.</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> I tested Wi-Fi, hotspot login and internet access, and verified the router clock is synchronized.</label><button type="button" id="networkActivate" disabled>Use saved router for vouchers</button></section>
+    <section><h3>Assisted device connections</h3><p id="networkPairingStatus"></p><p>Allow customers to request a five-minute code and approve it from their main device. Verify that a device without active data can open the portal and API before enabling this pilot.</p><label class="network-checkbox"><input type="checkbox" id="networkPairingTested"> I verified portal access before Wi-Fi login and will test pairing and device limits on site.</label><button type="button" id="networkPairingEnable">Enable assisted connections</button><button type="button" id="networkPairingDisable" class="secondary-action">Disable assisted connections</button><p>Disabling stops new requests and approvals. Devices already connected keep their current Wi-Fi sessions.</p></section>
     <div class="network-setup-grid">
     <form id="networkRouterConfig"><h3>2. Configure hotspot</h3>
       <label>Internet uplink<select name="wan" required><option value="">Discover router first</option></select></label>
@@ -64,6 +65,8 @@ export async function mountNetworkSetup(root, call) {
       if (button.id === "networkActivate" && state) {
         button.disabled = isPending(button) || state.runtimeRouterEnabled || !state.enabled;
       }
+      if (button.id === "networkPairingEnable" && state) button.disabled = isPending(button) || state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
+      if (button.id === "networkPairingDisable" && state) button.disabled = isPending(button) || !state.assistedConnectionsEnabled;
     }
   }
   function renderPreview(job) {
@@ -90,6 +93,9 @@ export async function mountNetworkSetup(root, call) {
     $("#networkPrerequisites").textContent = !state.encryptionReady ? "Server setup required: configure NETWORK_CONFIG_KEY before saving connections." : `Live provisioning ${state.enabled ? "enabled" : "disabled"}. Approved management addresses: ${state.allowedOrigins.join(", ") || "none — configure NETWORK_ALLOWED_ORIGINS on the server"}.`;
     $("#networkEnforcementStatus").textContent = state.runtimeRouterEnabled ? "The saved router is active for voucher enforcement." : "Voucher operations currently use the existing server integration.";
     $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
+    $("#networkPairingStatus").textContent = state.assistedConnectionsEnabled ? "Assisted connections are enabled for the saved router." : "Assisted connections are disabled. Voucher and PIN login remains available.";
+    $("#networkPairingEnable").disabled = state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
+    $("#networkPairingDisable").disabled = !state.assistedConnectionsEnabled;
     if (state.omadaStandalone) {
       for (const id of ["#networkOmadaConnection", "#networkWifiConfig", "#networkAdopt"]) $(id).querySelectorAll("input, select, button").forEach((control) => { control.disabled = true; });
       $("#networkOmadaNote").hidden = false;
@@ -153,6 +159,14 @@ export async function mountNetworkSetup(root, call) {
     message("Saved router activated. New voucher commands now use this connection."); await refresh();
   });
   $("#networkRefresh").onclick = () => busy($("#networkRefresh"), refresh);
+  $("#networkPairingEnable").onclick = () => busy($("#networkPairingEnable"), async () => {
+    await request("assisted-connections", { enabled: true, tested: $("#networkPairingTested").checked });
+    message("Assisted connection pilot enabled. Test a new device before wider use."); await refresh();
+  });
+  $("#networkPairingDisable").onclick = () => busy($("#networkPairingDisable"), async () => {
+    await request("assisted-connections", { enabled: false });
+    message("New assisted connections disabled."); await refresh();
+  });
   $("#networkPurchaseCheck").onclick = () => busy($("#networkPurchaseCheck"), async () => {
     const target = $("#networkPurchaseReport");
     target.setAttribute("aria-busy", "true");

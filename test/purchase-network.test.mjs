@@ -59,7 +59,9 @@ test("prepared captive-portal entry pages show bundles before login, while route
   for (const name of ["login.html", "rlogin.html"]) {
     const html = await readFile(join(directory, name), "utf8");
     assert.match(html, /https:\/\/portal.example.test\/onboarding.html/);
+    assert.match(html, /\?mac=\$\(mac\)&amp;address=\$\(ip\)/);
     assert.doesNotMatch(html, /https:\/\/portal.example.test\/login/);
   }
   assert.match(await readFile(join(directory, "flogin.html"), "utf8"), /\/hotspot\?router-error=1/);
+  assert.match(await readFile(join(directory, "flogin.html"), "utf8"), /&amp;mac=\$\(mac\)&amp;address=\$\(ip\)/);
 });

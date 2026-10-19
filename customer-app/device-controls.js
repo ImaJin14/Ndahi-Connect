@@ -2,6 +2,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { formValues, loadPasskeys } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { showError } from "./errors.js";
+import { mountPairingControls } from "./wifi-pairing.js";
 
 export async function mountDeviceControls({ container, call, onChanged }) {
   if (!container) return;
@@ -12,7 +13,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     info = await call("/api/account/device-management");
     const main = info.mainDevice;
     container.innerHTML = `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
-      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div>`;
+      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>`;
     container.appendChild(message);
   } catch (error) {
     container.textContent = "Main-device controls could not load. Refresh to try again.";
@@ -65,6 +66,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     form.scrollIntoView({ block: "nearest" });
   }
   container.querySelector("[data-select-main]").onclick = () => showProof(null, false).catch((error) => showError(message, error));
+  void mountPairingControls({ container: container.querySelector("[data-pairing-controls]"), call });
   container.closest("section").addEventListener("click", (event) => {
     const button = event.target.closest("[data-main-disconnect]");
     if (button) void showProof(button.dataset.mainDisconnect, true).catch((error) => showError(message, error));

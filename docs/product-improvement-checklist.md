@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-19
+Last reviewed: 2026-10-20
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -933,4 +933,10 @@ job; production installation, named responders and incident exercises remain pen
   - Implemented: audited admin provider payment verification past the 24-hour cutoff (`POST /api/admin/payments/verify`), 1-minute rate-limiting with busy outcome, admin dashboard payment records "Check provider" action, and reconciliation reporting of expired/cancelled orders found paid as `settlement_missing`.
   - Verification: regressions covering cutoff bypass, throttling, settlement activation, audit events, and reconciler issue classification.
 
-These are four additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md) and [account recovery and payment support](operations/account-recovery-payment-support.md). The broader tracker still distinguishes shipped implementation from verified production operation.
+- [-] **PORTAL-004 — Announced device names, main-device control and assisted Wi-Fi pairing**
+  - Implemented: the device's own DHCP name is matched to its actual MAC/IP; verified main-browser controls (PR #48) protect approval and main-device replacement. A guest can now request a six-digit, five-minute code, then receive Wi-Fi access after the main browser matches the name/MAC suffix and approves. Approval does not create an account session on the guest.
+  - Safety and recovery: fresh router mappings/readings, remaining data, bundle status and slot reservations are checked; the worker rechecks approval and the live router enforces its device profile and quota. Expired requests cannot replay; lost responses recover without duplicate requests/logins. Pairing traffic has a separate rate budget. Explicit owner enablement is disabled by default and tied to the verified saved router revision.
+  - Verification (2026-10-20): 531 automated tests passed, with 12 PostgreSQL-dependent tests skipped; syntax checks and the full customer/admin browser suite passed. Pairing API/router regressions cover CSRF, main replacement/PIN reset, stale host mappings, competing last-slot approvals, finite leases and expiry. Two independent Chromium browsers verify approval, decline, expiry, lost-response/reload recovery with storage blocked, escaped hostnames and 320px layouts.
+  - Remaining: deploy the reviewed pairing change, install regenerated router pages, verify pre-login API access, and run the physical Note 8/iPad Air 2/router pilot before enabling assisted connections. No production setting or physical router was changed by local validation. Runbook: [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md).
+
+These are five additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), and [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md). The broader tracker still distinguishes shipped implementation from verified production operation.

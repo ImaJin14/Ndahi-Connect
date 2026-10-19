@@ -7,6 +7,9 @@ import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
 import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
+import { configurePairingLink } from "./wifi-pairing.js";
+
+void configurePairingLink(document.getElementById("assistedConnectionLink"));
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
