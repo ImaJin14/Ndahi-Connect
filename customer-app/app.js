@@ -9,6 +9,7 @@ import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
 import { profileCard, nameCard, emailCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
 import { mountPhoneChange, mountEmailLink, mountNameChange } from "./profile.js";
+import { recoveryCard, mountAccountRecovery } from "./account-recovery.js";
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus } from "./usage-alerts.js";
@@ -243,6 +244,7 @@ async function load() {
     ${nameCard(result.customer)}
     ${profileCard(result.customer)}
     ${emailCard(result.customer)}
+    ${recoveryCard(result.customer, result.securityNotices)}
     <section class="surface full${securitySetup ? " security-setup" : ""}" data-portal-view="account" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator 2FA is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button><div id="mfaSetup"></div>'}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Sessions &amp; activity</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "Unknown location")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><h3>Recent sign-ins</h3>${security.recentLogins.length ? `<ul>${security.recentLogins.map((entry) => `<li>${h(loginLabels[entry.type] || entry.type)} · ${h(new Date(entry.at).toLocaleString())} · ${h(entry.ip || "Unknown location")}</li>`).join("")}</ul>` : "<p>No recent sign-in activity recorded.</p>"}</details></section>
     ${vouchersCard(result.vouchers)}
     <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
@@ -254,6 +256,7 @@ async function load() {
     await load();
     $("#dashboardMessage").innerHTML = '<div class="success">Account number updated. Your other portal sessions were signed out.</div>';
   } });
+  mountAccountRecovery({ call, customer: result.customer, onChanged: async () => { await load(); $("#dashboardMessage").textContent = "PIN changed. Other portal sessions and previous account backup codes were revoked."; } });
   mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
     await load();
     if (confirmed) $("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';
@@ -521,4 +524,4 @@ setInterval(() => {
 }, 15000);
 window.addEventListener("online", () => { void refreshPaymentRecords().catch(() => {}); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshPaymentRecords().catch(() => {}); });
-startUpdates();
+startUpdates({ isBusy: () => Boolean(document.querySelector("[data-sensitive-output]")) });
