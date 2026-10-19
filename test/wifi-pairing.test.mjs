@@ -136,6 +136,7 @@ test("a login started before expiry may finish bounded confirmation, but an aban
 
 test("status polling is bearer limited without exhausting the shared sign-in IP budget", async (t) => {
   const f = await fixture(t, { env: { AUTH_EDGE_CUSTOMER_MAX: "1" } }), r = await f.request();
+  assert.equal((await f.call(publicRoot + "/config", { id: r.body.request.id, key: "a".repeat(32) })).status, 405);
   assert.equal((await status(f, r)).status, 200); assert.equal((await status(f, r)).status, 429);
   for (let i = 0; i < 5; i++) { f.advance(2); assert.equal((await status(f, r)).status, 200); }
   assert.equal((await approve(f, r)).status, 202);
