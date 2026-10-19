@@ -81,7 +81,7 @@ try {
       await page.goto(`${portal}/preview`);
       await page.goto(`${portal}/onboarding.html?action=renew&plan=unlimited`);
       await page.locator('#plans[aria-busy="false"]').waitFor();
-      assert.equal(await page.locator(".hero").isVisible(), false);
+      assert.equal(await page.locator(".hero").count(), 0);
       assert.equal(await page.locator("[data-plan]").count(), 1);
       assert.equal(await page.locator("[data-plan]").getAttribute("data-plan"), "weekly");
       await page.screenshot({ path: `${screenshotDir}/renewal-desktop.png`, fullPage: true });
@@ -96,7 +96,7 @@ try {
       await page.getByRole("button", { name: /Request payment/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       assert.equal(requests.length, 1);
-      assert.equal(requests[0].email, undefined);
+      assert.equal(requests[0].email, "preview@example.test");
       assert.equal(requests[0].phone, undefined);
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL("**/dashboard");
@@ -125,7 +125,7 @@ try {
       await page.locator('[data-plan="monthly"]').click();
       assert.match(await page.locator("#checkoutPolicy").textContent(), /ends immediately.*do not carry over.*no prorated credit/s);
       await page.keyboard.press("Shift+Tab");
-      assert.equal(await page.locator("#requestPayment").evaluate((el) => el === document.activeElement), true);
+      assert.equal(await page.locator("#checkoutHelp").evaluate((el) => el === document.activeElement), true);
       await page.keyboard.press("Tab");
       assert.equal(await page.locator("#closeCheckout").evaluate((el) => el === document.activeElement), true);
       await noOverflow(page);
@@ -232,7 +232,7 @@ try {
       await page.route(`${api}/api/account/plan/purchase`, async (route) => {
         const response = await route.fetch(), body = await response.json();
         body.payment.status = "failed";
-        await store.transaction((state) => { state.payments[0].status = "failed"; });
+        await store.transaction((state) => { state.payments[0].status = "failed"; state.payments[0].providerFailedAt = new Date().toISOString(); });
         await route.fulfill({ response, json: body });
       });
       await page.getByRole("button", { name: "Review renewal" }).click();
@@ -242,6 +242,8 @@ try {
       assert.equal(await page.locator("#requestPayment").isEnabled(), true);
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await page.unroute(`${api}/api/account/plan/purchase`);
+      assert.equal(await page.locator('input[name="acknowledge"]').isChecked(), false, "a replacement renewal requires fresh consent");
+      await page.locator('input[name="acknowledge"]').check();
       await page.getByRole("button", { name: "Try again", exact: true }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       assert.equal((await store.snapshot()).payments.length, 3);
@@ -271,7 +273,7 @@ try {
       await context.clearCookies();
       await page.goto(`${portal}/onboarding.html`);
       await page.locator('#plans[aria-busy="false"]').waitFor();
-      assert.equal(await page.locator(".hero").isVisible(), true);
+      assert.equal(await page.locator(".hero").count(), 0);
       assert.equal(await page.locator("[data-plan]").count(), 8);
     });
     console.log(`${checks} browser scenarios passed. Screenshots: ${screenshotDir}`);

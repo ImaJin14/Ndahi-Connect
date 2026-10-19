@@ -44,6 +44,42 @@ try {
     catch (e) { await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw e; }
     finally { await context.close(); }
   }
+  await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
+    let attempts = 0, release;
+    const gate = new Promise((r) => { release = r; });
+    const report = { checkedAt: now.toISOString(), clientTestRequired: true,
+      findings: [{ label: "Before-login HTTPS", status: "review", detail: "No matching exception was found. <script>throw Error('unsafe')</script>" }],
+      targets: [{ host: "api.example.test", addresses: ["216.24.57.16"] }], readings: [],
+      nextStep: "Test an unpaid phone with mobile data off. Copy this report for support." };
+    await page.route("**/api/admin/network/setup/purchase-access", async (route) => {
+      assert.equal(route.request().method(), "POST");
+      assert.ok(route.request().headers()["x-csrf-token"]);
+      attempts++;
+      if (attempts === 1) { await gate; return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Router unavailable. Check the saved connection." }) }); }
+      return route.fulfill({ contentType: "application/json", body: JSON.stringify({ report }) });
+    });
+    await page.goto(`${admin}/dashboard#more`);
+    await page.getByRole("tab", { name: "Network setup", exact: true }).click();
+    const button = page.getByRole("button", { name: "Check purchase access", exact: true });
+    await button.click();
+    assert.equal(await page.locator("#networkPurchaseCheck").isDisabled(), true);
+    release();
+    await page.getByText("Router unavailable. Check the saved connection.", { exact: true }).waitFor();
+    await button.click();
+    await page.locator("#networkPurchaseReportText").waitFor();
+    assert.deepEqual(JSON.parse(await page.locator("#networkPurchaseReportText").inputValue()), report);
+    assert.equal(await page.locator("#networkPurchaseReport script").count(), 0);
+    await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (value) => { window.ndahiCopiedDiagnostics = value; } } }));
+    await page.getByRole("button", { name: "Copy diagnostic report", exact: true }).click();
+    assert.deepEqual(JSON.parse(await page.evaluate(() => window.ndahiCopiedDiagnostics)), report);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/purchase-diagnostics-320.png`, fullPage: true });
+    await page.getByRole("button", { name: "Close report", exact: true }).click();
+    assert.equal(await page.locator("#networkPurchaseReport[data-review-output]").count(), 0);
+    assert.equal(await page.locator("#networkPurchaseReport").textContent(), "");
+    assert.equal((await store.snapshot()).networkSetupJobs.length, 0);
+    assert.equal(attempts, 2);
+  }, { width: 320 });
   for (const width of [320, 390, 1280]) await scenario(`admin navigation, live count, Back and reload at ${width}px`, async (page) => {
     await page.goto(`${admin}/dashboard`);
     await page.locator("#activeSessionsMetric").waitFor();

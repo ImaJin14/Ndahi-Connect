@@ -3,7 +3,7 @@
   "name": "NDAHI Connect",
   "short_name": "NDAHI",
   "description": "Your NDAHI Wi-Fi bundle, data usage and connected devices.",
-  "start_url": "/dashboard",
+  "start_url": "/onboarding.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

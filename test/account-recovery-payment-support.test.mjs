@@ -225,9 +225,10 @@ test("AUTH-RECOVERY: owner customer support recovery approves time-limited token
 
 test("SECURITY-ALERT: replacing linked email sends alert to previousEmail", async (t) => {
   const deliveredAlerts = [];
+  let verificationCode;
   const emailMock = {
     configured: () => true,
-    async sendVerification() { return { messageId: "verify-1" }; },
+    async sendVerification({ code }) { verificationCode = code; return { messageId: "verify-1" }; },
     async sendSecurityAlert(msg) { deliveredAlerts.push(msg); return { messageId: "alert-1" }; },
   };
   const f = await fixture(t, { email: emailMock });
@@ -244,15 +245,11 @@ test("SECURITY-ALERT: replacing linked email sends alert to previousEmail", asyn
   const pending = state1.customers.find((c) => c.id === customerId).pendingEmail;
   assert.ok(pending);
 
-  // Confirm with correct code
-  const codeHash = pending.codeHash;
-  let matchingCode;
-  for (let c = 100000; c <= 999999; c++) {
-    if (hashSecret(String(c), pepper) === codeHash) { matchingCode = String(c); break; }
-  }
-  assert.ok(matchingCode);
+  // Use the code actually delivered, including codes with a leading zero.
+  assert.match(verificationCode, /^\d{6}$/);
+  assert.equal(hashSecret(verificationCode, pepper), pending.codeHash);
 
-  const confirm = await f.call("/api/account/profile/email/confirm", "POST", { code: matchingCode }, { headers: { "x-csrf-token": csrf } });
+  const confirm = await f.call("/api/account/profile/email/confirm", "POST", { code: verificationCode }, { headers: { "x-csrf-token": csrf } });
   assert.equal(confirm.response.status, 200);
 
   // Security alert queued with recipient = initial@example.test

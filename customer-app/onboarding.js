@@ -18,7 +18,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   upgradePurchase = pageParams.get("upgrade") === "1";
 let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePlans = [],
   paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false,
-  purchaseAccess = { allowed: true };
+  purchaseAccess = { allowed: false }, accessReady = false, checkingAccess = null, coverageError = false;
 
 fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
 async function call(path, options = {}) {
@@ -35,11 +35,41 @@ async function call(path, options = {}) {
 }
 const dailyBlocked = (plan) => plan.id === "daily" && account && account.dailyAvailability?.available !== true;
 function setPurchaseAccess(access) {
-  purchaseAccess = access || { allowed: true };
+  purchaseAccess = access && typeof access.allowed === "boolean" ? access : { allowed: false, message: "Connect to NDAHI Wi-Fi, then check again to purchase a bundle." };
   $("#purchaseAccessNotice").hidden = purchaseAccess.allowed;
   $("#purchaseAccessMessage").textContent = purchaseAccess.message || "";
 }
-$("#recheckPurchaseAccess").onclick = () => location.reload();
+// A phone can stay on mobile data until the user accepts Wi-Fi without internet.
+// Recheck that request's route in place: a reload would discard the checkout form.
+async function recheckPurchaseAccess() {
+  if (!accessReady) return;
+  if (checkingAccess) return checkingAccess;
+  checkingAccess = (async () => {
+    try {
+      setPurchaseAccess(await call("/api/purchase/access", { cache: "no-store" }));
+      if (purchaseAccess.allowed && coverageError && !paymentInProgress) {
+        coverageError = false;
+        $("#message").textContent = "Wi-Fi purchase access confirmed. Review your details, then request payment.";
+      }
+    }
+    catch { setPurchaseAccess({ allowed: false, message: "Could not check Wi-Fi access. Stay connected to NDAHI Wi-Fi and check again." }); }
+    finally {
+      renderPlans();
+      if (selected && !paymentInProgress && !creatingPayment) {
+        $("#requestPayment").disabled = !purchaseAccess.allowed;
+        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+      }
+    }
+  })();
+  try { await checkingAccess; } finally { checkingAccess = null; }
+}
+$("#recheckPurchaseAccess").onclick = (event) => runButton(event.currentTarget, "Checking…", recheckPurchaseAccess);
+const recheckWhenVisible = () => { if (document.visibilityState !== "hidden") void recheckPurchaseAccess(); };
+window.addEventListener("online", recheckWhenVisible);
+window.addEventListener("focus", recheckWhenVisible);
+window.addEventListener("pageshow", recheckWhenVisible);
+document.addEventListener("visibilitychange", recheckWhenVisible);
+setInterval(() => { if (!purchaseAccess.allowed) recheckWhenVisible(); }, 15000);
 function comparison(plan) {
   const current = account?.currentPlan?.plan;
   if (!current) return "";
@@ -77,7 +107,7 @@ function renderPlans() {
       ${accountAction === "switch" && (plan.quotaGb === null || account.currentPlan?.plan?.quotaGb === null) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
       ${accountAction ? `<p class="plan-policy">${h(policy(plan))}</p>` : ""}
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}
-      <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}${purchaseAccess.allowed ? "" : " purchaseAccessMessage"}" ${blocked || !purchaseAccess.allowed || paymentInProgress || creatingPayment ? "disabled" : ""}>${!purchaseAccess.allowed ? "Connect to NDAHI Wi-Fi" : blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>
+      <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}${purchaseAccess.allowed ? "" : " purchaseAccessMessage"}" ${!accessReady || blocked || !purchaseAccess.allowed || paymentInProgress || creatingPayment ? "disabled" : ""}>${!purchaseAccess.allowed ? "Connect to NDAHI Wi-Fi" : blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>
     </article>`;
   }).join("");
   $("#plans").setAttribute("aria-busy", "false");
@@ -132,6 +162,7 @@ async function initialize() {
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
   plans = cataloguePlans;
   paymentProvider = catalogue.paymentProvider;
+  if (!accountAction) renderPlans();
   $("#purchase").elements.email.required = paymentProvider === "flutterwave";
   if (paymentProvider === "flutterwave") {
     $("#emailLabel").textContent = "Payment contact email";
@@ -153,15 +184,20 @@ async function initialize() {
       }
       throw error;
     }
-    if (error.status !== 401) throw error;
+    if (error.status !== 401) {
+      notice("Packages are available, but your account could not load. Try again before starting a payment for your existing account.", false);
+      $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="retryAccount">Try again</button>');
+      $("#retryAccount").onclick = () => location.reload();
+      return;
+    }
   }
   if (accountAction) renderAccount();
-  else $(".hero").hidden = false;
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
     if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
       checkoutStore.get(key) === payment.requestKey) checkoutStore.remove(key);
   }
+  accessReady = true;
   renderPlans();
   if (!plans.length && !(accountAction === "renew" && !renewal?.eligible)) {
     notice(accountAction === "switch" ? "There are no alternative packages available right now." : "No packages are available right now.", Boolean(accountAction));
@@ -622,10 +658,11 @@ $("#purchase").onsubmit = async (event) => {
     }
     // The API answered and turned the request down, so there is nothing to resume later.
     if (!accountAction && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
-    if (error.code === "OUTSIDE_COVERAGE") setPurchaseAccess({ allowed: false, message: error.message });
+    coverageError = error.code === "OUTSIDE_COVERAGE";
+    if (coverageError) setPurchaseAccess({ allowed: false, message: error.message });
     showError($("#message"), error, {
       actions: [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
-        run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : purchaseAccess.allowed ? event.target.requestSubmit() : location.reload() }],
+        run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : purchaseAccess.allowed ? event.target.requestSubmit() : recheckPurchaseAccess() }],
     });
   } finally {
     creatingPayment = false;

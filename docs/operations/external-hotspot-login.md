@@ -36,7 +36,7 @@ without repeatedly submitting the same credentials automatically.
    three files. Keep the other files, including `api.json`, `alogin.html`, and
    `status.html`. Existing post-login handling must honor the supplied `dst`.
 7. Join guest Wi-Fi on a phone with mobile data disabled and no active HotSpot
-   login/cookie. The popup should redirect to the Render portal's `/login`.
+   login/cookie. The popup should redirect to the Render portal's `/onboarding.html`, showing bundles before login for new and returning visitors. Choose Customer login to access an existing account.
    Sign in with the customer phone/voucher and PIN; first-time customers create
    their PIN. The portal submits the voucher automatically to the router.
 8. Confirm a real HotSpot active session and internet access. Revoke the test

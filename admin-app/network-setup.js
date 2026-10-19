@@ -11,6 +11,7 @@ export async function mountNetworkSetup(root, call) {
   root.innerHTML = `<div class="section-heading"><div><p class="section-kicker">Network setup</p><h2>Connect and configure your equipment</h2></div></div>
     <p>Start with a wired management connection. Connect the server to your router and controller through a private tunnel, and enable their HTTPS management APIs.</p>
     <p id="networkPrerequisites" role="status">Checking setup…</p>
+    <section><h3>Buying with no active data</h3><p>Inspect the saved router's access rules and routes for the portal and API. This check does not change router settings. Users must be able to buy on NDAHI Wi-Fi before their first bundle and after their data runs out.</p><button type="button" id="networkPurchaseCheck">Check purchase access</button><div id="networkPurchaseReport" aria-live="polite"></div></section>
     <div class="network-setup-grid">
     <form id="networkRouterConnection"><h3>1. Connect MikroTik</h3>
       <label>Connection mode<select name="mode"><option value="live">Live equipment</option><option value="simulation">Simulation — no equipment changes</option></select></label>
@@ -152,5 +153,24 @@ export async function mountNetworkSetup(root, call) {
     message("Saved router activated. New voucher commands now use this connection."); await refresh();
   });
   $("#networkRefresh").onclick = () => busy($("#networkRefresh"), refresh);
+  $("#networkPurchaseCheck").onclick = () => busy($("#networkPurchaseCheck"), async () => {
+    const target = $("#networkPurchaseReport");
+    target.setAttribute("aria-busy", "true");
+    target.textContent = "Reading router configuration…";
+    try {
+      const { report } = await request("purchase-access");
+      if (stopped) return;
+      target.setAttribute("data-review-output", "");
+      target.innerHTML = `<p>Checked ${h(new Date(report.checkedAt).toLocaleString())}. No router changes made.</p><ul>${report.findings.map((f) => `<li><strong>${h(f.status === "configured" ? "Found" : "Review")}: ${h(f.label)}</strong> — ${h(f.detail)}</li>`).join("")}</ul><p>${h(report.nextStep)}</p><button type="button" id="networkCopyPurchaseReport">Copy diagnostic report</button><button type="button" id="networkClosePurchaseReport" class="secondary-action">Close report</button><label>Diagnostic report<textarea id="networkPurchaseReportText" readonly rows="8"></textarea></label>`;
+      $("#networkPurchaseReportText").value = JSON.stringify(report, null, 2);
+      $("#networkClosePurchaseReport").onclick = () => { target.replaceChildren(); target.removeAttribute("data-review-output"); };
+      $("#networkCopyPurchaseReport").onclick = () => busy($("#networkCopyPurchaseReport"), async () => {
+        const text = $("#networkPurchaseReportText");
+        try { await navigator.clipboard.writeText(text.value); message("Diagnostic report copied. You can share it with support."); }
+        catch { text.focus(); text.select(); message(document.execCommand("copy") ? "Diagnostic report copied." : "Select and copy the diagnostic report below."); }
+      });
+    } catch (error) { target.removeAttribute("data-review-output"); target.textContent = error.message || "Purchase access check unavailable. Verify the saved live router connection."; }
+    finally { target.removeAttribute("aria-busy"); }
+  });
   try { await refresh(); } catch (e) { message(e.message); }
 }

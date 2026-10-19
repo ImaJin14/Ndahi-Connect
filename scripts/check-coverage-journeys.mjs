@@ -80,6 +80,55 @@ try {
     await page.locator('[data-plan="weekly"]:enabled').waitFor();
     assert.equal(await page.locator("#purchaseAccessNotice").isHidden(), true);
   });
+  for (const signedIn of [false, true]) await scenario(`portal entry shows bundles first for ${signedIn ? "signed-in returning" : "signed-out returning"} visitors`, async (page) => {
+    await page.addInitScript(() => localStorage.setItem("ndahi-device", "returning-device"));
+    await page.goto(portal + "/");
+    await page.waitForURL(portal + "/onboarding.html");
+    await page.locator('[data-plan="weekly"]').waitFor();
+    assert.equal(await page.locator("#login").count(), 0);
+    assert.ok(await page.locator("[data-plan]").first().evaluate((el) => el.getBoundingClientRect().top < innerHeight), "bundles appear in the first screen");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/bundles-first-${signedIn ? "returning" : "guest"}.png`, fullPage: true });
+    await page.locator(".header-link").click();
+    await page.waitForURL(portal + (signedIn ? "/dashboard" : "/login"));
+    if (!signedIn) {
+      // Old installed shortcuts continue to use /dashboard. Expired sessions
+      // also get packages before the user chooses Sign in.
+      await page.goto(portal + "/dashboard");
+      await page.waitForURL(portal + "/onboarding.html");
+      await page.locator('[data-plan="weekly"]').waitFor();
+    }
+  }, { signedIn, address: inside, width: signedIn ? 390 : 320 });
+  await scenario("package prices remain visible when a returning account cannot load", async (page) => {
+    await page.route("**/api/account/dashboard", (route) => route.fulfill({ status: 503, contentType: "application/json",
+      headers: { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" }, body: JSON.stringify({ error: "Account unavailable" }) }));
+    await page.goto(portal + "/");
+    await page.getByText(/Packages are available, but your account could not load/).waitFor();
+    assert.ok(await page.locator("[data-plan]").count() > 0);
+    assert.equal(await page.locator("[data-plan]:enabled").count(), 0, "unknown pending account state cannot start a competing purchase");
+  });
+  await scenario("new unpaid Wi-Fi guests can request payment even when the browser reports no internet", async (page) => {
+    await page.addInitScript(() => Object.defineProperty(navigator, "onLine", { get: () => false }));
+    await page.goto(portal + "/");
+    await page.locator('[data-plan="weekly"]:enabled').click();
+    await page.locator('[name="name"]').fill("Unpaid Wi-Fi Guest");
+    await page.locator('[name="phone"]').fill("670041071");
+    await page.locator("#requestPayment").click();
+    await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
+    const state = await store.snapshot(), payment = state.payments.find((p) => p.payerPhone === "670041071");
+    assert.equal(payment.status, "pending");
+    assert.equal(state.vouchers.some((v) => v.customerId === payment.customerId), false, "no active voucher was needed to buy");
+    assert.equal(state.sessions.some((s) => s.customerId === payment.customerId), false, "no Wi-Fi login session was needed to buy");
+  }, { address: inside });
+  for (const status of ["expired", "exhausted"]) await scenario(`${status} Wi-Fi customers can renew with no passing data`, async (page) => {
+    await store.transaction((s) => { s.vouchers[0].status = status; if (status === "exhausted") s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
+    await page.goto(portal + "/onboarding.html?action=renew");
+    await page.locator('[data-plan="weekly"]:enabled').click();
+    await page.locator('[name="acknowledge"]').check();
+    await page.locator("#requestPayment").click();
+    await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
+  }, { signedIn: true, address: inside });
   await scenario("customers can read balances and receipts while renewals and switches require Wi-Fi", async (page) => {
     await page.goto(portal + "/dashboard");
     await page.getByText("Remaining", { exact: true }).waitFor();
@@ -109,7 +158,38 @@ try {
     assert.equal((await store.snapshot()).payments.length, baseline.payments.length);
     await page.locator("#closeCheckout").click();
     await page.locator("#purchaseAccessNotice").waitFor({ state: "visible" });
+    const navigation = await page.evaluate(() => performance.timeOrigin);
+    changeAddress(inside);
+    await page.locator("#recheckPurchaseAccess").click();
+    await page.locator('[data-plan="weekly"]:enabled').waitFor();
+    assert.equal(await page.evaluate(() => performance.timeOrigin), navigation, "rechecking Wi-Fi must not reload away the form");
+    await page.locator('[data-plan="weekly"]').click();
+    assert.equal(await page.locator('[name="name"]').inputValue(), "Coverage Guest");
+    assert.equal(await page.locator('[name="phone"]').inputValue(), "670041002");
+    await page.locator("#requestPayment").click();
+    await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
   }, { address: inside, width: 1440 });
+  await scenario("returning from Wi-Fi settings rechecks access without a page reload or a charge", async (page, changeAddress) => {
+    await page.goto(portal + "/onboarding.html");
+    await page.locator("#purchaseAccessNotice").waitFor({ state: "visible" });
+    const navigation = await page.evaluate(() => performance.timeOrigin);
+    changeAddress(inside);
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await page.locator('[data-plan="weekly"]:enabled').waitFor();
+    assert.equal(await page.locator("#purchaseAccessNotice").isHidden(), true);
+    assert.equal(await page.evaluate(() => performance.timeOrigin), navigation);
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length);
+  });
+  await scenario("a failed connection recheck cannot leave a stale purchase permission enabled", async (page) => {
+    await page.goto(portal + "/onboarding.html");
+    await page.locator('[data-plan="weekly"]:enabled').waitFor();
+    await page.route("**/api/purchase/access", (route) => route.abort("failed"));
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await page.getByText(/Could not check Wi-Fi access/).waitFor();
+    assert.equal(await page.locator("[data-plan]:enabled").count(), 0);
+    assert.equal((await store.snapshot()).payments.length, baseline.payments.length);
+  }, { address: inside });
   await scenario("a pending renewal remains trackable off-network and can complete", async (page) => {
     const pending = await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", acknowledge: true, requestKey: "coverage-pending-renewal" }, { cookie });
     await page.goto(portal + "/onboarding.html?action=renew");

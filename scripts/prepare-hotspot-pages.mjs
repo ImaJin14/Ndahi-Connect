@@ -5,7 +5,7 @@ const portal = new URL(process.argv[2] || ""), output = process.argv[3];
 if (portal.protocol !== "https:" || portal.pathname !== "/" || portal.username || portal.password || portal.search || portal.hash || !output) {
   throw new Error("Usage: node scripts/prepare-hotspot-pages.mjs https://portal.example.com /path/to/output");
 }
-const login = `${portal.origin}/login`, retry = `${portal.origin}/hotspot?router-error=1`,
+const login = `${portal.origin}/onboarding.html`, retry = `${portal.origin}/hotspot?router-error=1`,
   escape = (value) => value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;"),
   page = (target) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="refresh" content="0;url=${escape(target)}"><title>NDAHI Connect</title></head><body><p><a href="${escape(target)}">Open NDAHI Connect</a></p></body></html>

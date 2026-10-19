@@ -84,7 +84,7 @@ export function createStaticServer(
       return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind, supportEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail) ? supportEmail : "", supportPhone: /^\+?[0-9 ()-]{6,24}$/.test(supportPhone) ? supportPhone : "", ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
     }
     if (url.pathname === "/" || url.pathname === "/index.html") {
-      res.writeHead(302, { ...securityHeaders, location: "/login", "cache-control": "no-store" });
+      res.writeHead(302, { ...securityHeaders, location: kind === "customer" ? "/onboarding.html" : "/login", "cache-control": "no-store" });
       return res.end();
     }
     let path = url.pathname;

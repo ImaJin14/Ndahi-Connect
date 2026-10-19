@@ -97,7 +97,7 @@ try {
   await scenario('public FAQs work without login and open the requested answer with configured support', async (page, context) => {
     await context.clearCookies(); await page.goto(`${portal}/help#payment`);
     await page.getByRole('heading', { name: 'Frequently asked questions', exact: true }).waitFor();
-    assert.equal(await page.locator('details').count(), 12);
+    assert.equal(await page.locator('details').count(), 13);
     assert.equal(await page.locator('#payment').getAttribute('open'), '');
     await page.getByRole('link', { name: 'Email support: support@example.test', exact: true }).waitFor();
     assert.equal(await page.locator('a[href="tel:+237670000001"]').count(), 1);

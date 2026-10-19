@@ -77,7 +77,7 @@ test("plan browse, renew, and switch actions are grouped under one Manage plan a
   const dashboard = await source("customer-app/index.html"), app = await source("customer-app/app.js");
   assert.doesNotMatch(dashboard, /class="welcome"[\s\S]*?<a class="button"/,
     "the welcome banner must not carry its own competing plan-navigation button");
-  assert.equal((app.match(/onboarding\.html/g) || []).length, 3,
+  assert.equal((app.match(/href="\/onboarding\.html/g) || []).length, 3,
     "browse, renew, and switch must be the only onboarding links, all inside #managePlan");
   assert.match(app, /id="managePlan"[\s\S]*onboarding\.html[\s\S]*onboarding\.html\?action=switch/);
 });
