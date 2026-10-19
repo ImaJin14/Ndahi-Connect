@@ -134,9 +134,16 @@ test("setup API enforces owner authorization, CSRF, and no-store responses", asy
   assert.equal((await post(dashboard.csrfToken)).status, 200);
   const status = await fetch(base + "/api/admin/network/setup/status", { headers: { cookie } });
   assert.equal(status.headers.get("cache-control"), "no-store");
+  const pairing = (csrf, authenticated = true) => fetch(base + "/api/admin/network/setup/assisted-connections", { method: "POST",
+    headers: { ...(authenticated ? { cookie } : {}), "content-type": "application/json", "x-csrf-token": csrf || "" }, body: JSON.stringify({ enabled: false }) });
+  assert.equal((await pairing()).status, 403);
+  assert.equal((await pairing(dashboard.csrfToken)).status, 200);
+  assert.equal((await store.snapshot()).networkSetup.assistedConnections.enabled, false);
   await store.transaction((s) => { s.adminUsers.forEach((u) => { u.role = "operator"; }); s.adminSessions.forEach((v) => { v.role = "operator"; }); });
   assert.equal((await fetch(base + "/api/admin/network/setup/status", { headers: { cookie } })).status, 403);
   assert.equal((await fetch(base + "/api/admin/network/setup/status")).status, 401);
+  assert.equal((await pairing(dashboard.csrfToken)).status, 403);
+  assert.equal((await pairing(dashboard.csrfToken, false)).status, 401);
 });
 
 

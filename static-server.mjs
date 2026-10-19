@@ -92,6 +92,7 @@ export function createStaticServer(
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
     if (path === "/hotspot" && kind === "customer") path = "/hotspot.html";
+    if (path === "/pair" && kind === "customer") path = "/pair.html";
     if (path === "/forgot-pin") path = "/forgot-pin.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404, securityHeaders);
