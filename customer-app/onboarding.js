@@ -3,11 +3,12 @@ import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { durationLabel, dataLabel, classifyPlanChange, comparePlans, renewalEligibility } from "./plan-presentation.js";
 import { runButton } from "/shared/pending.js";
-import { formValues, localStore, sessionStore, randomId, requestJson } from "./compat.js";
+import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
+import { checkoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 
-const savedCheckoutKey = "ndahi-interrupted-checkout";
+migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA",
@@ -158,7 +159,7 @@ async function initialize() {
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
     if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
-      localStore.get(key) === payment.requestKey) localStore.remove(key);
+      checkoutStore.get(key) === payment.requestKey) checkoutStore.remove(key);
   }
   renderPlans();
   if (!plans.length && !(accountAction === "renew" && !renewal?.eligible)) {
@@ -180,7 +181,7 @@ async function initialize() {
           if (result.payment.status === "paid") return beginAccountSecurity(result);
           // A closed (expired) checkout no longer blocks a new payment.
           if (["failed", "refunded", "expired"].includes(result.payment.status)) {
-            localStore.remove(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
+            checkoutStore.remove(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
             location.reload();
           } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
         });
@@ -190,67 +191,104 @@ async function initialize() {
     };
     renderPlans();
   }
-  if (!pending && !accountAction) {
-    let saved;
-    try { saved = JSON.parse(localStore.get(savedCheckoutKey)); } catch { /* no saved checkout */ }
-    if (saved?.input?.requestKey) {
-      notice("An interrupted checkout is saved on this browser. Resume it before starting another payment.", false);
-      $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="resumeCheckout">Resume saved payment</button>');
-      paymentInProgress = { id: saved.paymentId };
-      renderPlans();
-      $("#resumeCheckout").onclick = async (event) => {
-        const button = event.currentTarget;
-        try {
-          await runButton(button, "Resuming…", async () => {
-            let created;
-            try { created = await call("/api/purchase/recover", { method: "POST", body: JSON.stringify(saved.input) }); }
-            catch (error) {
-              if (error.status !== 404) throw error;
-              // No durable reservation exists, so this original request has not reached the provider.
-              created = await call("/api/purchase", { method: "POST", body: JSON.stringify(saved.input) });
-            }
-            paymentInProgress = created.payment;
-    showPaymentDeadline(created.payment);
-            selected = cataloguePlans.find((p) => p.id === created.payment.planId) || created.payment.plan;
-            activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
-            checkoutTrigger = button;
-            showCheckout();
-            $("#selected").textContent = "Resume your payment";
-            // Prefilled so a closed checkout can be started again with one click.
-            for (const field of ["name", "phone", "email", "network"]) {
-              if (saved.input[field] && $("#purchase").elements[field]) $("#purchase").elements[field].value = saved.input[field];
-            }
-            $("#purchaseFields").disabled = true;
-            $("#message").textContent = "Checking your existing payment…";
-            if (!await checkPayment(created.payment.id, saved.input.phone)) {
-              $("#message").innerHTML = '<p>Approve the existing phone prompt, then recheck. Do not start another payment.</p><button type="button" id="resumeRecheck">Recheck payment</button>';
-              $("#resumeRecheck").onclick = (event) => runButton(event.currentTarget, "Checking…", () => waitForPayment(created.payment.id, saved.input.phone));
-              if (created.checkout.mode === "mock") {
-                $("#message").insertAdjacentHTML("beforeend", '<button type="button" id="resumeMock">Simulate payment approval</button>');
-                $("#resumeMock").onclick = async (event) => {
-                  try {
-                    await runButton(event.currentTarget, "Confirming…", async () => {
-                      const paid = await call(`/api/payments/${created.payment.id}/confirm`, { method: "POST", body: "{}" });
-                      await beginAccountSecurity(paid, saved.input.phone);
-                    }, { controls: [$("#resumeRecheck")] });
-                  } catch (error) { showError($("#message"), error, { actions: [{ label: "Check payment again", run: () => waitForPayment(created.payment.id, saved.input.phone) }] }); }
-                };
-              } else if (/^https:\/\//i.test(created.checkout.url || "")) {
-                $("#message").insertAdjacentHTML("beforeend", `<a href="${h(created.checkout.url)}" target="_blank" rel="noopener">Resume secure payment</a>`);
-              }
-            }
-          });
-        } catch (error) {
-          showError($("#checkout").hidden ? $("#planNotice") : $("#message"), error, {
-            actions: paymentInProgress ? [{ label: "Resume saved payment", run: () => button.click() }] : [],
-          });
-        }
-      };
-    }
-  }
+  if (!pending && !accountAction) await restoreSavedCheckout();
 
   const preferred = pageParams.get("plan");
   if (preferred && choose(preferred)) openCheckout(Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred));
+}
+function fillSavedDetails(details) {
+  for (const field of ["name", "phone", "email", "network"]) {
+    if (details?.[field] && $("#purchase").elements[field]) $("#purchase").elements[field].value = details[field];
+  }
+}
+// Recovery reads the saved reservation and never starts a charge. A key the API no
+// longer recognises cannot resume anything, so the device forgets it.
+async function recoverSavedCheckout(saved) {
+  try {
+    return await call("/api/purchase/recover", { method: "POST", body: JSON.stringify({ requestKey: saved.requestKey }) });
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    clearRequestKey();
+    paymentInProgress = undefined;
+    notice("We can no longer access the checkout saved on this device. This does not confirm whether money was deducted. Sign in to review your payments or contact support before paying again." +
+      (saved.paymentId ? ` Saved payment reference: ${saved.paymentId}.` : ""), false);
+    $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<a href="/dashboard#payments">Check payments</a><a href="/help#payment">Payment help</a>');
+    renderPlans();
+    return null;
+  }
+}
+// Checked on every visit, so a payment that closed while this device was away releases
+// the packages without the guest having to ask.
+async function restoreSavedCheckout() {
+  const saved = savedCheckout();
+  if (!saved) return;
+  activeRequestKey = `ndahi-payment-purchase-${saved.planId}`;
+  paymentInProgress = { id: saved.paymentId };
+  notice("Checking a payment saved on this device…", false);
+  renderPlans();
+  let recovered;
+  try { recovered = await recoverSavedCheckout(saved); }
+  catch { /* Offline or unavailable: keep the key so the payment can still be resumed. */ }
+  if (recovered === null) return;
+  if (recovered && ["failed", "refunded", "expired"].includes(recovered.payment.status)) {
+    clearRequestKey();
+    paymentInProgress = undefined;
+    fillSavedDetails(recovered.details);
+    notice(recovered.payment.failureReason || "Your previous payment did not complete. You can choose a package again.", false);
+    renderPlans();
+    return;
+  }
+  notice(recovered?.payment.status === "paid"
+    ? "A payment saved on this device was confirmed. Resume it to finish setting up your account."
+    : "An interrupted checkout is saved on this device. Resume it before starting another payment.", false);
+  $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="resumeCheckout">Resume saved payment</button>');
+  $("#resumeCheckout").onclick = (event) => {
+    // The first resume reuses this visit's check; any retry asks the API again.
+    const checked = recovered;
+    recovered = undefined;
+    return resumeSavedCheckout(event.currentTarget, saved, checked);
+  };
+}
+async function resumeSavedCheckout(button, saved, checked) {
+  try {
+    await runButton(button, "Resuming…", async () => {
+      const created = checked || await recoverSavedCheckout(saved);
+      if (!created) return;
+      const phone = created.details?.phone;
+      paymentInProgress = created.payment;
+      showPaymentDeadline(created.payment);
+      selected = cataloguePlans.find((p) => p.id === created.payment.planId) || created.payment.plan;
+      activeRequestKey = `ndahi-payment-purchase-${created.payment.planId}`;
+      checkoutTrigger = button;
+      showCheckout();
+      $("#selected").textContent = "Resume your payment";
+      // Prefilled so a closed checkout can be started again with one click.
+      fillSavedDetails(created.details);
+      $("#purchaseFields").disabled = true;
+      $("#message").textContent = "Checking your existing payment…";
+      if (!await checkPayment(created.payment.id, phone)) {
+        $("#message").innerHTML = '<p>Approve the existing phone prompt, then recheck. Do not start another payment.</p><button type="button" id="resumeRecheck">Recheck payment</button>';
+        $("#resumeRecheck").onclick = (event) => runButton(event.currentTarget, "Checking…", () => waitForPayment(created.payment.id, phone));
+        if (created.checkout.mode === "mock") {
+          $("#message").insertAdjacentHTML("beforeend", '<button type="button" id="resumeMock">Simulate payment approval</button>');
+          $("#resumeMock").onclick = async (event) => {
+            try {
+              await runButton(event.currentTarget, "Confirming…", async () => {
+                const paid = await call(`/api/payments/${created.payment.id}/confirm`, { method: "POST", body: "{}" });
+                await beginAccountSecurity(paid, phone);
+              }, { controls: [$("#resumeRecheck")] });
+            } catch (error) { showError($("#message"), error, { actions: [{ label: "Check payment again", run: () => waitForPayment(created.payment.id, phone) }] }); }
+          };
+        } else if (/^https:\/\//i.test(created.checkout.url || "")) {
+          $("#message").insertAdjacentHTML("beforeend", `<a href="${h(created.checkout.url)}" target="_blank" rel="noopener">Resume secure payment</a>`);
+        }
+      }
+    });
+  } catch (error) {
+    showError($("#checkout").hidden ? $("#planNotice") : $("#message"), error, {
+      actions: paymentInProgress ? [{ label: "Resume saved payment", run: () => button.click() }] : [],
+    });
+  }
 }
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
@@ -375,8 +413,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 function clearRequestKey() {
-  localStore.remove(savedCheckoutKey);
-  if (activeRequestKey) localStore.remove(activeRequestKey);
+  checkoutStore.remove(savedCheckoutKey);
+  if (activeRequestKey) checkoutStore.remove(activeRequestKey);
 }
 function releaseFailedPayment() {
   clearRequestKey();
@@ -413,11 +451,10 @@ async function checkPayment(paymentId, phone) {
   if (!accountAction) {
     checkoutKey = paymentInProgress?.id === paymentId ? paymentInProgress.requestKey : undefined;
     if (!checkoutKey) {
-      try {
-        checkoutKey = activeRequestKey && localStore.get(activeRequestKey);
-        const saved = JSON.parse(localStore.get(savedCheckoutKey));
-        if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.input?.requestKey;
-      } catch { /* The owner session or an in-memory checkout key may still permit recovery. */ }
+      // The owner session or an in-memory checkout key may still permit recovery.
+      checkoutKey = activeRequestKey && checkoutStore.get(activeRequestKey);
+      const saved = savedCheckout();
+      if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.requestKey;
     }
   }
   const status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
@@ -466,17 +503,19 @@ $("#purchase").onsubmit = async (event) => {
   try {
     const action = accountAction;
     activeRequestKey = `ndahi-payment-${action || "purchase"}-${selected.id}`;
-    let requestKey = localStore.get(activeRequestKey);
-    if (!requestKey) { requestKey = randomId(); localStore.set(activeRequestKey, requestKey); }
+    let requestKey = checkoutStore.get(activeRequestKey);
+    if (!requestKey) { requestKey = randomId(); checkoutStore.set(activeRequestKey, requestKey); }
     const input = { ...(action ? { network: purchaseInput.network, payerPhone: purchaseInput.payerPhone, email: purchaseInput.email } : purchaseInput), planId: selected.id, upgrade: upgradePurchase, action, requestKey };
-    if (!action) localStore.set(savedCheckoutKey, JSON.stringify({ input }));
+    // Saved before sending so a lost response can be resumed. Only the random key is kept;
+    // contact details stay in this page and the API returns them on recovery.
+    if (!action) checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey, planId: selected.id }));
     const created = await call(action ? "/api/account/plan/purchase" : "/api/purchase", {
       method: "POST",
       body: JSON.stringify(input),
     });
     paymentInProgress = created.payment;
     showPaymentDeadline(created.payment);
-    if (!action) localStore.set(savedCheckoutKey, JSON.stringify({ input, paymentId: created.payment.id }));
+    if (!action) checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey, planId: selected.id, paymentId: created.payment.id }));
     renderPlans();
     if (created.payment.status === "paid") {
       paymentWindow?.close();
@@ -512,7 +551,7 @@ $("#purchase").onsubmit = async (event) => {
     paymentWindow?.close();
     if (accountAction && !paymentInProgress && (["TimeoutError", "TypeError", "SyntaxError"].includes(error.name) || error.status >= 500)) {
       try {
-        const refreshed = await call("/api/account/dashboard"), requestKey = activeRequestKey && localStore.get(activeRequestKey);
+        const refreshed = await call("/api/account/dashboard"), requestKey = activeRequestKey && checkoutStore.get(activeRequestKey);
         const recorded = requestKey && refreshed.payments.find((payment) => payment.requestKey === requestKey);
         if (recorded) {
           paymentInProgress = recorded;
@@ -522,6 +561,8 @@ $("#purchase").onsubmit = async (event) => {
         }
       } catch (_) { /* Keep the original error and checkout key for recovery. */ }
     }
+    // The API answered and turned the request down, so there is nothing to resume later.
+    if (!accountAction && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
     if (error.code === "OUTSIDE_COVERAGE") setPurchaseAccess({ allowed: false, message: error.message });
     showError($("#message"), error, {
       actions: [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",

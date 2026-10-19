@@ -136,7 +136,8 @@ try {
 
   // Browser journey: resume a real paid guest checkout, complete PIN setup, and
   // keep the entire flow usable at a narrow mobile width.
-  const browserGuest = await purchase("670090004", "browser-paid-guest-key");
+  const browserGuestKey = "browser-paid-guest-key-0123456789abcdef";
+  const browserGuest = await purchase("670090004", browserGuestKey);
   const browserPaid = await call(`/api/payments/${browserGuest.id}/confirm`, { method: "POST" });
   assert.equal(browserPaid.response.status, 200, browserPaid.text);
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -153,22 +154,15 @@ try {
   const page = await pageContext.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  // The device keeps only the random key (BILL-006); the API supplies the rest.
+  await pageContext.addCookies([{ name: "ndahi-checkout", url: portal, sameSite: "Strict",
+    value: encodeURIComponent(JSON.stringify({ requestKey: browserGuestKey, planId: "weekly", paymentId: browserGuest.id })) }]);
   await page.goto(`${portal}/onboarding.html`);
-  await page.evaluate((saved) => {
-    localStorage.setItem("ndahi-interrupted-checkout", JSON.stringify(saved));
-  }, {
-    input: {
-      phone: "670090004", name: "Browser Paid Guest", email: "browser@example.test",
-      network: "mtn", planId: "weekly", requestKey: "browser-paid-guest-key",
-    },
-    paymentId: browserGuest.id,
-  });
-  await page.reload();
   const statusRequest = page.waitForRequest((request) =>
     request.url().endsWith(`/payments/${browserGuest.id}/status`));
   await page.getByRole("button", { name: "Resume saved payment" }).click();
   const request = await statusRequest;
-  assert.equal(request.headers()["x-checkout-key"], "browser-paid-guest-key");
+  assert.equal(request.headers()["x-checkout-key"], browserGuestKey);
   await page.waitForURL("**/verify.html?setup=pin");
   assert.equal(await page.locator("#title").textContent(), "Create your PIN.");
   await page.getByLabel("Create PIN", { exact: true }).fill("2468");
@@ -176,7 +170,7 @@ try {
   await page.getByRole("button", { name: "Create PIN and continue" }).click();
   await page.waitForURL("**/dashboard");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-interrupted-checkout")), null);
+  assert.equal((await pageContext.cookies(portal)).some((cookie) => cookie.name === "ndahi-checkout"), false);
   assert.deepEqual(errors, []);
   console.log("PASS TEST-001 status authorization and guest browser journey");
 } catch (error) {
