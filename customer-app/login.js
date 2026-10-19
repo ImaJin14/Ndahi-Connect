@@ -166,3 +166,7 @@ function inlineAuthenticator(challenge, phone) {
   };
   $("#inlineCode").focus();
 }
+
+if (new URLSearchParams(location.search).get("payment") === "confirmed") {
+  document.querySelector("#message").textContent = "Payment confirmed. Sign in with your account PIN to view your voucher and bundle.";
+}

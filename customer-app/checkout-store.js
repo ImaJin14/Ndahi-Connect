@@ -1,10 +1,12 @@
-// Checkout keys live in short-lived cookies rather than localStorage: the browser
-// deletes them on its own after a day, even if this device never opens the portal
-// again. They hold only random keys and IDs, never contact details, and the API stops
-// honouring a key once its payment no longer needs it (checkoutKeyActive in
-// lib/billing.mjs). Imported by sign-in pages, so it avoids newer syntax.
+// Request-bound cookies and memory, with no contact fields. The API is the
+// authority for expiry. Sign-in pages import this, so keep older-browser syntax.
 export const savedCheckoutKey = "ndahi-checkout";
-const lifetimeSeconds = 24 * 3600, legacySavedCheckout = "ndahi-interrupted-checkout", memory = {};
+const legacySavedCheckout = "ndahi-interrupted-checkout", memory = {};
+// A conservative migration fallback until the catalogue supplies its policy.
+let lifetimeMs = 60000;
+export function configureCheckoutStore(seconds) {
+  if (Number.isFinite(Number(seconds)) && Number(seconds) > 0) lifetimeMs = Number(seconds) * 1000;
+}
 
 function write(name, value, maxAge) {
   try {
@@ -22,15 +24,34 @@ function read(name) {
   } catch (_) { /* Unreadable cookies behave as absent. */ }
   return found;
 }
+function entry(name) {
+  const raw = read(name);
+  let record = raw === null ? memory[name] : null;
+  if (raw !== null) {
+    try { record = JSON.parse(raw); } catch (_) { /* Older cookies held raw keys. */ }
+    if (!record || typeof record.value !== "string" || !Number.isFinite(record.expiresAt)) {
+      record = { value: raw, expiresAt: Date.now() + lifetimeMs, legacy: true };
+      write(name, JSON.stringify(record), Math.floor(lifetimeMs / 1000));
+    }
+    memory[name] = record;
+  }
+  if (record && record.expiresAt <= Date.now()) { delete memory[name]; write(name, "", 0); return null; }
+  return record || null;
+}
 
 export const checkoutStore = {
   get: function (name) {
-    const value = read(name);
-    return value !== null ? value : memory[name] || null;
+    const record = entry(name);
+    return record ? record.value : null;
   },
-  set: function (name, value) {
-    memory[name] = String(value);
-    write(name, String(value), lifetimeSeconds);
+  set: function (name, value, options) {
+    options = options || {};
+    const existing = entry(name), requested = Number.isFinite(options.expiresAt) ? options.expiresAt : Date.now() + lifetimeMs;
+    const expiresAt = existing && !existing.legacy ? Math.min(existing.expiresAt, requested) : requested;
+    const record = { value: String(value), expiresAt: expiresAt };
+    if (options.legacy) record.legacy = true;
+    memory[name] = record;
+    write(name, JSON.stringify(record), Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)));
   },
   remove: function (name) {
     delete memory[name];
@@ -46,7 +67,7 @@ export function savedCheckout() {
 }
 
 // Earlier portal versions kept the guest's name, phone and email in localStorage with no
-// expiry. Keep only the random key and IDs, in a short-lived cookie, and delete the rest.
+// expiry. Keep only the random key and IDs; the first API reading supplies their deadline.
 export function migrateLegacyCheckout() {
   let storage;
   try { storage = window.localStorage; } catch (_) { return; }
@@ -60,11 +81,11 @@ export function migrateLegacyCheckout() {
         try { saved = JSON.parse(storage.getItem(name)); } catch (_) { /* Discard unreadable records. */ }
         const input = saved && saved.input;
         if (input && typeof input.requestKey === "string" && input.requestKey && !savedCheckout()) {
-          checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey: input.requestKey, planId: input.planId, paymentId: saved.paymentId }));
+          checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey: input.requestKey, planId: input.planId, paymentId: saved.paymentId }), { legacy: true });
         }
         storage.removeItem(name);
       } else if (name && name.indexOf("ndahi-payment-") === 0) {
-        if (!checkoutStore.get(name)) checkoutStore.set(name, storage.getItem(name));
+        if (!checkoutStore.get(name)) checkoutStore.set(name, storage.getItem(name), { legacy: true });
         storage.removeItem(name);
       }
     });

@@ -224,7 +224,7 @@ try {
     await page.locator('[name="phone"]').fill('670050188');
     assert.equal(await page.locator('[name="email"]').getAttribute('required'), null);
     await page.locator('#requestPayment').click(); await page.locator('#confirm').click();
-    await page.waitForURL('**/verify.html?setup=pin');
+    await page.waitForURL('**/verify.html?setup=checkout');
     await page.locator('#primary').fill('2468'); await page.locator('#confirm').fill('2468');
     await page.locator('#submitLabel').click(); await page.waitForURL('**/dashboard');
     await page.locator('[data-portal-tab="account"]').click(); await page.locator('#linkEmail').waitFor();

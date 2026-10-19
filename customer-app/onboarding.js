@@ -4,7 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { durationLabel, dataLabel, classifyPlanChange, comparePlans, renewalEligibility } from "./plan-presentation.js";
 import { runButton } from "/shared/pending.js";
 import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
-import { checkoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
+import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 
@@ -127,6 +127,7 @@ function renderAccount() {
 async function initialize() {
   if (accountAction && !["renew", "switch"].includes(accountAction)) throw Error("This plan action is unavailable. Return to your dashboard to choose a plan.");
   const catalogue = await call("/api/plans");
+  configureCheckoutStore(catalogue.checkoutWindowSeconds);
   setPurchaseAccess(catalogue.purchaseAccess);
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
   plans = cataloguePlans;
@@ -191,7 +192,16 @@ async function initialize() {
     };
     renderPlans();
   }
-  if (!pending && !accountAction) await restoreSavedCheckout();
+  if (!pending && !accountAction) {
+    const setup = await availableSetup();
+    if (setup) {
+      clearRequestKey(); paymentInProgress = { id: setup.paymentId, status: "paid" }; renderPlans();
+      notice("Payment confirmed. Finish creating your PIN to open your account.", false);
+      $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<a href="/verify.html?setup=checkout">Continue PIN setup</a>');
+      return;
+    }
+    await restoreSavedCheckout();
+  }
 
   const preferred = pageParams.get("plan");
   if (preferred && choose(preferred)) openCheckout(Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred));
@@ -201,13 +211,45 @@ function fillSavedDetails(details) {
     if (details?.[field] && $("#purchase").elements[field]) $("#purchase").elements[field].value = details[field];
   }
 }
+function bindCheckoutDeadline(payment) {
+  if (!payment || accountAction) return;
+  const remaining = Date.parse(payment.guestAccessExpiresAt) - Date.parse(payment.serverTime);
+  if (!Number.isFinite(remaining)) return;
+  const options = { expiresAt: Date.now() + Math.max(0, remaining) };
+  if (activeRequestKey && payment.requestKey) checkoutStore.set(activeRequestKey, payment.requestKey, options);
+  if (payment.requestKey) checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey: payment.requestKey, planId: payment.planId, paymentId: payment.id }), options);
+}
+async function availableSetup(paymentId) {
+  try {
+    const setup = await call("/api/account/setup/checkout");
+    return setup.mode === "setup" && (!paymentId || setup.paymentId === paymentId) ? setup : null;
+  } catch { return null; }
+}
+async function exchangeSetup(paymentId, requestKey) {
+  try { return await call("/api/account/setup/checkout", { method: "POST", body: JSON.stringify({ paymentId, requestKey }) }); }
+  catch (error) {
+    const recovered = await availableSetup(paymentId);
+    if (recovered) return recovered;
+    throw error;
+  }
+}
 // Recovery reads the saved reservation and never starts a charge. A key the API no
 // longer recognises cannot resume anything, so the device forgets it.
 async function recoverSavedCheckout(saved) {
   try {
-    return await call("/api/purchase/recover", { method: "POST", body: JSON.stringify({ requestKey: saved.requestKey }) });
+    const recovered = await call("/api/purchase/recover", { method: "POST", body: JSON.stringify({ requestKey: saved.requestKey }) });
+    bindCheckoutDeadline(recovered.payment);
+    return recovered;
   } catch (error) {
     if (error.status !== 404) throw error;
+    if (saved.paymentId && saved.requestKey) {
+      try {
+        const setup = await exchangeSetup(saved.paymentId, saved.requestKey);
+        clearRequestKey();
+        location.href = setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout";
+        return null;
+      } catch { /* Expired/unknown requests retain neutral payment guidance below. */ }
+    }
     clearRequestKey();
     paymentInProgress = undefined;
     notice("We can no longer access the checkout saved on this device. This does not confirm whether money was deducted. Sign in to review your payments or contact support before paying again." +
@@ -431,9 +473,9 @@ function releaseFailedPayment() {
   renderPlans();
 }
 async function beginAccountSecurity(paid, phone) {
-  clearRequestKey();
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
-  if (account) {
+  if (accountAction) {
+    clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
     location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? "/hotspot" : "/dashboard";
     return;
@@ -443,10 +485,17 @@ async function beginAccountSecurity(paid, phone) {
     : paid.email?.status === "needs_email" ? " Your voucher is ready. Link an email in Account to receive email updates."
     : " Your voucher is ready; email delivery will continue automatically.";
   $("#message").innerHTML = `<div class="success"><strong>Payment confirmed.</strong>${emailMessage}<br>Preparing your secure account...</div>`;
-  sessionStore.set("ndahi-login-challenge", JSON.stringify({ phone, code: paid.access.code, setupPin: true }));
-  location.href = "/verify.html?setup=pin";
+  const saved = savedCheckout(), requestKey = paid.payment.requestKey || paymentInProgress?.requestKey || saved?.requestKey;
+  const setup = await exchangeSetup(paid.payment.id, requestKey);
+  clearRequestKey();
+  sessionStore.remove("ndahi-login-challenge");
+  location.href = setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout";
 }
 async function checkPayment(paymentId, phone) {
+  if (!accountAction && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {
+    await beginAccountSecurity({ payment: paymentInProgress }, phone);
+    return true;
+  }
   let checkoutKey;
   if (!accountAction) {
     checkoutKey = paymentInProgress?.id === paymentId ? paymentInProgress.requestKey : undefined;
@@ -457,9 +506,19 @@ async function checkPayment(paymentId, phone) {
       if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.requestKey;
     }
   }
-  const status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
-    headers: checkoutKey ? { "x-checkout-key": checkoutKey } : {},
-  });
+  let status;
+  try {
+    status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
+      headers: checkoutKey ? { "x-checkout-key": checkoutKey } : {},
+    });
+  } catch (error) {
+    if (!accountAction && error.status === 404) {
+      releaseFailedPayment();
+      notice("Checkout access expired. Check your payments or contact support before paying again.", false);
+      throw new ApiError(404, `Checkout access has expired or is unavailable. This does not confirm whether money was deducted. Check your payments or contact support before paying again. Payment reference: ${paymentId}.`, "CHECKOUT_ACCESS_EXPIRED");
+    }
+    throw error;
+  }
   if (paymentInProgress?.id === paymentId) Object.assign(paymentInProgress, status.payment);
   showPaymentDeadline(status.payment);
   if (status.payment.status === "paid" && (accountAction || status.access?.code)) {
@@ -484,8 +543,8 @@ async function waitForPayment(paymentId, phone) {
     throw new ApiError(408, "Payment confirmation is taking longer than expected. Check this payment again before starting another.");
   } catch (error) {
     showError($("#message"), error, {
-      actions: [{ label: paymentInProgress ? "Check payment again" : "Try again",
-        run: () => paymentInProgress ? waitForPayment(paymentId, phone) : $("#purchase").requestSubmit() },
+      actions: [{ label: paymentInProgress ? "Check payment again" : "Check payments",
+        run: () => paymentInProgress ? waitForPayment(paymentId, phone) : location.assign("/dashboard#payments") },
         { label: "Back to packages", run: () => location.reload() }],
     });
   } finally { polling = false; }
@@ -515,7 +574,7 @@ $("#purchase").onsubmit = async (event) => {
     });
     paymentInProgress = created.payment;
     showPaymentDeadline(created.payment);
-    if (!action) checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey, planId: selected.id, paymentId: created.payment.id }));
+    if (!action) bindCheckoutDeadline(created.payment);
     renderPlans();
     if (created.payment.status === "paid") {
       paymentWindow?.close();

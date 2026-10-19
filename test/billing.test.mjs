@@ -169,7 +169,8 @@ test("BILL-001 mismatched verification cannot release or fulfill a payment; prov
   const p = (await f.call("/api/purchase", "POST", input())).json.payment;
   assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).json.payment.status, "pending");
   mismatch = false; time = new Date(+time + 6000);
-  assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).json.payment.status, "failed");
+  assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).response.status, 404);
+  assert.equal((await f.store.snapshot()).payments.find((x) => x.id === p.id).status, "failed");
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "new-confirmed-retry" }))).response.status, 201);
 });
 

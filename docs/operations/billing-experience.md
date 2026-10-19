@@ -21,17 +21,15 @@ create another order. Reusing a key for a different plan or
 action is rejected. Customers can recheck payments in the dashboard; authenticated
 checkout also discovers pending payments after browser storage is lost. Guest
 checkout saves only the random request key, plan and (once known) payment ID before
-sending the request, in an `ndahi-checkout` cookie (`Max-Age` 24 hours, `SameSite=Strict`,
+sending the request, in an `ndahi-checkout` cookie (`Max-Age` bounded by the request deadline, `SameSite=Strict`,
 `Secure` over HTTPS). The browser deletes it even if the device never opens the
 portal again; name, phone and email are never stored on the device. Per-plan
 `ndahi-payment-*` keys use the same cookies.
 
 Every visit to the packages page checks a saved key with `POST /api/purchase/recover`,
 which finds the reservation by key alone (portal keys are 32 random hex characters;
-shorter keys need the matching phone, as older portals send), closes it if its approval
-window has passed, and returns only the name, number, email and network supplied for that guest checkout. Existing account profile fields are never used to prefill an unauthenticated form; legacy payment records without a guest-detail snapshot return blank name/email. Guest payment contact/name snapshots also use the guest request, while authenticated purchases retain account defaults. It
-never initiates a charge. A closed payment is released automatically and the key
-forgotten; a pending or paid one offers **Resume saved payment**. If the API does not
+shorter keys need the matching phone, as older portals send), and returns only the name, number, email and network supplied for that guest checkout. Existing account profile fields are never used to prefill an unauthenticated form; legacy payment records without a guest-detail snapshot return blank name/email. Guest payment contact/name snapshots also use the guest request, while authenticated purchases retain account defaults. It
+never initiates a charge. Expired or closed access is forgotten; a pending or paid checkout within its request window offers **Resume saved payment**. If the API does not
 recognise the key, it is forgotten and the page explains that access may have expired: this does not establish whether money moved. It links to Payments and Help and retains any known payment reference on screen. Recovery never automatically starts a replacement charge.
 A request the API rejects is not saved. Recovery continues to work when the original
 package is discontinued. Records saved by earlier portal versions in localStorage are
@@ -41,7 +39,7 @@ packages visit.
 Guest status reads at `GET /api/payments/:id/status` require the private request key
 in `X-Checkout-Key`, or the payment owner's active session. An ID from a shared
 receipt does not authorize status access or disclose an activation code. The key
-has an independent hard limit of 24 hours from checkout creation, matching browser storage. Paid keys also stop working when this purchase's PIN setup completes; unpaid keys can stop earlier when their financial late-check window ends. Extending `PAYMENT_LATE_CHECK_HOURS` never extends guest credential lifetime, and worker outages cannot keep an old pending key valid. New authenticated checkouts require their owning account session and do not grant anonymous recovery through their request key. Afterwards status
+expires at the saved request deadline (`paymentClosesAt`, normally five minutes plus two minutes of grace). Never-submitted reservations expire at `paymentExpiresAt`. Legacy records use fixed five/two-minute fallbacks; later environment changes cannot extend their credentials. Keys also stop working on provider failure, closure, PIN completion or exchange for PIN setup. Financial late-payment checks retain their separate polling window; extending `PAYMENT_LATE_CHECK_HOURS` does not extend guest access. Worker outages cannot keep a key valid. Authenticated checkouts require their owning account session and do not grant anonymous recovery through a request key. Afterwards status
 and recovery with that key return 404. Deploy the API before the customer app for
 this change; the API still accepts phone + key from pages already open on older versions. Missing
 or incorrect proof returns 404 before provider verification or email work; the
@@ -50,10 +48,9 @@ to require the owner's session. Guests without their saved key can sign in or us
 their voucher email; historical payments without a key require the owner's session.
 Deploy the API and customer app together so guest polling sends the new header.
 
-When an expired guest payment is released, checkout shows the current package's
-price, allowances, validity, and payment rules before another request, retaining
-the saved customer details. If that package is no longer available, the customer
-must choose an eligible package before submitting another payment.
+A confirmed guest exchanges their key at `POST /api/account/setup/checkout` before the request deadline. The API revokes that key and sets a separate ten-minute HttpOnly, SameSite=Lax, Secure cookie scoped to `/api/account/setup`. It authorizes only PIN setup for the paid order's customer/voucher. Existing PIN accounts return to login; this flow cannot reset an existing PIN. The cookie survives reloads without storing voucher codes or contact details in browser storage, is consumed on PIN creation, and expires independently even if workers stop. Exchange retries reproduce the same cookie without extending expiry, and require the original key before its deadline. Stored grants contain a hash, never the cookie token. API replicas must share the customer session secret; the previous secret supports rotation during the short handoff.
+
+Expired checkout access shows neutral payment guidance, links to Payments/Help and any known reference. It never claims a payment failed or starts a replacement charge automatically. Details from expired requests are not recovered or prefilled. A customer explicitly choosing another package sees its current price, allowances, validity and rules before requesting another payment. Historical payments, receipts and voucher codes remain accessible to their authenticated owner.
 
 A clock timeout, missing provider transaction, or failed connection does not prove
 that no money moved. These results keep checkout blocked during its approval window
