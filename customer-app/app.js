@@ -33,7 +33,7 @@ async function call(path, options = {}) {
   const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
   if (response.status === 401 && result.code !== "VERIFICATION_FAILED") {
     saveReturnPath();
-    location.replace("/login");
+    location.replace("/onboarding.html");
     throw responseError(response, result);
   }
   if (!response.ok) throw responseError(response, result);

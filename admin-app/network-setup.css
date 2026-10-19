@@ -11,3 +11,5 @@
 .network-job{padding:18px 0;border-bottom:1px solid #d5ded8;overflow-wrap:anywhere}.network-job button{margin:8px 8px 0 0}
 #networkPreview,#networkRecovery{padding:20px;border:2px solid #49765e;border-radius:12px;margin:20px 0}
 @media(max-width:720px){.network-setup-grid{grid-template-columns:1fr}.network-setup-grid form,#networkAdopt{padding:14px}}
+#networkPurchaseReport { overflow-wrap: anywhere; }
+#networkPurchaseReportText { width: 100%; max-width: 100%; min-width: 0; }

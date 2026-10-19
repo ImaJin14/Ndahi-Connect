@@ -1,8 +1,6 @@
 .packages-page { background: #f7f9f8; }
 .packages-page .content { max-width: 1280px; }
 .packages-page .eyebrow { color: var(--forest); letter-spacing: 0; }
-.packages-page .hero .eyebrow { color: var(--lime); }
-.packages-page .hero h1 { font-size: 56px; letter-spacing: 0; }
 .packages-page .grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 16px; border: 0; border-radius: 0; background: transparent; overflow: visible; }
 .packages-page .plan, .packages-page .plan:nth-child(n) { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 20px; background: #fff; }
 .packages-page .plan.selected { box-shadow: inset 0 0 0 2px var(--lime-dark); }
@@ -20,7 +18,7 @@
 .current-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 0; }
 .current-facts dt { color: #52635a; font-size: 12px; margin-bottom: 6px; }
 .current-facts dd { margin: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
-.packages-page .section-head h2 { font: 700 24px/1.3 'DM Sans', sans-serif; }
+.packages-page .section-head h1, .packages-page .section-head h2 { margin: 0; font: 700 24px/1.3 'DM Sans', sans-serif; }
 .packages-page .section-head p { line-height: 1.5; }
 .packages-page.account-renew .content { max-width: 880px; }
 .packages-page.account-renew .grid { grid-template-columns: 1fr; }
@@ -55,7 +53,6 @@
 .packages-page .success button { display: block; margin-top: 12px; }
 .payment-return { display: inline-block; margin-top: 12px; }
 @media (max-width: 620px) {
-  .packages-page .hero h1 { font-size: 44px; }
   .packages-page .header-actions { flex-wrap: wrap; }
   .packages-page .header-link { font-size: 13px; }
   .packages-page .content { padding-top: 24px; }

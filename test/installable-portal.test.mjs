@@ -17,7 +17,7 @@ test("the portal publishes an installable app manifest with real icons", async (
   assert.equal(response.headers.get("content-type"), "application/manifest+json");
   const manifest = await response.json();
   assert.equal(manifest.name, "NDAHI Connect");
-  assert.equal(manifest.start_url, "/dashboard");
+  assert.equal(manifest.start_url, "/onboarding.html");
   assert.equal(manifest.display, "standalone");
   for (const size of ["192x192", "512x512"]) assert.ok(manifest.icons.some((icon) => icon.sizes === size && icon.purpose === "any"), size);
   assert.ok(manifest.icons.some((icon) => icon.purpose === "maskable"));

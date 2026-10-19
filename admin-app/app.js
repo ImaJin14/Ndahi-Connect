@@ -46,7 +46,7 @@ async function call(path, options = {}) {
     location.href = "/login";
     throw Error("Login required");
   }
-  if (r.status === 503) {
+  if (r.status === 503 && path !== "/api/admin/network/setup/purchase-access") {
     sessionStorage.setItem("ndahi-admin-login-notice", j.error || "Administration is temporarily unavailable while setup is completed.");
     location.replace("/login");
     throw Error("Service setup incomplete");
@@ -507,4 +507,4 @@ function watchWifiSummary() {
 watchWifiSummary();
 window.addEventListener("online", () => { void refreshWifiSummary(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshWifiSummary(); });
-startUpdates({ isBusy: () => passkeyEnrollmentRunning || Boolean(document.querySelector('#totpCode, [data-sensitive-output]:not(:empty), [data-setup-pending="true"]')) });
+startUpdates({ isBusy: () => passkeyEnrollmentRunning || Boolean(document.querySelector('#totpCode, [data-sensitive-output]:not(:empty), [data-review-output]:not(:empty), [data-setup-pending="true"]')) });

@@ -26,7 +26,8 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
   passed.push('Catalogue and configured provider (live payment still requires acceptance testing)');
   for (const [base, kind] of [[customer, 'customer'], [admin, 'admin']]) {
     const root = await get(base, '/', 302);
-    assert.equal(root.headers.get('location'), '/login');
+    assert.equal(root.headers.get('location'), kind === 'customer' ? '/onboarding.html' : '/login');
+    if (kind === 'customer') assert.match(await (await get(base, '/onboarding.html')).text(), /id="plans"/);
     const page = await get(base, '/login');
     assert.match(page.headers.get('content-type') || '', /text\/html/);
     assert.ok(page.headers.get('content-security-policy'), 'Missing CSP');

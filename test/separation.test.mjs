@@ -67,7 +67,7 @@ test("customer application has no admin dashboard route or admin assets", async 
   assert.equal((await fetch(base + "/admin")).status, 404);
   const home = await fetch(base + "/", { redirect: "manual" });
   assert.equal(home.status, 302);
-  assert.equal(home.headers.get("location"), "/login");
+  assert.equal(home.headers.get("location"), "/onboarding.html");
   assert.equal((await fetch(base + "/dashboard")).status, 200);
 });
 test("admin domain root redirects to login and dashboard has a dedicated route", async (t) => {
