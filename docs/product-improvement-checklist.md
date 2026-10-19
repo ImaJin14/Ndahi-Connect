@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-18
+Last reviewed: 2026-10-19
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -401,6 +401,20 @@ Use this document as the source of truth for product, engineering, security, and
   - Verification for BILL-001–004 (2026-09-25): 182 automated tests, 8 billing browser scenarios,
     13 renewal/switching regression scenarios, syntax and whitespace checks passed. Screenshots
     inspected at desktop, 390px and 320px. [Commands and deployment limits](operations/billing-experience.md).
+
+- [-] **BILL-006 — Leave nothing usable or personal on a guest's device after checkout**
+  - Problem: guest checkouts kept the name, phone, email and private key in localStorage with no
+    expiry. A failed or abandoned payment blocked new purchases until the guest clicked Resume, and a
+    paid key returned the access code indefinitely, including on shared devices.
+  - Implemented: only the random key, plan and payment ID are kept, in a cookie the browser deletes
+    after 24 hours. Every visit checks the saved key and releases closed payments automatically;
+    rejected requests are not kept. Recovery works with the key alone and returns only contact details supplied for that guest checkout; legacy records omit unproven name/email fields. Existing account defaults remain private.
+    The API stops honouring a key when this purchase's PIN setup completes, at the independent 24-hour limit from checkout creation, or once an unpaid payment can no longer settle late. Authenticated checkouts require the owning session. Missing/expired recovery access never claims that nothing was charged. Older records are migrated
+    and their contact details deleted on the next sign-in, dashboard or packages visit.
+  - Verification: key lifetime, key-only and legacy recovery, an existing customer's guest purchase,
+    and browser journeys for release-on-return, cookie contents/expiry, rejection and migration.
+    Production verification after deployment pending.
+  - Review fixes (2026-10-19): regression coverage includes unauthenticated recovery against existing customer profiles, omitted guest contact fields, legacy records/current profile-number privacy, account-only checkout access, short/long financial polling windows, worker-disabled key expiry, and paid/unknown recovery keys with no saved payment ID. No live charge or customer email is used in these fixtures.
 
 ### Authentication and account controls
 

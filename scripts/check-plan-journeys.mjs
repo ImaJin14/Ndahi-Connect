@@ -101,7 +101,7 @@ try {
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL("**/dashboard");
       assert.equal((await context.cookies()).find((cookie) => cookie.name === "customer_session").value, cookieBefore);
-      assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-payment-renew-weekly")), null);
+      assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       const state = await store.snapshot();
       assert.equal(state.vouchers.length, 2);
       assert.equal(state.vouchers[1].status, "renewed");
@@ -203,7 +203,7 @@ try {
       await post(`/api/payments/${id}/confirm`, {});
       await page.getByRole("button", { name: "Check payment status" }).click();
       await page.waitForURL("**/dashboard");
-      assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-payment-renew-weekly")), null);
+      assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await page.goto(`${portal}/onboarding.html?action=renew`);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
@@ -240,7 +240,7 @@ try {
       await page.getByRole("button", { name: /Request payment/ }).click();
       await page.locator("#message [role=alert]").waitFor();
       assert.equal(await page.locator("#requestPayment").isEnabled(), true);
-      assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-payment-renew-weekly")), null);
+      assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await page.unroute(`${api}/api/account/plan/purchase`);
       await page.getByRole("button", { name: "Try again", exact: true }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
@@ -257,7 +257,7 @@ try {
       await post(`/api/payments/${id}/confirm`, {});
       await page.goto(`${portal}/onboarding.html?action=renew`);
       await page.getByRole("button", { name: "Review renewal" }).waitFor();
-      assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-payment-renew-weekly")), null);
+      assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
       await page.getByRole("button", { name: /Request payment/ }).click();

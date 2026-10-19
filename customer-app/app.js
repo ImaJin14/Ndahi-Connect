@@ -13,7 +13,9 @@ import { recoveryCard, mountAccountRecovery } from "./account-recovery.js";
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus } from "./usage-alerts.js";
+import { migrateLegacyCheckout } from "./checkout-store.js";
 
+migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   deviceId = (() => {

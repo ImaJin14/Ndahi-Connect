@@ -19,7 +19,6 @@ function safeStore(name) {
   };
 }
 export const sessionStore = safeStore("sessionStorage");
-export const localStore = safeStore("localStorage");
 export function randomId() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);

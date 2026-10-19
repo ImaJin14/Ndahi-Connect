@@ -5,7 +5,9 @@ import { runButton } from "/shared/pending.js";
 import { formValues, sessionStore, requestJson, loadPasskeys, markReady } from "./compat.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { completeSignIn } from "./sign-in-request.js";
+import { migrateLegacyCheckout } from "./checkout-store.js";
 
+migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let accessToken = "", accessMode = "";
 const runLogin = (button, text, task) => runButton(button, text, task, {

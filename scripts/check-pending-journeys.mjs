@@ -298,11 +298,17 @@ try {
   });
 
   await scenario("saved-checkout failures stay visible and can be retried", async (page) => {
-    await page.addInitScript(() => localStorage.setItem("ndahi-interrupted-checkout", JSON.stringify({
-      input: { requestKey: "fixture-saved-key", planId: "weekly", phone: "670080001", name: "Fixture", email: "fixture@example.test", network: "mtn" },
-    })));
+    await page.context().addCookies([{ name: "ndahi-checkout", url: portal, sameSite: "Strict",
+      value: encodeURIComponent(JSON.stringify({ requestKey: crypto.randomUUID().replaceAll("-", ""), planId: "weekly" })) }]);
+    // The visit checks the saved key itself and keeps packages locked until it knows.
+    const check = await hold(page, "/api/purchase/recover", { error: "Fixture recovery unavailable" }, 500);
+    await page.goto(`${portal}/onboarding.html`); await check.started;
+    await page.getByText("Checking a payment saved on this device…", { exact: true }).waitFor();
+    assert.equal(await page.locator('[data-plan="weekly"]').isDisabled(), true);
+    check.release();
+    await page.getByRole("button", { name: "Resume saved payment" }).waitFor();
+    assert.equal(await page.locator('[data-plan="weekly"]').isDisabled(), true, "an unconfirmed saved payment still blocks another");
     const recover = await hold(page, "/api/purchase/recover", { error: "Fixture recovery unavailable" }, 500);
-    await page.goto(`${portal}/onboarding.html`);
     await page.getByRole("button", { name: "Resume saved payment" }).click(); await recover.started;
     assert.equal(await page.locator("#resumeCheckout").textContent(), "Resuming…");
     recover.release();
@@ -312,6 +318,7 @@ try {
     const retryResponse = page.waitForResponse((response) => response.url().endsWith("/api/purchase/recover"));
     await retry.click();
     await retryResponse;
+    assert.equal(check.count(), 1);
     assert.equal(recover.count(), 2);
   });
   console.log(`PASS ${checks} pending-state browser scenarios`);
