@@ -209,7 +209,7 @@ try {
       s.vouchers[0].wifiDevicesAt = new Date().toISOString();
     });
     await page.goto(portal + "/dashboard");
-    await page.getByText("Device ending EE:01", { exact: true }).waitFor();
+    await page.getByText("Unnamed device · ending EE:01", { exact: true }).waitFor();
     const before = (await store.snapshot()).vouchers[0];
     await store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = new Date().toISOString(); });
     await page.getByText("No devices were reported at the last Wi-Fi check.", { exact: true }).waitFor();
@@ -225,7 +225,7 @@ try {
       s.vouchers[0].wifiDevicesAt = new Date().toISOString();
     });
     await page.goto(portal + "/dashboard");
-    await page.getByText("Device ending EE:01", { exact: true }).waitFor();
+    await page.getByText("Unnamed device · ending EE:01", { exact: true }).waitFor();
     await page.route("**/api/account/wifi-devices", (route) => route.fulfill({ status: 503, contentType: "application/json",
       headers: { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" }, body: JSON.stringify({ error: "Router unavailable" }) }));
     await page.getByText("Device updates are unavailable. The last device list may be out of date.", { exact: true }).waitFor();
