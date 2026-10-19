@@ -905,4 +905,11 @@ job; production installation, named responders and incident exercises remain pen
   - Implemented: server deadline snapshots/time, countdowns, automatic visible-history refresh, owner-scoped expiry on dashboard reads and bulk worker expiry before provider IO. Overdue refunds retain their provider state and show support attention.
   - Verification: expiry, slow-provider, ownership and browser countdown regressions; production billing-worker and provider checks pending.
 
-These are two additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md). The broader tracker still distinguishes shipped implementation from verified production operation.
+- [-] **PORTAL-003 — Account recovery without email and in-app PIN change**
+  - Implemented: single-use Argon2id hashed account backup codes, in-app PIN change with credential proof/passkey, `/forgot-pin` backup-code and support recovery journeys, constant-time verification against timing attacks, owner recovery approval with audited identity check, security notices in dashboard, and alerting previous email on email replacement.
+  - Verification: 7 automated regressions covering code generation, Argon2id storage, in-app PIN update, backup-code PIN recovery, owner identity verification & support token issuance, rate limits, and previous-email alerting.
+- [-] **BILL-005 — Support payment recheck beyond cutoff and missing settlement reconciliation**
+  - Implemented: audited admin provider payment verification past the 24-hour cutoff (`POST /api/admin/payments/verify`), 1-minute rate-limiting with busy outcome, admin dashboard payment records "Check provider" action, and reconciliation reporting of expired/cancelled orders found paid as `settlement_missing`.
+  - Verification: regressions covering cutoff bypass, throttling, settlement activation, audit events, and reconciler issue classification.
+
+These are four additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md) and [account recovery and payment support](operations/account-recovery-payment-support.md). The broader tracker still distinguishes shipped implementation from verified production operation.
