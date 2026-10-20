@@ -8,6 +8,7 @@ import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedChec
 import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { configurePairingLink } from "./wifi-pairing.js";
+import { withWifiHint } from "./hotspot-path.js";
 
 void configurePairingLink(document.getElementById("assistedConnectionLink"));
 
@@ -182,7 +183,7 @@ async function initialize() {
     if (accountAction) {
       if (error.status === 401) {
         saveReturnPath();
-        location.replace("/login");
+        location.replace(withWifiHint("/login"));
         return;
       }
       throw error;
@@ -236,7 +237,7 @@ async function initialize() {
     if (setup) {
       clearRequestKey(); paymentInProgress = { id: setup.paymentId, status: "paid" }; renderPlans();
       notice("Payment confirmed. Finish creating your PIN to open your account.", false);
-      $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<a href="/verify.html?setup=checkout">Continue PIN setup</a>');
+      $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", `<a href="${h(withWifiHint("/verify.html?setup=checkout"))}">Continue PIN setup</a>`);
       return;
     }
     await restoreSavedCheckout();
@@ -285,7 +286,7 @@ async function recoverSavedCheckout(saved) {
       try {
         const setup = await exchangeSetup(saved.paymentId, saved.requestKey);
         clearRequestKey();
-        location.href = setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout";
+        location.href = withWifiHint(setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout");
         return null;
       } catch { /* Expired/unknown requests retain neutral payment guidance below. */ }
     }
@@ -516,7 +517,7 @@ async function beginAccountSecurity(paid, phone) {
   if (accountAction) {
     clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
-    location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? "/hotspot" : "/dashboard";
+    location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? withWifiHint("/hotspot") : "/dashboard";
     return;
   }
   const emailMessage = paid.email?.status === "sent"
@@ -528,7 +529,7 @@ async function beginAccountSecurity(paid, phone) {
   const setup = await exchangeSetup(paid.payment.id, requestKey);
   clearRequestKey();
   sessionStore.remove("ndahi-login-challenge");
-  location.href = setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout";
+  location.href = withWifiHint(setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout");
 }
 async function checkPayment(paymentId, phone) {
   if (!accountAction && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {
