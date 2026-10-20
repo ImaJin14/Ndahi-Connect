@@ -31,4 +31,5 @@
 
 /* Pairing codes stay readable on narrow captive-portal screens. */
 .pairing-code{display:block;font-family:monospace;font-size:clamp(2rem,10vw,3.5rem);font-weight:700;letter-spacing:.08em;margin:1rem 0;color:var(--green,#003b2b)}
+.authenticator-qr{display:block;max-width:100%;height:auto;margin:16px 0;background:#fff}.authenticator-setup code{display:block;overflow-wrap:anywhere;word-break:break-all;margin:12px 0;user-select:all}.authenticator-setup form{max-width:420px}.authenticator-setup #cancelMfaSetup{margin-top:16px}
 [data-pairing-requests] article{overflow-wrap:anywhere;margin-top:1rem}

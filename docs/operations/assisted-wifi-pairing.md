@@ -7,7 +7,8 @@ Normal voucher and PIN sign-in remains available.
 ## Customer flow
 
 1. On a connected device, select the main device in the account's device controls.
-   Verify with the account PIN or passkey, plus the authenticator when enrolled.
+   Verify with the account PIN or passkey. An enrolled authenticator code is optional
+   for main-device selection and is not required to approve another device.
    The selected browser remembers control in an HttpOnly cookie. Replacing the
    main browser or changing/recovering the PIN revokes earlier control.
 2. On the new device, join NDAHI Wi-Fi, open Wi-Fi sign-in, and choose **Connect
@@ -19,6 +20,9 @@ Normal voucher and PIN sign-in remains available.
 4. Both screens show **Connecting** until the router confirms the exact active
    session. Approval checks current bundle/data, fresh device readings and free
    slots. Connecting requests reserve slots; the router rechecks live limits.
+
+The new device's pairing code is separate from an authenticator app's sign-in code.
+Customers do not need to enroll an authenticator to use assisted pairing.
 
 Names are display data. The API verifies the hinted MAC/IP against a fresh guest
 row on `ndahi-hotspot`, and pins its host ID and translated login IP. The worker

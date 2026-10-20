@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import jsQR from "jsqr";
 import { totpCode } from "../lib/security.mjs";
 
 // Isolated local fixtures: no .env, live payment, mail, router, or database access.
@@ -49,7 +50,7 @@ try {
   await scenario("a second signed-in device is listed and can be signed out from the first", async (page, context) => {
     const second = await post("/api/account/login/pin", { phone: "670050001", pin: "2468" });
     const secondCookie = second.response.headers.get("set-cookie").split(";")[0];
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#account`);
     await page.locator("#sessionActivity summary").click();
     assert.equal(await page.locator("#sessionActivity .device").count(), 2);
     page.on("dialog", (dialog) => dialog.accept());
@@ -67,10 +68,10 @@ try {
         { id: "preview-key", publicKey: "pk", counter: 0, createdAt: new Date().toISOString(), label: "Passkey 1" },
       ];
     });
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#account`);
     await page.locator('details.rename-passkey:has(form[data-rename-passkey="preview-key"]) summary').click();
     await page.locator('[data-rename-passkey="preview-key"] input[name="label"]').fill("Work laptop");
-    await page.getByRole("button", { name: "Save name" }).click();
+    await page.locator('[data-rename-passkey="preview-key"]').getByRole("button", { name: "Save name" }).click();
     await page.getByText("Passkey renamed.").waitFor();
     await page.getByText("Work laptop").waitFor();
     page.on("dialog", (dialog) => dialog.accept());
@@ -80,13 +81,56 @@ try {
     const queued = (await store.snapshot()).securityAlerts;
     assert.ok(queued.some((a) => a.kind === "passkey_removed"), "removal must queue a security alert");
   });
-  await scenario("recovery codes are generated once and sign in through the verification page", async (page) => {
-    await page.goto(`${portal}/dashboard`);
+  await scenario("cancelled and expired authenticator setups can be started again without enabling them", async (page) => {
+    await page.goto(`${portal}/dashboard#account`);
+    await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator("#confirmMfa").waitFor();
+    await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
+    await page.getByText("Authenticator setup cancelled. You can start again whenever you choose.").waitFor();
+    assert.equal((await store.snapshot()).customerMfaChallenges.length, 0);
+    await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    const key = await page.locator("#mfaSetup code").textContent();
+    await store.transaction((s) => { s.customerMfaChallenges.forEach((c) => { c.expiresAt = new Date(Date.now() - 1000).toISOString(); }); });
+    await page.getByLabel("Six-digit code").fill(totpCode(key, Date.now()));
+    await page.getByRole("button", { name: "Confirm 2FA" }).click();
+    await page.getByText("Authenticator setup expired or was replaced. Start setup again in this browser.", { exact: true }).waitFor();
+    assert.equal(await page.locator("#mfaSetup code").count(), 0);
+    await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator("#confirmMfa").waitFor();
+    assert.equal((await store.snapshot()).customers[0].totpSecret, undefined);
+    await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
+    await page.getByText("Authenticator setup cancelled. You can start again whenever you choose.").waitFor();
+  });
+  await scenario("a customer scans the setup QR, confirms authenticator sign-in and uses a recovery code", async (page) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(`${portal}/dashboard#account`);
     await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
     const secret = await page.locator("#mfaSetup code").textContent();
+    const pixels = await page.locator("#mfaSetup img").evaluate(async (img) => {
+      if (!img.complete) await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });
+      const canvas = document.createElement("canvas"); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const context = canvas.getContext("2d"); context.drawImage(img, 0, 0);
+      return { width: canvas.width, height: canvas.height, rgba: Array.from(context.getImageData(0, 0, canvas.width, canvas.height).data) };
+    });
+    const decoded = jsQR(new Uint8ClampedArray(pixels.rgba), pixels.width, pixels.height);
+    assert.ok(decoded, "the actual displayed QR image must be readable");
+    const uri = new URL(decoded.data);
+    assert.equal(uri.protocol, "otpauth:"); assert.equal(uri.searchParams.get("secret"), secret);
+    assert.equal(uri.searchParams.get("issuer"), "NDAHI Connect"); assert.equal(uri.searchParams.get("period"), "30");
+    assert.equal((await store.snapshot()).customers[0].totpSecret, undefined);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.getByRole("button", { name: "Copy setup key", exact: true }).click();
+    await page.locator("#mfaSetupMessage").filter({ hasText: "Setup key copied" }).waitFor();
+    await page.screenshot({ path: `${screenshots}/authenticator-setup-320.png`, fullPage: true });
+    const invalid = totpCode(secret, Date.now()) === "000000" ? "111111" : "000000";
+    await page.getByLabel("Six-digit code").fill(invalid);
+    await page.getByRole("button", { name: "Confirm 2FA" }).click();
+    await page.getByText("The authenticator code is invalid or expired. Check the app's current code and your phone's automatic time setting.", { exact: true }).waitFor();
+    assert.equal((await store.snapshot()).customers[0].totpSecret, undefined);
     await page.getByLabel("Six-digit code").fill(totpCode(secret, Date.now()));
     await page.getByRole("button", { name: "Confirm 2FA" }).click();
-    await page.getByText("Authenticator 2FA enabled.").waitFor();
+    await page.getByText("Authenticator sign-in enabled. Your PIN and passkeys still work.").waitFor();
+    assert.equal(await page.locator("#mfaSetup img").count(), 0);
     await page.getByRole("button", { name: "Generate recovery codes" }).click();
     const codeText = await page.locator("#recoveryCodesOutput code").first().textContent();
     assert.match(codeText, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
@@ -104,7 +148,7 @@ try {
   });
   const dedicatedLogin = await post("/api/account/login/pin", { phone: "670050001", pin: "2468" });
   await scenario("logging out everywhere signs out the current browser too", async (page) => {
-    await page.goto(`${portal}/dashboard`);
+    await page.goto(`${portal}/dashboard#account`);
     await page.locator("#sessionActivity summary").click();
     page.on("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Log out everywhere" }).click();
