@@ -4,6 +4,7 @@ import { pairingFixture, publicRoot, ownerRoot, guestMac } from "./helpers/wifi-
 import { RouterHotspot } from "../lib/router-hotspot.mjs";
 import { createNetworkSetup } from "../lib/network-setup.mjs";
 import { createStore } from "../server.mjs";
+import { totpSecret } from "../lib/security.mjs";
 
 async function fixture(t, options) { const f = await pairingFixture(options); t.after(f.close); return f; }
 const approve = (f, response, options) => f.call(ownerRoot + "/approve", { id: response.body.request.id, code: response.body.code }, options);
@@ -65,6 +66,14 @@ test("approval reserves a slot and Connecting becomes Connected only after route
   assert.ok(s.vouchers[0].wifiDevices.some((d) => d.mac === guestMac && d.sessionId === "*new"));
   assert.ok(Date.parse(f.calls[0].deadline) < Date.parse(r.body.request.expiresAt));
   await f.process(); assert.equal(f.calls.length, 1);
+});
+
+test("an enrolled authenticator does not require its code to approve Wi-Fi pairing", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => { s.customers[0].totpSecret = totpSecret(); });
+  const r = await f.request();
+  assert.equal((await approve(f, r)).status, 202);
+  await f.process(); assert.equal((await status(f, r)).body.request.status, "connected");
 });
 
 test("two approvals cannot consume the last slot; stale readings require a refresh", async (t) => {

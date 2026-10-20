@@ -90,6 +90,7 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/security/account-backup/generate",
     "/api/account/security/account-backup/options",
     "/api/account/security/logout-everywhere",
+    "/api/account/security/mfa/cancel",
     "/api/account/security/mfa/confirm",
     "/api/account/security/mfa/enroll",
     "/api/account/security/pin",
@@ -110,6 +111,13 @@ test("TOTP uses RFC-compatible six-digit authenticator codes", () => {
   assert.equal(totpCode(knownSecret, 59_000), "287082");
   assert.equal(verifyTotp(knownSecret, "287082", 59_000), true);
   assert.equal(verifyTotp(knownSecret, "000000", 59_000), false);
+  // RFC 6238 Appendix B gives eight-digit SHA1 vectors; truncate to six digits.
+  for (const [seconds, expected] of [[1111111109, "081804"], [1111111111, "050471"],
+    [1234567890, "005924"], [2000000000, "279037"], [20000000000, "353130"]]) {
+    assert.equal(totpCode(knownSecret, seconds * 1000), expected);
+    assert.equal(verifyTotp(knownSecret, expected, seconds * 1000), true);
+  }
+  assert.equal(verifyTotp(knownSecret, "287082", 119_000), false);
   const generated = totpSecret();
   assert.match(generated, /^[A-Z2-7]{32}$/);
   assert.match(totpUri(generated), /^otpauth:\/\/totp\//);

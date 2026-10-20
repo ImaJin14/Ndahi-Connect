@@ -74,16 +74,28 @@ test("secondary sessions and legacy endpoints cannot disconnect the main device 
   assert.equal((await g.call("/api/account/device-management/disconnect", { mac, pin: "2468" })).status, 202);
 });
 
-test("main-device selection requires CSRF, freshness, ownership and enrolled MFA", async (t) => {
+test("main-device linking requires CSRF, freshness and ownership with an optional authenticator", async (t) => {
   const f = await fixture(t, { mfa: true }), path = "/api/account/device-management/main";
   assert.equal((await f.call(path, { mac, pin: "2468" }, { csrf: "bad" })).status, 403);
   assert.equal((await f.call(path, { mac, pin: "2468" }, { session: "" })).status, 401);
   assert.equal((await f.call(path, { mac, pin: "2468" }, { session: "other" })).status, 404);
-  assert.equal((await f.call(path, { mac, pin: "2468" })).status, 401);
+  assert.equal((await f.call(path, { mac, pin: "wrong" })).status, 401);
   f.advance(2);
+  assert.equal((await f.call(path, { mac, pin: "2468" })).status, 200);
   assert.equal((await f.call(path, { mac, pin: "2468", otp: f.otp() })).status, 200);
   f.advance(121);
   assert.equal((await f.call(path, { mac, pin: "2468", otp: f.otp() })).status, 409);
+});
+
+test("supplied authenticator codes are checked, while main-device removal retains enrolled verification", async (t) => {
+  const f = await fixture(t, { mfa: true });
+  const wrong = f.otp() === "000000" ? "111111" : "000000";
+  assert.equal((await f.call("/api/account/device-management/main", { mac, pin: "2468", otp: wrong })).status, 401);
+  f.advance(2);
+  assert.equal((await f.call("/api/account/device-management/main", { mac, pin: "2468" })).status, 200);
+  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, pin: "2468" })).status, 401);
+  f.advance(2);
+  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, pin: "2468", otp: f.otp() })).status, 202);
 });
 
 test("transfer and PIN recovery invalidate the previous main browser, not the bundle", async (t) => {

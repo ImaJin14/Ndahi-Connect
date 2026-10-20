@@ -4,13 +4,13 @@ import { mkdir } from "node:fs/promises";
 import argon2 from "argon2";
 import { createHandler, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { hashSecret } from "../lib/security.mjs";
+import { hashSecret, totpSecret } from "../lib/security.mjs";
 
 // Real local API and synthetic router state; never contact production.
 const secret = "device-browser-fixture", store = createStore({ persistent: false }), pinHash = await argon2.hash("2468");
 const now = new Date(), mac = "AA:BB:CC:DD:EE:01";
 await store.transaction((s) => {
-  s.customers.push({ id: "c1", name: "Imajin", phone: "670050001", pinHash });
+  s.customers.push({ id: "c1", name: "Imajin", phone: "670050001", pinHash, totpSecret: totpSecret() });
   s.networkSetup = { runtimeRouterEnabled: true, connections: { router: { mode: "live", revision: "router-1" } } };
   for (const id of ["main", "secondary"]) s.dashboardSessions.push({ id, customerId: "c1", tokenHash: hashSecret(id, secret),
     csrfToken: "csrf", expiresAt: new Date(+now + 3600000).toISOString() });
@@ -53,15 +53,17 @@ try {
   await page.locator('[data-main-proof] [name="mac"]').selectOption(mac);
   await page.locator('[data-main-proof] [name="confirm"]').check();
   await page.locator('[data-main-proof] [name="pin"]').fill("2468");
+  assert.equal(await page.getByLabel("Authenticator code (optional)", { exact: true }).evaluate((input) => input.required), false);
   await page.getByRole("button", { name: "Verify and select", exact: true }).click();
   await page.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   await page.locator("#wifiDeviceList").getByText("imajin · Main device", { exact: true }).waitFor();
   await page.reload();
   await page.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   assert.ok((await store.snapshot()).customers[0].wifiMainDevice.controllerHash);
-  console.log("PASS owner verification remembers the main browser across reloads");
+  console.log("PASS an authenticator-enabled account selects its main browser without an authenticator code and remembers it across reloads");
   await page.getByRole("button", { name: "Verify to disconnect", exact: true }).click();
   await page.getByRole("heading", { name: "Disconnect main device", exact: true }).waitFor();
+  assert.equal(await page.locator('[data-main-proof] [name="otp"]').evaluate((input) => input.required), true);
   assert.equal((await store.snapshot()).routerCommands.some((c) => c.action === "disconnect_wifi_device"), false);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.screenshot({ path: screenshots + "/main-device-320.png", fullPage: true });

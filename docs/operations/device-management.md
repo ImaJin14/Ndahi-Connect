@@ -7,8 +7,9 @@ admin records support searching announced names. DHCP naming is optional and has
 a short read timeout so a permission failure cannot prevent usage accounting.
 
 The account owner selects a currently reported device and confirms that they are
-using it. PIN or passkey verification, plus enrolled authenticator verification,
-registers this browser as the main controller. The cloud cannot identify a phone
+using it. Fresh PIN or passkey verification registers this browser as the main
+controller. An enrolled authenticator code is optional for selection or replacement;
+if supplied, it must be valid. The cloud cannot identify a phone
 from the shared public IP; the selection is explicit, not an inferred match.
 A separate HttpOnly cookie identifies the controlling browser. Only its hash is
 stored and it is never returned in customer or admin records.
@@ -20,7 +21,8 @@ designation until the verified owner chooses a replacement. The normal account
 recovery flow works without SMS. Clearing browser cookies requires selection and
 owner verification again. Router configuration revisions require reselection.
 
-Disconnecting a main device requires fresh owner proof. Existing customer and
+Disconnecting a main device requires fresh owner proof and, when enrolled, an
+authenticator code. Existing customer and
 legacy disconnect endpoints cannot bypass this rule. Authorized administrators
 retain their existing ability to remove any Wi-Fi session. Disconnect means end
 the current session and remove its remembered router login; it is not permanent
