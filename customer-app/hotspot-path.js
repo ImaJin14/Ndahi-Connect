@@ -6,6 +6,7 @@ export function hotspotPath(next = "/dashboard") {
   return window.NDAHI_CONFIG.hotspotLoginUrl ? `/hotspot?next=${encodeURIComponent(next)}${hint ? `&mac=${encodeURIComponent(hint.mac)}&address=${encodeURIComponent(hint.address)}` : ""}` : next;
 }
 
-export function afterSignInPath() {
-  return hotspotPath(consumeReturnPath());
+export function afterSignInPath(accountOnly = new URLSearchParams(location.search).get("account") === "1") {
+  const next = consumeReturnPath();
+  return accountOnly ? "/dashboard#account" : hotspotPath(next);
 }

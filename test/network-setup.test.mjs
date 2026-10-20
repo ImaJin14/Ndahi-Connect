@@ -22,6 +22,24 @@ test("network encryption authenticates ciphertext and never stores plaintext", (
   assert.throws(() => unseal({ ...encrypted, tag: Buffer.alloc(16).toString("base64") }, env));
   assert.throws(() => seal({}, {}), /NETWORK_CONFIG_KEY/);
 });
+test("network status distinguishes approval never enabled, paused, and accepting requests", async () => {
+  const f = await fixture();
+  let status = await f.call("status");
+  assert.equal(status.deviceApprovalRequired, false); assert.equal(status.assistedConnectionsEnabled, false);
+  assert.equal((await f.call("assisted-connections", { enabled: false })).approvalRequired, false);
+  await f.store.transaction((s) => {
+    const revision = s.networkSetup.connections.router.revision;
+    s.networkSetup.runtimeRouterEnabled = true;
+    s.networkSetup.deviceApproval = { version: 1, revision };
+    s.networkSetup.assistedConnections = { enabled: false, revision };
+  });
+  status = await f.call("status");
+  assert.equal(status.deviceApprovalRequired, true); assert.equal(status.assistedConnectionsEnabled, false);
+  assert.equal((await f.call("assisted-connections", { enabled: false })).approvalRequired, true);
+  await f.store.transaction((s) => { s.networkSetup.assistedConnections.enabled = true; });
+  status = await f.call("status");
+  assert.equal(status.deviceApprovalRequired, true); assert.equal(status.assistedConnectionsEnabled, true);
+});
 test("management origins reject SSRF targets, URL credentials, and redirect-capable paths", () => {
   assert.equal(allowedEndpoint("https://router.test", env), "https://router.test");
   for (const value of ["http://router.test", "https://evil.test", "https://u:p@router.test", "https://router.test/rest", "https://router.test/?next=evil", "https://router.test/#x"]) assert.throws(() => allowedEndpoint(value, env));

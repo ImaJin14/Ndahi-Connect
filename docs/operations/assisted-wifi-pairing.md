@@ -29,6 +29,17 @@ and the owner's bell shows **Set your main device**. The owner must select one
 before a code can be issued. Reading or archiving a notification grants no access.
 The approval code is separate from an authenticator code.
 
+The account number is the phone number already linked to the voucher. A second
+person using that voucher requests access under that account; they do not create
+a new account PIN. The first account owner still creates or enters a PIN to
+protect account settings. **Sign in to account settings** is an explicit separate
+choice and opens the account page without attempting a Wi-Fi connection.
+
+If a captive page loses its MAC/IP hints, additional-device sign-in stays on the
+restricted access screen and offers **Open Wi-Fi sign-in**. It must never fall
+back to requiring the owner's PIN just because the hints are absent. The router
+still verifies the target before access can be queued.
+
 Approved devices can reconnect while their grant, router revision and current
 bundle remain valid. Removing a device revokes its grant and unused codes; a
 pending disconnect retains its slot and blocks reconnection until confirmed.
@@ -57,6 +68,12 @@ pre-login portal/API access. Enabling records a versioned policy and saved-route
 revision and queues active vouchers for synchronization. Connections observed on
 the router at the first enablement are retained as approved. No main browser is
 selected automatically during migration.
+
+Check `GET /api/wifi/pairing/config` when diagnosing the live flow. Both `enabled`
+and `approvalRequired` must be true for new approvals. If `approvalRequired` is
+false, the legacy voucher/PIN flow remains active even after deployment. If it is
+true while `enabled` is false, new requests are unavailable while the approval
+policy remains enforced. The admin status distinguishes these states.
 
 The worker keeps the existing shared voucher username, quota and simultaneous
 user accounting, but replaces its public voucher password with a private value

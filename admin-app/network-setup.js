@@ -93,7 +93,9 @@ export async function mountNetworkSetup(root, call) {
     $("#networkPrerequisites").textContent = !state.encryptionReady ? "Server setup required: configure NETWORK_CONFIG_KEY before saving connections." : `Live provisioning ${state.enabled ? "enabled" : "disabled"}. Approved management addresses: ${state.allowedOrigins.join(", ") || "none — configure NETWORK_ALLOWED_ORIGINS on the server"}.`;
     $("#networkEnforcementStatus").textContent = state.runtimeRouterEnabled ? "The saved router is active for voucher enforcement." : "Voucher operations currently use the existing server integration.";
     $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
-    $("#networkPairingStatus").textContent = state.assistedConnectionsEnabled ? "Assisted connections are enabled for the saved router." : "New device approvals are paused. Previously enabled private access credentials stay enforced.";
+    $("#networkPairingStatus").textContent = state.assistedConnectionsEnabled ? "Main-device approval is required for additional devices. New access requests are enabled." : state.deviceApprovalRequired
+      ? "New access requests are not being accepted. Existing device-approval requirements remain enforced."
+      : "Mandatory device approval has not been enabled. Devices still use the existing voucher and PIN sign-in flow. Verify Wi-Fi sign-in and enable assisted connections to require main-device approval.";
     $("#networkPairingEnable").disabled = state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
     $("#networkPairingDisable").disabled = !state.assistedConnectionsEnabled;
     if (state.omadaStandalone) {
