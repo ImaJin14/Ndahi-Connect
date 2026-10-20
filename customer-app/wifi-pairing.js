@@ -66,7 +66,7 @@ export async function mountPairingControls({ container, call, onChanged }) {
           form.onsubmit = async (event) => {
             event.preventDefault(); const input = { mac: form.elements.mac.value.toUpperCase().trim(), address: form.elements.address.value.trim(), confirm: form.elements.confirm.checked, key: key || (key = randomId()) };
             try { await runButton(form.querySelector("button"), "Connecting…", async () => {
-              await call("/api/account/device-management/pairing/manual", { method: "POST", body: JSON.stringify(input) });
+              await startWifiRequest((payload) => call("/api/account/device-management/pairing/manual", { method: "POST", body: JSON.stringify(payload) }), input, (next) => { key = next; });
               form.reset(); key = null; details.querySelector("[data-manual-message]").textContent = "Connection requested. Waiting for router confirmation.";
               await refresh(); if (onChanged) await onChanged();
             }, { controls: Array.from(form.elements) }); } catch (error) { showError(details.querySelector("[data-manual-message]"), error); }

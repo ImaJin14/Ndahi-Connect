@@ -127,6 +127,32 @@ try {
   await expired.locator("#pairingStatus").filter({ hasText: "declined" }).waitFor();
   assert.equal(f.calls.length, 2); assert.deepEqual(errors, []);
   console.log("PASS storage-blocked reload/expiry/retry/decline preserve target details, keep unknown devices offline and escape names at 320px");
+
+  await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+  await owner.getByText("Add a device without a browser", { exact: true }).click();
+  const manual = owner.locator("[data-manual-form]");
+  await manual.locator('[name="mac"]').fill("AA:BB:CC:DD:EE:05");
+  await manual.locator('[name="address"]').fill("10.20.0.50");
+  await manual.locator('[name="confirm"]').check();
+  let manualKey;
+  await owner.route("**/api/account/device-management/pairing/manual", async (route) => {
+    manualKey = route.request().postDataJSON().key;
+    const response = await route.fetch({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } });
+    assert.equal(response.status(), 202);
+    const reply = await response.json(), p = (await f.store.snapshot()).wifiPairingRequests.find((p) => p.id === reply.request.id);
+    await f.process(p.commandId); await route.abort("failed");
+  }, { times: 1 });
+  await manual.getByRole("button", { name: "Approve this device", exact: true }).click();
+  await manual.locator("[data-manual-message]").filter({ hasText: /network|reach|fetch|connection/i }).waitFor();
+  const manualRetrying = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/pairing/manual") && r.status() === 202);
+  await manual.getByRole("button", { name: "Approve this device", exact: true }).click();
+  const manualReply = await manualRetrying;
+  assert.notEqual(manualReply.request().postDataJSON().key, manualKey);
+  const retried = (await manualReply.json()).request;
+  const operation = (await f.store.snapshot()).wifiPairingRequests.find((p) => p.id === retried.id);
+  assert.equal(operation.kind, "reconnect"); assert.equal(operation.mac, "AA:BB:CC:DD:EE:05");
+  await f.process(operation.commandId); assert.deepEqual(errors, []);
+  console.log("PASS manual browserless-device approval recovers a lost completed response with a fresh key and its saved grant");
   for (const c of contexts) await c.close();
 } finally {
   await browser?.close(); await f.close();

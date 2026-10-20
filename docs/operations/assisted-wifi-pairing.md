@@ -112,6 +112,8 @@ Completed request keys are historical results. Starting another connection with
 one returns `PAIRING_RESTART_REQUIRED`; portal clients make one bounded retry with
 a fresh key, rechecking the saved grant and current router target. Pending retries
 retain their key so lost responses cannot create duplicate login operations.
+Manual browserless-device approvals use this same bounded restart and keep the
+rotated key if another response is lost.
 MAC/IP candidates stay in the pairing URL through reload, expiry and retry when
 browser storage is denied. Account numbers, vouchers and approval codes stay out
 of that URL. The Wi-Fi sign-in link remains available on recovered requests.
