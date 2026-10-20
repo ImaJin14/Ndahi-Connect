@@ -66,7 +66,11 @@ try {
     } catch (error) {
       await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true });
       throw error;
-    } finally { await context.close(); }
+    } finally {
+      // Let intercepted responses finish before closing their request context.
+      await context.unrouteAll({ behavior: "wait" });
+      await context.close();
+    }
   }
   await scenario("guests can browse packages off-network and recheck after joining Wi-Fi", async (page, changeAddress) => {
     await page.goto(portal + "/onboarding.html");
