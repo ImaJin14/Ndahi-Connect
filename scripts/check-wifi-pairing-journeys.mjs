@@ -46,7 +46,8 @@ try {
   await guest.getByLabel("Account phone number", { exact: true }).fill("670050001");
   await guest.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
   // The API commits, then the reply is lost. Retrying must keep the same request.
-  await guest.route("**/api/wifi/pairing/request", async (route) => { await route.fetch({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }); await route.abort("failed"); }, { times: 1 });
+  let originalKey;
+  await guest.route("**/api/wifi/pairing/request", async (route) => { originalKey = route.request().postDataJSON().key; await route.fetch({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }); await route.abort("failed"); }, { times: 1 });
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
   await guest.locator("#pairingMessage").filter({ hasText: /network|reach|fetch|connection/i }).waitFor();
   await guest.reload();
@@ -60,7 +61,9 @@ try {
   assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 1);
   await guest.reload();
   await guest.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
-  assert.equal(new URL(guest.url()).search, ""); assert.doesNotMatch(guest.url(), /670050001|NC-AAAA/);
+  assert.equal(new URL(guest.url()).searchParams.get("mac"), guestMac);
+  assert.equal(new URL(guest.url()).searchParams.get("address"), "10.20.0.30"); assert.doesNotMatch(guest.url(), /670050001|NC-AAAA/);
+  assert.equal(await guest.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
   assert.equal((await guestContext.cookies()).some((c) => c.name === "customer_session"), false);
   console.log("PASS lost-response retry and reload preserve one request with storage and AbortSignal.timeout unavailable");
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
@@ -84,12 +87,27 @@ try {
   await owner.screenshot({ path: screenshots + "/main-approval-320.png", fullPage: true });
   console.log("PASS two independent browsers approve Wi-Fi access without granting the guest an account session");
 
+  const previousMain = (await f.store.snapshot()).customers[0].wifiMainDevice;
+  await f.store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+  const reconnecting = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/connect") && r.status() === 202);
+  await owner.goto(portal + "/hotspot?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.95#wifi_key=" + originalKey);
+  const reconnectReply = await reconnecting, reconnectBody = await reconnectReply.json();
+  assert.notEqual(reconnectReply.request().postDataJSON().key, originalKey);
+  const reconnectRequest = (await f.store.snapshot()).wifiPairingRequests.find((p) => p.id === reconnectBody.request.id);
+  assert.equal(reconnectRequest.target.address, "10.20.0.95"); assert.equal(reconnectRequest.kind, "reconnect");
+  assert.equal(f.calls.length, 1, "old completion must not count as fresh router confirmation");
+  await f.process(reconnectRequest.commandId); await owner.waitForURL(/\/dashboard/);
+  assert.equal(f.calls.length, 2); assert.deepEqual((await f.store.snapshot()).customers[0].wifiMainDevice, previousMain);
+  console.log("PASS a restored connection URL starts a fresh grant-authorized reconnect after router session/IP changes, preserving main identity");
+
   await f.store.transaction((s) => { s.vouchers[0].deviceLimit = 5; });
-  const { page: expired } = await context();
+  const { page: expired } = await context({ blockedStorage: true });
   await expired.goto(portal + "/pair?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.40");
   await expired.getByLabel("Account phone number", { exact: true }).fill("670050001");
   await expired.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
   await expired.getByRole("button", { name: "Request access", exact: true }).click();
+  await expired.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await expired.reload();
   await expired.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
   f.advance(301);
   await expired.locator("#pairingStatus").filter({ hasText: "expired" }).waitFor();
@@ -107,8 +125,8 @@ try {
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   await owner.locator("[data-request]").filter({ has: owner.locator("[data-pairing-approval]") }).getByRole("button", { name: "Decline", exact: true }).click();
   await expired.locator("#pairingStatus").filter({ hasText: "declined" }).waitFor();
-  assert.equal(f.calls.length, 1); assert.deepEqual(errors, []);
-  console.log("PASS expiry and decline cannot connect; announced names render safely and both screens fit at 320px");
+  assert.equal(f.calls.length, 2); assert.deepEqual(errors, []);
+  console.log("PASS storage-blocked reload/expiry/retry/decline preserve target details, keep unknown devices offline and escape names at 320px");
   for (const c of contexts) await c.close();
 } finally {
   await browser?.close(); await f.close();

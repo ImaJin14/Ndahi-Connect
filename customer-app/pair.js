@@ -1,5 +1,5 @@
 import { formValues, markReady, randomId, requestJson, sessionStore } from "./compat.js";
-import { wifiHint } from "./wifi-pairing.js";
+import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 
@@ -7,6 +7,8 @@ const config = window.NDAHI_CONFIG, form = document.getElementById("pairingReque
   progress = document.getElementById("pairingProgress"), status = document.getElementById("pairingStatus"), redeem = document.getElementById("pairingRedeem"),
   cancel = document.getElementById("pairingCancel"), retry = document.getElementById("pairingRetry"), hint = wifiHint();
 let request = null, key, timer, polling = false;
+const signIn = document.getElementById("wifiSignIn");
+if (config.hotspotLoginUrl) { signIn.href = config.hotspotLoginUrl; signIn.hidden = false; }
 const pending = (value) => value && ["pending", "awaiting_code", "connecting"].includes(value.status);
 async function call(path, input) {
   const result = await requestJson(config.apiUrl + "/api/wifi/pairing/" + path, { cache: "no-store", credentials: "omit", ...(input ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) } : {}) });
@@ -17,12 +19,13 @@ function remember() {
   const value = { key, id: request && request.id, expiresAt: request && request.expiresAt };
   sessionStore.set("ndahi_pairing", JSON.stringify(value));
   // Fragments survive a reload when storage is blocked, and are not sent in HTTP.
-  const candidate = !value.id && hint ? "?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) : "";
+  const candidate = hint ? "?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) : "";
   try { history.replaceState(null, "", location.pathname + candidate + "#key=" + key + (value.id ? "&request=" + encodeURIComponent(value.id) : "")); } catch (_) { /* Memory still supports this page. */ }
 }
 function forget() {
   sessionStore.remove("ndahi_pairing");
-  try { history.replaceState(null, "", location.pathname); } catch (_) { /* Optional. */ }
+  const candidate = hint ? "?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) : "";
+  try { history.replaceState(null, "", location.pathname + candidate); } catch (_) { /* Optional. */ }
 }
 function render(value) {
   request = value;
@@ -64,7 +67,7 @@ form.onsubmit = (event) => {
         if (!hint) throw Error("Open Wi-Fi sign-in on this device first.");
         if (!key) key = randomId();
         remember();
-        const result = await call("request", Object.assign(input, { key, mac: hint.mac, address: hint.address }));
+        const result = await startWifiRequest((payload) => call("request", payload), Object.assign(input, { key, mac: hint.mac, address: hint.address }), (next) => { key = next; remember(); });
         render(result.request);
         form.reset(); message.textContent = "Keep this page open while your main device reviews the request.";
         clearTimeout(timer); timer = setTimeout(poll, 5000);
@@ -104,7 +107,5 @@ void (async () => {
     if (!availability.enabled) { message.textContent = "Assisted connection is currently unavailable. Use your voucher and PIN to connect."; return; }
     form.hidden = !hint;
     message.textContent = hint ? "Enter the account number and active voucher to request access. Your main device supplies the approval code." : "Open the Wi-Fi sign-in page on this device, then choose Connect using your main device. This lets the router identify it.";
-    const signIn = document.getElementById("wifiSignIn");
-    if (config.hotspotLoginUrl) { signIn.href = config.hotspotLoginUrl; signIn.hidden = false; }
   } catch (error) { showError(message, error); }
 })();

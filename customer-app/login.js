@@ -6,7 +6,7 @@ import { formValues, sessionStore, requestJson, loadPasskeys, markReady } from "
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { completeSignIn } from "./sign-in-request.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
-import { wifiHint } from "./wifi-pairing.js";
+import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { randomId } from "./compat.js";
 
 migrateLegacyCheckout();
@@ -75,8 +75,8 @@ $("#login").onsubmit = async (event) => {
           requestButton.onclick = async () => {
             try { await runButton(requestButton, "Requesting…", async () => {
               if (!key) key = randomId();
-              const reply = await call("/api/wifi/pairing/request", { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address });
-              location.href = "/pair#key=" + key + "&request=" + encodeURIComponent(reply.request.id);
+              const reply = await startWifiRequest((payload) => call("/api/wifi/pairing/request", payload), { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address }, (next) => { key = next; });
+              location.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + key + "&request=" + encodeURIComponent(reply.request.id);
             }, { controls: Array.from(gate.querySelectorAll("button")) }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
           };
           gate.querySelector("[data-account-signin]").onclick = () => {

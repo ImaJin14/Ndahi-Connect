@@ -3,6 +3,17 @@ import { requestJson, sessionStore, randomId } from "./compat.js";
 import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 
+// Retry a finished operation with a fresh key; the server rechecks the saved
+// grant and current router target. In-flight retries retain their original key.
+export async function startWifiRequest(send, input, onKeyChanged = () => {}) {
+  try { return await send(input); }
+  catch (error) {
+    if (error.code !== "PAIRING_RESTART_REQUIRED") throw error;
+    input.key = randomId(); onKeyChanged(input.key);
+    return send(input);
+  }
+}
+
 export function wifiHint() {
   const query = new URLSearchParams(location.search), mac = String(query.get("mac") || "").toUpperCase(), address = query.get("address") || "";
   const valid = (value) => value && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/.test(value.mac) &&

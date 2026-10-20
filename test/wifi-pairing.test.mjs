@@ -103,7 +103,12 @@ test("expired, declined and cancelled requests cannot be approved or replayed", 
     assert.equal((await approve(f, r)).status, 409);
     assert.equal((await status(f, r)).body.request.status, state);
     await f.process(); assert.equal(f.calls.length, 0);
-    assert.equal((await f.request()).body.code, undefined);
+    const finished = await f.request();
+    assert.equal(finished.status, 409); assert.equal(finished.body.code, "PAIRING_RESTART_REQUIRED");
+    assert.equal(finished.body.approvalCode, undefined);
+    const fresh = await f.request({ key: "b".repeat(32) });
+    assert.equal(fresh.status, 201); assert.equal(fresh.body.request.status, "pending");
+    assert.notEqual(fresh.body.request.id, r.body.request.id);
   }
 });
 
