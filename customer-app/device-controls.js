@@ -13,8 +13,18 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     info = await call("/api/account/device-management");
     const main = info.mainDevice;
     container.innerHTML = `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
-      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>`;
+      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>
+      ${(info.approvedDevices || []).length ? `<section data-approved-devices><h3>Saved device approvals</h3><p>Forget a device to require fresh approval, even when it is offline. Router removal must finish before it can be approved again.</p>${info.approvedDevices.map((d) => `<div class="device"><div><strong>${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}${d.main ? " · Main device" : ""}</strong>${d.routerChanged ? "<p>Approval belongs to a previous router.</p>" : ""}${d.removal ? `<p role="status">${d.removal === "failed" ? "Saved approval revoked. Router removal needs support review." : "Saved approval revoked. Waiting for router removal; its slot is not confirmed free."}</p>` : ""}</div>${d.removal ? "" : `<button type="button" data-forget-device="${h(d.id)}">Forget device</button>`}</div>`).join("")}<button type="button" data-refresh-approvals>Refresh saved approvals</button></section>` : ""}`;
     container.appendChild(message);
+    const query = new URLSearchParams(location.search), candidate = query.get("main-device");
+    if ((!main || info.setupRequired) && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(candidate || "")) {
+      const prompt = document.createElement("section"); prompt.className = "main-device-prompt";
+      prompt.innerHTML = '<h3>Is this your main device?</h3><p>This device is connected. Choose whether this browser should manage other devices.</p><button type="button" data-main-yes>Yes, set as main device</button><button type="button" data-main-no class="secondary-action">No, skip for now</button>';
+      container.prepend(prompt);
+      const clear = () => { const url = new URL(location.href); url.searchParams.delete("main-device"); history.replaceState(null, "", url.href); prompt.remove(); };
+      prompt.querySelector("[data-main-yes]").onclick = async () => { await showProof(candidate.toUpperCase(), false); clear(); };
+      prompt.querySelector("[data-main-no]").onclick = clear;
+    }
   } catch (error) {
     container.textContent = "Main-device controls could not load. Refresh to try again.";
     return;
@@ -33,6 +43,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       <button type="button" data-close-proof>Cancel</button><div data-proof-message role="status" aria-live="polite"></div></form>`;
     formHost.hidden = false;
     const form = formHost.querySelector("form"), output = form.querySelector("[data-proof-message]");
+    if (mac && !disconnect) form.elements.mac.value = mac;
     async function submit(usePasskey) {
       const input = formValues(form), selected = choices.find((d) => d.mac === input.mac);
       if (!form.reportValidity()) return;
@@ -65,6 +76,46 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     form.querySelector("[data-close-proof]").onclick = () => { form.reset(); formHost.hidden = true; };
     form.scrollIntoView({ block: "nearest" });
   }
+  function showForget(approvalId) {
+    const device = (info.approvedDevices || []).find((d) => d.id === approvalId), host = container.querySelector("[data-device-proof]");
+    if (!device || device.removal) return;
+    host.innerHTML = `<form data-forget-proof><h3>Forget saved device</h3><p>${h(device.name || "Unnamed device")} · ending ${h(device.mac.slice(-5))} will need fresh approval to reconnect.${device.main ? " This also removes its main-device control." : ""}</p>
+      <label><input type="checkbox" name="confirm" required> Remove this device's saved approval.</label>
+      <label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label>
+      ${info.authenticatorEnrolled ? '<label>Authenticator code<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>' : ""}
+      <button type="submit">Verify and forget</button>${info.passkeys && window.PublicKeyCredential && navigator.credentials ? '<button type="button" data-forget-passkey>Verify with passkey</button>' : ""}
+      <button type="button" data-cancel-forget>Cancel</button><div role="status" data-forget-message></div></form>`;
+    host.hidden = false;
+    const form = host.querySelector("form"), output = form.querySelector("[data-forget-message]");
+    async function submit(usePasskey) {
+      if (!form.reportValidity()) return;
+      const values = formValues(form);
+      if (!usePasskey && !/^\d{4}$/.test(values.pin || "")) { output.textContent = "Enter your four-digit PIN."; return; }
+      try {
+        await runButton(form.querySelector(usePasskey ? "[data-forget-passkey]" : '[type="submit"]'), "Removing…", async () => {
+          const payload = { approvalId, pin: values.pin, otp: values.otp };
+          if (usePasskey) {
+            const browser = await loadPasskeys(), challenge = await call("/api/account/device-management/forget/options", { method: "POST", body: JSON.stringify({ approvalId }) });
+            delete payload.pin; payload.challengeId = challenge.challengeId;
+            payload.response = await browser.startAuthentication({ optionsJSON: challenge.options });
+          }
+          await call("/api/account/device-management/forget", { method: "POST", body: JSON.stringify(payload) });
+          form.reset(); host.hidden = true; await onChanged();
+        }, { controls: Array.from(form.elements) });
+      } catch (error) { showError(output, error); }
+    }
+    form.onsubmit = (event) => { event.preventDefault(); void submit(false); };
+    const passkey = form.querySelector("[data-forget-passkey]");
+    if (passkey) passkey.onclick = () => { void submit(true); };
+    form.querySelector("[data-cancel-forget]").onclick = () => { form.reset(); host.hidden = true; };
+    form.querySelector('[name="confirm"]').focus(); host.scrollIntoView({ block: "nearest" });
+  }
+  const saved = container.querySelector("[data-approved-devices]");
+  if (saved) saved.onclick = (event) => {
+    const button = event.target.closest("[data-forget-device]"); if (button) showForget(button.dataset.forgetDevice);
+    const refresh = event.target.closest("[data-refresh-approvals]");
+    if (refresh) void runButton(refresh, "Refreshing…", onChanged).catch((error) => showError(message, error));
+  };
   container.querySelector("[data-select-main]").onclick = () => showProof(null, false).catch((error) => showError(message, error));
   void mountPairingControls({ container: container.querySelector("[data-pairing-controls]"), call });
   container.closest("section").addEventListener("click", (event) => {

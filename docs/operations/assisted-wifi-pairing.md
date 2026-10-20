@@ -1,103 +1,134 @@
-# Assisted Wi-Fi pairing
+# Main-device approval for Wi-Fi access
 
-Assisted pairing lets a new device request Wi-Fi access and a verified main
-browser approve it. It does not create an account session on the new device.
-Normal voucher and PIN sign-in remains available.
+The first owner-authenticated device connects through the API and is then asked
+**Is this your main device?** Choosing Yes opens owner verification with PIN or
+passkey; choosing No keeps internet access and skips main-device linking. Main
+selection is explicit and survives renewals and Wi-Fi departures. Authenticator
+sign-in and verification for main selection remain optional.
 
-## Customer flow
+## Additional-device flow
 
-1. On a connected device, select the main device in the account's device controls.
-   Verify with the account PIN or passkey. An enrolled authenticator code is optional
-   for main-device selection and is not required to approve another device.
-   The selected browser remembers control in an HttpOnly cookie. Replacing the
-   main browser or changing/recovering the PIN revokes earlier control.
-2. On the new device, join NDAHI Wi-Fi, open Wi-Fi sign-in, and choose **Connect
-   using your main device**. Enter the account phone number and active voucher.
-3. Keep its six-digit code open. In the main browser's **Connection requests**,
-   compare the router-announced name and MAC suffix, enter that code, then approve
-   or decline. The code expires after five minutes or at bundle expiry, whichever
-   comes first. Five incorrect codes fail the request.
-4. Both screens show **Connecting** until the router confirms the exact active
-   session. Approval checks current bundle/data, fresh device readings and free
-   slots. Connecting requests reserve slots; the router rechecks live limits.
+1. Join NDAHI Wi-Fi and enter the account number and active voucher. A new,
+   unapproved device gets a restricted **Request access** page. It receives no
+   account session and no internet access from those details alone.
+2. The owner sees the request in the main browser's notification bell and
+   **Connection requests**. The router-announced name and MAC suffix identify the
+   requested device. The owner chooses **Approve & show code** or **Decline**.
+3. Only the main controlling browser receives the six-digit approval code. The
+   requesting device enters that code to complete approval. It works for one
+   request, customer, voucher, router revision and pinned guest MAC/IP/host row.
+   Pending requests expire after five minutes. Issuing the code starts a fresh
+   five-minute window, capped by bundle expiry; repeat taps reuse the same code
+   and do not extend that window. Five wrong redemption codes fail the request.
+4. Redemption rechecks current ownership, the bundle, remaining data, fresh device
+   readings and available slots. **Connecting** reserves a slot. **Connected** is
+   shown only after the router confirms the exact session.
 
-The new device's pairing code is separate from an authenticator app's sign-in code.
-Customers do not need to enroll an authenticator to use assisted pairing.
+When no main browser has been set, requests remain pending with a setup message
+and the owner's bell shows **Set your main device**. The owner must select one
+before a code can be issued. Reading or archiving a notification grants no access.
+The approval code is separate from an authenticator code.
 
-Names are display data. The API verifies the hinted MAC/IP against a fresh guest
-row on `ndahi-hotspot`, and pins its host ID and translated login IP. The worker
-rechecks the host mapping, managed voucher, presence profile, quota and deadline
-before calling RouterOS. A DHCP address reused by another host cannot retarget
-an old request. Device MAC randomization or Wi-Fi reconnection may require a new
-code. A missing DHCP name is shown as an unnamed device with its MAC suffix.
+Approved devices can reconnect while their grant, router revision and current
+bundle remain valid. Removing a device revokes its grant and unused codes; a
+pending disconnect retains its slot and blocks reconnection until confirmed.
+Main replacement or PIN recovery invalidates earlier controller approvals. A lost
+main browser can be replaced through explicit fresh PIN/passkey recovery from an
+owner account session. The replacement connects before the main-device question
+is shown; the earlier controller and its unused codes no longer authorize access.
 
-Only hashes of request keys and pairing codes are stored for authentication. Reload recovery
-uses a temporary key in session storage and the URL fragment, which is not sent
-in HTTP requests. The page sets `no-referrer`; phone/voucher are not stored in that
-handoff. Retrying a lost response with the same key returns the same request.
-No guest account cookie is issued. Terminal requests never return their code.
+For a TV, console or device without a usable browser, the main browser offers
+**Add a device without a browser**. Enter its Wi-Fi MAC and IPv4 address from its
+network settings and confirm those details. The server verifies the live guest
+mapping before queuing the same bounded router connection; no guest account
+session is created. Names are untrusted display data, never ownership proof.
 
-## Rollout and on-site pilot
+## Router enforcement
 
-This feature is disabled by default. Deploying code does not enable it.
+Owners can also revoke saved approvals while a device is offline using **Saved
+device approvals → Forget device**, including after bundle expiry. Fresh owner
+proof protects this action. It cancels unused codes and unclaimed reconnects;
+router session/cookie cleanup is durable and blocks reapproval until confirmed.
+See [device removal](device-management.md#forgetting-a-saved-device-including-offline-devices).
 
-1. Merge the main-device prerequisite (PR #48), then deploy this change to the
-   API, customer portal and admin app. If using the legacy management bridge,
-   deploy its new `readGuestDevice` and `connectWifiDevice` actions first. A saved
-   live router uses the direct REST adapter. Mock routers cannot authorize pairing.
-   Existing `challenges` storage holds the new `wifi_pairing` kind; no SQL schema
-   change is required.
-2. Regenerate the router's captive portal pages using the existing command:
+Deployment alone does not enable the policy. An owner enables the pilot from
+**Admin → More → Network setup → Assisted device connections**, after checking
+pre-login portal/API access. Enabling records a versioned policy and saved-router
+revision and queues active vouchers for synchronization. Connections observed on
+the router at the first enablement are retained as approved. No main browser is
+selected automatically during migration.
+
+The worker keeps the existing shared voucher username, quota and simultaneous
+user accounting, but replaces its public voucher password with a private value
+derived from the voucher ID and persistent `NETWORK_CONFIG_KEY`. Browsers never
+receive this password. A reserved `ndahi-users-N-approval-v1` profile marks the
+policy and retains the two-minute departure grace. Changing from the public
+profile clears remembered voucher login cookies. Private-profile checks do not
+require reading sensitive router password fields. Reconciliation repairs a
+public or outdated profile through the durable sync queue.
+
+Normal portal account sign-in still works from any network. Under this policy,
+`GET /api/account/hotspot-credentials`, the legacy voucher/session redemption
+endpoint and simulated device-connect endpoint cannot bypass device approval.
+The first owner connection, an approved reconnection or explicit owner recovery
+uses a router-verified target and a bounded server-side login instead.
+
+Disabling **Assisted connections** pauses new requests and approvals and cancels
+unredeemed requests. It does not restore public passwords. Already-approved
+reconnections remain possible, subject to the active bundle and router mapping.
+Private access requires the saved live router; disabling it cannot fall back to
+an older public-password bridge. Restoring the earlier public-password policy
+would require a separate reviewed migration, not the pause toggle.
+
+## Rollout and physical pilot
+
+1. Deploy the API, portal and admin together. Existing `challenges` and `events`
+   tables hold `wifi_device_grant` and `notification_state`; no SQL schema change
+   is required. Back up the persistent network key/configuration as usual.
+2. Install the generated captive pages through the existing router procedure:
 
    ```bash
    node scripts/prepare-hotspot-pages.mjs https://portal.ndahiconnect.net /tmp/ndahi-hotspot
    ```
 
-   Review and upload `login.html`, `flogin.html` and `rlogin.html` through the
-   existing router deployment procedure. Generated URLs carry `$(mac)` and
-   `$(ip)` into the onboarding page. These are hints, not proof of ownership.
-   The server validates them against router records before creating a request.
-3. Verify an unpaid/exhausted device on NDAHI Wi-Fi can reach both the portal and
-   API before login. Use **Admin → More → Network setup → Check purchase access**
-   and test the actual device with mobile data off. Keep the existing selective
-   Starlink/WireGuard routing; this feature requires no default-route change.
-4. Require an active saved live router, `COVERAGE_ACCESS_ENABLED=true`, correct
-   trusted coverage addresses and a running network worker
-   (`NETWORK_QUEUE_ENABLED` must not be `false`). In Network setup, check the
-   pre-login verification statement and enable **Assisted device connections**.
-   Enabling performs read-only checks of the hotspot, guests, active sessions and
-   profiles and records the saved router revision. A changed revision disables
-   pairing until checked and enabled again.
-5. With a test bundle, verify Note 8 and iPad Air 2: announced names, code matching,
-   approval, decline, expiry, an occupied last slot, duplicate taps, Wi-Fi departure,
-   main-browser replacement, and normal voucher/PIN sign-in. Check the live router
-   row and actual internet access, not only the UI. Confirm guest approval does
-   not open account settings.
-6. Simulate a lost router/API response and recovery. A confirmed existing session
-   must not generate another login. A request that expires before dispatch cannot
-   be replayed. An operation already in flight may finish bounded confirmation;
-   check connected devices after an uncertain/failed result before requesting
-   another code. Finite processing leases recover abandoned workers.
+   The pages carry MAC/IP hints into onboarding. Those hints are checked against
+   live router records. With browser storage blocked, keep them in the sign-in
+   URL or reopen Wi-Fi sign-in when requested; the shared public IP identifies
+   the coverage network and cannot identify an individual device.
+3. Verify an unpaid/exhausted device can reach both portal and API with mobile
+   data off. Keep the existing selective Starlink/WireGuard routing. Require
+   `COVERAGE_ACCESS_ENABLED=true`, correct trusted coverage addresses, a saved
+   active live router, stable `NETWORK_CONFIG_KEY` and the network worker.
+4. Enable the policy using a test bundle. Wait for voucher synchronization and
+   verify the approval profile/private credential on the router without copying
+   secrets into logs or screenshots. A pre-existing older assisted-pairing flag
+   must be re-enabled to install this policy version.
+5. Test first-device Yes and No; an additional voucher/number sign-in; the main
+   bell and code; wrong code, decline, cancellation and expiry; full device slots;
+   approved reconnection; explicit main recovery; and a browserless device.
+   Check that entering the public voucher directly cannot log in to the router,
+   and old public cookies cannot admit an unapproved device.
+6. Run on real Note 8, iPad Air 2 and the router. Check actual browsing and router
+   rows, shared data accounting, exhaustion, expiry and Wi-Fi departure. Test lost
+   responses: retries must recover one existing request/session. An operation
+   already in flight can finish bounded confirmation; refresh devices after an
+   uncertain result before issuing another approval.
 
-Use **Disable assisted connections** to stop new requests and approvals. Pending
-requests are cancelled; queued approvals fail authorization. An already-issued
-bounded router operation may finish. Existing Wi-Fi sessions continue and can be
-disconnected through the normal device controls.
+Requests and redemptions use the existing separate pairing IP budget (default
+600 per fifteen minutes). Status polling uses a bearer key, at most once per
+1.5 seconds while pending; the UI polls every five seconds. Each customer has at
+most three pending/awaiting-code/connecting requests and ten starts per fifteen
+minutes. Completed request records are kept for seven days. Codes are hashed;
+main-only display can be recovered from a nonce and the current/previous pepper.
+Request recovery uses session storage or a URL fragment; phone/voucher and codes
+are not placed in that fragment. No requesting-device account cookie is issued.
 
-Pairing request/approval traffic has a separate IP budget (`AUTH_EDGE_PAIRING_MAX`,
-default 600 per `AUTH_EDGE_WINDOW_SECONDS`, default 900 seconds). Status polling
-requires its bearer key and is limited to once per 1.5 seconds while pending;
-the UI polls every five seconds. Polling does not consume the shared sign-in
-budget. Requests are limited per customer to three pending/connecting and ten
-within fifteen minutes. Terminal request records are retained for seven days.
+Automated tests use isolated accounts and synthetic router responses. They verify
+API authorization, expiry, replay, main transfer, first-connection races, slot
+races, private credential writes and 320px browser journeys. They do not establish
+production enablement or physical compatibility. See also
+[notifications](notifications.md) and [device management](device-management.md).
 
-## Validation boundary
-
-Local API/router tests and Chromium journeys use isolated state and synthetic
-router responses. They exercise authorization, CSRF, code/lease expiry,
-concurrent slot reservations, replay prevention, stale mappings, quota/presence
-guards, lost responses, blocked browser storage and narrow screens. They do not
-establish production deployment or physical device/router compatibility.
-
-RouterOS references: [targeted active login](https://manual.mikrotik.com/docs/cli-reference/ip/hotspot/active/login/)
-and [HotSpot HTML variables](https://manual.mikrotik.com/docs/authentication-authorization-accounting/hotspot-captive-portal/hotspot-customisation/).
+RouterOS references: [HotSpot users and authentication](https://manual.mikrotik.com/docs/authentication-authorization-accounting/hotspot-captive-portal/),
+[targeted login](https://manual.mikrotik.com/docs/cli-reference/ip/hotspot/active/login/),
+and [REST API](https://manual.mikrotik.com/docs/developer-guides/rest-api/).

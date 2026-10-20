@@ -6,6 +6,8 @@ import { formValues, sessionStore, requestJson, loadPasskeys, markReady } from "
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { completeSignIn } from "./sign-in-request.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
+import { wifiHint } from "./wifi-pairing.js";
+import { randomId } from "./compat.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
@@ -62,6 +64,22 @@ $("#login").onsubmit = async (event) => {
         $("#confirmPinLabel").hidden = accessMode !== "setup";
         $("#confirmPin").required = accessMode === "setup";
         $("#customerPin").focus();
+        if (result.deviceApprovalRequired && wifiHint() && new URLSearchParams(location.search).get("account") !== "1") {
+          const hint = wifiHint(), gate = document.createElement("section");
+          gate.id = "deviceAccessGate"; gate.className = "card";
+          gate.innerHTML = '<h2>Request access from your main device</h2><p>This device will stay offline until your main device approves it and supplies a code.</p><button type="button" data-request-access>Request access</button><button type="button" data-account-signin>Sign in to account settings</button><p data-access-message role="status"></p>';
+          event.target.hidden = true; event.target.after(gate);
+          const requestButton = gate.querySelector("[data-request-access]"); let key;
+          requestButton.onclick = async () => {
+            try { await runButton(requestButton, "Requesting…", async () => {
+              if (!key) key = randomId();
+              const reply = await call("/api/wifi/pairing/request", { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address });
+              location.href = "/pair#key=" + key + "&request=" + encodeURIComponent(reply.request.id);
+            }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
+          };
+          gate.querySelector("[data-account-signin]").onclick = () => { gate.remove(); event.target.hidden = false; $("#customerPin").focus(); };
+          requestButton.focus();
+        }
         return;
       }
       await completeSignIn(api, "/api/account/access/complete", {

@@ -1,0 +1,141 @@
+import { escapeHtml as h } from "/shared/safe-html.js";
+import { runButton } from "/shared/pending.js";
+
+let mounted;
+export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
+  if (mounted) { void mounted.refresh(); return mounted; }
+  const style = document.createElement("link"); style.rel = "stylesheet"; style.href = "/shared/notifications.css"; document.head.appendChild(style);
+  const bell = document.createElement("button"); bell.type = "button"; bell.className = "notification-bell";
+  bell.setAttribute("aria-label", "Notifications"); bell.setAttribute("aria-haspopup", "dialog"); bell.setAttribute("aria-expanded", "false");
+  bell.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M9 21h6"/></svg><span data-notification-count hidden></span>';
+  const logout = document.querySelector("header #logout"), header = document.querySelector("header");
+  if (!header) return;
+  (logout ? logout.parentElement : header).insertBefore(bell, logout || null);
+  const backdrop = document.createElement("div"); backdrop.className = "notification-backdrop"; backdrop.hidden = true;
+  const panel = document.createElement("section"); panel.className = "notification-panel"; panel.hidden = true;
+  panel.setAttribute("role", "dialog"); panel.setAttribute("aria-modal", "true"); panel.setAttribute("aria-labelledby", "notificationTitle");
+  panel.innerHTML = '<div class="notification-heading"><h2 id="notificationTitle">Notifications</h2><button type="button" data-close-notifications aria-label="Close notifications">✕</button></div><p data-notification-message role="status" aria-live="polite"></p><div data-notification-body></div>';
+  document.body.append(backdrop, panel);
+  const output = panel.querySelector("[data-notification-message]"), host = panel.querySelector("[data-notification-body]");
+  let inbox, timer, loading = false, tab = "unread", category = "all", settings = false, editing = false, generation = 0;
+  const post = (input) => { generation++; return call({ method: "POST", body: JSON.stringify(input) }); };
+  async function call(options = {}) {
+    const response = await fetch(apiUrl + path, { cache: "no-store", credentials: "include", ...options,
+      headers: { "content-type": "application/json", ...(options.method === "POST" ? { "x-csrf-token": csrf() } : {}) } });
+    const value = await response.json();
+    if (!response.ok) throw Error(value.error || "Notifications could not load.");
+    return value;
+  }
+  function badge() {
+    const count = inbox?.unreadCount || 0, label = bell.querySelector("[data-notification-count]");
+    label.hidden = !count; label.textContent = count > 99 ? "99+" : String(count);
+    bell.setAttribute("aria-label", "Notifications" + (count ? " (" + count + " unread)" : ""));
+  }
+  function render() {
+    if (!inbox || panel.hidden || editing) return;
+    const focused = document.activeElement, hadFocus = host.contains(focused), focusName = focused && focused.name;
+    const focusAttribute = ["data-notification-view", "data-notification-category", "data-open-settings", "data-read-all", "data-settings-back"].find((key) => focused && focused.hasAttribute(key));
+    const items = inbox.items.filter((n) => (category === "all" || n.category === category) &&
+      (tab === "archived" ? n.archived : !n.archived && (tab === "action" ? n.actionRequired : tab === "unread" ? !n.read : true)));
+    host.innerHTML = settings ? '<form data-notification-settings><h3>Notification settings</h3><p>Security notices and items requiring action stay visible in your inbox.</p>' +
+      Object.entries(inbox.preferences.categories).filter(([key]) => admin || !["network", "recovery"].includes(key)).map(([key, enabled]) =>
+        '<label><input type="checkbox" name="' + h(key) + '" ' + (enabled ? "checked" : "") + (key === "security" ? " disabled" : "") + '> ' + h(key.charAt(0).toUpperCase() + key.slice(1)) + '</label>').join("") +
+      (!admin ? '<label><input type="checkbox" name="emailSecurity" ' + (inbox.preferences.emailSecurity ? "checked" : "") + '> Email security notices</label><p>' + (inbox.emailAvailable ? "Sent to your confirmed account email." : "Link and confirm an email in Account to receive email notices.") + '</p><label><input type="checkbox" name="usagePush" ' + (inbox.preferences.usagePush ? "checked" : "") + '> Data-usage push alerts</label>' : "") +
+      '<label><input type="checkbox" name="pushEnabled" ' + (inbox.preferences.pushEnabled ? "checked" : "") + (inbox.pushAvailable ? "" : " disabled") + '> Push new activity to my subscribed devices</label>' +
+      '<p>' + (inbox.pushAvailable ? "Browser notifications require permission on each device. Your in-app inbox always works." : "Browser push is not configured. Your in-app inbox works without it.") + '</p>' +
+      (inbox.pushAvailable ? '<button type="button" data-enable-browser>Enable on this device</button><button type="button" data-disable-browser>Disable on this device</button>' : "") +
+      '<button type="submit">Save notification settings</button><button type="button" data-settings-back>Back to notifications</button></form>' :
+      '<div class="notification-tools"><label>View<select data-notification-view aria-label="Notification view">' + [["unread","Unread"],["action","Action required"],["all","All"],["archived","Archived"]].map(([key,label]) => '<option value="' + key + '"' + (tab === key ? " selected" : "") + '>' + label + '</option>').join("") +
+      '</select></label><label>Category<select data-notification-category aria-label="Notification category"><option value="all">All categories</option>' + Object.keys(inbox.preferences.categories).map((key) => '<option value="' + key + '"' + (category === key ? " selected" : "") + '>' + h(key) + '</option>').join("") +
+      '</select></label></div><div class="notification-toolbar"><button type="button" data-read-all>Mark all read</button><button type="button" data-open-settings>Settings</button></div>' +
+      (items.length ? items.map((n) => '<article class="notification-item' + (n.read ? "" : " notification-unread") + '" data-notification-id="' + h(n.id) + '"><p class="notification-category">' + h(n.category) + (n.actionRequired ? " · Action required" : "") + '</p><h3>' + h(n.title) + '</h3><p>' + h(n.body) + '</p><small>' + h(new Date(n.updatedAt).toLocaleString()) + '</small><div class="notification-row-actions"><a data-notification-review href="' + h(n.url) + '">' + (n.actionRequired ? "Review" : "View details") + '</a>' +
+      (!n.read ? '<button type="button" data-read>Mark read</button>' : "") +
+      (!n.actionRequired ? '<button type="button" ' + (n.archived ? "data-restore" : "data-archive") + '>' + (n.archived ? "Restore" : "Archive") + '</button>' : "") + '</div></article>').join("") : '<p class="notification-empty">No notifications in this view.</p>');
+    const form = host.querySelector("form");
+    if (form) {
+      form.oninput = () => { editing = true; };
+      form.onsubmit = async (event) => {
+        event.preventDefault();
+        const input = { action: "preferences", categories: {} };
+        for (const key of Object.keys(inbox.preferences.categories)) if (form.elements[key]) input.categories[key] = form.elements[key].checked;
+        for (const key of ["pushEnabled", "emailSecurity", "usagePush"]) if (form.elements[key]) input[key] = form.elements[key].checked;
+        try { await runButton(form.querySelector('[type="submit"]'), "Saving…", async () => {
+          inbox = await post(input); editing = false; badge(); render(); output.textContent = "Notification settings saved.";
+        }, { controls: Array.from(form.elements) }); } catch (error) { output.textContent = error.message; }
+      };
+    }
+    if (hadFocus) {
+      const next = focusAttribute ? host.querySelector("[" + focusAttribute + "]") : focusName ? Array.from(host.querySelectorAll("[name]")).find((el) => el.name === focusName) : host.querySelector(form ? '[type="submit"]' : "[data-notification-view]");
+      (next || panel.querySelector("[data-close-notifications]")).focus();
+    }
+  }
+  async function refresh() {
+    if (loading || document.hidden) return;
+    loading = true; const requestGeneration = generation;
+    try { const result = await call(); if (requestGeneration !== generation) return; inbox = result; badge(); render(); }
+    catch (error) { if (!panel.hidden) output.textContent = error.message; }
+    finally { loading = false; }
+  }
+  function close() {
+    generation++; panel.hidden = true; backdrop.hidden = true; delete panel.dataset.sensitiveOutput;
+    document.body.classList.remove("notifications-open");
+    bell.setAttribute("aria-expanded", "false"); bell.focus();
+  }
+  bell.onclick = () => {
+    if (!panel.hidden) { close(); return; }
+    panel.hidden = false; backdrop.hidden = false; panel.dataset.sensitiveOutput = "true";
+    document.body.classList.add("notifications-open");
+    bell.setAttribute("aria-expanded", "true"); render(); panel.querySelector("[data-close-notifications]").focus(); void refresh();
+  };
+  backdrop.onclick = close; panel.querySelector("[data-close-notifications]").onclick = close;
+  panel.onkeydown = (event) => {
+    if (event.key === "Escape") { event.preventDefault(); close(); }
+    if (event.key !== "Tab") return;
+    const elements = [...panel.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select')].filter((el) => el.getClientRects().length);
+    const first = elements[0], last = elements[elements.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  };
+  document.addEventListener("keydown", (event) => { if (!panel.hidden && event.key === "Escape") { event.preventDefault(); close(); } });
+  panel.onchange = (event) => {
+    if (event.target.matches("[data-notification-view]")) { tab = event.target.value; render(); }
+    if (event.target.matches("[data-notification-category]")) { category = event.target.value; render(); }
+  };
+  panel.addEventListener("click", async (event) => {
+    const button = event.target.closest("button"), row = event.target.closest("[data-notification-id]");
+    if (event.target.closest("[data-notification-review]")) {
+      if (row) { try { inbox = await post({ action: "read", id: row.dataset.notificationId }); badge(); } catch (_) {} }
+      close(); return;
+    }
+    if (!button) return;
+    if (button.matches("[data-open-settings]")) { settings = true; editing = false; render(); return; }
+    if (button.matches("[data-settings-back]")) { settings = false; editing = false; render(); return; }
+    const action = button.matches("[data-read-all]") ? "read-all" : button.matches("[data-read]") ? "read" : button.matches("[data-archive]") ? "archive" : button.matches("[data-restore]") ? "restore" : null;
+    try {
+      if (action) await runButton(button, "Saving…", async () => { inbox = await post({ action, id: row?.dataset.notificationId }); badge(); render(); });
+      if (button.matches("[data-enable-browser],[data-disable-browser]")) {
+        if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) throw Error("Browser notifications are not supported here. Use the in-app inbox.");
+        const enable = button.matches("[data-enable-browser]");
+        if (enable && await Notification.requestPermission() !== "granted") throw Error("Allow notifications in your browser settings, or keep using the in-app inbox.");
+        await runButton(button, enable ? "Enabling…" : "Disabling…", async () => {
+          const registration = await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
+          let subscription = await registration.pushManager.getSubscription();
+          if (enable) {
+            const base64 = (inbox.publicKey + "=".repeat((4 - inbox.publicKey.length % 4) % 4)).replaceAll("-", "+").replaceAll("_", "/");
+            subscription ||= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)) });
+            await post({ action: "subscribe", subscription: subscription.toJSON() });
+            inbox = await post({ action: "preferences", pushEnabled: true });
+          } else if (subscription) {
+            await post({ action: "unsubscribe", endpoint: subscription.endpoint }); await subscription.unsubscribe();
+          }
+          editing = false; badge(); render(); output.textContent = enable ? "Browser notifications enabled on this device." : "Browser notifications disabled on this device.";
+        });
+      }
+    } catch (error) { output.textContent = error.message || "The notification action failed."; }
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) void refresh(); });
+  const startPolling = () => { clearInterval(timer); timer = setInterval(() => { if (!editing) void refresh(); }, 10000); void refresh(); };
+  window.addEventListener("pageshow", startPolling);
+  window.addEventListener("pagehide", () => clearInterval(timer));
+  mounted = { refresh, close }; startPolling(); return mounted;
+}

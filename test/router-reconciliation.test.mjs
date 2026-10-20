@@ -149,3 +149,14 @@ test("concurrent reconciliation passes coalesce into one run", async () => {
   await Promise.all([reconcile(), reconcile(), reconcile()]);
   assert.equal(calls, 1);
 });
+
+test("mandatory approval repairs a public login profile without reading router passwords", async () => {
+  const store = createStore({ persistent: false });
+  await store.transaction((s) => { s.vouchers.push(voucher()); s.networkSetup = { deviceApproval: { version: 1 } }; });
+  const reconcile = createRouterReconciler({ store, now: () => baseTime, router: { readState: async () => ({
+    vouchers: [{ voucherId: "v1", enabled: true, sessionPolicyReady: true, approvalPolicyReady: false }], sessions: [] }) } });
+  await reconcile();
+  const s = await store.snapshot();
+  assert.equal(s.routerCommands[0].action, "sync_voucher");
+  assert.equal(s.vouchers[0].networkReconciliation.issue, "session_policy_outdated");
+});

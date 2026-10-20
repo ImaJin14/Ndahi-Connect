@@ -1,5 +1,5 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { requestJson, sessionStore } from "./compat.js";
+import { requestJson, sessionStore, randomId } from "./compat.js";
 import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 
@@ -18,6 +18,9 @@ export function wifiHint() {
 export async function configurePairingLink(link) {
   if (!link) return;
   const hint = wifiHint();
+  if (hint) document.querySelectorAll('a[href="/login"],a[href="/hotspot"]').forEach((a) => {
+    const url = new URL(a.href); url.searchParams.set("mac", hint.mac); url.searchParams.set("address", hint.address); a.href = url.href;
+  });
   if (hint) link.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address);
   try {
     const result = await requestJson(window.NDAHI_CONFIG.apiUrl + "/api/wifi/pairing/config", { cache: "no-store", credentials: "omit" });
@@ -38,29 +41,48 @@ export async function mountPairingControls({ container, call, onChanged }) {
       if (!container.isConnected) return;
       output.textContent = "";
       const controller = result.enabled && result.isMainController;
-      container.querySelector("[data-pairing-help]").textContent = !result.enabled ? "Assisted connection is currently unavailable. Other devices can sign in with their voucher and PIN." : controller
-        ? "On the new device, join NDAHI Wi-Fi and choose Connect using your main device. Match its name and six-digit code before approving."
-        : "Use your main device's controlling browser to approve requests. Wi-Fi access does not give a device access to account settings.";
-      if (role !== controller) { list.innerHTML = ""; role = controller; }
+      container.querySelector("[data-pairing-help]").textContent = !result.enabled ? "New device approvals are currently paused. Existing approved devices can reconnect while their bundle remains valid." : controller
+        ? "Review the requesting device, then choose Approve & show code. Share that code with the requesting device."
+        : "Set a main device and use its controlling browser to approve requests. Wi-Fi access does not give a device access to account settings.";
+      if (role !== controller) {
+        list.innerHTML = ""; role = controller;
+        const manual = container.querySelector("[data-manual-device]"); if (manual) manual.remove();
+        if (controller) {
+          const details = document.createElement("details"); details.dataset.manualDevice = "true";
+          details.innerHTML = '<summary>Add a device without a browser</summary><p>For a TV, console or other device: join NDAHI Wi-Fi, then enter its Wi-Fi MAC and IP address from its network settings.</p><form data-manual-form><label>Wi-Fi MAC address<input name="mac" placeholder="AA:BB:CC:DD:EE:FF" required></label><label>Device IP address<input name="address" inputmode="decimal" placeholder="10.20.0.10" required></label><label><input name="confirm" type="checkbox" required> I checked these details on the device I want to connect.</label><button type="submit">Approve this device</button><p data-manual-message role="status"></p></form>';
+          container.appendChild(details);
+          const form = details.querySelector("form"); let key;
+          form.onsubmit = async (event) => {
+            event.preventDefault(); const input = { mac: form.elements.mac.value.toUpperCase().trim(), address: form.elements.address.value.trim(), confirm: form.elements.confirm.checked, key: key || (key = randomId()) };
+            try { await runButton(form.querySelector("button"), "Connecting…", async () => {
+              await call("/api/account/device-management/pairing/manual", { method: "POST", body: JSON.stringify(input) });
+              form.reset(); key = null; details.querySelector("[data-manual-message]").textContent = "Connection requested. Waiting for router confirmation.";
+              await refresh(); if (onChanged) await onChanged();
+            }, { controls: Array.from(form.elements) }); } catch (error) { showError(details.querySelector("[data-manual-message]"), error); }
+          };
+        }
+      }
       const requests = result.requests || [];
       Array.from(list.children).forEach((row) => { if (!requests.some((p) => p.id === row.dataset.request)) row.remove(); });
       if (requests.length && !list.children.length) list.textContent = "";
       for (const request of requests) {
         let row = Array.from(list.children).find((item) => item.dataset.request === request.id);
         if (!row) { row = document.createElement("article"); row.className = "surface"; row.dataset.request = request.id; list.appendChild(row); }
-        if (row.dataset.status === request.status) continue;
-        row.dataset.status = request.status;
-        row.innerHTML = `<h4>${h(request.name || "Unnamed device")} · ending ${h(request.macSuffix)}</h4><p data-request-status role="status">${h(request.status === "pending" ? "Awaiting approval" : request.status === "connecting" ? "Connecting — waiting for the router" : request.status === "connected" ? "Connected — confirmed by the router" : request.status.charAt(0).toUpperCase() + request.status.slice(1))}</p>
-          ${request.message && request.status !== "connected" ? `<p>${h(request.message)}</p>` : ""}${["pending", "connecting"].includes(request.status) ? `<p>Code expires ${h(new Date(request.expiresAt).toLocaleTimeString())}.</p>` : ""}
-          ${controller && request.status === "pending" ? '<form data-pairing-approval><label>Code shown on the new device<input name="pairingCode" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required></label><button type="submit">Approve connection</button><button type="button" data-pairing-decline class="secondary-action">Decline</button><p data-pairing-error role="alert"></p></form>' : ""}`;
+        const renderVersion = JSON.stringify([request.status, request.approvalCode, request.expiresAt, request.message]);
+        if (row.dataset.version === renderVersion) continue;
+        row.dataset.version = renderVersion; row.dataset.status = request.status;
+        row.innerHTML = `<h4>${h(request.name || "Unnamed device")} · ending ${h(request.macSuffix)}</h4><p data-request-status role="status">${h(request.status === "pending" ? "Awaiting approval" : request.status === "awaiting_code" ? "Approved — waiting for the device to enter your code" : request.status === "connecting" ? "Connecting — waiting for the router" : request.status === "connected" ? "Connected — confirmed by the router" : request.status.charAt(0).toUpperCase() + request.status.slice(1))}</p>
+          ${request.message && request.status !== "connected" ? `<p>${h(request.message)}</p>` : ""}${["pending", "awaiting_code", "connecting"].includes(request.status) ? `<p>Code expires ${h(new Date(request.expiresAt).toLocaleTimeString())}.</p>` : ""}
+          ${controller && request.status === "awaiting_code" && request.approvalCode ? `<div data-sensitive-output><p>Enter this code on the requesting device:</p><output class="pairing-code" aria-label="Approval code">${h(request.approvalCode)}</output><p>This code works once for this device. Keep it private.</p></div>` : ""}
+          ${controller && ["pending", "awaiting_code"].includes(request.status) ? `<form data-pairing-approval>${request.status === "pending" ? '<button type="submit">Approve &amp; show code</button>' : ""}<button type="button" data-pairing-decline class="secondary-action">${request.status === "pending" ? "Decline" : "Cancel approval"}</button><p data-pairing-error role="alert"></p></form>` : ""}`;
         const form = row.querySelector("form");
         if (form) {
           const act = async (decline) => {
             const error = form.querySelector("[data-pairing-error]");
             error.textContent = "";
             try {
-              await runButton(form.querySelector(decline ? "[data-pairing-decline]" : '[type="submit"]'), decline ? "Declining…" : "Approving…", async () => {
-                await call("/api/account/device-management/pairing/" + (decline ? "decline" : "approve"), { method: "POST", body: JSON.stringify({ id: request.id, code: form.elements.pairingCode.value.replace(/\s/g, "") }) });
+              await runButton(form.querySelector(decline ? "[data-pairing-decline]" : '[type="submit"]'), decline ? "Cancelling…" : "Approving…", async () => {
+                await call("/api/account/device-management/pairing/" + (decline ? "decline" : "approve"), { method: "POST", body: JSON.stringify({ id: request.id }) });
                 await refresh();
                 if (onChanged) await onChanged();
               }, { controls: Array.from(form.elements) });

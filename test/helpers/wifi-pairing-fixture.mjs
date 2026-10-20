@@ -7,17 +7,17 @@ const secret = "pairing-tests", pinHash = await argon2.hash("2468");
 export const mainMac = "AA:BB:CC:DD:EE:01", guestMac = "AA:BB:CC:DD:EE:03";
 export const publicRoot = "/api/wifi/pairing", ownerRoot = "/api/account/device-management/pairing";
 // A real API, isolated memory state, and a synthetic router. No production access.
-export async function pairingFixture({ origin = "http://customer.test", env = {}, router = {}, now = new Date("2030-01-01T12:00:00Z") } = {}) {
-  let at = now;
+export async function pairingFixture({ origin = "http://customer.test", env = {}, router = {}, liveClock = false, now = new Date("2030-01-01T12:00:00Z") } = {}) {
+  let at = now; const started = Date.now(), clock = () => liveClock ? new Date(+at + Date.now() - started) : at;
   const store = createStore({ persistent: false }), calls = [];
   const fakeRouter = {
     async readGuestDevice({ mac, address }) { return { mac, address, loginAddress: address, hostId: "*guest-" + mac.slice(-2), server: "ndahi-hotspot", name: "Galaxy Note 8" }; },
-    async connectWifiDevice(device) { calls.push(device); return { confirmed: true, device: { mac: device.mac, address: device.loginAddress, sessionId: "*new", startedAt: at.toISOString(), name: "Galaxy Note 8", usedBytes: 0 } }; },
+    async connectWifiDevice(device) { calls.push(device); return { confirmed: true, device: { mac: device.mac, address: device.loginAddress, sessionId: "*new", startedAt: clock().toISOString(), name: "Galaxy Note 8", usedBytes: 0 } }; },
     async readUsage() { return []; },
     ...router,
   };
   await store.transaction((s) => {
-    s.networkSetup = { runtimeRouterEnabled: true, connections: { router: { mode: "live", revision: "router-1" } }, assistedConnections: { enabled: true, revision: "router-1" } };
+    s.networkSetup = { runtimeRouterEnabled: true, connections: { router: { mode: "live", revision: "router-1" } }, assistedConnections: { enabled: true, revision: "router-1" }, deviceApproval: { version: 1, revision: "router-1" } };
     s.customers.push({ id: "c1", name: "Imajin", phone: "670050001", pinHash,
       wifiMainDevice: { mac: mainMac, name: "imajin", routerRevision: "router-1", controllerHash: hashSecret("controller", secret), pinVersion: hashSecret(pinHash, secret) } },
     { id: "c2", phone: "670050002", pinHash });
@@ -30,7 +30,7 @@ export async function pairingFixture({ origin = "http://customer.test", env = {}
         startedAt: new Date(+at - 60000).toISOString(), usedBytes: 5,
       })) });
   });
-  const handler = createHandler({ store, router: fakeRouter, now: () => at, validateConfig: false, env: {
+  const handler = createHandler({ store, router: fakeRouter, now: clock, validateConfig: false, env: {
     NODE_ENV: "production", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false",
     CUSTOMER_APP_URL: origin, LOG_LEVEL: "warn", NETWORK_QUEUE_ENABLED: "true", BILLING_WORKER_ENABLED: "false",
     SECURITY_ALERTS_ENABLED: "false", TRUST_PROXY: "render", COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: "203.0.113.10", ...env,
@@ -47,8 +47,8 @@ export async function pairingFixture({ origin = "http://customer.test", env = {}
     }, ...(input === undefined ? {} : { body: JSON.stringify(input) }) });
     return { status: response.status, body: await response.json(), headers: response.headers };
   };
-  const request = (overrides = {}, options) => call(publicRoot + "/request", { phone: "670050001", code: "NC-AAAA-1111", key: "a".repeat(32), mac: guestMac, address: "10.20.0.30", ...overrides }, { session: "", controller: "", ...options });
+  const request = async (overrides = {}, options) => { const result = await call(publicRoot + "/request", { phone: "670050001", code: "NC-AAAA-1111", key: "a".repeat(32), mac: guestMac, address: "10.20.0.30", ...overrides }, { session: "", controller: "", ...options }); return { ...result, requestKey: overrides.key || "a".repeat(32) }; };
   const close = () => new Promise((r) => { server.close(r); server.closeAllConnections(); });
-  return { store, handler, api, call, request, calls, close, now: () => at, advance(seconds) { at = new Date(+at + seconds * 1000); },
+  return { store, handler, api, call, request, calls, close, now: clock, advance(seconds) { at = new Date(+at + seconds * 1000); },
     async process(id) { const s = await store.snapshot(); return handler.routerProcessor.process(id || s.wifiPairingRequests[0]?.commandId); } };
 }

@@ -24,9 +24,37 @@ owner verification again. Router configuration revisions require reselection.
 Disconnecting a main device requires fresh owner proof and, when enrolled, an
 authenticator code. Existing customer and
 legacy disconnect endpoints cannot bypass this rule. Authorized administrators
-retain their existing ability to remove any Wi-Fi session. Disconnect means end
-the current session and remove its remembered router login; it is not permanent
-revocation of the customer's voucher or their portal login.
+retain their existing ability to remove any Wi-Fi session. Disconnect ends the current session and removes its remembered router login. Under
+the approval policy it also revokes device approval and unused codes; the device
+can reconnect after fresh approval. It does not revoke the customer's voucher or
+portal login.
+
+## Forgetting a saved device, including offline devices
+
+The customer portal's **Saved device approvals** list remains available without
+an active bundle. **Forget device** requires explicit confirmation and fresh PIN
+or passkey proof, with an authenticator code when enrolled. It can remove an
+offline device without guessing a live session. Forgetting a saved main device
+also removes its main designation and controlling-browser credential.
+
+The API revokes the saved grant and unused codes immediately and cancels any
+unclaimed connection jobs. If a connection is already being confirmed, removal
+waits for that operation to finish. A durable, versioned `revoke_wifi_device` job
+clears the target MAC's current-bundle sessions and remembered HotSpot cookies
+only for managed vouchers belonging to that customer. It does not affect other
+devices or other customers. Old-router or superseded jobs cannot remove newer
+approvals. New authorization for that MAC waits until cleanup is confirmed.
+
+The UI reports pending or failed router removal honestly; observed sessions keep
+their slots until confirmation. Failures retry through the normal queue and
+appear in the admin network alerts for support replay. Deployment must update
+the API/worker and any external management bridge before using the action.
+
+The first confirmed owner connection prompts **Is this your main device?** Yes
+opens PIN/passkey verification with that device selected; No leaves it connected
+without selecting a main browser. Further devices can request access but need a
+main browser before receiving an approval code. See
+[main-issued approval codes](assisted-wifi-pairing.md).
 
 ## Deployment and verification
 
