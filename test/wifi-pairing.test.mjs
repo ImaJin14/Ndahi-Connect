@@ -7,12 +7,17 @@ import { createStore } from "../server.mjs";
 import { totpSecret } from "../lib/security.mjs";
 
 async function fixture(t, options) { const f = await pairingFixture(options); t.after(f.close); return f; }
-const approve = (f, response, options) => f.call(ownerRoot + "/approve", { id: response.body.request.id, code: response.body.code }, options);
-const status = (f, response, key = "a".repeat(32)) => f.call(publicRoot + "/status", { id: response.body.request.id, key }, { session: "", controller: "" });
+const approve = async (f, response, options) => {
+  const issued = await f.call(ownerRoot + "/approve", { id: response.body.request.id }, options);
+  if (issued.body.approvalCode) response.approvalCode = issued.body.approvalCode;
+  if (!response.approvalCode || (options && issued.status !== 200)) return issued;
+  return f.call(publicRoot + "/redeem", { id: response.body.request.id, key: response.requestKey, approvalCode: response.approvalCode }, { session: "", controller: "" });
+};
+const status = (f, response, key = response.requestKey || "a".repeat(32)) => f.call(publicRoot + "/status", { id: response.body.request.id, key }, { session: "", controller: "" });
 
 test("guest requests use a five-minute bearer code, survive lost responses, and never create an account session", async (t) => {
   const f = await fixture(t), r = await f.request();
-  assert.equal(r.status, 201); assert.match(r.body.code, /^\d{6}$/);
+  assert.equal(r.status, 201); assert.equal(r.body.code, undefined);
   assert.equal(r.body.request.name, "Galaxy Note 8"); assert.equal(r.body.request.macSuffix, "EE:03");
   assert.equal(Date.parse(r.body.request.expiresAt) - +f.now(), 300000);
   assert.equal(r.headers.has("set-cookie"), false);
@@ -24,7 +29,7 @@ test("guest requests use a five-minute bearer code, survive lost responses, and 
   assert.doesNotMatch(JSON.stringify(list.body), /keyHash|codeHash|controllerHash/);
   assert.equal(list.body.requests[0].code, undefined);
   assert.notEqual(s.wifiPairingRequests[0].keyHash, "a".repeat(32));
-  assert.notEqual(s.wifiPairingRequests[0].codeHash, r.body.code);
+  assert.equal(s.wifiPairingRequests[0].codeHash, undefined);
   assert.equal(s.dashboardSessions.length, 3);
   assert.equal((await f.call("/api/account/dashboard", undefined, { session: "", controller: "" })).status, 401);
 });
@@ -36,7 +41,7 @@ test("off-network, disabled, invalid voucher, and missing-main requests fail wit
   await f.store.transaction((s) => { s.networkSetup.assistedConnections.enabled = false; });
   assert.equal((await f.request()).status, 503);
   await f.store.transaction((s) => { s.networkSetup.assistedConnections.enabled = true; delete s.customers[0].wifiMainDevice; });
-  assert.equal((await f.request()).status, 409); assert.equal(f.calls.length, 0);
+  const waiting = await f.request(); assert.equal(waiting.status, 201); assert.equal(waiting.body.request.mainRequired, true); assert.equal(f.calls.length, 0);
   for (const env of [{ NETWORK_QUEUE_ENABLED: "false" }, { COVERAGE_ACCESS_ENABLED: "false" }]) {
     const g = await fixture(t, { env }); assert.equal((await g.request()).status, 503);
   }
@@ -49,8 +54,10 @@ test("only the main controlling browser can approve; CSRF, customer isolation an
   assert.equal((await approve(f, r, { session: "other", controller: "" })).status, 403);
   const other = await f.call(ownerRoot, undefined, { session: "other", controller: "" });
   assert.deepEqual(other.body.requests, []);
-  const wrong = r.body.code === "000000" ? "111111" : "000000";
-  for (let i = 0; i < 5; i++) assert.equal((await f.call(ownerRoot + "/approve", { id: r.body.request.id, code: wrong })).status, 401);
+  const issued = await f.call(ownerRoot + "/approve", { id: r.body.request.id });
+  assert.equal(issued.status, 200); assert.match(issued.body.approvalCode, /^\d{6}$/);
+  const wrong = issued.body.approvalCode === "000000" ? "111111" : "000000";
+  for (let i = 0; i < 5; i++) assert.equal((await f.call(publicRoot + "/redeem", { id: r.body.request.id, key: r.requestKey, approvalCode: wrong }, { session: "", controller: "" })).status, 401);
   assert.equal((await approve(f, r)).status, 409); assert.equal(f.calls.length, 0);
   assert.equal((await status(f, r)).body.request.status, "failed");
 });

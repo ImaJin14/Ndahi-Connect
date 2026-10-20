@@ -15,6 +15,7 @@ import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus } from "./usage-alerts.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
+import { mountNotifications } from "/shared/notifications.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -265,6 +266,7 @@ async function load() {
     if (confirmed) $("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';
     else $("#confirmEmail")?.scrollIntoView({ block: "center" });
   } });
+  mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
   if (active) mountInstallCard($("#installApp"));
   if (active && active.quotaBytes !== null) void setupUsageAlerts();
   if (hotspot && active) watchWifiDevices();

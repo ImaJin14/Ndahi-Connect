@@ -15,6 +15,15 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     container.innerHTML = `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
       <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>`;
     container.appendChild(message);
+    const query = new URLSearchParams(location.search), candidate = query.get("main-device");
+    if ((!main || info.setupRequired) && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(candidate || "")) {
+      const prompt = document.createElement("section"); prompt.className = "main-device-prompt";
+      prompt.innerHTML = '<h3>Is this your main device?</h3><p>This device is connected. Choose whether this browser should manage other devices.</p><button type="button" data-main-yes>Yes, set as main device</button><button type="button" data-main-no class="secondary-action">No, skip for now</button>';
+      container.prepend(prompt);
+      const clear = () => { const url = new URL(location.href); url.searchParams.delete("main-device"); history.replaceState(null, "", url.href); prompt.remove(); };
+      prompt.querySelector("[data-main-yes]").onclick = async () => { await showProof(candidate.toUpperCase(), false); clear(); };
+      prompt.querySelector("[data-main-no]").onclick = clear;
+    }
   } catch (error) {
     container.textContent = "Main-device controls could not load. Refresh to try again.";
     return;
@@ -33,6 +42,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       <button type="button" data-close-proof>Cancel</button><div data-proof-message role="status" aria-live="polite"></div></form>`;
     formHost.hidden = false;
     const form = formHost.querySelector("form"), output = form.querySelector("[data-proof-message]");
+    if (mac && !disconnect) form.elements.mac.value = mac;
     async function submit(usePasskey) {
       const input = formValues(form), selected = choices.find((d) => d.mac === input.mac);
       if (!form.reportValidity()) return;

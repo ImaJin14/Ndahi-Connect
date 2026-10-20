@@ -5,6 +5,7 @@ import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
 import { activeAdminView, mountAdminNavigation } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
+import { mountNotifications } from "/shared/notifications.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -69,6 +70,7 @@ async function load() {
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
   csrfToken = x.csrfToken;
+  mountNotifications({ apiUrl: api, path: "/api/admin/notifications", csrf: () => csrfToken, admin: true });
   const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
     bundleOptions = rows(
       x.bundles,

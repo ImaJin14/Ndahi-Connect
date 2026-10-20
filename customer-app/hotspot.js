@@ -1,8 +1,9 @@
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
-import { requestJson, markReady } from "./compat.js";
+import { requestJson, markReady, randomId, loadPasskeys } from "./compat.js";
 import { mountDeviceControls } from "./device-controls.js";
+import { wifiHint } from "./wifi-pairing.js";
 
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
@@ -12,6 +13,82 @@ try {
   const next = new URL(params.get("next") || "/dashboard", location.origin);
   if (next.origin === location.origin && !/^\/(?:hotspot|login)(?:[/.]|$)/.test(next.pathname)) destination = next;
 } catch (_) { /* Keep the fixed account destination. */ }
+
+
+async function protectedConnect(proof = {}) {
+  const hint = wifiHint();
+  if (!hint) {
+    message.textContent = "Open Wi-Fi sign-in on this device so the network can identify it.";
+    const link = document.createElement("a"); link.href = config.hotspotLoginUrl; link.textContent = "Open Wi-Fi sign-in"; message.append(" ", link); return;
+  }
+  const account = await requestJson(config.apiUrl + "/api/account/dashboard", { credentials: "include", cache: "no-store" });
+  if (account.response.status === 401) {
+    const login = new URL("/login", location.origin); login.searchParams.set("mac", hint.mac); login.searchParams.set("address", hint.address);
+    location.replace(login.href); return;
+  }
+  if (!account.response.ok) throw responseError(account.response, account.body);
+  csrfToken = account.body.csrfToken;
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  let key = fragment.get("wifi_key");
+  if (!/^[a-f0-9]{32,64}$/.test(key || "")) key = randomId();
+  try { history.replaceState(null, "", location.pathname + location.search + "#wifi_key=" + key); } catch (_) {}
+  const input = { ...hint, key, ...proof }, deadline = Date.now() + 120000;
+  const call = async (path, payload, owned = false) => {
+    const reply = await requestJson(config.apiUrl + path, { method: "POST", credentials: owned ? "include" : "omit", cache: "no-store",
+      headers: { "content-type": "application/json", ...(owned ? { "x-csrf-token": csrfToken } : {}) }, body: JSON.stringify(payload) });
+    if (!reply.response.ok) throw responseError(reply.response, reply.body);
+    return reply.body;
+  };
+  let result;
+  while (Date.now() < deadline) {
+    try {
+      result = await call("/api/account/device-management/connect", input, true);
+      if (result.code === "HOTSPOT_PENDING") { result = null; message.textContent = "Preparing your Wi-Fi access…"; await new Promise((resolve) => setTimeout(resolve, 2000)); continue; }
+      break;
+    }
+    catch (error) {
+      if (error.code === "DEVICE_REFRESH_REQUIRED") { message.textContent = "Refreshing your Wi-Fi connection…"; await new Promise((resolve) => setTimeout(resolve, 2000)); continue; }
+      if (error.code !== "DEVICE_APPROVAL_REQUIRED") throw error;
+      message.textContent = "This device needs approval from your main device.";
+      const link = document.createElement("a"); link.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address); link.textContent = "Request access";
+      message.append(" ", link);
+      if (!document.querySelector("#recoverWifiOwner")) {
+        const recovery = document.createElement("details"); recovery.id = "recoverWifiOwner";
+        recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
+        message.after(recovery);
+        const form = recovery.querySelector("form"), output = recovery.querySelector("[data-recovery-message]");
+        const recover = async (usePasskey) => {
+          const pin = form.elements.pin.value;
+          try { await runButton(form.querySelector(usePasskey ? "[data-recover-passkey]" : '[type="submit"]'), "Verifying…", async () => {
+            let payload = { recover: true, pin };
+            if (usePasskey) {
+              const challenge = await call("/api/account/device-management/connect/options", input, true), browser = await loadPasskeys();
+              payload = { recover: true, challengeId: challenge.challengeId, response: await browser.startAuthentication({ optionsJSON: challenge.options }) };
+            } else if (!/^\d{4}$/.test(pin)) throw Error("Enter your four-digit account PIN.");
+            await protectedConnect(payload); form.reset();
+          }, { controls: Array.from(form.elements) }); } catch (error) { showError(output, error); }
+        };
+        form.onsubmit = (event) => { event.preventDefault(); void recover(false); };
+        form.querySelector("[data-recover-passkey]").hidden = !account.body.customer.passkeys || !window.PublicKeyCredential;
+        form.querySelector("[data-recover-passkey]").onclick = () => { void recover(true); };
+      }
+      return;
+    }
+  }
+  if (!result) throw new ApiError(408, "Wi-Fi preparation is taking longer than expected. Try again.");
+  let request = result.request;
+  while (Date.now() < deadline && request.status === "connecting") {
+    message.textContent = "Connecting… Waiting for the router to confirm this device.";
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    request = (await call("/api/wifi/pairing/status", { id: request.id, key })).request;
+  }
+  if (request.status !== "connected") {
+    if (!["pending", "awaiting_code", "connecting"].includes(request.status)) { try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {} }
+    throw new ApiError(408, request.message || "Connection is not confirmed. Try again to check the existing request.");
+  }
+  if (request.firstDevice || proof.recover) { destination.searchParams.set("main-device", hint.mac); destination.hash = "home"; }
+  location.replace(destination.href);
+}
 
 async function connect() {
   if (submitted) return;
@@ -25,6 +102,9 @@ async function connect() {
       if (login.protocol !== "https:" || login.pathname !== "/login" || login.username || login.password || login.search || login.hash) {
         throw new ApiError(503, "Wi-Fi activation is temporarily unavailable.");
       }
+      const policy = await requestJson(config.apiUrl + "/api/wifi/pairing/config", { cache: "no-store", credentials: "omit" });
+      if (!policy.response.ok) throw responseError(policy.response, policy.body);
+      if (policy.body.approvalRequired) { await protectedConnect(); return; }
       while (Date.now() < deadline) {
         message.textContent = "Preparing your Wi-Fi access… Stay on NDAHI Wi-Fi.";
         let result;

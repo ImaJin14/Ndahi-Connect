@@ -24,9 +24,16 @@ owner verification again. Router configuration revisions require reselection.
 Disconnecting a main device requires fresh owner proof and, when enrolled, an
 authenticator code. Existing customer and
 legacy disconnect endpoints cannot bypass this rule. Authorized administrators
-retain their existing ability to remove any Wi-Fi session. Disconnect means end
-the current session and remove its remembered router login; it is not permanent
-revocation of the customer's voucher or their portal login.
+retain their existing ability to remove any Wi-Fi session. Disconnect ends the current session and removes its remembered router login. Under
+the approval policy it also revokes device approval and unused codes; the device
+can reconnect after fresh approval. It does not revoke the customer's voucher or
+portal login.
+
+The first confirmed owner connection prompts **Is this your main device?** Yes
+opens PIN/passkey verification with that device selected; No leaves it connected
+without selecting a main browser. Further devices can request access but need a
+main browser before receiving an approval code. See
+[main-issued approval codes](assisted-wifi-pairing.md).
 
 ## Deployment and verification
 

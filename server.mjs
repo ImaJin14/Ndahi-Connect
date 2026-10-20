@@ -9,6 +9,8 @@ import { createCustomerAuthRoutes } from "./lib/api/customer-auth.mjs";
 import { createAccountRoutes } from "./lib/api/account.mjs";
 import { createDeviceManagementRoutes } from "./lib/api/device-management.mjs";
 import { createWifiPairingRoutes } from "./lib/api/wifi-pairing.mjs";
+import { createAccountNotificationRoutes } from "./lib/api/notifications.mjs";
+import { deliverActivityPush } from "./lib/notifications.mjs";
 import { createAccountToolsRoutes } from "./lib/api/account-tools.mjs";
 import { createAccountRecoveryRoutes } from "./lib/api/account-recovery.mjs";
 import { createAccountEmailRoutes } from "./lib/api/account-email.mjs";
@@ -66,6 +68,7 @@ export function createHandler(opts = {}) {
     createAccountRoutes(context),
     createDeviceManagementRoutes(context),
     createWifiPairingRoutes(context),
+    createAccountNotificationRoutes(context),
     createAccountToolsRoutes(context),
     createAccountEmailRoutes(context),
     createAccountRecoveryRoutes(context),
@@ -146,7 +149,12 @@ export function createHandler(opts = {}) {
   handler.routerUsageSyncConfig = routerUsageSyncConfig(env);
   handler.scheduleUsageSync = createUsageSyncScheduler({ store, env, now: clock });
   handler.usageAlertConfig = usageAlertConfig(env);
-  handler.sendUsageAlerts = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
+  const usageSender = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
+  handler.sendUsageAlerts = async () => {
+    const usage = await usageSender();
+    await deliverActivityPush({ store, config: handler.usageAlertConfig, now: clock });
+    return usage;
+  };
   return handler;
 }
 

@@ -41,8 +41,8 @@ authenticators do not need to be enrolled again after deployment.
 
 Selecting or replacing the main browser requires fresh PIN or passkey proof.
 An authenticator code is optional there; if entered, it is checked. Assisted Wi-Fi
-pairing uses the new device's separate five-minute pairing code and main-browser
-approval, without an authenticator requirement. Enrolling an authenticator is
+pairing uses a separate five-minute code issued by the main browser and entered
+on the requesting device, without an authenticator requirement. Enrolling an authenticator is
 not a prerequisite for connecting another device.
 
 Main-device removal and existing sensitive account changes retain their enrolled
