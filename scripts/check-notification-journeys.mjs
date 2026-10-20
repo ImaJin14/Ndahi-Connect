@@ -4,13 +4,15 @@ import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { approveDevice } from "../lib/wifi-approval.mjs";
 
 const listen = (s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve));
 const close = (s) => new Promise((resolve) => { s.close(resolve); s.closeAllConnections(); });
 const customer = http.createServer(), admin = http.createServer();
 await listen(customer); await listen(admin);
 const portal = "http://127.0.0.1:" + customer.address().port, administration = "http://127.0.0.1:" + admin.address().port;
-const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { ADMIN_APP_URL: administration } });
+const removals = [], f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { ADMIN_APP_URL: administration },
+  router: { async revokeWifiDevice(device) { removals.push(device); return { confirmed: true, outcome: "revoked" }; } } });
 const customerAssets = createStaticServer("customer", { apiUrl: f.api, hotspotLoginUrl: "https://connect.hotspot.test/login" });
 const adminAssets = createStaticServer("admin", { apiUrl: f.api });
 customer.on("request", (req, res) => customerAssets.emit("request", req, res));
@@ -106,6 +108,34 @@ try {
   assert.equal(await administrator.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   assert.deepEqual(errors, []);
   console.log("PASS admin notification bell exposes actionable network alerts with independent read state");
+  await f.store.transaction((s) => {
+    approveDevice(s, "c1", { mac: "AA:BB:CC:DD:EE:09", name: "Offline TV <img src=x>" }, f.now(), "test");
+    s.vouchers[0].status = "expired";
+  });
+  await owner.reload();
+  const saved = owner.locator("[data-approved-devices] .device").filter({ hasText: "Offline TV <img src=x>" });
+  await saved.getByRole("button", { name: "Forget device", exact: true }).click();
+  assert.equal(await saved.locator("img").count(), 0);
+  const forgetting = owner.locator("[data-forget-proof]");
+  await forgetting.locator('[name="confirm"]').check();
+  await forgetting.locator('[name="pin"]').fill("0000");
+  await forgetting.getByRole("button", { name: "Verify and forget", exact: true }).click();
+  await forgetting.getByText(/Could not verify account ownership/).waitFor();
+  let state = await f.store.snapshot(), grant = state.wifiDeviceGrants.find((g) => g.mac.endsWith("09"));
+  assert.equal(grant.status, "approved"); f.advance(2);
+  await forgetting.locator('[name="pin"]').fill("2468");
+  await forgetting.getByRole("button", { name: "Verify and forget", exact: true }).click();
+  await saved.getByText(/Waiting for router removal/).waitFor();
+  assert.equal(removals.length, 0);
+  state = await f.store.snapshot(); grant = state.wifiDeviceGrants.find((g) => g.mac.endsWith("09"));
+  assert.equal(grant.status, "revoked"); await f.process(grant.revocationCommandId);
+  await owner.getByRole("button", { name: "Refresh saved approvals", exact: true }).click();
+  await saved.waitFor({ state: "detached" }); await owner.locator("[data-approved-devices]").waitFor();
+  assert.equal(await owner.locator("[data-approved-devices] .device").filter({ hasText: "Offline TV <img src=x>" }).count(), 0);
+  assert.equal(removals.length, 1);
+  assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  assert.deepEqual(errors, []);
+  console.log("PASS offline saved-device removal works after bundle expiry, requires fresh PIN, escapes names and awaits router confirmation at 320px");
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {
   await browser?.close(); await f.close(); await close(customer); await close(admin);

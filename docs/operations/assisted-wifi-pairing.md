@@ -45,6 +45,12 @@ session is created. Names are untrusted display data, never ownership proof.
 
 ## Router enforcement
 
+Owners can also revoke saved approvals while a device is offline using **Saved
+device approvals → Forget device**, including after bundle expiry. Fresh owner
+proof protects this action. It cancels unused codes and unclaimed reconnects;
+router session/cookie cleanup is durable and blocks reapproval until confirmed.
+See [device removal](device-management.md#forgetting-a-saved-device-including-offline-devices).
+
 Deployment alone does not enable the policy. An owner enables the pilot from
 **Admin → More → Network setup → Assisted device connections**, after checking
 pre-login portal/API access. Enabling records a versioned policy and saved-router
