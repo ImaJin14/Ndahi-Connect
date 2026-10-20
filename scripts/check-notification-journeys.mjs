@@ -23,10 +23,14 @@ try {
   await mkdir(screenshots, { recursive: true });
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
-  async function pageFor(kind) {
+  async function pageFor(kind, { blockedStorage = false } = {}) {
     const context = await browser.newContext({ viewport: { width: 320, height: 900 } }); contexts.push(context);
     await context.route("**/*", (route) => [portal, administration, f.api].includes(new URL(route.request().url()).origin)
       ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient"));
+    if (blockedStorage) await context.addInitScript(() => {
+      for (const key of ["localStorage", "sessionStorage"]) Object.defineProperty(window, key, { get() { throw new DOMException("Storage denied", "SecurityError"); } });
+      Object.defineProperty(AbortSignal, "timeout", { value: undefined });
+    });
     if (kind) await context.addCookies([{ name: kind === "admin" ? "admin_session" : "customer_session", value: kind === "admin" ? "admin-owner" : "main",
       domain: "127.0.0.1", path: kind === "admin" ? "/api/admin" : "/api/account", httpOnly: true, sameSite: "Lax" }]);
     const page = await context.newPage(); page.setDefaultTimeout(15000); page.on("pageerror", (e) => errors.push(e.message)); return page;
@@ -46,17 +50,43 @@ try {
   assert.equal((await f.store.snapshot()).customers[0].wifiMainDevice, undefined);
   console.log("PASS the first confirmed connection prompts for main-device choice and skipping retains internet without creating a main controller");
 
-  const guest = await pageFor();
-  await guest.goto(portal + "/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.40");
+  const guest = await pageFor(null, { blockedStorage: true });
+  await guest.goto(portal + "/onboarding.html?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.40");
+  await guest.waitForFunction(() => document.querySelector('a[href*="/login"]').href.includes("mac="));
+  await guest.getByRole("link", { name: "Customer login", exact: true }).click();
   await guest.locator('#login [name="phone"]').fill("670050001"); await guest.locator('#login [name="code"]').fill("NC-AAAA-1111");
   await guest.locator("#loginSubmit").click();
   await guest.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
   assert.equal(await guest.locator("#login").isHidden(), true);
+  assert.equal(await guest.locator("#customerPin").isHidden(), true);
+  assert.equal(await guest.locator("#customerPin").evaluate((input) => input.required), false);
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
   await guest.waitForURL(/\/pair#key=/);
   await guest.locator("#pairingStatus").filter({ hasText: "must set a main device" }).waitFor();
   assert.equal(f.calls.length, 1, "a voucher and number alone cannot start a second router login");
   console.log("PASS additional voucher/number sign-in opens restricted access and waits when no main is selected");
+
+  const missingHint = await pageFor(null, { blockedStorage: true }), accountConnections = [];
+  missingHint.on("request", (r) => { if (r.url().endsWith("/api/account/device-management/connect")) accountConnections.push(r.url()); });
+  await missingHint.goto(portal + "/login");
+  await missingHint.locator('#login [name="phone"]').fill("670050001");
+  await missingHint.locator('#login [name="code"]').fill("NC-AAAA-1111");
+  await missingHint.locator("#loginSubmit").click();
+  await missingHint.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
+  assert.equal(await missingHint.locator("#customerPin").isHidden(), true);
+  assert.equal(await missingHint.locator("#customerPin").evaluate((input) => input.required), false);
+  assert.equal(await missingHint.locator("[data-request-access]").isHidden(), true);
+  assert.equal(await missingHint.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
+  assert.equal((await missingHint.context().cookies()).some((c) => c.name === "customer_session"), false);
+  await missingHint.getByRole("button", { name: "Sign in to account settings", exact: true }).click();
+  await missingHint.locator("#customerPin").fill("2468");
+  await missingHint.getByRole("button", { name: "Sign in", exact: true }).click();
+  await missingHint.waitForURL(/\/dashboard#account$/);
+  await missingHint.getByRole("heading", { name: "PIN, authenticator & passkeys", exact: true }).waitFor();
+  assert.equal(accountConnections.length, 0);
+  assert.equal(f.calls.length, 1);
+  assert.equal(await missingHint.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  console.log("PASS missing captive details never fall back to a PIN; explicit account sign-in opens settings without a Wi-Fi connection or blocked-storage dependency");
 
   await owner.getByRole("button", { name: /^Notifications/ }).click();
   const panel = owner.getByRole("dialog", { name: "Notifications", exact: true });
@@ -136,6 +166,18 @@ try {
   assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   assert.deepEqual(errors, []);
   console.log("PASS offline saved-device removal works after bundle expiry, requires fresh PIN, escapes names and awaits router confirmation at 320px");
+  await administrator.keyboard.press("Escape");
+  await administrator.getByRole("link", { name: "More", exact: true }).click();
+  await administrator.getByRole("tab", { name: "Network setup", exact: true }).click();
+  await administrator.locator("#networkPairingStatus").filter({ hasText: "Main-device approval is required" }).waitFor();
+  await f.store.transaction((s) => { delete s.networkSetup.deviceApproval; s.networkSetup.assistedConnections.enabled = false; });
+  await administrator.getByRole("button", { name: "Refresh jobs", exact: true }).click();
+  await administrator.locator("#networkPairingStatus").filter({ hasText: "Mandatory device approval has not been enabled" }).waitFor();
+  await f.store.transaction((s) => { s.networkSetup.deviceApproval = { version: 1, revision: "router-1" }; });
+  await administrator.getByRole("button", { name: "Refresh jobs", exact: true }).click();
+  await administrator.locator("#networkPairingStatus").filter({ hasText: "Existing device-approval requirements remain enforced" }).waitFor();
+  assert.deepEqual(errors, []);
+  console.log("PASS admin network setup distinguishes mandatory approval never enabled, active, and temporarily unavailable");
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {
   await browser?.close(); await f.close(); await close(customer); await close(admin);

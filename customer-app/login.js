@@ -11,7 +11,7 @@ import { randomId } from "./compat.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
-let accessToken = "", accessMode = "";
+let accessToken = "", accessMode = "", accountOnly = new URLSearchParams(location.search).get("account") === "1";
 const runLogin = (button, text, task) => runButton(button, text, task, {
   controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin"), $("#inlineBack"), $("#inlineSubmit")],
 });
@@ -39,6 +39,16 @@ async function call(path, data) {
   if (!response.ok) throw responseError(response, result);
   return result;
 }
+function showAccountCredentials() {
+  $("#credentialStep").hidden = false;
+  $("#customerPin").required = true;
+  $("#pinLabel").textContent = accessMode === "setup" ? "Create a 4-digit PIN" : "4-digit PIN";
+  $("#customerPin").autocomplete = accessMode === "setup" ? "new-password" : "current-password";
+  $("#forgotPin").hidden = accessMode === "setup";
+  $("#confirmPinLabel").hidden = accessMode !== "setup";
+  $("#confirmPin").required = accessMode === "setup";
+  $("#customerPin").focus();
+}
 $("#login").onsubmit = async (event) => {
   event.preventDefault();
   const button = $("#loginSubmit");
@@ -54,39 +64,46 @@ $("#login").onsubmit = async (event) => {
         accessMode = result.mode;
         event.target.phone.readOnly = true;
         event.target.code.readOnly = true;
-        $("#credentialStep").hidden = false;
-        $("#customerPin").required = true;
-        $("#pinLabel").textContent = accessMode === "setup"
-          ? "Create a 4-digit PIN" : "4-digit PIN";
-        $("#customerPin").autocomplete = accessMode === "setup"
-          ? "new-password" : "current-password";
-        $("#forgotPin").hidden = accessMode === "setup";
-        $("#confirmPinLabel").hidden = accessMode !== "setup";
-        $("#confirmPin").required = accessMode === "setup";
-        $("#customerPin").focus();
-        if (result.deviceApprovalRequired && wifiHint() && new URLSearchParams(location.search).get("account") !== "1") {
+        if (result.deviceApprovalRequired && !accountOnly) {
           const hint = wifiHint(), gate = document.createElement("section");
           gate.id = "deviceAccessGate"; gate.className = "card";
           gate.innerHTML = '<h2>Request access from your main device</h2><p>This device will stay offline until your main device approves it and supplies a code.</p><button type="button" data-request-access>Request access</button><button type="button" data-account-signin>Sign in to account settings</button><p data-access-message role="status"></p>';
           event.target.hidden = true; event.target.after(gate);
+          document.querySelectorAll(".alternative-actions,.login-alternatives").forEach((element) => { element.hidden = true; });
           const requestButton = gate.querySelector("[data-request-access]"); let key;
+          requestButton.hidden = !hint;
           requestButton.onclick = async () => {
             try { await runButton(requestButton, "Requesting…", async () => {
               if (!key) key = randomId();
               const reply = await call("/api/wifi/pairing/request", { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address });
               location.href = "/pair#key=" + key + "&request=" + encodeURIComponent(reply.request.id);
-            }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
+            }, { controls: Array.from(gate.querySelectorAll("button")) }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
           };
-          gate.querySelector("[data-account-signin]").onclick = () => { gate.remove(); event.target.hidden = false; $("#customerPin").focus(); };
-          requestButton.focus();
-        }
+          gate.querySelector("[data-account-signin]").onclick = () => {
+            accountOnly = true;
+            try { const url = new URL(location.href); url.searchParams.set("account", "1"); history.replaceState(null, "", url.href); } catch (_) {}
+            gate.remove(); event.target.hidden = false;
+            document.querySelectorAll(".alternative-actions,.login-alternatives").forEach((element) => { element.hidden = false; });
+            showAccountCredentials();
+          };
+          if (!hint) {
+            gate.querySelector("[data-access-message]").textContent = "The Wi-Fi sign-in page did not identify this device. Open Wi-Fi sign-in again to request access. You do not need the account owner's PIN to request Wi-Fi access.";
+            try {
+              const target = new URL(window.NDAHI_CONFIG.hotspotLoginUrl);
+              if (target.protocol === "https:" && !target.username && !target.password) {
+                const link = document.createElement("a"); link.href = target.href; link.textContent = "Open Wi-Fi sign-in";
+                gate.appendChild(link); link.focus();
+              }
+            } catch (_) { gate.querySelector("[data-account-signin]").focus(); }
+          } else requestButton.focus();
+        } else showAccountCredentials();
         return;
       }
       await completeSignIn(api, "/api/account/access/complete", {
         token: accessToken, pin: input.pin,
         ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
       }, input.phone);
-      location.href = afterSignInPath();
+      location.href = afterSignInPath(accountOnly);
     });
   } catch (error) {
     showError($("#message"), error);
@@ -117,7 +134,7 @@ $("#authenticatorLogin").onclick = async () => {
     await runLogin($("#authenticatorLogin"), "Checking…", async () => {
       $("#message").textContent = "";
       const result = await call("/api/account/login/request-authenticator", { phone });
-      if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html";
+      if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html" + (accountOnly ? "?account=1" : "");
       else inlineAuthenticator(result, phone);
     });
   } catch (error) { showError($("#message"), error); }
@@ -139,7 +156,7 @@ $("#customerPasskeyLogin").onclick = async () => {
         optionsJSON: result.options,
       });
       await completeSignIn(api, "/api/account/passkey/verify", { challengeId: result.challengeId, response: credential }, phone);
-      location.href = afterSignInPath();
+      location.href = afterSignInPath(accountOnly);
     });
   } catch (error) {
     showError($("#message"), error, {
@@ -178,7 +195,7 @@ function inlineAuthenticator(challenge, phone) {
           ...(/^\d{6}$/.test(code) ? { otp: code } : { recoveryCode: code }),
         }, phone);
         sessionStore.remove("ndahi-login-challenge");
-        location.href = afterSignInPath();
+        location.href = afterSignInPath(accountOnly);
       });
     } catch (error) { showError($("#message"), error); }
   };

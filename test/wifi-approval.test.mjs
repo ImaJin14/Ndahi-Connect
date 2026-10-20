@@ -13,6 +13,22 @@ const owner = "/api/account/device-management/connect";
 const target = (key = "d".repeat(32), mac = guestMac) => ({ key, mac, address: "10.20.0.30" });
 const redeem = (f, request, code, key = request.requestKey) => f.call(publicRoot + "/redeem", { id: request.body.request.id, key, approvalCode: code }, { session: "", controller: "" });
 
+test("voucher entry separates additional-device access from first-owner PIN setup and rejects another account number", async (t) => {
+  const f = await fixture(t), begin = (phone = "670050001") => f.call("/api/account/access/begin", { phone, code: "NC-AAAA-1111" }, { session: "", controller: "" });
+  let result = await begin();
+  assert.equal(result.status, 200); assert.equal(result.body.deviceApprovalRequired, true); assert.equal(result.body.mode, "login");
+  assert.equal(result.headers.get("set-cookie"), null);
+  assert.equal((await begin("670050099")).status, 401);
+  assert.equal((await f.store.snapshot()).customers.length, 2);
+  await f.store.transaction((s) => { delete s.customers[0].wifiMainDevice; delete s.customers[0].wifiFirstConnectedAt; });
+  result = await begin();
+  assert.equal(result.status, 200); assert.equal(result.body.deviceApprovalRequired, false); assert.equal(result.body.mode, "login");
+  await f.store.transaction((s) => { s.vouchers[0].status = "available"; delete s.vouchers[0].customerId; });
+  result = await begin("670050099");
+  assert.equal(result.status, 200); assert.equal(result.body.deviceApprovalRequired, false); assert.equal(result.body.mode, "setup");
+  assert.equal((await f.store.snapshot()).customers.length, 2); assert.equal(f.calls.length, 0);
+});
+
 test("only the main browser receives a request-bound approval code; the guest redeems it once", async (t) => {
   const f = await fixture(t), request = await f.request();
   assert.equal(request.status, 201); assert.equal(request.body.code, undefined);
