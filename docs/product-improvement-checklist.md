@@ -984,7 +984,12 @@ job; production installation, named responders and incident exercises remain pen
   - Verification: concurrency, restart/lease expiry, rollback, partial retry, role/consent/subscription races, old-event cancellation, lost provider responses and service-worker navigation have focused regressions. The 320px real-API browser journey covers explicit permission, denied/unsupported push and synthetic subscribe/unsubscribe.
   - Deployment and real provider/phone push acceptance remain pending. Coordinated worker rollout and duplicate-delivery limits are documented in [notifications](operations/notifications.md).
 
-These are twelve additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md), [customer authenticator](operations/customer-authenticator.md), and [notifications](operations/notifications.md). The broader tracker still distinguishes shipped implementation from verified production operation.
+- [-] **PORTAL-012 — Filterable notification centres with reachable history ([#55](https://github.com/ImaJin14/Ndahi-Connect/issues/55))**
+  - Implemented: shared readable, role-aware category names, inclusive UTC dates, all/unread/action/archived views and bounded keyset history pages. Filters apply before pagination; older matching records remain accessible beyond the former cap. Read-all covers the selected history without resolving its actions. Loading/errors preserve filters and provide retry; settings/date edits and keyboard focus survive refresh.
+  - Verification: seven API regressions cover page/date/timestamp boundaries, inserts, malformed/cross-recipient cursors and cross-browser/staff scoping. Both apps pass 320px real-API history, error/retry and keyboard journeys. Existing notification/security/delivery regressions pass.
+  - Deployment and physical-device accessibility acceptance remain pending. Details: [notifications](operations/notifications.md).
+
+These are thirteen additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md), [customer authenticator](operations/customer-authenticator.md), and [notifications](operations/notifications.md). The broader tracker still distinguishes shipped implementation from verified production operation.
 
 ## Dependency maintenance (2026-10-21)
 

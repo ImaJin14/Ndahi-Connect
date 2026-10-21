@@ -18,7 +18,7 @@ own notification preferences/read state. Review links use the authenticated
 
 Items are derived from durable domain records and deduplicated by source ID.
 Changed source state updates the item and makes its new version unread. The inbox
-prioritizes outstanding actions and returns at most 100 recent items; domain
+prioritizes outstanding actions and returns 25 items per page (API limit 1–100); domain
 retention limits the available history (pairing requests, for example, last seven
 days). Full operation/audit records remain in their existing views. Per-person
 read, archive and preference records live in the normalized `events` table as
@@ -103,3 +103,35 @@ Deploy all API workers together or drain the older usage worker first: an older
 release does not understand per-subscription leases. No SQL schema change is
 required. Rollback to an old worker can lose partial-delivery deduplication; do
 not treat aggregate alert status as proof that every device received it.
+
+## Centre filters and history (#55)
+
+Both apps provide All, Unread, Action required and Archived views, readable
+category names and inclusive **From / Through (UTC)** date filters. Customer
+categories cover devices/access, security/sign-ins, data/bundles, payments/refunds
+and service. Staff categories follow current permissions: owners see all staff
+categories; operators see network, payments and service; auditor/reseller views
+are limited to service. Delivery preferences and stored read/archive versions
+carry forward.
+
+Filtering happens before pagination over retained, scoped source records. Older
+matching items are reachable with Next/Previous, including records beyond the
+previous 100-item cap. Stable keyset cursors bind recipient, filters and page
+size; equal timestamps use the source ID as a tie breaker. A changed source is a
+new version and may move in this live history; refreshing the first page reveals
+newer activity. Cursors are navigation hints, never authorization.
+
+Mark all read applies to every matching item across pages, without approving,
+resolving or archiving its business action. The badge counts unread items across
+all filters. Applied filters survive automatic refresh and temporary errors;
+loading, empty and unavailable states retain the main app. An always-available
+Refresh control retries initial failures. Settings/date edits avoid background
+DOM replacement and keyboard focus is restored after updates/close. Legacy API
+calls without a view keep archived visibility for compatibility; the app always
+requests an explicit view.
+
+Seven API regressions cover history boundaries, ties/inserts, date/category
+combinations, invalid cursors, cross-customer/staff access and cross-browser
+state. Real-API browser journeys exercise both apps at 320px through multiple
+pages, date filtering, temporary outage/retry and focus restoration. Deployment
+and physical-device accessibility acceptance remain pending.

@@ -147,7 +147,7 @@ try {
   await panel.getByText("Browser notifications are not supported here. Use the in-app inbox.", { exact: true }).waitFor();
   await panel.getByRole("button", { name: "Back to notifications", exact: true }).click();
   await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
-  assert.ok(await panel.locator("[data-notification-id]").count() > 0);
+  await panel.getByRole("heading", { name: "Set your main device", exact: true }).waitFor();
   await owner.keyboard.press("Escape");
   console.log("PASS permission is requested only by a user gesture; denied/unsupported push preserves the inbox; synthetic subscribe/unsubscribe persists on the real API");
 
@@ -219,6 +219,44 @@ try {
   await administrator.locator("#networkPairingStatus").filter({ hasText: "Existing device-approval requirements remain enforced" }).waitFor();
   assert.deepEqual(errors, []);
   console.log("PASS admin network setup distinguishes mandatory approval never enabled, active, and temporarily unavailable");
+
+  await f.store.transaction((s) => {
+    for (let n = 0; n < 35; n++) {
+      s.securityAlerts.push({ id: "history-" + n, customerId: "c1", subject: "History security " + n, lines: ["Review account"], at: "2026-09-01T12:00:00Z" });
+      s.securityEvents.push({ id: "staff-history-" + n, type: "admin.authorization.denied", at: "2026-09-01T12:00:00Z" });
+    }
+  });
+  for (const [page, origin] of [[owner, portal], [administrator, administration]]) {
+    await page.goto(origin + "/dashboard");
+    await page.getByRole("button", { name: /^Notifications/ }).click();
+    const centre = page.getByRole("dialog", { name: "Notifications", exact: true });
+    await centre.getByLabel("Notification view", { exact: true }).selectOption("all");
+    await centre.getByLabel("Notification category", { exact: true }).selectOption("security");
+    await centre.getByLabel("Notifications from date", { exact: true }).fill("2026-09-01");
+    await centre.getByLabel("Notifications through date", { exact: true }).fill("2026-09-01");
+    await centre.getByRole("button", { name: "Apply dates", exact: true }).click();
+    await centre.getByText("35 matching", { exact: true }).waitFor();
+    assert.equal(await centre.locator("[data-notification-id]").count(), 25);
+    await centre.getByRole("button", { name: "Next", exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-notification-id]').length === 10);
+    await centre.getByRole("button", { name: "Previous", exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-notification-id]').length === 25);
+    await page.route("**/api/*/notifications?**", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Inbox temporarily unavailable" }) }), { times: 1 });
+    await centre.getByRole("button", { name: "Refresh notifications", exact: true }).click();
+    await centre.getByText(/Inbox temporarily unavailable/).waitFor();
+    assert.equal(await centre.getByLabel("Notification category", { exact: true }).inputValue(), "security");
+    assert.equal(await centre.getByLabel("Notifications from date", { exact: true }).inputValue(), "2026-09-01");
+    await centre.getByRole("button", { name: "Refresh notifications", exact: true }).click();
+    await centre.getByLabel("Notifications from date", { exact: true }).fill("2026-09-02");
+    await centre.getByLabel("Notifications through date", { exact: true }).fill("2026-09-03");
+    await centre.getByRole("button", { name: "Apply dates", exact: true }).click();
+    await centre.getByText("No notifications match these filters.", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.getByRole("button", { name: /^Notifications/ }).evaluate((el) => el === document.activeElement), true);
+  }
+  assert.deepEqual(errors, []);
+  console.log("PASS both centres filter dates/categories before pagination, reach older records, preserve filters after errors, recover and close accessibly at 320px");
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {
   await browser?.close(); await f.close(); await close(customer); await close(admin);
