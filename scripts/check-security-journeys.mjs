@@ -76,6 +76,8 @@ try {
     await page.getByText("Work laptop").waitFor();
     page.on("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Remove" }).click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     await page.getByText("Passkey removed.").waitFor();
     assert.equal(await page.getByText("No passkeys enrolled yet.").count(), 1);
     const queued = (await store.snapshot()).securityAlerts;

@@ -35,6 +35,32 @@ let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurr
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null, authenticatorControls = {};
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
+async function passkeyOwnerProof(purpose, passkeyId, opener) {
+  document.querySelector("[data-passkey-owner-proof]")?.querySelector("[data-cancel-proof]")?.click();
+  const host = document.createElement("section"); host.className = "surface";
+  host.setAttribute("data-passkey-owner-proof", ""); host.setAttribute("data-sensitive-output", "");
+  const pin = latestDashboard.customer.pinConfigured !== false,
+    passkey = latestDashboard.customer.passkeys && window.PublicKeyCredential && navigator.credentials;
+  host.innerHTML = `<h3 tabindex="-1">${purpose === "passkey_add" ? "Verify before adding a passkey" : "Verify before removing this passkey"}</h3><p>Confirm account ownership with your current PIN or a passkey.</p><form method="post">${pin ? '<label>Current PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Confirm with PIN</button>' : ""}${passkey ? '<button type="button" data-proof-passkey>Confirm with passkey</button>' : ""}<button type="button" data-cancel-proof>Cancel</button><p data-passkey-proof-message role="status" aria-live="polite"></p></form><p><a href="/help#recovery">No working credential? Get account recovery help</a></p>`;
+  $("#accountSecurity").appendChild(host); host.querySelector("h3").focus(); host.scrollIntoView({ block: "nearest" });
+  return new Promise((resolve) => {
+    const form = host.querySelector("form"), message = host.querySelector("[data-passkey-proof-message]");
+    const finish = (input) => { form.reset(); host.remove(); setTimeout(() => { if (opener.isConnected) opener.focus(); }, 0); resolve(input); };
+    form.onsubmit = (event) => { event.preventDefault(); event.stopPropagation(); if (pin && form.reportValidity()) finish({ pin: form.elements.pin.value }); };
+    host.querySelector("[data-cancel-proof]").onclick = () => finish(null);
+    const button = host.querySelector("[data-proof-passkey]");
+    if (button) button.onclick = async () => {
+      try {
+        await runButton(button, "Verifying…", async () => {
+          const browser = await loadPasskeys(), challenge = await call("/api/account/passkeys/proof/options", { method: "POST", body: JSON.stringify({ purpose, ...(passkeyId ? { passkeyId } : {}) }) });
+          const response = await browser.startAuthentication({ optionsJSON: challenge.options });
+          finish({ challengeId: challenge.challengeId, response });
+        }, { controls: Array.from(form.elements) });
+      } catch (error) { showError(message, error, { context: "passkey" }); }
+    };
+  });
+}
+
 async function call(path, options = {}) {
   const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
   if (response.status === 401 && result.code !== "VERIFICATION_FAILED") {
@@ -356,8 +382,10 @@ $("#dashboard").onclick = async (event) => {
   if (passkeyButton) {
     try {
       await runButton(passkeyButton, "Opening passkey…", async () => {
+        const proof = await passkeyOwnerProof("passkey_add", undefined, passkeyButton);
+        if (!proof) return;
         let result = await call("/api/account/passkeys/options", {
-          method: "POST", body: "{}",
+          method: "POST", body: JSON.stringify(proof),
         });
         const passkeyBrowser = await loadPasskeys();
         const credential = await passkeyBrowser.startRegistration({
@@ -386,7 +414,10 @@ $("#dashboard").onclick = async (event) => {
     if (!confirm("Remove this passkey? It will no longer be able to sign in to your account.")) return;
     try {
       await runButton(removePasskeyButton, "Removing…", async () => {
-        await call("/api/account/passkeys/remove", { method: "POST", body: JSON.stringify({ passkeyId: removePasskeyButton.dataset.removePasskey }) });
+        const passkeyId = removePasskeyButton.dataset.removePasskey;
+        const proof = await passkeyOwnerProof("passkey_remove", passkeyId, removePasskeyButton);
+        if (!proof) return;
+        await call("/api/account/passkeys/remove", { method: "POST", body: JSON.stringify({ passkeyId, ...proof }) });
         await load();
         $("#dashboardMessage").textContent = "Passkey removed.";
       });
