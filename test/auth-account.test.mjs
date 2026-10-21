@@ -154,7 +154,7 @@ test("AUTH-003 passkeys can be renamed and removed by their owner only", async (
   assert.equal(emptyLabel.response.status, 400);
   const missing = await f.call("/api/account/passkeys/rename", "POST", { passkeyId: "does-not-exist", label: "x" });
   assert.equal(missing.response.status, 404);
-  const removed = await f.call("/api/account/passkeys/remove", "POST", { passkeyId: "key-1" });
+  const removed = await f.call("/api/account/passkeys/remove", "POST", { passkeyId: "key-1", pin: "2468" });
   assert.equal(removed.response.status, 200);
   assert.equal(removed.json.passkeys, 0);
   assert.equal((await f.call("/api/account/security")).json.passkeys.length, 0);
@@ -310,7 +310,7 @@ test("DEP-006 owners can deactivate a compromised administrator, ending their se
   const admin = { headers: { origin: "http://admin.test" } };
   const owner = (await f.call("/api/admin/login", "POST", { pin: "9999" }, admin)).setCookie.split(";")[0];
   const asOwner = (path, data) => f.call(path, data ? "POST" : "GET", data, { ...admin, cookie: owner });
-  const created = await asOwner("/api/admin/users", { username: "night-operator", role: "operator", password: "operator-password-123" });
+  const created = await asOwner("/api/admin/users", { username: "night-operator", role: "operator", password: "operator-password-123", currentPassword: "9999" });
   assert.equal(created.response.status, 201);
   const operatorLogin = (await f.call("/api/admin/login", "POST", { username: "night-operator", password: "operator-password-123" }, admin));
   assert.equal(operatorLogin.response.status, 200);
@@ -323,12 +323,12 @@ test("DEP-006 owners can deactivate a compromised administrator, ending their se
   if (ownerId) assert.equal((await asOwner("/api/admin/users/deactivate", { userId: ownerId })).response.status, 409, "no self-lockout");
   assert.equal((await asOwner("/api/admin/users/deactivate", { userId: "missing" })).response.status, 404);
 
-  const deactivated = await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id });
+  const deactivated = await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id, currentPassword: "9999" });
   assert.equal(deactivated.response.status, 200);
   assert.deepEqual(deactivated.json, { user: { id: created.json.user.id, username: "night-operator", role: "operator", active: false }, sessionsEnded: 1 });
   assert.equal((await asOperator("/api/admin/dashboard")).response.status, 401, "existing session ended");
   assert.equal((await f.call("/api/admin/login", "POST", { username: "night-operator", password: "operator-password-123" }, admin)).response.status, 401);
-  assert.equal((await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id })).json.sessionsEnded, 0, "repeating is harmless");
+  assert.equal((await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id, currentPassword: "9999" })).json.sessionsEnded, 0, "repeating is harmless");
   const state = await f.store.snapshot();
   assert.equal(state.auditLogs.filter((entry) => entry.action === "admin.user_deactivated").length, 1);
 });
@@ -337,7 +337,7 @@ test("DEP-006 a session belonging to an inactive administrator is rejected", asy
   const f = await fixture(t);
   const admin = { headers: { origin: "http://admin.test" } };
   const owner = (await f.call("/api/admin/login", "POST", { pin: "9999" }, admin)).setCookie.split(";")[0];
-  await f.call("/api/admin/users", "POST", { username: "auditor-one", role: "auditor", password: "auditor-password-123" }, { ...admin, cookie: owner });
+  await f.call("/api/admin/users", "POST", { username: "auditor-one", role: "auditor", password: "auditor-password-123", currentPassword: "9999" }, { ...admin, cookie: owner });
   const auditor = (await f.call("/api/admin/login", "POST", { username: "auditor-one", password: "auditor-password-123" }, admin)).setCookie.split(";")[0];
   await f.store.transaction((s) => { s.adminUsers.find((u) => u.username === "auditor-one").active = false; });
   assert.equal((await f.call("/api/admin/dashboard", "GET", undefined, { ...admin, cookie: auditor })).response.status, 401);
