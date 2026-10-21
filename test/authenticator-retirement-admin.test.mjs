@@ -226,6 +226,24 @@ test("supported sensitive proofs require current roles, CSRF and a genuine activ
   assert.equal((await prepared.call("/api/admin/dashboard")).status, 200);
 });
 
+test("compatible runtime also closes session-only credential enrollment and staff creation before cutover", async t => {
+  const f = await fixture(t, { retired: false });
+  assert.equal((await f.call(profile + "/passkeys/options", {})).status, 401);
+  assert.equal((await f.call("/api/admin/users", { username: "session-only-owner", role: "owner", password: newPassword })).status, 401);
+  assert.equal((await f.call("/api/admin/users/deactivate", { userId: "operator" })).status, 401);
+  const state = await f.store.snapshot();
+  assert.equal(state.adminUsers.length, 4); assert.equal(state.adminUsers[1].active, true);
+  assert.equal(state.adminProfile.totpSecret, "LEGACYFACTOR");
+});
+
+test("retired administrator mutations reject an empty stored CSRF token even when the submitted token is also empty", async t => {
+  const f = await fixture(t);
+  await f.store.transaction(s => { delete s.adminSessions[0].csrfToken; });
+  const result = await f.call(profile + "/passkeys/options", { currentPassword: password }, { csrf: "" });
+  assert.equal(result.status, 403);
+  assert.equal((await f.store.snapshot()).adminPasskeyChallenges.length, 0);
+});
+
 test("sensitive passkey proofs cannot become login, cross purposes/sessions, omit UV or survive stale account authority", async t => {
   const f = await fixture(t), target = { userId: "operator" };
   const proof = await f.proof("staff_deactivate", target);
