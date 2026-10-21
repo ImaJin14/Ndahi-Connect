@@ -219,3 +219,50 @@ new episodes, partial recovery, privacy/scope, rollback and push suppression.
 Normalized PostgreSQL restart/rollback coverage runs in CI. Real-API 320px checks
 exercise incident review, command history and confirmed recovery. Deployment and
 physical-router/provider acceptance remain pending.
+
+## Pre-exhaustion data warnings (#58)
+
+Defaults are **90% used**, then a **positive confirmed balance at or below
+2,000,000 bytes (2 decimal MB)**. Exhausted is recorded only at the actual quota.
+These warnings never reduce quota, disconnect early, reserve data or initiate a
+purchase. Existing quota enforcement still uses the router's shared bundle total
+across all devices. Unlimited bundles have no quota-exhaustion warning. Time
+expiry remains a separate event.
+
+At a counter jump, only the highest useful warning becomes pending; lower newly
+crossed levels are skipped. An old pending 90% warning is superseded by a critical
+warning, and exhaustion supersedes both. Obsolete pending 50/75% warnings are
+cancelled. A reading already at zero never claims that 2 MB remains. History
+labels its recorded balance/time and does not present it as a live allowance.
+
+Allocation identity includes voucher ID, explicit allocation ID when present,
+payment, activation, expiry and quota. Current fulfillment already creates a new
+voucher ID for renewals; future reuse must update allocation metadata. Reuse with
+new allocation metadata resets thresholds and preserves up to 50 older warning
+records with distinct source IDs. Old delivery jobs cannot cross allocation
+versions. Sent legacy records retain their delivery version and deduplication.
+
+Push follows the shared per-subscription lease/consent rules. It cancels stale
+confirmed readings, obsolete allocation/state and nonpositive critical balances.
+Critical push TTL is 60 seconds; the 90% TTL is five minutes. Latest confirmed
+readings older than two minutes are not treated as fresh new-warning evidence.
+Provider topics/browser tags coalesce quota messages per bundle, so a newly queued
+critical warning can replace an older queued percentage warning. A provider
+accepting before a lost reply can still cause a bounded retry.
+Two MB can be consumed between readings, so neither polling nor push guarantees
+arrival at exactly 2 MB; the earlier 90% warning provides additional notice.
+
+The Home balance uses decimal MB below 1GB, retaining meaningful positive small
+values rather than 0.00GB. Refresh balance and visible-Home polling update the
+balance without replacing forms; stale/unavailable reads are labeled and keep the
+last balance. Renew opens the authenticated plan view without starting payment.
+Manage data alerts opens the centre settings, sharing one consent/subscription
+control instead of a contradictory Home toggle. The notification centre retains
+historical warnings even without push support.
+
+Eleven new regressions cover boundaries, small/unlimited quotas, reused records,
+obsolete policies, concurrency/consent, stale readings and delayed messages. A
+real router-processor fixture proves that 2MB stays usable and disconnection is
+queued only at actual exhaustion. The real-API 320px portal checks 90% → 2MB → zero,
+MB display, stale/error recovery and one exhaustion notice. Deployment and actual
+router/provider/phone acceptance remain pending.

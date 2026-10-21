@@ -30,26 +30,26 @@ test("only browser push services are accepted as alert destinations", () => {
 
 test("each threshold is alerted once and a jump sends only the highest", () => {
   const now = () => new Date("2030-01-01T00:00:00Z"), status = (v) => Object.fromEntries(Object.entries(v.usageAlerts || {}).map(([t, a]) => [t, a.status]));
-  const v = voucher({ usedBytes: 499 });
+  const v = voucher({ quotaBytes: 1e9, usedBytes: 899e6 });
   assert.equal(recordUsageAlerts(v, now), false);
-  v.usedBytes = 500;
+  v.usedBytes = 900e6;
   assert.equal(recordUsageAlerts(v, now), true);
-  assert.deepEqual(status(v), { 50: "pending" });
+  assert.deepEqual(status(v), { 90: "pending" });
   assert.equal(recordUsageAlerts(v, now), false);
-  v.usedBytes = 1200;
+  v.usedBytes = 1.2e9;
   recordUsageAlerts(v, now);
-  assert.deepEqual(status(v), { 50: "pending", 75: "skipped", 100: "pending" });
+  assert.deepEqual(status(v), { 90: "superseded", 100: "pending" });
   const unlimited = voucher({ quotaBytes: null, usedBytes: 5e9 }), unclaimed = voucher({ customerId: null, usedBytes: 900 });
   assert.equal(recordUsageAlerts(unlimited, now) || recordUsageAlerts(unclaimed, now), false);
 });
 
 test("usage sync records an alert when a bundle crosses a threshold", async () => {
   const store = createStore({ persistent: false }), now = () => new Date("2030-01-01T00:00:00Z");
-  await store.transaction((s) => { s.vouchers.push(voucher({ id: "v1", code: "NC-ABCD-2345", deviceLimit: 1, expiresAt: "2030-02-01T00:00:00Z" })); });
+  await store.transaction((s) => { s.vouchers.push(voucher({ id: "v1", code: "NC-ABCD-2345", quotaBytes: 1e9, deviceLimit: 1, expiresAt: "2030-02-01T00:00:00Z" })); });
   await store.transaction((s) => enqueueRouterCommand(s, { action: "sync_usage" }, now));
-  await createRouterCommandProcessor({ store, now, router: { readUsage: async () => [{ voucherId: "v1", usedBytes: 760, devices: [] }] } }).process();
+  await createRouterCommandProcessor({ store, now, router: { readUsage: async () => [{ voucherId: "v1", usedBytes: 910e6, devices: [] }] } }).process();
   const { usageAlerts } = (await store.snapshot()).vouchers[0];
-  assert.deepEqual(Object.fromEntries(Object.entries(usageAlerts).map(([t, a]) => [t, a.status])), { 50: "skipped", 75: "pending" });
+  assert.deepEqual(Object.fromEntries(Object.entries(usageAlerts).map(([t, a]) => [t, a.status])), { 90: "pending" });
 });
 
 async function senderFixture({ subscriptions = 2, send } = {}) {
@@ -57,22 +57,22 @@ async function senderFixture({ subscriptions = 2, send } = {}) {
   const store = createStore({ persistent: false }), calls = [];
   await store.transaction((s) => {
     s.customers.push({ id: "c1", pushSubscriptions: Array.from({ length: subscriptions }, (_, i) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/${i}`, keys })) });
-    s.vouchers.push(voucher({ usedBytes: 760, usageAlerts: { 50: { status: "skipped" }, 75: { status: "pending", attempts: 0 } } }));
+    s.vouchers.push(voucher({ quotaBytes: 1e9, usedBytes: 900e6, usageAlerts: { 90: { status: "pending", attempts: 0 } } }));
   });
   const run = createUsageAlertSender({ store, config, now: () => time, send: async (subscription, payload, options) => {
     calls.push({ endpoint: subscription.endpoint, payload: JSON.parse(payload), options });
     return send?.(subscription, calls.length);
   } });
-  return { store, calls, run, advance(ms) { time = new Date(+time + ms); }, alert: async () => (await store.snapshot()).vouchers[0].usageAlerts[75] };
+  return { store, calls, run, advance(ms) { time = new Date(+time + ms); }, alert: async () => (await store.snapshot()).vouchers[0].usageAlerts[90] };
 }
 
 test("a due alert is pushed to every opted-in device once", async () => {
   const f = await senderFixture();
   assert.deepEqual(await f.run(), { due: 1, sent: 1 });
   assert.equal(f.calls.length, 2);
-  assert.equal(f.calls[0].payload.title, "75% of your data used");
-  assert.match(f.calls[0].payload.body, /0\.00 GB left/);
-  assert.equal(f.calls[0].payload.url, "/dashboard");
+  assert.equal(f.calls[0].payload.title, "90% of your data used");
+  assert.match(f.calls[0].payload.body, /MB left/);
+  assert.equal(f.calls[0].payload.url, "/dashboard#bundles");
   assert.equal(f.calls[0].options.vapidDetails.subject, config.subject);
   assert.equal((await f.alert()).status, "sent");
   await f.run();

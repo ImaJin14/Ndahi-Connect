@@ -14,7 +14,7 @@ async function fixture() {
   const store = createStore({ persistent: false }); let time = new Date("2030-01-01T00:00:00Z");
   await store.transaction((s) => {
     s.customers.push({ id: "c", activeVoucherId: "v", pushSubscriptions: [sub(1), sub(2)] });
-    s.vouchers.push({ id: "v", customerId: "c", status: "active", quotaBytes: 1000000, usedBytes: 760000, expiresAt: "2030-02-01T00:00:00Z", usageAlerts: { 75: { status: "pending", at: time.toISOString() } } });
+    s.vouchers.push({ id: "v", customerId: "c", status: "active", quotaBytes: 1e9, usedBytes: 900000000, expiresAt: "2030-02-01T00:00:00Z", usageAlerts: { 90: { status: "pending", at: time.toISOString() } } });
     s.notificationStates.push({ id: "preferences:customer:c", actor: "customer:c", pushEnabled: true, pushSince: new Date(+time - 1000).toISOString() });
     s.securityAlerts.push({ id: "sec", customerId: "c", subject: "Private account change", lines: ["Never send this detail"], at: time.toISOString() });
   });
@@ -25,11 +25,11 @@ test("usage retries only the failed subscription, including after a worker resta
   const f = await fixture(), calls = [];
   const send = async (s) => { calls.push(s.endpoint); if (s.endpoint.endsWith("/2") && calls.length === 2) throw Error("synthetic timeout"); };
   await createUsageAlertSender({ ...f, config, send })();
-  assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[75].status, "pending");
+  assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[90].status, "pending");
   f.advance(60000);
   await createUsageAlertSender({ ...f, config, send })();
   assert.deepEqual(calls.map((n) => n.slice(-1)), ["1", "2", "2"]);
-  assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[75].status, "sent");
+  assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[90].status, "sent");
 });
 
 test("independent workers share a usage delivery lease rather than sending duplicates", async () => {
@@ -58,7 +58,7 @@ test("higher thresholds cancel delayed lower warnings and old usage events expir
     if (old) f.advance(21600001);
     else await f.store.transaction((s) => { s.vouchers[0].usageAlerts[100] = { status: "sent", at: f.now().toISOString() }; });
     await createUsageAlertSender({ ...f, config, send: async (...args) => calls.push(args) })();
-    assert.equal(calls.length, 0); assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[75].status, "cancelled");
+    assert.equal(calls.length, 0); assert.equal((await f.store.snapshot()).vouchers[0].usageAlerts[90].status, "cancelled");
   }
 });
 
@@ -66,11 +66,11 @@ test("read or archived usage items suppress pending push without changing bundle
   for (const field of ["readVersion", "archivedVersion"]) {
     const f = await fixture(), calls = [];
     await f.store.transaction((s) => {
-      const item = notificationItems(s, { type: "customer", id: "c" }, f.now()).find((n) => n.id === "usage:v:75");
+      const item = notificationItems(s, { type: "customer", id: "c" }, f.now()).find((n) => n.id === "usage:v:90");
       s.notificationStates.push({ id: "view-state", actor: "customer:c", notificationId: item.id, [field]: item.version });
     });
     await createUsageAlertSender({ ...f, config, send: async (...args) => calls.push(args) })();
-    assert.equal(calls.length, 0); assert.equal((await f.store.snapshot()).vouchers[0].usedBytes, 760000);
+    assert.equal(calls.length, 0); assert.equal((await f.store.snapshot()).vouchers[0].usedBytes, 900000000);
   }
 });
 
