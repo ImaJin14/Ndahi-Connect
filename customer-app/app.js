@@ -16,6 +16,7 @@ import { startUpdates } from "./updates.js";
 import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus } from "./usage-alerts.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
+import { mountCurrentWifi } from "./current-wifi.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -27,7 +28,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   })(),
   fmt = (value) => value === null ? "Unlimited" : `${(value / 1e9).toFixed(2)} GB`,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
-let csrfToken = "", latestDashboard = null, refreshingPayments = false;
+let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
@@ -215,7 +216,7 @@ async function load() {
   $("#differentCode").open = !active;
   // With a HotSpot, devices and their slots come from the router itself.
   const hotspot = Boolean(window.NDAHI_CONFIG.hotspotLoginUrl),
-    wifiConnect = active && hotspot && result.purchaseAccess?.allowed !== false ? '<p><a class="button" href="/hotspot">Connect to Wi-Fi</a></p>' : "",
+    wifiConnect = active && hotspot ? '<section class="surface full" id="currentWifi" aria-label="This device connection"></section>' : "",
     thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
     quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
@@ -271,7 +272,11 @@ async function load() {
   if (active && active.quotaBytes !== null) void setupUsageAlerts();
   if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
-  if (hotspot) void mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
+  stopCurrentWifi();
+  if (hotspot) {
+    const controls = mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
+    stopCurrentWifi = mountCurrentWifi({ container: $("#currentWifi"), call, onMainDisconnect: async (mac) => (await controls)?.disconnect(mac) });
+  }
   const planNotice = sessionStore.get("ndahi-plan-notice");
   if (planNotice) {
     $("#dashboardMessage").innerHTML = `<div class="success">${h(planNotice)}</div>`;
@@ -456,7 +461,7 @@ $("#dashboard").onclick = async (event) => {
   if (wifiDevice) {
     try {
       await runButton(wifiDevice, "Disconnecting…", async () => {
-        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession, startedAt: wifiDevice.dataset.wifiStarted }) });
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession, startedAt: wifiDevice.dataset.wifiStarted, retainApproval: true }) });
         watchWifiDevices();
       });
     } catch (error) { showError($("#dashboardMessage"), error); }

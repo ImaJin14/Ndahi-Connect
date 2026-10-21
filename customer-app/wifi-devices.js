@@ -15,7 +15,7 @@ export function wifiDeviceList({ devices = [], deviceLimit, syncedAt, disconnect
   const notices = Object.keys(latest).map((mac) => latest[mac]).filter((operation) =>
     !devices.some((d) => d.mac === operation.mac && d.disconnect) && ["failed", "superseded", "disconnected"].includes(operation.status)
   ).map((operation) => `<p role="status">Device ending ${h(operation.mac.slice(-5))}: ${h(operation.message)}</p>`).join("");
-  return `${rows || `<p>${stale ? "Waiting for a current device list…" : "No devices were reported at the last Wi-Fi check."}</p>`}${deviceLimit ? `<p>${h(devices.length)} of ${h(deviceLimit)} device slots in use${syncedAt ? ` · updated ${h(new Date(syncedAt).toLocaleTimeString())}` : ""}</p>` : ""}${stale ? '<p role="status">The device list may be out of date. Waiting for a Wi-Fi update; slots are not confirmed free.</p>' : ""}${notices}<button type="button" class="secondary-action" data-refresh-wifi>Refresh devices</button>`;
+  return `${rows || `<p>${stale ? "Waiting for a current device list…" : "No devices were reported at the last Wi-Fi check."}</p>`}${deviceLimit ? `<p>${h(devices.length)} of ${h(deviceLimit)} device slots in use${syncedAt ? ` · updated ${h(new Date(syncedAt).toLocaleTimeString())}` : ""}</p>` : ""}${stale ? '<p role="status">The device list may be out of date. Waiting for a Wi-Fi update; slots are not confirmed free.</p>' : ""}${notices}<button type="button" class="secondary-action" data-refresh-wifi>Refresh devices</button><p>Disconnect keeps saved approval. Forget device removes approval and requires a new request.</p>`;
 }
 
 export const allSlotsInUse = ({ devices = [], deviceLimit }) => Boolean(deviceLimit) && devices.length >= deviceLimit;

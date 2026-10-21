@@ -192,7 +192,7 @@ devices.onclick = async (event) => {
     await runButton(target, "Requesting…", async () => {
       const result = await requestJson(config.apiUrl + "/api/account/wifi-devices/disconnect", {
         method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": csrfToken },
-        body: JSON.stringify({ mac: target.dataset.wifiDevice, sessionId: target.dataset.wifiSession }),
+        body: JSON.stringify({ mac: target.dataset.wifiDevice, sessionId: target.dataset.wifiSession, startedAt: target.dataset.wifiStarted, retainApproval: true }),
       });
       if (!result.response.ok) throw responseError(result.response, result.body);
       devices.innerHTML = wifiDeviceList(result.body);

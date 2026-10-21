@@ -1,6 +1,6 @@
 # CSRF mutation inventory
 
-Last reviewed: 2026-09-21
+Last reviewed: 2026-10-21
 
 All production browser `POST` requests require an allowed `Origin`. Requests without an origin are rejected before route handling. The only exceptions are payment webhooks, which authenticate with provider signatures and do not use browser session cookies.
 
@@ -21,6 +21,7 @@ These routes rely on input validation, rate limits, one-time challenges, and cre
 These routes require the customer cookie, an allowed customer origin, and the matching `X-CSRF-Token` bound to that dashboard session:
 
 - `/api/account/plan/purchase`
+- `/api/account/device-management/current/identify` (binds only a router-verified candidate to this session; status polling is `GET /api/account/device-management/current`)
 - `/api/account/logout`
 - `/api/account/security/mfa/enroll`
 - `/api/account/security/mfa/confirm`
