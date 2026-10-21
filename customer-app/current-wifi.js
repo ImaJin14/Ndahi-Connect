@@ -6,7 +6,7 @@ const labels = { unknown: "Connection unknown", unavailable: "Wi-Fi unavailable"
 
 export function mountCurrentWifi({ container, call, onMainDisconnect }) {
   if (!container) return () => {};
-  let timer, stopped = false, busy = false, value = { state: "unknown", message: "Checking this device's Wi-Fi connection…" };
+  let timer, inFlight, stopped = false, busy = false, lastIdentifyAt = -Infinity, value = { state: "unknown", message: "Checking this device's Wi-Fi connection…" };
   const hint = wifiHint(), login = routerLoginUrl(window.NDAHI_CONFIG.hotspotLoginUrl);
   function render() {
     if (stopped || !container.isConnected) return;
@@ -25,31 +25,51 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
       <p>Disconnect ends this session and keeps saved approval. Use Forget device below to remove that approval.</p><p data-current-message role="status" aria-live="polite"></p>`;
     if (focused) (container.querySelector(`[data-current-action="${focused}"]`) || container.querySelector("[data-current-state]")).focus();
   }
-  async function refresh(identify = false) {
-    try {
-      const next = await call("/api/account/device-management/current" + (identify ? "/identify" : ""), identify ? { method: "POST", body: JSON.stringify(hint ? { mac: hint.mac, address: hint.address } : {}) } : {});
-      if (stopped || !container.isConnected) return;
-      value = next; render();
-    } catch (error) {
-      if (stopped || !container.isConnected) return;
-      value = { state: "failed", checkedAt: value.checkedAt, message: error.message || "Could not check the current router connection. Refresh to retry." }; render();
-    }
+  function refresh(identify = false) {
+    if (inFlight) return inFlight;
+    const identifyDevice = (candidate = {}) => {
+      lastIdentifyAt = Date.now();
+      return call("/api/account/device-management/current/identify", { method: "POST", body: JSON.stringify(candidate) });
+    };
+    inFlight = (async () => {
+      try {
+        let next = await (identify ? identifyDevice(hint ? { mac: hint.mac, address: hint.address } : {}) : call("/api/account/device-management/current", {}));
+        // Only the server's own session may supply a saved candidate. Renewal
+        // needs a fresh router read; failures retry at most once per 30 seconds.
+        if (!identify && next.identificationRequired && Date.now() - lastIdentifyAt >= 30000 && !stopped && container.isConnected) next = await identifyDevice();
+        if (stopped || !container.isConnected) return;
+        value = next; render();
+      } catch (error) {
+        if (stopped || !container.isConnected) return;
+        value = { state: "failed", checkedAt: value.checkedAt, message: error.message || "Could not check the current router connection. Refresh to retry." }; render();
+      }
+    })().finally(() => { inFlight = null; });
+    return inFlight;
   }
-  const tick = async () => {
-    if (stopped || !container.isConnected) return;
-    if (!document.hidden && !busy) await refresh();
-    if (!stopped) timer = setTimeout(tick, 5000);
+  const stop = () => {
+    stopped = true; clearInterval(timer); container.onclick = null;
+    document.removeEventListener("visibilitychange", tick);
+    window.removeEventListener("pageshow", tick);
+  };
+  const tick = () => {
+    if (stopped) return;
+    if (!container.isConnected) return stop();
+    if (!document.hidden && !busy) void refresh();
   };
   container.onclick = async (event) => {
     const button = event.target.closest("[data-current-action]");
     if (!button || busy) return;
+    const target = value.device;
     busy = true;
+    render();
     try {
+      // Let an existing status read finish before starting a user action.
+      await inFlight;
+      if (stopped || !container.isConnected) return;
       if (button.dataset.currentAction === "refresh") await refresh(true);
-      else if (value.device) {
-        if (value.device.main) await onMainDisconnect(value.device.mac);
+      else if (target) {
+        if (target.main) await onMainDisconnect(target.mac);
         else {
-          const target = value.device;
           value = { ...value, state: "disconnecting", message: "Requesting disconnection. Waiting for the router." }; render();
           let failure;
           try {
@@ -71,6 +91,9 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
     }
   };
   render();
-  void refresh(Boolean(hint)).then(() => { if (!stopped) timer = setTimeout(tick, 5000); });
-  return () => { stopped = true; clearTimeout(timer); container.onclick = null; };
+  timer = setInterval(tick, 5000);
+  document.addEventListener("visibilitychange", tick);
+  window.addEventListener("pageshow", tick);
+  void refresh(Boolean(hint));
+  return stop;
 }

@@ -7,7 +7,13 @@ import { approveDevice } from "../lib/wifi-approval.mjs";
 const website = http.createServer();
 await new Promise((resolve) => website.listen(0, "127.0.0.1", resolve));
 const portal = `http://127.0.0.1:${website.address().port}`;
+let routerAvailable = true, identifications = 0;
 const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, router: {
+  async readGuestDevice(input) {
+    identifications++;
+    if (!routerAvailable) throw Error("Router unavailable");
+    return { ...input, loginAddress: input.address, hostId: "*guest", server: "ndahi-hotspot" };
+  },
   async disconnectWifiDevice() { return { confirmed: true, outcome: "disconnected" }; },
   async readUsage() { return (await f.store.snapshot()).vouchers.map((v) => ({ voucherId: v.id, usedBytes: v.usedBytes, devices: v.wifiDevices || [] })); },
 } });
@@ -42,6 +48,63 @@ try {
   assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).isVisible(), true);
   assert.match(await card.textContent(), /Last checked:/);
   console.log("PASS fresh router-verified current session replaces Connect with Connected and an adjacent Disconnect at 320px without storage");
+
+  await page.clock.install();
+  await page.goto(portal + "/dashboard");
+  await card.locator('[data-current-state="connected"]').waitFor();
+  const initialReads = identifications;
+  const advance = async (seconds) => {
+    f.advance(seconds);
+    await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+    await page.clock.fastForward(seconds * 1000);
+  };
+  const identifiedResponse = () => page.waitForResponse((response) => response.url().endsWith("/current/identify") && response.request().method() === "POST");
+  await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
+  await advance(901);
+  assert.equal(identifications, initialReads, "background polling must not identify hidden pages");
+  const resumed = identifiedResponse();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+  });
+  assert.deepEqual((await resumed).request().postDataJSON(), {}, "renewal uses the server's saved candidate without URL hints");
+  await card.locator('[data-current-state="connected"]').waitFor();
+  assert.equal(identifications, initialReads + 1, "overlapping resume events share a single identification");
+  console.log("PASS returning after 15 minutes renews this browser through the router without URL hints or storage");
+
+  const polled = identifiedResponse();
+  await advance(901); await polled;
+  await card.locator('[data-current-state="connected"]').waitFor();
+  assert.equal(identifications, initialReads + 2);
+  console.log("PASS a visible dashboard renews its expired association during normal polling");
+
+  routerAvailable = false;
+  const failedRead = identifiedResponse();
+  await advance(901); await failedRead;
+  await card.locator('[data-current-state="unknown"]').waitFor();
+  assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).count(), 0);
+  const readsAfterFailure = identifications;
+  await advance(10);
+  const resumedStatus = page.waitForResponse((response) => response.url().endsWith("/current"));
+  await page.evaluate(() => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })); });
+  // Wait for the shared status read; none of these events may bypass the backoff.
+  await resumedStatus;
+  assert.equal(identifications, readsAfterFailure);
+  routerAvailable = true;
+  const retried = identifiedResponse();
+  await advance(21); await retried;
+  await card.locator('[data-current-state="connected"]').waitFor();
+  assert.equal(identifications, readsAfterFailure + 1);
+  console.log("PASS router failure clears Connected, bounds automatic retries and recovers without URL hints");
+
+  await advance(6);
+  await f.store.transaction((s) => { s.dashboardSessions.find((a) => a.id === "main").currentWifi.verifiedAt = new Date(+f.now() - 901000).toISOString(); });
+  const reloaded = identifiedResponse();
+  await page.reload(); await reloaded;
+  await card.locator('[data-current-state="connected"]').waitFor();
+  assert.equal(f.calls.length, 0, "renewal never logs a device in or changes its approval");
+  console.log("PASS a fresh dashboard load renews an expired association with no captive URL hints");
 
   // Commit the disconnect, lose its HTTP reply, and let the card reconcile the
   // existing operation. It must not claim the slot is free or issue a new login.

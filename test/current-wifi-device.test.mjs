@@ -49,6 +49,40 @@ test("missing or changed router identity and off-network visits cannot claim Con
   assert.equal((await f.status()).body.state, "unknown");
 });
 
+test("an expired browser association requests router re-identification without borrowing another session", async (t) => {
+  const f = await fixture(t);
+  await f.identify();
+  f.advance(901);
+  await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+  const expired = (await f.status()).body;
+  assert.equal(expired.state, "unknown");
+  assert.equal(expired.identificationRequired, true);
+  assert.equal(expired.device, undefined);
+  assert.equal((await f.call(root, undefined, { session: "secondary" })).body.identificationRequired, undefined);
+  assert.equal((await f.call(root, undefined, { address: "198.51.100.7" })).body.identificationRequired, undefined);
+  assert.equal((await f.call(root + "/identify", {})).body.state, "connected");
+  assert.equal(f.calls.length, 0, "identifying must never connect a device");
+  await f.store.transaction((s) => { s.networkSetup.connections.router.revision = "router-2"; });
+  assert.equal((await f.status()).body.identificationRequired, undefined);
+  assert.equal((await f.call(root + "/identify", {})).body.state, "unknown", "a saved candidate cannot cross router revisions");
+});
+
+test("an unavailable router leaves only an unverified candidate that can be retried without URL hints", async (t) => {
+  let online = true;
+  const f = await fixture(t, { router: { async readGuestDevice(input) {
+    if (!online) throw Error("offline");
+    return { ...input, loginAddress: input.address, hostId: "*guest", server: "ndahi-hotspot" };
+  } } });
+  await f.identify();
+  f.advance(901); online = false;
+  await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+  assert.equal((await f.call(root + "/identify", {})).body.state, "unknown");
+  assert.equal((await f.status()).body.state, "unknown");
+  assert.equal((await f.status()).body.identificationRequired, true);
+  f.advance(6); online = true;
+  assert.equal((await f.call(root + "/identify", {})).body.state, "connected");
+});
+
 test("a lying or unavailable router cannot bind another session as this browser", async (t) => {
   for (const readGuestDevice of [async () => { throw Error("offline"); }, async () => ({ mac: mainMac, address: "10.20.0.30", hostId: "*host", server: "ndahi-hotspot" })]) {
     const f = await fixture(t, { router: { readGuestDevice } });
@@ -79,6 +113,22 @@ test("signing out while router identification is in flight cannot bind the expir
   release();
   assert.equal((await pending).status, 401);
   assert.equal((await f.store.snapshot()).dashboardSessions.some((a) => a.currentWifi), false);
+});
+
+test("a delayed identification cannot replace a newer browser association", async (t) => {
+  let release, started, reads = 0;
+  const waiting = new Promise((resolve) => { started = resolve; });
+  const gate = new Promise((resolve) => { release = resolve; });
+  const f = await fixture(t, { router: { async readGuestDevice(input) {
+    if (++reads === 1) { started(); await gate; }
+    return { ...input, loginAddress: input.address, hostId: "*guest", server: "ndahi-hotspot" };
+  } } });
+  const old = f.identify(); await waiting;
+  f.advance(6);
+  assert.equal((await f.call(root + "/identify", { mac: mainMac, address: "10.20.0.1" })).body.state, "connected");
+  release();
+  assert.equal((await old).status, 409);
+  assert.equal((await f.status()).body.device.mac, mainMac);
 });
 
 test("session-only disconnect retains approval, waits for confirmation and cannot reconnect in the background", async (t) => {
