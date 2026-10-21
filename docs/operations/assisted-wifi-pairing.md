@@ -99,6 +99,47 @@ would require a separate reviewed migration, not the pause toggle.
 
 ## Rollout and physical pilot
 
+### Reconnect after a router or access-point restart
+
+The account's main-device designation and approved MAC grants are persisted
+separately from the router's active sessions, DHCP IP address and reported name.
+A returning approved MAC must reconnect without a new main-device code, even
+when its IP and router session identifiers change. A different MAC, including a
+changed private Wi-Fi address, still needs approval or explicit verified owner
+recovery. A matching hostname never establishes ownership.
+
+Completed request keys are historical results. Starting another connection with
+one returns `PAIRING_RESTART_REQUIRED`; portal clients make one bounded retry with
+a fresh key, rechecking the saved grant and current router target. Pending retries
+retain their key so lost responses cannot create duplicate login operations.
+Manual browserless-device approvals use this same bounded restart and keep the
+rotated key if another response is lost.
+MAC/IP candidates stay in the pairing URL through reload, expiry and retry when
+browser storage is denied. Account numbers, vouchers and approval codes stay out
+of that URL. The Wi-Fi sign-in link remains available on recovered requests.
+
+When DHCP stops announcing a name, a matching saved main/grant label is displayed
+as **Last reported name**. This display fallback does not change device identity,
+approval, router freshness or slot checks. Browser approval control additionally
+uses an HttpOnly cookie; losing that cookie does not erase the saved Wi-Fi grant.
+Use the existing fresh PIN/passkey main-browser verification to restore control.
+
+A stale reading backed by a dead-lettered router-read command returns
+`ROUTER_READ_FAILED`, rather than telling the customer to keep refreshing.
+An authorized operator must inspect/recover that command and obtain a fresh
+reading before another connection can be admitted.
+
+The physical iOS screenshot showing **Wi-Fi sign-in page did not identify this
+device** is a separate unresolved installation check: inspect the active profile's
+effective HTML directory and its served `login.html`, `rlogin.html` and
+`flogin.html`. Back up those three files before replacing them with the generated
+pages described below. Keep the other router files. App deployment alone cannot
+install them. The October 16 `ndahi-profile`, `hotspot`, empty-override record is
+historical; verify the effective profile before writing files. Reopening the
+portal repeatedly cannot repair an installed redirect that drops MAC/IP.
+
+### Installation and physical verification
+
 1. Deploy the API, portal and admin together. Existing `challenges` and `events`
    tables hold `wifi_device_grant` and `notification_state`; no SQL schema change
    is required. Back up the persistent network key/configuration as usual.

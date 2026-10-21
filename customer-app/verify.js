@@ -1,5 +1,5 @@
 import { ApiError, showError } from "./errors.js";
-import { afterSignInPath } from "./hotspot-path.js";
+import { afterSignInPath, withWifiHint } from "./hotspot-path.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { formValues, sessionStore, markReady, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
@@ -13,7 +13,7 @@ try { challenge = saved ? JSON.parse(saved) : null; }
 catch (_) { sessionStore.remove("ndahi-login-challenge"); }
 if (!challenge || typeof challenge !== "object") {
   challenge = null;
-  if (!checkoutSetup) location.replace("/login");
+  if (!checkoutSetup) location.replace(withWifiHint("/login"));
 }
 function configureChallenge() {
   if (!challenge) return;

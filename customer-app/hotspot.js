@@ -3,7 +3,7 @@ import { runButton } from "/shared/pending.js";
 import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
 import { requestJson, markReady, randomId, loadPasskeys } from "./compat.js";
 import { mountDeviceControls } from "./device-controls.js";
-import { wifiHint } from "./wifi-pairing.js";
+import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
@@ -42,7 +42,10 @@ async function protectedConnect(proof = {}) {
   let result;
   while (Date.now() < deadline) {
     try {
-      result = await call("/api/account/device-management/connect", input, true);
+      result = await startWifiRequest((payload) => call("/api/account/device-management/connect", payload, true), input, (next) => {
+        key = next;
+        try { history.replaceState(null, "", location.pathname + location.search + "#wifi_key=" + key); } catch (_) {}
+      });
       if (result.code === "HOTSPOT_PENDING") { result = null; message.textContent = "Preparing your Wi-Fi access…"; await new Promise((resolve) => setTimeout(resolve, 2000)); continue; }
       break;
     }
