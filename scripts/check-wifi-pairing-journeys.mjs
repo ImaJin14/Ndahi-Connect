@@ -46,7 +46,7 @@ try {
     return { c, page };
   }
   const { page: owner } = await context({ owner: true }), { c: guestContext, page: guest } = await context({ blockedStorage: true });
-  await owner.goto(portal + "/dashboard");
+  await owner.goto(portal + "/dashboard#devices");
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   const pairUrl = portal + "/pair?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.30";
   await guest.goto(pairUrl.replace("/pair?", "/onboarding.html?"));
@@ -90,7 +90,7 @@ try {
   await f.process();
   await guest.waitForURL(portal + "/wifi-connected.html");
   await guest.getByRole("heading", { name: "Finish Wi-Fi sign-in." }).waitFor();
-  await row.getByText("Connected — confirmed by the router", { exact: true }).waitFor();
+  await row.waitFor({ state: "detached" });
   assert.equal(f.calls.length, 1); assert.equal(handoffs.length, 1); assert.equal(new URL(guest.url()).hash, "");
   await guest.reload(); assert.equal(handoffs.length, 1, "public completion reload must not repeat router handoff");
   const denied = await guest.request.get(f.api + "/api/account/dashboard", { headers: { origin: portal } }); assert.equal(denied.status(), 401);
@@ -127,6 +127,7 @@ try {
   assert.equal(f.calls.length, 2, "old completion must not count as fresh router confirmation");
   await f.process(reconnectRequest.commandId); await owner.waitForURL(/\/dashboard/);
   assert.equal(f.calls.length, 3); assert.deepEqual((await f.store.snapshot()).customers[0].wifiMainDevice, previousMain);
+  await owner.goto(portal + "/dashboard#devices");
   console.log("PASS a restored connection URL starts a fresh grant-authorized reconnect after router session/IP changes, preserving main identity");
 
   await f.store.transaction((s) => { s.vouchers[0].deviceLimit = 5; });
@@ -143,9 +144,9 @@ try {
   assert.equal(await expired.locator("#pairingRedeem").isHidden(), true);
   await expired.getByRole("button", { name: "Request access again", exact: true }).waitFor();
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
-  await owner.locator("[data-request]").filter({ hasText: "ending EE:04" }).getByText("Expired", { exact: true }).waitFor();
+  await owner.waitForFunction(() => !Array.from(document.querySelectorAll("[data-request]")).some((row) => row.textContent.includes("ending EE:04")));
   assert.equal(await owner.locator("[data-request] img").count(), 0);
-  await owner.getByRole("heading", { name: hostileName + " · ending EE:04", exact: true }).waitFor();
+  assert.equal(await owner.getByRole("heading", { name: hostileName + " · ending EE:04", exact: true }).count(), 0);
   await expired.getByRole("button", { name: "Request access again", exact: true }).click();
   await expired.getByLabel("Account phone number", { exact: true }).fill("670050001");
   await expired.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");

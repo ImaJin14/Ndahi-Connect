@@ -26,6 +26,10 @@ website.on("request", (req, res) => assets.emit("request", req, res));
 await f.store.transaction((s) => {
   approveDevice(s, "c1", { mac: guestMac }, f.now(), "test");
   s.vouchers[0].wifiDevices.push({ mac: guestMac, address: "10.20.0.30", sessionId: "*guest", startedAt: f.now().toISOString() });
+  s.wifiPairingRequests.push({ id: "historical-device-request", customerId: "c1", mac: "00:00:00:00:00:99", name: "Old device", kind: "reconnect", status: "connected",
+    at: f.now().toISOString(), updatedAt: f.now().toISOString(), expiresAt: new Date(+f.now() + 300000).toISOString() });
+  s.routerCommands.push({ id: "historical-disconnect", action: "disconnect_wifi_device", customerId: "c1", status: "processed", result: "disconnected", processedAt: f.now().toISOString(),
+    device: { voucherId: "v1", mac: "00:00:00:00:00:99", sessionId: "*old", startedAt: f.now().toISOString() } });
 });
 let browser;
 try {
@@ -45,6 +49,18 @@ try {
   await card.locator('[data-current-state="unknown"]').waitFor();
   assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).count(), 0);
   console.log("PASS an account login and other connected sessions do not label an unidentified browser Connected");
+  assert.equal(await page.locator("#manageDevices").evaluate((d) => d.open), false);
+  assert.equal(await page.locator('[data-request="historical-device-request"]').count(), 0);
+  await page.goto(portal + "/dashboard#devices");
+  await page.locator('#wifiDeviceList [data-forget-device]').waitFor();
+  assert.equal(await page.locator("#manageDevices").evaluate((d) => d.open), true);
+  assert.equal(await page.locator("#wifiDeviceList .device").filter({ hasText: "EE:03" }).count(), 1);
+  assert.equal(await page.locator("#manageDevices").getByText("Old device", { exact: true }).count(), 0);
+  const history = await context.request.get(api + "/api/account/notifications?view=all&category=devices", { headers: { origin: portal, "cf-connecting-ip": "203.0.113.10" } });
+  const historyBody = await history.json();
+  assert.ok(historyBody.items.some((n) => n.id === "device:historical-device-request"));
+  assert.ok(historyBody.items.some((n) => n.id === "wifi-disconnect:historical-disconnect"));
+  console.log("PASS Home hides terminal activity, Manage devices deduplicates connected approvals, and Notifications retains history");
 
   await page.goto(portal + "/dashboard?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.30");
   await card.locator('[data-current-state="connected"]').waitFor();
@@ -164,7 +180,7 @@ try {
   assert.equal(await card.getByRole("link", { name: "Connect to Wi-Fi", exact: true }).count(), 0);
   let state = await f.store.snapshot();
   assert.equal(state.vouchers[0].wifiDevices.length, 3);
-  const operation = state.routerCommands.find((c) => c.action === "disconnect_wifi_device");
+  const operation = state.routerCommands.find((c) => c.action === "disconnect_wifi_device" && ["queued", "retry"].includes(c.status));
   await f.handler.routerProcessor.process(operation.id);
   await card.locator('[data-current-state="disconnected"]').waitFor();
   state = await f.store.snapshot();
