@@ -153,9 +153,10 @@ export function createHandler(opts = {}) {
   handler.usageAlertConfig = usageAlertConfig(env);
   const usageSender = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
   handler.sendUsageAlerts = async () => {
-    const usage = await usageSender();
-    await deliverActivityPush({ store, config: handler.usageAlertConfig, now: clock });
-    return usage;
+    const [usage, activity] = await Promise.allSettled([usageSender(), deliverActivityPush({ store, config: handler.usageAlertConfig, now: clock })]);
+    if (activity.status === "rejected") logger.error("notification.activity_failed", { errorName: activity.reason?.name });
+    if (usage.status === "rejected") throw usage.reason;
+    return usage.value;
   };
   return handler;
 }

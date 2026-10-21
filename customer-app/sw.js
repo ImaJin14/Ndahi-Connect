@@ -32,7 +32,8 @@ self.addEventListener("notificationclick", (event) => {
   const target = new URL(event.notification.data?.url || "/dashboard", self.location.origin);
   if (target.origin !== self.location.origin) return;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
-    const open = windows.find((client) => new URL(client.url).pathname === target.pathname);
-    return open ? open.focus() : self.clients.openWindow(target.href);
+    const open = windows.find((client) => new URL(client.url).origin === target.origin && new URL(client.url).pathname === target.pathname);
+    if (!open) return self.clients.openWindow(target.href);
+    return Promise.resolve(open.url === target.href ? open : open.navigate(target.href)).then((client) => (client || open).focus());
   }));
 });
