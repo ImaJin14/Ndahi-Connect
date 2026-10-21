@@ -34,3 +34,13 @@ test('preparation rollback honors the retired marker despite leftover factors an
  for(const path of ['/api/admin/profile/mfa/enroll','/api/admin/login/mfa']){const r=await fetch(f.api+path,{method:'POST',headers:{origin:'http://customer.test',cookie:'admin_session=owner','content-type':'application/json','x-csrf-token':'csrf'},body:'{}'});assert.equal(r.status,410,path);}
  const login=await fetch(f.api+'/api/admin/login',{method:'POST',headers:{origin:'http://customer.test','content-type':'application/json'},body:JSON.stringify({username:'owner',password:'a sufficiently long admin password'})});assert.equal(login.status,200);assert.equal((await login.json()).mfaRequired,undefined);
 });
+
+test('staff record and dashboard projections never expose private credential markers or readiness review payloads',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>{recordVerifiedMethod(s.customers[0],'pin',null,secret,f.now());s.zone.authenticationMigrationReview={version:1,evidenceReference:'PRIVATE-REVIEW',digest:'PRIVATE-DIGEST'};});
+ for(const path of ['/api/admin/dashboard','/api/admin/records?collection=customers']){const r=await fetch(f.api+path,{headers:{origin:'http://customer.test',cookie:'admin_session=owner'}});assert.equal(r.status,200);assert.doesNotMatch(await r.text(),/authMigration|PRIVATE-REVIEW|PRIVATE-DIGEST/);}
+});
+
+test('preparation cannot remove the sole usable sign-in credential',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>{delete s.customers[0].pinHash;s.customers[0].passkeys=[{id:'only-key',publicKey:'protected'}];});
+ const r=await f.call('/api/account/passkeys/remove',{passkeyId:'only-key'});assert.equal(r.status,409);assert.equal(r.body.code,'LAST_CREDENTIAL');assert.equal((await f.store.snapshot()).customers[0].passkeys.length,1);
+});
