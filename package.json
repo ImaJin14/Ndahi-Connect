@@ -37,12 +37,13 @@
     "check:signup:browser": "node scripts/check-signup-connection-journeys.mjs",
     "check:portal": "node --check customer-app/account-recovery.js && node --check lib/account-security.mjs && node --check lib/api/account-recovery.mjs && node --check lib/api/admin-recovery.mjs && node --check lib/api/account-tools.mjs && node --check lib/api/account-email.mjs && node --check lib/profile-proof.mjs && node --check lib/email-state.mjs && node --check lib/voucher-pdf.mjs && node --check customer-app/help.js && node --check customer-app/payment-timing.js && node --check customer-app/portal-nav.js && node --check customer-app/portal-content.js && node --check customer-app/profile.js && node --check customer-app/updates.js && node --check scripts/check-portal-account-journeys.mjs && node --check customer-app/authenticator-management.js && node --check lib/api/authenticator-management.mjs && node --check admin-app/authenticator-recovery.js && node --check scripts/check-authenticator-management-journeys.mjs",
     "check:portal:browser": "node scripts/check-portal-account-journeys.mjs",
-    "check:admin:app": "node scripts/check-admin-app-journeys.mjs",
+    "check:admin:app": "node scripts/check-admin-app-journeys.mjs && npm run check:vouchers:browser",
     "check:security:browser": "node scripts/check-security-journeys.mjs && npm run check:authenticator:browser",
     "check:notifications:browser": "node scripts/check-notification-journeys.mjs",
     "check:captive:browser": "node scripts/check-captive-completion-journeys.mjs",
     "check:current-wifi:browser": "node scripts/check-current-wifi-journeys.mjs",
-    "check:authenticator:browser": "node scripts/check-authenticator-management-journeys.mjs"
+    "check:authenticator:browser": "node scripts/check-authenticator-management-journeys.mjs",
+    "check:vouchers:browser": "node scripts/check-voucher-details-journeys.mjs"
   },
   "engines": {
     "node": "22.x"
