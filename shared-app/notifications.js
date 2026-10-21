@@ -49,7 +49,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
       '<div class="notification-tools"><label>View<select data-notification-view aria-label="Notification view">' + [["unread","Unread"],["action","Action required"],["all","All"],["archived","Archived"]].map(([key,label]) => '<option value="' + key + '"' + (tab === key ? " selected" : "") + '>' + label + '</option>').join("") +
       '</select></label><label>Category<select data-notification-category aria-label="Notification category"><option value="all">All categories</option>' + Object.keys(inbox.categories).map((key) => '<option value="' + key + '"' + (category === key ? " selected" : "") + '>' + h(inbox.categories[key]) + '</option>').join("") +
       '</select></label></div><div class="notification-tools notification-dates"><label>From (UTC)<input type="date" data-notification-from aria-label="Notifications from date" value="' + h(from) + '"></label><label>Through (UTC)<input type="date" data-notification-to aria-label="Notifications through date" value="' + h(to) + '"></label><button type="button" data-apply-filters>Apply dates</button></div><div class="notification-toolbar"><button type="button" data-read-all>Mark all read</button><button type="button" data-open-settings>Settings</button></div>' +
-      (items.length ? items.map((n) => '<article class="notification-item' + (n.read ? "" : " notification-unread") + '" data-notification-id="' + h(n.id) + '"><p class="notification-category">' + h(inbox.categories[n.category] || n.category) + (n.actionRequired ? " · Action required" : "") + '</p><h3>' + h(n.title) + '</h3><p>' + h(n.body) + '</p><small>' + h(new Date(n.updatedAt).toLocaleString()) + '</small><div class="notification-row-actions"><a data-notification-review href="' + h(n.url) + '">' + (n.actionRequired ? "Review" : "View details") + '</a>' +
+      (items.length ? items.map((n) => '<article class="notification-item' + (n.read ? "" : " notification-unread") + '" data-notification-id="' + h(n.id) + '"><p class="notification-category">' + h(inbox.categories[n.category] || n.category) + (n.actionRequired ? " · Action required" : "") + '</p><h3>' + h(n.title) + '</h3><p>' + h(n.body) + '</p><small>' + h(new Date(n.updatedAt).toLocaleString()) + '</small><div class="notification-row-actions"><a data-notification-review href="' + h(n.url) + '">' + h(n.linkLabel || (n.actionRequired ? "Review" : "View details")) + '</a>' +
       (!n.read ? '<button type="button" data-read>Mark read</button>' : "") +
       (!n.actionRequired ? '<button type="button" ' + (n.archived ? "data-restore" : "data-archive") + '>' + (n.archived ? "Restore" : "Archive") + '</button>' : "") + '</div></article>').join("") : '<p class="notification-empty">No notifications match these filters.</p>') + (!settings ? '<nav class="notification-pagination" aria-label="Notification history pages"><button type="button" data-page-previous' + (previous.length ? "" : " disabled") + '>Previous</button><span>' + h(String(inbox.page.total)) + ' matching</span><button type="button" data-page-next' + (inbox.page.nextCursor ? "" : " disabled") + '>Next</button></nav>' : "");
     const form = host.querySelector("form");
@@ -109,8 +109,10 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   panel.addEventListener("click", async (event) => {
     const button = event.target.closest("button"), row = event.target.closest("[data-notification-id]");
     if (event.target.closest("[data-notification-review]")) {
+      const link = event.target.closest("[data-notification-review]"), sessions = link.hash === "#sessions";
+      if (sessions && !event.ctrlKey && !event.metaKey && !event.shiftKey) event.preventDefault();
       if (row) { try { inbox = await post({ action: "read", id: row.dataset.notificationId }); badge(); } catch (_) {} }
-      close(); return;
+      close(); if (sessions && event.defaultPrevented) location.assign(link.href); return;
     }
     if (!button) return;
     if (button.matches("[data-refresh-notifications]")) { void refresh(true); return; }
@@ -152,5 +154,10 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   const startPolling = () => { clearInterval(timer); timer = setInterval(() => { if (!editing) void refresh(); }, 10000); void refresh(); };
   window.addEventListener("pageshow", startPolling);
   window.addEventListener("pagehide", () => clearInterval(timer));
-  mounted = { refresh, close }; startPolling(); return mounted;
+  mounted = { refresh, close, open(filters = {}) {
+    category = filters.category || "all"; tab = filters.view || "all"; settings = false; editing = false; dateEditing = false;
+    from = ""; to = ""; cursor = ""; previous = []; generation++;
+    if (panel.hidden) bell.click();
+    void refresh(true);
+  } }; startPolling(); return mounted;
 }

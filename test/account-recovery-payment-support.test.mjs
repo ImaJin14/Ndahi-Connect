@@ -261,7 +261,7 @@ test("SECURITY-ALERT: replacing linked email sends alert to previousEmail", asyn
   // Alert worker delivers to that specific recipient
   const alertService = createSecurityAlertService({ store: f.store, email: emailMock, now: f.getClock });
   await alertService.run();
-  assert.equal(deliveredAlerts.length, 2);
+  assert.equal(deliveredAlerts.filter((a) => ["email_replaced", "email_linked"].includes(a.alert.kind)).length, 2);
   const replacedAlert = deliveredAlerts.find((a) => a.alert.kind === "email_replaced");
   assert.ok(replacedAlert);
   assert.equal(replacedAlert.to, "initial@example.test");

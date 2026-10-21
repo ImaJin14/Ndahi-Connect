@@ -217,6 +217,28 @@ try {
     assert.equal((await store.snapshot()).customers[0].phone, '670050104');
     assert.equal((await store.snapshot()).customers[0].passkeys.length, 1);
   });
+  await scenario('a real passkey sign-in creates one scoped security-history entry and opens active sessions', async (page, context) => {
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('WebAuthn.enable');
+    await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
+      hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+    await page.goto(`${portal}/dashboard#account`);
+    await page.locator('#addCustomerPasskey').click();
+    await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    await context.clearCookies();
+    await page.goto(`${portal}/login?account=1`);
+    await page.locator('#login [name="phone"]').fill('670050101');
+    await page.locator('#customerPasskeyLogin').click();
+    await page.waitForURL(/\/dashboard#account$/);
+    await page.locator('#sessionActivity summary').click();
+    await page.getByRole('button', { name: 'View security history', exact: true }).click();
+    const centre = page.getByRole('dialog', { name: 'Notifications', exact: true });
+    await centre.getByRole('heading', { name: /Passkey sign-in/ }).waitFor();
+    assert.equal((await store.snapshot()).securityEvents.filter((e) => e.type === 'customer.passkey_login.succeeded').length, 1);
+    await centre.locator('[data-notification-id]').filter({ has: page.getByRole('heading', { name: /Passkey sign-in/ }) }).getByRole('link', { name: 'Review sessions', exact: true }).click();
+    await page.waitForURL(/#sessions$/);
+    assert.equal(await page.locator('#sessionActivity').evaluate((el) => el.open), true);
+  }, 320);
   await scenario('signup without email reaches the portal and the owner can link a confirmed email later', async (page, context) => {
     await context.clearCookies();
     await page.goto(`${portal}/onboarding.html`); await page.locator('[data-plan="weekly"]').click();
