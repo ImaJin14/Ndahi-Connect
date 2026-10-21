@@ -96,6 +96,37 @@ test("guest Wi-Fi requests create no account sign-in history or account session"
   assert.equal(notificationItems(s, { type: "customer", id: "c1" }, f.now()).some((n) => n.id.startsWith("sign-in:")), false);
 });
 
+for (const [name, path, input, kind] of [
+  ["PIN", "/api/account/security/pin", { currentPin: "2468", newPin: "1357", confirmPin: "1357" }, "pin_changed"],
+  ["phone", "/api/account/profile/phone", { pin: "2468", phone: "670050099" }, "phone_changed"],
+  ["email", "/api/account/profile/email/confirm", { code: "123456" }, "email_linked"],
+]) test(`a verified ${name} change rotates its session without inventing an account-setup sign-in`, async (t) => {
+  const f = await fixture(t);
+  if (name === "email") await f.store.transaction((s) => {
+    const c = s.customers[0], session = s.dashboardSessions.find((a) => a.tokenHash === hashSecret("main", "pairing-tests"));
+    c.pendingEmail = { email: "updated@example.test", originalEmail: c.email || "", sessionId: session.id,
+      codeHash: hashSecret(input.code, "pairing-tests"), attempts: 0, expiresAt: new Date(+f.now() + 60000).toISOString() };
+  });
+  const changed = await f.call(path, input);
+  assert.equal(changed.status, 200); assert.equal(changed.body.authenticated, true);
+  assert.ok(changed.headers.getSetCookie().some((line) => line.startsWith("customer_session=")));
+  const s = await f.store.snapshot();
+  assert.equal(s.securityEvents.filter((e) => Object.values(loginMethods).includes(e.type)).length, 0);
+  assert.deepEqual(s.securityAlerts.map((n) => n.kind), [kind]);
+  assert.equal(notificationItems(s, { type: "customer", id: "c1" }, f.now()).some((n) => n.id.startsWith("sign-in:")), false);
+});
+
+test("initial PIN creation still records one genuine account-setup sign-in", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => { delete s.customers[0].pinHash; });
+  const setup = await f.call("/api/account/setup/pin", { phone: "670050001", code: "NC-AAAA-1111", pin: "2468", confirmPin: "2468" });
+  assert.equal(setup.status, 200); assert.equal(setup.body.authenticated, true);
+  const s = await f.store.snapshot();
+  assert.equal(s.securityEvents.filter((e) => e.type === loginMethods.setup).length, 1);
+  const items = notificationItems(s, { type: "customer", id: "c1" }, f.now()).filter((n) => n.id.startsWith("sign-in:"));
+  assert.equal(items.length, 1); assert.match(items[0].title, /Account setup sign-in/);
+});
+
 test("retained important sign-in notices keep the same identity and read version when audit history is trimmed", async (t) => {
   const f = await fixture(t); await login(f);
   const before = (await f.call(inbox)).body.items[0];
