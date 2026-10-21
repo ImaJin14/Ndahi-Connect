@@ -16,10 +16,10 @@ permissions:
   contents: read
 jobs:
   smoke:
-    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && (github.event.deployment.environment == 'production' || github.event.deployment.environment == 'staging'))
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && contains(fromJSON('["production", "staging", "main - ndahi-api", "main - ndahi-customer", "main - ndahi-admin"]'), github.event.deployment.environment))
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || github.event.deployment.environment }}
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.event.deployment.environment == 'staging' && 'staging' || 'production') }}
     steps:
       - uses: actions/checkout@v7
         with:

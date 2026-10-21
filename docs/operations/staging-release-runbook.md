@@ -39,8 +39,35 @@ GitHub environments named `staging` and `production`. Optional GitHub variables
 staging domains; production uses `CUSTOMER_APP_URL`, `ADMIN_APP_URL` and `API_URL`.
 Staging never falls back to the production variables.
 Dispatch **Deployment smoke checks** against staging with bootstrap disabled.
-Only deployment-status events explicitly naming staging or production are handled.
-Confirm Render emits those events before relying on automatic smoke execution.
+Successful deployment-status events naming `staging`, `production`, or the observed
+Render production environments `main - ndahi-api`, `main - ndahi-customer` and
+`main - ndahi-admin` trigger smoke checks. The three Render names use the GitHub
+`production` environment and production URLs. Other environments and unsuccessful
+deployments do not trigger checks. Record the event and smoke-run IDs when verifying
+automatic execution; a smoke pass alone does not identify the deployed commit.
+
+### Recover a missing main-branch CI run
+
+Production services use `autoDeployTrigger: checksPass`. Render does not start an
+automatic deployment when the new commit has zero checks. After merging, verify
+that **CI** started for the new `main` commit and that Render deploys that revision.
+Passing pull-request checks belong to the pre-merge revision.
+
+If no main CI run exists, use **Actions → CI → Run workflow → main**, or:
+
+```bash
+gh workflow run ci.yml --repo ImaJin14/Ndahi-Connect --ref main
+gh run list --repo ImaJin14/Ndahi-Connect --workflow ci.yml --branch main
+```
+
+Confirm the dispatched run's `headSha` matches the intended main revision and all
+CI jobs pass. This runs the full existing checks without changing production's
+deployment gate. Then record each Render deploy's commit/ID, run strict production
+smoke checks, and compare the portal's release assets with the tested revision.
+If CI passes without a Render deployment, inspect that service's connected branch,
+auto-deploy setting and deploy events. Keep GitHub's missing-event cause separate
+from the recovery: the October 21 merge had no CI run despite an active push trigger,
+and the reason the event was not processed has not been established.
 
 Record the commit and successful Render deploy ID for each service before the
 candidate deploy. Rehearse synthetic guest purchase/PIN setup, returning login,
