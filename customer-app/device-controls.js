@@ -50,7 +50,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       if (!usePasskey && !/^\d{4}$/.test(input.pin || "")) { output.textContent = "Enter your four-digit PIN."; return; }
       try {
         await runButton(form.querySelector(usePasskey ? "[data-device-passkey]" : '[type="submit"]'), "Verifying…", async () => {
-          let payload = { mac: input.mac, pin: input.pin, otp: input.otp,
+          let payload = { mac: input.mac, pin: input.pin, otp: input.otp, retainApproval: true,
             sessionId: selected.sessionId, startedAt: selected.startedAt };
           const path = "/api/account/device-management/" + (disconnect ? "disconnect" : "main");
           if (usePasskey) {
@@ -122,4 +122,5 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     const button = event.target.closest("[data-main-disconnect]");
     if (button) void showProof(button.dataset.mainDisconnect, true).catch((error) => showError(message, error));
   });
+  return { disconnect: (mac) => showProof(mac, true).catch((error) => showError(message, error)) };
 }
