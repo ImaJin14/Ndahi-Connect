@@ -35,6 +35,33 @@ let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurr
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null, authenticatorControls = {};
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
+async function passkeyOwnerProof(purpose, passkeyId, opener) {
+  if (!latestDashboard.customer.authenticatorRetired) return {};
+  document.querySelector("[data-passkey-owner-proof]")?.querySelector("[data-cancel-proof]")?.click();
+  const host = document.createElement("section"); host.className = "surface";
+  host.setAttribute("data-passkey-owner-proof", ""); host.setAttribute("data-sensitive-output", "");
+  const pin = latestDashboard.customer.pinConfigured !== false,
+    passkey = latestDashboard.customer.passkeys && window.PublicKeyCredential && navigator.credentials;
+  host.innerHTML = `<h3 tabindex="-1">${purpose === "passkey_add" ? "Verify before adding a passkey" : "Verify before removing this passkey"}</h3><p>Confirm account ownership with your current PIN or a passkey.</p><form method="post">${pin ? '<label>Current PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Confirm with PIN</button>' : ""}${passkey ? '<button type="button" data-proof-passkey>Confirm with passkey</button>' : ""}<button type="button" data-cancel-proof>Cancel</button><p data-passkey-proof-message role="status" aria-live="polite"></p></form><p><a href="/help#recovery">No working credential? Get account recovery help</a></p>`;
+  $("#accountSecurity").appendChild(host); host.querySelector("h3").focus(); host.scrollIntoView({ block: "nearest" });
+  return new Promise((resolve) => {
+    const form = host.querySelector("form"), message = host.querySelector("[data-passkey-proof-message]");
+    const finish = (input) => { form.reset(); host.remove(); setTimeout(() => { if (opener.isConnected) opener.focus(); }, 0); resolve(input); };
+    form.onsubmit = (event) => { event.preventDefault(); event.stopPropagation(); if (pin && form.reportValidity()) finish({ pin: form.elements.pin.value }); };
+    host.querySelector("[data-cancel-proof]").onclick = () => finish(null);
+    const button = host.querySelector("[data-proof-passkey]");
+    if (button) button.onclick = async () => {
+      try {
+        await runButton(button, "Verifying…", async () => {
+          const browser = await loadPasskeys(), challenge = await call("/api/account/passkeys/proof/options", { method: "POST", body: JSON.stringify({ purpose, ...(passkeyId ? { passkeyId } : {}) }) });
+          const response = await browser.startAuthentication({ optionsJSON: challenge.options });
+          finish({ challengeId: challenge.challengeId, response });
+        }, { controls: Array.from(form.elements) });
+      } catch (error) { showError(message, error, { context: "passkey" }); }
+    };
+  });
+}
+
 async function call(path, options = {}) {
   const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
   if (response.status === 401 && result.code !== "VERIFICATION_FAILED") {
@@ -210,6 +237,7 @@ async function load() {
       : "";
   const purchaseNotice = result.purchaseAccess?.allowed === false
     ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
+  const authenticatorRetired = result.customer.authenticatorRetired === true || security.authenticatorRetired === true;
   $("#dashboard").innerHTML = `${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <section class="surface" id="dataBalance"><p class="eyebrow">Active bundle</p><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><div class="stats"><div class="stat"><b data-remaining-data>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b data-used-data>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div>${active.quotaBytes !== null ? `<p id="dataBalanceMessage" class="usage-notice" role="status" hidden></p><button type="button" id="refreshDataBalance">Refresh balance</button><a href="/dashboard#bundles">Renew or choose a plan</a>` : ""}${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>`}</section>
     ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts"><h2>Usage alerts</h2><p>Warnings at 90% used and around 2 MB remaining help you plan a renewal. Manage browser permission and delivery preferences in Notifications.</p><button type="button" id="manageUsageAlerts">Manage data alerts</button></section>' : ""}
@@ -222,7 +250,7 @@ async function load() {
     ${profileCard(result.customer)}
     ${emailCard(result.customer)}
     ${recoveryCard(result.customer)}
-    <section class="surface full${securitySetup ? " security-setup" : ""}" data-portal-view="account" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator sign-in is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>. Your PIN and passkeys remain available. Linking another Wi-Fi device does not require an authenticator code.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button>'}<div id="mfaSetup"></div><div id="authenticatorManagement"></div><p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Active sessions</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "IP address unavailable")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><p>Security notices and sign-in history are in Notifications → Security / sign-ins.</p><button type="button" data-open-security-history>View security history</button></details></section>
+    <section class="surface full${securitySetup ? " security-setup" : ""}" data-portal-view="account" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p>${authenticatorRetired ? '<h2>PIN &amp; passkeys</h2><p>Sign in with your PIN or a passkey. Sensitive account changes require fresh PIN or passkey verification. Wi-Fi access approval stays separate.</p>' : `<h2>PIN, authenticator &amp; passkeys</h2><p>${result.customer.pinConfigured ? "Your four-digit PIN is configured." : "Verify a replacement sign-in method below."} Authenticator sign-in is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>. Linking another Wi-Fi device does not require an authenticator code.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button>'}<div id="mfaSetup"></div><div id="authenticatorManagement"></div>`}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${!authenticatorRetired && security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Active sessions</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "IP address unavailable")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><p>Security notices and sign-in history are in Notifications → Security / sign-ins.</p><button type="button" data-open-security-history>View security history</button></details></section>
     ${vouchersCard(result.vouchers)}
     <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
@@ -248,7 +276,7 @@ async function load() {
   if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };
   if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
-  authenticatorControls = mountAuthenticatorManagement({ container: $("#authenticatorManagement"), enabled: security.authenticatorEnrolled, hasPasskeys: Boolean(security.passkeys.length), call, showSetup: (enrollment) => renderAuthenticatorSetup($("#mfaSetup"), enrollment, result.customer.phone) });
+  authenticatorControls = mountAuthenticatorManagement({ container: $("#authenticatorManagement"), enabled: security.authenticatorEnrolled, retired: authenticatorRetired, hasPasskeys: Boolean(security.passkeys.length), call, showSetup: (enrollment) => renderAuthenticatorSetup($("#mfaSetup"), enrollment, result.customer.phone) });
   stopCurrentWifi();
   if (hotspot) {
     const controls = mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
@@ -357,8 +385,10 @@ $("#dashboard").onclick = async (event) => {
   if (passkeyButton) {
     try {
       await runButton(passkeyButton, "Opening passkey…", async () => {
+        const proof = await passkeyOwnerProof("passkey_add", undefined, passkeyButton);
+        if (!proof) return;
         let result = await call("/api/account/passkeys/options", {
-          method: "POST", body: "{}",
+          method: "POST", body: JSON.stringify(proof),
         });
         const passkeyBrowser = await loadPasskeys();
         const credential = await passkeyBrowser.startRegistration({
@@ -384,10 +414,13 @@ $("#dashboard").onclick = async (event) => {
   }
   const removePasskeyButton = event.target.closest("[data-remove-passkey]");
   if (removePasskeyButton) {
-    if (!confirm("Remove this passkey? It will no longer be able to sign in to your account.")) return;
+    if (!latestDashboard.customer.authenticatorRetired && !confirm("Remove this passkey? It will no longer be able to sign in to your account.")) return;
     try {
       await runButton(removePasskeyButton, "Removing…", async () => {
-        await call("/api/account/passkeys/remove", { method: "POST", body: JSON.stringify({ passkeyId: removePasskeyButton.dataset.removePasskey }) });
+        const passkeyId = removePasskeyButton.dataset.removePasskey;
+        const proof = await passkeyOwnerProof("passkey_remove", passkeyId, removePasskeyButton);
+        if (!proof) return;
+        await call("/api/account/passkeys/remove", { method: "POST", body: JSON.stringify({ passkeyId, ...proof }) });
         await load();
         $("#dashboardMessage").textContent = "Passkey removed.";
       });

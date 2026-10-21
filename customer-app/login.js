@@ -8,10 +8,18 @@ import { completeSignIn } from "./sign-in-request.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { randomId } from "./compat.js";
+import { loadAuthenticationPolicy } from "./authentication-migration.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let accessToken = "", accessMode = "", accountOnly = new URLSearchParams(location.search).get("account") === "1";
+const policy = loadAuthenticationPolicy().then((state) => {
+  if (state.authenticatorRetired) {
+    $("#authenticatorLogin")?.remove(); $("#inlineVerification")?.remove();
+    sessionStore.remove("ndahi-login-challenge");
+  } else $("#authenticatorLogin").hidden = false;
+  return state;
+}).catch(() => null);
 const runLogin = (button, text, task) => runButton(button, text, task, {
   controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin"), $("#inlineBack"), $("#inlineSubmit")],
 });
@@ -132,6 +140,8 @@ $("#authenticatorLogin").onclick = async () => {
   if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
   try {
     await runLogin($("#authenticatorLogin"), "Checking…", async () => {
+      const current = await policy;
+      if (!current || current.authenticatorRetired) { $("#message").textContent = "Use your PIN or passkey to sign in. Refresh if sign-in methods could not be checked."; return; }
       $("#message").textContent = "";
       const result = await call("/api/account/login/request-authenticator", { phone });
       if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html" + (accountOnly ? "?account=1" : "");

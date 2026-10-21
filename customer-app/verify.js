@@ -4,11 +4,21 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { formValues, sessionStore, markReady, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { completeSignIn } from "./sign-in-request.js";
+import { loadAuthenticationPolicy } from "./authentication-migration.js";
 
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector),
   saved = sessionStore.get("ndahi-login-challenge"),
   checkoutSetup = new URLSearchParams(location.search).get("setup") === "checkout";
 let challenge = null;
+let retired = false;
+const policy = loadAuthenticationPolicy().catch(() => null);
+function retiredChallenge(unavailable = false) {
+  retired = true; challenge = null; sessionStore.remove("ndahi-login-challenge");
+  $("#verify").reset(); $("#verify").hidden = true; $("#useRecoveryCode").hidden = true; $("#development").textContent = "";
+  $("#title").textContent = "Sign in with PIN or passkey";
+  $("#instructions").textContent = unavailable ? "Sign-in policy could not be checked. Return to sign-in and use your PIN or passkey, or refresh to try again. Contact support if you need account recovery." : "This sign-in method has been retired. Return to sign-in and use your PIN or passkey. Contact support if you need account recovery.";
+  markReady();
+}
 try { challenge = saved ? JSON.parse(saved) : null; }
 catch (_) { sessionStore.remove("ndahi-login-challenge"); }
 if (!challenge || typeof challenge !== "object") {
@@ -17,6 +27,8 @@ if (!challenge || typeof challenge !== "object") {
 }
 function configureChallenge() {
   if (!challenge) return;
+  $("#verify").hidden = false;
+  $("#useRecoveryCode").hidden = Boolean(challenge.setupPin);
   if (challenge.setupPin) {
     $("#step").textContent = "Account setup";
     $("#title").textContent = "Create your PIN.";
@@ -56,6 +68,7 @@ $("#verify").onsubmit = async (event) => {
   try {
     await runButton(button, "Verifying…", async () => {
       $("#message").textContent = "";
+      if (retired) throw new ApiError(410, "This sign-in method has been retired. Use PIN or passkey.");
       if (!challenge) throw new ApiError(401, "Setup access is unavailable. Sign in again or contact support.");
       const form = formValues(event.target);
       if (challenge.setupPin && form.pin !== form.confirmPin) {
@@ -69,6 +82,7 @@ $("#verify").onsubmit = async (event) => {
       location.href = afterSignInPath();
     }, { controls: [$("#useRecoveryCode")] });
   } catch (error) {
+    if (error.code === "AUTHENTICATOR_RETIRED") retiredChallenge();
     showError($("#message"), error);
   }
 };
@@ -87,6 +101,10 @@ if (checkoutSetup) {
     showError($("#message"), error);
   });
 } else {
-  configureChallenge();
-  if (challenge) { $("#submitLabel").disabled = false; markReady(); }
+  if (challenge?.setupPin) { configureChallenge(); $("#submitLabel").disabled = false; markReady(); }
+  else policy.then((state) => {
+    if (!state || state.authenticatorRetired) { retiredChallenge(!state); return; }
+    configureChallenge();
+    if (challenge) { $("#submitLabel").disabled = false; markReady(); }
+  });
 }

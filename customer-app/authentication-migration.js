@@ -1,15 +1,24 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton, isPending } from "/shared/pending.js";
-import { formValues, loadPasskeys } from "./compat.js";
+import { formValues, loadPasskeys, requestJson } from "./compat.js";
 import { showError } from "./errors.js";
 
 const root = "/api/account/authentication-migration";
 const passkeysAvailable = () => Boolean(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);
 
+// Read the effective server policy each time; never persist a retirement guess
+// in app storage. Unsupported policy reads leave PIN/passkey usable.
+export async function loadAuthenticationPolicy() {
+  const { response, body } = await requestJson(window.NDAHI_CONFIG.apiUrl + "/api/authentication-policy", { credentials: "include", cache: "no-store" });
+  if (!response.ok || typeof body.authenticatorRetired !== "boolean") throw Error("Sign-in policy could not be checked. Use PIN or passkey, or refresh to try again.");
+  return body;
+}
+
 // Preparation only: this component never turns off an existing sign-in method.
 // PINs, old-factor proofs and the pending intent stay in this page's memory.
-export function mountAuthenticationMigration({ container, call }) {
+export function mountAuthenticationMigration({ container, call, retired = false }) {
   if (!container) return {};
+  if (retired) { container.textContent = ""; return {}; }
   let state, intent;
   container.setAttribute("data-authentication-migration", "");
   container.innerHTML = `<h3>Prepare PIN &amp; passkey access</h3><p>Verify a PIN or passkey before authenticator sign-in is retired. Your existing sign-in methods stay available during preparation.</p><div data-migration-content><p>Checking your sign-in methods…</p></div><p data-migration-message role="status" aria-live="polite" tabindex="-1"></p><button type="button" data-migration-refresh>Refresh sign-in readiness</button>`;
@@ -41,7 +50,7 @@ export function mountAuthenticationMigration({ container, call }) {
       : '<form method="post" data-migration-pin><label>Current four-digit PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Verify PIN for future sign-in</button></form>') +
       (passkey ? '<p><button type="button" data-migration-passkey>Verify passkey for future sign-in</button></p>' : state.configured.passkey ? '<p>Passkeys are unavailable in this browser. Use a PIN or open this account on a device with a working passkey.</p>' : '<p>You can also add a passkey from Account security, then verify it here.</p>') +
       (state.pendingPin ? '<p>A PIN setup was started in this session. Start again if the confirmation page was closed.</p><button type="button" data-migration-cancel>Cancel pending PIN setup</button>' : "") +
-      '<p><a href="/help#security">Lost your current authenticator or passkey? Get audited support recovery</a></p>';
+      '<p><a href="/help#recovery">Lost your current authenticator or passkey? Get audited support recovery</a></p>';
     const pinForm = content.querySelector("[data-migration-pin]");
     if (pinForm) pinForm.onsubmit = (event) => {
       event.preventDefault(); event.stopPropagation();
