@@ -7,6 +7,7 @@ import { activeAdminView, mountAdminNavigation } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
+import { mountIncidentDetails } from "/incident-details.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -140,6 +141,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     table.before(wrapper); wrapper.append(table);
   }
   mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "devices") void refreshWifiSummary(); });
+  if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   mountAdminInstall($("#adminInstall"));
   renderWifiSummary(x.wifi);
   $("#refreshWifi").onclick = async (event) => {
