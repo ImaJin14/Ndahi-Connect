@@ -3,11 +3,12 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 // Paginated, server-filtered record table (PERF-003). Rows are rendered by the
 // caller; action buttons keep using the dashboard's delegated click handler.
 export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0 }) {
-  const state = { page: 1, q: "", status: "" };
+  const state = { page: 1, q: "", status: "", from: "", to: "" };
   let timer, request = 0, loaded = false;
   container.innerHTML = `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
   <input type="search" name="q" aria-label="Search ${h(title.toLowerCase())}" placeholder="Search" maxlength="100">
   <select name="status" aria-label="Filter ${h(title.toLowerCase())} by status" hidden><option value="">All statuses</option></select>
+  ${collection === "vouchers" ? '<label>Activated from (UTC)<input type="date" name="from" aria-label="Vouchers from date"></label><label>Activated through (UTC)<input type="date" name="to" aria-label="Vouchers through date"></label><button type="submit">Apply dates</button>' : ""}
 </form></div><div class="table-scroll"><table><thead><tr>${headers.map((name) => `<th scope="col">${h(name)}</th>`).join("")}</tr></thead><tbody></tbody></table></div>
 <nav class="records-pager" aria-label="${h(title)} pages"><button type="button" class="secondary-action" data-page="prev">Previous</button><span role="status" aria-live="polite"></span><button type="button" class="secondary-action" data-page="next">Next</button></nav>`;
   const form = container.querySelector("form"),
@@ -24,7 +25,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
   }
   async function load(background = false) {
     const current = ++request,
-      params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status });
+      params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status, ...(collection === "vouchers" ? { from: state.from, to: state.to } : {}) });
     if (!background || !loaded) showLoading();
     try {
       const result = await call(`/api/admin/records?${params}`);
@@ -57,7 +58,10 @@ export function mountRecords(container, { call, collection, title, headers, row,
       if (current === request) container.removeAttribute("aria-busy");
     }
   }
-  form.onsubmit = (event) => event.preventDefault();
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    if (collection === "vouchers") { state.from = form.elements.from.value; state.to = form.elements.to.value; state.page = 1; void load(); }
+  };
   form.elements.q.oninput = () => {
     clearTimeout(timer);
     state.q = form.elements.q.value.trim();

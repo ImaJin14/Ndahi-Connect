@@ -123,7 +123,9 @@ try {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto(`${portal}/dashboard#vouchers`);
     const cards = page.locator('[data-portal-view="vouchers"] .voucher-card'); await cards.first().waitFor();
-    assert.equal(await cards.count(), 2);
+    assert.equal(await cards.count(), 1);
+    await page.getByLabel('Voucher status', { exact: true }).selectOption('expired');
+    assert.equal(await cards.count(), 1);
     assert.equal(await cards.last().locator('[data-voucher-code]').inputValue(), 'NC-HIST-0001');
     await cards.last().getByRole('button', { name: 'Copy code', exact: true }).click();
     await cards.last().getByText('Voucher code copied.', { exact: true }).waitFor();
@@ -136,6 +138,34 @@ try {
     assert.ok(!page.url().includes('NC-HIST'));
     await page.screenshot({ path: `${screenshots}/vouchers-mobile.png`, fullPage: true });
   });
+  await scenario('voucher history pages, empty Active view and expiry preserve records at 320px', async (page) => {
+    await store.transaction((s) => {
+      s.vouchers[0].expiresAt = new Date(+now + 30000).toISOString();
+      for (let n = 0; n < 14; n++) s.vouchers.push({ ...structuredClone(s.vouchers[0]), id: 'history-page-' + n, code: 'NC-PAGE-' + String(n).padStart(4, '0'), status: n % 2 ? 'expired' : 'exhausted', activatedAt: '2026-09-01T12:00:00Z', expiresAt: '2026-09-02T12:00:00Z' });
+    });
+    await page.goto(`${portal}/dashboard#vouchers`);
+    assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 1);
+    await page.getByRole('button', { name: 'View voucher history', exact: true }).click();
+    assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 6);
+    await page.getByRole('button', { name: 'Next vouchers', exact: true }).click();
+    assert.match(await page.locator('[data-voucher-page]').textContent(), /Page 2/);
+    await page.getByLabel('Voucher status', { exact: true }).selectOption('exhausted');
+    assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 6);
+    await page.getByRole('button', { name: 'Next vouchers', exact: true }).click();
+    assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 1);
+    await page.getByLabel('Voucher status', { exact: true }).selectOption('active');
+    now = new Date(+now + 31000);
+    await page.evaluate((at) => { Date.now = () => at; }, +now);
+    await page.getByRole('link', { name: 'Home', exact: true }).click();
+    await page.getByRole('link', { name: 'Vouchers', exact: true }).click();
+    await page.getByText('No current active voucher. View your voucher history or choose a package.', { exact: true }).waitFor();
+    assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 0);
+    await page.getByLabel('Voucher status', { exact: true }).selectOption('expired');
+    assert.ok(await page.locator('#voucherHistory .voucher-card').count() > 0);
+    assert.equal((await store.snapshot()).vouchers.length, 16);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  }, 320);
+
   await scenario('alternate renewal payers stay with their transaction and new checkouts reset to the account number', async (page) => {
     await page.goto(`${portal}/onboarding.html?action=renew`);
     await page.locator('[data-plan="weekly"]').click();
