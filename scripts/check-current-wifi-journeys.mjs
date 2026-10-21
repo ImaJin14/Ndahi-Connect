@@ -3,10 +3,13 @@ import http from "node:http";
 import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
+import { setDefaultResultOrder } from "node:dns";
+
+setDefaultResultOrder("ipv4first");
 
 const website = http.createServer();
 await new Promise((resolve) => website.listen(0, "127.0.0.1", resolve));
-const portal = `http://127.0.0.1:${website.address().port}`;
+const portal = `http://localhost:${website.address().port}`;
 let routerAvailable = true, identifications = 0;
 const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, router: {
   async readGuestDevice(input) {
@@ -17,7 +20,8 @@ const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: tru
   async disconnectWifiDevice() { return { confirmed: true, outcome: "disconnected" }; },
   async readUsage() { return (await f.store.snapshot()).vouchers.map((v) => ({ voucherId: v.id, usedBytes: v.usedBytes, devices: v.wifiDevices || [] })); },
 } });
-const assets = createStaticServer("customer", { apiUrl: f.api, hotspotLoginUrl: "https://connect.current.test/login" });
+const api = f.api.replace("127.0.0.1", "localhost");
+const assets = createStaticServer("customer", { apiUrl: api, hotspotLoginUrl: "https://connect.current.test/login" });
 website.on("request", (req, res) => assets.emit("request", req, res));
 await f.store.transaction((s) => {
   approveDevice(s, "c1", { mac: guestMac }, f.now(), "test");
@@ -28,11 +32,11 @@ try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   const context = await browser.newContext({ viewport: { width: 320, height: 900 } });
-  await context.addCookies([{ name: "customer_session", value: "main", domain: "127.0.0.1", path: "/api/account", httpOnly: true, sameSite: "Lax" }]);
+  await context.addCookies([{ name: "customer_session", value: "main", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]);
   await context.addInitScript(() => {
     for (const store of ["localStorage", "sessionStorage"]) Object.defineProperty(window, store, { get() { throw new DOMException("Storage denied", "SecurityError"); } });
   });
-  await context.route("**/*", (route) => [portal, f.api].includes(new URL(route.request().url()).origin)
+  await context.route("**/*", (route) => [portal, api].includes(new URL(route.request().url()).origin)
     ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient"));
   const page = await context.newPage(), errors = [];
   page.setDefaultTimeout(15000); page.on("pageerror", (error) => errors.push(error.message));
@@ -105,6 +109,48 @@ try {
   await card.locator('[data-current-state="connected"]').waitFor();
   assert.equal(f.calls.length, 0, "renewal never logs a device in or changes its approval");
   console.log("PASS a fresh dashboard load renews an expired association with no captive URL hints");
+
+  const signedIn = await context.request.post(api + "/api/account/login/pin", { headers: { origin: portal, "cf-connecting-ip": "203.0.113.10" },
+    data: { phone: (await f.store.snapshot()).customers[0].phone, pin: String(2468) } });
+  assert.equal(signedIn.status(), 200);
+  const newSessionCheck = identifiedResponse();
+  await page.reload(); await newSessionCheck;
+  await card.locator('[data-current-state="connected"]').waitFor();
+  console.log("PASS an actual fresh PIN sign-in restores the app cookie's candidate and freshly rechecks the router");
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", transport: "internal", hasResidentKey: true,
+    hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
+  await page.goto(portal + "/dashboard#account");
+  await page.locator("#addCustomerPasskey").click();
+  await page.waitForFunction(() => document.querySelector("#accountSecurity").textContent.includes("Rename"));
+  await page.goto("about:blank");
+  await context.clearCookies({ name: "customer_session" });
+  await page.goto(portal + "/login?account=1");
+  await page.locator('#login [name="phone"]').fill((await f.store.snapshot()).customers[0].phone);
+  await page.locator("#customerPasskeyLogin").click();
+  await page.waitForURL(/\/dashboard#account$/);
+  await page.goto(portal + "/dashboard#home");
+  await card.locator('[data-current-state="connected"]').waitFor();
+  console.log("PASS a real WebAuthn passkey sign-in also restores the app candidate without using the credential as physical Wi-Fi identity");
+
+  const installed = await browser.newContext({ viewport: { width: 320, height: 900 } });
+  await installed.route("**/*", (route) => [portal, api].includes(new URL(route.request().url()).origin)
+    ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient"));
+  assert.equal((await installed.request.post(api + "/api/account/login/pin", { headers: { origin: portal, "cf-connecting-ip": "203.0.113.10" },
+    data: { phone: (await f.store.snapshot()).customers[0].phone, pin: String(2468) } })).status(), 200);
+  const installedPage = await installed.newPage();
+  await installedPage.goto(portal + "/dashboard");
+  const installedCard = installedPage.locator("#currentWifi");
+  await installedCard.locator('[data-current-state="unknown"]').waitFor();
+  await installedCard.locator('select[name="device"]').selectOption({ label: "Unnamed device · " + guestMac });
+  await installedCard.locator('input[name="confirmed"]').check();
+  await installedCard.getByRole("button", { name: "Identify this device", exact: true }).click();
+  await installedCard.locator('[data-current-state="connected"]').waitFor();
+  await installedPage.reload(); await installedCard.locator('[data-current-state="connected"]').waitFor();
+  await installed.close();
+  console.log("PASS a separate installed-app context identifies its explicitly selected own MAC once and retains that association");
 
   // Commit the disconnect, lose its HTTP reply, and let the card reconcile the
   // existing operation. It must not claim the slot is free or issue a new login.

@@ -18,14 +18,17 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
     if (value.candidate) { connect.searchParams.set("mac", value.candidate.mac); connect.searchParams.set("address", value.candidate.address); }
     container.innerHTML = `<h2>This device's Wi-Fi</h2><p data-current-state="${h(state)}" role="status" tabindex="-1"><strong>${h(labels[state])}</strong> · ${h(value.message || "")}</p>
       ${value.checkedAt ? `<p>Last checked: <time datetime="${h(value.checkedAt)}">${h(new Date(value.checkedAt).toLocaleTimeString())}</time></p>` : ""}
+      ${!value.checkedAt && value.lastConfirmedAt ? `<p>Last confirmed connected: ${h(new Date(value.lastConfirmedAt).toLocaleTimeString())}</p>` : ""}
       ${canDisconnect ? `<button type="button" data-current-action="disconnect">${device.main ? "Verify to disconnect this device" : state === "failed" ? "Retry disconnect" : "Disconnect this device"}</button>` : ""}
       ${state === "disconnected" ? `<a class="button" href="${h(connect.pathname + connect.search)}">Connect to Wi-Fi</a>` : ""}
       <button type="button" class="secondary-action" data-current-action="refresh" ${busy ? "disabled" : ""}>Refresh connection status</button>
       ${login && ["unknown", "stale", "failed"].includes(state) ? `<p><a href="${h(login.href)}">Open Wi-Fi sign-in to identify this device</a></p>` : ""}
+      ${value.candidate && ["unknown", "stale", "failed", "disconnected"].includes(state) ? `<button type="button" class="secondary-action" data-current-action="reidentify" ${busy ? "disabled" : ""}>Identify this device again</button>` : ""}
+      ${value.identificationOptions?.length ? `<form data-current-identify><p>Identify this installed app once. Match this device's Wi-Fi MAC address in its Wi-Fi settings before choosing it.</p><label>This device <select name="device" required><option value="">Choose the matching device</option>${value.identificationOptions.map((d, i) => `<option value="${i}">${h(d.name || "Unnamed device")} · ${h(d.mac)}</option>`).join("")}</select></label><label><input type="checkbox" name="confirmed" required> I matched the Wi-Fi MAC address on this device.</label><button type="button" data-current-action="identify" ${busy ? "disabled" : ""}>Identify this device</button></form>` : ""}
       <p>Disconnect ends this session and keeps saved approval. Use Forget device below to remove that approval.</p><p data-current-message role="status" aria-live="polite"></p>`;
     if (focused) (container.querySelector(`[data-current-action="${focused}"]`) || container.querySelector("[data-current-state]")).focus();
   }
-  function refresh(identify = false) {
+  function refresh(identify = false, selected) {
     if (inFlight) return inFlight;
     const identifyDevice = (candidate = {}) => {
       lastIdentifyAt = Date.now();
@@ -33,7 +36,7 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
     };
     inFlight = (async () => {
       try {
-        let next = await (identify ? identifyDevice(hint ? { mac: hint.mac, address: hint.address } : {}) : call("/api/account/device-management/current", {}));
+        let next = await (identify ? identifyDevice(selected || (hint ? { mac: hint.mac, address: hint.address } : {})) : call("/api/account/device-management/current", {}));
         // Only the server's own session may supply a saved candidate. Renewal
         // needs a fresh router read; failures retry at most once per 30 seconds.
         if (!identify && next.identificationRequired && Date.now() - lastIdentifyAt >= 30000 && !stopped && container.isConnected) next = await identifyDevice();
@@ -41,7 +44,7 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
         value = next; render();
       } catch (error) {
         if (stopped || !container.isConnected) return;
-        value = { state: "failed", checkedAt: value.checkedAt, message: error.message || "Could not check the current router connection. Refresh to retry." }; render();
+        value = { ...value, device: undefined, state: "failed", checkedAt: value.checkedAt, message: error.message || "Could not check the current router connection. Refresh to retry." }; render();
       }
     })().finally(() => { inFlight = null; });
     return inFlight;
@@ -54,11 +57,15 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
   const tick = () => {
     if (stopped) return;
     if (!container.isConnected) return stop();
-    if (!document.hidden && !busy) void refresh();
+    if (!document.hidden && !busy && !container.querySelector("[data-current-identify]")?.contains(document.activeElement)) void refresh();
   };
   container.onclick = async (event) => {
     const button = event.target.closest("[data-current-action]");
     if (!button || busy) return;
+    const action = button.dataset.currentAction;
+    const form = container.querySelector("[data-current-identify]");
+    if (action === "identify" && !form?.reportValidity()) return;
+    const selected = action === "identify" ? { ...value.identificationOptions[Number(form.elements.device.value)], confirmMac: true } : undefined;
     const target = value.device;
     busy = true;
     render();
@@ -66,7 +73,12 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
       // Let an existing status read finish before starting a user action.
       await inFlight;
       if (stopped || !container.isConnected) return;
-      if (button.dataset.currentAction === "refresh") await refresh(true);
+      if (action === "reidentify") {
+        try { value = await call("/api/account/device-management/current/reset", { method: "POST", body: "{}" }); }
+        catch (error) { value = { ...value, state: "failed", device: undefined, message: error.message }; }
+        render();
+      }
+      else if (action === "refresh" || action === "identify") await refresh(true, selected);
       else if (target) {
         if (target.main) await onMainDisconnect(target.mac);
         else {
@@ -86,6 +98,10 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
       if (!stopped && container.isConnected) {
         const refreshButton = container.querySelector('[data-current-action="refresh"]');
         refreshButton.disabled = false;
+        const identifyButton = container.querySelector('[data-current-action="identify"]');
+        if (identifyButton) identifyButton.disabled = false;
+        const resetButton = container.querySelector('[data-current-action="reidentify"]');
+        if (resetButton) resetButton.disabled = false;
         if (button.dataset.currentAction === "refresh" && document.activeElement === document.body) refreshButton.focus();
       }
     }
