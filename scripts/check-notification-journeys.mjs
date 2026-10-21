@@ -5,6 +5,7 @@ import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.m
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { recordOperationalFailure, updateOperationalIncident } from "../lib/operational-incidents.mjs";
+import { recordUsageAlerts } from "../lib/usage-alerts.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
 
 const listen = (s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve));
@@ -302,6 +303,40 @@ try {
   await administrator.getByRole("region", { name: "Network incident details", exact: true }).getByText("sync voucher · resolved · 2 occurrence(s)", { exact: true }).waitFor();
   assert.equal(await administrator.getByRole("region", { name: "Network incident details", exact: true }).getByRole("button", { name: "Replay", exact: true }).count(), 0);
   console.log("PASS grouped incidents show first/latest/count, scoped command details and confirmed recovery without exposing raw errors at 320px");
+
+  await f.store.transaction((s) => { const v = s.vouchers[0]; v.status = "active"; v.quotaBytes = 1e9; v.usedBytes = 900000000; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
+  await owner.goto(portal + "/dashboard#home");
+  await owner.reload(); // The previous fixture was on a dashboard hash; fetch the newly active bundle.
+  await owner.locator("[data-remaining-data]").filter({ hasText: "100 MB" }).waitFor();
+  await owner.locator("#dataBalanceMessage").filter({ hasText: /over 90%/ }).waitFor();
+  await owner.getByRole("button", { name: "Manage data alerts", exact: true }).click();
+  await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByLabel("Data-usage push alerts", { exact: true }).waitFor();
+  await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByRole("button", { name: "Back to notifications", exact: true }).click();
+  await owner.keyboard.press("Escape");
+  await f.store.transaction((s) => { const v = s.vouchers[0]; v.usedBytes = 998000000; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
+  await owner.getByRole("button", { name: "Refresh balance", exact: true }).click();
+  await owner.locator("[data-remaining-data]").filter({ hasText: "2 MB" }).waitFor();
+  await owner.locator("#dataBalanceMessage").filter({ hasText: "Low data: 2 MB left" }).waitFor();
+  assert.equal((await f.store.snapshot()).vouchers[0].status, "active");
+  await f.store.transaction((s) => { s.vouchers[0].lastUsageSyncAt = new Date(+f.now() - 180000).toISOString(); });
+  await owner.getByRole("button", { name: "Refresh balance", exact: true }).click();
+  await owner.locator("#dataBalanceMessage").filter({ hasText: "Last recorded balance" }).waitFor();
+  await owner.route("**/api/account/dashboard", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Reading unavailable" }) }), { times: 1 });
+  await owner.getByRole("button", { name: "Refresh balance", exact: true }).click();
+  await owner.locator("#dataBalanceMessage").filter({ hasText: "Current balance could not be checked" }).waitFor();
+  await f.store.transaction((s) => { const v = s.vouchers[0]; v.usedBytes = 1e9; v.status = "exhausted"; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
+  await owner.getByRole("button", { name: "Refresh balance", exact: true }).click();
+  await owner.locator("[data-remaining-data]").filter({ hasText: /^0 MB$/ }).waitFor();
+  await owner.locator("#dataBalanceMessage").filter({ hasText: "data is used up" }).waitFor();
+  await owner.getByRole("button", { name: /^Notifications/ }).click();
+  const usagePanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
+  await usagePanel.getByLabel("Notification view", { exact: true }).selectOption("all");
+  await usagePanel.getByLabel("Notification category", { exact: true }).selectOption("usage");
+  await usagePanel.getByRole("heading", { name: "Bundle data used up", exact: true }).waitFor();
+  assert.equal(await usagePanel.getByRole("heading", { name: "Bundle data used up", exact: true }).count(), 1);
+  await usagePanel.getByRole("heading", { name: "Low-data warning", exact: true }).waitFor();
+  assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  console.log("PASS shared balance updates from 90% through positive2MB to actual zero, with stale/error recovery and one exhaustion notice at 320px");
 
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {

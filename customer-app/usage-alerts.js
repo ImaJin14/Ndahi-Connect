@@ -36,6 +36,6 @@ export async function disableUsageAlerts(call) {
 export const usageAlertCopy = {
   unsupported: "This browser can't show notifications. Open NDAHI Connect in Chrome, or on iPhone add it to your Home Screen and open it from there, to turn on alerts.",
   blocked: "Notifications are blocked for this site. Allow them in your browser's site settings to get usage alerts.",
-  off: "Get a notification on this device at 50%, 75% and 100% of your bundle's data.",
-  on: "Alerts are on for this device at 50%, 75% and 100% of your bundle's data.",
+  off: "Get a notification on this device at 90% used, around 2 MB remaining and when data is used up.",
+  on: "Alerts are on for this device at 90% used, around 2 MB remaining and when data is used up.",
 };

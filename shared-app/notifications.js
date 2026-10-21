@@ -155,7 +155,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   window.addEventListener("pageshow", startPolling);
   window.addEventListener("pagehide", () => clearInterval(timer));
   mounted = { refresh, close, open(filters = {}) {
-    category = filters.category || "all"; tab = filters.view || "all"; settings = false; editing = false; dateEditing = false;
+    category = filters.category || "all"; tab = filters.view || "all"; settings = filters.settings === true; editing = false; dateEditing = false;
     from = ""; to = ""; cursor = ""; previous = []; generation++;
     if (panel.hidden) bell.click();
     void refresh(true);
