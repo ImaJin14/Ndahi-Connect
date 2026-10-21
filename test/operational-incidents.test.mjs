@@ -118,3 +118,28 @@ test("incident detail access is owner/operator-only and returns scoped safe comm
     if (r.ok) { assert.equal(body.commands.length, 1); assert.equal(body.commands[0].canReplay, true); }
   }
 });
+
+for (const outcome of ["superseded", "disconnected", "absent"]) test(`retried exact-session disconnect records ${outcome} before resolving its incident`, async () => {
+  const f = await fixture(); let failing = true;
+  const processor = createRouterCommandProcessor({ store: f.store, now: f.now, maxAttempts: 1, router: {
+    async disconnectWifiDevice() { if (failing) throw Error("Router timeout"); return { confirmed: true, outcome }; },
+  } });
+  await f.store.transaction((s) => {
+    s.customers.push({ id: "unrelated" });
+    const command = enqueueRouterCommand(s, { action: "disconnect_wifi_device", targetId: "old-session" }, f.now);
+    command.device = { voucherId: "v", mac: "AA:BB:CC:DD:EE:FF", sessionId: "old-session", startedAt: f.now().toISOString(), retainApproval: true };
+    s.vouchers[0].wifiDevices = [{ ...command.device, sessionId: "replacement-session" }];
+  });
+  await processor.process();
+  let s = await f.store.snapshot(), command = s.routerCommands.find((c) => c.action === "disconnect_wifi_device");
+  assert.equal(s.operationalIncidents[0].status, "open");
+  await f.store.transaction((s) => assert.equal(scheduleRouterCommandReplay(s, command.id, f.now).status, 202));
+  failing = false; await processor.process(command.id);
+  s = await f.store.snapshot(); const incident = s.operationalIncidents[0];
+  assert.equal(incident.status, "resolved");
+  assert.equal(incident.resolution, outcome === "superseded" ? "obsolete" : "confirmed");
+  const customer = notificationItems(s, { type: "customer", id: "c" }, f.now()).find((n) => n.id === "service-incident:" + incident.id);
+  assert.equal(customer.title, outcome === "superseded" ? "Network work closed" : "Network update completed");
+  assert.equal(notificationItems(s, { type: "customer", id: "unrelated" }, f.now()).length, 0);
+  assert.equal(s.vouchers[0].wifiDevices[0].sessionId, "replacement-session", "a replacement session is never disconnected");
+});
