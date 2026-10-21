@@ -27,8 +27,12 @@ export function mountVoucherHistory({ vouchers, activeId }) {
   root.querySelector("[data-voucher-history]").onclick = () => { filter = "all"; page = 1; render(true); select.focus(); };
   previous.onclick = () => { if (!previous.disabled) { page--; render(true); } };
   next.onclick = () => { if (!next.disabled) { page++; render(true); } };
-  const refresh = () => { if (!document.hidden) render(); }, timer = setInterval(refresh, 15000);
-  window.addEventListener("hashchange", refresh); document.addEventListener("visibilitychange", refresh); window.addEventListener("pagehide", () => clearInterval(timer), { once: true });
-  stopPrevious = () => { clearInterval(timer); window.removeEventListener("hashchange", refresh); document.removeEventListener("visibilitychange", refresh); };
+  const refresh = () => { if (!document.hidden) render(); }; let timer;
+  const pause = () => clearInterval(timer);
+  const resume = () => { pause(); refresh(); timer = setInterval(refresh, 15000); };
+  window.addEventListener("hashchange", refresh); document.addEventListener("visibilitychange", refresh);
+  window.addEventListener("pagehide", pause); window.addEventListener("pageshow", resume);
+  stopPrevious = () => { pause(); window.removeEventListener("hashchange", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("pagehide", pause); window.removeEventListener("pageshow", resume); };
+  resume();
   render(true);
 }

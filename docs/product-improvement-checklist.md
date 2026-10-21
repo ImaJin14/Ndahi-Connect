@@ -1012,6 +1012,9 @@ job; production installation, named responders and incident exercises remain pen
   - Verification: six new history/model/API regressions and existing record/voucher tests pass. Real-API 320px journeys cover current/historical Copy/PDF, pagination, no-active/expiry states and admin date/status/search combinations. Deployment and physical-device acceptance remain pending.
   - Prior queue status: PR70 latest correction and PR71 data warnings now have all CI checks passing, including PostgreSQL, full browser/security and provider/load checks. Their production/physical acceptance remains separate.
   - Runbook: [voucher history](operations/voucher-history.md).
+  - Review follow-up: a cached-page restore regression reproduced an expiry timer that stopped after Back/Forward navigation. Page lifecycle now pauses/resumes the timer with an immediate expiry refresh; the 320px journey verifies expiry after restore without extra navigation.
+
+Release acceptance for PORTAL-008–PORTAL-016 is consolidated in [#73](https://github.com/ImaJin14/Ndahi-Connect/issues/73). Implementation and automated evidence are recorded in PRs #64–#72; production rollout and real phone/router/authenticator/provider checks remain open in #73 when the implementation issues close.
 
 These are seventeen additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md), [customer authenticator](operations/customer-authenticator.md), and [notifications](operations/notifications.md). The broader tracker still distinguishes shipped implementation from verified production operation.
 

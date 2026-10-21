@@ -143,6 +143,7 @@ try {
       s.vouchers[0].expiresAt = new Date(+now + 30000).toISOString();
       for (let n = 0; n < 14; n++) s.vouchers.push({ ...structuredClone(s.vouchers[0]), id: 'history-page-' + n, code: 'NC-PAGE-' + String(n).padStart(4, '0'), status: n % 2 ? 'expired' : 'exhausted', activatedAt: '2026-09-01T12:00:00Z', expiresAt: '2026-09-02T12:00:00Z' });
     });
+    await page.clock.install({ time: now });
     await page.goto(`${portal}/dashboard#vouchers`);
     assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 1);
     await page.getByRole('button', { name: 'View voucher history', exact: true }).click();
@@ -154,10 +155,14 @@ try {
     await page.getByRole('button', { name: 'Next vouchers', exact: true }).click();
     assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 1);
     await page.getByLabel('Voucher status', { exact: true }).selectOption('active');
+    // Exercise the page lifecycle used by a browser-history cache restore.
+    // Expiry must keep updating afterwards without another navigation.
+    await page.evaluate(() => {
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    });
     now = new Date(+now + 31000);
-    await page.evaluate((at) => { Date.now = () => at; }, +now);
-    await page.getByRole('link', { name: 'Home', exact: true }).click();
-    await page.getByRole('link', { name: 'Vouchers', exact: true }).click();
+    await page.clock.fastForward(31000);
     await page.getByText('No current active voucher. View your voucher history or choose a package.', { exact: true }).waitFor();
     assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 0);
     await page.getByLabel('Voucher status', { exact: true }).selectOption('expired');
