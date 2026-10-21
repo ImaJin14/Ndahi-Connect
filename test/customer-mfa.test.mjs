@@ -49,7 +49,7 @@ test("signed-in customers create a scannable, session-bound setup without enabli
   const challenge = await f.call("/api/account/login/request-authenticator", { phone: "670050001" });
   assert.equal(challenge.status, 200);
   assert.equal((await f.call("/api/account/login/verify-authenticator", { challengeId: challenge.body.challengeId, otp: totpCode(enrollment.body.secret, +f.now()) })).status, 200);
-  assert.equal((await f.confirm(enrollment)).status, 409);
+  assert.equal((await f.confirm(enrollment)).status, 200, "a lost confirmed response is idempotently recoverable in its original session");
   assert.equal((await f.start()).status, 409);
   assert.ok(s.securityAlerts.some((a) => a.kind === "authenticator_enrolled"));
   assert.equal(JSON.stringify(s.securityEvents).includes(enrollment.body.secret), false);
@@ -73,7 +73,7 @@ test("new setup invalidates old keys, expires in ten minutes and cannot overwrit
   const f = await fixture(t), old = await f.start(), current = await f.start();
   assert.equal((await f.confirm(old)).status, 400);
   assert.equal((await f.confirm(current)).status, 200);
-  assert.equal((await f.confirm(old)).status, 409);
+  assert.equal((await f.confirm(old)).body.code, "MFA_SETUP_EXPIRED");
   assert.equal((await f.store.snapshot()).customers[0].totpSecret, current.body.secret);
   const g = await fixture(t), expired = await g.start(); g.advance(600);
   assert.equal((await g.confirm(expired)).body.code, "MFA_SETUP_EXPIRED");

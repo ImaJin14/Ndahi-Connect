@@ -25,6 +25,11 @@ These routes require the customer cookie, an allowed customer origin, and the ma
 - `/api/account/logout`
 - `/api/account/security/mfa/enroll`
 - `/api/account/security/mfa/confirm`
+- `/api/account/security/mfa/cancel`
+- `/api/account/security/mfa/check`
+- `/api/account/security/mfa/options`
+- `/api/account/security/mfa/replace`
+- `/api/account/security/mfa/resume`
 - `/api/account/passkeys/options`
 - `/api/account/passkeys/verify`
 - `/api/account/passkeys/rename`
@@ -38,6 +43,13 @@ These routes require the customer cookie, an allowed customer origin, and the ma
 - `/api/account/payments/receipt-email`
 
 Customer cookies are `HttpOnly`, `Secure` in production, and `SameSite=Lax`. The CSRF token is returned only by the authenticated dashboard response.
+
+Authenticator replacement also requires fresh PIN/passkey proof plus the current
+factor, an unused recovery code or a verified support permit. Resuming an exact,
+session-bound pending setup requires fresh PIN/passkey proof. Recovery-code
+regeneration requires an existing factor except for the first batch within five
+minutes of confirmation in that same session. Responses are buffered until the
+storage transaction commits. Status reads return no setup or enrolled keys.
 
 ## Administrator session mutations
 

@@ -7,6 +7,7 @@ import { createPaymentRoutes } from "./lib/api/payments.mjs";
 import { createVoucherRoutes } from "./lib/api/vouchers.mjs";
 import { createCustomerAuthRoutes } from "./lib/api/customer-auth.mjs";
 import { createAccountRoutes } from "./lib/api/account.mjs";
+import { createAuthenticatorManagementRoutes } from "./lib/api/authenticator-management.mjs";
 import { createDeviceManagementRoutes } from "./lib/api/device-management.mjs";
 import { createWifiPairingRoutes } from "./lib/api/wifi-pairing.mjs";
 import { createAccountNotificationRoutes } from "./lib/api/notifications.mjs";
@@ -65,6 +66,7 @@ export function createHandler(opts = {}) {
     createPaymentRoutes(context),
     createVoucherRoutes(context),
     createCustomerAuthRoutes(context),
+    createAuthenticatorManagementRoutes(context),
     createAccountRoutes(context),
     createDeviceManagementRoutes(context),
     createWifiPairingRoutes(context),
