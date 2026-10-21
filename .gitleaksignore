@@ -1,0 +1,3 @@
+# Public RFC 6238 SHA-1 test vector (ASCII 12345678901234567890),
+# used by the historical deterministic TOTP regression in this exact commit.
+777fddea37204c0ef8a0354f7b39bf6b959aba0c:test/server.test.mjs:generic-api-key:32
