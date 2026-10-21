@@ -283,6 +283,10 @@ test("edge authentication limits survive an application restart", async (t) => {
       ADMIN_APP_URL: "http://admin.test",
       ALLOWED_ADMIN_ORIGINS: "http://admin.test",
       AUTH_EDGE_ADMIN_MAX: "1",
+      // Closing HTTP does not stop an already-running worker transaction. This
+      // restart fixture must not leave two stores writing the same JSON file.
+      NETWORK_QUEUE_ENABLED: "false",
+      PAYMENT_WEBHOOK_REPLAY_ENABLED: "false",
     },
     request = (base) => fetch(base + "/api/admin/passkey/options", {
       method: "POST",
