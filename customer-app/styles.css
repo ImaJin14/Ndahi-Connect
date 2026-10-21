@@ -33,3 +33,5 @@
 .pairing-code{display:block;font-family:monospace;font-size:clamp(2rem,10vw,3.5rem);font-weight:700;letter-spacing:.08em;margin:1rem 0;color:var(--green,#003b2b)}
 .authenticator-qr{display:block;max-width:100%;height:auto;margin:16px 0;background:#fff}.authenticator-setup code{display:block;overflow-wrap:anywhere;word-break:break-all;margin:12px 0;user-select:all}.authenticator-setup form{max-width:420px}.authenticator-setup #cancelMfaSetup{margin-top:16px}
 [data-pairing-requests] article{overflow-wrap:anywhere;margin-top:1rem}
+
+.voucher-history-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:18px 0}.voucher-history-tools label{display:flex;gap:10px;align-items:center}.voucher-history-tools select{max-width:100%;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}.voucher-history-tools button{min-height:44px}.voucher-history-tools button:disabled{opacity:.45;cursor:default}.voucher-history-tools span{font-size:13px}

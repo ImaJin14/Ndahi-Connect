@@ -17,6 +17,7 @@ import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { formatDataBalance } from "/shared/data-usage.js";
 import { mountDataBalance } from "./data-balance.js";
+import { mountVoucherHistory } from "./voucher-history.js";
 import { mountCurrentWifi } from "./current-wifi.js";
 import { renderAuthenticatorSetup, mountAuthenticatorManagement } from "./authenticator-management.js";
 
@@ -242,6 +243,7 @@ async function load() {
   $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
   if (active) mountInstallCard($("#installApp"));
   mountDataBalance({ call, voucher: active });
+  mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   if ($("#manageUsageAlerts")) $("#manageUsageAlerts").onclick = () => notifications.open({ category: "usage", settings: true });
   if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
