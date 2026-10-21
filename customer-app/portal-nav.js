@@ -5,7 +5,7 @@ const tabs = [
   ["payments", "Payments", "M4 3h16v19l-4-2-4 2-4-2-4 2Zm4 5h8M8 12h8M8 16h5"],
   ["account", "Account", "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 6 0 0 1 16 0v2"],
 ];
-const aliases = { managePlan: "bundles", billing: "payments", accountSecurity: "account", sessionActivity: "account" };
+const aliases = { managePlan: "bundles", billing: "payments", accountSecurity: "account", sessionActivity: "account", sessions: "account" };
 let mounted = false;
 export function activePortalView() {
   const hash = location.hash.slice(1), view = aliases[hash] || hash;
@@ -20,6 +20,11 @@ function applyView(scroll = false) {
   });
   const title = document.getElementById("portalTitle");
   if (title) title.textContent = { home: title.dataset.welcome || "Welcome back", bundles: "Your bundles.", vouchers: "Your voucher codes.", payments: "Your payments.", account: "Your account." }[view];
+  if (["sessions", "sessionActivity"].includes(location.hash.slice(1))) {
+    const sessions = document.getElementById("sessionActivity");
+    if (sessions) { sessions.open = true; sessions.querySelector("summary")?.focus(); sessions.scrollIntoView({ block: "start" }); }
+    return;
+  }
   if (scroll) {
     window.scrollTo(0, 0);
     if (title) title.focus({ preventScroll: true });

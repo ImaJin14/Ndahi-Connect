@@ -220,6 +220,26 @@ try {
   assert.deepEqual(errors, []);
   console.log("PASS admin network setup distinguishes mandatory approval never enabled, active, and temporarily unavailable");
 
+  await owner.goto(portal + "/dashboard#account");
+  await f.store.transaction((s) => s.securityAlerts.push({ id: "notice-59", customerId: "c1", subject: "Account security changed", lines: ["Review account settings"], at: f.now().toISOString() }));
+  const loginStatus = await owner.evaluate(async (api) => (await fetch(api + "/api/account/login/pin", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone: "670050001", pin: "2468" }) })).status, f.api);
+  assert.equal(loginStatus, 200);
+  await owner.reload();
+  assert.equal(await owner.getByRole("heading", { name: "Recent security notices", exact: true }).count(), 0);
+  assert.equal(await owner.getByRole("heading", { name: "Recent sign-ins", exact: true }).count(), 0);
+  await owner.locator("#sessionActivity summary").click();
+  await owner.getByRole("button", { name: "View security history", exact: true }).click();
+  const securityPanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
+  await securityPanel.getByRole("heading", { name: "Account security changed", exact: true }).waitFor();
+  await securityPanel.getByRole("heading", { name: /PIN sign-in/ }).waitFor();
+  await securityPanel.getByRole("link", { name: "Review sessions", exact: true }).first().click();
+  await owner.waitForURL(/#sessions$/);
+  await owner.locator("#sessionActivity [data-revoke-session]").first().waitFor();
+  assert.equal(await owner.locator("#sessionActivity").evaluate((el) => el.open), true);
+  assert.equal(await owner.getByRole("dialog", { name: "Notifications", exact: true }).isHidden(), true);
+  assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  console.log("PASS security/sign-in history lives in the centre and Review sessions opens active session controls without duplicate Account history at 320px");
+
   await f.store.transaction((s) => {
     for (let n = 0; n < 35; n++) {
       s.securityAlerts.push({ id: "history-" + n, customerId: "c1", subject: "History security " + n, lines: ["Review account"], at: "2026-09-01T12:00:00Z" });

@@ -135,3 +135,37 @@ combinations, invalid cursors, cross-customer/staff access and cross-browser
 state. Real-API browser journeys exercise both apps at 320px through multiple
 pages, date filtering, temporary outage/retry and focus restoration. Deployment
 and physical-device accessibility acceptance remain pending.
+
+## Security and sign-in history (#59)
+
+Account keeps authenticator/passkey/PIN configuration and **Active sessions** with
+sign-out controls. Historical security cards and recent sign-ins now appear only
+in Notifications → Security / sign-ins. **View security history** opens that
+filter; **Review sessions** opens and focuses the authenticated session controls.
+Legacy dashboard/security API fields remain for older clients.
+
+Each completed account session records one PIN, passkey, authenticator, recovery
+code, voucher-account or initial-setup event in the same transaction as session
+issuance. Page loads, heartbeat refresh and guest Wi-Fi approval do not record
+account sign-ins. New sign-in response cookies wait for storage commit. Existing
+security notices remain visible even when email/push delivery is disabled.
+
+A random HttpOnly/SameSite browser cookie provides a recognition hint. Only its
+customer-specific peppered hash enters retained audit metadata; raw tokens never
+appear in inboxes, logs or URLs. An absent/unrecognized cookie causes an
+unrecognized-browser notice. Matching retained history makes routine sign-ins
+quiet in-app entries; recovery-code sign-ins always qualify for optional security
+delivery. This hint never authorizes anything, attests hardware or proves
+location. Clearing cookies or history can cause another unrecognized notice.
+
+Sign-in history reports available user-agent and IP data with that limitation.
+Generic push omits those details and all credentials. Security email uses the
+existing confirmed-address/preferences worker. A sign-in's delivery notice and
+audit event share one inbox identity, including when older audit rows are trimmed;
+reading/archiving cannot revoke a session or change authentication factors.
+
+Nine API regressions cover actual sign-ins, replay, browser recognition,
+unauthorized reads, rollback, quiet/muted delivery and retained identity. Browser
+journeys cover the centre/session link at 320px and a real WebAuthn credential
+registration followed by passkey account sign-in. Deployment, real email/push
+providers and physical phone acceptance remain pending.

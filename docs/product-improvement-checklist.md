@@ -989,7 +989,12 @@ job; production installation, named responders and incident exercises remain pen
   - Verification: seven API regressions cover page/date/timestamp boundaries, inserts, malformed/cross-recipient cursors and cross-browser/staff scoping. Both apps pass 320px real-API history, error/retry and keyboard journeys. Existing notification/security/delivery regressions pass.
   - Deployment and physical-device accessibility acceptance remain pending. Details: [notifications](operations/notifications.md).
 
-These are thirteen additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md), [customer authenticator](operations/customer-authenticator.md), and [notifications](operations/notifications.md). The broader tracker still distinguishes shipped implementation from verified production operation.
+- [-] **PORTAL-013 — Central security notices and sign-in history ([#59](https://github.com/ImaJin14/Ndahi-Connect/issues/59))**
+  - Implemented: historical security notices/sign-ins move from duplicate Account cards to the Security / sign-ins centre filter. Active-session configuration/sign-out stays in Account; Review sessions opens it. Session issuance records one actual method event transactionally. Routine recognized browser sign-ins stay quiet; unrecognized/recovery sign-ins qualify for configured delivery without leaking credentials or treating IP/browser hints as device/location proof.
+  - Verification: nine sign-in/history API regressions plus existing authentication/email tests cover isolation, rollback, replay, muted channels, browser hints and retention identity. Real-API 320px history/session navigation and a real virtual-WebAuthn passkey sign-in browser journey pass.
+  - Deployment and physical/provider acceptance remain pending. Details: [notifications](operations/notifications.md).
+
+These are fourteen additional P1 tasks in progress beyond the legacy totals above. Details and rollout: [portal help and payment deadlines](operations/portal-help-payments.md), [account recovery and payment support](operations/account-recovery-payment-support.md), [assisted Wi-Fi pairing](operations/assisted-wifi-pairing.md), [customer authenticator](operations/customer-authenticator.md), and [notifications](operations/notifications.md). The broader tracker still distinguishes shipped implementation from verified production operation.
 
 ## Dependency maintenance (2026-10-21)
 
