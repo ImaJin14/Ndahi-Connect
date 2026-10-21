@@ -17,6 +17,7 @@ import { disableUsageAlerts, enableUsageAlerts, usageAlertCopy, usageAlertStatus
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { mountCurrentWifi } from "./current-wifi.js";
+import { renderAuthenticatorSetup, mountAuthenticatorManagement } from "./authenticator-management.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -29,7 +30,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   fmt = (value) => value === null ? "Unlimited" : `${(value / 1e9).toFixed(2)} GB`,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
 let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
-let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
+let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null, authenticatorControls = {};
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
 async function call(path, options = {}) {
@@ -250,7 +251,7 @@ async function load() {
     ${profileCard(result.customer)}
     ${emailCard(result.customer)}
     ${recoveryCard(result.customer, result.securityNotices)}
-    <section class="surface full${securitySetup ? " security-setup" : ""}" data-portal-view="account" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator sign-in is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>. Your PIN and passkeys remain available. Linking another Wi-Fi device does not require an authenticator code.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button><div id="mfaSetup"></div>'}<p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Sessions &amp; activity</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "Unknown location")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><h3>Recent sign-ins</h3>${security.recentLogins.length ? `<ul>${security.recentLogins.map((entry) => `<li>${h(loginLabels[entry.type] || entry.type)} · ${h(new Date(entry.at).toLocaleString())} · ${h(entry.ip || "Unknown location")}</li>`).join("")}</ul>` : "<p>No recent sign-in activity recorded.</p>"}</details></section>
+    <section class="surface full${securitySetup ? " security-setup" : ""}" data-portal-view="account" id="accountSecurity">${securitySetup ? '<div class="success"><strong>Security setup complete.</strong></div>' : ""}<p class="eyebrow">Account security</p><h2>PIN, authenticator & passkeys</h2><p>Your 4-digit PIN is configured. Authenticator sign-in is optional and currently <strong>${result.customer.authenticatorEnrolled ? "enabled" : "disabled"}</strong>. Your PIN and passkeys remain available. Linking another Wi-Fi device does not require an authenticator code.</p>${result.customer.authenticatorEnrolled ? "" : '<button type="button" id="enableCustomerMfa">Enable authenticator 2FA</button>'}<div id="mfaSetup"></div><div id="authenticatorManagement"></div><p>Use your device lock, fingerprint, or security key for faster sign-in.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>${security.passkeys.length ? security.passkeys.map((key) => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : "<p>No passkeys enrolled yet.</p>"}${security.authenticatorEnrolled ? `<p>${security.recoveryCodesRemaining ? `${h(security.recoveryCodesRemaining)} unused recovery code${security.recoveryCodesRemaining === 1 ? "" : "s"}.` : "No recovery codes generated yet."} Recovery codes let you sign in if you lose your authenticator app.</p><button type="button" id="generateRecoveryCodes">${security.recoveryCodesRemaining ? "Regenerate recovery codes" : "Generate recovery codes"}</button><div id="recoveryCodesOutput"></div>` : ""}<details id="sessionActivity"><summary>Sessions &amp; activity</summary><h3>Active sessions</h3>${security.sessions.map((session) => `<div class="device"><div><b>${session.current ? "This device" : h(session.userAgent ? session.userAgent.slice(0, 40) : "Unknown device")}</b><br><small>${h(session.ip || "Unknown location")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div><button type="button" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" id="logoutEverywhere">Log out everywhere</button><h3>Recent sign-ins</h3>${security.recentLogins.length ? `<ul>${security.recentLogins.map((entry) => `<li>${h(loginLabels[entry.type] || entry.type)} · ${h(new Date(entry.at).toLocaleString())} · ${h(entry.ip || "Unknown location")}</li>`).join("")}</ul>` : "<p>No recent sign-in activity recorded.</p>"}</details></section>
     ${vouchersCard(result.vouchers)}
     <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
@@ -272,6 +273,7 @@ async function load() {
   if (active && active.quotaBytes !== null) void setupUsageAlerts();
   if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
+  authenticatorControls = mountAuthenticatorManagement({ container: $("#authenticatorManagement"), enabled: security.authenticatorEnrolled, hasPasskeys: Boolean(security.passkeys.length), call, showSetup: (enrollment) => renderAuthenticatorSetup($("#mfaSetup"), enrollment, result.customer.phone) });
   stopCurrentWifi();
   if (hotspot) {
     const controls = mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
@@ -342,13 +344,7 @@ $("#dashboard").onclick = async (event) => {
     try {
       await runButton(mfaButton, "Preparing…", async () => {
         const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: "{}" });
-        $("#mfaSetup").innerHTML = `<div class="success authenticator-setup" data-sensitive-output><h3>Link your authenticator app</h3><p>Use Google Authenticator, Microsoft Authenticator or another app that creates time-based codes.</p>
-          ${typeof enrollment.qrCode === "string" && enrollment.qrCode.startsWith("data:image/png;base64,") ? `<img class="authenticator-qr" src="${h(enrollment.qrCode)}" width="240" height="240" alt="Scan this QR code with your authenticator app">` : ""}
-          <p>On another device, scan the QR code. On this device, copy the setup key, open your authenticator app, choose Add account → Enter setup key, and select <strong>Time based</strong>.</p>
-          <p>Account: <strong>NDAHI Connect · ${h(latestDashboard.customer.phone)}</strong></p><code id="mfaSetupKey">${h(enrollment.secret)}</code><button type="button" id="copyMfaKey" class="secondary-action">Copy setup key</button>
-          <p>Return here and enter the current six-digit code from the app. Setup is only enabled after confirmation.${enrollment.expiresAt ? ` Finish before ${h(new Date(enrollment.expiresAt).toLocaleTimeString())}.` : ""}</p>
-          <form id="confirmMfa"><input type="hidden" name="challengeId" value="${h(enrollment.challengeId)}"><label>Six-digit code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><button>Confirm 2FA</button></form>
-          <button type="button" id="cancelMfaSetup" class="secondary-action">Cancel setup</button><p id="mfaSetupMessage" role="status" aria-live="polite"></p></div>`;
+        renderAuthenticatorSetup($("#mfaSetup"), enrollment, latestDashboard.customer.phone);
       });
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;
@@ -376,6 +372,7 @@ $("#dashboard").onclick = async (event) => {
       await runButton(cancelMfa, "Cancelling…", async () => {
         await call("/api/account/security/mfa/cancel", { method: "POST", body: JSON.stringify({ challengeId }) });
         form.reset(); $("#mfaSetup").textContent = "";
+        await authenticatorControls.refresh?.();
         $("#dashboardMessage").textContent = "Authenticator setup cancelled. You can start again whenever you choose.";
       }, { controls: [...form.elements, $("#enableCustomerMfa"), $("#copyMfaKey")] });
     } catch (error) { showError($("#dashboardMessage"), error); }
@@ -429,7 +426,7 @@ $("#dashboard").onclick = async (event) => {
         const result = await call("/api/account/security/recovery-codes/generate", { method: "POST", body: "{}" });
         $("#recoveryCodesOutput").innerHTML = `<div class="success"><p>Save these codes now — each works once, and they won't be shown again.</p><ul>${result.codes.map((code) => `<li><code>${h(code)}</code></li>`).join("")}</ul></div>`;
       });
-    } catch (error) { showError($("#dashboardMessage"), error); }
+    } catch (error) { if (error.code === "VERIFICATION_FAILED") authenticatorControls.recovery?.(); else showError($("#dashboardMessage"), error); }
     return;
   }
   const revokeSessionButton = event.target.closest("[data-revoke-session]");
@@ -484,12 +481,14 @@ $("#dashboard").onsubmit = async (event) => {
     const input = Object.fromEntries(new FormData(mfaForm));
     try {
       await runButton(mfaForm.querySelector("button"), "Verifying…", async () => {
-        await call("/api/account/security/mfa/confirm", { method: "POST", body: JSON.stringify(input) });
+        const confirmed = await call("/api/account/security/mfa/confirm", { method: "POST", body: JSON.stringify(input) });
         mfaForm.reset();
-        $("#dashboardMessage").textContent = "Authenticator sign-in enabled. Your PIN and passkeys still work.";
+        $("#dashboardMessage").textContent = confirmed.replaced ? "Authenticator replaced. The previous app and recovery codes no longer work. Your PIN and passkeys remain available." : "Authenticator sign-in enabled. Your PIN and passkeys still work.";
         await load();
       }, { controls: [...mfaForm.elements, $("#enableCustomerMfa"), $("#cancelMfaSetup"), $("#copyMfaKey")] });
     } catch (error) {
+      const status = await call("/api/account/security/mfa/status").catch(() => null);
+      if (status?.completedChallengeId === input.challengeId) { mfaForm.reset(); await load(); $("#dashboardMessage").textContent = "Authenticator setup was confirmed. Your PIN and passkeys remain available."; return; }
       if (error.code === "MFA_SETUP_EXPIRED") { mfaForm.reset(); $("#mfaSetup").textContent = ""; }
       showError($("#dashboardMessage"), error);
     }

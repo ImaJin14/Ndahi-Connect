@@ -35,7 +35,12 @@ async function fixture(t, options = {}) {
     const json = await response.json();
     return { response, json, setCookie: set };
   };
-  return { store, call, jar, base };
+  return { store, call, jar, base, now: options.now || (() => new Date()) };
+}
+
+async function recoveryProof(f) {
+  const customer = (await f.store.snapshot()).customers.find((c) => c.totpSecret);
+  return customer ? { otp: totpCode(customer.totpSecret, +f.now()) } : {};
 }
 
 async function account(f, phone = "670010001") {
@@ -160,11 +165,11 @@ test("AUTH-003 passkeys can be renamed and removed by their owner only", async (
 test("AUTH-004 recovery codes require authenticator 2FA, are hashed at rest, and let a customer sign in once each", async (t) => {
   const f = await fixture(t);
   const { customerId } = await account(f);
-  const blocked = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
+  const blocked = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
   assert.equal(blocked.response.status, 409);
   const secret = totpSecret();
   await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
-  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
+  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
   assert.equal(generated.response.status, 200);
   assert.equal(generated.json.codes.length, 10);
   const stored = await f.store.snapshot();
@@ -197,8 +202,8 @@ test("AUTH-004 regenerating recovery codes invalidates every previously issued c
   const { customerId } = await account(f);
   const secret = totpSecret();
   await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
-  const first = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
-  const second = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
+  const first = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
+  const second = await f.call("/api/account/security/recovery-codes/generate", "POST", { recoveryCode: first.json.codes[0] });
   assert.notDeepEqual(first.json.codes, second.json.codes);
   delete f.jar.customer_session;
   const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone: "670010001" });
@@ -236,7 +241,7 @@ test("AUTH-005 admin authenticator reset also clears recovery codes so an old co
   const { customerId, phone } = await account(f);
   const secret = totpSecret();
   await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
-  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
+  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
   const oldCode = generated.json.codes[0];
   const adminJar = {};
   const adminLogin = await f.call("/api/admin/login", "POST", { pin: "9999" }, { headers: { origin: "http://admin.test" } });
@@ -264,7 +269,7 @@ test("AUTH-004 recovery codes keep working after SECRET_PEPPER is rotated", asyn
   const store = createStore({ persistent: false });
   const before = await fixture(t, { store, env: { SECRET_PEPPER: "pepper-before-rotation" } });
   await authenticatorCustomer(before, "670010011");
-  const { codes } = (await before.call("/api/account/security/recovery-codes/generate", "POST", {})).json;
+  const { codes } = (await before.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(before))).json;
   // A completed rotation: new pepper, overlap removed.
   const after = await fixture(t, { store, env: { SECRET_PEPPER: "pepper-after-rotation" } });
   assert.equal((await recover(after, "670010011", codes[3].toLowerCase().replace("-", " "))).response.status, 200);
@@ -291,7 +296,7 @@ test("AUTH-004 codes issued before Argon2id hashing still work during a pepper o
 test("AUTH-004 the same recovery code cannot sign in twice concurrently", async (t) => {
   const f = await fixture(t);
   await authenticatorCustomer(f, "670010013");
-  const { codes } = (await f.call("/api/account/security/recovery-codes/generate", "POST", {})).json;
+  const { codes } = (await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f))).json;
   const challenges = await Promise.all([1, 2].map(() => f.call("/api/account/login/request-authenticator", "POST", { phone: "670010013" })));
   const results = await Promise.all(challenges.map((otp) => f.call("/api/account/login/verify-authenticator", "POST",
     { challengeId: otp.json.challengeId, recoveryCode: codes[0] }, { cookie: "" })));

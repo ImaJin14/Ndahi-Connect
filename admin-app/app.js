@@ -6,6 +6,7 @@ import { startUpdates } from "/shared/updates.js";
 import { activeAdminView, mountAdminNavigation } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
+import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -297,7 +298,7 @@ function mountRecordViews(canManagePayments) {
     collection: "customers",
     title: "Customers",
     headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Reset authenticator</button>` : ""}</td></tr>`,
+    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled && adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover authenticator</button>` : ""}</td></tr>`,
   });
   wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
@@ -413,11 +414,7 @@ $("#app").onclick = async (e) => {
         body: JSON.stringify({ voucherId: button.dataset.voucher }),
       });
     } else if (button.dataset.resetAuthenticator) {
-      if (!confirm("Reset this customer's authenticator? Their active portal sessions will be signed out.")) return;
-      await call("/api/admin/customers/reset-authenticator", {
-        method: "POST",
-        body: JSON.stringify({ customerId: button.dataset.resetAuthenticator }),
-      });
+      openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button }); return;
     } else if (button.dataset.customer) {
       const restoring = button.dataset.suspended === "true";
       if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;

@@ -27,7 +27,8 @@ in browser storage or a URL. Automatic application updates wait during setup.
 
 Setup lasts ten minutes and must be confirmed in the same signed-in browser
 session that started it. Starting again invalidates earlier pending keys for that
-account. A setup cannot overwrite an already-enabled authenticator.
+account. Initial setup cannot overwrite an enabled authenticator; use the
+protected replacement flow below.
 
 **Cancel setup** removes that browser's pending setup without enabling anything.
 Five incorrect confirmation codes invalidate a setup; restart with the new QR/key.
@@ -36,6 +37,52 @@ to the existing authentication traffic limit. If codes fail, enable automatic
 date/time on the phone and use the current code. Expired or replaced setups clear
 their displayed key and prompt the customer to start again. Existing enabled
 authenticators do not need to be enrolled again after deployment.
+
+## Manage an existing authenticator
+
+An enabled account always shows **Manage authenticator**, including accounts
+linked in earlier releases. **Verify a code** checks whether the current app
+works. The enrolled key is never displayed again.
+
+**Replace authenticator** requires fresh PIN or passkey verification plus a
+current authenticator code, an unused authenticator recovery code, or a verified
+support code. It creates a new QR/manual key while the old app stays active.
+Confirmation of a valid new code atomically replaces the old key and invalidates
+old authenticator recovery codes and pending login challenges. PIN, passkeys and
+Wi-Fi approvals remain available.
+
+Cancellation, expiry, incorrect codes and failed storage commits keep the old
+app active. Recovery/support codes are consumed when replacement starts, even
+if cancelled later. **Resume pending setup** requires fresh PIN/passkey proof in
+the original session and retains the original ten-minute deadline. Reload and
+lost-response recovery do not create another key or consume another code. Setup
+material stays out of URLs and browser storage and is cleared on page departure.
+
+That browser can generate its first recovery-code batch once within five minutes
+of confirmation. Later regeneration requires the current authenticator or an
+unused recovery code. A session alone cannot mint a replacement factor. New
+batches invalidate previous codes and are displayed once.
+
+## Lost authenticator access
+
+Choose **Manage authenticator → I have lost access**. An unused authenticator
+recovery code plus fresh PIN/passkey proof can start replacement. Account backup
+codes for PIN recovery are a separate credential.
+
+Without a working app or authenticator recovery code, an administrator with the
+owner role can choose **Recover authenticator** on the customer record. The
+owner records a support case, reason and in-person/existing-channel identity
+check, then verifies their administrator password and configured authenticator.
+A voucher screenshot or payer number alone is not an identity check.
+
+The owner receives one single-use, fifteen-minute support code for manual
+delivery through that verified channel. Issuance revokes portal sessions and
+account backup credentials; Wi-Fi and the old authenticator remain active. The
+customer signs in with their PIN, opens the lost-access flow, selects **Verified
+support code**, and supplies fresh PIN/passkey proof. Five incorrect support-code
+attempts invalidate the permit. Only new-code confirmation removes the old app.
+Issuance and replacement create audit/security events. Codes and private
+management fields are excluded from customer/admin record projections.
 
 ## Device linking and sensitive actions
 
@@ -52,7 +99,7 @@ controller. See [device management](device-management.md) and
 
 ## Validation and rollout
 
-Deploy the API and customer portal together; no database schema change or router
+Deploy the API, customer portal and admin app together; no database schema change or router
 configuration change is needed. Pending setups created before this version must
 be restarted because they lack a browser-session binding.
 
@@ -65,3 +112,10 @@ a 320px screen. These use synthetic accounts and do not establish a production
 rollout or a physical phone scan. After deployment, check setup with a test account
 and a real authenticator app, then verify PIN sign-in and Wi-Fi linking without
 an authenticator code.
+
+Issue #60 adds 11 API regressions and a real-API 320px browser journey with blocked
+storage. The complete local suite passes 614 tests, with 12 PostgreSQL cases
+reserved for CI; the full customer/admin browser suite passes. Deployment and
+physical Google Authenticator initial setup, replacement and recovery remain
+pending. Verify those journeys and optional PIN sign-in on real phones after
+rollout.
