@@ -45,7 +45,7 @@ try {
   const page = await context.newPage(), errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.setDefaultTimeout(15000);
-  await page.goto(portal + "/dashboard");
+  await page.goto(portal + "/dashboard#devices");
   await page.locator("#wifiDeviceList").getByText("imajin", { exact: true }).waitFor();
   assert.equal(await page.locator("#wifiDeviceList img").count(), 0);
   console.log("PASS router-announced names render safely at 320px");

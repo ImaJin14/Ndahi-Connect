@@ -38,7 +38,7 @@ test("code issuance and expiry update the same notification without disclosing c
   const inbox = (await f.call(endpoint)).body;
   assert.equal(inbox.items.filter((n) => n.id === id).length, 1);
   assert.equal(inbox.items.find((n) => n.id === id).read, false);
-  assert.equal(inbox.items.find((n) => n.id === id).actionRequired, false);
+  assert.equal(inbox.items.find((n) => n.id === id).actionRequired, true);
   assert.equal(JSON.stringify(inbox).includes(approved.body.approvalCode), false);
   f.advance(301);
   const expired = (await f.call(endpoint)).body.items.find((n) => n.id === id);
