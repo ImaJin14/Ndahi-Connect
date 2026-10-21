@@ -11,7 +11,8 @@ const close = (s) => new Promise((resolve) => { s.close(resolve); s.closeAllConn
 const customer = http.createServer(), admin = http.createServer();
 await listen(customer); await listen(admin);
 const portal = "http://127.0.0.1:" + customer.address().port, administration = "http://127.0.0.1:" + admin.address().port;
-const removals = [], f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { ADMIN_APP_URL: administration },
+const removals = [], f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { ADMIN_APP_URL: administration,
+  WEB_PUSH_PUBLIC_KEY: "B".repeat(87), WEB_PUSH_PRIVATE_KEY: "fixture", WEB_PUSH_SUBJECT: "mailto:synthetic@example.test" },
   router: { async revokeWifiDevice(device) { removals.push(device); return { confirmed: true, outcome: "revoked" }; } } });
 const customerAssets = createStaticServer("customer", { apiUrl: f.api, hotspotLoginUrl: "https://connect.hotspot.test/login" });
 const adminAssets = createStaticServer("admin", { apiUrl: f.api });
@@ -113,6 +114,42 @@ try {
   assert.equal(await panel.getByLabel("Email security notices", { exact: true }).isChecked(), false);
   await owner.keyboard.press("Escape");
   console.log("PASS notification filters, durable read/preferences, pending actions, focus restoration and 320px layouts");
+
+  await owner.getByRole("button", { name: /^Notifications/ }).click();
+  await owner.evaluate(async () => {
+    await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
+    window.syntheticPush = { permissionCalls: 0, active: false, allowed: false, subscribed: false };
+    Notification.requestPermission = async () => {
+      syntheticPush.permissionCalls++; syntheticPush.active = navigator.userActivation.isActive;
+      return syntheticPush.allowed ? "granted" : "denied";
+    };
+    const subscription = { endpoint: "https://fcm.googleapis.com/fcm/send/synthetic", keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) } };
+    const target = { toJSON: () => subscription, endpoint: subscription.endpoint, unsubscribe: async () => { syntheticPush.subscribed = false; return true; } };
+    navigator.serviceWorker.register = async () => ({ pushManager: {
+      getSubscription: async () => syntheticPush.subscribed ? target : null,
+      subscribe: async () => { syntheticPush.subscribed = true; return target; },
+    } });
+  });
+  assert.equal(await owner.evaluate(() => syntheticPush.permissionCalls), 0);
+  await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
+  await panel.getByText("Allow notifications in your browser settings, or keep using the in-app inbox.", { exact: true }).waitFor();
+  assert.equal(await owner.evaluate(() => syntheticPush.active), true);
+  assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions?.length || 0, 0);
+  await owner.evaluate(() => { syntheticPush.allowed = true; });
+  await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
+  await panel.getByText("Browser notifications enabled on this device.", { exact: true }).waitFor();
+  assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions.length, 1);
+  await panel.getByRole("button", { name: "Disable on this device", exact: true }).click();
+  await panel.getByText("Browser notifications disabled on this device.", { exact: true }).waitFor();
+  assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions.length, 0);
+  await owner.evaluate(() => { window.PushManager = undefined; });
+  await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
+  await panel.getByText("Browser notifications are not supported here. Use the in-app inbox.", { exact: true }).waitFor();
+  await panel.getByRole("button", { name: "Back to notifications", exact: true }).click();
+  await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
+  assert.ok(await panel.locator("[data-notification-id]").count() > 0);
+  await owner.keyboard.press("Escape");
+  console.log("PASS permission is requested only by a user gesture; denied/unsupported push preserves the inbox; synthetic subscribe/unsubscribe persists on the real API");
 
   // Re-enter the guided choice to exercise Yes and fresh owner verification too.
   await owner.goto(portal + "/dashboard?main-device=" + encodeURIComponent(guestMac) + "#home");

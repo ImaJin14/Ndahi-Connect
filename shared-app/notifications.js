@@ -114,7 +114,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
     try {
       if (action) await runButton(button, "Saving…", async () => { inbox = await post({ action, id: row?.dataset.notificationId }); badge(); render(); });
       if (button.matches("[data-enable-browser],[data-disable-browser]")) {
-        if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) throw Error("Browser notifications are not supported here. Use the in-app inbox.");
+        if (!navigator.serviceWorker || typeof PushManager === "undefined" || typeof Notification === "undefined") throw Error("Browser notifications are not supported here. Use the in-app inbox.");
         const enable = button.matches("[data-enable-browser]");
         if (enable && await Notification.requestPermission() !== "granted") throw Error("Allow notifications in your browser settings, or keep using the in-app inbox.");
         await runButton(button, enable ? "Enabling…" : "Disabling…", async () => {

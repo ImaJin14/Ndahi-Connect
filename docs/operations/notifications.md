@@ -64,3 +64,42 @@ leases/deduplication. Browser journeys exercise both bells at 320px, settings
 persistence and focus restoration alongside the first-device and access flows.
 Real browser push delivery, email-provider delivery and physical-device behavior
 remain deployment checks; local tests use synthetic accounts and fake providers.
+
+## Shared delivery lifecycle (#62)
+
+Activity and data-usage push now share `lib/notification-delivery.mjs`. Each
+recipient/source/version/subscription-key combination owns a durable attempt
+record in `notificationStates`. A thirty-second lease fences concurrent workers;
+provider I/O runs outside the transaction with a ten-second socket timeout.
+Expired leases recover after restart. Attempts use exponential backoff from one
+minute, stopping after five activity attempts or three usage attempts. One
+successful subscription no longer hides a different device's failed delivery.
+
+Claim and pre-send checks reread the source version, current customer/staff
+status/role, categories, delivery consent and exact subscription keys. Expired,
+replaced or superseded usage warnings are cancelled. A provider's 404/410 removes
+only the exact expired subscription, preserving a replacement at the same
+endpoint. Legacy sent activity records retain deduplication after upgrade. In-app
+read/archive state still changes no business action; category muting can hide
+routine history while action/security items remain visible, and suppresses push.
+
+A send accepted before its response is lost may be retried. Stable provider
+`topic` and browser notification `tag` coalesce repeat delivery where supported;
+this is bounded at-least-once delivery, not an exactly-once guarantee. Consent can
+change after the final check while a request is already in flight; that accepted
+push cannot be recalled. Short TTLs limit delayed messages. Pushes contain generic
+activity text or quota summaries, no account credentials; their same-origin links
+only navigate to authenticated app pages. Tapping an existing portal window now
+navigates to the requested section before focusing it.
+
+Permission is requested only from **Enable on this device**. Denial, unsupported
+push, unavailable provider configuration and offline errors leave the inbox
+usable. Synthetic browser checks cover permission gestures, denied/unsupported
+states and subscription removal; they do not prove real provider delivery. The
+service-worker handlers are also exercised independently for display, same-origin
+navigation and deep links. Real browser/phone push acceptance remains pending.
+
+Deploy all API workers together or drain the older usage worker first: an older
+release does not understand per-subscription leases. No SQL schema change is
+required. Rollback to an old worker can lose partial-delivery deduplication; do
+not treat aggregate alert status as proof that every device received it.
