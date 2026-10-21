@@ -169,3 +169,53 @@ unauthorized reads, rollback, quiet/muted delivery and retained identity. Browse
 journeys cover the centre/session link at 320px and a real WebAuthn credential
 registration followed by passkey account sign-in. Deployment, real email/push
 providers and physical phone acceptance remain pending.
+
+## Operational incidents (#56)
+
+Router command failures for the same saved router revision, operation and coarse
+problem class update one durable incident. First/latest failure times and an
+occurrence count reflect actual attempts; polling and duplicate completion
+records add nothing. Retry counts do not reset read status or repeat push.
+Dead-letter escalation and meaningful open/recovering/resolved transitions update
+the notification version. A later failure after confirmed closure gets a new ID.
+
+Sources include bundle synchronization/removal, usage readings and scoped device
+removal. Ordinary guest access-request outcomes remain device notifications;
+a denied/expired request alone is not evidence of a router outage. Successful
+routine polls, heartbeats and page loads create no operational incident.
+
+| Outcome | Notification | Operator action |
+| --- | --- | --- |
+| Failed attempt with automatic retry | Warning, one grouped item | Observe retry; inspect if needed |
+| Dead-lettered work | Action required, stays visible when read | Review scoped commands and existing authorized recovery controls |
+| Manual replay queued | Recovering; success remains unconfirmed | Await actual router result |
+| All related work confirmed | Resolved/recovered | Retain history |
+| An obsolete/superseded operation closed | Work closed | Check current state; this does not prove router recovery |
+
+One successful command cannot hide another unresolved group member. Commands
+whose failure class changes remain associated with both unresolved problems until
+actual completion. Closed summaries retain their completion snapshot when a queue
+ID is reused. All unresolved incidents and the most recent 200 resolved summaries
+are retained; full queue/audit records keep their existing lifecycle.
+
+Owner/operator entries link to an authenticated incident detail view with up to
+100 related command records, including completed history. Existing replay and
+obsolete-resolution endpoints retain their role, CSRF and scope checks. Merely
+opening, reading or archiving an incident performs no command. Other staff roles
+cannot access private incident details. Affected customers see account-scoped
+service impact and a connection-status link, without another customer's details.
+Stale usage readings are not presented as confirmed internet failure.
+
+Summaries use fixed problem classes and exclude raw error messages/credentials.
+Phase transitions create audit entries in the same queue transaction. The new
+`operationalIncidents` collection uses the existing normalized `events` table
+with its own kind; no SQL migration is required. Deploy compatible API/network
+workers together so every queue completion updates incident state. Older workers
+can finish a command without updating its incident, leaving stale summaries until
+compatible processing resumes; do not infer recovery from missing queue work.
+
+Nine incident regressions cover grouping/counts, concurrent attempts, lifecycle,
+new episodes, partial recovery, privacy/scope, rollback and push suppression.
+Normalized PostgreSQL restart/rollback coverage runs in CI. Real-API 320px checks
+exercise incident review, command history and confirmed recovery. Deployment and
+physical-router/provider acceptance remain pending.

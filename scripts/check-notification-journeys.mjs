@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { recordOperationalFailure, updateOperationalIncident } from "../lib/operational-incidents.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
 
 const listen = (s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve));
@@ -277,6 +278,31 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log("PASS both centres filter dates/categories before pagination, reach older records, preserve filters after errors, recover and close accessibly at 320px");
+  await f.store.transaction((s) => {
+    for (let n = 0; n < 2; n++) {
+      const c = { id: "incident-browser-" + n, kind: "router_command", action: "sync_voucher", targetId: "v1", status: "dead_letter", totalAttempts: 2, lastAttemptAt: f.now().toISOString(), lastError: "timeout private voucher-secret" };
+      s.routerCommands.push(c); recordOperationalFailure(s, c, f.now);
+    }
+  });
+  const incidentId = (await f.store.snapshot()).operationalIncidents[0].id;
+  await administrator.goto(administration + "/dashboard");
+  await administrator.getByRole("button", { name: /^Notifications/ }).click();
+  const incidentRow = administrator.locator('[data-notification-id="incident:' + incidentId + '"]');
+  await incidentRow.getByRole("link", { name: "Review incident", exact: true }).click();
+  await administrator.waitForURL(/incident=.*#connections$/);
+  const details = administrator.getByRole("region", { name: "Network incident details", exact: true });
+  await details.getByText("sync voucher · open · 2 occurrence(s)", { exact: true }).waitFor();
+  assert.equal(await details.getByRole("button", { name: "Replay", exact: true }).count(), 2);
+  assert.equal((await details.textContent()).includes("voucher-secret"), false);
+  assert.equal(await administrator.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await f.store.transaction((s) => {
+    for (const c of s.routerCommands.filter((c) => c.id.startsWith("incident-browser-"))) { c.status = "processed"; updateOperationalIncident(s, c, f.now); }
+  });
+  await administrator.reload();
+  await administrator.getByRole("region", { name: "Network incident details", exact: true }).getByText("sync voucher · resolved · 2 occurrence(s)", { exact: true }).waitFor();
+  assert.equal(await administrator.getByRole("region", { name: "Network incident details", exact: true }).getByRole("button", { name: "Replay", exact: true }).count(), 0);
+  console.log("PASS grouped incidents show first/latest/count, scoped command details and confirmed recovery without exposing raw errors at 320px");
+
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {
   await browser?.close(); await f.close(); await close(customer); await close(admin);

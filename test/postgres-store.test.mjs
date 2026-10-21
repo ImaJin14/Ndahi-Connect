@@ -211,3 +211,14 @@ test("partial snapshots read only the requested collections", { skip }, async ()
   assert.notEqual(partial.zone?.status, "maintenance", "settings are not read");
   assert.equal((await store.snapshot()).customers.length, 1);
 });
+
+test("operational incident state commits atomically and survives normalized-store restart", { skip }, async () => {
+  await store.transaction((s) => {
+    s.operationalIncidents.push({ id: "incident-pg", status: "open", count: 1, firstAt: "2030-01-01T00:00:00Z", lastAt: "2030-01-01T00:00:00Z" });
+    s.routerCommands.push({ id: "command-pg", action: "sync_usage", operationalIncidentId: "incident-pg", status: "retry" });
+  });
+  const restarted = createPostgresStore({ pool, initialState: blank });
+  assert.equal((await restarted.snapshot()).operationalIncidents[0].count, 1);
+  await assert.rejects(store.transaction((s) => { s.operationalIncidents[0].count++; s.routerCommands[0].status = "processed"; throw Error("incident rollback"); }));
+  const s = await restarted.snapshot(); assert.equal(s.operationalIncidents[0].count, 1); assert.equal(s.routerCommands[0].status, "retry");
+});
