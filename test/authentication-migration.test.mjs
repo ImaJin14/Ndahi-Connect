@@ -39,3 +39,8 @@ test('staff record and dashboard projections never expose private credential mar
  const f=await fixture(t);await f.store.transaction(s=>{recordVerifiedMethod(s.customers[0],'pin',null,secret,f.now());s.zone.authenticationMigrationReview={version:1,evidenceReference:'PRIVATE-REVIEW',digest:'PRIVATE-DIGEST'};});
  for(const path of ['/api/admin/dashboard','/api/admin/records?collection=customers']){const r=await fetch(f.api+path,{headers:{origin:'http://customer.test',cookie:'admin_session=owner'}});assert.equal(r.status,200);assert.doesNotMatch(await r.text(),/authMigration|PRIVATE-REVIEW|PRIVATE-DIGEST/);}
 });
+
+test('preparation cannot remove the sole usable sign-in credential',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>{delete s.customers[0].pinHash;s.customers[0].passkeys=[{id:'only-key',publicKey:'protected'}];});
+ const r=await f.call('/api/account/passkeys/remove',{passkeyId:'only-key'});assert.equal(r.status,409);assert.equal(r.body.code,'LAST_CREDENTIAL');assert.equal((await f.store.snapshot()).customers[0].passkeys.length,1);
+});
