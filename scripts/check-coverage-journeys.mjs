@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -6,21 +7,23 @@ import { createStaticServer } from "../static-server.mjs";
 // Local mock services only. The synthetic edge header is injected by the test
 // harness to exercise both coverage states without a live router or payment.
 const inside = "203.0.113.10", outside = "198.51.100.7";
-const store = createStore({ persistent: false });
-const server = createServer({ store, env: {
-  NODE_ENV: "test", PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock",
-  TRUST_PROXY: "render", COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: inside,
-  BILLING_WORKER_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", SESSION_COOKIE_SECURE: "false",
-} });
 const listen = async (app) => {
   await new Promise((resolve, reject) => { app.once("error", reject); app.listen(0, "127.0.0.1", resolve); });
   return `http://127.0.0.1:${app.address().port}`;
 };
 const close = (app) => new Promise((resolve) => { app.close(resolve); app.closeAllConnections(); });
-const api = await listen(server), website = createStaticServer("customer", { apiUrl: api, hotspotLoginUrl: "https://connect.coverage.test/login" });
-const portal = await listen(website);
-// Trusted origins are fixed when services are constructed. Let browser requests
-// use the fixture's configured origin; respond with the actual local origin.
+// Reserve the portal origin before creating services so the API uses its real
+// CORS checks. Requests need only the synthetic edge header, not response rewrites.
+const website = http.createServer(), portal = await listen(website);
+const store = createStore({ persistent: false });
+const server = createServer({ store, env: {
+  NODE_ENV: "test", PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock",
+  TRUST_PROXY: "render", COVERAGE_ACCESS_ENABLED: "true", COVERAGE_ALLOWED_IPS: inside,
+  BILLING_WORKER_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", SESSION_COOKIE_SECURE: "false",
+  CUSTOMER_APP_URL: portal,
+} });
+const api = await listen(server), assets = createStaticServer("customer", { apiUrl: api, hotspotLoginUrl: "https://connect.coverage.test/login" });
+website.on("request", (req, res) => assets.emit("request", req, res));
 const post = async (path, input, headers = {}) => {
   const response = await fetch(api + path, { method: "POST", headers: {
     "content-type": "application/json", "cf-connecting-ip": inside, ...headers,
@@ -44,16 +47,12 @@ try {
     await store.transaction((s) => Object.assign(s, structuredClone(baseline)));
     const context = await browser.newContext({ viewport: { width, height: 900 } });
     let currentAddress = address;
-    await context.route("**/*", async (route) => {
+    await context.route("**/*", (route) => {
       const request = route.request(), url = new URL(request.url());
       if (url.origin === portal) return route.continue();
       if (url.origin !== api) return route.abort("blockedbyclient");
-      const response = await route.fetch({ headers: {
-        ...request.headers(), origin: "http://localhost:8080", "cf-connecting-ip": currentAddress,
-      } });
-      await route.fulfill({ response, headers: {
-        ...response.headers(), "access-control-allow-origin": portal,
-        "access-control-allow-credentials": "true",
+      return route.continue({ headers: {
+        ...request.headers(), "cf-connecting-ip": currentAddress,
       } });
     });
     if (signedIn) await context.addCookies([{ name: "customer_session", value: cookie.split("=")[1], domain: "127.0.0.1", path: "/api/account", httpOnly: true, sameSite: "Lax" }]);
