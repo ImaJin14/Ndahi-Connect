@@ -2,11 +2,13 @@ import { formValues, markReady, randomId, requestJson, sessionStore } from "./co
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
+import { wifiCompletionUrl } from "./wifi-completion.js";
 
 const config = window.NDAHI_CONFIG, form = document.getElementById("pairingRequest"), message = document.getElementById("pairingMessage"),
   progress = document.getElementById("pairingProgress"), status = document.getElementById("pairingStatus"), redeem = document.getElementById("pairingRedeem"),
-  cancel = document.getElementById("pairingCancel"), retry = document.getElementById("pairingRetry"), hint = wifiHint();
-let request = null, key, timer, polling = false;
+  cancel = document.getElementById("pairingCancel"), retry = document.getElementById("pairingRetry"), done = document.getElementById("pairingDone"),
+  completion = document.getElementById("pairingCompletion"), hint = wifiHint();
+let request = null, key, timer, polling = false, finishing = false;
 const signIn = document.getElementById("wifiSignIn");
 if (config.hotspotLoginUrl) { signIn.href = config.hotspotLoginUrl; signIn.hidden = false; }
 const pending = (value) => value && ["pending", "awaiting_code", "connecting"].includes(value.status);
@@ -27,16 +29,27 @@ function forget() {
   const candidate = hint ? "?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) : "";
   try { history.replaceState(null, "", location.pathname + candidate); } catch (_) { /* Optional. */ }
 }
+function finish() {
+  if (!request || request.status !== "connected" || request.completionReady !== true) return;
+  const target = wifiCompletionUrl(config.hotspotLoginUrl, location.origin) || new URL("/wifi-connected.html", location.origin).href;
+  // RouterOS serves alogin.html for an already-authorized client. This visits
+  // the native success path without starting another login or sharing secrets.
+  try { location.replace(target); } catch (_) { /* Keep the visible Done fallback. */ }
+}
+done.onclick = finish;
 function render(value) {
   request = value;
   progress.hidden = false; form.hidden = true;
   cancel.hidden = !["pending", "awaiting_code"].includes(value.status);
-  retry.hidden = pending(value) || value.status === "connected";
+  const ready = value.status === "connected" && value.completionReady === true;
+  retry.hidden = pending(value) || ready;
+  completion.hidden = !ready;
   redeem.hidden = value.status !== "awaiting_code";
-  status.textContent = value.status === "pending" ? value.mainRequired ? "The account owner must set a main device before approving access. This device is waiting." : (value.name || "Unnamed device") + " is waiting for the main device to approve access." : value.status === "awaiting_code" ? "Approved by your main device. Ask its owner for the six-digit code and enter it below." : value.status === "connecting" ? "Connecting… Wait for the router to confirm internet access." : value.status === "connected" ? "Connected — internet access was confirmed by the router. You can now browse." : value.message || "Request " + value.status + ". Request access again.";
+  status.textContent = value.status === "pending" ? value.mainRequired ? "The account owner must set a main device before approving access. This device is waiting." : (value.name || "Unnamed device") + " is waiting for the main device to approve access." : value.status === "awaiting_code" ? "Approved by your main device. Ask its owner for the six-digit code and enter it below." : value.status === "connecting" ? "Connecting… Wait for the router to confirm this device." : ready ? "Connected — this device's Wi-Fi access was confirmed by the router." : value.status === "connected" ? "This earlier connection is no longer confirmed. Request access again to check this device's current connection." : value.message || "Request " + value.status + ". Request access again.";
   document.getElementById("pairingExpiry").textContent = pending(value) ? "Expires at " + new Date(value.expiresAt).toLocaleTimeString() + "." : "";
   if (!pending(value)) { redeem.reset(); forget(); clearTimeout(timer); }
   else remember();
+  if (ready && !finishing) { finishing = true; finish(); }
 }
 async function poll() {
   if (polling || !pending(request)) return;
@@ -55,7 +68,7 @@ async function poll() {
   }
 }
 retry.onclick = () => {
-  clearTimeout(timer); forget(); request = null; key = null; redeem.reset(); progress.hidden = true;
+  clearTimeout(timer); forget(); request = null; key = null; finishing = false; redeem.reset(); progress.hidden = true; completion.hidden = true;
   form.hidden = !hint; message.textContent = hint ? "Request access again, then enter the code supplied by your main device." : "Open Wi-Fi sign-in on this device before requesting access.";
 };
 form.onsubmit = (event) => {

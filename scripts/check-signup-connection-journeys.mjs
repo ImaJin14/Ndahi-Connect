@@ -39,8 +39,17 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   async function newPage() {
     const context = await browser.newContext({ viewport: { width: 320, height: 900 } }); contexts.push(context);
-    await context.route("**/*", (route) => [portal, f.api].includes(new URL(route.request().url()).origin)
-      ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient"));
+    await context.route("**/*", (route) => {
+      const url = new URL(route.request().url());
+      if (url.origin === "https://connect.hotspot.test") {
+        assert.equal(url.pathname, "/login"); assert.equal(route.request().method(), "GET");
+        assert.deepEqual([...url.searchParams], [["dst", portal + "/wifi-connected.html"], ["popup", "false"]]);
+        assert.equal(route.request().headers().referer, undefined);
+        return route.fulfill({ status: 302, headers: { location: url.searchParams.get("dst") } });
+      }
+      return [portal, f.api].includes(url.origin)
+        ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient");
+    });
     await context.addInitScript(() => {
       for (const name of ["localStorage", "sessionStorage"]) Object.defineProperty(window, name, {
         get() { throw new DOMException("Storage denied", "SecurityError"); },
@@ -119,7 +128,7 @@ try {
   const guestConnection = (await (await redeem).json()).request;
   assert.equal(f.calls.length, 1, "guest stays offline until the router confirms");
   await confirmConnection(guestConnection);
-  await guest.locator("#pairingStatus").filter({ hasText: "Connected — internet access was confirmed" }).waitFor();
+  await guest.waitForURL(portal + "/wifi-connected.html");
   assert.equal((await guest.context().cookies()).some((c) => c.name === "customer_session"), false);
   assert.equal((await guest.request.get(f.api + "/api/account/dashboard")).status(), 401);
   console.log("PASS a second browser requests and redeems main-device approval after the real signup without receiving an account session");
@@ -147,7 +156,7 @@ try {
   assert.notEqual(guestRejoin.request().postDataJSON().key, firstGuestKey);
   assert.equal(f.calls.length, 3);
   await confirmConnection((await guestRejoin.json()).request);
-  await guest.locator("#pairingStatus").filter({ hasText: "Connected — internet access was confirmed" }).waitFor();
+  await guest.waitForURL(portal + "/wifi-connected.html");
   assert.equal(f.calls.length, 4);
   await refreshDevices();
   const restored = (await f.store.snapshot()).vouchers.find((v) => v.id === voucher.id);

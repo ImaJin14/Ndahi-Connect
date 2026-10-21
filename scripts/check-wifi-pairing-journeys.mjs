@@ -13,7 +13,7 @@ const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: tru
 } });
 const staticServer = createStaticServer("customer", { apiUrl: f.api, hotspotLoginUrl: "https://connect.hotspot.test/login" });
 website.on("request", (req, res) => staticServer.emit("request", req, res));
-const screenshots = "/tmp/ndahi-pairing-checks", errors = [];
+const screenshots = "/tmp/ndahi-pairing-checks", errors = [], handoffs = [];
 let browser;
 try {
   await mkdir(screenshots, { recursive: true });
@@ -23,6 +23,14 @@ try {
   async function context({ owner = false, blockedStorage = false } = {}) {
     const c = await browser.newContext({ viewport: { width: 320, height: 900 } }); contexts.push(c);
     await c.route("**/*", (route) => {
+      const url = new URL(route.request().url());
+      if (url.origin === "https://connect.hotspot.test") {
+        assert.equal(route.request().method(), "GET"); assert.equal(url.pathname, "/login");
+        assert.deepEqual([...url.searchParams], [["dst", portal + "/wifi-connected.html"], ["popup", "false"]]);
+        assert.equal(route.request().headers().referer, undefined);
+        handoffs.push(url.href);
+        return route.fulfill({ status: 302, headers: { location: url.searchParams.get("dst") } });
+      }
       if (![f.api, portal].includes(new URL(route.request().url()).origin)) return route.abort("blockedbyclient");
       return route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } });
     });
@@ -73,21 +81,42 @@ try {
   const displayed = await row.getByLabel("Approval code", { exact: true }).textContent();
   assert.match(displayed, /^\d{6}$/);
   assert.equal(f.calls.length, 0, "main approval alone must not connect the guest");
+  assert.equal(handoffs.length, 0, "owner approval must not complete captive sign-in");
   await guest.getByLabel("Approval code from your main device").fill(displayed);
   await guest.getByRole("button", { name: "Enter code and connect", exact: true }).click();
   await row.getByText("Connecting — waiting for the router", { exact: true }).waitFor();
   assert.equal(f.calls.length, 0);
+  assert.equal(handoffs.length, 0, "queued connection is not confirmation");
   await f.process();
-  await guest.locator("#pairingStatus").filter({ hasText: "Connected — internet access was confirmed" }).waitFor();
+  await guest.waitForURL(portal + "/wifi-connected.html");
+  await guest.getByRole("heading", { name: "Finish Wi-Fi sign-in." }).waitFor();
   await row.getByText("Connected — confirmed by the router", { exact: true }).waitFor();
-  assert.equal(f.calls.length, 1); assert.equal(new URL(guest.url()).hash, "");
+  assert.equal(f.calls.length, 1); assert.equal(handoffs.length, 1); assert.equal(new URL(guest.url()).hash, "");
+  await guest.reload(); assert.equal(handoffs.length, 1, "public completion reload must not repeat router handoff");
   const denied = await guest.request.get(f.api + "/api/account/dashboard", { headers: { origin: portal } }); assert.equal(denied.status(), 401);
   for (const page of [owner, guest]) assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await guest.screenshot({ path: screenshots + "/guest-connected-320.png", fullPage: true });
   await owner.screenshot({ path: screenshots + "/main-approval-320.png", fullPage: true });
-  console.log("PASS two independent browsers approve Wi-Fi access without granting the guest an account session");
+  console.log("PASS two independent browsers approve and finish native captive sign-in once without granting the guest an account session");
 
   const previousMain = (await f.store.snapshot()).customers[0].wifiMainDevice;
+  await f.store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
+  await guest.goto(pairUrl);
+  await guest.getByLabel("Account phone number", { exact: true }).fill("670050001");
+  await guest.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
+  const guestReconnecting = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 202);
+  await guest.getByRole("button", { name: "Request access", exact: true }).click();
+  const guestReconnect = await guestReconnecting, guestReconnectBody = await guestReconnect.json();
+  assert.notEqual(guestReconnect.request().postDataJSON().key, originalKey);
+  const guestOperation = (await f.store.snapshot()).wifiPairingRequests.find((p) => p.id === guestReconnectBody.request.id);
+  assert.equal(guestOperation.kind, "reconnect");
+  assert.equal(handoffs.length, 1, "saved approval does not replace fresh router confirmation");
+  await f.process(guestOperation.commandId);
+  await guest.waitForURL(portal + "/wifi-connected.html");
+  assert.equal(handoffs.length, 2); assert.equal(f.calls.length, 2);
+  assert.equal((await guestContext.cookies()).some((c) => c.name === "customer_session"), false);
+  assert.deepEqual((await f.store.snapshot()).customers[0].wifiMainDevice, previousMain);
+  console.log("PASS approved guest reconnect after router-session loss finishes captive sign-in without another code or an account session");
   await f.store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
   const reconnecting = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/connect") && r.status() === 202);
   await owner.goto(portal + "/hotspot?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.95#wifi_key=" + originalKey);
@@ -95,9 +124,9 @@ try {
   assert.notEqual(reconnectReply.request().postDataJSON().key, originalKey);
   const reconnectRequest = (await f.store.snapshot()).wifiPairingRequests.find((p) => p.id === reconnectBody.request.id);
   assert.equal(reconnectRequest.target.address, "10.20.0.95"); assert.equal(reconnectRequest.kind, "reconnect");
-  assert.equal(f.calls.length, 1, "old completion must not count as fresh router confirmation");
+  assert.equal(f.calls.length, 2, "old completion must not count as fresh router confirmation");
   await f.process(reconnectRequest.commandId); await owner.waitForURL(/\/dashboard/);
-  assert.equal(f.calls.length, 2); assert.deepEqual((await f.store.snapshot()).customers[0].wifiMainDevice, previousMain);
+  assert.equal(f.calls.length, 3); assert.deepEqual((await f.store.snapshot()).customers[0].wifiMainDevice, previousMain);
   console.log("PASS a restored connection URL starts a fresh grant-authorized reconnect after router session/IP changes, preserving main identity");
 
   await f.store.transaction((s) => { s.vouchers[0].deviceLimit = 5; });
@@ -125,7 +154,7 @@ try {
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   await owner.locator("[data-request]").filter({ has: owner.locator("[data-pairing-approval]") }).getByRole("button", { name: "Decline", exact: true }).click();
   await expired.locator("#pairingStatus").filter({ hasText: "declined" }).waitFor();
-  assert.equal(f.calls.length, 2); assert.deepEqual(errors, []);
+  assert.equal(f.calls.length, 3); assert.deepEqual(errors, []);
   console.log("PASS storage-blocked reload/expiry/retry/decline preserve target details, keep unknown devices offline and escape names at 320px");
 
   await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
