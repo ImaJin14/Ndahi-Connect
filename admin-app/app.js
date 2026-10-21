@@ -1,3 +1,4 @@
+import { mountAdminAuthenticationMigration } from "/authentication-migration.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
@@ -45,7 +46,7 @@ async function call(path, options = {}) {
       },
     }),
     j = await r.json();
-  if (r.status === 401) {
+  if (r.status === 401 && j.code !== "VERIFICATION_FAILED") {
     location.href = "/login";
     throw Error("Login required");
   }
@@ -318,6 +319,10 @@ function mountRecordViews(canManagePayments) {
     headers: ["Device", "Device ID", "Status", "Last seen", "Actions"],
     row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
+  const migrationPanel = document.createElement("div");
+  migrationPanel.id = "adminAuthenticationMigration";
+  $("#panel-connections").append(migrationPanel);
+  mountAdminAuthenticationMigration({ container: migrationPanel, call });
   void mountRecords($("#voucherRecords"), {
     call,
     collection: "vouchers",

@@ -236,23 +236,23 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   assert.doesNotMatch(serialized, /1357|0000/, "alert content must never include PIN values");
 });
 
-test("AUTH-005 admin authenticator reset also clears recovery codes so an old code can't resurface after re-enrollment", async (t) => {
+test("AUTH-005 legacy reset cannot destroy existing factors; verified recovery remains available during preparation", async (t) => {
   const f = await fixture(t);
   const { customerId, phone } = await account(f);
   const secret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
+  await f.store.transaction(s => { s.customers.find(c => c.id === customerId).totpSecret = secret; });
   const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
-  const oldCode = generated.json.codes[0];
-  const adminJar = {};
+  const before = (await f.store.snapshot()).customers.find(c => c.id === customerId);
   const adminLogin = await f.call("/api/admin/login", "POST", { pin: "9999" }, { headers: { origin: "http://admin.test" } });
-  adminJar.admin_session = adminLogin.setCookie.split(";")[0];
-  await f.call("/api/admin/customers/reset-authenticator", "POST", { customerId }, { cookie: adminJar.admin_session, headers: { origin: "http://admin.test" } });
-  const newSecret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = newSecret; });
+  const reset = await f.call("/api/admin/customers/reset-authenticator", "POST", { customerId }, { cookie: adminLogin.setCookie.split(";")[0], headers: { origin: "http://admin.test" } });
+  assert.equal(reset.response.status, 410);
+  assert.equal(reset.json.code, "AUDITED_RECOVERY_REQUIRED");
+  const after = (await f.store.snapshot()).customers.find(c => c.id === customerId);
+  for (const key of ["pinHash", "totpSecret", "passkeys", "recoveryCodes"]) assert.deepEqual(after[key], before[key]);
   delete f.jar.customer_session;
   const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone });
-  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: oldCode });
-  assert.equal(attempt.response.status, 401);
+  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: generated.json.codes[0] });
+  assert.equal(attempt.response.status, 200);
 });
 
 async function authenticatorCustomer(f, phone) {

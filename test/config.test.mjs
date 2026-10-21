@@ -101,3 +101,8 @@ test("saved production network connections require encryption and explicit HTTPS
   assert.ok(productionConfigErrors({ ...saved, NETWORK_CONFIG_KEY: "" }).some((v) => v.includes("NETWORK_CONFIG_KEY")));
   assert.ok(productionConfigErrors({ ...saved, NETWORK_ALLOWED_ORIGINS: "https://router.test/path" }).some((v) => v.includes("NETWORK_ALLOWED_ORIGINS")));
 });
+
+ test("compatible preparation startup does not require obsolete MFA environment values", () => {
+  const env = { ...production }; delete env.ADMIN_MFA_ENABLED; delete env.ADMIN_MFA_CODE;
+  assert.doesNotThrow(() => assertProductionConfig(env));
+ });

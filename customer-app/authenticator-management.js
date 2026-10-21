@@ -2,6 +2,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { formValues, randomId, loadPasskeys } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { showError } from "./errors.js";
+import { mountAuthenticationMigration } from "./authentication-migration.js";
 
 export function renderAuthenticatorSetup(host, enrollment, phone) {
   host.innerHTML = `<div class="success authenticator-setup" data-sensitive-output><h3>${enrollment.replacement ? "Confirm your replacement authenticator" : "Link your authenticator app"}</h3><p>Use Google Authenticator, Microsoft Authenticator or another app that creates time-based codes.</p>
@@ -88,6 +89,9 @@ export function mountAuthenticatorManagement({ container, enabled, hasPasskeys, 
       catch (error) { showError(message, error); }
     }
   };
+  const preparation = document.createElement("section");
+  container.appendChild(preparation);
+  mountAuthenticationMigration({ container: preparation, call });
   void refreshPending();
   return { recovery: () => openForm("recovery"), refresh: refreshPending };
 }
