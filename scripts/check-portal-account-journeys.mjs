@@ -225,6 +225,9 @@ try {
     await page.goto(`${portal}/dashboard#account`);
     await page.locator('#addCustomerPasskey').click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    // Stop authenticated polling before clearing cookies; its 401 redirect can
+    // otherwise race the explicit login navigation on slower CI runners.
+    await page.goto('about:blank');
     await context.clearCookies();
     await page.goto(`${portal}/login?account=1`);
     await page.locator('#login [name="phone"]').fill('670050101');
