@@ -671,8 +671,12 @@ $("#purchase").onsubmit = async (event) => {
     if (!accountAction && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
     coverageError = error.code === "OUTSIDE_COVERAGE";
     if (coverageError) setPurchaseAccess({ allowed: false, message: error.message });
+    const activeBundleActions = error.code === "ACTIVE_BUNDLE_EXISTS" ? [
+      { label: "Sign in to Dashboard", run: () => { location.assign("/dashboard#managePlan"); } },
+      { label: "Back to packages", run: () => { location.reload(); } },
+    ] : null;
     showError($("#message"), error, {
-      actions: [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
+      actions: activeBundleActions || [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
         run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : purchaseAccess.allowed ? event.target.requestSubmit() : recheckPurchaseAccess() }],
     });
   } finally {
