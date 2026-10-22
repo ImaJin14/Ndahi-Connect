@@ -1,7 +1,7 @@
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { durationLabel, dataLabel, classifyPlanChange, comparePlans, renewalEligibility } from "./plan-presentation.js";
+import { durationLabel, dataLabel, classifyPlanChange, comparePlans, planValue, planHighlightBadge, renewalEligibility } from "./plan-presentation.js";
 import { runButton } from "/shared/pending.js";
 import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
 import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
@@ -100,15 +100,22 @@ function notice(message, links = true) {
 }
 function renderPlans() {
   $("#plans").innerHTML = plans.map((plan) => {
-    const blocked = dailyBlocked(plan) || (accountAction === "renew" && !renewal?.eligible);
+    const blocked = dailyBlocked(plan) || (accountAction === "renew" && (!renewal || !renewal.eligible));
     const eligibility = blocked
-      ? `Daily is available again ${date(account?.dailyAvailability?.nextEligibleAt)}.`
+      ? `Daily is available again ${date(account && account.dailyAvailability ? account.dailyAvailability.nextEligibleAt : null)}.`
       : accountAction === "renew" ? "Eligible to renew now." : "";
-    const badge = accountAction === "switch" ? changeLabel(plan) : accountAction === "renew" ? "Your renewal" : "";
-    return `<article class="plan" data-card="${h(plan.id)}" aria-labelledby="plan-title-${h(plan.id)}">${badge ? `<div class="plan-badge">${h(badge)}</div>` : ""}
+    const highlight = planHighlightBadge(plan);
+    const badge = accountAction === "switch" ? changeLabel(plan) : accountAction === "renew" ? "Your renewal" : highlight;
+    const badgeClass = highlight === "Popular" ? " plan-badge-popular" : highlight === "Best Value" ? " plan-badge-best-value" : "";
+    const val = planValue(plan);
+    const unitRate = (val && val.pricePerGb !== null && plan.quotaGb !== null)
+      ? `<div class="plan-unit-rate">${h(val.perGbLabel)}</div>`
+      : (plan.quotaGb === null && val && val.perGbLabel ? `<div class="plan-unit-rate">${h(val.perGbLabel)}</div>` : "");
+    return `<article class="plan" data-card="${h(plan.id)}" aria-labelledby="plan-title-${h(plan.id)}">${badge ? `<div class="plan-badge${badgeClass}">${h(badge)}</div>` : ""}
       <h3 id="plan-title-${h(plan.id)}">${h(plan.name)}</h3><div class="plan-price">${h(money(plan.price))}</div>
-      ${accountAction === "switch" && account.currentPlan?.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li></ul>`}
-      ${accountAction === "switch" && (plan.quotaGb === null || account.currentPlan?.plan?.quotaGb === null) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
+      ${unitRate}
+      ${accountAction === "switch" && account && account.currentPlan && account.currentPlan.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li></ul>`}
+      ${accountAction === "switch" && (plan.quotaGb === null || (account && account.currentPlan && account.currentPlan.plan && account.currentPlan.plan.quotaGb === null)) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
       ${accountAction ? `<p class="plan-policy">${h(policy(plan))}</p>` : ""}
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}
       <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}${purchaseAccess.allowed ? "" : " purchaseAccessMessage"}" ${!accessReady || blocked || !purchaseAccess.allowed || paymentInProgress || creatingPayment ? "disabled" : ""}>${!purchaseAccess.allowed ? "Connect to NDAHI Wi-Fi" : blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>

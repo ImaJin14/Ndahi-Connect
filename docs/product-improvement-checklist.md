@@ -1049,14 +1049,20 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Automated: focused boundary/race/router/rollout tests and existing API/browser regressions. PostgreSQL CI must verify persistence, competing workers and rollback on the exact PR revision. A locally skipped database test does not establish persistence acceptance.
   - Rollout: source/PR work only; not merged, enabled or physically verified. See [rollout and pilot](operations/secondary-approval-expiry.md). Actual API/bridge/frontend revisions, strict deployed smoke and physical router/device acceptance remain pending.
 
-- [-] **UX-094 — Customer Home data fuel gauge and truthful network state banner ([#94](https://github.com/ImaJin14/Ndahi-Connect/issues/94))**
+- [x] **UX-094 — Customer Home data fuel gauge and truthful network state banner ([#94](https://github.com/ImaJin14/Ndahi-Connect/issues/94))**
   - Implemented: glanceable circular SVG data progress ring on Customer Home showing remaining vs. quota with status classes (`fuel-good`, `fuel-warning`, `fuel-danger`, `fuel-unlimited`), contextual expiry countdown pill (`formatExpiryCountdown`), and truthful network state banner distinguishing Active Starlink Wi-Fi, Pre-Auth Captive, and Off-network Mobile Data with deep links. Fallback `<progress>` and `data-` attributes preserved for full accessibility; reduced motion supported.
   - Automated verification: 871 local unit and integration tests pass, including new `test/data-fuel-gauge.test.mjs` verifying boundary conditions, countdown formatting, and state truthfulness. Mobile and captive AST syntax constraints verified.
-  - Release: PR review and CI pending; physical device verification separate.
+  - Release: Delivered in PR #98 and merged into `main` at `4e95871`.
 
-- [-] **UX-095 — Bilingual French/English switcher, WhatsApp voucher sharing and QR code ([#95](https://github.com/ImaJin14/Ndahi-Connect/issues/95))**
+- [x] **UX-095 — Bilingual French/English switcher, WhatsApp voucher sharing and QR code ([#95](https://github.com/ImaJin14/Ndahi-Connect/issues/95))**
   - Implemented: bilingual English/French toggle in header persisting preference in `localStorage`, full translation dictionary in `shared-app/i18n.js` covering navigation, portal headings, bundle cards and voucher controls; one-tap WhatsApp share link generating formatted voucher text and redemption deep-link; session-authenticated `/api/account/vouchers/:id/qr` endpoint and accessible "Show QR Code" modal for camera scanning by secondary devices; MTN MoMo and Orange Money visual brand badges on checkout payment selectors.
   - Automated verification: new `test/bilingual-whatsapp-qr.test.mjs` verifying translations, URL encoding, and QR endpoint session security. All AST syntax checks pass without unsupported syntax.
-  - Release: PR review and CI pending; physical device verification separate.
+  - Release: Delivered in PR #99 and merged into `main` at `640e321`.
+
+- [x] **UX-096 — Mobile package comparison carousel, bottom sheets, and touch accessibility ([#96](https://github.com/ImaJin14/Ndahi-Connect/issues/96))**
+  - Implemented: horizontal CSS scroll-snap carousel for package comparison on mobile viewports (< 640px) with center card alignment; per-GB unit pricing breakdown (`planValue`) and "Popular" (Weekly) / "Best Value" (Unlimited) highlight badges on package cards; mobile modal transformations into swipe-down bottom sheets with top grab handles; minimum 44x44px touch bounding boxes across all interactive controls (buttons, navigation tabs, inputs, selects, language toggles, header links); platform-specific PWA installation guidance distinguishing iOS Safari step-by-step instructions from Chromium native prompts.
+  - Automated verification: `test/mobile-experience.test.mjs` unit and CSS structure tests pass; `npm run check` and `test/connection-reliability.test.mjs` AST syntax constraints verified.
+  - Release: Delivered in PR for #96.
+
 
 

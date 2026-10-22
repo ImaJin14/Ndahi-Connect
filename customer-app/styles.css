@@ -95,4 +95,93 @@
 .qr-dialog{max-width:440px;text-align:center}
 .voucher-qr-image{display:inline-block;max-width:220px;width:100%;height:auto;margin:12px auto;background:#fff;padding:8px;border-radius:8px;border:1px solid var(--line)}
 
+/* --- Mobile Bottom Sheets --- */
+@media (max-width: 640px) {
+  .modal-card {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .modal-card .card,
+  .receipt-dialog {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-bottom: 0 !important;
+    max-height: 88dvh !important;
+    max-height: 88vh;
+    margin: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -10px 40px rgba(0, 30, 22, 0.25) !important;
+    animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-card .card::before,
+  .receipt-dialog::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: #bcc9c0;
+    margin: 0 auto 16px;
+  }
+}
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* --- Touch Accessibility (minimum 44x44px touch targets) --- */
+button,
+.button,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.portal-nav a {
+  min-height: 48px;
+  min-width: 44px;
+}
+.lang-switcher button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+}
+.header-link,
+header .brand,
+.back-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.install-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--forest);
+  flex-wrap: wrap;
+}
+.step-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--forest-2);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+
 
