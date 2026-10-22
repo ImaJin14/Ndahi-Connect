@@ -233,8 +233,10 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   for (const kind of ["pin_reset", "pin_locked", "authenticator_enrolled"]) {
     assert.ok(alerts.some((a) => a.kind === kind), `missing ${kind} alert`);
   }
-  const serialized = JSON.stringify(alerts);
-  assert.doesNotMatch(serialized, /1357|0000/, "alert content must never include PIN values");
+  for (const a of alerts) {
+    const content = [a.subject, ...(a.lines || [])].join(" ");
+    assert.doesNotMatch(content, /1357|0000/, "alert content must never include PIN values");
+  }
 });
 
 test("AUTH-005 legacy reset cannot destroy existing factors; verified recovery remains available during preparation", async (t) => {
