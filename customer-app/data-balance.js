@@ -30,12 +30,13 @@ export function mountDataBalance({ call, voucher }) {
     const percent = v.quotaBytes ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : 0;
     const level = dataWarning(v);
 
-    host.querySelectorAll("[data-remaining-data]").forEach((el) => {
-      el.textContent = formatDataBalance(remaining);
-    });
-    host.querySelectorAll("[data-used-data]").forEach((el) => {
-      el.textContent = percent.toFixed(1) + "%";
-    });
+    const remainingEl = host.querySelector("[data-remaining-data]");
+    if (remainingEl) remainingEl.textContent = formatDataBalance(remaining);
+    const fuelRemainingEl = host.querySelector("[data-fuel-remaining]");
+    if (fuelRemainingEl) fuelRemainingEl.textContent = formatDataBalance(remaining);
+
+    const usedEl = host.querySelector("[data-used-data]");
+    if (usedEl) usedEl.textContent = percent.toFixed(1) + "%";
 
     const countdown = host.querySelector("[data-expiry-countdown]");
     if (countdown && v.expiresAt) {
