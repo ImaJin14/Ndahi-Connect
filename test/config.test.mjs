@@ -17,7 +17,6 @@ const production = {
   API_URL: "https://api.ndahi.test",
   ALLOWED_ADMIN_ORIGINS: "https://admin.ndahi.test",
   SESSION_COOKIE_SECURE: "true",
-  ADMIN_MFA_ENABLED: "true",
   MIKROTIK_MODE: "live",
   MIKROTIK_API_URL: "https://router.ndahi.test",
   MIKROTIK_USER: "service",
@@ -102,7 +101,16 @@ test("saved production network connections require encryption and explicit HTTPS
   assert.ok(productionConfigErrors({ ...saved, NETWORK_ALLOWED_ORIGINS: "https://router.test/path" }).some((v) => v.includes("NETWORK_ALLOWED_ORIGINS")));
 });
 
- test("compatible preparation startup does not require obsolete MFA environment values", () => {
-  const env = { ...production }; delete env.ADMIN_MFA_ENABLED; delete env.ADMIN_MFA_CODE;
+ test("production configuration accepts ADMIN_BOOTSTRAP_PIN", () => {
+  const env = { ...production };
+  delete env.ADMIN_BOOTSTRAP_PASSWORD;
+  env.ADMIN_BOOTSTRAP_PIN = "2468";
+  assert.doesNotThrow(() => assertProductionConfig(env));
+ });
+
+ test("compatible startup does not require obsolete MFA environment values", () => {
+  const env = { ...production };
+  delete env.ADMIN_MFA_ENABLED;
+  delete env.ADMIN_MFA_CODE;
   assert.doesNotThrow(() => assertProductionConfig(env));
  });

@@ -38,9 +38,10 @@ function fixture() {
   return { ...base, key, options, verify, assertion, advance: (ms) => { now = new Date(+now + ms); } };
 }
 
-test("fresh admin proof verifies Argon2 password/currentPassword and never accepts an admin PIN alias", async () => {
+test("fresh admin proof verifies Argon2 PIN or password and accepts currentPin and pin", async () => {
   const f = fixture();
-  assert.deepEqual(await f.verify({ pin: password }), { verified: false, method: "password" });
+  assert.deepEqual(await f.verify({ pin: password }), { verified: true, method: "pin" });
+  assert.deepEqual(await f.verify({ currentPin: password }), { verified: true, method: "pin" });
   assert.deepEqual(await f.verify({ currentPassword: password }), { verified: true, method: "password" });
   assert.deepEqual(await f.verify({ password }), { verified: true, method: "password" });
   assert.equal(f.user.adminProofFailures, undefined);
@@ -48,9 +49,9 @@ test("fresh admin proof verifies Argon2 password/currentPassword and never accep
   assert.equal((await f.verify({ password })).verified, false);
 });
 
-test("fresh admin proof rejects malformed proof inputs without throwing or choosing a PIN fallback", async () => {
+test("fresh admin proof rejects malformed proof inputs without throwing", async () => {
   const f = fixture();
-  for (const input of [null, password, [password], { pin: password }]) assert.equal((await f.verify(input)).verified, false);
+  for (const input of [null, password, [password], { pin: "wrong-pin" }]) assert.equal((await f.verify(input)).verified, false);
   assert.equal((await f.verify({ password })).verified, true);
 });
 

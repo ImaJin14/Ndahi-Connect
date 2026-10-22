@@ -14,7 +14,7 @@ const policy = fetch(api + "/api/authentication-policy", { credentials: "include
     return state;
   }).catch(() => null);
 const runLogin = (button, text, task) => runButton(button, text, task, {
-  controls: [$("#login button:not([type])"), $("#mfaLogin button:not([type])"), $("#backToCredentials"), $("#passkeyLogin")],
+  controls: [$("#login button:not([type])"), $("#mfaLogin button:not([type])"), $("#backToCredentials"), $("#passkeyLogin")].filter(Boolean),
 });
 let loginNotice;
 try { loginNotice = sessionStorage.getItem("ndahi-admin-login-notice"); } catch (_) { /* Optional storage. */ }
@@ -25,21 +25,23 @@ if (loginNotice) {
 
 async function showMfaStep(challengeId) {
   await policy;
-  if (authenticatorRetired) { $("#message").textContent = "Authenticator sign-in has been retired. Refresh and use your administrator password or passkey."; return; }
+  if (authenticatorRetired) { $("#message").textContent = "Authenticator sign-in has been retired. Refresh and use your administrator PIN or passkey."; return; }
   mfaChallengeId = challengeId;
-  $("#credentialsStep").hidden = true;
-  $("#mfaStep").hidden = false;
+  if ($("#credentialsStep")) $("#credentialsStep").hidden = true;
+  if ($("#mfaStep")) {
+    $("#mfaStep").hidden = false;
+    $("#mfaStep input")?.focus();
+  }
   $("#message").textContent = "";
-  $("#mfaStep input").focus();
 }
 
 function showCredentialsStep() {
   mfaChallengeId = "";
-  $("#mfaLogin").reset();
-  $("#mfaStep").hidden = true;
-  $("#credentialsStep").hidden = false;
+  $("#mfaLogin")?.reset();
+  if ($("#mfaStep")) $("#mfaStep").hidden = true;
+  if ($("#credentialsStep")) $("#credentialsStep").hidden = false;
   $("#message").textContent = "";
-  document.querySelector('[name="username"]').focus();
+  document.querySelector('[name="username"]')?.focus();
 }
 
 $("#togglePassword").onclick = () => {
@@ -47,7 +49,7 @@ $("#togglePassword").onclick = () => {
     showing = input.type === "text";
   input.type = showing ? "password" : "text";
   button.textContent = showing ? "Show" : "Hide";
-  button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+  button.setAttribute("aria-label", showing ? "Show PIN" : "Hide PIN");
   button.setAttribute("aria-pressed", String(!showing));
 };
 
@@ -57,11 +59,14 @@ $("#login").onsubmit = async (event) => {
   try {
     await runLogin(button, "Checking…", async () => {
       $("#message").textContent = "";
+      const data = Object.fromEntries(new FormData(event.target));
+      const pin = data.pin || data.password;
+      const payload = { ...data, pin, password: pin };
       const response = await fetch(api + "/api/admin/login", {
           method: "POST",
           credentials: "include",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify(Object.fromEntries(new FormData(event.target))),
+          body: JSON.stringify(payload),
         }),
         result = await response.json();
       if (!response.ok) throw Error(result.error || "Unable to sign in");

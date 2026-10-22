@@ -163,8 +163,8 @@ try {
     assert.equal(await recovery.locator('[name="mfaCode"]').count(), 0);
     await recovery.getByRole("button", { name: "Verify and issue support code", exact: true }).click();
     const proof = page.getByRole("dialog", { name: "Verify administrator action" });
-    await proof.getByLabel("Current administrator password", { exact: true }).fill(password);
-    await proof.getByRole("button", { name: "Verify password", exact: true }).click();
+    await (proof.getByLabel("Current administrator PIN").or(proof.getByLabel("Current administrator password"))).fill(password);
+    await (proof.getByRole("button", { name: "Verify PIN" }).or(proof.getByRole("button", { name: "Verify password" }))).click();
     await recovery.getByRole("heading", { name: "Support code issued", exact: true }).waitFor();
     const token = await recovery.locator("code").textContent();
     await page.goto(portal + "/forgot-pin");
