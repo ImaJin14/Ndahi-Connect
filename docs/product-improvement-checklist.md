@@ -24,6 +24,12 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Application security
 
+- [!] **AUTH-082 — Gated authenticator retirement and owner readiness** ([#82](https://github.com/ImaJin14/Ndahi-Connect/issues/82))
+  - Compatibility implementation merged in PR #88 at `8323878`. Read-only live API policy confirms that revision and `authenticatorRetired: false` on 22 October 2026. This is API deployment evidence only; protected aggregate readiness, both frontend revisions and real account acceptance remain unverified.
+  - Follow-up source: guided owner authentication/recovery/rollback evidence review, fresh password or user-verified passkey and server-side exact report-digest binding. Unchecked confirmations and stale-report rejection prevent silently recording unknown readiness. Saving a review does not activate retirement.
+  - Automated: 18 migration API cases and ten 320px real-API browser journeys pass locally, including signed passkey review/cancellation and changed inventory. Full local suite: 846 passed, zero failed, 16 PostgreSQL-dependent skips; required CI remains distinct.
+  - Blocker: actual customer/admin replacement access, recovery and compatible rollback acceptance are not established. Use [the evidence record](operations/authenticator-retirement-evidence.md); no production cutover or credential invalidation is authorized by this follow-up.
+
 - [x] **SEC-001 — Remove unsafe dynamic HTML rendering**
   - Replace untrusted `innerHTML` interpolation with DOM construction or escaped rendering.
   - Cover customer device labels, bundle names, API messages, customer data, voucher data, and administrator-controlled content.

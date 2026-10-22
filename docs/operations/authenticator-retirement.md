@@ -124,3 +124,18 @@ Production inventory, real recovery/authentication pilots, compatible production
 ## 22 October review candidate
 
 Compatibility-runtime candidate: `74ae34a4d6124baba1539f2e5d1782780f58fa41`. This integrates preparation `e205725`, identity `08adcf3`, Home/history `dd2c6ae` and the peer-reviewed collapsed-device regression fix `9f88a5b`. The latest full authentication unit/API suite passed 838 tests, with 16 PostgreSQL cases skipped locally; CI runs the PostgreSQL cases. Eight retirement browser journeys passed. The full integrated browser rerun and exact final CI status are recorded on the draft PR. This records a review candidate, not an operationally accepted rollback revision or completed pilot.
+
+## Guided owner readiness follow-up (#82)
+
+The admin preparation report now includes **Record completed rollout checks**.
+Its form stays disabled while account-method blockers remain. The owner supplies
+completed authentication/recovery/rollback evidence, confirms both checks, and
+uses fresh password or user-verified passkey proof. The server requires the exact
+report digest for both review challenges and saved evidence; an inventory change
+returns `409 READINESS_CHANGED` without recording a review. Refresh clears the
+form and its confirmations. Saving evidence never runs the retirement migration.
+
+Use [the evidence record](authenticator-retirement-evidence.md) for the outstanding
+real acceptance. The public API was verified at merged revision `8323878` with
+retirement still disabled on 22 October 2026. Protected aggregate account readiness,
+real recovery/rollback results and both frontend revisions remain unverified.
