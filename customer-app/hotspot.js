@@ -8,7 +8,7 @@ import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);
-let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll, controlsMounted = false;
+let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll, controlsMounted = false, watchedDisconnect;
 try {
   const next = new URL(params.get("next") || "/dashboard", location.origin);
   if (next.origin === location.origin && !/^\/(?:hotspot|login)(?:[/.]|$)/.test(next.pathname)) destination = next;
@@ -94,6 +94,7 @@ async function protectedConnect(proof = {}) {
 }
 
 async function connect() {
+  watchedDisconnect = undefined;
   if (submitted) return;
   try {
     await runButton(button, "Connecting…", async () => {
@@ -157,6 +158,8 @@ async function refreshDevices(explain = false) {
   csrfToken = result.body.csrfToken || "";
   if (explain && !allSlotsInUse(result.body)) return;
   devices.innerHTML = wifiDeviceList(result.body);
+  const operation = watchedDisconnect && (result.body.disconnects || []).find((item) => item.id === watchedDisconnect);
+  if (operation) message.textContent = operation.message;
   devices.hidden = false;
   if (!controlsMounted) {
     controlsMounted = true;
@@ -195,6 +198,7 @@ devices.onclick = async (event) => {
         body: JSON.stringify({ mac: target.dataset.wifiDevice, sessionId: target.dataset.wifiSession, startedAt: target.dataset.wifiStarted, retainApproval: true }),
       });
       if (!result.response.ok) throw responseError(result.response, result.body);
+      watchedDisconnect = result.body.operation?.id;
       devices.innerHTML = wifiDeviceList(result.body);
       message.textContent = "Disconnection requested. Wait for confirmation before connecting another device.";
       scheduleRefresh();
