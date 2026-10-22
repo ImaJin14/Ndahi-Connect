@@ -36,13 +36,12 @@ let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptCont
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
 
 async function passkeyOwnerProof(purpose, passkeyId, opener) {
-  if (!latestDashboard.customer.authenticatorRetired) return {};
   document.querySelector("[data-passkey-owner-proof]")?.querySelector("[data-cancel-proof]")?.click();
   const host = document.createElement("section"); host.className = "surface";
   host.setAttribute("data-passkey-owner-proof", ""); host.setAttribute("data-sensitive-output", "");
   const pin = latestDashboard.customer.pinConfigured !== false,
     passkey = latestDashboard.customer.passkeys && window.PublicKeyCredential && navigator.credentials;
-  host.innerHTML = `<h3 tabindex="-1">${purpose === "passkey_add" ? "Verify before adding a passkey" : "Verify before removing this passkey"}</h3><p>Confirm account ownership with your current PIN or a passkey.</p><form method="post">${pin ? '<label>Current PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Confirm with PIN</button>' : ""}${passkey ? '<button type="button" data-proof-passkey>Confirm with passkey</button>' : ""}<button type="button" data-cancel-proof>Cancel</button><p data-passkey-proof-message role="status" aria-live="polite"></p></form><p><a href="/help#recovery">No working credential? Get account recovery help</a></p>`;
+  host.innerHTML = `<h3 tabindex="-1">${purpose === "authenticator_enroll" ? "Verify before authenticator setup" : purpose === "passkey_add" ? "Verify before adding a passkey" : "Verify before removing this passkey"}</h3><p>Confirm account ownership with your current PIN or a passkey.</p><form method="post">${pin ? '<label>Current PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Confirm with PIN</button>' : ""}${passkey ? '<button type="button" data-proof-passkey>Confirm with passkey</button>' : ""}<button type="button" data-cancel-proof>Cancel</button><p data-passkey-proof-message role="status" aria-live="polite"></p></form><p><a href="/help#recovery">No working credential? Get account recovery help</a></p>`;
   $("#accountSecurity").appendChild(host); host.querySelector("h3").focus(); host.scrollIntoView({ block: "nearest" });
   return new Promise((resolve) => {
     const form = host.querySelector("form"), message = host.querySelector("[data-passkey-proof-message]");
@@ -53,7 +52,7 @@ async function passkeyOwnerProof(purpose, passkeyId, opener) {
     if (button) button.onclick = async () => {
       try {
         await runButton(button, "Verifying…", async () => {
-          const browser = await loadPasskeys(), challenge = await call("/api/account/passkeys/proof/options", { method: "POST", body: JSON.stringify({ purpose, ...(passkeyId ? { passkeyId } : {}) }) });
+          const browser = await loadPasskeys(), challenge = await call(purpose === "authenticator_enroll" ? "/api/account/security/mfa/options" : "/api/account/passkeys/proof/options", { method: "POST", body: JSON.stringify(purpose === "authenticator_enroll" ? { action: "enroll" } : { purpose, ...(passkeyId ? { passkeyId } : {}) }) });
           const response = await browser.startAuthentication({ optionsJSON: challenge.options });
           finish({ challengeId: challenge.challengeId, response });
         }, { controls: Array.from(form.elements) });
@@ -346,7 +345,9 @@ $("#dashboard").onclick = async (event) => {
   if (mfaButton) {
     try {
       await runButton(mfaButton, "Preparing…", async () => {
-        const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: "{}" });
+        const proof = await passkeyOwnerProof("authenticator_enroll", undefined, mfaButton);
+        if (!proof) return;
+        const enrollment = await call("/api/account/security/mfa/enroll", { method: "POST", body: JSON.stringify(proof) });
         renderAuthenticatorSetup($("#mfaSetup"), enrollment, latestDashboard.customer.phone);
       });
     } catch (error) { showError($("#dashboardMessage"), error); }

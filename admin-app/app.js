@@ -258,7 +258,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     button.disabled = true;
     button.textContent = "Waiting for device…";
     try {
-      const proof = x.profile.authenticatorRetired ? await requestAdminActionProof({ call, purpose: "passkey_add" }) : {};
+      const proof = await requestAdminActionProof({ call, purpose: "passkey_add" });
       let result = await call("/api/admin/profile/passkeys/options", { method: "POST", body: JSON.stringify(proof) });
       if (result.options.rp?.id && result.options.rp.id !== location.hostname) {
         throw Error(`Open the admin panel at http://${result.options.rp.id}:8081 before enrolling this passkey.`);
@@ -278,9 +278,9 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   };
   if ($("#enrollMfa")) $("#enrollMfa").onclick = async () => {
     await runAction($("#enrollMfa"), "Preparing…", async () => {
+      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "enroll" } });
       const result = await call("/api/admin/profile/mfa/enroll", {
-        method: "POST",
-        body: "{}",
+        method: "POST", body: JSON.stringify({ ...proof, action: "enroll" }),
       });
       $("#mfaEnrollment").innerHTML =
         `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
@@ -288,7 +288,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         await runAction($("#confirmMfa"), "Verifying…", async () => {
           await call("/api/admin/profile/mfa/confirm", {
             method: "POST",
-            body: JSON.stringify({ code: $("#totpCode").value }),
+            body: JSON.stringify({ code: $("#totpCode").value, challengeId: result.challengeId }),
           });
           await load();
         }, "#integrationMessage");
@@ -297,9 +297,9 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   };
   if ($("#disableMfa")) $("#disableMfa").onclick = async () => {
     await runAction($("#disableMfa"), "Disabling…", async () => {
+      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "set", enabled: false } });
       await call("/api/admin/profile/mfa", {
-        method: "POST",
-        body: JSON.stringify({ enabled: false }),
+        method: "POST", body: JSON.stringify({ ...proof, action: "set", enabled: false }),
       });
       await load();
     }, "#integrationMessage");

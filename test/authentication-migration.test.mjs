@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import argon2 from 'argon2';
 import {pairingFixture} from './helpers/wifi-pairing-fixture.mjs';
 import {totpSecret,totpCode,hashSecret} from '../lib/security.mjs';
-import {authenticationReadiness,recordVerifiedMethod} from '../lib/authentication-migration.mjs';
+import {authenticationReadiness,recordVerifiedMethod,credentialVersion} from '../lib/authentication-migration.mjs';
 const root='/api/account/authentication-migration',secret='pairing-tests';
 async function fixture(t){const f=await pairingFixture({env:{ADMIN_APP_URL:'http://customer.test',ADMIN_SESSION_SECRET:secret}});t.after(f.close);const passwordHash=await argon2.hash('a sufficiently long admin password');await f.store.transaction(s=>{s.adminUsers.push({id:'owner',username:'owner',role:'owner',active:true,passwordHash,passkeys:[]});s.adminSessions.push({userId:'owner',role:'owner',tokenHash:hashSecret('owner',secret),csrfToken:'csrf',expiresAt:new Date(+f.now()+3600000).toISOString()});});const admin=async(path,input,token='owner')=>{const r=await fetch(f.api+'/api/admin/authentication-migration'+path,{method:input===undefined?'GET':'POST',headers:{origin:'http://customer.test',cookie:'admin_session='+token,'content-type':'application/json','x-csrf-token':'csrf'},...(input===undefined?{}:{body:JSON.stringify(input)})});return{status:r.status,body:await r.json()};};return {...f,admin};}
 async function legacy(f){let key;await f.store.transaction(s=>{const c=s.customers[0];delete c.pinHash;c.totpSecret=key=totpSecret();});return key;}
@@ -43,4 +43,25 @@ test('staff record and dashboard projections never expose private credential mar
 test('preparation cannot remove the sole usable sign-in credential',async t=>{
  const f=await fixture(t);await f.store.transaction(s=>{delete s.customers[0].pinHash;s.customers[0].passkeys=[{id:'only-key',publicKey:'protected'}];});
  const r=await f.call('/api/account/passkeys/remove',{passkeyId:'only-key'});assert.equal(r.status,409);assert.equal(r.body.code,'LAST_CREDENTIAL');assert.equal((await f.store.snapshot()).customers[0].passkeys.length,1);
+});
+
+test('zone GET cannot mutate readiness state and ordinary admin responses keep credential internals private',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>{s.zone.authenticationMigrationReview={evidenceReference:'PRIVATE-ZONE-REVIEW'};s.customers[0].passkeys=[{id:'internal',publicKey:'PRIVATE-PUBLIC-KEY',counter:15}];});
+ const before=(await f.store.snapshot()).zone;
+ const get=await fetch(f.api+'/api/admin/zone',{headers:{origin:'http://customer.test',cookie:'admin_session=owner'}});assert.equal(get.status,404);assert.deepEqual((await f.store.snapshot()).zone,before);
+ const headers={origin:'http://customer.test',cookie:'admin_session=owner','content-type':'application/json','x-csrf-token':'csrf'};
+ const zone=await fetch(f.api+'/api/admin/zone',{method:'POST',headers,body:JSON.stringify({status:'online',notes:'Synthetic change'})});assert.equal(zone.status,200);assert.doesNotMatch(await zone.text(),/PRIVATE-ZONE-REVIEW|authenticationMigrationReview/);assert.equal((await f.store.snapshot()).zone.authenticationMigrationReview.evidenceReference,'PRIVATE-ZONE-REVIEW');
+ const suspend=await fetch(f.api+'/api/admin/customers/suspend',{method:'POST',headers,body:JSON.stringify({customerId:'c1'})});assert.equal(suspend.status,200);const body=await suspend.json();assert.equal(body.customer.passkeys,1);assert.doesNotMatch(JSON.stringify(body),/PRIVATE-PUBLIC-KEY|counter/);
+});
+
+test('credential evidence accepts only canonical supported method tags and never treats an unknown method as PIN',async t=>{
+ const f=await fixture(t),c=(await f.store.snapshot()).customers[0];
+ for(const tag of ['arbitrary','PASSWORD',{toString(){return 'pin';}},undefined]){assert.equal(credentialVersion(tag,c,null,secret),null);assert.throws(()=>recordVerifiedMethod(c,tag,null,secret,f.now()));}
+ assert.equal(typeof credentialVersion('pin',c,null,secret),'string');
+});
+
+test('legacy admin sessions require explicit reauthentication for preparation without expiring ordinary dashboard access',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>s.adminSessions.push({role:'owner',tokenHash:hashSecret('legacy',secret),csrfToken:'csrf',expiresAt:new Date(+f.now()+3600000).toISOString()}));
+ for(const [path,input]of[['/status',undefined],['/confirm',{password:'a sufficiently long admin password'}]]){const r=await f.admin(path,input,'legacy');assert.equal(r.status,409);assert.equal(r.body.code,'ADMIN_REAUTHENTICATION_REQUIRED');}
+ const r=await fetch(f.api+'/api/admin/dashboard',{headers:{origin:'http://customer.test',cookie:'admin_session=legacy'}});assert.equal(r.status,200);
 });

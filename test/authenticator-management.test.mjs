@@ -13,7 +13,7 @@ async function fixture(t, { enrolled = true, ...options } = {}) {
 
 test("new authenticator setup remains optional, session-bound and confirmed before enabling", async (t) => {
   const f = await fixture(t, { enrolled: false });
-  const setup = await f.call(root + "/enroll", {});
+  const setup = await f.call(root + "/enroll", { pin: "2468" });
   assert.equal(setup.status, 200); assert.match(setup.body.qrCode, /^data:image\/png;base64,/);
   assert.equal((await f.store.snapshot()).customers[0].totpSecret, undefined);
   assert.equal((await f.call(root + "/confirm", { code: totpCode(setup.body.secret, +f.now()) })).status, 400, "confirmation requires the exact setup intent");
