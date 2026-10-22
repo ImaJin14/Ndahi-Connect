@@ -167,7 +167,10 @@ try {
   await scenario("dashboard MFA confirmation supports form submission and restores retry", async (page) => {
     const enroll = await hold(page, "/api/account/security/mfa/enroll", { secret: "FIXTUREKEY", challengeId: "fixture-enrollment" }, 200);
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#enableCustomerMfa").click(); await enroll.started;
+    await page.locator("#enableCustomerMfa").click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
+    await enroll.started;
     await page.evaluate(() => document.querySelector("#enableCustomerMfa").dispatchEvent(new MouseEvent("click", { bubbles: true })));
     enroll.release(); await idle(page, "#enableCustomerMfa");
     assert.equal(enroll.count(), 1);

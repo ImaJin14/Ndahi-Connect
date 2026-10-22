@@ -86,11 +86,15 @@ try {
   await scenario("cancelled and expired authenticator setups can be started again without enabling them", async (page) => {
     await page.goto(`${portal}/dashboard#account`);
     await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     await page.locator("#confirmMfa").waitFor();
     await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
     await page.getByText("Authenticator setup cancelled. You can start again whenever you choose.").waitFor();
     assert.equal((await store.snapshot()).customerMfaChallenges.length, 0);
     await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     const key = await page.locator("#mfaSetup code").textContent();
     await store.transaction((s) => { s.customerMfaChallenges.forEach((c) => { c.expiresAt = new Date(Date.now() - 1000).toISOString(); }); });
     await page.getByLabel("Six-digit code").fill(totpCode(key, Date.now()));
@@ -98,6 +102,8 @@ try {
     await page.getByText("Authenticator setup expired or was replaced. Start setup again in this browser.", { exact: true }).waitFor();
     assert.equal(await page.locator("#mfaSetup code").count(), 0);
     await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     await page.locator("#confirmMfa").waitFor();
     assert.equal((await store.snapshot()).customers[0].totpSecret, undefined);
     await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
@@ -107,6 +113,8 @@ try {
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(`${portal}/dashboard#account`);
     await page.getByRole("button", { name: "Enable authenticator 2FA" }).click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
+    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     const secret = await page.locator("#mfaSetup code").textContent();
     const pixels = await page.locator("#mfaSetup img").evaluate(async (img) => {
       if (!img.complete) await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; });

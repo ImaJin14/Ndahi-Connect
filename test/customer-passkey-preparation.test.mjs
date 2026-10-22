@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHash, generateKeyPairSync, randomBytes, sign } from "node:crypto";
 import { isoCBOR } from "@simplewebauthn/server/helpers";
 import { pairingFixture } from "./helpers/wifi-pairing-fixture.mjs";
-import { totpCode, totpSecret } from "../lib/security.mjs";
+import { hashSecret, totpCode, totpSecret } from "../lib/security.mjs";
 
 const root = "/api/account/passkeys", origin = "http://customer.test";
 function credential() {
@@ -130,4 +130,45 @@ test("preparation passkey removal requires fresh proof and keeps a verified supp
   assert.equal(challenge.status, 200);
   assert.equal((await f.call(root + "/remove", { passkeyId: key.record.id, challengeId: challenge.body.challengeId, response: signed(key, challenge.body.options) })).status, 409);
   assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 1);
+});
+
+test("a stolen PIN-less passkey session cannot enroll an attacker authenticator and manufacture PIN readiness", async (t) => {
+  const f = await fixture(t), key = credential();
+  await f.store.transaction((s) => { delete s.customers[0].pinHash; s.customers[0].passkeys = [key.record]; });
+  const denied = await f.call("/api/account/security/mfa/enroll", {});
+  assert.equal(denied.status, 401); assert.equal(denied.body.code, "VERIFICATION_FAILED");
+  assert.equal(denied.body.secret, undefined);
+  assert.equal((await f.store.snapshot()).customerMfaChallenges.length, 0);
+  const migration = await f.call("/api/account/authentication-migration/pin/start", { newPin: "5830", confirmPin: "5830", otp: "123456" });
+  assert.equal(migration.status, 401);
+  assert.equal((await f.store.snapshot()).customers[0].authMigration, undefined);
+  assert.equal((await f.store.snapshot()).customers[0].pinHash, undefined);
+});
+
+test("initial authenticator setup accepts existing UV passkey proof and rejects borrowed-purpose or unverified assertions", async (t) => {
+  const f = await fixture(t), key = credential();
+  await f.store.transaction((s) => { delete s.customers[0].pinHash; s.customers[0].passkeys = [key.record]; });
+  const borrowed = await f.call(root + "/proof/options", { purpose: "passkey_add" });
+  assert.equal((await f.call("/api/account/security/mfa/enroll", { challengeId: borrowed.body.challengeId, response: signed(key, borrowed.body.options) })).status, 401);
+  const noUv = await f.call("/api/account/security/mfa/options", { action: "enroll" });
+  assert.equal(noUv.status, 200);
+  assert.equal((await f.call("/api/account/security/mfa/enroll", { challengeId: noUv.body.challengeId, response: signed(key, noUv.body.options, { uv: false }) })).status, 401);
+  const options = await f.call("/api/account/security/mfa/options", { action: "enroll" });
+  assert.equal(options.status, 200); assert.equal(options.body.options.userVerification, "required");
+  const proof = { challengeId: options.body.challengeId, response: signed(key, options.body.options) };
+  const enrolled = await f.call("/api/account/security/mfa/enroll", proof);
+  assert.equal(enrolled.status, 200); assert.match(enrolled.body.secret, /^[A-Z2-7]{32}$/);
+  assert.equal((await f.call("/api/account/security/mfa/enroll", proof)).status, 401);
+  const confirmed = await f.call("/api/account/security/mfa/confirm", { challengeId: enrolled.body.challengeId, code: totpCode(enrolled.body.secret, +f.now()) });
+  assert.equal(confirmed.status, 200);
+});
+
+test("initial authenticator challenges issued without proof or before credential changes cannot confirm", async (t) => {
+  const f = await fixture(t), secret = totpSecret();
+  await f.store.transaction((s) => { s.customerMfaChallenges.push({ id: "11111111-1111-4111-8111-111111111111", customerId: "c1", sessionId: "main", secret, originalVersion: hashSecret("", "pairing-tests"), pinVersion: s.customers[0].pinHash, expiresAt: new Date(+f.now() + 300000).toISOString() }); });
+  assert.equal((await f.call("/api/account/security/mfa/confirm", { challengeId: "11111111-1111-4111-8111-111111111111", code: totpCode(secret, +f.now()) })).status, 400);
+  const started = await f.call("/api/account/security/mfa/enroll", { pin: "2468" }); assert.equal(started.status, 200);
+  await f.store.transaction((s) => { s.customers[0].passkeys = [credential().record]; });
+  assert.equal((await f.call("/api/account/security/mfa/confirm", { challengeId: started.body.challengeId, code: totpCode(started.body.secret, +f.now()) })).status, 400);
+  assert.equal((await f.store.snapshot()).customers[0].totpSecret, undefined);
 });

@@ -521,7 +521,7 @@ test("new customers create a hashed 4-digit PIN and PIN login is rate limited", 
   assert.equal(dashboard.json.customer.pinHash, undefined);
   assert.equal(dashboard.json.customer.pinConfigured, true);
   assert.equal(dashboard.json.customer.authenticatorEnrolled, false);
-  const enrollment = await f.call("/api/account/security/mfa/enroll", "POST", {});
+  const enrollment = await f.call("/api/account/security/mfa/enroll", "POST", { pin: "1234" });
   assert.equal((await f.call("/api/account/security/mfa/confirm", "POST", {
     challengeId: enrollment.json.challengeId,
     code: totpCode(enrollment.json.secret),
