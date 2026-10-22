@@ -1072,6 +1072,11 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - [x] **UX-104 — Active bundle guidance at checkout and voucher redemption ([#104](https://github.com/ImaJin14/Ndahi-Connect/issues/104))**
   - Implemented: structured `ACTIVE_BUNDLE_EXISTS` 409 responses with current package metadata across guest checkout (`/api/purchase`), resale voucher claiming (`/api/account/access/confirm`), and voucher redemption (`/api/vouchers/redeem`); actionable "Sign in to Dashboard" call-to-action in onboarding checkout UI guiding active customers directly to renew or switch in `/dashboard#managePlan`; pruned dead `upgradeFromVoucherId` references in payment settlement logic.
   - Automated verification: `test/domain.test.mjs` and `test/integration.test.mjs` verify structured active bundle error payloads and metadata.
+  - Release: Delivered in PR #106 and merged into `main` at `8d5749d`.
+
+- [x] **ADM-105 — Admin replacement/gifted voucher issuance for active bundle accounts ([#105](https://github.com/ImaJin14/Ndahi-Connect/issues/105))**
+  - Implemented: supported optional `replaceActive: true` flag in `/api/admin/vouchers/generate`; blocks active bundle customers by default with structured 409 `ACTIVE_BUNDLE_EXISTS` containing active bundle metadata; when `replaceActive: true` is supplied, transitions previous voucher to `status: "replaced"`, records `replacedAt`, `replacedByAdminId`, and `replacedByVoucherId`, queues `disconnect_voucher` on the old voucher and `sync_voucher` on the new voucher, records audit event `voucher.admin_replaced`, and returns replacement confirmation; added confirmation checkbox toggle in admin UI voucher builder (`admin-app/app.js`).
+  - Automated verification: `test/admin-vouchers.test.mjs` unit tests verify 409 guard by default, successful replacement with commands and audit logs on `replaceActive: true`, and form string boolean conversion.
 
 
 
