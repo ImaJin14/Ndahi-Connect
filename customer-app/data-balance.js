@@ -1,4 +1,4 @@
-import { formatDataBalance, dataWarning } from "/shared/data-usage.js";
+import { formatDataBalance, dataWarning, formatExpiryCountdown, fuelStatusClass } from "/shared/data-usage.js";
 import { runButton } from "/shared/pending.js";
 
 let stopPrevious;
@@ -7,11 +7,49 @@ export function mountDataBalance({ call, voucher }) {
   const host = document.getElementById("dataBalance"), message = document.getElementById("dataBalanceMessage"), button = document.getElementById("refreshDataBalance");
   if (!host || !message || !button || !voucher) return;
   let checking = false, timer;
+
+  function updateGauge(v, remaining, percent) {
+    const status = fuelStatusClass(remaining, v.quotaBytes);
+    const fill = host.querySelector(".fuel-fill");
+    if (fill) {
+      const circumference = 301.59;
+      const remainingPct = v.quotaBytes === null ? 100 : Math.max(0, 100 - percent);
+      const offset = (circumference * (100 - remainingPct) / 100).toFixed(2);
+      fill.style.strokeDashoffset = offset;
+      fill.classList.remove("fuel-good", "fuel-warning", "fuel-danger", "fuel-unlimited");
+      fill.classList.add(status);
+    }
+    const svg = host.querySelector(".fuel-gauge-svg");
+    if (svg) {
+      svg.setAttribute("aria-label", `${formatDataBalance(remaining)} remaining out of ${v.quotaBytes ? formatDataBalance(v.quotaBytes) : "unlimited"}`);
+    }
+  }
+
   function draw(v) {
-    const remaining = Math.max(0, v.quotaBytes - v.usedBytes), percent = Math.min(100, v.usedBytes / v.quotaBytes * 100), level = dataWarning(v);
-    host.querySelector("[data-remaining-data]").textContent = formatDataBalance(remaining);
-    host.querySelector("[data-used-data]").textContent = percent.toFixed(1) + "%";
-    const progress = host.querySelector("progress"); progress.value = percent; progress.setAttribute("aria-label", percent.toFixed(1) + "% of bundle used");
+    const remaining = v.quotaBytes === null ? null : Math.max(0, v.quotaBytes - v.usedBytes);
+    const percent = v.quotaBytes ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : 0;
+    const level = dataWarning(v);
+
+    host.querySelectorAll("[data-remaining-data]").forEach((el) => {
+      el.textContent = formatDataBalance(remaining);
+    });
+    host.querySelectorAll("[data-used-data]").forEach((el) => {
+      el.textContent = percent.toFixed(1) + "%";
+    });
+
+    const countdown = host.querySelector("[data-expiry-countdown]");
+    if (countdown && v.expiresAt) {
+      countdown.textContent = formatExpiryCountdown(v.expiresAt) || "Active";
+    }
+
+    const progress = host.querySelector("progress");
+    if (progress) {
+      progress.value = percent;
+      progress.setAttribute("aria-label", percent.toFixed(1) + "% of bundle used");
+    }
+
+    updateGauge(v, remaining, percent);
+
     const age = Date.now() - Date.parse(v.lastUsageSyncAt), fresh = age >= -5000 && age <= 120000 && !(Date.parse(v.lastUsageSyncAt) < Date.parse(v.activatedAt));
     const warning = v.status === "expired" ? "This bundle's time has expired. Choose a plan to reconnect." : level === "100" ? "Your bundle's data is used up. Renew or choose another plan." :
       level === "low" ? "Low data: " + formatDataBalance(remaining) + " left. Renew before your data runs out." : level === "90" ? "You've used over 90% of your shared bundle. Plan a renewal before data runs out." : "";

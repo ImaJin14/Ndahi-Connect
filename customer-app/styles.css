@@ -35,3 +35,40 @@
 [data-pairing-requests] article{overflow-wrap:anywhere;margin-top:1rem}
 
 .voucher-history-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:18px 0}.voucher-history-tools label{display:flex;gap:10px;align-items:center}.voucher-history-tools select{max-width:100%;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}.voucher-history-tools button{min-height:44px}.voucher-history-tools button:disabled{opacity:.45;cursor:default}.voucher-history-tools span{font-size:13px}
+
+/* --- Truthful Network State Banner --- */
+.network-state-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-radius:10px;margin-bottom:20px;font-size:13px;line-height:1.4;border:1px solid transparent}
+.network-state-banner-active{background:#f0fdf4;border-color:#bbf7d0;color:#14532d}
+.network-state-banner-pre-auth{background:#fefce8;border-color:#fef08a;color:#713f12}
+.network-state-banner-off-network{background:#f8fafc;border-color:#cbd5e1;color:#334155}
+.network-banner-indicator{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.network-state-banner-active .network-banner-indicator{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.2)}
+.network-state-banner-pre-auth .network-banner-indicator{background:#ca8a04;box-shadow:0 0 0 3px rgba(202,138,4,.2)}
+.network-state-banner-off-network .network-banner-indicator{background:#64748b;box-shadow:0 0 0 3px rgba(100,116,139,.2)}
+.network-banner-text{display:flex;align-items:center;gap:10px;flex:1;flex-wrap:wrap}
+.network-banner-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px}
+.network-state-banner-active .network-banner-badge{background:#dcfce7;color:#15803d}
+.network-state-banner-pre-auth .network-banner-badge{background:#fef9c3;color:#854d0e}
+.network-state-banner-off-network .network-banner-badge{background:#e2e8f0;color:#475569}
+.network-banner-action{font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+
+/* --- Data Fuel Gauge & Expiry Countdown --- */
+.data-balance-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.expiry-pill{display:inline-flex;align-items:center;padding:4px 10px;background:var(--sage);color:var(--forest);border:1px solid var(--line);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.03em}
+.fuel-gauge-container{display:flex;align-items:center;gap:24px;margin:16px 0}
+.fuel-gauge-visual{position:relative;width:120px;height:120px;flex-shrink:0;display:grid;place-items:center}
+.fuel-gauge-svg{width:120px;height:120px;transform:rotate(0deg)}
+.fuel-track{stroke:#e7ece5}
+.fuel-fill{transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1),stroke .3s ease}
+.fuel-fill.fuel-good{stroke:#16a34a}
+.fuel-fill.fuel-warning{stroke:#f59e0b}
+.fuel-fill.fuel-danger{stroke:#e11d48}
+.fuel-fill.fuel-unlimited{stroke:#0284c7}
+.fuel-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.fuel-remaining-value{font-size:16px;font-weight:700;line-height:1.1;color:var(--ink)}
+.fuel-remaining-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:2px}
+.fuel-gauge-info{flex:1;min-width:0}
+.data-balance-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+@media(max-width:480px){.fuel-gauge-container{flex-direction:column;align-items:center;gap:16px}.fuel-gauge-info{width:100%}}
+@media(prefers-reduced-motion:reduce){.fuel-fill{transition:none!important}}
+
