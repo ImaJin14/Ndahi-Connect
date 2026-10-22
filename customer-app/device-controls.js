@@ -39,6 +39,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       <label>Wi-Fi device<select name="mac" required>${choices.map((d) => `<option value="${h(d.mac)}">${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}</option>`).join("")}</select></label>
       ${disconnect ? "" : '<p>Select the device you are using. This browser will control approvals. Selecting a replacement revokes the previous browser’s control.</p><label><input type="checkbox" name="confirm" required> I am using the selected device and want this browser to control approvals.</label>'}
       <label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label>
+      ${!info.authenticatorRetired && info.authenticatorEnrolled ? `<label>Authenticator code${disconnect ? "" : " (optional)"}<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" ${disconnect ? "required" : ""}></label>${disconnect ? "" : "<p>You can select this device using your PIN or passkey without an authenticator code.</p>"}` : ""}
       <button type="submit">${disconnect ? "Verify and disconnect" : "Verify and select"}</button>
       ${info.passkeys && window.PublicKeyCredential && navigator.credentials ? '<button type="button" data-device-passkey>Verify with passkey</button>' : ""}
       <button type="button" data-close-proof>Cancel</button><div data-proof-message role="status" aria-live="polite"></div></form>`;
@@ -83,6 +84,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     host.innerHTML = `<form data-forget-proof><h3>Forget saved device</h3><p>${h(device.name || "Unnamed device")} · ending ${h(device.mac.slice(-5))} will need fresh approval to reconnect.${device.main ? " This also removes its main-device control." : ""}</p>
       <label><input type="checkbox" name="confirm" required> Remove this device's saved approval.</label>
       <label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label>
+      ${!info.authenticatorRetired && info.authenticatorEnrolled ? '<label>Authenticator code<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>' : ""}
       <button type="submit">Verify and forget</button>${info.passkeys && window.PublicKeyCredential && navigator.credentials ? '<button type="button" data-forget-passkey>Verify with passkey</button>' : ""}
       <button type="button" data-cancel-forget>Cancel</button><div role="status" data-forget-message></div></form>`;
     host.hidden = false;
