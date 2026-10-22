@@ -43,7 +43,23 @@ export function friendlyError(error, context = "general") {
   return { title: "Something went wrong", message: "We couldn’t complete that request. Please try again." };
 }
 
-export function showError(target, error, { context = "general", actions = [] } = {}) {
+export function whatsappSupportUrl({ phone, voucher, mac, error, context } = {}) {
+  const config = window.NDAHI_CONFIG || {};
+  const supportNumber = String(config.supportPhone || "").replace(/[^0-9]/g, "");
+  if (!supportNumber) return null;
+  const lines = [
+    "Hello NDAHI Support,",
+    "I need assistance with my NDAHI Connect account / connection.",
+    phone ? `Phone: ${phone}` : "",
+    voucher ? `Voucher: ${voucher}` : "",
+    mac ? `Device MAC: ${mac}` : "",
+    context ? `Area: ${context}` : "",
+    error ? `Details: ${error}` : "",
+  ].filter(Boolean);
+  return `https://wa.me/${encodeURIComponent(supportNumber)}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
+export function showError(target, error, { context = "general", actions = [], includeSupport = false, diagnostics = {} } = {}) {
   const copy = friendlyError(error, context), card = document.createElement("div"),
     title = document.createElement("strong"), body = document.createElement("p");
   card.className = "error-card";
@@ -51,7 +67,9 @@ export function showError(target, error, { context = "general", actions = [] } =
   title.textContent = copy.title;
   body.textContent = copy.message;
   card.append(title, body);
-  if (actions.length) {
+  const errorMsg = (error && error.message) || copy.message;
+  const waUrl = whatsappSupportUrl({ phone: diagnostics.phone, voucher: diagnostics.voucher, mac: diagnostics.mac, context: context, error: errorMsg });
+  if (actions.length || (waUrl && includeSupport)) {
     const controls = document.createElement("div");
     controls.className = "error-actions";
     for (const action of actions) {
@@ -61,6 +79,15 @@ export function showError(target, error, { context = "general", actions = [] } =
       button.textContent = action.label;
       button.onclick = action.run;
       controls.append(button);
+    }
+    if (waUrl && includeSupport) {
+      const waLink = document.createElement("a");
+      waLink.className = "button secondary-action whatsapp-support-link";
+      waLink.href = waUrl;
+      waLink.target = "_blank";
+      waLink.rel = "noopener";
+      waLink.textContent = "💬 WhatsApp support";
+      controls.append(waLink);
     }
     card.append(controls);
   }

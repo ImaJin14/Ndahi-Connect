@@ -40,7 +40,7 @@ try {
       const headers = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET, POST, OPTIONS" };
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
-      if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: false, supportedCustomerMethods: ["pin", "passkey", "authenticator"], supportedAdminMethods: ["pin", "passkey", "authenticator"] };
+      if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: false, supportedCustomerMethods: ["pin", "passkey"], supportedAdminMethods: ["pin", "passkey"] };
       if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
       if (url.pathname === "/api/account/access/begin") {
         if (slowStart) await new Promise((resolve) => setTimeout(resolve, 1200));

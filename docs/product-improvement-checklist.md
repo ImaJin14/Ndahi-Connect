@@ -1082,6 +1082,34 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Implemented: replaced administrator password with administrator PIN (Argon2id-hashed `pinHash` / `passwordHash` compatibility), supporting numeric PIN input and passkeys on admin login screen (`admin-app/login.html`, `admin-app/login.js`), and updating initial bootstrap handling (`ADMIN_BOOTSTRAP_PIN` / `ADMIN_PIN` / `ADMIN_BOOTSTRAP_PASSWORD`); completely retired authenticator (TOTP/MFA) challenges across both customer and admin portals returning 410 `AUTHENTICATOR_RETIRED` on `/api/admin/login/mfa` and `/api/admin/profile/mfa*`; standardized sensitive action step-up verifications (`lib/admin-sensitive-actions.mjs`, `lib/admin-proof.mjs`, `admin-app/action-proof.js`) on PIN and passkey; updated public authentication policy to return `supportedAdminMethods: ["pin", "passkey"]`.
   - Automated verification: 904 tests (887 passed, 17 skipped for Postgres/external services, 0 failed), `npm run check` clean, deployment smoke tests and admin proof/login test suites pass.
 
+- [x] **AUTH-109 — Customer portal MFA removal (PIN & Passkey only) ([#109](https://github.com/ImaJin14/Ndahi-Connect/issues/109))**
+  - Implemented: retired legacy TOTP forms, QR codes, recovery codes, and inline authenticator verification across customer portal (`customer-app/login.html`, `customer-app/login.js`, `customer-app/account-recovery.js`, `customer-app/device-controls.js`, `customer-app/portal-content.js`, `customer-app/app.js`); standardized customer authentication policy on PIN and passkey only; customer sign-in landing page updated to always default to Home (`/dashboard`) instead of Account (`/dashboard#account`).
+  - Automated verification: `npm run check`, `npm run check:hotspot`, `npm run check:portal`, and all 887 passing unit/integration tests.
+
+- [x] **UX-110 — Custom device nicknames and per-device data usage breakdown ([#110](https://github.com/ImaJin14/Ndahi-Connect/issues/110))**
+  - Implemented: added `POST /api/account/device-management/nickname` endpoint to assign/clear custom friendly labels for Wi-Fi devices stored on `customer.deviceNicknames[mac]`; updated `lib/wifi-devices.mjs` to prioritize customer nickname in device views; updated `customer-app/wifi-devices.js` to display individual device data consumption (`size(device.usedBytes)`) and inline "Rename" form for connected and saved devices; handled in `customer-app/app.js`.
+  - Automated verification: `npm run check` and `npm test` verified clean.
+
+- [x] **UX-111 — 1-tap quick renewal and interactive USSD Mobile Money waiting screen ([#111](https://github.com/ImaJin14/Ndahi-Connect/issues/111))**
+  - Implemented: added prominent 1-tap "Quick renew" CTA button on the Home active bundle fuel gauge card (`#dataBalance`) triggering `/onboarding.html?action=renew&plan=${planId}&quick=1` which auto-scrolls and focuses payment checkout; added interactive USSD instructions component (`ussdInstructions`) in `customer-app/payment-timing.js` displaying animated pulse and explicit manual USSD authorization instructions for MTN MoMo (`*126#`) and Orange Money (`*150#`) on payment wait screens in `customer-app/onboarding.js` and `customer-app/app.js`.
+  - Automated verification: `test/ui-controls.test.mjs` and full test suite passing.
+
+- [x] **UX-112 — Direct WhatsApp support deep link with prefilled diagnostics ([#112](https://github.com/ImaJin14/Ndahi-Connect/issues/112))**
+  - Implemented: added `whatsappSupportUrl` diagnostic helper in `customer-app/errors.js` formatting pre-populated phone, voucher, MAC, context, and error details; added direct WhatsApp support button in `customer-app/help.html` and `customer-app/help.js`; integrated optional WhatsApp support deep link in friendly error dialogs.
+  - Automated verification: `test/connection-reliability.test.mjs` AST syntax constraints verified without unsupported syntax.
+
+- [x] **PWA-113 — Offline PWA service worker caching for zero-balance bundle repurchase ([#113](https://github.com/ImaJin14/Ndahi-Connect/issues/113))**
+  - Implemented: precaching of core app shell assets in `customer-app/sw.js` (`CACHE_NAME = "ndahi-shell-v2"`); Stale-While-Revalidate network-fallback caching for navigation requests so exhausted-balance users can open `/onboarding.html` without live WAN; cached `/api/plans` response in `localStorage` inside `customer-app/onboarding.js` so plan catalogue displays offline even if upstream internet is cut.
+  - Automated verification: `test/installable-portal.test.mjs` verified.
+
+- [x] **NET-114 — In-portal connection health and latency ping diagnostics ([#114](https://github.com/ImaJin14/Ndahi-Connect/issues/114))**
+  - Implemented: added `runConnectionDiagnostics` in `customer-app/network-status.js` measuring 3-ping average latency, jitter, and packet loss to `/api/status`; provides categorized connection health ratings (Good, Fair, Poor, Offline) and contextual advice distinguishing weak local Wi-Fi from upstream internet outages; added interactive diagnostic tool in `customer-app/help.html` and `customer-app/help.js`.
+  - Automated verification: `npm run check` and full test suite passing.
+
+- [x] **UX-115 — Dark mode and battery saver theme toggle ([#115](https://github.com/ImaJin14/Ndahi-Connect/issues/115))**
+  - Implemented: added CSS variables for dark theme (`:root[data-theme="dark"]` and `@media (prefers-color-scheme: dark)`) in `customer-app/styles.css` with brand-aligned forest/lime palette, high contrast, and reduced OLED battery consumption; added `mountThemeToggle` in `customer-app/portal-nav.js` persisting preference to `localStorage`; added theme toggle button in headers of `customer-app/index.html`, `customer-app/login.html`, `customer-app/onboarding.html`, and `customer-app/help.html` with zero-flash early script in `<head>`.
+  - Automated verification: `npm run check` clean, zero banned syntax AST constraints verified.
+
 
 
 
