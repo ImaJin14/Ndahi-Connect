@@ -86,7 +86,7 @@ async function load() {
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
 <section class="card tab-panel" data-tab-panel="home" id="panel-home"><h2>Overview</h2><div class="metrics">${
     Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : ""}>${h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices">Active Wi-Fi sessions</a>' : h(k.replace(/([A-Z])/g, " $1"))}</div>`
+      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : ""}>${h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices"><span class="live-pulse" aria-hidden="true"></span>Active Wi-Fi sessions</a>' : h(k.replace(/([A-Z])/g, " $1"))}</div>`
     ).join("")
   }</div><p>Manage live connections, vouchers and payments from the navigation.</p><div class="action-row"><a class="button-link" href="/dashboard#devices">View devices</a><a class="button-link secondary-link" href="/dashboard#connections">Network commands &amp; health</a></div></section>
 <section class="card tab-panel" data-tab-panel="devices" id="panel-devices"><h2>Live Wi-Fi devices</h2><div class="device-controls"><button type="button" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>Refresh devices</button><div id="wifiSummary" role="status" aria-live="polite"></div></div><div id="wifiMessage" role="status" aria-live="polite"></div><div id="wifiRecords"></div></section>
@@ -320,7 +320,9 @@ function mountRecordViews(canManagePayments, retired) {
     row: (d) => {
       const stale = !d.fresh;
       const pending = d.disconnect && ["disconnecting", "retrying"].includes(d.disconnect.status);
-      return `<tr><td>${h(d.name || "Unnamed device")}${d.main ? " · Main device" : ""}<br>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" data-wifi-started="${h(d.startedAt || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
+      const isLive = !stale && !pending && Boolean(d.sessionId);
+      const pulse = isLive ? '<span class="live-pulse" title="Live active session" aria-label="Active session"></span>' : '';
+      return `<tr><td>${h(d.name || "Unnamed device")}${d.main ? " · Main device" : ""}<br>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${pulse}${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" data-wifi-started="${h(d.startedAt || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
     },
   });
   void mountRecords($("#sessionRecords"), {

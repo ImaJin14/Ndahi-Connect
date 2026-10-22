@@ -1062,7 +1062,13 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - [x] **UX-096 — Mobile package comparison carousel, bottom sheets, and touch accessibility ([#96](https://github.com/ImaJin14/Ndahi-Connect/issues/96))**
   - Implemented: horizontal CSS scroll-snap carousel for package comparison on mobile viewports (< 640px) with center card alignment; per-GB unit pricing breakdown (`planValue`) and "Popular" (Weekly) / "Best Value" (Unlimited) highlight badges on package cards; mobile modal transformations into swipe-down bottom sheets with top grab handles; minimum 44x44px touch bounding boxes across all interactive controls (buttons, navigation tabs, inputs, selects, language toggles, header links); platform-specific PWA installation guidance distinguishing iOS Safari step-by-step instructions from Chromium native prompts.
   - Automated verification: `test/mobile-experience.test.mjs` unit and CSS structure tests pass; `npm run check` and `test/connection-reliability.test.mjs` AST syntax constraints verified.
-  - Release: Delivered in PR for #96.
+  - Release: Delivered in PR #100 and merged into `main` at `5e2791b`.
+
+- [x] **UX-097 — Admin dashboard mobile inspection cards, debounced search, and live session pulse ([#97](https://github.com/ImaJin14/Ndahi-Connect/issues/97))**
+  - Implemented: responsive table-to-card reflow on mobile/tablet viewports (< 768px) with rounded card borders, background contrast, and 100% full-width action buttons; debounced search across voucher codes, customer phones, and MAC addresses with 250ms delay; quick filter chips for voucher status (All, Active, Expired, Revoked) synchronizing bidirectionally with the status dropdown; live visual activity pulse animation on active router devices and on the Active Wi-Fi sessions metric overview.
+  - Automated verification: `test/admin-mobile-ux.test.mjs` unit and CSS structure tests pass; all 15 real browser journeys in `scripts/check-admin-app-journeys.mjs` verified green.
+  - Release: Delivered in PR for #97.
+
 
 
 
