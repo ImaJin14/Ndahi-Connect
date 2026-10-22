@@ -78,34 +78,38 @@ $("#login").onsubmit = async (event) => {
   }
 };
 
-$("#mfaLogin").onsubmit = async (event) => {
-  event.preventDefault();
-  const button = $("#mfaLogin button:not([type])");
-  try {
-    await runLogin(button, "Verifying…", async () => {
-      $("#message").textContent = "";
-      const response = await fetch(api + "/api/admin/login/mfa", {
-          method: "POST",
-          credentials: "include",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            challengeId: mfaChallengeId,
-            mfaCode: new FormData(event.target).get("mfaCode"),
+if ($("#mfaLogin")) {
+  $("#mfaLogin").onsubmit = async (event) => {
+    event.preventDefault();
+    const button = $("#mfaLogin button:not([type])");
+    try {
+      await runLogin(button, "Verifying…", async () => {
+        $("#message").textContent = "";
+        const response = await fetch(api + "/api/admin/login/mfa", {
+            method: "POST",
+            credentials: "include",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              challengeId: mfaChallengeId,
+              mfaCode: new FormData(event.target).get("mfaCode"),
+            }),
           }),
-        }),
-        result = await response.json();
-      if (!response.ok) {
-        if (result.code === "AUTHENTICATOR_RETIRED") { authenticatorRetired = true; showCredentialsStep(); $("#mfaStep").remove(); }
-        throw Error(result.error || "Verification failed. Use your password or passkey.");
-      }
-      location.href = "/dashboard";
-    });
-  } catch (error) {
-    $("#message").textContent = error.message;
-  }
-};
+          result = await response.json();
+        if (!response.ok) {
+          if (result.code === "AUTHENTICATOR_RETIRED") { authenticatorRetired = true; showCredentialsStep(); $("#mfaStep")?.remove(); }
+          throw Error(result.error || "Verification failed. Use your PIN or passkey.");
+        }
+        location.href = "/dashboard";
+      });
+    } catch (error) {
+      $("#message").textContent = error.message;
+    }
+  };
+}
 
-$("#backToCredentials").onclick = showCredentialsStep;
+if ($("#backToCredentials")) {
+  $("#backToCredentials").onclick = showCredentialsStep;
+}
 
 $("#passkeyLogin").onclick = async () => {
   const button = $("#passkeyLogin"),
