@@ -105,7 +105,7 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
 
-    const responses = await page.evaluate(async ({ api, role }) => {
+    const responses = await page.evaluate(async ({ api, role, password }) => {
       const dashboardResponse = await fetch(api + "/api/admin/dashboard", { credentials: "include" });
       const dashboard = { status: dashboardResponse.status, body: await dashboardResponse.json() };
       const call = async (path, options = {}) => {
@@ -129,10 +129,11 @@ try {
             username: `not-created-${role}`,
             role: "auditor",
             password: "synthetic-new-password",
+            currentPassword: password,
           }),
         }),
       };
-    }, { api, role });
+    }, { api, role, password });
 
     assert.equal(responses.dashboard.status, 200);
     assert.equal(responses.dashboard.body.profile.role, role);
