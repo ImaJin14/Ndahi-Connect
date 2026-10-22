@@ -46,27 +46,34 @@ function applyView(scroll = false) {
   }
 }
 export function mountThemeToggle(button = document.getElementById("themeToggle")) {
+  let stored = null;
+  try { stored = localStorage.getItem("ndahi-theme"); } catch (_) {}
   const apply = (theme) => {
     if (theme) document.documentElement.setAttribute("data-theme", theme);
     else document.documentElement.removeAttribute("data-theme");
   };
-  const stored = localStorage.getItem("ndahi-theme");
   if (stored) apply(stored);
   if (!button) return;
   const updateLabel = () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
-      (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    let isDark = false;
+    try {
+      isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } catch (_) {}
     button.innerHTML = isDark ? '<span aria-hidden="true">☀️</span>' : '<span aria-hidden="true">🌙</span>';
     button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
     button.title = isDark ? "Switch to light mode" : "Switch to dark mode";
   };
   updateLabel();
   button.onclick = () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
-      (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    let isDark = false;
+    try {
+      isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } catch (_) {}
     const next = isDark ? "light" : "dark";
     apply(next);
-    localStorage.setItem("ndahi-theme", next);
+    try { localStorage.setItem("ndahi-theme", next); } catch (_) {}
     updateLabel();
   };
 }

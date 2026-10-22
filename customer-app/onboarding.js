@@ -175,7 +175,8 @@ async function initialize() {
     catalogue = await call("/api/plans");
     try { localStorage.setItem("ndahi-cached-plans", JSON.stringify(catalogue)); } catch (_) {}
   } catch (error) {
-    const cached = localStorage.getItem("ndahi-cached-plans");
+    let cached = null;
+    try { cached = localStorage.getItem("ndahi-cached-plans"); } catch (_) {}
     if (cached) {
       try { catalogue = JSON.parse(cached); } catch (_) {}
     }
