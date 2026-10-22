@@ -97,6 +97,14 @@ export function planValue(plan) {
   };
 }
 
+export function planHighlightBadge(plan) {
+  if (!plan || !plan.id) return "";
+  if (plan.highlightBadge) return plan.highlightBadge;
+  if (plan.id === "weekly") return "Popular";
+  if (plan.id === "unlimited") return "Best Value";
+  return "";
+}
+
 export function renewalEligibility(currentVoucher, cataloguePlans, dailyAvailability) {
   if (!currentVoucher?.planId) {
     return {

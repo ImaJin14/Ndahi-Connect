@@ -4,44 +4,66 @@
 const storageKey = "ndahi-install", snoozeMs = 14 * 864e5;
 let deferred = null, target = null;
 
-if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/sw.js").catch(() => {});
-window.addEventListener("beforeinstallprompt", (event) => {
-  event.preventDefault();
-  deferred = event;
-  render();
-});
-window.addEventListener("appinstalled", () => {
-  deferred = null;
-  remember("installed");
-  render();
-});
+if (typeof window !== "undefined") {
+  if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferred = event;
+    render();
+  });
+  window.addEventListener("appinstalled", () => {
+    deferred = null;
+    remember("installed");
+    render();
+  });
+}
 
-const installed = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-const iPhone = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+export const installed = () => typeof window !== "undefined" && ((typeof matchMedia !== "undefined" && matchMedia("(display-mode: standalone)").matches) || (typeof navigator !== "undefined" && navigator.standalone === true));
+export const isIPhoneUserAgent = (ua, platform, maxTouchPoints) =>
+  /iphone|ipad|ipod/i.test(ua || "") || (platform === "MacIntel" && (maxTouchPoints || 0) > 1);
+export const iPhone = () => typeof navigator !== "undefined" && isIPhoneUserAgent(navigator.userAgent, navigator.platform, navigator.maxTouchPoints);
 // Android's Wi-Fi sign-in popup and in-app browsers are WebViews, which cannot install apps.
-const webView = () => /; wv\)/.test(navigator.userAgent);
+export const webView = () => typeof navigator !== "undefined" && /; wv\)/.test(navigator.userAgent);
 function remember(state) {
   try { localStorage.setItem(storageKey, JSON.stringify({ state, at: Date.now() })); } catch { /* Storage may be unavailable. */ }
 }
-function settled() {
+export function settled() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
-    return saved?.state === "installed" || (saved?.state === "dismissed" && Date.now() - saved.at < snoozeMs);
+    return Boolean(saved && (saved.state === "installed" || (saved.state === "dismissed" && Date.now() - saved.at < snoozeMs)));
   } catch { return false; }
 }
 
-const copy = {
+export const copy = {
   prompt: "Open your bundle, data and devices straight from your home screen.",
-  iphone: "Tap the Share button, then Add to Home Screen. On iPhone, usage alerts work once it's on your Home Screen.",
+  iphone: "Tap the Share button in Safari, then Add to Home Screen. On iPhone, usage alerts work once it's on your Home Screen.",
   webview: "Open portal.ndahiconnect.net in Chrome to install the app on this phone.",
 };
 
+export function getInstallMode(options) {
+  const opts = options || {};
+  if (opts.installed || opts.settled) return null;
+  if (opts.deferred) return "prompt";
+  if (opts.iPhone) return "iphone";
+  if (opts.webView) return "webview";
+  return null;
+}
+
 function render() {
-  if (!target?.isConnected) return;
-  const mode = installed() || settled() ? null : deferred ? "prompt" : iPhone() ? "iphone" : webView() ? "webview" : null;
+  if (!target || !target.isConnected) return;
+  const mode = getInstallMode({
+    installed: installed(),
+    settled: settled(),
+    deferred: Boolean(deferred),
+    iPhone: iPhone(),
+    webView: webView(),
+  });
   target.hidden = !mode;
   if (!mode) return target.replaceChildren();
-  target.innerHTML = `<div class="install-card"><img src="/assets/icons/icon-192.png" alt="" width="48" height="48"><div class="install-copy"><strong>Install NDAHI Connect</strong><p>${copy[mode]}</p></div><div class="install-actions">${mode === "prompt" ? '<button type="button" data-install-app>Install app</button>' : ""}<button type="button" class="secondary-action" data-install-dismiss>Not now</button></div></div>`;
+  const stepHelp = mode === "iphone"
+    ? `<div class="install-steps"><span class="step-badge">1</span> Tap <strong>Share</strong> <span class="step-badge">2</span> Tap <strong>Add to Home Screen</strong></div>`
+    : "";
+  target.innerHTML = `<div class="install-card"><img src="/assets/icons/icon-192.png" alt="" width="48" height="48"><div class="install-copy"><strong>Install NDAHI Connect</strong><p>${copy[mode]}</p>${stepHelp}</div><div class="install-actions">${mode === "prompt" ? '<button type="button" data-install-app>Install app</button>' : ""}<button type="button" class="secondary-action" data-install-dismiss>Not now</button></div></div>`;
   target.querySelector("[data-install-dismiss]").onclick = () => { remember("dismissed"); render(); };
   const install = target.querySelector("[data-install-app]");
   if (install) install.onclick = async () => {
