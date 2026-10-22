@@ -24,7 +24,7 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
     const policy = await (await get(api, '/api/authentication-policy')).json();
     assert.equal(policy.authenticatorRetired, true, 'Authenticator retirement must be recorded');
     assert.deepEqual(policy.supportedCustomerMethods, ['pin', 'passkey']);
-    assert.deepEqual(policy.supportedAdminMethods, ['password', 'passkey']);
+    assert.deepEqual(policy.supportedAdminMethods, ['pin', 'passkey']);
     passed.push('Persisted retirement and supported authentication policy');
   }
   const plans = await (await get(api, '/api/plans')).json();

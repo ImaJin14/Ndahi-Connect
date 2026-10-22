@@ -46,7 +46,7 @@ test('deployment rejects wrong payment provider', async t => {
 });
 
 test('retirement deployment smoke validates the persisted effective policy', async t => {
- const policy={authenticatorRetired:true,supportedCustomerMethods:['pin','passkey'],supportedAdminMethods:['password','passkey']};
+ const policy={authenticatorRetired:true,supportedCustomerMethods:['pin','passkey'],supportedAdminMethods:['pin','passkey']};
  const options=await fixture(t,{'/api/authentication-policy':()=>Response.json(policy)});
  assert.equal((await checkDeployment({...options,expectAuthenticatorRetired:true})).length,6);
  policy.authenticatorRetired=false;

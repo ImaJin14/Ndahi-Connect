@@ -115,24 +115,16 @@ try {
     await page.getByText("Invalid PIN", { exact: true }).waitFor();
   }, { width });
 
-  await scenario("admin login and MFA reject duplicate submits and lock Back", async (page) => {
-    const credentials = await hold(page, "/api/admin/login", { mfaRequired: true, challengeId: "fixture-mfa" }, 200);
+  await scenario("admin login rejects duplicate submits and disables controls", async (page) => {
+    const credentials = await hold(page, "/api/admin/login", { authenticated: true, user: { username: "fixture-owner", role: "owner" } }, 200);
     await page.goto(`${admin}/login`);
     await page.locator('[name="username"]').fill("fixture-owner");
-    await page.locator("#adminPassword").fill("fixture-password");
+    await page.locator("#adminPassword").fill("fixture-pin");
     await submitTwice(page, "#login"); await credentials.started;
     assert.equal(await page.locator("#passkeyLogin").isDisabled(), true);
     assert.equal(await page.locator("#togglePassword").textContent(), "Show");
-    credentials.release(); await idle(page, "#mfaLogin button:not([type])");
+    credentials.release(); await page.waitForURL("**/dashboard");
     assert.equal(credentials.count(), 1);
-    const mfa = await hold(page, "/api/admin/login/mfa", { error: "Invalid code" });
-    await page.locator('[name="mfaCode"]').fill("123456");
-    await submitTwice(page, "#mfaLogin"); await mfa.started;
-    assert.equal(await page.locator("#backToCredentials").isDisabled(), true);
-    mfa.release(); await idle(page, "#backToCredentials");
-    assert.equal(mfa.count(), 1);
-    assert.equal(await page.locator("#mfaLogin button:not([type])").textContent(), "Verify and sign in");
-    await page.getByText("Invalid code", { exact: true }).waitFor();
   });
 
   for (const confirm of [false, true]) await scenario(`PIN reset ${confirm ? "confirmation" : "request"} handles a missing submitter and retries`, async (page) => {

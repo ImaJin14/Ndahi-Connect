@@ -1078,6 +1078,11 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Implemented: supported optional `replaceActive: true` flag in `/api/admin/vouchers/generate`; blocks active bundle customers by default with structured 409 `ACTIVE_BUNDLE_EXISTS` containing active bundle metadata; when `replaceActive: true` is supplied, transitions previous voucher to `status: "replaced"`, records `replacedAt`, `replacedByAdminId`, and `replacedByVoucherId`, queues `disconnect_voucher` on the old voucher and `sync_voucher` on the new voucher, records audit event `voucher.admin_replaced`, and returns replacement confirmation; added confirmation checkbox toggle in admin UI voucher builder (`admin-app/app.js`).
   - Automated verification: `test/admin-vouchers.test.mjs` unit tests verify 409 guard by default, successful replacement with commands and audit logs on `replaceActive: true`, and form string boolean conversion.
 
+- [x] **AUTH-102 — Standardize authentication on PIN and Passkey across customer and admin apps ([#102](https://github.com/ImaJin14/Ndahi-Connect/issues/102))**
+  - Implemented: replaced administrator password with administrator PIN (Argon2id-hashed `pinHash` / `passwordHash` compatibility), supporting numeric PIN input and passkeys on admin login screen (`admin-app/login.html`, `admin-app/login.js`), and updating initial bootstrap handling (`ADMIN_BOOTSTRAP_PIN` / `ADMIN_PIN` / `ADMIN_BOOTSTRAP_PASSWORD`); completely retired authenticator (TOTP/MFA) challenges across both customer and admin portals returning 410 `AUTHENTICATOR_RETIRED` on `/api/admin/login/mfa` and `/api/admin/profile/mfa*`; standardized sensitive action step-up verifications (`lib/admin-sensitive-actions.mjs`, `lib/admin-proof.mjs`, `admin-app/action-proof.js`) on PIN and passkey; updated public authentication policy to return `supportedAdminMethods: ["pin", "passkey"]`.
+  - Automated verification: 904 tests (887 passed, 17 skipped for Postgres/external services, 0 failed), `npm run check` clean, deployment smoke tests and admin proof/login test suites pass.
+
+
 
 
 

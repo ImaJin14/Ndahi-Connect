@@ -66,12 +66,12 @@ async function fixture(t, { retired = true } = {}) {
   return { ...f, keys, call, proof };
 }
 
-test("retired admin password/passkey login ignores stale TOTP flags and rejects the PIN alias and old challenges", async t => {
+test("retired admin pin/passkey login ignores stale TOTP flags and old challenges", async t => {
   const f = await fixture(t);
   await f.store.transaction(s => s.adminLoginChallenges.push({ id: "unexpired-old-challenge", userId: "owner", ip: "127.0.0.1", attempts: 0, used: false,
     expiresAt: new Date(+f.now() + 300000).toISOString() }));
-  assert.equal((await f.call("/api/admin/login", { username: "owner", pin: password })).status, 401);
-  const login = await f.call("/api/admin/login", { username: "owner", password });
+  assert.equal((await f.call("/api/admin/login", { username: "owner", pin: "wrong-pin" })).status, 401);
+  const login = await f.call("/api/admin/login", { username: "owner", pin: password });
   assert.equal(login.status, 200); assert.equal(login.body.authenticated, true); assert.equal(login.body.mfaEnabled, false);
   assert.match(login.headers.get("set-cookie"), /admin_session=/);
   for (const path of ["/api/admin/login/mfa", profile + "/mfa", profile + "/mfa/enroll", profile + "/mfa/confirm"]) {
