@@ -225,7 +225,8 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   assert.equal(locked.json.locked, true);
   await f.store.transaction((s) => { delete s.customers.find((c) => c.id === customerId).pinLockedUntil; });
   await f.call("/api/account/login/pin", "POST", { phone, pin: "1357" });
-  const enroll = await f.call("/api/account/security/mfa/enroll", "POST", {});
+  const enroll = await f.call("/api/account/security/mfa/enroll", "POST", { pin: "1357" });
+  assert.equal(enroll.response.status, 200);
   const code = totpCode(enroll.json.secret, Date.now());
   await f.call("/api/account/security/mfa/confirm", "POST", { challengeId: enroll.json.challengeId, code });
   const alerts = (await f.store.snapshot()).securityAlerts.filter((a) => a.customerId === customerId);
