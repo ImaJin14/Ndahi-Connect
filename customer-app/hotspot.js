@@ -198,7 +198,7 @@ devices.onclick = async (event) => {
         body: JSON.stringify({ mac: target.dataset.wifiDevice, sessionId: target.dataset.wifiSession, startedAt: target.dataset.wifiStarted, retainApproval: true }),
       });
       if (!result.response.ok) throw responseError(result.response, result.body);
-      watchedDisconnect = result.body.operation?.id;
+      watchedDisconnect = result.body.operation && result.body.operation.id;
       devices.innerHTML = wifiDeviceList(result.body);
       message.textContent = "Disconnection requested. Wait for confirmation before connecting another device.";
       scheduleRefresh();
