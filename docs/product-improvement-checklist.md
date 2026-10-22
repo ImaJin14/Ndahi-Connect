@@ -1048,3 +1048,9 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Implemented: 30 minutes of trusted observed absence; main exemption, grant/reconnect fencing, router uptime/reboot and outage baselines, durable scoped cleanup, app invalidation and one Devices notification with pending/confirmed/failed cleanup. Exact `WIFI_SECONDARY_EXPIRY_ENABLED=true` opt-in; default off, including accurate customer policy wording.
   - Automated: focused boundary/race/router/rollout tests and existing API/browser regressions. PostgreSQL CI must verify persistence, competing workers and rollback on the exact PR revision. A locally skipped database test does not establish persistence acceptance.
   - Rollout: source/PR work only; not merged, enabled or physically verified. See [rollout and pilot](operations/secondary-approval-expiry.md). Actual API/bridge/frontend revisions, strict deployed smoke and physical router/device acceptance remain pending.
+
+- [-] **UX-094 — Customer Home data fuel gauge and truthful network state banner ([#94](https://github.com/ImaJin14/Ndahi-Connect/issues/94))**
+  - Implemented: glanceable circular SVG data progress ring on Customer Home showing remaining vs. quota with status classes (`fuel-good`, `fuel-warning`, `fuel-danger`, `fuel-unlimited`), contextual expiry countdown pill (`formatExpiryCountdown`), and truthful network state banner distinguishing Active Starlink Wi-Fi, Pre-Auth Captive, and Off-network Mobile Data with deep links. Fallback `<progress>` and `data-` attributes preserved for full accessibility; reduced motion supported.
+  - Automated verification: 871 local unit and integration tests pass, including new `test/data-fuel-gauge.test.mjs` verifying boundary conditions, countdown formatting, and state truthfulness. Mobile and captive AST syntax constraints verified.
+  - Release: PR review and CI pending; physical device verification separate.
+
