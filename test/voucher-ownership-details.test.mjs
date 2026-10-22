@@ -9,7 +9,7 @@ async function fixture(t) {
   const store = createStore({ persistent: false }), secret = randomUUID(), roles = ["owner", "operator", "auditor", "reseller"], tokens = Object.fromEntries(roles.map((r) => [r, randomUUID()]));
   await store.transaction((s) => {
     for (const role of roles) {
-      s.adminUsers.push({ id: `staff-${role}`, username: role, active: true, role, passwordHash: "PRIVATE_PASSWORD", passkeys: [{ id: "PRIVATE_PASSKEY" }] });
+      s.adminUsers.push({ id: `staff-${role}`, username: role, active: true, role, passwordHash: "PRIVATE_PASSWORD", passkeys: [{ id: "self-key-" + role, label: "Own key", createdAt: at, publicKey: "PRIVATE_PASSKEY_MATERIAL" }] });
       s.adminSessions.push({ userId: `staff-${role}`, tokenHash: hashSecret(tokens[role], secret), role: "owner", csrfToken: "csrf", expiresAt: "2030-01-02T00:00:00Z" });
     }
     s.zone.authenticationMigrationReview = { evidenceReference: "PRIVATE_MIGRATION_REVIEW" };
@@ -114,7 +114,7 @@ test("disabled, deleted, demoted and reassigned staff lose access without reusin
   await f.store.transaction((s) => { s.adminUsers = s.adminUsers.filter((u) => u.id !== "staff-operator"); });
   assert.equal((await f.call("operator", details("linked"))).status, 401, "missing user must not fall back to session owner role");
   await f.store.transaction((s) => { s.adminUsers.find((u) => u.id === "staff-auditor").role = "unknown-role"; });
-  assert.equal((await f.call("auditor", records())).status, 403);
+  assert.equal((await f.call("auditor", records())).status, 401, "unknown current role invalidates the session");
   await f.store.transaction((s) => { s.adminUsers.find((u) => u.id === "staff-reseller").active = true; s.vouchers.find((v) => v.id === "stock").assignedResellerId = "another-reseller"; });
   assert.equal((await f.call("reseller", details("stock"))).status, 404);
   assert.deepEqual((await f.call("reseller", records())).body.items.map((v) => v.id), ["resale"]);
@@ -166,4 +166,32 @@ test("exports page through exactly the authorized filtered stock and escape spre
   const owner = await f.call("owner", "/api/admin/export?status=available");
   assert.equal(owner.text.split("\n").length - 1, 116);
   assert.ok(owner.text.includes(`"'=FORMULA(""unsafe"")"`));
+});
+
+test("retired authentication profile stays effective for all voucher roles without broadening contact scope", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    s.zone.authenticatorRetirement = { version: 1, retiredAt: at, evidenceReference: "PRIVATE_RETIREMENT" };
+    s.adminProfile.mfaEnabled = true;
+    s.adminProfile.totpSecret = "PRIVATE_LEGACY_FACTOR";
+  });
+  for (const role of ["owner", "operator", "auditor", "reseller"]) {
+    const dashboard = await f.call(role, "/api/admin/dashboard");
+    assert.equal(dashboard.status, 200, role);
+    assert.equal(dashboard.body.profile.role, role);
+    assert.equal(dashboard.body.profile.authenticatorRetired, true);
+    assert.equal(dashboard.body.profile.mfaEnabled, false);
+    assert.deepEqual(dashboard.body.profile.passkeyList, [{ id: "self-key-" + role, label: "Own key", createdAt: at }]);
+    assert.doesNotMatch(dashboard.text, /PRIVATE_/);
+    const listing = await f.call(role, records());
+    assert.equal(listing.status, 200);
+    assert.equal(listing.body.total, role === "reseller" ? 2 : 5);
+    if (role === "auditor" || role === "reseller") {
+      assert.doesNotMatch(dashboard.text, /670000|699999|REFERENCE-/);
+      const detail = await f.call(role, details(role === "reseller" ? "stock" : "linked"));
+      assert.equal(detail.status, 200);
+      assert.equal(detail.body.payment, undefined);
+      assert.equal(detail.body.ownership.accountPhone, undefined);
+    }
+  }
 });

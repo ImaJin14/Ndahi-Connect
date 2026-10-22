@@ -160,10 +160,6 @@ services:
         value: owner
       - key: ADMIN_BOOTSTRAP_PASSWORD
         sync: false
-      - key: ADMIN_MFA_ENABLED
-        value: "true"
-      - key: ADMIN_MFA_CODE
-        sync: false
       - key: WEBAUTHN_RP_ID
         value: staging-admin.ndahiconnect.net
       - key: WEBAUTHN_RP_NAME

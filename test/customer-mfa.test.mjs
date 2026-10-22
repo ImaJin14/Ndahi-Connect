@@ -27,7 +27,7 @@ async function fixture(t) {
     return { status: response.status, body: await response.json(), headers: response.headers };
   };
   return { store, call, now: () => now, advance(seconds) { now = new Date(+now + seconds * 1000); },
-    start: (options) => call(root + "/enroll", {}, options),
+    start: (options) => call(root + "/enroll", { pin: "2468" }, options),
     confirm: (enrollment, code, options) => call(root + "/confirm", { challengeId: enrollment.body.challengeId, code: code ?? totpCode(enrollment.body.secret, +now) }, options) };
 }
 

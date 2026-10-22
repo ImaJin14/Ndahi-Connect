@@ -154,7 +154,7 @@ test("AUTH-003 passkeys can be renamed and removed by their owner only", async (
   assert.equal(emptyLabel.response.status, 400);
   const missing = await f.call("/api/account/passkeys/rename", "POST", { passkeyId: "does-not-exist", label: "x" });
   assert.equal(missing.response.status, 404);
-  const removed = await f.call("/api/account/passkeys/remove", "POST", { passkeyId: "key-1" });
+  const removed = await f.call("/api/account/passkeys/remove", "POST", { passkeyId: "key-1", pin: "2468" });
   assert.equal(removed.response.status, 200);
   assert.equal(removed.json.passkeys, 0);
   assert.equal((await f.call("/api/account/security")).json.passkeys.length, 0);
@@ -225,7 +225,8 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   assert.equal(locked.json.locked, true);
   await f.store.transaction((s) => { delete s.customers.find((c) => c.id === customerId).pinLockedUntil; });
   await f.call("/api/account/login/pin", "POST", { phone, pin: "1357" });
-  const enroll = await f.call("/api/account/security/mfa/enroll", "POST", {});
+  const enroll = await f.call("/api/account/security/mfa/enroll", "POST", { pin: "1357" });
+  assert.equal(enroll.response.status, 200);
   const code = totpCode(enroll.json.secret, Date.now());
   await f.call("/api/account/security/mfa/confirm", "POST", { challengeId: enroll.json.challengeId, code });
   const alerts = (await f.store.snapshot()).securityAlerts.filter((a) => a.customerId === customerId);
@@ -236,23 +237,23 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   assert.doesNotMatch(serialized, /1357|0000/, "alert content must never include PIN values");
 });
 
-test("AUTH-005 admin authenticator reset also clears recovery codes so an old code can't resurface after re-enrollment", async (t) => {
+test("AUTH-005 legacy reset cannot destroy existing factors; verified recovery remains available during preparation", async (t) => {
   const f = await fixture(t);
   const { customerId, phone } = await account(f);
   const secret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
+  await f.store.transaction(s => { s.customers.find(c => c.id === customerId).totpSecret = secret; });
   const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
-  const oldCode = generated.json.codes[0];
-  const adminJar = {};
+  const before = (await f.store.snapshot()).customers.find(c => c.id === customerId);
   const adminLogin = await f.call("/api/admin/login", "POST", { pin: "9999" }, { headers: { origin: "http://admin.test" } });
-  adminJar.admin_session = adminLogin.setCookie.split(";")[0];
-  await f.call("/api/admin/customers/reset-authenticator", "POST", { customerId }, { cookie: adminJar.admin_session, headers: { origin: "http://admin.test" } });
-  const newSecret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = newSecret; });
+  const reset = await f.call("/api/admin/customers/reset-authenticator", "POST", { customerId }, { cookie: adminLogin.setCookie.split(";")[0], headers: { origin: "http://admin.test" } });
+  assert.equal(reset.response.status, 410);
+  assert.equal(reset.json.code, "AUDITED_RECOVERY_REQUIRED");
+  const after = (await f.store.snapshot()).customers.find(c => c.id === customerId);
+  for (const key of ["pinHash", "totpSecret", "passkeys", "recoveryCodes"]) assert.deepEqual(after[key], before[key]);
   delete f.jar.customer_session;
   const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone });
-  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: oldCode });
-  assert.equal(attempt.response.status, 401);
+  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: generated.json.codes[0] });
+  assert.equal(attempt.response.status, 200);
 });
 
 async function authenticatorCustomer(f, phone) {
@@ -310,7 +311,7 @@ test("DEP-006 owners can deactivate a compromised administrator, ending their se
   const admin = { headers: { origin: "http://admin.test" } };
   const owner = (await f.call("/api/admin/login", "POST", { pin: "9999" }, admin)).setCookie.split(";")[0];
   const asOwner = (path, data) => f.call(path, data ? "POST" : "GET", data, { ...admin, cookie: owner });
-  const created = await asOwner("/api/admin/users", { username: "night-operator", role: "operator", password: "operator-password-123" });
+  const created = await asOwner("/api/admin/users", { username: "night-operator", role: "operator", password: "operator-password-123", currentPassword: "9999" });
   assert.equal(created.response.status, 201);
   const operatorLogin = (await f.call("/api/admin/login", "POST", { username: "night-operator", password: "operator-password-123" }, admin));
   assert.equal(operatorLogin.response.status, 200);
@@ -323,12 +324,12 @@ test("DEP-006 owners can deactivate a compromised administrator, ending their se
   if (ownerId) assert.equal((await asOwner("/api/admin/users/deactivate", { userId: ownerId })).response.status, 409, "no self-lockout");
   assert.equal((await asOwner("/api/admin/users/deactivate", { userId: "missing" })).response.status, 404);
 
-  const deactivated = await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id });
+  const deactivated = await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id, currentPassword: "9999" });
   assert.equal(deactivated.response.status, 200);
   assert.deepEqual(deactivated.json, { user: { id: created.json.user.id, username: "night-operator", role: "operator", active: false }, sessionsEnded: 1 });
   assert.equal((await asOperator("/api/admin/dashboard")).response.status, 401, "existing session ended");
   assert.equal((await f.call("/api/admin/login", "POST", { username: "night-operator", password: "operator-password-123" }, admin)).response.status, 401);
-  assert.equal((await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id })).json.sessionsEnded, 0, "repeating is harmless");
+  assert.equal((await asOwner("/api/admin/users/deactivate", { userId: created.json.user.id, currentPassword: "9999" })).json.sessionsEnded, 0, "repeating is harmless");
   const state = await f.store.snapshot();
   assert.equal(state.auditLogs.filter((entry) => entry.action === "admin.user_deactivated").length, 1);
 });
@@ -337,7 +338,7 @@ test("DEP-006 a session belonging to an inactive administrator is rejected", asy
   const f = await fixture(t);
   const admin = { headers: { origin: "http://admin.test" } };
   const owner = (await f.call("/api/admin/login", "POST", { pin: "9999" }, admin)).setCookie.split(";")[0];
-  await f.call("/api/admin/users", "POST", { username: "auditor-one", role: "auditor", password: "auditor-password-123" }, { ...admin, cookie: owner });
+  await f.call("/api/admin/users", "POST", { username: "auditor-one", role: "auditor", password: "auditor-password-123", currentPassword: "9999" }, { ...admin, cookie: owner });
   const auditor = (await f.call("/api/admin/login", "POST", { username: "auditor-one", password: "auditor-password-123" }, admin)).setCookie.split(";")[0];
   await f.store.transaction((s) => { s.adminUsers.find((u) => u.username === "auditor-one").active = false; });
   assert.equal((await f.call("/api/admin/dashboard", "GET", undefined, { ...admin, cookie: auditor })).response.status, 401);

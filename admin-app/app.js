@@ -1,3 +1,5 @@
+import { requestAdminActionProof } from "/action-proof.js";
+import { mountAdminAuthenticationMigration } from "/authentication-migration.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
@@ -26,7 +28,7 @@ function revenueSummary(sales) {
     line("Total revenue", sales.online.bundles + sales.vouchers.bundles, fcfa(sales.online.amount + sales.vouchers.amount))}${
     line("Gifts (not revenue)", sales.gifts.bundles, `${fcfa(sales.gifts.faceValue)} face value`)}</tbody></table></div><p class="form-help">Voucher sales count once a voucher is activated; resale codes count when a customer claims them, and revoked sales are excluded.${sales.unclassified.bundles ? ` ${h(bundles(sales.unclassified.bundles))} generated before sale tracking ${sales.unclassified.bundles === 1 ? "is" : "are"} unclassified: mark each as sold or gift in Vouchers.` : ""}</p>`;
 }
-let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false;
+let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 window.addEventListener("unhandledrejection", (event) => {
@@ -45,7 +47,7 @@ async function call(path, options = {}) {
       },
     }),
     j = await r.json();
-  if (r.status === 401) {
+  if (r.status === 401 && j.code !== "VERIFICATION_FAILED") {
     location.href = "/login";
     throw Error("Login required");
   }
@@ -69,6 +71,7 @@ async function runAction(button, text, task, message = "#actionMessage") {
 async function load() {
   const x = await call("/api/admin/dashboard");
   adminRole = x.profile.role;
+  adminAuthenticatorRetired = x.profile.authenticatorRetired === true;
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
   csrfToken = x.csrfToken;
@@ -100,7 +103,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
 <section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${h(x.integrations.mikrotik)}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${["live", "standalone"].includes(x.integrations.omada) ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>${x.integrations.omada === "standalone" ? "Access points run standalone. No Omada controller is used." : "Check controller connectivity and access-point availability."}</p></div>${x.integrations.omada === "standalone" ? "" : '<button class="secondary-action" id="checkOmada">Check connection</button>'}</article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Account security</h3><span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span></div><p>Protect the ${h(x.profile.role)} account with an authenticator app.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button><button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div></form></article>
+  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>${x.profile.authenticatorRetired ? "Password & passkeys" : "Account security"}</h3>${x.profile.authenticatorRetired ? "" : `<span class="status-chip ${x.profile.mfaEnabled ? "status-good" : "status-warning"}">MFA ${x.profile.mfaEnabled ? "on" : "off"}</span>`}</div><p>${x.profile.authenticatorRetired ? "Use your password or a passkey. Sensitive changes require fresh verification." : `Protect the ${h(x.profile.role)} account with an authenticator app.`}</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button>${x.profile.authenticatorRetired ? "" : `<button type="button" class="secondary-action" id="enrollMfa">${x.profile.mfaEnabled ? "Reset authenticator" : "Configure MFA"}</button>${x.profile.mfaEnabled ? '<button type="button" class="text-action" id="disableMfa">Disable</button>' : ""}<div id="mfaEnrollment"></div>`}</form>${x.profile.authenticatorRetired ? `<ul>${(x.profile.passkeyList || []).map((key,index) => `<li>${h(key.label || `Passkey ${index+1}`)} <button type="button" data-remove-admin-passkey="${h(key.id)}">Remove passkey</button></li>`).join("")}</ul>` : ""}</article>
 </div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
 ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" role="tabpanel" aria-labelledby="tab-network-setup" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="tab-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
@@ -221,7 +224,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     });
   };
   void mountNetworkSetup($("#networkSetup"), call);
-  mountRecordViews(canManagePayments);
+  mountRecordViews(canManagePayments, x.profile.authenticatorRetired);
   $("#syncUsage").onclick = async () => {
     await runAction($("#syncUsage"), "Syncing…", async () => {
       const result = await call("/api/admin/integrations/sync-usage", {
@@ -240,6 +243,14 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         : result.error;
     }, "#integrationMessage");
   };
+  document.querySelectorAll("[data-remove-admin-passkey]").forEach(button => { button.onclick = async () => {
+    try { await runAction(button, "Removing…", async () => {
+      const credentialId = button.dataset.removeAdminPasskey;
+      const proof = await requestAdminActionProof({ call, purpose: "passkey_remove", input: { credentialId } });
+      await call("/api/admin/profile/passkeys/remove", { method: "POST", body: JSON.stringify({ credentialId, ...proof }) });
+      await load();
+    }, "#integrationMessage"); } catch (error) { $("#integrationMessage").textContent = error.message; }
+  }; });
   $("#enrollPasskey").onclick = async () => {
     if (passkeyEnrollmentRunning) return;
     const button = $("#enrollPasskey");
@@ -247,7 +258,8 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     button.disabled = true;
     button.textContent = "Waiting for device…";
     try {
-      let result = await call("/api/admin/profile/passkeys/options", { method: "POST", body: "{}" });
+      const proof = await requestAdminActionProof({ call, purpose: "passkey_add" });
+      let result = await call("/api/admin/profile/passkeys/options", { method: "POST", body: JSON.stringify(proof) });
       if (result.options.rp?.id && result.options.rp.id !== location.hostname) {
         throw Error(`Open the admin panel at http://${result.options.rp.id}:8081 before enrolling this passkey.`);
       }
@@ -264,11 +276,11 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
       button.textContent = "Add passkey";
     }
   };
-  $("#enrollMfa").onclick = async () => {
+  if ($("#enrollMfa")) $("#enrollMfa").onclick = async () => {
     await runAction($("#enrollMfa"), "Preparing…", async () => {
+      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "enroll" } });
       const result = await call("/api/admin/profile/mfa/enroll", {
-        method: "POST",
-        body: "{}",
+        method: "POST", body: JSON.stringify({ ...proof, action: "enroll" }),
       });
       $("#mfaEnrollment").innerHTML =
         `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
@@ -276,7 +288,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         await runAction($("#confirmMfa"), "Verifying…", async () => {
           await call("/api/admin/profile/mfa/confirm", {
             method: "POST",
-            body: JSON.stringify({ code: $("#totpCode").value }),
+            body: JSON.stringify({ code: $("#totpCode").value, challengeId: result.challengeId }),
           });
           await load();
         }, "#integrationMessage");
@@ -285,22 +297,22 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   };
   if ($("#disableMfa")) $("#disableMfa").onclick = async () => {
     await runAction($("#disableMfa"), "Disabling…", async () => {
+      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "set", enabled: false } });
       await call("/api/admin/profile/mfa", {
-        method: "POST",
-        body: JSON.stringify({ enabled: false }),
+        method: "POST", body: JSON.stringify({ ...proof, action: "set", enabled: false }),
       });
       await load();
     }, "#integrationMessage");
   };
 }
-function mountRecordViews(canManagePayments) {
+function mountRecordViews(canManagePayments, retired) {
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
   void mountRecords($("#customerRecords"), {
     call,
     collection: "customers",
     title: "Customers",
     headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${c.authenticatorEnrolled && adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover authenticator</button>` : ""}</td></tr>`,
+    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${(retired || c.authenticatorEnrolled) && adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">${retired ? "Recover PIN" : "Recover authenticator"}</button>` : ""}</td></tr>`,
   });
   wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
@@ -318,6 +330,12 @@ function mountRecordViews(canManagePayments) {
     headers: ["Device", "Device ID", "Status", "Last seen", "Actions"],
     row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
+  if (!retired) {
+  const migrationPanel = document.createElement("div");
+  migrationPanel.id = "adminAuthenticationMigration";
+  $("#panel-connections").append(migrationPanel);
+  mountAdminAuthenticationMigration({ container: migrationPanel, call });
+  }
   void mountRecords($("#voucherRecords"), {
     call,
     collection: "vouchers",
@@ -416,7 +434,7 @@ $("#app").onclick = async (e) => {
         body: JSON.stringify({ voucherId: button.dataset.voucher }),
       });
     } else if (button.dataset.resetAuthenticator) {
-      openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button }); return;
+      openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button, retired: adminAuthenticatorRetired }); return;
     } else if (button.dataset.customer) {
       const restoring = button.dataset.suspended === "true";
       if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;

@@ -49,7 +49,7 @@ For local plain HTTP only, `.env` sets `SESSION_COOKIE_SECURE=false`. Production
 - Admin login/logout, bundle creation, voucher generation/revocation, customer suspension, refunds, payment corrections, device disconnects, MFA changes and zone configuration changes are audited.
 - Secrets and provider/RouterOS credentials remain backend environment variables and are never emitted in frontend configuration.
 
-The customer portal and admin dashboard support Google Authenticator and other RFC-compatible TOTP apps through an `otpauth://` setup URI. `ADMIN_MFA_ENABLED=true` with `ADMIN_MFA_CODE` remains available only as an environment-managed administrator recovery mechanism.
+The final sign-in methods are customer PIN/passkey and administrator password/passkey. During verified migration preparation, existing authenticators remain available; a session alone cannot enroll or replace a credential. Retirement requires the persisted, versioned readiness gate and a separate explicit cutover. Follow [authentication preparation](docs/operations/authentication-migration.md) and [retirement rollout](docs/operations/authenticator-retirement.md) before changing legacy configuration.
 
 ## Configuration
 

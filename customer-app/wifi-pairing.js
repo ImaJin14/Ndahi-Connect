@@ -73,7 +73,7 @@ export async function mountPairingControls({ container, call, onChanged }) {
           };
         }
       }
-      const requests = result.requests || [];
+      const requests = (result.requests || []).filter((p) => ["pending", "awaiting_code", "connecting"].includes(p.status));
       Array.from(list.children).forEach((row) => { if (!requests.some((p) => p.id === row.dataset.request)) row.remove(); });
       if (requests.length && !list.children.length) list.textContent = "";
       for (const request of requests) {
@@ -103,7 +103,7 @@ export async function mountPairingControls({ container, call, onChanged }) {
           form.querySelector("[data-pairing-decline]").onclick = () => { void act(true); };
         }
       }
-      if (!requests.length) list.textContent = "No connection requests yet.";
+      if (!requests.length) list.textContent = "No pending connection requests. Past activity is in Notifications → Devices/access.";
     } catch (error) { showError(output, error); }
     if (container.isConnected) timer = setTimeout(() => { if (!document.hidden) void refresh(); else timer = setTimeout(refresh, 5000); }, 5000);
   }

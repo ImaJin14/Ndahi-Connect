@@ -3,16 +3,29 @@ import { runButton } from "/shared/pending.js";
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector);
 let mfaChallengeId = "";
+let authenticatorRetired = false;
+const policy = fetch(api + "/api/authentication-policy", { credentials: "include", cache: "no-store" })
+  .then(async (response) => {
+    if (!response.ok) return null;
+    const state = await response.json();
+    if (state.authenticatorRetired === true) {
+      authenticatorRetired = true; $("#mfaStep")?.remove();
+    }
+    return state;
+  }).catch(() => null);
 const runLogin = (button, text, task) => runButton(button, text, task, {
   controls: [$("#login button:not([type])"), $("#mfaLogin button:not([type])"), $("#backToCredentials"), $("#passkeyLogin")],
 });
-const loginNotice = sessionStorage.getItem("ndahi-admin-login-notice");
+let loginNotice;
+try { loginNotice = sessionStorage.getItem("ndahi-admin-login-notice"); } catch (_) { /* Optional storage. */ }
 if (loginNotice) {
   $("#message").textContent = loginNotice;
-  sessionStorage.removeItem("ndahi-admin-login-notice");
+  try { sessionStorage.removeItem("ndahi-admin-login-notice"); } catch (_) { /* Optional storage. */ }
 }
 
-function showMfaStep(challengeId) {
+async function showMfaStep(challengeId) {
+  await policy;
+  if (authenticatorRetired) { $("#message").textContent = "Authenticator sign-in has been retired. Refresh and use your administrator password or passkey."; return; }
   mfaChallengeId = challengeId;
   $("#credentialsStep").hidden = true;
   $("#mfaStep").hidden = false;
@@ -76,7 +89,10 @@ $("#mfaLogin").onsubmit = async (event) => {
           }),
         }),
         result = await response.json();
-      if (!response.ok) throw Error(result.error || "MFA verification failed");
+      if (!response.ok) {
+        if (result.code === "AUTHENTICATOR_RETIRED") { authenticatorRetired = true; showCredentialsStep(); $("#mfaStep").remove(); }
+        throw Error(result.error || "Verification failed. Use your password or passkey.");
+      }
       location.href = "/dashboard";
     });
   } catch (error) {
@@ -128,3 +144,4 @@ $("#passkeyLogin").onclick = async () => {
       : error.message;
   }
 };
+if (!window.PublicKeyCredential || !navigator.credentials) $("#passkeyLogin").hidden = true;

@@ -44,3 +44,11 @@ test('deployment rejects wrong payment provider', async t => {
   const options = await fixture(t, { '/api/plans': () => Response.json({ plans: [{}], paymentProvider: 'mock' }) });
   await assert.rejects(checkDeployment(options), /Unexpected payment provider/);
 });
+
+test('retirement deployment smoke validates the persisted effective policy', async t => {
+ const policy={authenticatorRetired:true,supportedCustomerMethods:['pin','passkey'],supportedAdminMethods:['password','passkey']};
+ const options=await fixture(t,{'/api/authentication-policy':()=>Response.json(policy)});
+ assert.equal((await checkDeployment({...options,expectAuthenticatorRetired:true})).length,6);
+ policy.authenticatorRetired=false;
+ await assert.rejects(checkDeployment({...options,expectAuthenticatorRetired:true}),/retirement must be recorded/);
+});

@@ -14,13 +14,15 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     const main = info.mainDevice;
     container.innerHTML = `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
       <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>
-      ${(info.approvedDevices || []).length ? `<section data-approved-devices><h3>Saved device approvals</h3><p>Forget a device to require fresh approval, even when it is offline. Router removal must finish before it can be approved again.</p>${info.approvedDevices.map((d) => `<div class="device"><div><strong>${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}${d.main ? " · Main device" : ""}</strong>${d.routerChanged ? "<p>Approval belongs to a previous router.</p>" : ""}${d.removal ? `<p role="status">${d.removal === "failed" ? "Saved approval revoked. Router removal needs support review." : "Saved approval revoked. Waiting for router removal; its slot is not confirmed free."}</p>` : ""}</div>${d.removal ? "" : `<button type="button" data-forget-device="${h(d.id)}">Forget device</button>`}</div>`).join("")}<button type="button" data-refresh-approvals>Refresh saved approvals</button></section>` : ""}`;
+      ${!document.getElementById("wifiDeviceList") && (info.approvedDevices || []).length ? `<section data-approved-devices><h3>Saved device approvals</h3><p>Forget a device to require fresh approval, even when it is offline. Router removal must finish before it can be approved again.</p>${info.approvedDevices.map((d) => `<div class="device"><div><strong>${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}${d.main ? " · Main device" : ""}</strong>${d.routerChanged ? "<p>Approval belongs to a previous router.</p>" : ""}${d.removal ? `<p role="status">${d.removal === "failed" ? "Saved approval revoked. Router removal needs support review." : "Saved approval revoked. Waiting for router removal; its slot is not confirmed free."}</p>` : ""}</div>${d.removal ? "" : `<button type="button" data-forget-device="${h(d.id)}">Forget device</button>`}</div>`).join("")}<button type="button" data-refresh-approvals>Refresh saved approvals</button></section>` : ""}`;
     container.appendChild(message);
     const query = new URLSearchParams(location.search), candidate = query.get("main-device");
     if ((!main || info.setupRequired) && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(candidate || "")) {
       const prompt = document.createElement("section"); prompt.className = "main-device-prompt";
       prompt.innerHTML = '<h3>Is this your main device?</h3><p>This device is connected. Choose whether this browser should manage other devices.</p><button type="button" data-main-yes>Yes, set as main device</button><button type="button" data-main-no class="secondary-action">No, skip for now</button>';
       container.prepend(prompt);
+      const manage = container.closest("details");
+      if (manage) manage.open = true;
       const clear = () => { const url = new URL(location.href); url.searchParams.delete("main-device"); history.replaceState(null, "", url.href); prompt.remove(); };
       prompt.querySelector("[data-main-yes]").onclick = async () => { await showProof(candidate.toUpperCase(), false); clear(); };
       prompt.querySelector("[data-main-no]").onclick = clear;
@@ -37,7 +39,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       <label>Wi-Fi device<select name="mac" required>${choices.map((d) => `<option value="${h(d.mac)}">${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}</option>`).join("")}</select></label>
       ${disconnect ? "" : '<p>Select the device you are using. This browser will control approvals. Selecting a replacement revokes the previous browser’s control.</p><label><input type="checkbox" name="confirm" required> I am using the selected device and want this browser to control approvals.</label>'}
       <label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label>
-      ${info.authenticatorEnrolled ? `<label>Authenticator code${disconnect ? "" : " (optional)"}<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" ${disconnect ? "required" : ""}></label>${disconnect ? "" : "<p>You can select this device using your PIN or passkey without an authenticator code.</p>"}` : ""}
+      ${!info.authenticatorRetired && info.authenticatorEnrolled ? `<label>Authenticator code${disconnect ? "" : " (optional)"}<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" ${disconnect ? "required" : ""}></label>${disconnect ? "" : "<p>You can select this device using your PIN or passkey without an authenticator code.</p>"}` : ""}
       <button type="submit">${disconnect ? "Verify and disconnect" : "Verify and select"}</button>
       ${info.passkeys && window.PublicKeyCredential && navigator.credentials ? '<button type="button" data-device-passkey>Verify with passkey</button>' : ""}
       <button type="button" data-close-proof>Cancel</button><div data-proof-message role="status" aria-live="polite"></div></form>`;
@@ -76,13 +78,13 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     form.querySelector("[data-close-proof]").onclick = () => { form.reset(); formHost.hidden = true; };
     form.scrollIntoView({ block: "nearest" });
   }
-  function showForget(approvalId) {
+  async function showForget(approvalId) {
     const device = (info.approvedDevices || []).find((d) => d.id === approvalId), host = container.querySelector("[data-device-proof]");
     if (!device || device.removal) return;
     host.innerHTML = `<form data-forget-proof><h3>Forget saved device</h3><p>${h(device.name || "Unnamed device")} · ending ${h(device.mac.slice(-5))} will need fresh approval to reconnect.${device.main ? " This also removes its main-device control." : ""}</p>
       <label><input type="checkbox" name="confirm" required> Remove this device's saved approval.</label>
       <label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label>
-      ${info.authenticatorEnrolled ? '<label>Authenticator code<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>' : ""}
+      ${!info.authenticatorRetired && info.authenticatorEnrolled ? '<label>Authenticator code<input name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>' : ""}
       <button type="submit">Verify and forget</button>${info.passkeys && window.PublicKeyCredential && navigator.credentials ? '<button type="button" data-forget-passkey>Verify with passkey</button>' : ""}
       <button type="button" data-cancel-forget>Cancel</button><div role="status" data-forget-message></div></form>`;
     host.hidden = false;
@@ -112,7 +114,6 @@ export async function mountDeviceControls({ container, call, onChanged }) {
   }
   const saved = container.querySelector("[data-approved-devices]");
   if (saved) saved.onclick = (event) => {
-    const button = event.target.closest("[data-forget-device]"); if (button) showForget(button.dataset.forgetDevice);
     const refresh = event.target.closest("[data-refresh-approvals]");
     if (refresh) void runButton(refresh, "Refreshing…", onChanged).catch((error) => showError(message, error));
   };
@@ -121,6 +122,8 @@ export async function mountDeviceControls({ container, call, onChanged }) {
   container.closest("section").addEventListener("click", (event) => {
     const button = event.target.closest("[data-main-disconnect]");
     if (button) void showProof(button.dataset.mainDisconnect, true).catch((error) => showError(message, error));
+    const forget = event.target.closest("[data-forget-device]");
+    if (forget) void showForget(forget.dataset.forgetDevice).catch((error) => showError(message, error));
   });
   return { disconnect: (mac) => showProof(mac, true).catch((error) => showError(message, error)) };
 }

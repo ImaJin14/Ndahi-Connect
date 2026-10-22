@@ -159,6 +159,8 @@ try {
   await owner.locator('[data-main-proof] [name="confirm"]').check();
   await owner.locator('[data-main-proof] [name="pin"]').fill("2468");
   await owner.getByRole("button", { name: "Verify and select", exact: true }).click();
+  await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor({ state: "attached" });
+  if (!await owner.locator("#manageDevices").evaluate((element) => element.open)) await owner.locator("#manageDevices > summary").click();
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   assert.equal((await f.store.snapshot()).customers[0].wifiMainDevice.mac, guestMac);
   console.log("PASS choosing Yes links the selected browser only after PIN verification");
@@ -181,6 +183,7 @@ try {
   assert.equal(await administrator.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   assert.deepEqual(errors, []);
   console.log("PASS admin notification bell exposes actionable network alerts with independent read state");
+  await owner.goto(portal + "/dashboard#devices");
   await f.store.transaction((s) => {
     approveDevice(s, "c1", { mac: "AA:BB:CC:DD:EE:09", name: "Offline TV <img src=x>" }, f.now(), "test");
     s.vouchers[0].status = "expired";

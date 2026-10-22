@@ -10,7 +10,7 @@ export function mountEmailLink({ call, customer, onChanged }) {
   if (passkey && (!window.PublicKeyCredential || !navigator.credentials)) passkey.hidden = true;
   async function request(usePasskey) {
     const input = formValues(form), message = document.getElementById("emailLinkMessage");
-    if (!form.elements.email.reportValidity() || (customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
+    if (!form.elements.email.reportValidity() || (!customer.authenticatorRetired && customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
     try {
       await runButton(usePasskey ? passkey : form.querySelector('[type="submit"]'), "Verifying…", async () => {
         message.textContent = "";
@@ -60,7 +60,7 @@ export function mountPhoneChange({ call, customer, onChanged }) {
   async function change(usePasskey) {
     const input = formValues(form), message = document.getElementById("phoneChangeMessage");
     if (!form.elements.phone.reportValidity() || !form.elements.confirmChange.reportValidity() ||
-        (customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
+        (!customer.authenticatorRetired && customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
     const button = usePasskey ? passkey : submit;
     try {
       await runButton(button, "Verifying…", async () => {

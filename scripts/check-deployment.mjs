@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 
-export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', request = fetch }) {
+export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', expectAuthenticatorRetired = false, request = fetch }) {
   const bases = [customerUrl, adminUrl, apiUrl].map(value => {
     const url = new URL(value);
     assert.ok(!url.username && !url.password && url.pathname === '/' && !url.search && !url.hash, 'Use service origins without credentials or paths');
@@ -20,6 +20,13 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
   assert.ok(health.status === 'ready' || (allowBootstrap && health.status === 'bootstrap'), 'API must be ready; bootstrap requires explicit opt-in');
   assert.ok(['postgresql', 'ready'].includes(health.database), 'Deployment requires healthy PostgreSQL');
   passed.push('API/database readiness');
+  if (expectAuthenticatorRetired) {
+    const policy = await (await get(api, '/api/authentication-policy')).json();
+    assert.equal(policy.authenticatorRetired, true, 'Authenticator retirement must be recorded');
+    assert.deepEqual(policy.supportedCustomerMethods, ['pin', 'passkey']);
+    assert.deepEqual(policy.supportedAdminMethods, ['password', 'passkey']);
+    passed.push('Persisted retirement and supported authentication policy');
+  }
   const plans = await (await get(api, '/api/plans')).json();
   assert.ok(Array.isArray(plans.plans) && plans.plans.length > 0, 'Plan catalogue must not be empty');
   assert.equal(plans.paymentProvider, expectedProvider, 'Unexpected payment provider');
@@ -69,6 +76,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       adminUrl: process.env.ADMIN_APP_URL || 'https://admin.ndahiconnect.net',
       apiUrl: process.env.API_URL || 'https://api.ndahiconnect.net',
       allowBootstrap: process.env.SMOKE_ALLOW_BOOTSTRAP === 'true',
+      expectAuthenticatorRetired: process.env.SMOKE_EXPECT_AUTHENTICATOR_RETIRED === 'true',
       expectedProvider: process.env.SMOKE_PAYMENT_PROVIDER || 'mesomb',
     });
     for (const check of checks) console.log(`PASS ${check}`);
