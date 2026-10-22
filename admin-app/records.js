@@ -9,11 +9,13 @@ export function mountRecords(container, { call, collection, title, headers, row,
   container.innerHTML = `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
   <input type="search" name="q" aria-label="Search ${h(title.toLowerCase())}" placeholder="Search" maxlength="100">
   <select name="status" aria-label="Filter ${h(title.toLowerCase())} by status" hidden><option value="">All statuses</option></select>
+  ${collection === "vouchers" ? '<div class="filter-chips" role="group" aria-label="Voucher status filter"><button type="button" class="filter-chip active" data-status-chip="">All</button><button type="button" class="filter-chip" data-status-chip="active">Active</button><button type="button" class="filter-chip" data-status-chip="expired">Expired</button><button type="button" class="filter-chip" data-status-chip="revoked">Revoked</button></div>' : ""}
   ${collection === "vouchers" ? '<label>Activated from (UTC)<input type="date" name="from" aria-label="Vouchers from date"></label><label>Activated through (UTC)<input type="date" name="to" aria-label="Vouchers through date"></label><button type="submit">Apply dates</button>' : ""}
 </form></div><div class="table-scroll"><table><thead><tr>${headers.map((name) => `<th scope="col">${h(name)}</th>`).join("")}</tr></thead><tbody></tbody></table></div>
 <nav class="records-pager" aria-label="${h(title)} pages"><button type="button" class="secondary-action" data-page="prev">Previous</button><span role="status" aria-live="polite"></span><button type="button" class="secondary-action" data-page="next">Next</button></nav>`;
   const form = container.querySelector("form"),
     status = form.elements.status,
+    chips = container.querySelectorAll("[data-status-chip]"),
     body = container.querySelector("tbody"),
     summary = container.querySelector(".records-pager span"),
     previous = container.querySelector('[data-page="prev"]'),
@@ -76,9 +78,20 @@ export function mountRecords(container, { call, collection, title, headers, row,
       void load();
     }, 250);
   };
+  chips.forEach((chip) => {
+    chip.onclick = () => {
+      clearTimeout(timer);
+      chips.forEach((c) => c.classList.toggle("active", c === chip));
+      state.status = chip.dataset.statusChip || "";
+      if (status) status.value = state.status;
+      state.page = 1;
+      void load();
+    };
+  });
   status.onchange = () => {
     clearTimeout(timer);
     state.status = status.value;
+    chips.forEach((c) => c.classList.toggle("active", (c.dataset.statusChip || "") === state.status));
     state.page = 1;
     void load();
   };
