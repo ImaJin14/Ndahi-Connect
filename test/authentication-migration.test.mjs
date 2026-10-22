@@ -20,7 +20,7 @@ test('voucher setup cannot replace a PIN-less existing authenticator or passkey 
 
 test('already issued voucher setup intent cannot outlive adoption of an existing factor',async t=>{const f=await fixture(t);await f.store.transaction(s=>delete s.customers[0].pinHash);const begin=await f.call('/api/account/access/begin',{phone:'670050001',code:'NC-AAAA-1111'});assert.equal(begin.status,200);await f.store.transaction(s=>s.customers[0].totpSecret=totpSecret());const end=await f.call('/api/account/access/complete',{token:begin.body.token,pin:'1357',confirmPin:'1357'});assert.equal(end.status,409);assert.equal((await f.store.snapshot()).customers[0].pinHash,undefined);});
 
-test('owner readiness review requires fresh password, explicit recovery evidence and current inventory',async t=>{const f=await fixture(t);await f.store.transaction(s=>recordVerifiedMethod(s.adminUsers[0],'password',null,secret,f.now()));const input={password:'a sufficiently long admin password',rollbackRevision:'a'.repeat(40),evidenceReference:'STAGING-RECOVERY-TEST-1',supportRecoveryVerified:true,authenticationPilotVerified:true};assert.equal((await f.admin('/review',{...input,password:'wrong'})).status,401);assert.equal((await f.admin('/review',{...input,supportRecoveryVerified:false})).status,400);let r=await f.admin('/review',input);assert.equal(r.status,200);assert.equal(r.body.ready,true);assert.equal((await f.admin('/status')).body.ready,true);await f.store.transaction(s=>s.adminUsers[0].passwordHash=undefined);assert.equal((await f.admin('/status')).body.ready,false);});
+test('owner readiness review requires fresh password, explicit recovery evidence and current inventory',async t=>{const f=await fixture(t);await f.store.transaction(s=>recordVerifiedMethod(s.adminUsers[0],'password',null,secret,f.now()));const input={expectedDigest:(await f.admin('/status')).body.digest,password:'a sufficiently long admin password',rollbackRevision:'a'.repeat(40),evidenceReference:'STAGING-RECOVERY-TEST-1',supportRecoveryVerified:true,authenticationPilotVerified:true};assert.equal((await f.admin('/review',{...input,password:'wrong'})).status,401);assert.equal((await f.admin('/review',{...input,supportRecoveryVerified:false})).status,400);let r=await f.admin('/review',input);assert.equal(r.status,200);assert.equal(r.body.ready,true);assert.equal((await f.admin('/status')).body.ready,true);await f.store.transaction(s=>s.adminUsers[0].passwordHash=undefined);assert.equal((await f.admin('/status')).body.ready,false);});
 
 test('revoked staff cannot view aggregate readiness or reuse a verification session',async t=>{const f=await fixture(t);await f.store.transaction(s=>s.adminUsers[0].active=false);assert.equal((await f.admin('/status')).status,401);assert.equal((await f.admin('/confirm',{password:'a sufficiently long admin password'})).status,401);});
 
@@ -70,4 +70,19 @@ test('readiness evidence remains stable when JSONB reorders nested proof fields'
  const f=await fixture(t);await f.store.transaction(s=>{recordVerifiedMethod(s.customers[0],'pin',null,secret,f.now());recordVerifiedMethod(s.adminUsers[0],'password',null,secret,f.now());s.zone.authenticationMigrationReview={version:1,digest:authenticationReadiness(s,{pepper:secret,now:f.now()}).digest,rollbackRevision:'b'.repeat(40),evidenceReference:'SYNTHETIC-JSONB-ROUNDTRIP',supportRecoveryVerified:true,authenticationPilotVerified:true,at:f.now().toISOString()};});
  const state=await f.store.snapshot(),reverse=value=>Array.isArray(value)?value.map(reverse):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reverse(item)])):value;
  const original=authenticationReadiness(state,{pepper:secret,now:f.now()}),reordered=authenticationReadiness(reverse(state),{pepper:secret,now:f.now()});assert.equal(original.ready,true);assert.equal(reordered.digest,original.digest);assert.equal(reordered.ready,true);
+});
+
+
+test('owner review and passkey options reject absent or changed inventory without recording evidence',async t=>{
+ const f=await fixture(t), before=await f.admin('/status');
+ const input={expectedDigest:before.body.digest,password:'a sufficiently long admin password',rollbackRevision:'a'.repeat(40),evidenceReference:'SYNTHETIC-REVIEW-82',supportRecoveryVerified:true,authenticationPilotVerified:true};
+ assert.equal((await f.admin('/review',{...input,expectedDigest:undefined})).status,409);
+ await f.store.transaction(s=>s.customers[0].status='suspended');
+ for(const path of ['/review','/options']){const r=await f.admin(path,{...input,action:'review'});assert.equal(r.status,409);assert.equal(r.body.code,'READINESS_CHANGED');}
+ assert.equal((await f.store.snapshot()).zone.authenticationMigrationReview,undefined);
+ assert.equal((await f.store.snapshot()).zone.authenticatorRetirement,undefined);
+ const current=await f.admin('/status');assert.notEqual(current.body.digest,before.body.digest);
+ assert.equal((await f.admin('/review',{...input,expectedDigest:current.body.digest})).status,200);
+ assert.equal((await f.store.snapshot()).zone.authenticationMigrationReview.digest,current.body.digest);
+ assert.equal((await f.store.snapshot()).zone.authenticatorRetirement,undefined);
 });
