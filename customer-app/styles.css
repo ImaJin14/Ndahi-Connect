@@ -112,14 +112,13 @@
     max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
     border-bottom: 0 !important;
-    max-height: 88dvh !important;
-    max-height: 88vh;
+    max-height: 85vh !important;
+    max-height: 85dvh !important;
     margin: 0 !important;
     overflow-y: auto !important;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
     box-shadow: 0 -10px 40px rgba(0, 30, 22, 0.25) !important;
-    animation: sheetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .modal-card .card::before,
   .receipt-dialog::before {
@@ -131,10 +130,6 @@
     background: #bcc9c0;
     margin: 0 auto 16px;
   }
-}
-@keyframes sheetSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
 }
 
 /* --- Touch Accessibility (minimum 44x44px touch targets) --- */

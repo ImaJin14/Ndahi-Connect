@@ -70,7 +70,7 @@ test("styles.css enforces mobile bottom sheets and minimum 44px touch targets", 
   // Mobile bottom sheets
   assert.ok(css.includes("bottom: 0 !important"), "must anchor bottom sheets to viewport bottom");
   assert.ok(css.includes("border-radius: 20px 20px 0 0 !important"), "must apply top corner radius to sheet");
-  assert.ok(css.includes("sheetSlideUp"), "must have slide up animation");
+  assert.ok(css.includes("width: 36px"), "must render grab handle indicator on bottom sheets");
 
   // Touch accessibility
   assert.ok(css.includes("min-height: 44px"), "interactive form controls and buttons must have 44px min height");
