@@ -165,10 +165,26 @@ test("passkey management rejects wrong target/account, expired proofs and suspen
   assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 2);
 });
 
-test("a fully valid registration authorized before retirement cannot cross the cutover boundary", async (t) => {
+test("a valid legacy registration without owner authorization cannot cross the cutover boundary", async (t) => {
   const f = await fixture(t, { retired: false }), next = passkey();
-  const before = await f.call("/api/account/passkeys/options", {}); assert.equal(before.status, 200, "preparation remains compatible");
-  await f.store.transaction((s) => { s.zone.authenticatorRetirement = { version: 1, retiredAt: at.toISOString() }; });
+  assert.equal((await f.call("/api/account/passkeys/options", {})).status, 401, "preparation requires existing owner proof");
+  f.advance(2); // Respect the shared PIN failure backoff before a correct retry.
+  const before = await f.call("/api/account/passkeys/options", { pin: "2468" }); assert.equal(before.status, 200);
+  // Model an old server's already-issued session-only challenge. Keep its valid
+  // WebAuthn challenge/signature; only the missing legacy authority is distinct.
+  await f.store.transaction((s) => {
+    const challenge = s.customerPasskeyChallenges.find(c => c.id === before.body.challengeId);
+    challenge.authorizationVersion = 0; delete challenge.sessionId; delete challenge.credentialVersion;
+    s.zone.authenticatorRetirement = { version: 1, retiredAt: at.toISOString() };
+  });
   const rejected = await f.call("/api/account/passkeys/verify", { challengeId: before.body.challengeId, response: response(next, before.body.options, { registration: true }) });
   assert.equal(rejected.status, 400); assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 1);
+});
+
+test("fresh owner-authorized supported registration remains usable across retirement", async (t) => {
+  const f = await fixture(t, { retired: false }), next = passkey();
+  const before = await f.call("/api/account/passkeys/options", { pin: "2468" }); assert.equal(before.status, 200);
+  await f.store.transaction(s => { s.zone.authenticatorRetirement = { version: 1, retiredAt: at.toISOString() }; });
+  const enrolled = await f.call("/api/account/passkeys/verify", { challengeId: before.body.challengeId, response: response(next, before.body.options, { registration: true }) });
+  assert.equal(enrolled.status, 200); assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 2);
 });
