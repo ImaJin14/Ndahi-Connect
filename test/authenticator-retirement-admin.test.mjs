@@ -99,15 +99,30 @@ test("retired staff creation needs distinct current-owner proof and never authen
   assert.equal((await f.call("/api/admin/users", { ...input, username: "denied", currentPassword: password }, { token: "operator" })).status, 403);
 });
 
-test("staff creation passkey proof binds canonical username, role and new-password hash without exposing that password", async t => {
+test("staff creation passkey proof binds canonical staff fields and a private slow-hashed password intent", async t => {
   const f = await fixture(t), input = { username: "  NEW-STAFF  ", displayName: "New Staff", role: "auditor", password: newPassword };
   const proof = await f.proof("staff_create", input);
   const state = await f.store.snapshot();
   assert.doesNotMatch(JSON.stringify(state.adminPasskeyChallenges), new RegExp(newPassword));
+  const intent = state.adminPasskeyChallenges.find(ch => ch.id === proof.challengeId).staffPasswordIntent;
+  assert.match(intent.passwordHash, /^\$argon2id\$/);
+  assert.equal(await argon2.verify(intent.passwordHash, newPassword), true);
   assert.equal((await f.call("/api/admin/users", { ...input, role: "owner", ...proof })).status, 401);
   const fresh = await f.proof("staff_create", input);
   const created = await f.call("/api/admin/users", { ...input, username: "new-staff", ...fresh });
   assert.equal(created.status, 201); assert.equal(created.body.user.username, "new-staff");
+});
+
+test("staff creation rejects a different proposed password and consumes the exact sensitive intent", async t => {
+  const f = await fixture(t), input = { username: "password-intent-staff", role: "auditor", password: newPassword };
+  const signed = await f.proof("staff_create", input);
+  assert.equal((await f.call("/api/admin/users", { ...input, password: "A different proposed password 82!", ...signed })).status, 401);
+  const after = await f.store.snapshot();
+  assert.equal(after.adminUsers.length, 4);
+  assert.equal(after.adminUsers[0].passkeys[0].counter, 0);
+  assert.equal(after.adminUsers[0].adminProofFailures.count, 1);
+  assert.equal(after.adminPasskeyChallenges.some(ch => ch.id === signed.challengeId), false);
+  assert.equal((await f.call("/api/admin/users", { ...input, ...signed })).status, 401);
 });
 
 test("owner deactivation requires fresh target-bound proof and revokes the target's sessions", async t => {
