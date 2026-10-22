@@ -78,6 +78,7 @@ test("retired admin password/passkey login ignores stale TOTP flags and rejects 
     const retired = await f.call(path, { challengeId: "unexpired-old-challenge", mfaCode: "123456", enabled: true, code: "123456" });
     assert.equal(retired.status, 410); assert.equal(retired.body.code, "AUTHENTICATOR_RETIRED");
   }
+  assert.equal((await f.call(profile + "/proof/options", { purpose: "legacy_mfa", action: "enroll" })).status, 410);
   const options = await f.call("/api/admin/passkey/options", { username: "owner" });
   const response = f.keys.owner.assertion(options.body.options);
   const verified = await f.call("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response });
