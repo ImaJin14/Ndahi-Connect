@@ -1067,7 +1067,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - [x] **UX-097 — Admin dashboard mobile inspection cards, debounced search, and live session pulse ([#97](https://github.com/ImaJin14/Ndahi-Connect/issues/97))**
   - Implemented: responsive table-to-card reflow on mobile/tablet viewports (< 768px) with rounded card borders, background contrast, and 100% full-width action buttons; debounced search across voucher codes, customer phones, and MAC addresses with 250ms delay; quick filter chips for voucher status (All, Active, Expired, Revoked) synchronizing bidirectionally with the status dropdown; live visual activity pulse animation on active router devices and on the Active Wi-Fi sessions metric overview.
   - Automated verification: `test/admin-mobile-ux.test.mjs` unit and CSS structure tests pass; all 15 real browser journeys in `scripts/check-admin-app-journeys.mjs` verified green.
-  - Release: Delivered in PR for #97.
+  - Release: Delivered in PR #101 and merged into `main` at `59d8440`.
+
+- [x] **UX-104 — Active bundle guidance at checkout and voucher redemption ([#104](https://github.com/ImaJin14/Ndahi-Connect/issues/104))**
+  - Implemented: structured `ACTIVE_BUNDLE_EXISTS` 409 responses with current package metadata across guest checkout (`/api/purchase`), resale voucher claiming (`/api/account/access/confirm`), and voucher redemption (`/api/vouchers/redeem`); actionable "Sign in to Dashboard" call-to-action in onboarding checkout UI guiding active customers directly to renew or switch in `/dashboard#managePlan`; pruned dead `upgradeFromVoucherId` references in payment settlement logic.
+  - Automated verification: `test/domain.test.mjs` and `test/integration.test.mjs` verify structured active bundle error payloads and metadata.
+
 
 
 

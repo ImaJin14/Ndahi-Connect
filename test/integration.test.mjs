@@ -373,13 +373,13 @@ test("stacking and Daily same-day renewal are rejected; exhausted non-daily rene
   }
   const first = await purchase("670000010", "weekly");
   assert.equal(first.response.status, 200);
-  assert.equal(
-    (await f.call("/api/purchase", "POST", {
-      phone: "670000010",
-      planId: "monthly",
-    })).response.status,
-    409,
-  );
+  const blocked = await f.call("/api/purchase", "POST", {
+    phone: "670000010",
+    planId: "monthly",
+  });
+  assert.equal(blocked.response.status, 409);
+  assert.equal(blocked.json.code, "ACTIVE_BUNDLE_EXISTS");
+  assert.ok(blocked.json.activeBundle);
   await f.store.transaction((s) => {
     s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes;
   });
