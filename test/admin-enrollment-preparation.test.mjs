@@ -137,6 +137,36 @@ test("preparation cannot mint or deactivate durable staff credentials from an ow
   assert.equal((await f.call("/api/admin/users/deactivate", { userId: approved.body.user.id, currentPassword: password })).status, 200);
 });
 
+test("staff creation uses a private Argon2 intent and rejects a retargeted password before consuming UV", async t => {
+  const f = await fixture(t), newPassword = "New staff intent password 81!";
+  const fields = { username: "intent-bound-staff", displayName: "Intent Bound Staff", role: "auditor", password: newPassword };
+  const first = await f.call(profile + "/proof/options", { ...fields, purpose: "staff_create" });
+  assert.equal(first.status, 200);
+  const state = await f.store.snapshot(), challenge = state.adminPasskeyChallenges.find(ch => ch.id === first.body.challengeId);
+  assert.match(challenge.staffPasswordIntent.passwordHash, /^\$argon2id\$/);
+  assert.equal(await argon2.verify(challenge.staffPasswordIntent.passwordHash, newPassword), true);
+  assert.deepEqual(Object.keys(challenge.staffPasswordIntent).sort(), ["id", "passwordHash"]);
+  assert.deepEqual(JSON.parse(challenge.target), ["admin-action-v1", "staff_create",
+    [fields.username, fields.displayName, fields.role, challenge.staffPasswordIntent.id]]);
+  const serialized = JSON.stringify(challenge);
+  assert.ok(!serialized.includes(newPassword));
+  assert.ok(!JSON.stringify(first.body).includes(challenge.staffPasswordIntent.passwordHash));
+  const signed = { challengeId: first.body.challengeId, response: f.existing.assertion(first.body.options) };
+  const rejected = await f.call("/api/admin/users", { ...fields, password: "A different new staff password!", ...signed });
+  assert.equal(rejected.status, 401);
+  const failed = await f.store.snapshot();
+  assert.equal(failed.adminUsers.length, 1);
+  assert.equal(failed.adminUsers[0].passkeys[0].counter, 0);
+  assert.equal(failed.adminUsers[0].adminProofFailures.count, 1);
+  assert.equal(failed.adminPasskeyChallenges.some(ch => ch.id === first.body.challengeId), false);
+  assert.equal((await f.call("/api/admin/users", { ...fields, ...signed })).status, 401);
+  const second = await f.call(profile + "/proof/options", { ...fields, purpose: "staff_create" });
+  const current = (await f.store.snapshot()).adminPasskeyChallenges.find(ch => ch.id === second.body.challengeId);
+  assert.notEqual(current.staffPasswordIntent.id, challenge.staffPasswordIntent.id);
+  assert.notEqual(current.staffPasswordIntent.passwordHash, challenge.staffPasswordIntent.passwordHash);
+  assert.equal((await f.call("/api/admin/users", { ...fields, challengeId: second.body.challengeId, response: f.existing.assertion(second.body.options) })).status, 201);
+});
+
 test("production preparation refuses missing stored and submitted CSRF tokens", async t => {
   const f = await fixture(t);
   await f.store.transaction(s => { delete s.adminSessions[0].csrfToken; });
