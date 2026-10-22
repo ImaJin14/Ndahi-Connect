@@ -1054,3 +1054,9 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Automated verification: 871 local unit and integration tests pass, including new `test/data-fuel-gauge.test.mjs` verifying boundary conditions, countdown formatting, and state truthfulness. Mobile and captive AST syntax constraints verified.
   - Release: PR review and CI pending; physical device verification separate.
 
+- [-] **UX-095 — Bilingual French/English switcher, WhatsApp voucher sharing and QR code ([#95](https://github.com/ImaJin14/Ndahi-Connect/issues/95))**
+  - Implemented: bilingual English/French toggle in header persisting preference in `localStorage`, full translation dictionary in `shared-app/i18n.js` covering navigation, portal headings, bundle cards and voucher controls; one-tap WhatsApp share link generating formatted voucher text and redemption deep-link; session-authenticated `/api/account/vouchers/:id/qr` endpoint and accessible "Show QR Code" modal for camera scanning by secondary devices; MTN MoMo and Orange Money visual brand badges on checkout payment selectors.
+  - Automated verification: new `test/bilingual-whatsapp-qr.test.mjs` verifying translations, URL encoding, and QR endpoint session security. All AST syntax checks pass without unsupported syntax.
+  - Release: PR review and CI pending; physical device verification separate.
+
+

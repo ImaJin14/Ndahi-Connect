@@ -72,3 +72,27 @@
 @media(max-width:480px){.fuel-gauge-container{flex-direction:column;align-items:center;gap:16px}.fuel-gauge-info{width:100%}}
 @media(prefers-reduced-motion:reduce){.fuel-fill{transition:none!important}}
 
+/* --- Language Switcher --- */
+.lang-switcher{display:inline-flex;border:1px solid rgba(255,255,255,.25);border-radius:6px;overflow:hidden;flex-shrink:0}
+.lang-switcher button{background:transparent;color:#dcebe4;border:0;padding:6px 10px;font-size:11px;font-weight:700;border-radius:0;cursor:pointer;transition:background .15s,color .15s;line-height:1}
+.lang-switcher button.active{background:var(--lime);color:#15210c}
+.lang-switcher button:hover:not(.active){background:rgba(255,255,255,.1)}
+
+/* --- WhatsApp Share Button --- */
+.whatsapp-share-btn{display:inline-flex;align-items:center;gap:6px;background:#25d366!important;color:#fff!important;border-color:#25d366!important}
+.whatsapp-share-btn:hover{background:#20bd5a!important;color:#fff!important}
+
+/* --- Mobile Money Brand Badges --- */
+.payment-methods-badges{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
+.momo-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.02em}
+.momo-badge-mtn{background:#ffcc00;color:#1a1a1a;border:1px solid #e6b800}
+.momo-badge-orange{background:#ff7900;color:#fff;border:1px solid #e66d00}
+.momo-badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.momo-badge-mtn .momo-badge-dot{background:#1a1a1a}
+.momo-badge-orange .momo-badge-dot{background:#fff}
+
+/* --- QR Dialog --- */
+.qr-dialog{max-width:440px;text-align:center}
+.voucher-qr-image{display:inline-block;max-width:220px;width:100%;height:auto;margin:12px auto;background:#fff;padding:8px;border-radius:8px;border:1px solid var(--line)}
+
+

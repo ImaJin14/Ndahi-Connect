@@ -21,13 +21,46 @@ export function bundleCatalogue(result) {
     return `<article class="voucher-card"><h3>${h(plan.name)}</h3><p><strong>${h(plan.price.toLocaleString())} FCFA</strong><br>${plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(plan.quotaGb)} GB data`} · ${h(durationLabel(plan.validityHours))}<br>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</p><a class="button secondary-action" href="/onboarding.html?action=${renew ? "renew" : "switch"}&amp;plan=${h(encodeURIComponent(plan.id))}">${renew ? "Review renewal" : "Review package"}</a></article>`;
   }).join("")}</div></section>`;
 }
+function showQrModal(data) {
+  let dialog = document.getElementById("voucherQrDialog");
+  if (!dialog) {
+    dialog = document.createElement("dialog");
+    dialog.id = "voucherQrDialog";
+    dialog.className = "receipt-dialog qr-dialog";
+    dialog.setAttribute("aria-labelledby", "voucherQrTitle");
+    dialog.setAttribute("aria-modal", "true");
+    document.body.appendChild(dialog);
+  }
+  dialog.innerHTML = `
+    <div class="receipt-dialog-header">
+      <h2 id="voucherQrTitle">Voucher QR Code</h2>
+      <button type="button" id="voucherQrClose" class="secondary-action" autofocus>Close</button>
+    </div>
+    <div class="qr-preview" style="text-align: center; padding: 12px 0;">
+      <p style="margin: 0 0 10px; font-weight: 700; font-size: 17px;">${h(data.planName || "")}</p>
+      <img src="${h(data.qrCode)}" alt="QR Code for voucher ${h(data.code)}" class="voucher-qr-image">
+      <p class="voucher-qr-code" style="font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; margin: 10px 0 6px;">${h(data.code)}</p>
+      <p style="color: var(--muted); font-size: 13px; margin: 0;">Scan with camera on another device to activate automatically.</p>
+    </div>
+  `;
+  dialog.querySelector("#voucherQrClose").onclick = () => dialog.close();
+  dialog.showModal();
+}
+
 export async function voucherAction(event) {
-  const button = event.target.closest("[data-copy-voucher], [data-download-voucher]");
+  const button = event.target.closest("[data-copy-voucher], [data-download-voucher], [data-show-qr]");
   if (!button) return false;
   const card = button.closest(".voucher-card"), message = card.querySelector("[data-voucher-message]");
   try {
-    await runButton(button, button.hasAttribute("data-copy-voucher") ? "Copying…" : "Downloading…", async () => {
-      if (button.hasAttribute("data-copy-voucher")) {
+    const actionLabel = button.hasAttribute("data-copy-voucher") ? "Copying…" : button.hasAttribute("data-show-qr") ? "Loading QR…" : "Downloading…";
+    await runButton(button, actionLabel, async () => {
+      if (button.hasAttribute("data-show-qr")) {
+        const voucherId = button.dataset.showQr;
+        const response = await fetch(window.NDAHI_CONFIG.apiUrl + "/api/account/vouchers/" + encodeURIComponent(voucherId) + "/qr", { credentials: "include", cache: "no-store" });
+        if (!response.ok) throw responseError(response, await response.json().catch(() => ({})));
+        const data = await response.json();
+        showQrModal(data);
+      } else if (button.hasAttribute("data-copy-voucher")) {
         const input = card.querySelector("[data-voucher-code]");
         let copied = false;
         try { if (navigator.clipboard) { await navigator.clipboard.writeText(input.value); copied = true; } } catch (_) {}
