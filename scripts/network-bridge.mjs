@@ -36,7 +36,7 @@ export function bridgeHandler({ router, username, password, logger = createLogge
         : action === "revokeWifiDevice" ? router.revokeWifiDevice(input.device)
         : action === "readGuestDevice" ? router.readGuestDevice(input.device)
         : action === "disconnectVoucher" ? router.disconnectVoucher(input.voucherId)
-        : action === "readUsage" ? router.readUsage()
+        : action === "readUsage" ? router.readUsage({ secondaryApprovalExpiry: input.secondaryApprovalExpiry === true })
         : action === "readState" ? router.readState()
         : router.markInactive();
       const task = tail.then(execute); tail = task.catch(() => {});
