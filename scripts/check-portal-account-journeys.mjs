@@ -145,6 +145,7 @@ try {
     });
     await page.clock.install({ time: now });
     await page.goto(`${portal}/dashboard#vouchers`);
+    await page.locator('#voucherHistory .voucher-card').first().waitFor();
     assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 1);
     await page.getByRole('button', { name: 'View voucher history', exact: true }).click();
     assert.equal(await page.locator('#voucherHistory .voucher-card').count(), 6);
