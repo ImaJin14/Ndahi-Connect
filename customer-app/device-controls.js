@@ -78,7 +78,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     form.querySelector("[data-close-proof]").onclick = () => { form.reset(); formHost.hidden = true; };
     form.scrollIntoView({ block: "nearest" });
   }
-  function showForget(approvalId) {
+  async function showForget(approvalId) {
     const device = (info.approvedDevices || []).find((d) => d.id === approvalId), host = container.querySelector("[data-device-proof]");
     if (!device || device.removal) return;
     host.innerHTML = `<form data-forget-proof><h3>Forget saved device</h3><p>${h(device.name || "Unnamed device")} · ending ${h(device.mac.slice(-5))} will need fresh approval to reconnect.${device.main ? " This also removes its main-device control." : ""}</p>
