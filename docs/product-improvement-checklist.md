@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-21
+Last reviewed: 2026-10-22
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -1037,3 +1037,8 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - **Playwright 1.64.1 coverage fixture repair — [PR #53](https://github.com/ImaJin14/Ndahi-Connect/pull/53):** the original browser CI failed with `route.fulfill: Route is already handled!` during coverage navigation/cleanup. The fixture now reserves its actual portal origin before configuring API CORS and continues each API request once with the synthetic coverage header. This removes the asynchronous response-rewriting race while exercising the API's actual CORS policy and retaining all 14 coverage scenarios. The Playwright update remains at 1.64.1.
 - **Verification:** syntax/whitespace checks, all 14 focused coverage journeys, the complete desktop browser suite and both mobile authorization suites pass locally with the locked PR dependencies. Final PostgreSQL/unit/load/browser/security CI results are recorded in the linked PR. The original failure was intermittent; a standalone baseline coverage run passed, while the original failed CI job preserves the error evidence.
 - **Release status (2026-10-21):** GitHub confirms PR #53 and PR #54 are merged into main (`5fa04c0`), superseding the earlier review holds. Their deployment is not reverified by the #63 implementation task; physical router/phone acceptance remains separate. The new captive-completion changes are for PR review only.
+
+- [-] **DEVICE-080 — Guarded secondary saved-approval expiry** (issue #80, source prepared)
+  - Implemented: 30 minutes of trusted observed absence; main exemption, grant/reconnect fencing, router uptime/reboot and outage baselines, durable scoped cleanup, app invalidation and one Devices notification with pending/confirmed/failed cleanup. Exact `WIFI_SECONDARY_EXPIRY_ENABLED=true` opt-in; default off, including accurate customer policy wording.
+  - Automated: focused boundary/race/router/rollout tests and existing API/browser regressions. PostgreSQL CI must verify persistence, competing workers and rollback on the exact PR revision. A locally skipped database test does not establish persistence acceptance.
+  - Rollout: source/PR work only; not merged, enabled or physically verified. See [rollout and pilot](operations/secondary-approval-expiry.md). Actual API/bridge/frontend revisions, strict deployed smoke and physical router/device acceptance remain pending.
