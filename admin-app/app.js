@@ -118,7 +118,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   }</tbody></table></section>
 <section class="card tab-panel" id="panel-voucher-create" role="tabpanel" aria-labelledby="tab-voucher-create" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
   <label>Purpose<select name="purpose" id="voucherPurpose"><option value="resale">Resale inventory</option><option value="assigned">Assign to customer</option></select></label>
-  <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label></div>
+  <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="checkbox"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> Replace customer's existing active bundle</label></div>
   <label>Sale type<select name="saleType" id="voucherSaleType" required><option value="">Choose…</option><option value="sold" selected>Sold — counts as revenue</option>${["owner", "operator"].includes(x.profile.role) ? '<option value="gift">Gift — complimentary, no revenue</option>' : ""}</select></label>
   <label>Bundle type<select name="planMode" id="voucherPlanMode"><option value="existing">Existing bundle</option><option value="custom">Custom voucher</option></select></label>
   <label id="voucherExistingPlan">Bundle<select name="planId">${bundleOptions}</select></label>
@@ -206,12 +206,15 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   $("#generate").onsubmit = async (e) => {
     e.preventDefault();
     await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Generating…", async () => {
+      const formData = new FormData(e.target);
+      const payload = Object.fromEntries(formData);
+      if (formData.get("replaceActive") === "true") payload.replaceActive = true;
       const result = await call("/api/admin/vouchers/generate", {
         method: "POST",
-        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+        body: JSON.stringify(payload),
       });
       const vouchers = result.vouchers || [result.voucher];
-      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Assigned and active."}</p></div><div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
+      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
       $("#closeGenerated").onclick = () => { $("#generated").replaceChildren(); $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
