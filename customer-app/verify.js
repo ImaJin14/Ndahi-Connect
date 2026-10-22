@@ -101,7 +101,7 @@ if (checkoutSetup) {
     showError($("#message"), error);
   });
 } else {
-  if (challenge?.setupPin) { configureChallenge(); $("#submitLabel").disabled = false; markReady(); }
+  if (challenge && challenge.setupPin) { configureChallenge(); $("#submitLabel").disabled = false; markReady(); }
   else policy.then((state) => {
     if (!state || state.authenticatorRetired) { retiredChallenge(!state); return; }
     configureChallenge();

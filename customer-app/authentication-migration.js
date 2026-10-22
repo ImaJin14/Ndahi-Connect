@@ -117,7 +117,7 @@ export function mountAuthenticationMigration({ container, call, retired = false 
             // A lost reply can follow a committed confirmation. Never resend a
             // secret automatically or claim the PIN failed without checking.
             const recovered = await call(root + "/status").catch(() => null);
-            if (recovered?.configured.pin && recovered.verified.pin && !recovered.pendingPin) {
+            if (recovered && recovered.configured && recovered.configured.pin && recovered.verified.pin && !recovered.pendingPin) {
               state = recovered; intent = undefined; render();
               announce("A verified PIN is now configured. Existing methods remain available. Sign in with your current PIN to check access.");
               return;

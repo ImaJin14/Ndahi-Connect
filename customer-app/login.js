@@ -15,7 +15,9 @@ const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector
 let accessToken = "", accessMode = "", accountOnly = new URLSearchParams(location.search).get("account") === "1";
 const policy = loadAuthenticationPolicy().then((state) => {
   if (state.authenticatorRetired) {
-    $("#authenticatorLogin")?.remove(); $("#inlineVerification")?.remove();
+    const authenticator = $("#authenticatorLogin"), inline = $("#inlineVerification");
+    if (authenticator) authenticator.remove();
+    if (inline) inline.remove();
     sessionStore.remove("ndahi-login-challenge");
   } else $("#authenticatorLogin").hidden = false;
   return state;
