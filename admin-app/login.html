@@ -6,7 +6,7 @@
     <p class="section-kicker">Secure sign-in</p><h1>Administrator access.</h1><p>Use your administrator PIN or an enrolled passkey.</p>
     <form id="login">
       <label>Username<input name="username" autocomplete="username" placeholder="Username" required autofocus></label>
-      <label>PIN<span class="password-field"><input id="adminPassword" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="current-password" placeholder="PIN" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show PIN" aria-pressed="false">Show</button></span></label>
+      <label>PIN<span class="password-field"><input id="adminPassword" name="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show PIN" aria-pressed="false">Show</button></span></label>
       <button>Continue</button><button type="button" class="secondary-action" id="passkeyLogin">Sign in with a passkey</button>
     </form>
   </div>

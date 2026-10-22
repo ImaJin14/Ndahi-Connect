@@ -5,7 +5,7 @@ export function requestAdminActionProof({ call, purpose, input = {} }) {
   return new Promise((resolve, reject) => {
     const opener = document.activeElement, dialog = document.createElement("dialog");
     dialog.setAttribute("aria-label", "Verify administrator action");
-    dialog.innerHTML = '<form><h3>Verify this action</h3><label>Current administrator PIN<input name="currentPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="current-password" required></label><button type="submit">Verify PIN</button><button type="button" data-admin-proof-passkey>Verify with passkey</button><button type="button" data-admin-proof-cancel>Cancel</button><p role="status" aria-live="polite"></p></form>';
+    dialog.innerHTML = '<form><h3>Verify this action</h3><label>Current administrator PIN<input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" required></label><button type="submit">Verify PIN</button><button type="button" data-admin-proof-passkey>Verify with passkey</button><button type="button" data-admin-proof-cancel>Cancel</button><p role="status" aria-live="polite"></p></form>';
     const form = dialog.querySelector("form"), message = dialog.querySelector('[role="status"]'), passkey = dialog.querySelector("[data-admin-proof-passkey]");
     let settled = false;
     const finish = (proof, error) => {
