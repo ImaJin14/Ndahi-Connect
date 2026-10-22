@@ -65,3 +65,9 @@ test('legacy admin sessions require explicit reauthentication for preparation wi
  for(const [path,input]of[['/status',undefined],['/confirm',{password:'a sufficiently long admin password'}]]){const r=await f.admin(path,input,'legacy');assert.equal(r.status,409);assert.equal(r.body.code,'ADMIN_REAUTHENTICATION_REQUIRED');}
  const r=await fetch(f.api+'/api/admin/dashboard',{headers:{origin:'http://customer.test',cookie:'admin_session=legacy'}});assert.equal(r.status,200);
 });
+
+test('readiness evidence remains stable when JSONB reorders nested proof fields',async t=>{
+ const f=await fixture(t);await f.store.transaction(s=>{recordVerifiedMethod(s.customers[0],'pin',null,secret,f.now());recordVerifiedMethod(s.adminUsers[0],'password',null,secret,f.now());s.zone.authenticationMigrationReview={version:1,digest:authenticationReadiness(s,{pepper:secret,now:f.now()}).digest,rollbackRevision:'b'.repeat(40),evidenceReference:'SYNTHETIC-JSONB-ROUNDTRIP',supportRecoveryVerified:true,authenticationPilotVerified:true,at:f.now().toISOString()};});
+ const state=await f.store.snapshot(),reverse=value=>Array.isArray(value)?value.map(reverse):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).reverse().map(([key,item])=>[key,reverse(item)])):value;
+ const original=authenticationReadiness(state,{pepper:secret,now:f.now()}),reordered=authenticationReadiness(reverse(state),{pepper:secret,now:f.now()});assert.equal(original.ready,true);assert.equal(reordered.digest,original.digest);assert.equal(reordered.ready,true);
+});
