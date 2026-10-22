@@ -16,6 +16,7 @@ import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { formatDataBalance, formatExpiryCountdown, fuelStatusClass } from "/shared/data-usage.js";
+import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { mountCurrentWifi } from "./current-wifi.js";
@@ -547,6 +548,36 @@ $("#dashboard").onsubmit = async (event) => {
     });
   } catch (error) { showError($("#connectMessage"), error); }
 };
+
+function applyLanguage(lang) {
+  document.documentElement.lang = lang;
+  const brandSmall = document.querySelector(".brand small");
+  if (brandSmall) brandSmall.textContent = t("brandSmall", lang);
+  const portalTitle = document.getElementById("portalTitle");
+  if (portalTitle) portalTitle.textContent = t("portalTitle", lang);
+  const eyebrow = document.querySelector(".welcome .eyebrow");
+  if (eyebrow) eyebrow.textContent = t("eyebrowDashboard", lang);
+  const logout = document.getElementById("logout");
+  if (logout) logout.textContent = t("logout", lang);
+}
+
+function mountLanguageSwitcher() {
+  const current = getPreferredLanguage();
+  document.querySelectorAll(".lang-switcher [data-lang]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.lang === current);
+    btn.onclick = () => {
+      const selected = btn.dataset.lang;
+      setPreferredLanguage(selected);
+      document.querySelectorAll(".lang-switcher [data-lang]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.lang === selected);
+      });
+      applyLanguage(selected);
+    };
+  });
+  applyLanguage(current);
+}
+
+mountLanguageSwitcher();
 
 $("#logout").onclick = async (event) => {
   try {

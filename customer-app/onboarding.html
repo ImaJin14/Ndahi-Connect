@@ -10,7 +10,7 @@
 <body class="packages-page">
   <header>
     <a class="brand" href="/onboarding.html"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></a>
-    <div class="header-actions"><span class="network-state">Checking status...</span><a class="header-link" href="/login">Customer login</a></div>
+    <div class="header-actions"><span class="network-state">Checking status...</span><div class="lang-switcher" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="fr">FR</button></div><a class="header-link" href="/login">Customer login</a></div>
   </header>
   <main class="wide" id="pageContent">
     <section class="content" id="packages" aria-labelledby="packagesTitle">
@@ -39,7 +39,13 @@
           <label><span id="emailLabel">Email address (optional)</span><input name="email" type="email" autocomplete="email"><small id="emailHint">Confirm an email in Account after signup to receive email updates, receipts and PIN recovery.</small></label>
           <dl id="accountContact" class="current-facts" hidden></dl>
           <label id="accountPayer" hidden>Mobile Money payment number<input name="payerPhone" type="tel" inputmode="tel" placeholder="6XXXXXXXX" autocomplete="off" disabled><small>Defaults to your account number. Using another number applies only to this transaction.</small></label>
-          <label>Mobile Money network<select name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></label>
+          <label>Mobile Money network
+            <div class="payment-methods-badges" aria-hidden="true">
+              <span class="momo-badge momo-badge-mtn"><span class="momo-badge-dot"></span> MTN MoMo</span>
+              <span class="momo-badge momo-badge-orange"><span class="momo-badge-dot"></span> Orange Money</span>
+            </div>
+            <select name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select>
+          </label>
           <label id="acknowledgement" class="acknowledgement" hidden><input name="acknowledge" type="checkbox"><span id="acknowledgementText"></span></label>
           <p id="providerFee" class="trust" hidden>The payment provider's service fee is added separately to the package price and shown in your Mobile Money approval prompt.</p>
           <button type="submit" id="requestPayment">Request payment</button>
