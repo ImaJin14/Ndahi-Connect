@@ -211,7 +211,7 @@ try {
         sessionId: "*presence", startedAt: new Date(Date.now() - 300000).toISOString() }];
       s.vouchers[0].wifiDevicesAt = new Date().toISOString();
     });
-    await page.goto(portal + "/dashboard");
+    await page.goto(portal + "/dashboard#devices");
     await page.getByText("Unnamed device · ending EE:01", { exact: true }).waitFor();
     const before = (await store.snapshot()).vouchers[0];
     await store.transaction((s) => { s.vouchers[0].wifiDevices = []; s.vouchers[0].wifiDevicesAt = new Date().toISOString(); });
@@ -227,7 +227,7 @@ try {
         sessionId: "*presence", startedAt: new Date(Date.now() - 300000).toISOString() }];
       s.vouchers[0].wifiDevicesAt = new Date().toISOString();
     });
-    await page.goto(portal + "/dashboard");
+    await page.goto(portal + "/dashboard#devices");
     await page.getByText("Unnamed device · ending EE:01", { exact: true }).waitFor();
     await page.route("**/api/account/wifi-devices", (route) => route.fulfill({ status: 503, contentType: "application/json",
       headers: { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" }, body: JSON.stringify({ error: "Router unavailable" }) }));
