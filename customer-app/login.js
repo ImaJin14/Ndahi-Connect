@@ -8,6 +8,9 @@ import { completeSignIn } from "./sign-in-request.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { randomId } from "./compat.js";
+import { mountThemeToggle } from "./portal-nav.js";
+
+mountThemeToggle();
 import { loadAuthenticationPolicy } from "./authentication-migration.js";
 
 migrateLegacyCheckout();
@@ -137,20 +140,22 @@ $("#changeDetails").onclick = () => {
   $("#message").textContent = "";
   form.phone.focus();
 };
-$("#authenticatorLogin").onclick = async () => {
-  const phone = document.querySelector('[name="phone"]').value;
-  if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
-  try {
-    await runLogin($("#authenticatorLogin"), "Checking…", async () => {
-      const current = await policy;
-      if (!current || current.authenticatorRetired) { $("#message").textContent = "Use your PIN or passkey to sign in. Refresh if sign-in methods could not be checked."; return; }
-      $("#message").textContent = "";
-      const result = await call("/api/account/login/request-authenticator", { phone });
-      if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html" + (accountOnly ? "?account=1" : "");
-      else inlineAuthenticator(result, phone);
-    });
-  } catch (error) { showError($("#message"), error); }
-};
+if ($("#authenticatorLogin")) {
+  $("#authenticatorLogin").onclick = async () => {
+    const phone = document.querySelector('[name="phone"]').value;
+    if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
+    try {
+      await runLogin($("#authenticatorLogin"), "Checking…", async () => {
+        const current = await policy;
+        if (!current || current.authenticatorRetired) { $("#message").textContent = "Use your PIN or passkey to sign in. Refresh if sign-in methods could not be checked."; return; }
+        $("#message").textContent = "";
+        const result = await call("/api/account/login/request-authenticator", { phone });
+        if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html" + (accountOnly ? "?account=1" : "");
+        else inlineAuthenticator(result, phone);
+      });
+    } catch (error) { showError($("#message"), error); }
+  };
+}
 $("#customerPasskeyLogin").onclick = async () => {
   const button = $("#customerPasskeyLogin"),
     phone = document.querySelector('[name="phone"]').value;

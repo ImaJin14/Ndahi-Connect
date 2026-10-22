@@ -22,12 +22,22 @@ function applyView(scroll = false) {
   if (title) title.textContent = { home: title.dataset.welcome || "Welcome back", bundles: "Your bundles.", vouchers: "Your voucher codes.", payments: "Your payments.", account: "Your account." }[view];
   if (["sessions", "sessionActivity"].includes(location.hash.slice(1))) {
     const sessions = document.getElementById("sessionActivity");
-    if (sessions) { sessions.open = true; sessions.querySelector("summary")?.focus(); sessions.scrollIntoView({ block: "start" }); }
+    if (sessions) {
+      sessions.open = true;
+      const summary = sessions.querySelector("summary");
+      if (summary) summary.focus();
+      sessions.scrollIntoView({ block: "start" });
+    }
     return;
   }
   if (location.hash === "#devices") {
     const manage = document.getElementById("manageDevices");
-    if (manage) { manage.open = true; manage.querySelector("summary")?.focus(); manage.scrollIntoView({ block: "start" }); }
+    if (manage) {
+      manage.open = true;
+      const summary = manage.querySelector("summary");
+      if (summary) summary.focus();
+      manage.scrollIntoView({ block: "start" });
+    }
     return;
   }
   if (scroll) {
@@ -35,7 +45,41 @@ function applyView(scroll = false) {
     if (title) title.focus({ preventScroll: true });
   }
 }
+export function mountThemeToggle(button = document.getElementById("themeToggle")) {
+  let stored = null;
+  try { stored = localStorage.getItem("ndahi-theme"); } catch (_) {}
+  const apply = (theme) => {
+    if (theme) document.documentElement.setAttribute("data-theme", theme);
+    else document.documentElement.removeAttribute("data-theme");
+  };
+  if (stored) apply(stored);
+  if (!button) return;
+  const updateLabel = () => {
+    let isDark = false;
+    try {
+      isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } catch (_) {}
+    button.innerHTML = isDark ? '<span aria-hidden="true">☀️</span>' : '<span aria-hidden="true">🌙</span>';
+    button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    button.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+  };
+  updateLabel();
+  button.onclick = () => {
+    let isDark = false;
+    try {
+      isDark = document.documentElement.getAttribute("data-theme") === "dark" ||
+        (!document.documentElement.getAttribute("data-theme") && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    } catch (_) {}
+    const next = isDark ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem("ndahi-theme", next); } catch (_) {}
+    updateLabel();
+  };
+}
+
 export function mountPortalNavigation(pending = 0, name) {
+  mountThemeToggle();
   if (name !== undefined) {
     const clean = String(name || "").trim();
     const first = clean.split(/\s+/)[0];

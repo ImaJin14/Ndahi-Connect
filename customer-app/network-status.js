@@ -70,3 +70,56 @@ export function networkBannerState(options) {
   };
 }
 
+export async function runConnectionDiagnostics(apiUrl) {
+  const pings = [];
+  const count = 3;
+  let successful = 0;
+  for (let i = 0; i < count; i++) {
+    const start = performance.now();
+    try {
+      const res = await fetch(`${apiUrl}/api/status?_t=${Date.now()}_${i}`, { cache: "no-store" });
+      const duration = Math.round(performance.now() - start);
+      if (res.ok) {
+        successful++;
+        pings.push(duration);
+      } else {
+        pings.push(null);
+      }
+    } catch {
+      pings.push(null);
+    }
+    if (i < count - 1) await new Promise((r) => setTimeout(r, 200));
+  }
+  const validPings = pings.filter((p) => typeof p === "number");
+  const packetLoss = Math.round(((count - successful) / count) * 100);
+  const avgLatency = validPings.length ? Math.round(validPings.reduce((a, b) => a + b, 0) / validPings.length) : null;
+  const minLatency = validPings.length ? Math.min(...validPings) : null;
+  const maxLatency = validPings.length ? Math.max(...validPings) : null;
+  const jitter = validPings.length > 1 ? Math.round(Math.abs(maxLatency - minLatency)) : 0;
+
+  let quality = "good";
+  let advice = "Wi-Fi connection to gateway is healthy.";
+  if (packetLoss === 100) {
+    quality = "offline";
+    advice = "Cannot reach NDAHI gateway. Check if you are connected to the NDAHI Wi-Fi network.";
+  } else if (packetLoss > 0 || (avgLatency && avgLatency > 300)) {
+    quality = "poor";
+    advice = "High latency or packet loss detected. Move closer to the Wi-Fi access point.";
+  } else if (avgLatency && avgLatency > 120) {
+    quality = "fair";
+    advice = "Acceptable connection speed to gateway.";
+  }
+  return {
+    count,
+    successful,
+    packetLoss,
+    avgLatency,
+    minLatency,
+    maxLatency,
+    jitter,
+    quality,
+    advice,
+    timestamp: new Date().toISOString(),
+  };
+}
+

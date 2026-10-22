@@ -19,5 +19,5 @@ export function hotspotPath(next = "/dashboard") {
 
 export function afterSignInPath(accountOnly = new URLSearchParams(location.search).get("account") === "1") {
   const next = consumeReturnPath();
-  return accountOnly ? "/dashboard#account" : hotspotPath(next);
+  return accountOnly ? "/dashboard#account" : hotspotPath(next || "/dashboard");
 }

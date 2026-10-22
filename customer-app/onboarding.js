@@ -5,10 +5,13 @@ import { durationLabel, dataLabel, classifyPlanChange, comparePlans, planValue, 
 import { runButton } from "/shared/pending.js";
 import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
 import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
-import { paymentClock, mountPaymentTimers } from "./payment-timing.js";
+import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { configurePairingLink } from "./wifi-pairing.js";
 import { withWifiHint } from "./hotspot-path.js";
+import { mountThemeToggle } from "./portal-nav.js";
+
+mountThemeToggle();
 
 void configurePairingLink(document.getElementById("assistedConnectionLink"));
 
@@ -167,7 +170,18 @@ function renderAccount() {
 }
 async function initialize() {
   if (accountAction && !["renew", "switch"].includes(accountAction)) throw Error("This plan action is unavailable. Return to your dashboard to choose a plan.");
-  const catalogue = await call("/api/plans");
+  let catalogue;
+  try {
+    catalogue = await call("/api/plans");
+    try { localStorage.setItem("ndahi-cached-plans", JSON.stringify(catalogue)); } catch (_) {}
+  } catch (error) {
+    let cached = null;
+    try { cached = localStorage.getItem("ndahi-cached-plans"); } catch (_) {}
+    if (cached) {
+      try { catalogue = JSON.parse(cached); } catch (_) {}
+    }
+    if (!catalogue) throw error;
+  }
   configureCheckoutStore(catalogue.checkoutWindowSeconds);
   setPurchaseAccess(catalogue.purchaseAccess);
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
@@ -221,7 +235,7 @@ async function initialize() {
     const eligibilityReason = accountAction === "renew" && !renewal.eligible
       ? `${renewal.reason}${renewal.nextEligibleAt ? ` Next eligible: ${date(renewal.nextEligibleAt)}.` : ""} ` : "";
     notice(eligibilityReason + `A payment is already awaiting confirmation${pending.payerPhone ? ` on ${pending.payerPhone}` : ""}. Check its status before starting another payment.`, false);
-    $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="checkExisting">Check payment status</button> <a href="/dashboard">Back to dashboard</a>');
+    $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="checkExisting">Check payment status</button> <a href="/dashboard">Back to dashboard</a>' + ussdInstructions(pending.payerPhone));
     $("#checkExisting").onclick = async (event) => {
       try {
         await runButton(event.currentTarget, "Checking…", async () => {
@@ -251,7 +265,19 @@ async function initialize() {
   }
 
   const preferred = pageParams.get("plan");
-  if (preferred && choose(preferred)) openCheckout(Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred));
+  if (preferred && choose(preferred)) {
+    const btn = Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred);
+    if (btn) openCheckout(btn);
+    if (pageParams.get("quick") === "1") {
+      setTimeout(() => {
+        const reqBtn = $("#requestPayment");
+        if (reqBtn) {
+          reqBtn.focus();
+          reqBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
+    }
+  }
 }
 function fillSavedDetails(details) {
   for (const field of ["name", "phone", "email", "network"]) {
@@ -634,7 +660,7 @@ $("#purchase").onsubmit = async (event) => {
     $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
-    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${accountAction ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
+    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${accountAction ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
     if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
