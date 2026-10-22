@@ -177,7 +177,7 @@ test("AUTH-RECOVERY: owner customer support recovery approves time-limited token
   // Non-owner gets 403
   await f.call("/api/admin/login", "POST", { pin: "9999" });
   const ownerSession = f.jar.admin_session;
-  const operatorUser = await f.call("/api/admin/users", "POST", { username: "support-op", role: "operator", password: "operator-pass-123" });
+  const operatorUser = await f.call("/api/admin/users", "POST", { username: "support-op", role: "operator", password: "operator-pass-123", currentPassword: "9999" });
   assert.equal(operatorUser.response.status, 201);
   const opLogin = await f.call("/api/admin/login", "POST", { username: "support-op", password: "operator-pass-123" });
   assert.equal(opLogin.response.status, 200);

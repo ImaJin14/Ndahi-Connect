@@ -240,6 +240,8 @@ try {
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(`${portal}/dashboard#account`);
     await page.locator('#addCustomerPasskey').click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
+    await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     const key = totpSecret();
     await store.transaction((s) => { s.customers[0].totpSecret = key; });
@@ -259,6 +261,8 @@ try {
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(`${portal}/dashboard#account`);
     await page.locator('#addCustomerPasskey').click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
+    await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     // Stop authenticated polling before clearing cookies; its 401 redirect can
     // otherwise race the explicit login navigation on slower CI runners.
@@ -311,6 +315,8 @@ try {
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(`${portal}/dashboard#account`); await page.locator('#addCustomerPasskey').click();
+    await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
+    await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     await page.locator('#emailAccount summary').click();
     await page.locator('#linkEmail [name="email"]').fill('passkey@example.test');

@@ -97,6 +97,7 @@ try {
   assert.equal((await f.store.snapshot()).customers[0].recoveryCodes.filter((x) => x.usedAt).length, 1);
   await page.getByRole("button", { name: "Cancel setup", exact: true }).click();
   await page.waitForFunction(() => !document.querySelector("#mfaSetupKey"));
+  await page.getByText("Authenticator setup cancelled. You can start again whenever you choose.", { exact: true }).waitFor();
   assert.equal((await f.store.snapshot()).customers[0].totpSecret, replacement);
   assert.equal(await page.getByRole("button", { name: "Resume pending setup", exact: true }).count(), 0);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);

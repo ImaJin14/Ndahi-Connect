@@ -63,6 +63,12 @@ test("edge limits cover every unauthenticated authentication flow", () => {
 });
 test("customer CSRF inventory covers every session-authorized mutation", () => {
   assert.deepEqual(Object.keys(customerCsrfPaths).sort(), [
+    "/api/account/authentication-migration/confirm",
+    "/api/account/authentication-migration/options",
+    "/api/account/authentication-migration/pin/cancel",
+    "/api/account/authentication-migration/pin/confirm",
+    "/api/account/authentication-migration/pin/start",
+
     "/api/account/device-management/connect",
     "/api/account/device-management/connect/options",
     "/api/account/device-management/current/identify",
@@ -80,6 +86,7 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/logout",
     "/api/account/notifications",
     "/api/account/passkeys/options",
+    "/api/account/passkeys/proof/options",
     "/api/account/passkeys/remove",
     "/api/account/passkeys/rename",
     "/api/account/passkeys/verify",

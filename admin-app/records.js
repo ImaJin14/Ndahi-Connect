@@ -1,4 +1,5 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { mountVoucherDetails } from "/voucher-details.js";
 
 // Paginated, server-filtered record table (PERF-003). Rows are rendered by the
 // caller; action buttons keep using the dashboard's delegated click handler.
@@ -17,10 +18,12 @@ export function mountRecords(container, { call, collection, title, headers, row,
     summary = container.querySelector(".records-pager span"),
     previous = container.querySelector('[data-page="prev"]'),
     next = container.querySelector('[data-page="next"]');
+  const details = collection === "vouchers" ? mountVoucherDetails(container, { columns: headers.length, refreshRecords: () => load(true) }) : null;
   function showLoading() {
     container.setAttribute("aria-busy", "true");
     previous.disabled = next.disabled = true;
     summary.textContent = "Loading records…";
+    details?.clear();
     body.innerHTML = `<tr><td colspan="${headers.length}">Loading records…</td></tr>`;
   }
   async function load(background = false) {
@@ -35,9 +38,9 @@ export function mountRecords(container, { call, collection, title, headers, row,
         status.hidden = false;
       }
       state.page = result.page;
-      body.innerHTML = result.items.length
-        ? result.items.map(row).join("")
-        : `<tr><td colspan="${headers.length}">${h(empty)}</td></tr>`;
+      if (details) details.render(body, result.items, row, result.scopeKey);
+      else body.innerHTML = result.items.length ? result.items.map(row).join("") : "";
+      if (!result.items.length) body.innerHTML = `<tr><td colspan="${headers.length}">${h(empty)}</td></tr>`;
       summary.textContent = result.total
         ? `Page ${result.page} of ${result.pages} · ${result.total} total`
         : "No matching records";
@@ -46,7 +49,8 @@ export function mountRecords(container, { call, collection, title, headers, row,
       loaded = true;
     } catch (error) {
       if (current !== request || !container.isConnected) return;
-      if (!background || !loaded) body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
+      details?.clear();
+      if (!background || !loaded || details) body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
       summary.textContent = error.message || "Please try again.";
       const retry = document.createElement("button");
       retry.type = "button";
@@ -80,13 +84,14 @@ export function mountRecords(container, { call, collection, title, headers, row,
   };
   previous.onclick = () => { if (!previous.disabled) { state.page--; void load(); } };
   next.onclick = () => { if (!next.disabled) { state.page++; void load(); } };
-  if (refreshMs) {
+  if (refreshMs || details) {
+    const interval = refreshMs || 15000;
     const refresh = async () => {
-      if (!container.isConnected) return;
+      if (!container.isConnected) { details?.destroy(); return; }
       if (!document.hidden && !container.closest("[hidden]") && !container.querySelector("input:focus, select:focus, textarea:focus, [aria-busy='true']")) await load(true);
-      setTimeout(refresh, refreshMs);
+      setTimeout(refresh, interval);
     };
-    setTimeout(refresh, refreshMs);
+    setTimeout(refresh, interval);
   }
   const ready = load();
   ready.refresh = () => load(true);

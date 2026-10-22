@@ -2,6 +2,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { formValues, randomId, loadPasskeys } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { showError } from "./errors.js";
+import { mountAuthenticationMigration } from "./authentication-migration.js";
 
 export function renderAuthenticatorSetup(host, enrollment, phone) {
   host.innerHTML = `<div class="success authenticator-setup" data-sensitive-output><h3>${enrollment.replacement ? "Confirm your replacement authenticator" : "Link your authenticator app"}</h3><p>Use Google Authenticator, Microsoft Authenticator or another app that creates time-based codes.</p>
@@ -14,8 +15,9 @@ export function renderAuthenticatorSetup(host, enrollment, phone) {
   host.querySelector('[name="code"]').focus(); host.scrollIntoView({ block: "nearest" });
 }
 
-export function mountAuthenticatorManagement({ container, enabled, hasPasskeys, call, showSetup }) {
+export function mountAuthenticatorManagement({ container, enabled, hasPasskeys, call, showSetup, retired = false }) {
   if (!container) return {};
+  if (retired) { container.textContent = ""; return {}; }
   let pending;
   container.innerHTML = `${enabled ? '<button type="button" data-manage-authenticator>Manage authenticator</button><p>Enabled means an app was linked. Verify a code to check that you can still use it.</p>' : ""}<div data-mfa-pending></div><section data-authenticator-panel hidden><h3>Manage authenticator</h3><button type="button" data-mfa-check>Verify a code</button><button type="button" data-mfa-replace>Replace authenticator</button><button type="button" data-mfa-lost>I have lost access</button><div data-mfa-management-form></div></section><p data-mfa-management-message role="status" aria-live="polite"></p>`;
   const panel = container.querySelector("[data-authenticator-panel]"), host = container.querySelector("[data-mfa-management-form]"), message = container.querySelector("[data-mfa-management-message]");
@@ -88,6 +90,9 @@ export function mountAuthenticatorManagement({ container, enabled, hasPasskeys, 
       catch (error) { showError(message, error); }
     }
   };
+  const preparation = document.createElement("section");
+  container.appendChild(preparation);
+  mountAuthenticationMigration({ container: preparation, call });
   void refreshPending();
   return { recovery: () => openForm("recovery"), refresh: refreshPending };
 }

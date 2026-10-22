@@ -21,9 +21,12 @@ const screenshots = "/tmp/ndahi-admin-app-checks";
 let browser, checks = 0;
 await store.transaction((s) => {
   s.customers.push({ id: "c1", name: "Fixture customer", phone: "670042001" });
-  s.vouchers.push({ id: "v1", customerId: "c1", code: "NC-FIXTURE", planId: "weekly", status: "active", quotaBytes: null, usedBytes: 0, expiresAt: "2030-01-02T08:00:00Z", deviceLimit: 2, wifiDevices: observed, wifiDevicesAt: now.toISOString() });
+  s.vouchers.push({ id: "v1", customerId: "c1", assignedResellerId: "staff-reseller", code: "NC-FIXTURE", planId: "weekly", status: "active", quotaBytes: null, usedBytes: 0, expiresAt: "2030-01-02T08:00:00Z", deviceLimit: 2, wifiDevices: observed, wifiDevicesAt: now.toISOString() });
   s.routerCommands.push({ id: "router:disconnect_device:legacy-uuid", kind: "router_command", action: "disconnect_device", targetId: "legacy-uuid", status: "dead_letter", attempts: 1, totalAttempts: 49, lastError: "Legacy device disconnection needs a fresh router session mapping.", at: now.toISOString() });
-  for (const [role, token] of Object.entries(tokens)) s.adminSessions.push({ tokenHash: hashSecret(token, secret), role, csrfToken: randomUUID(), expiresAt: "2030-01-02T08:00:00Z" });
+  for (const [role, token] of Object.entries(tokens)) {
+    s.adminUsers.push({ id: `staff-${role}`, username: `fixture-${role}`, role, active: true, passkeys: [] });
+    s.adminSessions.push({ userId: `staff-${role}`, tokenHash: hashSecret(token, secret), role, csrfToken: randomUUID(), expiresAt: "2030-01-02T08:00:00Z" });
+  }
 });
 const baseline = await store.snapshot();
 try {

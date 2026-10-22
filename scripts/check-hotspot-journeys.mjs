@@ -40,6 +40,7 @@ try {
       const headers = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET, POST, OPTIONS" };
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
+      if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: false, supportedCustomerMethods: ["pin", "passkey", "authenticator"], supportedAdminMethods: ["password", "passkey", "authenticator"] };
       if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
       if (url.pathname === "/api/account/access/begin") {
         if (slowStart) await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -126,7 +127,7 @@ try {
     await page.locator('#wifiDevices button[data-wifi-device="AA:BB:CC:DD:EE:01"]').click();
     await page.getByText("Disconnection requested.", { exact: false }).waitFor();
     assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 2, "slot remains occupied while pending");
-    await page.getByText("Disconnection confirmed.", { exact: false }).waitFor();
+    await page.waitForFunction(() => document.querySelectorAll("#wifiDevices button[data-wifi-device]").length === 1);
     assert.deepEqual(disconnects, [{ mac: "AA:BB:CC:DD:EE:01", csrf: "csrf-fixture" }]);
     assert.equal(await page.locator("#wifiDevices button[data-wifi-device]").count(), 1);
     assert.equal(posts.length, 0);

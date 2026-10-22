@@ -2,10 +2,18 @@ import { formValues, requestJson } from "./compat.js";
 import { ApiError, responseError, showError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
+import { loadAuthenticationPolicy } from "./authentication-migration.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   token = new URLSearchParams(location.search).get("token");
+
+loadAuthenticationPolicy().then((policy) => {
+  document.querySelectorAll("[data-legacy-authenticator]").forEach((label) => {
+    if (policy.authenticatorRetired) label.remove();
+    else label.hidden = false;
+  });
+}).catch(() => { /* PIN/email/support recovery remains usable without policy. */ });
 
 async function call(path, data) {
   const { response, body: result } = await requestJson(api + path, {
