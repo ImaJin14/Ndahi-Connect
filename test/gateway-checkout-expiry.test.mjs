@@ -123,3 +123,10 @@ test('repeated expiry reports retain the first observed gateway deadline', () =>
  assert.equal(p.gatewayExpiresAt, at(60).toISOString());
  assert.equal(p.checkoutClosedAt, at(60).toISOString());
 });
+
+test('legacy missing snapshots keep the same fixed fallback for block, countdown and private key', () => {
+ const p = { createdAt: at(0).toISOString(), status: 'pending', provider: 'mesomb' };
+ assert.equal(checkoutDeadline(p, { pendingSeconds: 3600 }), +at(300));
+ assert.equal(paymentView(p, { timing: { pendingSeconds: 3600 }, now: at(0) }).paymentClosesAt, at(300).toISOString());
+ assert.equal(guestCheckoutDeadline(p), +at(300));
+});
