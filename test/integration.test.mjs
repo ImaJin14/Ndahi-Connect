@@ -379,7 +379,7 @@ test("stacking and Daily same-day renewal are rejected; exhausted non-daily rene
   });
   assert.equal(blocked.response.status, 409);
   assert.equal(blocked.json.code, "ACTIVE_BUNDLE_EXISTS");
-  assert.ok(blocked.json.activeBundle);
+  assert.equal(blocked.json.activeBundle, undefined, "guest rejection must not disclose account usage");
   await f.store.transaction((s) => {
     s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes;
   });

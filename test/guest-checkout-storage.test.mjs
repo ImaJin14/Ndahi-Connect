@@ -66,7 +66,7 @@ test("BILL-006 a paid guest key expires at the checkout deadline without PIN set
   const f = await fixture(t, { now: () => time }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
   await f.call(`/api/payments/${id}/confirm`, "POST");
-  time = new Date(+time + 419999);
+  time = new Date(+time + 299999);
   assert.equal((await status(f, id, input.requestKey)).response.status, 200);
   time = new Date(+time + 1);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
@@ -92,7 +92,7 @@ test("BILL-006 an unpaid key expires with checkout rather than the financial pol
   let time = new Date("2026-10-19T08:00:00Z");
   const f = await fixture(t, { now: () => time }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
-  time = new Date(+time + 419999);
+  time = new Date(+time + 299999);
   assert.equal((await status(f, id, input.requestKey)).response.status, 200);
   time = new Date(+time + 1);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
@@ -161,7 +161,7 @@ test("paid guest key expires with its request regardless of the financial pollin
     const f = await fixture(t, { now: () => time, env: { PAYMENT_LATE_CHECK_HOURS: String(hours) } }), input = guest();
     const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
     await f.call(`/api/payments/${id}/confirm`, "POST");
-    time = new Date(+time + 419999);
+    time = new Date(+time + 299999);
     assert.equal((await status(f, id, input.requestKey)).response.status, 200);
     time = new Date(+time + 1);
     assert.equal((await status(f, id, input.requestKey)).response.status, 404);
@@ -177,7 +177,7 @@ test("an unpaid guest key has a hard expiry even if no worker ever closes the ch
   let time = new Date("2030-01-01T08:00:00Z");
   const f = await fixture(t, { now: () => time, env: { PAYMENT_LATE_CHECK_HOURS: "48" } }), input = guest();
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
-  time = new Date(+time + 420000);
+  time = new Date(+time + 300000);
   assert.equal((await status(f, id, input.requestKey)).response.status, 404);
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
   assert.equal((await f.store.snapshot()).payments[0].status, "pending", "access expiry alone does not invent a financial outcome");
@@ -189,7 +189,7 @@ test("a saved financial cutoff cannot be extended by a later polling configurati
   const id = (await f.call("/api/purchase", "POST", input)).json.payment.id;
   await f.store.transaction((s) => {
     const p = s.payments.find((p) => p.id === id);
-    p.status = "expired"; p.checkoutClosedAt = new Date(+time + 420000).toISOString();
+    p.status = "expired"; p.checkoutClosedAt = new Date(+time + 300000).toISOString();
     p.lateCheckUntil = new Date(+time + 12 * 3600000).toISOString();
   });
   time = new Date(+time + 13 * 3600000);

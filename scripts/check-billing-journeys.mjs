@@ -74,6 +74,25 @@ try {
     }
     finally { await context.close(); }
   }
+  await scenario("a new guest gets recovery actions for a live request and can retry at its exact expiry", async (page) => {
+    const phone = "670040077";
+    const first = await post("/api/purchase", { phone, name: "Expiry Guest", planId: "weekly", network: "mtn", requestKey: portalKey() });
+    await page.goto(portal + "/onboarding.html");
+    await page.locator('[data-plan="weekly"]').click();
+    await page.getByLabel("Your name", { exact: true }).fill("Expiry Guest");
+    await page.getByLabel("Payment phone number", { exact: true }).fill(phone);
+    await page.locator("#requestPayment").click();
+    await page.locator("#message").getByRole("button", { name: "Sign in to Payments" }).waitFor();
+    assert.equal(await page.locator("#message").getByRole("button", { name: "Try again", exact: true }).count(), 0);
+    assert.equal((await store.snapshot()).payments.filter((p) => p.payerPhone === phone).length, 1);
+    now = new Date(Date.parse(first.json.payment.paymentExpiresAt));
+    await page.locator("#requestPayment").click();
+    await page.locator("#confirm").waitFor();
+    const records = (await store.snapshot()).payments.filter((p) => p.payerPhone === phone);
+    assert.equal(records.length, 2);
+    assert.equal(records.find((p) => p.id === first.json.payment.id).status, "expired");
+    assert.equal(records.filter((p) => p.status === "pending").length, 1);
+  }, { signedIn: false, width: 390 });
   await scenario("checkout restores focus after close, Escape and backdrop", async (page) => {
     await page.goto(`${portal}/onboarding.html`);
     const opener = page.locator('[data-plan="weekly"]');
@@ -253,7 +272,7 @@ try {
     await page.locator("#message .error-card").waitFor();
     // Only the random key and plan remain on the device, and the browser drops them at the request deadline.
     const saved = await savedCookie(context);
-    assert.ok(saved.expires > Date.now() / 1000 + 400 && saved.expires <= Date.now() / 1000 + 420);
+    assert.ok(saved.expires > Date.now() / 1000 + 280 && saved.expires <= Date.now() / 1000 + 300);
     assert.deepEqual(Object.keys(JSON.parse(JSON.parse(decodeURIComponent(saved.value)).value)).sort(), ["planId", "requestKey"]);
     assert.doesNotMatch(decodeURIComponent(saved.value), /Guest Customer|670040002|guest@example/);
     assert.deepEqual(await legacyCheckoutKeys(page), []);
@@ -307,7 +326,7 @@ try {
     await page.locator("#requestPayment").click();
     await page.locator("#message .error-card").waitFor();
     await page.close();
-    // The customer returns after the approval window and grace have passed.
+    // The customer returns after the request deadline has passed.
     now = new Date(Date.now() + 8 * 60000);
     const resumed = await context.newPage();
     await resumed.goto(`${portal}/onboarding.html`);
@@ -482,7 +501,7 @@ try {
   await scenario("PIN handoff survives reload, blocked session storage and the original request deadline", async (page, context) => {
     const input = { phone: "670040071", planId: "weekly", requestKey: portalKey() };
     const purchase = await post("/api/purchase", input);
-    now = new Date(+now + 419000);
+    now = new Date(+now + 299000);
     await post(`/api/payments/${purchase.json.payment.id}/confirm`, {});
     await context.addInitScript(() => Object.defineProperty(window, "sessionStorage", { get() { throw Error("Storage blocked"); } }));
     await seedSavedCheckout(context, { requestKey: input.requestKey, planId: input.planId, paymentId: purchase.json.payment.id });

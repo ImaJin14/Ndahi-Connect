@@ -36,8 +36,8 @@ const pin = { checkoutSetup: true, pin: "2468", confirmPin: "2468" };
 
 test("paid guest gets a separate ten-minute PIN grant without extending the request key", async (t) => {
   const f = await fixture(t);
-  assert.equal(Date.parse(f.created.json.payment.guestAccessExpiresAt) - +f.now(), 420000);
-  f.advance(419000); await f.paid();
+  assert.equal(Date.parse(f.created.json.payment.guestAccessExpiresAt) - +f.now(), 300000);
+  f.advance(299000); await f.paid();
   const exchange = await f.exchange(), cookie = setupCookie(exchange);
   assert.equal(exchange.response.status, 200);
   assert.equal(Date.parse(exchange.json.expiresAt) - +f.now(), 600000);
@@ -117,7 +117,7 @@ test("existing PIN accounts return to login and cannot be reset through a guest 
 });
 
 test("a late confirmation retains payment and voucher history but cannot revive guest credentials", async (t) => {
-  const f = await fixture(t); f.advance(420000); await f.paid();
+  const f = await fixture(t); f.advance(300000); await f.paid();
   assert.equal((await f.exchange()).response.status, 404);
   assert.equal((await f.call("/api/purchase/recover", { requestKey: f.input.requestKey })).response.status, 404);
   const state = await f.store.snapshot();
@@ -136,7 +136,7 @@ test("an outstanding handoff survives customer secret rotation without sliding e
 
 test("reserved and legacy credential deadlines never inherit a longer financial polling window", () => {
   const p = { createdAt: "2030-01-01T08:00:00Z" }, at = Date.parse(p.createdAt);
-  assert.equal(guestCheckoutDeadline(p), at + 420000);
+  assert.equal(guestCheckoutDeadline(p), at + 300000);
   assert.equal(guestCheckoutDeadline({ ...p, creationState: "reserved" }), at + 300000);
   assert.equal(guestCheckoutDeadline({ ...p, paymentClosesAt: new Date(at + 90000).toISOString() }), at + 90000);
   assert.ok(Number.isNaN(guestCheckoutDeadline({})));

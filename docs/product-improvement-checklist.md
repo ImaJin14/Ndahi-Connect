@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-22
+Last reviewed: 2026-10-23
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -1122,3 +1122,8 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 
 
+
+- [-] **PAYMENT-126 — Gateway expiry and recoverable new-user checkout**
+  - Implemented: one request/countdown/recovery deadline, no extra grace; terminal gateway expiry normalization; bounded fresh provider check on retry; activation/refund review separated from live-request blocking; owner-safe recovery and private guest responses; canonical suspension at reservation and fulfillment.
+  - Verification: boundary, gateway expiry/outage, concurrent retry, callbacks/late money, lost-key, setup and browser regressions. Required exact-revision CI and real Mobile Money/iPhone acceptance remain separate.
+  - Release: source prepared, not merged/deployed by this task. Financial records and late reconciliation are preserved. Runbook: [gateway/request recovery](operations/billing-experience.md).
