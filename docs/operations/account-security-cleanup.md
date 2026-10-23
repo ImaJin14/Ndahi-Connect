@@ -22,7 +22,9 @@ is separate from the already deployed payment retry repair in PR #126.
   separate session-bound PIN confirmation.
 - Administrators retain password/passkey proof. The password field takes
   precedence over a legacy PIN alias; proof challenges bind both stored hashes
-  so a password rotation cannot leave an earlier proof usable.
+  so a password rotation cannot leave an earlier proof usable. Old PIN-named
+  request fields verify the current password; a distinct stale alias cannot
+  establish readiness or preserve an earlier reviewed inventory.
 - Account backup codes, confirmed-email PIN recovery, audited owner support
   recovery, and Wi-Fi approval/access codes remain distinct supported flows.
 - Public authentication policy version 2 advertises runtime retirement even if

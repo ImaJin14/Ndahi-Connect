@@ -84,3 +84,12 @@ test('owner review and passkey options reject absent or changed inventory withou
  assert.equal((await f.store.snapshot()).zone.authenticationMigrationReview.digest,current.body.digest);
  assert.equal((await f.store.snapshot()).zone.authenticatorRetirement,undefined);
 });
+
+test('administrator readiness binds both hashes and never counts a stale independent PIN alias as password readiness',async t=>{
+ const f=await fixture(t);await f.store.transaction(async s=>{const u=s.adminUsers[0];u.pinHash=await argon2.hash('1357');recordVerifiedMethod(u,'pin',null,secret,f.now());});
+ let state=await f.store.snapshot(),before=authenticationReadiness(state,{pepper:secret,now:f.now()});assert.equal(before.administrators.unverified,1);
+ await f.store.transaction(async s=>{s.adminUsers[0].passwordHash=await argon2.hash('Rotated current administrator password 82!');});
+ let after=authenticationReadiness(await f.store.snapshot(),{pepper:secret,now:f.now()});assert.notEqual(after.digest,before.digest,'changing a password cannot preserve a reviewed inventory through an unchanged alias');
+ await f.store.transaction(s=>recordVerifiedMethod(s.adminUsers[0],'password',null,secret,f.now()));
+ after=authenticationReadiness(await f.store.snapshot(),{pepper:secret,now:f.now()});assert.equal(after.administrators.unverified,0);
+});

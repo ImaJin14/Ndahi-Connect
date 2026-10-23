@@ -198,6 +198,7 @@ test("a fresh passkey proof clears prior failed attempts, and another legitimate
 
 test("administrator password proof takes precedence over a stale legacy PIN alias",async()=>{
  const f=fixture();f.user.pinHash=await argon2.hash("1357");
+ assert.equal((await f.verify({pin:"1357"})).verified,false,"a stale PIN alias cannot replace the existing password");
  assert.deepEqual(await f.verify({password,pin:"1357"}),{verified:true,method:"password"});
  assert.deepEqual(await f.verify({currentPassword:password,currentPin:"wrong"}),{verified:true,method:"password"});
  const options=await f.options();f.user.passwordHash=await argon2.hash("Rotated administrator password 82!");
