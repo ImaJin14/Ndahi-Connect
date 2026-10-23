@@ -4,7 +4,7 @@ import http from 'node:http';
 import { blank } from '../lib/api/state.mjs';
 import { createHandler, createStore } from '../server.mjs';
 import { reservePurchase } from '../lib/domain/purchases.mjs';
-import { checkoutTiming, checkoutDeadline, guestCheckoutDeadline, paymentView, createBillingService } from '../lib/billing.mjs';
+import { checkoutTiming, checkoutDeadline, guestCheckoutDeadline, paymentView, createBillingService, recordGatewayFailure } from '../lib/billing.mjs';
 import { enqueuePaymentWebhook } from '../lib/payment-webhooks.mjs';
 import { MeSombPaymentAdapter } from '../lib/payments.mjs';
 const base = new Date('2030-01-01T12:00:00Z'), at = seconds => new Date(+base + seconds * 1000);
@@ -114,4 +114,12 @@ test('verified gateway expiry delivered by a webhook releases the same finite re
  assert.equal(result.status, 200);
  assert.equal((await f.store.snapshot()).payments[0].status, 'expired');
  assert.equal((await f.purchase('new')).status, 201);
+});
+
+test('repeated expiry reports retain the first observed gateway deadline', () => {
+ const p = { createdAt: at(0).toISOString(), status: 'pending', paymentExpiresAt: at(300).toISOString() };
+ recordGatewayFailure(p, { requestExpired: true }, at(60));
+ recordGatewayFailure(p, { requestExpired: true }, at(120));
+ assert.equal(p.gatewayExpiresAt, at(60).toISOString());
+ assert.equal(p.checkoutClosedAt, at(60).toISOString());
 });
