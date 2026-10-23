@@ -5,19 +5,19 @@ import { requestAdminActionProof } from "/action-proof.js";
 export function openAuthenticatorRecovery({ customerId, call, opener, retired = false }) {
   document.querySelector("[data-authenticator-recovery]")?.remove();
   const host = document.createElement("section"); host.className = "surface"; host.dataset.authenticatorRecovery = "true";
-  host.innerHTML = `<h3>${retired ? "Verified account recovery" : "Verified authenticator recovery"}</h3><p>Verify the customer's identity in person or through an existing verified channel. ${retired ? "This issues a time-limited support code for PIN recovery. The customer chooses their new PIN; support never sees it." : "This issues a short-lived replacement code; the current authenticator stays enabled until the customer confirms a new app."} Portal sessions and previous account backup codes will be revoked.</p>
+  host.innerHTML = `<h3>Verified account recovery</h3><p>Verify the customer's identity in person or through an existing verified channel. This issues a time-limited support code for PIN recovery. The customer chooses their new PIN; support never sees it. Portal sessions and previous account backup codes will be revoked.</p>
     <form><input type="hidden" name="customerId" value="${h(customerId)}"><label>Support case reference<input name="caseReference" minlength="3" maxlength="80" required></label><label>Reason and verification notes<textarea name="reason" minlength="12" maxlength="500" required></textarea></label>
     <label>Identity verification<select name="verificationMethod"><option value="in_person">Verified in person</option><option value="existing_verified_channel">Existing verified channel</option></select></label><label><input type="checkbox" name="confirmedIdentity" required> I verified this customer's identity.</label>
-    ${retired ? "<p>Your fresh administrator PIN or passkey will be requested before issuing a code.</p>" : '<label>Your administrator PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" required></label>'}
+    <p>Your fresh administrator password or passkey will be requested before issuing a code.</p>
     <button type="submit">Verify and issue support code</button><button type="button" data-close-authenticator-recovery>Cancel</button><p data-recovery-message role="status" aria-live="polite"></p></form>`;
   document.getElementById("customerRecords").after(host);
   const form = host.querySelector("form"), message = host.querySelector("[data-recovery-message]");
   form.onsubmit = async (event) => {
     event.preventDefault(); event.stopPropagation();
-    const payload = Object.fromEntries(new FormData(form)); payload.confirmedIdentity = form.elements.confirmedIdentity.checked; payload.purpose = retired ? "pin" : "authenticator";
+    const payload = Object.fromEntries(new FormData(form)); payload.confirmedIdentity = form.elements.confirmedIdentity.checked; payload.purpose = "pin";
     try {
       await runButton(form.querySelector('[type="submit"]'), "Verifying…", async () => {
-        if (retired) Object.assign(payload, await requestAdminActionProof({ call, purpose: "support_recovery", input: { ...payload, recoveryPurpose: "pin" } }));
+        Object.assign(payload, await requestAdminActionProof({ call, purpose: "support_recovery", input: { ...payload, recoveryPurpose: "pin" } }));
         const result = await call("/api/admin/customers/recovery", { method: "POST", body: JSON.stringify(payload) });
         form.reset(); host.setAttribute("data-sensitive-output", "");
         host.innerHTML = `<h3>Support code issued</h3><p>Shown once. Share only in person or through the verified channel. Expires ${h(new Date(result.expiresAt).toLocaleTimeString())}.</p><code>${h(result.recoveryCode)}</code><p>${h(result.message)}</p><button type="button" data-close-authenticator-recovery>Close support code</button>`;

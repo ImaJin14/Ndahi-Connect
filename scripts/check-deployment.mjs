@@ -22,10 +22,10 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
   passed.push('API/database readiness');
   if (expectAuthenticatorRetired) {
     const policy = await (await get(api, '/api/authentication-policy')).json();
-    assert.equal(policy.authenticatorRetired, true, 'Authenticator retirement must be recorded');
+    assert.equal(policy.authenticatorRetired, true, 'Authenticator sign-in must be disabled');
     assert.deepEqual(policy.supportedCustomerMethods, ['pin', 'passkey']);
-    assert.deepEqual(policy.supportedAdminMethods, ['pin', 'passkey']);
-    passed.push('Persisted retirement and supported authentication policy');
+    assert.deepEqual(policy.supportedAdminMethods, ['password', 'passkey']);
+    passed.push('Supported PIN/password/passkey authentication policy');
   }
   const plans = await (await get(api, '/api/plans')).json();
   assert.ok(Array.isArray(plans.plans) && plans.plans.length > 0, 'Plan catalogue must not be empty');

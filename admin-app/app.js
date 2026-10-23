@@ -1,5 +1,4 @@
 import { requestAdminActionProof } from "/action-proof.js";
-import { mountAdminAuthenticationMigration } from "/authentication-migration.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
@@ -103,7 +102,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
 <section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${h(x.integrations.mikrotik)}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${["live", "standalone"].includes(x.integrations.omada) ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>${x.integrations.omada === "standalone" ? "Access points run standalone. No Omada controller is used." : "Check controller connectivity and access-point availability."}</p></div>${x.integrations.omada === "standalone" ? "" : '<button class="secondary-action" id="checkOmada">Check connection</button>'}</article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>PIN &amp; passkeys</h3></div><p>Use your PIN or a passkey. Sensitive changes require fresh verification.</p></div><form id="mfa"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button></form><ul>${(x.profile.passkeyList || []).map((key,index) => `<li>${h(key.label || `Passkey ${index+1}`)} <button type="button" data-remove-admin-passkey="${h(key.id)}">Remove passkey</button></li>`).join("")}</ul></article>
+  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Password &amp; passkeys</h3></div><p>Use your password or a passkey. Sensitive changes require fresh verification.</p></div><form id="adminPasskeys"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button></form><ul>${(x.profile.passkeyList || []).map((key,index) => `<li>${h(key.label || `Passkey ${index+1}`)} <button type="button" data-remove-admin-passkey="${h(key.id)}">Remove passkey</button></li>`).join("")}</ul></article>
 </div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
 ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" role="tabpanel" aria-labelledby="tab-network-setup" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="tab-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
@@ -279,34 +278,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
       button.textContent = "Add passkey";
     }
   };
-  if ($("#enrollMfa")) $("#enrollMfa").onclick = async () => {
-    await runAction($("#enrollMfa"), "Preparing…", async () => {
-      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "enroll" } });
-      const result = await call("/api/admin/profile/mfa/enroll", {
-        method: "POST", body: JSON.stringify({ ...proof, action: "enroll" }),
-      });
-      $("#mfaEnrollment").innerHTML =
-        `<p>Add this secret to your authenticator: <code>${h(result.secret)}</code></p><input id="totpCode" inputmode="numeric" maxlength="6" placeholder="Authenticator code"><button type="button" id="confirmMfa">Confirm</button>`;
-      $("#confirmMfa").onclick = async () => {
-        await runAction($("#confirmMfa"), "Verifying…", async () => {
-          await call("/api/admin/profile/mfa/confirm", {
-            method: "POST",
-            body: JSON.stringify({ code: $("#totpCode").value, challengeId: result.challengeId }),
-          });
-          await load();
-        }, "#integrationMessage");
-      };
-    }, "#integrationMessage");
-  };
-  if ($("#disableMfa")) $("#disableMfa").onclick = async () => {
-    await runAction($("#disableMfa"), "Disabling…", async () => {
-      const proof = await requestAdminActionProof({ call, purpose: "legacy_mfa", input: { action: "set", enabled: false } });
-      await call("/api/admin/profile/mfa", {
-        method: "POST", body: JSON.stringify({ ...proof, action: "set", enabled: false }),
-      });
-      await load();
-    }, "#integrationMessage");
-  };
+
 }
 function mountRecordViews(canManagePayments, retired) {
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
@@ -315,7 +287,7 @@ function mountRecordViews(canManagePayments, retired) {
     collection: "customers",
     title: "Customers",
     headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${(retired || c.authenticatorEnrolled) && adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">${retired ? "Recover PIN" : "Recover authenticator"}</button>` : ""}</td></tr>`,
+    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover PIN</button>` : ""}</td></tr>`,
   });
   wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
@@ -336,10 +308,6 @@ function mountRecordViews(canManagePayments, retired) {
     row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
   if (!retired) {
-  const migrationPanel = document.createElement("div");
-  migrationPanel.id = "adminAuthenticationMigration";
-  $("#panel-connections").append(migrationPanel);
-  mountAdminAuthenticationMigration({ container: migrationPanel, call });
   }
   void mountRecords($("#voucherRecords"), {
     call,
@@ -531,4 +499,4 @@ function watchWifiSummary() {
 watchWifiSummary();
 window.addEventListener("online", () => { void refreshWifiSummary(); });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshWifiSummary(); });
-startUpdates({ isBusy: () => passkeyEnrollmentRunning || Boolean(document.querySelector('#totpCode, [data-sensitive-output]:not(:empty), [data-review-output]:not(:empty), [data-setup-pending="true"]')) });
+startUpdates({ isBusy: () => passkeyEnrollmentRunning || Boolean(document.querySelector(' [data-sensitive-output]:not(:empty), [data-review-output]:not(:empty), [data-setup-pending="true"]')) });

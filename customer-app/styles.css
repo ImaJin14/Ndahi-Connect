@@ -1,9 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
 :root{--forest:#003b2b;--forest-2:#062a20;--lime:#b9ee2e;--lime-dark:#82af08;--ivory:#fbfaf5;--paper:#fffef9;--ink:#10241c;--muted:#68766f;--line:#dfe5dc;--sage:#eef3e9;--danger:#a73535;--shadow:0 20px 55px rgba(4,42,31,.12);--header-bg:var(--forest);font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--ivory)}
 :root[data-theme="dark"]{--forest:#0a1f18;--forest-2:#04120e;--lime:#b9ee2e;--lime-dark:#9ed31c;--ivory:#0b1310;--paper:#121d18;--ink:#eaf1ed;--muted:#8b9c93;--line:#213329;--sage:#182821;--danger:#f87171;--shadow:0 20px 55px rgba(0,0,0,.5);--header-bg:#04120e;color-scheme:dark}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--forest:#0a1f18;--forest-2:#04120e;--lime:#b9ee2e;--lime-dark:#9ed31c;--ivory:#0b1310;--paper:#121d18;--ink:#eaf1ed;--muted:#8b9c93;--line:#213329;--sage:#182821;--danger:#f87171;--shadow:0 20px 55px rgba(0,0,0,.5);--header-bg:#04120e;color-scheme:dark}}
+/* Automatic dark mode temporarily disabled. */
+@media not all{:root:not([data-theme="light"]){--forest:#0a1f18;--forest-2:#04120e;--lime:#b9ee2e;--lime-dark:#9ed31c;--ivory:#0b1310;--paper:#121d18;--ink:#eaf1ed;--muted:#8b9c93;--line:#213329;--sage:#182821;--danger:#f87171;--shadow:0 20px 55px rgba(0,0,0,.5);--header-bg:#04120e;color-scheme:dark}}
 :root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea,:root[data-theme="dark"] table,:root[data-theme="dark"] .device button,:root[data-theme="dark"] .secondary-action{background:var(--sage);color:var(--ink);border-color:var(--line)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) input,:root:not([data-theme="light"]) select,:root:not([data-theme="light"]) textarea,:root:not([data-theme="light"]) table,:root:not([data-theme="light"]) .device button,:root:not([data-theme="light"]) .secondary-action{background:var(--sage);color:var(--ink);border-color:var(--line)}}
+/* Automatic dark mode temporarily disabled. */
+@media not all{:root:not([data-theme="light"]) input,:root:not([data-theme="light"]) select,:root:not([data-theme="light"]) textarea,:root:not([data-theme="light"]) table,:root:not([data-theme="light"]) .device button,:root:not([data-theme="light"]) .secondary-action{background:var(--sage);color:var(--ink);border-color:var(--line)}}
 .theme-toggle{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 10px;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .theme-toggle:hover{background:rgba(255,255,255,.15);box-shadow:none;transform:none}
 :root[data-theme="dark"] .theme-toggle{border-color:var(--line);color:var(--ink)}
@@ -214,3 +216,35 @@ header .brand,
 
 
 
+
+/* Account settings: concise summaries, grouped actions and readable mobile forms. */
+.account-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start;min-width:0}
+.account-layout>.surface.full{grid-column:auto}
+.account-overview{grid-column:1/-1;padding:4px 2px}
+.account-overview h2{margin:8px 0;font-size:clamp(1.8rem,4vw,2.4rem)}
+.account-overview p:last-child{margin-bottom:0;color:var(--muted)}
+.account-layout .surface{min-width:0;overflow-wrap:anywhere}
+.account-layout h2{font-size:1.55rem;margin-bottom:16px}
+.account-layout h3{font-family:inherit;font-size:1rem;margin:0 0 6px}
+.account-layout details{border-top:1px solid var(--line);padding-top:16px;margin-top:18px}
+.account-layout summary{font-weight:600;cursor:pointer;padding:6px 0;min-height:36px}
+.account-layout details form{margin-top:18px}
+.account-layout form>label{margin-top:14px}
+.account-layout form>button{margin:12px 8px 0 0}
+.account-layout .account-security{grid-column:1/-1}
+.account-setting{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:16px 0;border-top:1px solid var(--line)}
+.account-setting p{margin:0;color:var(--muted)}
+.account-badge,.account-count{font-size:.8rem;font-weight:600;white-space:nowrap;padding:5px 10px;background:var(--sage);color:var(--forest);border-radius:999px}
+.account-hint{color:var(--muted);font-size:.9rem}
+.account-passkeys{margin-top:14px}
+.account-layout .danger-action{background:transparent;color:#a22732;border:1px solid #d4a6ac}
+.account-layout .rename-passkey{border:0;padding:0;margin:0}
+.account-layout .acknowledgement{display:flex;align-items:flex-start;gap:10px}
+.account-layout .acknowledgement input{flex:0 0 20px;margin-top:3px}
+@media(max-width:640px){.account-layout{grid-template-columns:minmax(0,1fr);gap:16px}.account-layout .surface{padding:22px}.account-layout h2{font-size:1.4rem}.account-layout .device{align-items:flex-start;gap:12px;flex-wrap:wrap}.account-layout .device-actions{width:100%;justify-content:flex-start}}
+
+.account-layout>#emailAccount{grid-column:1/-1}
+
+.account-layout{font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+.account-layout .eyebrow{color:var(--forest)}
+.account-layout input,.account-layout select,.account-layout button{font-family:inherit}

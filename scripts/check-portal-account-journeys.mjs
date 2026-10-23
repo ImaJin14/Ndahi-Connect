@@ -51,7 +51,7 @@ try {
     page.setDefaultTimeout(20000);
     page.on('pageerror', (error) => errors.push(error.message));
     try { await work(page, context); assert.deepEqual(errors, []); console.log(`PASS ${name}`); checks++; }
-    catch (error) { await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw error; }
+    catch (error) { console.error(JSON.stringify({pageErrors:errors})); await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw error; }
     finally { await context.close(); }
   }
   for (const width of [320, 390, 768, 1280]) {
@@ -84,6 +84,7 @@ try {
     await page.getByRole('heading', { name: 'Welcome back, Portal', exact: true }).waitFor();
     const before = (await store.snapshot()).payments;
     await page.locator('[data-portal-tab="account"]').click();
+    await page.getByText('Edit display name', { exact: true }).click();
     await page.locator('#changeName [name="name"]').fill('Marie Ndongo');
     await page.locator('#changeName [type="submit"]').click();
     await page.getByText('Your display name was updated.', { exact: true }).waitFor();
@@ -234,7 +235,7 @@ try {
     await page.reload(); await page.locator('#checkExisting').waitFor();
     assert.match(await page.locator('#planNotice').innerText(), /670050199/);
   });
-  await scenario('a real passkey assertion plus enrolled authenticator can authorize an account-number change', async (page, context) => {
+  await scenario('a real passkey authorizes an account-number change despite stale authenticator data', async (page, context) => {
     const cdp = await context.newCDPSession(page);
     await cdp.send('WebAuthn.enable');
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
@@ -248,7 +249,7 @@ try {
     await store.transaction((s) => { s.customers[0].totpSecret = key; });
     await page.reload(); await page.getByText('Change account number', { exact: true }).click();
     await page.locator('#changePhone [name="phone"]').fill('670050104');
-    await page.locator('#changePhone [name="otp"]').fill(totpCode(key, +now));
+    assert.equal(await page.locator('#changePhone [name="otp"]').count(), 0);
     await page.locator('#changePhone [name="confirmChange"]').check();
     await page.locator('#changePhonePasskey').click();
     await page.getByText('Account number updated. Your other portal sessions were signed out.', { exact: true }).waitFor();
@@ -292,7 +293,7 @@ try {
     await page.waitForURL('**/verify.html?setup=checkout');
     await page.locator('#primary').fill('2468'); await page.locator('#confirm').fill('2468');
     await page.locator('#submitLabel').click(); await page.waitForURL('**/dashboard');
-    await page.locator('[data-portal-tab="account"]').click(); await page.locator('#linkEmail').waitFor();
+    await page.locator('[data-portal-tab="account"]').click(); await page.getByText('Link email', {exact:true}).click(); await page.locator('#linkEmail').waitFor();
     const before = (await store.snapshot()).customers.find((c) => c.phone === '670050188');
     assert.equal(before.email, ''); assert.equal(before.emailVerificationRequired, true);
     await page.locator('#linkEmail [name="email"]').fill('linked@example.test');

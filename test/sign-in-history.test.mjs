@@ -40,16 +40,13 @@ test("the same server-issued browser hint makes routine sign-ins quiet without g
   assert.equal((await f.store.snapshot()).securityAlerts.length, 2, "a missing recognition cookie is honestly unrecognized");
 });
 
-for (const method of ["authenticator", "recovery"]) test(`${method} sign-in records its actual method once and preserves single-use credential checks`, async (t) => {
-  const f = await fixture(t), secret = totpSecret();
-  await f.store.transaction((s) => { s.customers[0].totpSecret = secret; s.customers[0].recoveryCodes = [{ id: "code", hash: hashSecret("ABCD-2345", "pairing-tests") }]; });
-  const challenge = await f.call("/api/account/login/request-authenticator", { phone: "670050001" });
-  const input = { challengeId: challenge.body.challengeId, ...(method === "recovery" ? { recoveryCode: "ABCD-2345" } : { otp: totpCode(secret, +f.now()) }) };
-  assert.equal((await f.call("/api/account/login/verify-authenticator", input)).status, 200);
-  assert.equal((await f.call("/api/account/login/verify-authenticator", input)).status, 401);
-  const items = (await f.call(inbox)).body.items;
-  assert.equal(items.length, 1); assert.match(items[0].title, method === "recovery" ? /Recovery code/ : /Authenticator/);
-  assert.equal((await f.store.snapshot()).securityEvents.filter((e) => e.type === loginMethods[method]).length, 1);
+for (const method of ["authenticator", "recovery"]) test(`retired ${method} inputs cannot create a successful sign-in history item`,async t=>{
+ const f=await fixture(t),secret=totpSecret();await f.store.transaction(s=>{s.customers[0].totpSecret=secret;s.customers[0].recoveryCodes=[{id:"code",hash:hashSecret("ABCD-2345","pairing-tests")}];});
+ const before=await f.store.snapshot();
+ const request=await f.call("/api/account/login/request-authenticator",{phone:"670050001"});assert.equal(request.status,410);
+ const input={challengeId:"old",...(method==="recovery"?{recoveryCode:"ABCD-2345"}:{otp:totpCode(secret,+f.now())})};
+ assert.equal((await f.call("/api/account/login/verify-authenticator",input)).status,410);
+ const after=await f.store.snapshot();assert.equal(after.securityEvents.filter(e=>e.type===loginMethods[method]).length,0);assert.deepEqual(after.customers,before.customers);assert.deepEqual(after.dashboardSessions,before.dashboardSessions);
 });
 
 test("passkey, setup and voucher account methods use stable event identities without exposing factor material", async (t) => {

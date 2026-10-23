@@ -162,58 +162,11 @@ test("AUTH-003 passkeys can be renamed and removed by their owner only", async (
   assert.ok(alerts.some((a) => a.kind === "passkey_removed" && a.customerId === customerId));
 });
 
-test("AUTH-004 recovery codes require authenticator 2FA, are hashed at rest, and let a customer sign in once each", async (t) => {
-  const f = await fixture(t);
-  const { customerId } = await account(f);
-  const blocked = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
-  assert.equal(blocked.response.status, 409);
-  const secret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
-  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
-  assert.equal(generated.response.status, 200);
-  assert.equal(generated.json.codes.length, 10);
-  const stored = await f.store.snapshot();
-  const customer = stored.customers.find((c) => c.id === customerId);
-  assert.equal(customer.recoveryCodes.length, 10);
-  for (const rc of customer.recoveryCodes) {
-    assert.match(rc.argon2Hash, /^\$argon2id\$v=19\$m=19456,p=1,t=2\$/);
-    assert.equal(rc.hash, undefined);
-    assert.ok(generated.json.codes.every((code) => !JSON.stringify(rc).includes(code)), "plaintext recovery codes must never be stored");
-  }
-  assert.equal((await f.call("/api/account/security")).json.recoveryCodesRemaining, 10);
-  delete f.jar.customer_session;
-  const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone: "670010001" });
-  const codeToUse = generated.json.codes[0];
-  const loggedIn = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId, recoveryCode: codeToUse,
-  });
-  assert.equal(loggedIn.response.status, 200);
-  assert.equal((await f.call("/api/account/security")).json.recoveryCodesRemaining, 9);
-  delete f.jar.customer_session;
-  const otp2 = await f.call("/api/account/login/request-authenticator", "POST", { phone: "670010001" });
-  const reused = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp2.json.challengeId, recoveryCode: codeToUse,
-  });
-  assert.equal(reused.response.status, 401, "a used recovery code must not work a second time");
-});
 
-test("AUTH-004 regenerating recovery codes invalidates every previously issued code", async (t) => {
-  const f = await fixture(t);
-  const { customerId } = await account(f);
-  const secret = totpSecret();
-  await f.store.transaction((s) => { s.customers.find((c) => c.id === customerId).totpSecret = secret; });
-  const first = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
-  const second = await f.call("/api/account/security/recovery-codes/generate", "POST", { recoveryCode: first.json.codes[0] });
-  assert.notDeepEqual(first.json.codes, second.json.codes);
-  delete f.jar.customer_session;
-  const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone: "670010001" });
-  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId, recoveryCode: first.json.codes[0],
-  });
-  assert.equal(attempt.response.status, 401, "codes from a replaced batch must no longer work");
-});
 
-test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a security alert with no secret material", async (t) => {
+
+
+test("AUTH-005 PIN reset and lockout each queue a security alert with no secret material", async (t) => {
   let resetToken;
   const f = await fixture(t, { email: { configured: () => true, sendPinReset: async ({ token }) => { resetToken = token; return { messageId: "m" }; } } });
   const { customerId, phone } = await account(f);
@@ -225,12 +178,8 @@ test("AUTH-005 PIN reset, lockout, and authenticator enrollment each queue a sec
   assert.equal(locked.json.locked, true);
   await f.store.transaction((s) => { delete s.customers.find((c) => c.id === customerId).pinLockedUntil; });
   await f.call("/api/account/login/pin", "POST", { phone, pin: "1357" });
-  const enroll = await f.call("/api/account/security/mfa/enroll", "POST", { pin: "1357" });
-  assert.equal(enroll.response.status, 200);
-  const code = totpCode(enroll.json.secret, Date.now());
-  await f.call("/api/account/security/mfa/confirm", "POST", { challengeId: enroll.json.challengeId, code });
   const alerts = (await f.store.snapshot()).securityAlerts.filter((a) => a.customerId === customerId);
-  for (const kind of ["pin_reset", "pin_locked", "authenticator_enrolled"]) {
+  for (const kind of ["pin_reset", "pin_locked"]) {
     assert.ok(alerts.some((a) => a.kind === kind), `missing ${kind} alert`);
   }
   for (const a of alerts) {
@@ -244,7 +193,8 @@ test("AUTH-005 legacy reset cannot destroy existing factors; verified recovery r
   const { customerId, phone } = await account(f);
   const secret = totpSecret();
   await f.store.transaction(s => { s.customers.find(c => c.id === customerId).totpSecret = secret; });
-  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f));
+  const generated = await f.call("/api/account/security/recovery-codes/generate", "POST", {});
+  assert.equal(generated.response.status, 410);
   const before = (await f.store.snapshot()).customers.find(c => c.id === customerId);
   const adminLogin = await f.call("/api/admin/login", "POST", { pin: "9999" }, { headers: { origin: "http://admin.test" } });
   const reset = await f.call("/api/admin/customers/reset-authenticator", "POST", { customerId }, { cookie: adminLogin.setCookie.split(";")[0], headers: { origin: "http://admin.test" } });
@@ -254,8 +204,8 @@ test("AUTH-005 legacy reset cannot destroy existing factors; verified recovery r
   for (const key of ["pinHash", "totpSecret", "passkeys", "recoveryCodes"]) assert.deepEqual(after[key], before[key]);
   delete f.jar.customer_session;
   const otp = await f.call("/api/account/login/request-authenticator", "POST", { phone });
-  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: generated.json.codes[0] });
-  assert.equal(attempt.response.status, 200);
+  const attempt = await f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode: "OLD-CODE" });
+  assert.equal(attempt.response.status, 410);
 });
 
 async function authenticatorCustomer(f, phone) {
@@ -268,45 +218,11 @@ const recover = async (f, phone, recoveryCode) => {
   return f.call("/api/account/login/verify-authenticator", "POST", { challengeId: otp.json.challengeId, recoveryCode }, { cookie: "" });
 };
 
-test("AUTH-004 recovery codes keep working after SECRET_PEPPER is rotated", async (t) => {
-  const store = createStore({ persistent: false });
-  const before = await fixture(t, { store, env: { SECRET_PEPPER: "pepper-before-rotation" } });
-  await authenticatorCustomer(before, "670010011");
-  const { codes } = (await before.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(before))).json;
-  // A completed rotation: new pepper, overlap removed.
-  const after = await fixture(t, { store, env: { SECRET_PEPPER: "pepper-after-rotation" } });
-  assert.equal((await recover(after, "670010011", codes[3].toLowerCase().replace("-", " "))).response.status, 200);
-  assert.equal((await recover(after, "670010011", codes[3])).response.status, 401, "still single-use");
-  const wrong = await recover(after, "670010011", "ZZZZ-ZZZZ");
-  assert.equal(wrong.response.status, 401);
-  assert.equal(wrong.json.attemptsRemaining, 4);
-});
 
-test("AUTH-004 codes issued before Argon2id hashing still work during a pepper overlap", async (t) => {
-  const store = createStore({ persistent: false });
-  const setup = await fixture(t, { store });
-  const customerId = await authenticatorCustomer(setup, "670010012");
-  const legacy = (code) => ({ hash: hashSecret(code, "old-pepper"), createdAt: new Date().toISOString(), usedAt: null });
-  await store.transaction((s) => { s.customers.find((c) => c.id === customerId).recoveryCodes = [legacy("K7QM-2XPA"), legacy("H3RT-9WNB")]; });
-  const overlap = await fixture(t, { store, env: { SECRET_PEPPER: "new-pepper", SECRET_PEPPER_PREVIOUS: "old-pepper" } });
-  assert.equal((await recover(overlap, "670010012", "K7QM-2XPA")).response.status, 200);
-  assert.equal((await recover(overlap, "670010012", "K7QM-2XPA")).response.status, 401, "legacy codes stay single-use");
-  // After the overlap ends, unused legacy codes stop matching; regenerating replaces them.
-  const rotated = await fixture(t, { store, env: { SECRET_PEPPER: "new-pepper" } });
-  assert.equal((await recover(rotated, "670010012", "H3RT-9WNB")).response.status, 401);
-});
 
-test("AUTH-004 the same recovery code cannot sign in twice concurrently", async (t) => {
-  const f = await fixture(t);
-  await authenticatorCustomer(f, "670010013");
-  const { codes } = (await f.call("/api/account/security/recovery-codes/generate", "POST", await recoveryProof(f))).json;
-  const challenges = await Promise.all([1, 2].map(() => f.call("/api/account/login/request-authenticator", "POST", { phone: "670010013" })));
-  const results = await Promise.all(challenges.map((otp) => f.call("/api/account/login/verify-authenticator", "POST",
-    { challengeId: otp.json.challengeId, recoveryCode: codes[0] }, { cookie: "" })));
-  assert.deepEqual(results.map((r) => r.response.status).sort(), [200, 401]);
-  const customer = (await f.store.snapshot()).customers.find((c) => c.phone === "670010013");
-  assert.equal(customer.recoveryCodes.filter((code) => code.usedAt).length, 1);
-});
+
+
+
 
 test("DEP-006 owners can deactivate a compromised administrator, ending their sessions at once", async (t) => {
   const f = await fixture(t);

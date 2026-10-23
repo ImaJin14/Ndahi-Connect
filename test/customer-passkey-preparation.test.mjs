@@ -44,15 +44,12 @@ test("fresh PIN authorizes a single actual user-verified registration bound to t
   assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 1);
 });
 
-test("a PIN-less authenticator account must migrate through its current factor before PIN enrollment proof", async (t) => {
+test("a legacy PIN-less account cannot use an authenticator to enroll supported credentials", async (t) => {
   const f = await fixture(t), secret = totpSecret();
-  await f.store.transaction((s) => { delete s.customers[0].pinHash; s.customers[0].totpSecret = secret; });
-  assert.equal((await f.call(root + "/options", { otp: totpCode(secret, +f.now()) })).status, 401);
-  const started = await f.call("/api/account/authentication-migration/pin/start", { newPin: "5830", confirmPin: "5830", otp: totpCode(secret, +f.now()) });
-  assert.equal(started.status, 200);
-  assert.equal((await f.call("/api/account/authentication-migration/pin/confirm", { intentId: started.body.intentId, pin: "5830" })).status, 200);
-  assert.equal((await f.call(root + "/options", { pin: "5830" })).status, 200);
-  assert.equal((await f.store.snapshot()).customers[0].totpSecret, secret);
+  await f.store.transaction(s => { delete s.customers[0].pinHash; s.customers[0].totpSecret = secret; });
+  assert.equal((await f.call(root + "/options", { otp: totpCode(secret,+f.now()) })).status,401);
+  assert.equal((await f.call("/api/account/authentication-migration/pin/start", {newPin:"5830",confirmPin:"5830",otp:totpCode(secret,+f.now())})).status,401);
+  assert.equal((await f.store.snapshot()).customers[0].pinHash,undefined);
 });
 
 test("existing passkey authorizes enrollment only with a fresh server-verified UV assertion", async (t) => {
@@ -136,7 +133,7 @@ test("a stolen PIN-less passkey session cannot enroll an attacker authenticator 
   const f = await fixture(t), key = credential();
   await f.store.transaction((s) => { delete s.customers[0].pinHash; s.customers[0].passkeys = [key.record]; });
   const denied = await f.call("/api/account/security/mfa/enroll", {});
-  assert.equal(denied.status, 401); assert.equal(denied.body.code, "VERIFICATION_FAILED");
+  assert.equal(denied.status, 410); assert.equal(denied.body.code, "AUTHENTICATOR_RETIRED");
   assert.equal(denied.body.secret, undefined);
   assert.equal((await f.store.snapshot()).customerMfaChallenges.length, 0);
   const migration = await f.call("/api/account/authentication-migration/pin/start", { newPin: "5830", confirmPin: "5830", otp: "123456" });
@@ -145,30 +142,21 @@ test("a stolen PIN-less passkey session cannot enroll an attacker authenticator 
   assert.equal((await f.store.snapshot()).customers[0].pinHash, undefined);
 });
 
-test("initial authenticator setup accepts existing UV passkey proof and rejects borrowed-purpose or unverified assertions", async (t) => {
-  const f = await fixture(t), key = credential();
-  await f.store.transaction((s) => { delete s.customers[0].pinHash; s.customers[0].passkeys = [key.record]; });
-  const borrowed = await f.call(root + "/proof/options", { purpose: "passkey_add" });
-  assert.equal((await f.call("/api/account/security/mfa/enroll", { challengeId: borrowed.body.challengeId, response: signed(key, borrowed.body.options) })).status, 401);
-  const noUv = await f.call("/api/account/security/mfa/options", { action: "enroll" });
-  assert.equal(noUv.status, 200);
-  assert.equal((await f.call("/api/account/security/mfa/enroll", { challengeId: noUv.body.challengeId, response: signed(key, noUv.body.options, { uv: false }) })).status, 401);
-  const options = await f.call("/api/account/security/mfa/options", { action: "enroll" });
-  assert.equal(options.status, 200); assert.equal(options.body.options.userVerification, "required");
-  const proof = { challengeId: options.body.challengeId, response: signed(key, options.body.options) };
-  const enrolled = await f.call("/api/account/security/mfa/enroll", proof);
-  assert.equal(enrolled.status, 200); assert.match(enrolled.body.secret, /^[A-Z2-7]{32}$/);
-  assert.equal((await f.call("/api/account/security/mfa/enroll", proof)).status, 401);
-  const confirmed = await f.call("/api/account/security/mfa/confirm", { challengeId: enrolled.body.challengeId, code: totpCode(enrolled.body.secret, +f.now()) });
-  assert.equal(confirmed.status, 200);
+test("an existing verified passkey establishes a new PIN only after session-bound confirmation",async t=>{
+ const f=await fixture(t),key=credential();await f.store.transaction(s=>{delete s.customers[0].pinHash;s.customers[0].passkeys=[key.record];});
+ const input={newPin:"5830",confirmPin:"5830"};
+ const options=await f.call("/api/account/authentication-migration/options",{action:"pin",...input});assert.equal(options.status,200);
+ const start=await f.call("/api/account/authentication-migration/pin/start",{...input,challengeId:options.body.challengeId,response:signed(key,options.body.options)});assert.equal(start.status,200);
+ let state=await f.store.snapshot();assert.equal(state.customers[0].pinHash,undefined);assert.equal(state.dashboardSessions.find(s=>s.id==='main').authMigrationIntent.proofMethod,'passkey');
+ assert.equal((await f.call("/api/account/authentication-migration/pin/confirm",{intentId:start.body.intentId,pin:"5830"},{session:"secondary"})).status,409);
+ assert.equal((await f.call("/api/account/authentication-migration/pin/confirm",{intentId:start.body.intentId,pin:"wrong"})).status,401);
+ assert.equal((await f.call("/api/account/authentication-migration/pin/confirm",{intentId:start.body.intentId,pin:"5830"})).status,200);
+ assert.equal((await f.call("/api/account/login/pin",{phone:"670050001",pin:"5830"})).status,200);
 });
 
-test("initial authenticator challenges issued without proof or before credential changes cannot confirm", async (t) => {
-  const f = await fixture(t), secret = totpSecret();
-  await f.store.transaction((s) => { s.customerMfaChallenges.push({ id: "11111111-1111-4111-8111-111111111111", customerId: "c1", sessionId: "main", secret, originalVersion: hashSecret("", "pairing-tests"), pinVersion: s.customers[0].pinHash, expiresAt: new Date(+f.now() + 300000).toISOString() }); });
-  assert.equal((await f.call("/api/account/security/mfa/confirm", { challengeId: "11111111-1111-4111-8111-111111111111", code: totpCode(secret, +f.now()) })).status, 400);
-  const started = await f.call("/api/account/security/mfa/enroll", { pin: "2468" }); assert.equal(started.status, 200);
-  await f.store.transaction((s) => { s.customers[0].passkeys = [credential().record]; });
-  assert.equal((await f.call("/api/account/security/mfa/confirm", { challengeId: started.body.challengeId, code: totpCode(started.body.secret, +f.now()) })).status, 400);
-  assert.equal((await f.store.snapshot()).customers[0].totpSecret, undefined);
+test("pending intents issued under old authenticator proof cannot create a replacement PIN after runtime retirement",async t=>{
+ const f=await fixture(t);await f.store.transaction(async s=>{delete s.customers[0].pinHash;s.customers[0].totpSecret=totpSecret();s.dashboardSessions.find(s=>s.id==='main').authMigrationIntent={id:'old-factor-intent',hash:'old-secret-hash',expiresAt:new Date(+f.now()+300000).toISOString()};});
+ assert.equal((await f.call("/api/account/authentication-migration/pin/confirm",{intentId:'old-factor-intent',pin:'5830'})).status,409);
+ assert.equal((await f.store.snapshot()).customers[0].pinHash,undefined);
+ assert.equal((await f.call("/api/account/authentication-migration/status")).body.pendingPin,false);
 });

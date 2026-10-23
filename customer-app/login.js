@@ -11,22 +11,12 @@ import { randomId } from "./compat.js";
 import { mountThemeToggle } from "./portal-nav.js";
 
 mountThemeToggle();
-import { loadAuthenticationPolicy } from "./authentication-migration.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 let accessToken = "", accessMode = "", accountOnly = new URLSearchParams(location.search).get("account") === "1";
-const policy = loadAuthenticationPolicy().then((state) => {
-  if (state.authenticatorRetired) {
-    const authenticator = $("#authenticatorLogin"), inline = $("#inlineVerification");
-    if (authenticator) authenticator.remove();
-    if (inline) inline.remove();
-    sessionStore.remove("ndahi-login-challenge");
-  } else $("#authenticatorLogin").hidden = false;
-  return state;
-}).catch(() => null);
 const runLogin = (button, text, task) => runButton(button, text, task, {
-  controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin"), $("#authenticatorLogin"), $("#inlineBack"), $("#inlineSubmit")],
+  controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin")],
 });
 fetchNetworkStatus(api).then((status) => {
   applyNetworkStatus($(".network-state"), status);
@@ -140,22 +130,6 @@ $("#changeDetails").onclick = () => {
   $("#message").textContent = "";
   form.phone.focus();
 };
-if ($("#authenticatorLogin")) {
-  $("#authenticatorLogin").onclick = async () => {
-    const phone = document.querySelector('[name="phone"]').value;
-    if (!phone.trim()) return document.querySelector('[name="phone"]').focus();
-    try {
-      await runLogin($("#authenticatorLogin"), "Checking…", async () => {
-        const current = await policy;
-        if (!current || current.authenticatorRetired) { $("#message").textContent = "Use your PIN or passkey to sign in. Refresh if sign-in methods could not be checked."; return; }
-        $("#message").textContent = "";
-        const result = await call("/api/account/login/request-authenticator", { phone });
-        if (sessionStore.set("ndahi-login-challenge", JSON.stringify({ ...result, phone }))) location.href = "/verify.html" + (accountOnly ? "?account=1" : "");
-        else inlineAuthenticator(result, phone);
-      });
-    } catch (error) { showError($("#message"), error); }
-  };
-}
 $("#customerPasskeyLogin").onclick = async () => {
   const button = $("#customerPasskeyLogin"),
     phone = document.querySelector('[name="phone"]').value;
@@ -190,34 +164,6 @@ $("#customerPasskeyLogin").onclick = async () => {
 $("#loginSubmit").disabled = false;
 if (!window.PublicKeyCredential || !navigator.credentials) $("#customerPasskeyLogin").hidden = true;
 markReady();
-
-function inlineAuthenticator(challenge, phone) {
-  $("#login").hidden = true;
-  $("#inlineVerification").hidden = false;
-  $("#inlineEnrollment").innerHTML = challenge.enrollmentRequired
-    ? `<p>Add this time-based key to your authenticator app:</p><code>${h(challenge.secret)}</code>` : "";
-  $("#inlineBack").onclick = () => {
-    sessionStore.remove("ndahi-login-challenge");
-    $("#inlineVerification").hidden = true;
-    $("#login").hidden = false;
-    $("#inlineCode").value = "";
-  };
-  $("#inlineVerify").onsubmit = async (event) => {
-    event.preventDefault();
-    try {
-      await runLogin($("#inlineSubmit"), "Verifying…", async () => {
-        const code = $("#inlineCode").value.trim();
-        await completeSignIn(api, "/api/account/login/verify-authenticator", {
-          challengeId: challenge.challengeId,
-          ...(/^\d{6}$/.test(code) ? { otp: code } : { recoveryCode: code }),
-        }, phone);
-        sessionStore.remove("ndahi-login-challenge");
-        location.href = afterSignInPath(accountOnly);
-      });
-    } catch (error) { showError($("#message"), error); }
-  };
-  $("#inlineCode").focus();
-}
 
 if (new URLSearchParams(location.search).get("payment") === "confirmed") {
   document.querySelector("#message").textContent = "Payment confirmed. Sign in with your account PIN to view your voucher and bundle.";

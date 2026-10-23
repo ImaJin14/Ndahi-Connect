@@ -96,9 +96,9 @@ test("email linking verifies fresh credentials and mailbox, keeps secrets privat
   const f = await fixture(t, { mfa: true });
   const input = { email: " NEW@example.test ", pin: "2468" };
   assert.equal((await f.call("/api/account/profile/email", { csrf: "wrong", input })).status, 403);
-  assert.equal((await f.call("/api/account/profile/email", { input })).status, 401);
+  assert.equal((await f.call("/api/account/profile/email", { input: { ...input, pin: "wrong", otp: f.otp() } })).status, 401);
   f.advance(2);
-  const requested = await f.call("/api/account/profile/email", { input: { ...input, otp: f.otp() } });
+  const requested = await f.call("/api/account/profile/email", { input });
   assert.equal(requested.status, 202); assert.equal(requested.body.email, "new@example.test");
   const delivered = f.deliveries.find((d) => d.kind === "verification");
   assert.match(delivered.code, /^\d{6}$/);
@@ -241,11 +241,11 @@ test("a phone number already attached to another customer cannot merge or transf
   assert.equal((await f.store.snapshot()).dashboardSessions.length, 3);
 });
 
-test("phone changes enforce enrolled MFA in addition to a correct PIN", async (t) => {
+test("phone changes accept fresh PIN with legacy authenticator data but reject authenticator proof alone", async (t) => {
   const f = await fixture(t, { mfa: true });
-  assert.equal((await f.call("/api/account/profile/phone", { input: { phone: "670050003", pin: "2468" } })).status, 401);
+  assert.equal((await f.call("/api/account/profile/phone", { input: { phone: "670050003", otp: f.otp() } })).status, 401);
   f.advance(2);
-  assert.equal((await f.call("/api/account/profile/phone", { input: { phone: "670050003", pin: "2468", otp: f.otp() } })).status, 200);
+  assert.equal((await f.call("/api/account/profile/phone", { input: { phone: "670050003", pin: "2468" } })).status, 200);
 });
 
 test("failed phone-change verification is rate-limited without changing the account", async (t) => {
