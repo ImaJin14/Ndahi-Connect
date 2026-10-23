@@ -11,7 +11,7 @@ try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   const device = (n) => ({ mac: `AA:BB:CC:DD:EE:0${n}`, address: `10.20.0.3${n}`, uptime: `${n}m`, usedBytes: n * 1e6, sessionId: `*${n}`, startedAt: new Date(Date.now() - n * 60000).toISOString() });
-  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false, outside = false, storageDenied = false, missingModern = false, failedDisconnect = false, blockPasskeys = false, slowStart = false, invalidPin = false, authenticator = false, brokenModule = false, lostCompletion = false, wrongRecoveryAccount = false } = {}) {
+  async function scenario(name, work, { pending = false, unauthorized = false, fullSlots = false, exhausted = false, outside = false, storageDenied = false, missingModern = false, failedDisconnect = false, blockPasskeys = false, slowStart = false, invalidPin = false, brokenModule = false, lostCompletion = false, wrongRecoveryAccount = false } = {}) {
     const context = await browser.newContext(), page = await context.newPage(), posts = [], errors = [], disconnects = [];
     let devices = fullSlots ? [device(1), device(2)] : [device(1)];
     let credentials = 0, completions = 0, pendingMac = null, operation = null;
@@ -40,20 +40,19 @@ try {
       const headers = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET, POST, OPTIONS" };
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
-      if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: false, supportedCustomerMethods: ["pin", "passkey"], supportedAdminMethods: ["pin", "passkey"] };
+      if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: true, supportedCustomerMethods: ["pin", "passkey"], supportedAdminMethods: ["password", "passkey"] };
       if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
       if (url.pathname === "/api/account/access/begin") {
         if (slowStart) await new Promise((resolve) => setTimeout(resolve, 1200));
         body = { token: "fixture-token", mode: "login" };
       }
-      if (["/api/account/access/complete", "/api/account/login/verify-authenticator"].includes(url.pathname)) {
+      if (url.pathname === "/api/account/access/complete") {
         completions++;
-        if (authenticator) await new Promise((resolve) => setTimeout(resolve, 1000));
         if (lostCompletion) return route.abort("failed");
       }
       if (url.pathname === "/api/account/dashboard") body = { customer: { phone: wrongRecoveryAccount ? "670040002" : "+237670040001" } };
       if (url.pathname === "/api/account/access/complete" && invalidPin) { status = 401; body = { error: "Check the voucher and PIN and try again." }; }
-      if (url.pathname === "/api/account/login/request-authenticator") body = { challengeId: "fixture-authenticator", enrollmentRequired: false };
+      if (url.pathname === "/api/account/login/request-authenticator") { status = 410; body = { code: "AUTHENTICATOR_RETIRED" }; }
       if (url.pathname === "/api/network/status") body = { status: "up" };
       if (url.pathname === "/api/account/wifi-devices") {
         if (pendingMac) {
@@ -186,16 +185,11 @@ try {
     assert.equal(await page.locator("#loginSubmit").isEnabled(), true);
     assert.equal(posts.length, 0);
   }, { storageDenied: true, missingModern: true, invalidPin: true });
-  await scenario("authenticator verification stays on the page when session storage is denied", async ({ page, posts }) => {
-    await page.goto(`${portal}/login`);
-    await page.locator('[name="phone"]').fill("670040001");
-    await page.locator("#authenticatorLogin").click();
-    await page.locator("#inlineCode").fill("123456");
-    await page.locator("#inlineSubmit").click();
-    assert.equal(await page.locator("#inlineBack").isDisabled(), true, "cannot change sign-in methods during verification");
-    await page.waitForURL(login);
-    assert.equal(posts.length, 1);
-  }, { storageDenied: true, missingModern: true, authenticator: true });
+  await scenario("retired challenge pages never attempt authenticator sign-in with blocked storage or older DOM APIs",async ({page,posts,completions})=>{
+    await page.goto(`${portal}/verify.html`);await page.getByRole("heading",{name:"Sign in with PIN or passkey",exact:true}).waitFor();
+    assert.equal(await page.locator("#verify").isHidden(),true);assert.equal(await page.locator("#useRecoveryCode").count(),0);
+    assert.equal(completions(),0);assert.equal(posts.length,0);
+  },{storageDenied:true,missingModern:true});
   await scenario("a lost PIN completion response recovers the expected account without replaying its challenge", async ({ page, posts, completions }) => {
     await page.goto(`${portal}/login`);
     await page.locator('[name="phone"]').fill("670040001");

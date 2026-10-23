@@ -5,7 +5,7 @@ export function requestAdminActionProof({ call, purpose, input = {} }) {
   return new Promise((resolve, reject) => {
     const opener = document.activeElement, dialog = document.createElement("dialog");
     dialog.setAttribute("aria-label", "Verify administrator action");
-    dialog.innerHTML = '<form><h3>Verify this action</h3><label>Current administrator PIN<input name="currentPin" type="password" inputmode="numeric" autocomplete="current-password" required></label><button type="submit">Verify PIN</button><button type="button" data-admin-proof-passkey>Verify with passkey</button><button type="button" data-admin-proof-cancel>Cancel</button><p role="status" aria-live="polite"></p></form>';
+    dialog.innerHTML = '<form><h3>Verify this action</h3><label>Current administrator password<input name="currentPassword" type="password" autocomplete="current-password" required></label><button type="submit">Verify password</button><button type="button" data-admin-proof-passkey>Verify with passkey</button><button type="button" data-admin-proof-cancel>Cancel</button><p role="status" aria-live="polite"></p></form>';
     const form = dialog.querySelector("form"), message = dialog.querySelector('[role="status"]'), passkey = dialog.querySelector("[data-admin-proof-passkey]");
     let settled = false;
     const finish = (proof, error) => {
@@ -19,7 +19,7 @@ export function requestAdminActionProof({ call, purpose, input = {} }) {
       event.preventDefault(); event.stopPropagation();
       if (form.reportValidity()) {
         const pin = (form.elements.currentPin || form.elements.currentPassword).value;
-        finish({ currentPin: pin, currentPassword: pin });
+        finish({ currentPassword: pin });
       }
     };
     passkey.onclick = async () => {
@@ -29,7 +29,7 @@ export function requestAdminActionProof({ call, purpose, input = {} }) {
           const response = await window.SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: result.options });
           finish({ challengeId: result.challengeId, response });
         }, { controls: Array.from(form.elements) });
-      } catch (error) { if (!settled) message.textContent = ["NotAllowedError", "AbortError"].includes(error.name) ? "Passkey verification was cancelled. Try again or use your PIN." : error.message; }
+      } catch (error) { if (!settled) message.textContent = ["NotAllowedError", "AbortError"].includes(error.name) ? "Passkey verification was cancelled. Try again or use your password." : error.message; }
     };
     dialog.querySelector("[data-admin-proof-cancel]").onclick = cancel;
     dialog.addEventListener("cancel", event => { event.preventDefault(); cancel(); });

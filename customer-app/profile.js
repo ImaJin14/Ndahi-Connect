@@ -10,15 +10,15 @@ export function mountEmailLink({ call, customer, onChanged }) {
   if (passkey && (!window.PublicKeyCredential || !navigator.credentials)) passkey.hidden = true;
   async function request(usePasskey) {
     const input = formValues(form), message = document.getElementById("emailLinkMessage");
-    if (!form.elements.email.reportValidity() || (!customer.authenticatorRetired && customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
+    if (!form.elements.email.reportValidity()) return;
     try {
       await runButton(usePasskey ? passkey : form.querySelector('[type="submit"]'), "Verifying…", async () => {
         message.textContent = "";
-        let payload = { email: input.email, pin: input.pin, otp: input.otp };
+        let payload = { email: input.email, pin: input.pin };
         if (usePasskey) {
           const browser = await loadPasskeys();
           const challenge = await call("/api/account/profile/email/options", { method: "POST", body: JSON.stringify({ email: input.email }) });
-          payload = { email: input.email, otp: input.otp, challengeId: challenge.challengeId,
+          payload = { email: input.email, challengeId: challenge.challengeId,
             response: await browser.startAuthentication({ optionsJSON: challenge.options }) };
         }
         try { await call("/api/account/profile/email", { method: "POST", body: JSON.stringify(payload) }); }
@@ -59,18 +59,17 @@ export function mountPhoneChange({ call, customer, onChanged }) {
   if (passkey && (!window.PublicKeyCredential || !navigator.credentials)) passkey.hidden = true;
   async function change(usePasskey) {
     const input = formValues(form), message = document.getElementById("phoneChangeMessage");
-    if (!form.elements.phone.reportValidity() || !form.elements.confirmChange.reportValidity() ||
-        (!customer.authenticatorRetired && customer.authenticatorEnrolled && !form.elements.otp.reportValidity())) return;
+    if (!form.elements.phone.reportValidity() || !form.elements.confirmChange.reportValidity()) return;
     const button = usePasskey ? passkey : submit;
     try {
       await runButton(button, "Verifying…", async () => {
         message.textContent = "";
-        let payload = { phone: input.phone, pin: input.pin, otp: input.otp };
+        let payload = { phone: input.phone, pin: input.pin };
         if (usePasskey) {
           const browser = await loadPasskeys();
           const challenge = await call("/api/account/profile/phone/options", { method: "POST", body: JSON.stringify({ phone: input.phone }) });
           const response = await browser.startAuthentication({ optionsJSON: challenge.options });
-          payload = { phone: input.phone, otp: input.otp, challengeId: challenge.challengeId, response };
+          payload = { phone: input.phone, challengeId: challenge.challengeId, response };
         }
         try {
           await call("/api/account/profile/phone", { method: "POST", body: JSON.stringify(payload) });

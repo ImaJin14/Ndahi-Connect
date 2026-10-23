@@ -90,13 +90,13 @@ test("failed router cleanup retains observed slots and blocks reauthorization un
   assert.equal((await f.store.snapshot()).vouchers[0].wifiDevices.length, 2);
 });
 
-test("forgetting a saved main device retains enrolled authenticator protection and revokes controller access", async (t) => {
+test("forgetting a saved main device uses fresh PIN despite stale authenticator fields and revokes controller access", async (t) => {
   const f = await fixture(t), secret = totpSecret();
   await f.store.transaction((s) => { approveDevice(s, "c1", { mac: mainMac }, f.now(), "test"); s.customers[0].totpSecret = secret; });
   const id = (await f.store.snapshot()).wifiDeviceGrants.find((g) => g.mac === mainMac).id;
-  assert.equal((await f.forget({ approvalId: id })).status, 401);
+  assert.equal((await f.forget({ approvalId: id, pin: undefined, otp: totpCode(secret,+f.now()) })).status, 401);
   f.advance(2);
-  const result = await f.forget({ approvalId: id, otp: totpCode(secret, +f.now()) }); assert.equal(result.status, 202);
+  const result = await f.forget({ approvalId: id }); assert.equal(result.status, 202);
   assert.equal((await f.store.snapshot()).customers[0].wifiMainDevice, undefined);
   assert.equal((await f.call(ownerRoot)).body.isMainController, false);
   assert.match(result.headers.get("set-cookie"), /Max-Age=0/i);

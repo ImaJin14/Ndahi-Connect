@@ -6,6 +6,7 @@ import { mkdir } from "node:fs/promises";
 import argon2 from "argon2";
 import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture, mainMac } from "../test/helpers/wifi-pairing-fixture.mjs";
+import { approveDevice } from "../lib/wifi-approval.mjs";
 import { hashSecret, totpSecret } from "../lib/security.mjs";
 
 // A synthetic retired store is an isolated browser fixture, not rollout evidence.
@@ -26,7 +27,8 @@ const customerAssets = createStaticServer("customer", { apiUrl: api, hotspotLogi
 customerServer.on("request", (req, res) => customerAssets.emit("request", req, res));
 adminServer.on("request", (req, res) => adminAssets.emit("request", req, res));
 await f.store.transaction(async (s) => {
-  s.zone.authenticatorRetirement = { version: 1, retiredAt: f.now().toISOString() };
+  // Runtime retirement also applies to stores that have not run offline credential purge.
+  delete s.zone.authenticatorRetirement;
   s.customers[0].totpSecret = legacySecret; // Stale material must never reactivate it.
   s.customers[0].recoveryCodes = [{ id: "old", hash: hashSecret("ABCD-2345", secret) }];
   s.customers[0].passkeys = [];
@@ -73,6 +75,19 @@ try {
     }
     return { cdp, authenticatorId };
   }
+  for (const width of [320,390,768,1280]) await scenario(`Account groups profile, security, recovery and sessions with theme/language disabled at ${width}px`,async ({page})=>{
+    await page.setViewportSize({width,height:900});await page.emulateMedia({colorScheme:"dark"});
+    await page.addInitScript(()=>{localStorage.setItem("ndahi-theme","dark");localStorage.setItem("ndahi-lang","fr");});
+    await page.goto(portal+"/dashboard#account");await page.getByRole("heading",{name:"PIN & passkeys",exact:true}).waitFor();
+    assert.equal(await page.locator("#themeToggle, .lang-switcher").count(),0);
+    assert.equal(await page.locator("html").getAttribute("data-theme"),null);
+    assert.equal(await page.locator("html").getAttribute("lang"),"en");
+    const text=await page.locator(".account-layout").textContent();assert.doesNotMatch(text,/authenticator|2FA|MFA|Prepare PIN|sign-in readiness/i);
+    for(const name of ["Your name","Your account number","Your email","PIN and account recovery","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
+    assert.equal(await page.locator('#accountSecurity [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"]').count(),0);
+    const color=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);assert.notEqual(color,"rgb(11, 19, 16)");
+    await page.screenshot({path:`${screenshots}/account-cleanup-${width}.png`,fullPage:true});
+  });
   await scenario("retired customer security and main-device controls show PIN/passkey only while retaining collapsed Manage devices", async ({ page }) => {
     await page.goto(portal + "/dashboard#account");
     await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
@@ -135,6 +150,13 @@ try {
     await page.locator("#customerPin").fill("2468"); await page.locator("#loginSubmit").click();
     await page.waitForURL(/\/dashboard#account$/); await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
   }, { noSession: true, unsupported: true, storageDenied: true });
+  await scenario("forgetting a saved main device accepts a real passkey despite invalid leftover PIN text",async({page,context})=>{
+    await virtualKey(page,context,{seeded:true});await f.store.transaction(s=>approveDevice(s,"c1",{mac:mainMac},f.now(),"fixture"));
+    await page.goto(portal+"/dashboard#devices");await page.getByRole("button",{name:"Forget device",exact:true}).first().click();
+    const form=page.locator("[data-forget-proof]");await form.locator('[name="confirm"]').check();await form.locator('[name="pin"]').fill("bad");
+    assert.equal(await form.locator('[name="otp"]').count(),0);await form.getByRole("button",{name:"Verify with passkey",exact:true}).click();
+    await form.waitFor({state:"hidden"});assert.equal((await f.store.snapshot()).customers[0].wifiMainDevice,undefined);
+  });
   await scenario("old cached authenticator challenge receives explicit retirement and exposes no secret or factor input", async ({ page }) => {
     await page.goto(portal + "/login");
     await page.locator("#authenticatorLogin").waitFor({ state: "detached" });

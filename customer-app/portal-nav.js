@@ -46,6 +46,10 @@ function applyView(scroll = false) {
   }
 }
 export function mountThemeToggle(button = document.getElementById("themeToggle")) {
+  // Theme selection is temporarily disabled; retain its implementation below.
+  document.documentElement.removeAttribute("data-theme");
+  if (button) button.hidden = true;
+  /*
   let stored = null;
   try { stored = localStorage.getItem("ndahi-theme"); } catch (_) {}
   const apply = (theme) => {
@@ -76,6 +80,7 @@ export function mountThemeToggle(button = document.getElementById("themeToggle")
     try { localStorage.setItem("ndahi-theme", next); } catch (_) {}
     updateLabel();
   };
+  */
 }
 
 export function mountPortalNavigation(pending = 0, name) {

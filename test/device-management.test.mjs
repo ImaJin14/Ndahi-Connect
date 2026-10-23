@@ -87,15 +87,12 @@ test("main-device linking requires CSRF, freshness and ownership with an optiona
   assert.equal((await f.call(path, { mac, pin: "2468", otp: f.otp() })).status, 409);
 });
 
-test("supplied authenticator codes are checked, while main-device removal retains enrolled verification", async (t) => {
+test("legacy authenticator fields never require an extra factor or replace current PIN ownership proof", async (t) => {
   const f = await fixture(t, { mfa: true });
-  const wrong = f.otp() === "000000" ? "111111" : "000000";
-  assert.equal((await f.call("/api/account/device-management/main", { mac, pin: "2468", otp: wrong })).status, 401);
+  assert.equal((await f.call("/api/account/device-management/main", { mac, pin: "2468", otp: "wrong-legacy" })).status, 200);
+  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, otp: f.otp() })).status, 401);
   f.advance(2);
-  assert.equal((await f.call("/api/account/device-management/main", { mac, pin: "2468" })).status, 200);
-  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, pin: "2468" })).status, 401);
-  f.advance(2);
-  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, pin: "2468", otp: f.otp() })).status, 202);
+  assert.equal((await f.call("/api/account/device-management/disconnect", { mac, pin: "2468" })).status, 202);
 });
 
 test("transfer and PIN recovery invalidate the previous main browser, not the bundle", async (t) => {

@@ -99,8 +99,8 @@ try {
     await page.locator('[name="code"]').fill("NC-ABCD-EFGH");
     await submitTwice(page, "#login"); await begin.started;
     assert.equal(await page.locator("#loginSubmit").textContent(), "Checking…");
-    for (const selector of ["#loginSubmit", "#changeDetails", "#customerPasskeyLogin", "#authenticatorLogin"]) assert.equal(await page.locator(selector).isDisabled(), true);
-    await page.evaluate(() => document.querySelector("#authenticatorLogin").onclick());
+    for (const selector of ["#loginSubmit", "#changeDetails", "#customerPasskeyLogin"]) assert.equal(await page.locator(selector).isDisabled(), true);
+    await page.evaluate(() => document.querySelector("#customerPasskeyLogin").onclick());
     begin.release(); await idle(page, "#loginSubmit");
     assert.equal(begin.count(), 1);
     assert.equal(await page.locator("#loginSubmit").textContent(), "Sign in");
@@ -143,39 +143,22 @@ try {
     await page.getByText("Fixture reset failure", { exact: true }).waitFor();
   });
 
-  await scenario("authenticator verification locks recovery-mode changes until failure", async (page) => {
-    await page.addInitScript(() => sessionStorage.setItem("ndahi-login-challenge", JSON.stringify({ challengeId: "fixture-verify", message: "Enter your code" })));
-    const request = await hold(page, "/api/account/login/verify-authenticator", { error: "Invalid verification code" });
-    await page.goto(`${portal}/verify.html`);
-    await page.locator("#primary").fill("123456");
-    await submitTwice(page, "#verify"); await request.started;
-    assert.equal(await page.locator("#useRecoveryCode").isDisabled(), true);
-    request.release(); await idle(page, "#submitLabel");
-    assert.equal(request.count(), 1);
-    assert.equal(await page.locator("#submitLabel").textContent(), "Verify and continue");
-    assert.equal(await page.locator("#useRecoveryCode").isDisabled(), false);
+  await scenario("PIN setup locks duplicate submissions and restores retry after failure",async page=>{
+    await page.addInitScript(()=>sessionStorage.setItem("ndahi-login-challenge",JSON.stringify({setupPin:true,phone:"670080001",code:"NC-ABCD-EFGH"})));
+    const request=await hold(page,"/api/account/setup/pin",{error:"Fixture PIN setup failure"});
+    await page.goto(`${portal}/verify.html`);await page.locator("#primary").fill("1234");await page.locator("#confirm").fill("1234");
+    await submitTwice(page,"#verify");await request.started;assert.equal(await page.locator("#submitLabel").isDisabled(),true);
+    request.release();await idle(page,"#submitLabel");assert.equal(request.count(),1);await page.getByText("Fixture PIN setup failure",{exact:true}).waitFor();
   });
-
-  await scenario("dashboard MFA confirmation supports form submission and restores retry", async (page) => {
-    const enroll = await hold(page, "/api/account/security/mfa/enroll", { secret: "FIXTUREKEY", challengeId: "fixture-enrollment" }, 200);
-    await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#enableCustomerMfa").click();
+  await scenario("passkey enrollment keeps duplicate actions locked and restores retry",async page=>{
+    const request=await hold(page,"/api/account/passkeys/options",{error:"Fixture passkey options failure"});
+    await page.goto(`${portal}/dashboard#account`);await page.locator("#addCustomerPasskey").click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
-    await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
-    await enroll.started;
-    await page.evaluate(() => document.querySelector("#enableCustomerMfa").dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    enroll.release(); await idle(page, "#enableCustomerMfa");
-    assert.equal(enroll.count(), 1);
-    const confirm = await hold(page, "/api/account/security/mfa/confirm", { error: "Invalid enrollment code" });
-    await page.locator('#confirmMfa [name="code"]').fill("123456");
-    await submitTwice(page, "#confirmMfa"); await confirm.started;
-    assert.equal(await page.locator("#enableCustomerMfa").isDisabled(), true);
-    confirm.release(); await idle(page, "#confirmMfa button");
-    assert.equal(confirm.count(), 1);
-    assert.equal(await page.locator("#confirmMfa button").textContent(), "Confirm 2FA");
-    assert.equal(await page.locator("#enableCustomerMfa").isDisabled(), false);
-    await page.getByText("Invalid enrollment code", { exact: true }).waitFor();
-  }, { customer: true });
+    await page.locator("[data-passkey-owner-proof]").getByRole("button",{name:"Confirm with PIN",exact:true}).click();await request.started;
+    assert.equal(await page.locator("#addCustomerPasskey").isDisabled(),true);
+    await page.evaluate(()=>document.querySelector("#addCustomerPasskey").dispatchEvent(new MouseEvent("click",{bubbles:true})));
+    request.release();await idle(page,"#addCustomerPasskey");assert.equal(request.count(),1);await page.getByText("Fixture passkey options failure",{exact:true}).waitFor();
+  },{customer:true});
 
   await scenario("admin voucher generation and integration failures restore controls", async (page) => {
     await page.goto(`${admin}/dashboard`);

@@ -13,6 +13,7 @@ test("every static customer and admin button belongs to a handled form or click 
     adminIndex: await source("admin-app/index.html"),
     adminLogin: await source("admin-app/login.html"),
     customerApp: await source("customer-app/app.js"),
+    accountRecovery: await source("customer-app/account-recovery.js"),
     customerLoginJs: await source("customer-app/login.js"),
     customerVerifyJs: await source("customer-app/verify.js"),
     onboardingJs: await source("customer-app/onboarding.js"),
@@ -26,7 +27,8 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /data-remove-passkey/);
   assert.match(files.customerApp, /data-rename-passkey/);
   assert.match(files.customerApp, /data-revoke-session/);
-  assert.match(files.customerApp, /#generateRecoveryCodes/);
+  assert.match(files.customerApp, /mountAccountRecovery/);
+  assert.match(files.accountRecovery, /accountBackup/);
   assert.match(files.customerApp, /#logoutEverywhere"\)/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);
   assert.match(files.customerVerifyJs, /#verify"\)\.onsubmit/);
@@ -39,7 +41,7 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.onboardingJs, /confirm\.onclick/);
   assert.match(files.adminLoginJs, /#login"\)\.onsubmit/);
   for (const id of ["bundle", "bundleEdit", "generate"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onsubmit`));
-  for (const id of ["syncUsage", "checkOmada", "enrollMfa", "disableMfa", "logout"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onclick`));
+  for (const id of ["syncUsage", "checkOmada", "enrollPasskey", "logout"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onclick`));
   for (const action of ["editBundle", "cancel-edit", "deleteBundle", "voucher", "customer", "session", "refund"]) assert.ok(files.adminApp.includes(action), `missing delegated handler for ${action}`);
 });
 

@@ -144,7 +144,7 @@ test("verified payment emails the voucher and delivery failure never reverses pa
   assert.equal(state.vouchers[0].emailStatus, "failed");
   assert.equal(state.vouchers[0].emailAttempts, 1);
 });
-test("payment, binding, limits, disconnect reuse, OTP and dashboard security", async (t) => {
+test("payment, binding, limits, disconnect reuse, PIN and dashboard security", async (t) => {
   const f = await fixture();
   t.after(f.close);
   const buy = await f.call("/api/purchase", "POST", {
@@ -204,45 +204,9 @@ test("payment, binding, limits, disconnect reuse, OTP and dashboard security", a
   assert.equal(one.response.status, 200);
   assert.equal(two.response.status, 200);
   assert.equal(three.response.status, 409);
-  const customerTotp = totpSecret();
-  await f.store.transaction((state) => {
-    state.customers.find((customer) => customer.phone === "670000001").totpSecret = customerTotp;
-  });
-  const otp = await f.call("/api/account/login/request-authenticator", "POST", {
-    phone: "670000001",
-    code: paid.json.access.code,
-  });
-  assert.equal(otp.response.status, 200);
-  const snapshot = await f.store.snapshot();
-  assert.equal(snapshot.otpChallenges[0].enrollmentSecret, undefined);
-  const bad = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId,
-    otp: "000000",
-  });
-  assert.equal(bad.response.status, 401);
-  const verified = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId,
-    otp: totpCode(customerTotp),
-  });
+  const verified = await f.call("/api/account/setup/pin", "POST", { phone: "670000001", code: paid.json.access.code, pin: "2468", confirmPin: "2468" });
   assert.equal(verified.response.status, 200);
-  const returning = await f.call(
-    "/api/account/login/request-authenticator",
-    "POST",
-    { phone: "670000001" },
-  );
-  assert.equal(returning.response.status, 200);
-  assert.equal(returning.json.enrollmentRequired, false);
-  assert.equal(returning.json.secret, undefined);
-  assert.equal((await f.call(
-    "/api/account/login/verify-authenticator",
-    "POST",
-    { challengeId: returning.json.challengeId, otp: totpCode(customerTotp) },
-  )).response.status, 200);
-  const reused = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId,
-    otp: totpCode(customerTotp),
-  });
-  assert.equal(reused.response.status, 401);
+  assert.equal((await f.call("/api/account/login/request-authenticator", "POST", {phone:"670000001"})).response.status,410);
   const dash = await f.call(
     "/api/account/dashboard",
     "GET",
@@ -272,17 +236,7 @@ test("authenticated device connect requires no phone or code and stops at the de
   const paid = await f.call(`/api/payments/${buy.json.payment.id}/confirm`, "POST");
   const anonymous = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
   assert.equal(anonymous.response.status, 401);
-  const customerTotp = totpSecret();
-  await f.store.transaction((state) => {
-    state.customers.find((customer) => customer.phone === "670000010").totpSecret = customerTotp;
-  });
-  const otp = await f.call("/api/account/login/request-authenticator", "POST", {
-    phone: "670000010", code: paid.json.access.code,
-  });
-  assert.equal(otp.response.status, 200);
-  const verified = await f.call("/api/account/login/verify-authenticator", "POST", {
-    challengeId: otp.json.challengeId, otp: totpCode(customerTotp),
-  });
+  const verified = await f.call("/api/account/setup/pin", "POST", { phone: "670000010", code: paid.json.access.code, pin: "2468", confirmPin: "2468" });
   assert.equal(verified.response.status, 200);
   const first = await f.call("/api/account/devices/connect", "POST", { deviceId: "one", label: "Laptop" });
   assert.equal(first.response.status, 200);
@@ -401,42 +355,7 @@ test("stacking and Daily same-day renewal are rejected; exhausted non-daily rene
     409,
   );
 });
-test("authenticator login throttles requests and locks after five incorrect attempts", async (t) => {
-  const f = await fixture();
-  t.after(f.close);
-  const b = await f.call("/api/purchase", "POST", {
-      phone: "670000030",
-      planId: "weekly",
-    }),
-    p = await f.call(`/api/payments/${b.json.payment.id}/confirm`, "POST"),
-    credentials = { phone: "670000030", code: p.json.access.code },
-    customerTotp = totpSecret();
-  await f.store.transaction((state) => {
-    state.customers.find((customer) => customer.phone === credentials.phone).totpSecret = customerTotp;
-  });
-  let ch;
-  for (let i = 0; i < 5; i++) {
-    ch = await f.call("/api/account/login/request-authenticator", "POST", credentials);
-  }
-  assert.equal(
-    (await f.call("/api/account/login/request-authenticator", "POST", credentials))
-      .response.status,
-    429,
-  );
-  for (let i = 0; i < 5; i++) {
-    await f.call("/api/account/login/verify-authenticator", "POST", {
-      challengeId: ch.json.challengeId,
-      otp: "111111",
-    });
-  }
-  assert.equal(
-    (await f.call("/api/account/login/verify-authenticator", "POST", {
-      challengeId: ch.json.challengeId,
-      otp: totpCode(customerTotp),
-    })).response.status,
-    401,
-  );
-});
+
 test("voucher expiry and dashboard session expiry are enforced", async (t) => {
   let current = new Date("2026-08-19T10:00:00Z");
   const f = await fixture({ now: () => new Date(current) });
@@ -522,11 +441,8 @@ test("new customers create a hashed 4-digit PIN and PIN login is rate limited", 
   assert.equal(dashboard.json.customer.pinConfigured, true);
   assert.equal(dashboard.json.customer.authenticatorEnrolled, false);
   const enrollment = await f.call("/api/account/security/mfa/enroll", "POST", { pin: "1234" });
-  assert.equal((await f.call("/api/account/security/mfa/confirm", "POST", {
-    challengeId: enrollment.json.challengeId,
-    code: totpCode(enrollment.json.secret),
-  })).response.status, 200);
-  assert.equal((await f.call("/api/account/dashboard")).json.customer.authenticatorEnrolled, true);
+  assert.equal(enrollment.response.status,410);
+  assert.equal((await f.call("/api/account/dashboard")).json.customer.authenticatorEnrolled,false);
   await f.call("/api/account/logout", "POST", {});
   assert.equal((await f.call("/api/account/login/pin", "POST", {
     phone: "670000041", pin: "1234",
@@ -582,7 +498,7 @@ test("PIN guesses use progressive delays and an account lock without blocking sa
 
   assert.equal((await f.call(
     "/api/account/login/request-authenticator", "POST", { phone: "670000048" },
-  )).response.status, 200);
+  )).response.status, 410);
   assert.equal((await f.call(
     "/api/account/passkey/options", "POST", { phone: "670000048" },
   )).response.status, 200);

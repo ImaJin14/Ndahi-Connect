@@ -7,9 +7,9 @@ const root='/api/account/device-management';
 test('effective public authentication policy is fresh and exposes no readiness or credential data',async t=>{
  const f=await pairingFixture();t.after(f.close);
  const read=()=>fetch(f.api+'/api/authentication-policy');
- let r=await read(),p=await r.json();assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(p.authenticatorRetired,false);
+ let r=await read(),p=await r.json();assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(p.authenticatorRetired,true);
  await f.store.transaction(s=>{s.zone.authenticatorRetirement={version:1,evidenceReference:'PRIVATE-CASE'};s.customers[0].totpSecret=totpSecret();});
- r=await read();p=await r.json();assert.equal(p.authenticatorRetired,true);assert.deepEqual(p.supportedCustomerMethods,['pin','passkey']);assert.deepEqual(p.supportedAdminMethods,['pin','passkey']);assert.doesNotMatch(JSON.stringify(p),/PRIVATE-CASE|670050001|digest|totpSecret/);
+ r=await read();p=await r.json();assert.equal(p.authenticatorRetired,true);assert.deepEqual(p.supportedCustomerMethods,['pin','passkey']);assert.deepEqual(p.supportedAdminMethods,['password','passkey']);assert.doesNotMatch(JSON.stringify(p),/PRIVATE-CASE|670050001|digest|totpSecret/);
 });
 
 test('retirement keeps Wi-Fi control independent and requires fresh owner proof without leftover TOTP',async t=>{

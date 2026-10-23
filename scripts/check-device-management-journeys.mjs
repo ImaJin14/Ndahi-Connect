@@ -53,7 +53,7 @@ try {
   await page.locator('[data-main-proof] [name="mac"]').selectOption(mac);
   await page.locator('[data-main-proof] [name="confirm"]').check();
   await page.locator('[data-main-proof] [name="pin"]').fill("2468");
-  assert.equal(await page.getByLabel("Authenticator code (optional)", { exact: true }).evaluate((input) => input.required), false);
+  assert.equal(await page.locator('[data-main-proof] [name="otp"]').count(), 0);
   await page.getByRole("button", { name: "Verify and select", exact: true }).click();
   await page.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   await page.locator("#wifiDeviceList").getByText("imajin · Main device", { exact: true }).waitFor();
@@ -63,7 +63,7 @@ try {
   console.log("PASS an authenticator-enabled account selects its main browser without an authenticator code and remembers it across reloads");
   await page.getByRole("button", { name: "Verify to disconnect", exact: true }).click();
   await page.getByRole("heading", { name: "Disconnect main device", exact: true }).waitFor();
-  assert.equal(await page.locator('[data-main-proof] [name="otp"]').evaluate((input) => input.required), true);
+  assert.equal(await page.locator('[data-main-proof] [name="otp"]').count(), 0);
   assert.equal((await store.snapshot()).routerCommands.some((c) => c.action === "disconnect_wifi_device"), false);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.screenshot({ path: screenshots + "/main-device-320.png", fullPage: true });

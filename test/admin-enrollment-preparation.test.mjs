@@ -175,60 +175,13 @@ test("production preparation refuses missing stored and submitted CSRF tokens", 
   assert.equal((await f.store.snapshot()).adminPasskeyChallenges.length, 0);
 });
 
-test("legacy admin authenticator setup needs current proof and one session-bound initial grant before confirmation", async t => {
-  const f = await fixture(t);
-  assert.equal((await f.call(profile + "/mfa/enroll", {})).status, 401);
-  assert.equal((await f.call(profile + "/mfa", { enabled: false })).status, 401);
-  const options = await f.call(profile + "/proof/options", { purpose: "legacy_mfa", action: "enroll" });
-  assert.equal(options.status, 200); assert.equal(options.body.options.userVerification, "required");
-  const enrolled = await f.call(profile + "/mfa/enroll", { challengeId: options.body.challengeId, response: f.existing.assertion(options.body.options) });
-  assert.equal(enrolled.status, 200); assert.ok(enrolled.body.challengeId); assert.ok(enrolled.body.secret);
-  assert.equal((await f.store.snapshot()).adminProfile.totpSecret, "PRESERVED-LEGACY-FACTOR");
-  await f.store.transaction(s => s.adminSessions.push({ ...s.adminSessions[0], tokenHash: hashSecret("owner-other", secret) }));
-  const confirmation = { challengeId: enrolled.body.challengeId, code: totpCode(enrolled.body.secret, +f.now()) };
-  assert.equal((await f.call(profile + "/mfa/confirm", confirmation, "owner-other")).status, 400);
-  assert.equal((await f.call(profile + "/mfa/confirm", confirmation)).status, 200);
-  assert.equal((await f.store.snapshot()).adminProfile.totpSecret, enrolled.body.secret);
-  assert.equal((await f.call(profile + "/mfa/confirm", confirmation)).status, 400);
-});
 
-test("legacy admin setup rejects old unbound grants and a changed current credential", async t => {
-  const f = await fixture(t), unboundSecret = totpSecret();
-  await f.store.transaction(s => s.adminMfaChallenges.push({ id: "unbound-old-enrollment", userId: "owner-81", secret: unboundSecret, expiresAt: new Date(+f.now() + 600000).toISOString() }));
-  assert.equal((await f.call(profile + "/mfa/confirm", { challengeId: "unbound-old-enrollment", code: totpCode(unboundSecret, +f.now()) })).status, 400);
-  const started = await f.call(profile + "/mfa/enroll", { currentPassword: password });
-  assert.equal(started.status, 200);
-  await f.store.transaction(s => { s.adminUsers[0].passwordHash += "changed"; });
-  assert.equal((await f.call(profile + "/mfa/confirm", { challengeId: started.body.challengeId, code: totpCode(started.body.secret, +f.now()) })).status, 400);
-  assert.equal((await f.store.snapshot()).adminProfile.totpSecret, "PRESERVED-LEGACY-FACTOR");
-  const expired = await fixture(t), stale = await expired.call(profile + "/mfa/enroll", { currentPassword: password });
-  expired.advance(601);
-  assert.equal((await expired.call(profile + "/mfa/confirm", { challengeId: stale.body.challengeId, code: totpCode(stale.body.secret, +expired.now()) })).status, 400);
-  assert.equal((await expired.store.snapshot()).adminProfile.totpSecret, "PRESERVED-LEGACY-FACTOR");
-});
 
-test("legacy admin initial grants permit at most five incorrect codes and cannot be resurrected", async t => {
-  const f = await fixture(t), started = await f.call(profile + "/mfa/enroll", { currentPassword: password });
-  const correct = totpCode(started.body.secret, +f.now()), wrong = correct === "000000" ? "111111" : "000000";
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const failed = await f.call(profile + "/mfa/confirm", { challengeId: started.body.challengeId, code: wrong });
-    assert.equal(failed.status, 400); assert.equal(failed.body.attemptsRemaining, 4 - attempt);
-  }
-  assert.equal((await f.call(profile + "/mfa/confirm", { challengeId: started.body.challengeId, code: wrong })).status, 429);
-  assert.equal((await f.call(profile + "/mfa/confirm", { challengeId: started.body.challengeId, code: correct })).status, 400);
-  assert.equal((await f.store.snapshot()).adminMfaChallenges.length, 0);
-});
 
-test("legacy admin set/disable proof binds the exact operation and changed factor code", async t => {
-  const f = await fixture(t);
-  const options = await f.call(profile + "/proof/options", { purpose: "legacy_mfa", action: "set", enabled: false });
-  const proof = { challengeId: options.body.challengeId, response: f.existing.assertion(options.body.options) };
-  assert.equal((await f.call(profile + "/mfa", { enabled: true, code: "123456", ...proof })).status, 401);
-  assert.equal((await f.store.snapshot()).adminProfile.totpSecret, "PRESERVED-LEGACY-FACTOR");
-  const disabled = await f.call(profile + "/mfa", { enabled: false, currentPassword: password });
-  assert.equal(disabled.status, 200); assert.equal(disabled.body.mfaEnabled, false);
-  assert.equal((await f.store.snapshot()).adminProfile.totpSecret, undefined);
-});
+
+
+
+
 
 test("legacy admin enrollment never leaks a new secret or initial grant before a failed commit", async t => {
   const f = await fixture(t), transaction = f.store.transaction.bind(f.store);
@@ -237,4 +190,10 @@ test("legacy admin enrollment never leaks a new secret or initial grant before a
   assert.ok(result.status >= 400); assert.equal(result.body.secret, undefined); assert.equal(result.body.challengeId, undefined);
   assert.equal((await f.store.snapshot()).adminMfaChallenges.length, 0);
   assert.equal((await f.store.snapshot()).adminUsers[0].authMigration, undefined);
+});
+
+test("legacy administrator MFA endpoints cannot enroll, confirm or re-enable factors",async t=>{
+ const f=await fixture(t);const before=await f.store.snapshot();
+ for(const path of ["/mfa/enroll","/mfa/confirm","/mfa"]){const response=await f.call(profile+path,{password,enabled:true,code:"123456"});assert.equal(response.status,410);assert.equal(response.body.code,"AUTHENTICATOR_RETIRED");assert.equal(response.body.secret,undefined);}
+ const after=await f.store.snapshot();assert.deepEqual(after.adminProfile,before.adminProfile);assert.deepEqual(after.adminMfaChallenges,before.adminMfaChallenges);
 });

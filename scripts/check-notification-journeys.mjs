@@ -89,7 +89,7 @@ try {
   await missingHint.locator("#customerPin").fill("2468");
   await missingHint.getByRole("button", { name: "Sign in", exact: true }).click();
   await missingHint.waitForURL(/\/dashboard#account$/);
-  await missingHint.getByRole("heading", { name: "PIN, authenticator & passkeys", exact: true }).waitFor();
+  await missingHint.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
   assert.equal(accountConnections.length, 0);
   assert.equal(f.calls.length, 1);
   assert.equal(await missingHint.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
