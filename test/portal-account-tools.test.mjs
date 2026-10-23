@@ -302,7 +302,7 @@ test("dashboard reads expire only the owner's overdue checkouts without any work
   const payment = dashboard.body.payments.find((p) => p.id === "overdue-c1");
   assert.equal(payment.status, "expired"); assert.ok(payment.checkoutClosedAt);
   assert.equal(payment.serverTime, "2030-01-01T12:00:00.000Z");
-  assert.equal(payment.paymentClosesAt, "2030-01-01T11:07:00.000Z");
+  assert.equal(payment.paymentClosesAt, "2030-01-01T11:05:00.000Z");
   assert.equal((await f.store.snapshot()).payments.find((p) => p.id === "overdue-c2").status, "pending");
   assert.ok(!dashboard.body.payments.some((p) => p.id === "overdue-c2"));
 });

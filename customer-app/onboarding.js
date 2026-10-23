@@ -227,7 +227,7 @@ async function initialize() {
   if (!plans.length && !(accountAction === "renew" && !renewal?.eligible)) {
     notice(accountAction === "switch" ? "There are no alternative packages available right now." : "No packages are available right now.", Boolean(accountAction));
   }
-  const pending = account?.payments?.find((payment) => ["pending", "processing"].includes(payment.status));
+  const pending = account?.payments?.find((payment) => payment.blocksNewCheckout === true);
   if (pending) {
     paymentInProgress = pending;
     showPaymentDeadline(pending);
@@ -594,6 +594,14 @@ async function checkPayment(paymentId, phone) {
   }
   if (paymentInProgress?.id === paymentId) Object.assign(paymentInProgress, status.payment);
   showPaymentDeadline(status.payment);
+  if (status.payment.status === "paid" && status.payment.fulfillmentStatus === "needs_review") {
+    releaseFailedPayment();
+    showError($("#message"), new ApiError(409, "Payment received. Bundle activation needs support review. This payment remains in your history.", "ACTIVATION_REVIEW"), {
+      actions: [{ label: "Review payments", run: () => location.assign("/dashboard#payments") },
+        { label: "Payment help", run: () => location.assign("/help#payment") }],
+    });
+    return true;
+  }
   if (status.payment.status === "paid" && (accountAction || status.access?.code)) {
     await beginAccountSecurity(status, phone);
     return true;
@@ -625,7 +633,7 @@ async function waitForPayment(paymentId, phone) {
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
   if (!selected || !purchaseAccess.allowed || paymentInProgress || creatingPayment) return;
-  const purchaseInput = formValues(event.target);
+  const purchaseInput = formValues(event.target), previousSavedCheckout = savedCheckout();
   const paymentWindow = paymentProvider === "flutterwave"
     ? window.open("about:blank", "ndahi-payment", "popup,width=520,height=760") : null;
   $("#purchaseFields").disabled = true;
@@ -695,6 +703,31 @@ $("#purchase").onsubmit = async (event) => {
     }
     // The API answered and turned the request down, so there is nothing to resume later.
     if (!accountAction && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
+    if (error.code === "PAYMENT_IN_PROGRESS") {
+      if (error.payment) {
+        paymentInProgress = error.payment;
+        showPaymentDeadline(error.payment);
+      }
+      const saved = previousSavedCheckout;
+      const actions = [];
+      if (paymentInProgress) actions.push({ label: "Check existing payment", run: () => waitForPayment(paymentInProgress.id, account.customer.phone) });
+      else if (saved) actions.push({ label: "Resume saved payment", run: () => resumeSavedCheckout($("#requestPayment"), saved) });
+      actions.push({ label: "Sign in to Payments", run: () => location.assign(withWifiHint("/dashboard#payments")) },
+        { label: "Payment help", run: () => location.assign("/help#payment") });
+      showError($("#message"), error, { actions });
+      // Enable an explicit new request at expiry; never submit a charge on a timer.
+      const seconds = error.retryAfterSeconds;
+      if (Number.isFinite(seconds) && seconds > 0 && seconds <= 3600 && !paymentInProgress) {
+        const currentMessage = $("#message").firstElementChild;
+        setTimeout(() => {
+          if (!$("#message").contains(currentMessage) || paymentInProgress || creatingPayment) return;
+          $("#message").innerHTML = '<p role="status">The previous request window has ended. You can request a new payment. Any late confirmation will still be recorded.</p>';
+          $("#requestPayment").disabled = false;
+          $("#requestPayment").textContent = "Start new payment - " + money(selected.price);
+        }, seconds * 1000);
+      }
+      return;
+    }
     coverageError = error.code === "OUTSIDE_COVERAGE";
     if (coverageError) setPurchaseAccess({ allowed: false, message: error.message });
     const activeBundleActions = error.code === "ACTIVE_BUNDLE_EXISTS" ? [

@@ -12,11 +12,11 @@ second transaction claims that reservation for submission. The provider call run
 outside the database transaction. The persisted `submitted` marker prevents the
 same operation being sent again after a crash or lost response. The existing
 PostgreSQL advisory transaction lock serializes reservations across API instances;
-only one unresolved checkout per customer is permitted, even with distinct keys.
+only one live, unconfirmed request per customer is permitted, even with distinct keys. Activation reviews and refunds remain recorded independently and do not create an indefinite checkout block.
 Deploy all API instances together: an older instance does not enforce these rules.
 
 Same-key repeats return the existing order and apply expiry immediately when its
-approval window and grace have passed; they do not submit another charge or
+request deadline has passed; they do not submit another charge or
 create another order. Reusing a key for a different plan or
 action is rejected. Customers can recheck payments in the dashboard; authenticated
 checkout also discovers pending payments after browser storage is lost. Guest
@@ -39,7 +39,7 @@ packages visit.
 Guest status reads at `GET /api/payments/:id/status` require the private request key
 in `X-Checkout-Key`, or the payment owner's active session. An ID from a shared
 receipt does not authorize status access or disclose an activation code. The key
-expires at the saved request deadline (`paymentClosesAt`, normally five minutes plus two minutes of grace). Never-submitted reservations expire at `paymentExpiresAt`. Legacy records use fixed five/two-minute fallbacks; later environment changes cannot extend their credentials. Keys also stop working on provider failure, closure, PIN completion or exchange for PIN setup. Financial late-payment checks retain their separate polling window; extending `PAYMENT_LATE_CHECK_HOURS` does not extend guest access. Worker outages cannot keep a key valid. Authenticated checkouts require their owning account session and do not grant anonymous recovery through a request key. Afterwards status
+expires at the same request deadline as the countdown and checkout guard. Provider expiry evidence can shorten it; the fallback is five minutes. Legacy grace cannot extend the approval deadline or private recovery credentials. Keys also stop working on provider failure, closure, PIN completion or exchange for PIN setup. Financial late-payment checks retain their separate polling window; extending `PAYMENT_LATE_CHECK_HOURS` does not extend guest access. Worker outages cannot keep a key valid. Authenticated checkouts require their owning account session and do not grant anonymous recovery through a request key. Afterwards status
 and recovery with that key return 404. Deploy the API before the customer app for
 this change; the API still accepts phone + key from pages already open on older versions. Missing
 or incorrect proof returns 404 before provider verification or email work; the
@@ -54,11 +54,10 @@ Expired checkout access shows neutral payment guidance, links to Payments/Help a
 
 A clock timeout, missing provider transaction, or failed connection does not prove
 that no money moved. These results keep checkout blocked during its approval window
-and grace period while verification retries.
+while verification retries.
 MeSomb is queried by external reference and Flutterwave falls back to verification
 by merchant reference if a create response was lost. A matching provider failure permits a new checkout immediately. Otherwise the
-checkout closes after `PAYMENT_PENDING_SECONDS` (default 300) plus
-`PAYMENT_EXPIRY_GRACE_SECONDS` (default 120), permitting a customer-initiated new
+checkout closes at PAYMENT_PENDING_SECONDS (default 300), shortened by trusted gateway expiry evidence. PAYMENT_EXPIRY_GRACE_SECONDS is deprecated and ignored, permitting a customer-initiated new
 payment. Closing does not establish that no charge occurred. Same-key retries
 still return the original order; the browser releases its key for expired orders.
 Closed submitted payments are checked every ten minutes for
@@ -187,3 +186,35 @@ after clearing all browser storage requires the emailed confirmation or support.
 Provider contracts: [Flutterwave refunds](https://developer.flutterwave.com/docs/refunds),
 [fetch refund](https://developer.flutterwave.com/reference/get-transaction-refunds),
 and [MeSomb payment operations](https://docs.mesomb.com/development/payment).
+
+## Gateway expiry and blocked-new-user repair (23 October 2026)
+
+The prior guard combined live requests, paid activation reviews and refunds.
+The latter could block a new customer indefinitely. It also added120 seconds
+after approval expiry and mapped MeSomb EXPIRED to pending.
+
+New purchase attempts read the previous live request's provider state before
+rejecting them (four-second maximum, durable lease and one-second retry throttle).
+Verified expired/failed/cancelled requests release the guard. Verification still
+requires matching amount, currency, internal and provider references. When
+returned, an explicit provider expiry timestamp shortens the saved deadline.
+Same-key replay returns the same order; a new payment needs a new key.
+
+Direct MeSomb collection is used here. Its installed SDK does not offer a collect
+expiry/cancel parameter. Do not invent one or claim local closure cancels a
+gateway prompt. With no provider expiry timestamp, the configured finite window
+is the fallback; current gateway status is checked on retry. Late confirmation
+remains accounted for and cannot replace a newer active bundle. Official
+[collection/verification API](https://docs.mesomb.com/development/payment).
+
+The conflict screen offers resume/check/sign-in/help instead of a generic
+resubmission. No timer submits a charge. Paid activation review is displayed as
+received money requiring review, while preserving that record and allowing
+unrelated purchases. Only authenticated owners receive their request details;
+anonymous conflicts expose a bounded retry interval and generic guidance.
+Guest active-bundle errors no longer disclose usage/expiry. Canonical account
+suspension is checked before reservation and fulfillment.
+
+Exact automated/CI evidence belongs in the PR. Actual blocked customer records
+have not been privately inspected or edited. No real charge, gateway cancellation,
+merge, deployment or physical Mobile Money acceptance is implied by these tests.

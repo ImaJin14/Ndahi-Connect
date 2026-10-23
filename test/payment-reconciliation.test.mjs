@@ -141,3 +141,13 @@ test("missing references and refund discrepancies are flagged without reversing 
   assert.deepEqual(p.reconciliation.issues, ["provider_reference_missing", "payment_status_mismatch"]);
   assert.equal(p.status, "refund-pending");
 });
+
+test("verified gateway expiry matches the local expired request without a false money discrepancy", async () => {
+  const f = await fixture([payment({ status: "expired", checkoutClosedAt: date.toISOString() })],
+    (p) => verified(p, { status: "failed", requestExpired: true }));
+  await f.run();
+  const record = (await f.store.snapshot()).payments[0];
+  assert.deepEqual(record.reconciliation.issues, []);
+  assert.equal(record.reconciliation.providerStatus, "expired");
+  assert.equal(record.status, "expired");
+});

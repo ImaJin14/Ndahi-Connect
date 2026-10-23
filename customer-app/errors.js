@@ -10,7 +10,12 @@ export class ApiError extends Error {
 }
 
 export function responseError(response, result = {}) {
-  return new ApiError(response.status, result.error, result.code);
+  const error = new ApiError(response.status, result.error, result.code);
+  if (result.code === "PAYMENT_IN_PROGRESS") {
+    error.retryAfterSeconds = Number(result.retryAfterSeconds);
+    if (result.payment && typeof result.payment.id === "string") error.payment = result.payment;
+  }
+  return error;
 }
 
 export function friendlyError(error, context = "general") {

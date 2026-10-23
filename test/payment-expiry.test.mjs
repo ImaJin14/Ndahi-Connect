@@ -8,7 +8,7 @@ import { createHandler, createStore } from "../server.mjs";
 import { createLogger } from "../lib/logger.mjs";
 import { enqueuePaymentWebhook } from "../lib/payment-webhooks.mjs";
 
-// Pending checkouts close once their approval window (5 min) and grace (2 min) pass, so an
+// Pending checkouts close once their approval window (5 min) ends, so an
 // abandoned or unresolved payment cannot block a new one; late confirmations still count.
 const start = new Date("2026-10-02T12:00:00Z");
 const at = (seconds) => new Date(start.getTime() + seconds * 1000);
@@ -17,12 +17,12 @@ const reserveAt = (s, seconds, input = {}) => reservePurchase(s,
   { phone: "670000001", name: "Ada", planId: "weekly", network: "mtn", ...input },
   { clock: () => at(seconds), provider: "mesomb", paymentMode: "mesomb", requester: { ip: "10.0.0.8" }, ...timing });
 
-test("a pending checkout blocks a new one only until its window and grace pass", () => {
+test("a pending checkout blocks a new one only until its request deadline passes", () => {
   const s = blank(), first = reserveAt(s, 0);
   assert.equal(first.status, 201);
   assert.equal(first.payment.paymentExpiresAt, at(300).toISOString());
   s.payments.find(p => p.id === first.payment.id).creationState = "accepted";
-  assert.equal(reserveAt(s, 419).body.code, "PAYMENT_IN_PROGRESS", "still inside the grace period");
+  assert.equal(reserveAt(s, 299).body.code, "PAYMENT_IN_PROGRESS", "still inside the request window");
   const second = reserveAt(s, 421);
   assert.equal(second.status, 201);
   const closed = s.payments.find((p) => p.id === first.payment.id);
@@ -37,21 +37,21 @@ test("a same-key retry closes its own checkout exactly at the deadline and keeps
   s.payments.find((p) => p.id === first.payment.id).creationState = "accepted";
   const replay = (seconds, input) => reserveAt(s, seconds, { requestKey: "same-key", ...input });
   const expiredEvents = () => s.events.filter((e) => e.type === "payment.checkout_expired" && e.meta.paymentId === first.payment.id);
-  const inWindow = replay(419);
+  const inWindow = replay(299);
   assert.deepEqual([inWindow.status, inWindow.body.idempotent, inWindow.body.payment.id, inWindow.body.payment.status],
-    [200, true, first.payment.id, "pending"], "still inside the grace period");
+    [200, true, first.payment.id, "pending"], "still inside the request window");
   assert.equal(expiredEvents().length, 0);
   assert.equal(replay(500, { planId: "monthly" }).status, 409, "a mismatched plan is still rejected");
   assert.equal(s.payments[0].status, "pending", "a rejected replay does not close the checkout");
-  const atDeadline = replay(420);
+  const atDeadline = replay(300);
   assert.deepEqual([atDeadline.status, atDeadline.body.idempotent, atDeadline.body.payment.id, atDeadline.body.payment.status],
     [200, true, first.payment.id, "expired"]);
   const closed = s.payments.find((p) => p.id === first.payment.id);
   assert.deepEqual([closed.checkoutClosedAt, closed.lateCheckUntil, closed.failureReason],
-    [at(420).toISOString(), at(420 + 24 * 3600).toISOString(), closedCheckoutMessage]);
+    [at(300).toISOString(), at(300 + 24 * 3600).toISOString(), closedCheckoutMessage]);
   assert.equal(expiredEvents().length, 1);
   assert.equal(replay(421).body.payment.status, "expired");
-  assert.equal(closed.checkoutClosedAt, at(420).toISOString(), "a later replay does not move the closure");
+  assert.equal(closed.checkoutClosedAt, at(300).toISOString(), "a later replay does not move the closure");
   assert.equal(expiredEvents().length, 1, "closure is logged once");
   assert.equal(s.payments.length, 1, "no new payment is reserved by a replay");
 });
@@ -103,7 +103,7 @@ test("payments that involve money are never closed", () => {
   const held = blank();
   held.customers.push({ id: "c1", phone: "670000001" });
   held.payments.push({ id: "held", customerId: "c1", status: "paid", confirmedAt: old, fulfillmentStatus: "needs_review", createdAt: old });
-  assert.equal(reserveAt(held, 0).body.code, "PAYMENT_IN_PROGRESS", "a paid order awaiting review still needs support first");
+  assert.equal(reserveAt(held, 0).status, 201, "activation review does not masquerade as a live request");
 });
 
 async function fixture(t) {
@@ -193,16 +193,16 @@ test("a same-key purchase retry past the deadline closes the checkout without an
   const first = await f.purchase("retry-expiry"), id = first.body.payment.id;
   assert.equal(first.status, 201);
   const creates = f.calls.create;
-  f.advance(300);
+  f.advance(299);
   const inWindow = await f.purchase("retry-expiry");
   assert.deepEqual([inWindow.status, inWindow.body.payment.id, inWindow.body.payment.status], [200, id, "pending"]);
-  f.advance(121);
+  f.advance(1);
   const late = await f.purchase("retry-expiry");
   assert.deepEqual([late.status, late.body.idempotent, late.body.payment.id, late.body.payment.status], [200, true, id, "expired"]);
   assert.equal(f.calls.create, creates, "no new provider submission");
   const closed = await f.payment(id);
   assert.equal((await f.store.snapshot()).payments.filter((p) => p.customerId === closed.customerId).length, 1, "no new order");
-  assert.equal(closed.checkoutClosedAt, new Date(start.getTime() + 421000).toISOString());
+  assert.equal(closed.checkoutClosedAt, new Date(start.getTime() + 300000).toISOString());
   f.statuses.set(id, "paid");
   f.advance(600);
   await f.handler.billing.run();
@@ -314,11 +314,11 @@ test("all overdue checkouts close before a slow provider verification and beyond
   finally { release(undefined); await run; }
 });
 
-test("checkout snapshots keep their grace deadline and overdue refunds remain unconfirmed", () => {
+test("checkout snapshots ignore obsolete grace and overdue refunds remain unconfirmed", () => {
   const s = blank(), p = reserveAt(s, 0).payment;
-  assert.equal(p.paymentClosesAt, at(420).toISOString());
+  assert.equal(p.paymentClosesAt, at(300).toISOString());
   p.creationState = "accepted";
-  assert.equal(closeExpiredCheckout(p, at(419), { pendingSeconds: 1, graceSeconds: 1 }), false);
+  assert.equal(closeExpiredCheckout(p, at(299), { pendingSeconds: 1, graceSeconds: 1 }), false);
   const refunding = { id: "refund", status: "paid", confirmedAt: at(-90000).toISOString(), refund: { status: "pending", requestedAt: at(-90000).toISOString() } };
   const view = paymentView(refunding, { now: at(0), timing });
   assert.equal(view.attention, "refund_overdue"); assert.equal(view.refund.status, "pending");
