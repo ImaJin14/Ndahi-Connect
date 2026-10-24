@@ -250,10 +250,11 @@ export const createServer = (opts) => {
       usageSyncTimer = setInterval(runUsageSync, handler.routerUsageSyncConfig.intervalMs);
       usageSyncTimer.unref();
     }
-    if (handler.usageAlertConfig.enabled) {
-      usageAlertTimer = setInterval(runUsageAlerts, 15000);
-      usageAlertTimer.unref();
-    }
+    // The same durable worker also dispatches opted-in email fallback. It must
+    // keep running when Web Push is unconfigured; each channel checks its own
+    // configuration and consent before delivery.
+    usageAlertTimer = setInterval(runUsageAlerts, 15000);
+    usageAlertTimer.unref();
     if (handler.routerReconciliationConfig.enabled) {
       void runRouterReconciliation();
       routerReconciliationTimer = setInterval(
