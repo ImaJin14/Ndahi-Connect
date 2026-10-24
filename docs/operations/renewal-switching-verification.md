@@ -1,5 +1,19 @@
 # Renewal and switching verification
 
+## Current policy — 24 October 2026
+
+Issue #132 supersedes the historical early-replacement behavior described below.
+Customers can renew or switch only after the current bundle expires or its data
+is exhausted. The browser harness now exhausts the starting voucher before its
+eligible-purchase scenarios; it preserves history rather than marking it as an
+early renewal/switch. Active-account and guest/upgrade bypass protection has its
+own API/PostgreSQL/browser acceptance. Run
+`npm run check:subscription:browser` for both browser suites. See
+[active subscription protection](active-subscription-protection.md) for settlement,
+pending recovery, administrator exceptions and release evidence.
+
+The following dated notes record the earlier implementation, not current policy.
+
 Scope: UX-006 through UX-010. Implemented with two read-only Claude Code reviews,
 focused helper and API tests, and rendered browser checks. Billing remains full
 package price, with replacement and new validity beginning on confirmed payment.

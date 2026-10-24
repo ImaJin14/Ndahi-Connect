@@ -143,11 +143,17 @@ router queue; later replacement packages are unaffected.
 ## Customer rules and worker
 
 `customer-app/billing-terms.html` explains prepaid billing, no automatic renewal,
-full-price renewal/switching, immediate replacement on verified payment, no carried
-over time/data or automatic proration, Daily eligibility, cancellation before
+full-price renewal/switching only after expiry or data exhaustion, protection of
+active allowances from customer replacement, no automatic proration, Daily eligibility, cancellation before
 submission, and refund review. These rules are linked from checkout and Payment
 history; the key cancellation rules also appear directly before payment. New
 payment records include the displayed policy version.
+
+Issue #132 supersedes early replacement: guest upgrades and authenticated
+renew/switch cannot replace active access. Eligibility is rechecked at reservation,
+before provider submission and at settlement. Conflicting received money remains
+paid with a receipt and needs review. Explicit audited administrator replacement
+remains separate. See [active subscription protection](active-subscription-protection.md).
 
 The billing worker runs every 30 seconds by default, with batches of up to 25 and
 persisted check times for fair rotation. `BILLING_WORKER_ENABLED=false` disables
