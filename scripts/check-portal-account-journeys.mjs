@@ -27,6 +27,10 @@ const post = async (path, input, cookie = '') => {
   const response = await fetch(api + path, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify(input) });
   const body = await response.json(); assert.ok(response.ok, JSON.stringify(body)); return { response, body };
 };
+const makePurchaseEligible = () => store.transaction((s) => {
+  const active = s.vouchers.find((v) => v.status === "active");
+  if (active) active.usedBytes = active.quotaBytes;
+});
 let browser, checks = 0;
 const screenshots = '/tmp/ndahi-portal-account-checks';
 try {
@@ -106,6 +110,7 @@ try {
     await page.screenshot({ path: `${screenshots}/help-mobile.png`, fullPage: true });
   }, 320);
   await scenario('pending history shows server deadlines and closes automatically after its window', async (page) => {
+    await makePurchaseEligible();
     const created = await post('/api/account/plan/purchase', { action: 'renew', planId: 'weekly', requestKey: 'clock' }, cookie);
     await store.transaction((s) => {
       const p = s.payments.find((p) => p.id === created.body.payment.id);
@@ -174,6 +179,7 @@ try {
   }, 320);
 
   await scenario('alternate renewal payers stay with their transaction and new checkouts reset to the account number', async (page) => {
+    await makePurchaseEligible();
     await page.goto(`${portal}/onboarding.html?action=renew`);
     await page.locator('[data-plan="weekly"]').click();
     const payer = page.locator('[name="payerPhone"]');
@@ -192,6 +198,7 @@ try {
     await page.reload(); await page.locator('#checkExisting').waitFor();
     assert.match(await page.locator('#planNotice').innerText(), /670050199/);
     await post(`/api/payments/${transaction.id}/confirm`, {});
+    await makePurchaseEligible();
     await page.goto(`${portal}/onboarding.html?action=renew`); await page.locator('[data-plan="weekly"]').click();
     assert.equal(await page.locator('[name="payerPhone"]').inputValue(), '670050101');
     assert.equal((await store.snapshot()).payments.find((p) => p.id === transaction.id).receipt.payerPhone, '670050199');
@@ -216,6 +223,7 @@ try {
     assert.deepEqual(s.vouchers, baseline.vouchers);
     assert.equal(s.payments[0].payerPhone, '670050101');
     assert.equal((await fetch(api + '/api/account/dashboard', { headers: { cookie: otherCookie } })).status, 401);
+    await makePurchaseEligible();
     await page.goto(`${portal}/onboarding.html?action=renew`); await page.locator('[data-plan="weekly"]').click();
     assert.equal(await page.locator('[name="payerPhone"]').inputValue(), '670050103');
   });
@@ -224,6 +232,7 @@ try {
     await page.route('**/api/account/plan/purchase', async (route) => {
       submissions++; await route.fetch(); await route.abort('failed');
     });
+    await makePurchaseEligible();
     await page.goto(`${portal}/onboarding.html?action=renew`); await page.locator('[data-plan="weekly"]').click();
     await page.locator('[name="payerPhone"]').fill('670050199');
     await page.locator('[name="acknowledge"]').check(); await page.locator('#requestPayment').click();
@@ -339,6 +348,7 @@ try {
       const response = await route.fetch(), body = await response.json(); body.paymentProvider = 'flutterwave';
       await route.fulfill({ response, json: body });
     });
+    await makePurchaseEligible();
     await page.goto(`${portal}/onboarding.html?action=renew`); await page.locator('[data-plan="weekly"]').click();
     const emailInput = page.locator('[name="email"]');
     assert.equal(await emailInput.isVisible(), true);
@@ -351,6 +361,7 @@ try {
     assert.equal(s.customers[0].email, ''); assert.equal(s.customers[0].pendingEmail, undefined);
   });
   await scenario('pending payments have a visible navigation badge', async (page) => {
+    await makePurchaseEligible();
     await post('/api/account/plan/purchase', { action: 'renew', planId: 'weekly', payerPhone: '670050199', requestKey: 'badge' }, cookie);
     await page.goto(`${portal}/dashboard`);
     await page.locator('[data-portal-tab="payments"] .nav-badge').waitFor();
