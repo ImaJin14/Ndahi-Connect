@@ -47,7 +47,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
         '<label><input type="checkbox" name="expiryWarnings" ' + (inbox.preferences.expiryWarnings ? "checked" : "") + '> Warn within one hour of bundle expiry</label>' +
         '<label><input type="checkbox" name="subscriptionUpdates" ' + (inbox.preferences.subscriptionUpdates !== false ? "checked" : "") + '> Expired or exhausted bundle updates</label>' +
         '<label><input type="checkbox" name="usagePush" ' + (inbox.preferences.usagePush ? "checked" : "") + '> Data-usage push alerts</label><p>Warnings use the latest server reading; arrival at an exact balance or time is not guaranteed.</p></fieldset>' +
-        '<fieldset><legend>Email</legend><label><input type="checkbox" name="emailTransactions" ' + (inbox.preferences.emailTransactions !== false ? "checked" : "") + '> Email welcome, receipts, vouchers and activation notices</label><label><input type="checkbox" name="emailSecurity" ' + (inbox.preferences.emailSecurity ? "checked" : "") + '> Email security notices</label><p>' + (inbox.emailAvailable ? "Sent to your confirmed account email." : "Link and confirm an email in Account to receive email notices.") + '</p></fieldset>' : "") +
+        '<fieldset><legend>Email</legend><label><input type="checkbox" name="emailFallback" ' + (inbox.preferences.emailFallback ? "checked" : "") + '> Email data and expiry alerts when browser push is unavailable</label><label><input type="checkbox" name="emailTransactions" ' + (inbox.preferences.emailTransactions !== false ? "checked" : "") + '> Email welcome, receipts, vouchers and activation notices</label><label><input type="checkbox" name="emailSecurity" ' + (inbox.preferences.emailSecurity ? "checked" : "") + '> Email security notices</label><p>' + (inbox.emailAvailable ? "Sent to your confirmed account email." : "Link and confirm an email in Account to receive email notices.") + '</p></fieldset>' : "") +
       '<label><input type="checkbox" name="pushEnabled" ' + (inbox.preferences.pushEnabled ? "checked" : "") + (inbox.pushAvailable ? "" : " disabled") + '> Push new activity to my subscribed devices</label>' +
       '<p>' + (inbox.pushAvailable ? "Browser notifications require permission on each device. Your in-app inbox always works." : "Browser push is not configured. Your in-app inbox works without it.") + '</p>' +
       (inbox.pushAvailable ? '<button type="button" data-enable-browser>Enable on this device</button><button type="button" data-disable-browser>Disable on this device</button>' : "") +
@@ -65,7 +65,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
         event.preventDefault();
         const input = { action: "preferences", categories: {} };
         for (const key of Object.keys(inbox.preferences.categories)) if (form.elements[key]) input.categories[key] = form.elements[key].checked;
-        for (const key of ["pushEnabled", "emailSecurity", "emailTransactions", "usagePush", "expiryWarnings", "subscriptionUpdates"]) if (form.elements[key]) input[key] = form.elements[key].checked;
+        for (const key of ["pushEnabled", "emailSecurity", "emailTransactions", "emailFallback", "usagePush", "expiryWarnings", "subscriptionUpdates"]) if (form.elements[key]) input[key] = form.elements[key].checked;
         if (!admin) input.usageThresholds = ["90", "low", "100"].filter((level) => form.elements["usage-" + level]?.checked);
         try { await runButton(form.querySelector('[type="submit"]'), "Saving…", async () => {
           inbox = await post(input); editing = false; badge(); render(); output.textContent = "Notification settings saved.";
@@ -143,7 +143,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
         const enable = button.matches("[data-enable-browser]");
         if (enable && (Notification.permission === "denied" || Notification.permission !== "granted" && await Notification.requestPermission() !== "granted")) throw Error("Allow notifications in your browser settings, or keep using the in-app inbox.");
         await runButton(button, enable ? "Enabling…" : "Disabling…", async () => {
-          const registration = await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
+          const registration = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }); await navigator.serviceWorker.ready;
           let subscription = await registration.pushManager.getSubscription();
           if (enable) {
             const base64 = (inbox.publicKey + "=".repeat((4 - inbox.publicKey.length % 4) % 4)).replaceAll("-", "+").replaceAll("_", "/");

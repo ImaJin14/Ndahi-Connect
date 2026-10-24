@@ -26,6 +26,10 @@ self.addEventListener("fetch", (event) => {
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" },
   })));
 });
+function pushTarget(value) {
+  if (value === "/#home") return "/dashboard#home";
+  return typeof value === "string" && /^\/dashboard(?:#(?:home|bundles|vouchers|payments|account|devices|sessions|more))?$/.test(value) ? value : null;
+}
 self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { /* Fall back to the generic message. */ }
@@ -33,13 +37,15 @@ self.addEventListener("push", (event) => {
     body: data.body || "Open NDAHI Connect to check your bundle.",
     tag: data.tag || "ndahi-usage",
     renotify: true,
-    data: { url: data.url || "/dashboard" },
+    data: { url: pushTarget(data.url) || "/dashboard" },
   }));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/dashboard", self.location.origin);
+  const path = pushTarget(event.notification.data?.url);
+  if (!path) return;
+  const target = new URL(path, self.location.origin);
   if (target.origin !== self.location.origin) return;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
     const open = windows.find((client) => new URL(client.url).origin === target.origin && new URL(client.url).pathname === target.pathname);
