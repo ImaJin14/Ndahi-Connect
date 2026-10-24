@@ -34,7 +34,7 @@ test('an actual admin suspension status prevents reservation and guests receive 
  s.customers[0].status = 'active'; s.vouchers.push({ id: 'private', customerId: 'c', planId: 'weekly', status: 'active', usedBytes: 999 });
  assert.equal(reserve(s, 0).body.activeBundle, undefined);
  const owner = reservePurchase(s, { planId: 'monthly', action: 'switch' }, { accountCustomerId: 'c', clock: () => at(0), provider: 'mesomb', requester: { ip: '127.0.0.1' } });
- assert.equal(owner.status, 201);
+ assert.equal(owner.status, 409); assert.equal(owner.body.code, "ACTIVE_BUNDLE_EXISTS");
 });
 test('MeSomb EXPIRED is terminal and preserves optional gateway expiry evidence', async () => {
  const client = { async checkTransactions() { return [{ status: 'EXPIRED', pk: 'gateway', amount: 100, currency: 'XAF', expires_at: at(60).toISOString() }]; } };

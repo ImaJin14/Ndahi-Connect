@@ -83,6 +83,7 @@ test("MeSomb signup and fulfillment work without email; unconfirmed addresses ca
 test("Flutterwave requires a transaction contact email without linking it to an existing account", async (t) => {
   const f = await fixture(t), s = await f.store.snapshot();
   s.customers[0].email = "";
+  s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes;
   const options = { clock: () => new Date("2030-01-01T12:00:00Z"), provider: "flutterwave", accountCustomerId: "c1", requester: {} };
   const input = { action: "renew", planId: "weekly", network: "mtn", requestKey: "flutterwave-email" };
   assert.equal(reservePurchase(s, input, options).body.code, "PAYMENT_EMAIL_REQUIRED");
@@ -172,6 +173,7 @@ test("owned current and expired voucher codes remain private and downloadable of
 
 test("alternate payers belong to one transaction and never change subscription ownership or account defaults", async (t) => {
   const f = await fixture(t);
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const request = { action: "renew", planId: "weekly", payerPhone: "+237 670050002", network: "orange", requestKey: "alternate" };
   const created = await f.call("/api/account/plan/purchase", { input: request });
   assert.equal(created.status, 201);
@@ -188,6 +190,7 @@ test("alternate payers belong to one transaction and never change subscription o
   assert.equal(s.customers.find((c) => c.id === "c1").phone, "670050001");
   assert.equal(s.customers.length, 2);
   assert.equal(receiptView(payment.receipt).payerPhone, "670050002");
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const next = await f.call("/api/account/plan/purchase", { input: { action: "renew", planId: "weekly", network: "mtn", requestKey: "next" } });
   assert.equal(next.status, 201); assert.equal(next.body.payment.payerPhone, "670050001");
   s = await f.store.snapshot(); assert.equal(s.payments.length, 3);
@@ -227,6 +230,7 @@ test("phone changes require CSRF and fresh credentials, preserve history, and ro
   assert.ok(after.securityAlerts.some((a) => a.kind === "phone_changed" && a.customerId === "c1"));
   for (const name of ["customerPasskeyChallenges", "customerMfaChallenges", "otpChallenges", "pinResetChallenges", "customerAccessChallenges"]) assert.equal(after[name].length, 0);
   const csrf = (await f.call("/api/account/dashboard")).body.csrfToken;
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const next = await f.call("/api/account/plan/purchase", { csrf, input: { action: "renew", planId: "weekly", network: "mtn", requestKey: "after-change" } });
   assert.equal(next.status, 201);
   assert.equal(next.body.payment.payerPhone, "670050003");

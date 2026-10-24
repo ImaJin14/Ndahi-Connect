@@ -58,7 +58,7 @@ try {
     await mkdir(screenshotDir, { recursive: true });
     let checks = 0;
     async function scenario(name, change, run, options = {}) {
-      await store.transaction((state) => { Object.assign(state, structuredClone(baseline)); change?.(state); });
+      await store.transaction((state) => { Object.assign(state, structuredClone(baseline)); state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; change?.(state); });
       const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, ...options });
       const page = await context.newPage(), errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
@@ -104,7 +104,7 @@ try {
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       const state = await store.snapshot();
       assert.equal(state.vouchers.length, 2);
-      assert.equal(state.vouchers[1].status, "renewed");
+      assert.equal(state.vouchers[1].status, "exhausted");
       assert.equal(state.customers[0].email, "preview@example.test");
     });
     await scenario("switch comparisons, keyboard modal, mobile and zoom-equivalent reflow", null, async (page) => {
@@ -123,7 +123,7 @@ try {
       }
       await page.screenshot({ path: `${screenshotDir}/switch-mobile.png`, fullPage: true });
       await page.locator('[data-plan="monthly"]').click();
-      assert.match(await page.locator("#checkoutPolicy").textContent(), /ends immediately.*do not carry over.*no prorated credit/s);
+      assert.match(await page.locator("#checkoutPolicy").textContent(), /previous package is not active.*no prorated credit/s);
       await page.keyboard.press("Shift+Tab");
       assert.equal(await page.locator("#checkoutHelp").evaluate((el) => el === document.activeElement), true);
       await page.keyboard.press("Tab");
@@ -139,7 +139,7 @@ try {
       await page.waitForURL("**/dashboard");
       const state = await store.snapshot();
       assert.equal(state.vouchers[0].planId, "monthly");
-      assert.equal(state.vouchers[1].status, "switched");
+      assert.equal(state.vouchers[1].status, "exhausted");
     });
     await scenario("Daily cooldown blocks renewal", (state) => {
       state.vouchers[0].planId = "daily";
@@ -204,6 +204,7 @@ try {
       await page.getByRole("button", { name: "Check payment status" }).click();
       await page.waitForURL("**/dashboard");
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
+      await store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
       await page.goto(`${portal}/onboarding.html?action=renew`);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
@@ -257,6 +258,7 @@ try {
       const id = (await store.snapshot()).payments[0].id;
       await page.goto(`${portal}/dashboard`);
       await post(`/api/payments/${id}/confirm`, {});
+      await store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
       await page.goto(`${portal}/onboarding.html?action=renew`);
       await page.getByRole("button", { name: "Review renewal" }).waitFor();
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);

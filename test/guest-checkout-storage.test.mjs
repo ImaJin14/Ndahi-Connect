@@ -148,6 +148,7 @@ test("an authenticated checkout key cannot be used for anonymous recovery or sta
   const paid = await f.call(`/api/payments/${first}/confirm`, "POST");
   const setup = await f.call("/api/account/setup/pin", "POST", { phone: input.phone, code: paid.json.access.code, pin: "2468", confirmPin: "2468" });
   const cookie = setup.response.headers.get("set-cookie").split(";")[0], requestKey = portalKey();
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const next = await f.call("/api/account/plan/purchase", "POST", { action: "renew", planId: "weekly", requestKey }, { cookie });
   assert.equal(next.response.status, 201);
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey })).response.status, 404);

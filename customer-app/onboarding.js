@@ -26,6 +26,13 @@ const api = window.NDAHI_CONFIG.apiUrl,
 let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePlans = [],
   paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false,
   purchaseAccess = { allowed: false }, accessReady = false, checkingAccess = null, coverageError = false;
+let subscriptionAccess = { allowed: true };
+function showSubscriptionProtection() {
+  notice(subscriptionAccess.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.", false);
+  $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", subscriptionAccess.code === "ACCOUNT_SUSPENDED"
+    ? '<a href="/help">Contact support</a>'
+    : `<a href="${h(withWifiHint("/dashboard"))}">Connect using existing bundle</a>`);
+}
 
 fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
 async function call(path, options = {}) {
@@ -63,7 +70,7 @@ async function recheckPurchaseAccess() {
     finally {
       renderPlans();
       if (selected && !paymentInProgress && !creatingPayment) {
-        $("#requestPayment").disabled = !purchaseAccess.allowed;
+        $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
         $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
       }
     }
@@ -94,7 +101,7 @@ function policy(plan) {
   const active = account?.activeBundle?.status === "active",
     eligibility = plan.id === "daily" ? " Daily can be purchased once every 7 days." : "";
   if (accountAction || upgradePurchase) {
-    return `${active || upgradePurchase ? "When payment is confirmed, your current package ends immediately. Unused data and remaining time do not carry over. " : "Your previous package is not active. "}${plan.name} starts on payment confirmation with ${durationLabel(plan.validityHours)} of validity. The full ${money(plan.price)} package price is due; no prorated credit is applied. Reconnect devices with the new activation code.${eligibility}`;
+    return `${active ? "Your current bundle must expire or use up its data before another purchase. " : "Your previous package is not active. "}${plan.name} starts on payment confirmation with ${durationLabel(plan.validityHours)} of validity. The full ${money(plan.price)} package price is due; no prorated credit is applied. Reconnect devices with the new activation code.${eligibility}`;
   }
   return `Your package starts on payment confirmation and lasts ${durationLabel(plan.validityHours)}. An activation code is created after verified payment. The full ${money(plan.price)} package price is due.${eligibility}`;
 }
@@ -103,8 +110,8 @@ function notice(message, links = true) {
 }
 function renderPlans() {
   $("#plans").innerHTML = plans.map((plan) => {
-    const blocked = dailyBlocked(plan) || (accountAction === "renew" && (!renewal || !renewal.eligible));
-    const eligibility = blocked
+    const blocked = !subscriptionAccess.allowed || dailyBlocked(plan) || (accountAction === "renew" && (!renewal || !renewal.eligible));
+    const eligibility = !subscriptionAccess.allowed ? "Your existing bundle is protected from replacement." : blocked
       ? `Daily is available again ${date(account && account.dailyAvailability ? account.dailyAvailability.nextEligibleAt : null)}.`
       : accountAction === "renew" ? "Eligible to renew now." : "";
     const highlight = planHighlightBadge(plan);
@@ -196,6 +203,7 @@ async function initialize() {
   $("#providerFee").hidden = paymentProvider !== "mesomb";
   try {
     account = await call("/api/account/dashboard");
+    subscriptionAccess = account.subscriptionPurchaseAccess || { allowed: !account.activeBundle && account.customer.status !== "suspended" && !account.customer.suspended };
     csrfToken = account.csrfToken;
     const accountLink = $(".header-link");
     accountLink.textContent = "My dashboard";
@@ -263,6 +271,7 @@ async function initialize() {
     }
     await restoreSavedCheckout();
   }
+  if (!subscriptionAccess.allowed && !paymentInProgress) showSubscriptionProtection();
 
   const preferred = pageParams.get("plan");
   if (preferred && choose(preferred)) {
@@ -407,7 +416,7 @@ async function resumeSavedCheckout(button, saved, checked) {
 }
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
-  if (!plan || !purchaseAccess.allowed || dailyBlocked(plan) || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
+  if (!plan || !purchaseAccess.allowed || !subscriptionAccess.allowed || dailyBlocked(plan) || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
   selected = plan;
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   return true;
@@ -427,12 +436,10 @@ function renderCheckoutReview() {
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
     : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
-  $("#acknowledgementText").textContent = account?.activeBundle?.status === "active"
-    ? "I understand that payment replaces my current package immediately, without carrying over unused data or time."
-    : "I understand that the new package starts when payment is confirmed.";
+  $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;
   $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
-  $("#requestPayment").disabled = !purchaseAccess.allowed;
+  $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
@@ -632,7 +639,7 @@ async function waitForPayment(paymentId, phone) {
 }
 $("#purchase").onsubmit = async (event) => {
   event.preventDefault();
-  if (!selected || !purchaseAccess.allowed || paymentInProgress || creatingPayment) return;
+  if (!selected || !purchaseAccess.allowed || !subscriptionAccess.allowed || paymentInProgress || creatingPayment) return;
   const purchaseInput = formValues(event.target), previousSavedCheckout = savedCheckout();
   const paymentWindow = paymentProvider === "flutterwave"
     ? window.open("about:blank", "ndahi-payment", "popup,width=520,height=760") : null;
@@ -730,8 +737,12 @@ $("#purchase").onsubmit = async (event) => {
     }
     coverageError = error.code === "OUTSIDE_COVERAGE";
     if (coverageError) setPurchaseAccess({ allowed: false, message: error.message });
+    if (error.code === "ACTIVE_BUNDLE_EXISTS") subscriptionAccess = { allowed: false, code: error.code, message: error.message };
     const activeBundleActions = error.code === "ACTIVE_BUNDLE_EXISTS" ? [
-      { label: "Sign in to Dashboard", run: () => { location.assign("/dashboard#managePlan"); } },
+      { label: account ? "Use existing bundle" : "Sign in to connect", run: () => {
+        sessionStore.set("ndahi-return-to", "/dashboard");
+        location.assign(withWifiHint(account ? "/dashboard" : "/login"));
+      } },
       { label: "Back to packages", run: () => { location.reload(); } },
     ] : null;
     showError($("#message"), error, {
@@ -745,7 +756,7 @@ $("#purchase").onsubmit = async (event) => {
       $("#purchaseFields").disabled = false;
       if (selected) {
         $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
-        $("#requestPayment").disabled = !purchaseAccess.allowed;
+        $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
       }
     } else $("#requestPayment").textContent = "Payment requested";
   }

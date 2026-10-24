@@ -194,6 +194,7 @@ try {
     assert.equal((await store.snapshot()).payments.length, baseline.payments.length);
   }, { address: inside });
   await scenario("a pending renewal remains trackable off-network and can complete", async (page) => {
+    await store.transaction((s) => { s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
     const pending = await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", acknowledge: true, requestKey: "coverage-pending-renewal" }, { cookie });
     await page.goto(portal + "/onboarding.html?action=renew");
     await page.locator("#checkExisting").waitFor();
