@@ -248,3 +248,21 @@ header .brand,
 .account-layout{font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
 .account-layout .eyebrow{color:var(--forest)}
 .account-layout input,.account-layout select,.account-layout button{font-family:inherit}
+
+/* Unified Account security: one entry, short task panels, shared proof/status. */
+#securityManager>summary{font-weight:700;color:var(--forest);padding:12px 0}
+.security-manager-body{border-top:1px solid var(--line);padding-top:18px}
+.security-summary{color:var(--muted);font-size:.9rem}
+.security-nav,.security-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.security-nav button{flex:1 1 100px;min-height:44px}
+.security-nav button[aria-pressed="true"]{background:var(--forest);border-color:var(--forest);color:#fff}
+.security-manager-body [data-security-content]{max-width:760px;margin:0 auto 24px}
+.security-manager-body form{max-width:560px}
+.security-manager-body h3{font-size:1.15rem;margin-top:18px}
+.security-verification{border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:18px}
+.security-verification h4{font-size:1rem;margin:0 0 10px}
+#securityMessage:empty{display:none}
+#securityMessage:focus{outline:2px solid var(--forest);outline-offset:4px}
+#accountBackupOutput code{overflow-wrap:anywhere;word-break:break-word}
+.security-manager-body .device-actions{flex-wrap:wrap}
+@media(max-width:420px){.security-actions>button{flex:1 1 100%}.security-verification{padding:14px}.security-nav{gap:6px}.security-nav button{flex-basis:75px;padding:10px 6px}}
