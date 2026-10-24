@@ -115,6 +115,10 @@ export function renewalEligibility(currentVoucher, cataloguePlans, dailyAvailabi
   const plan = (cataloguePlans || []).find((candidate) =>
     candidate.id === currentVoucher.planId && candidate.discontinued !== true
   );
+  if (currentVoucher.status === "active") {
+    return { eligible: false, code: "active-bundle", reason: "Use your existing bundle. You can renew after expiry or data exhaustion.",
+      plan: plan || null, nextEligibleAt: null };
+  }
   if (!plan) {
     return {
       eligible: false, code: "plan-unavailable", reason: "This plan is no longer available for renewal.",

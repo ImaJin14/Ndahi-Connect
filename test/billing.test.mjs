@@ -322,6 +322,7 @@ test("BILL-003 legacy refund-pending records cannot issue another refund", async
 test("BILL-003 refund confirmation cannot disconnect a newer replacement package", async (t) => {
   const f = await fixture(t);
   const id = await account(f);
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const replacement = await f.call("/api/account/plan/purchase", "POST", { action: "switch", planId: "monthly", requestKey: "new-plan" });
   const paid = await f.call(`/api/payments/${replacement.json.payment.id}/confirm`, "POST");
   await f.call("/api/admin/login", "POST", { pin: "9999" });

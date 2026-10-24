@@ -93,8 +93,8 @@ test("unresolved payments and active bundles block stacking", () => {
   assert.match(blocked.body.error, /Bundles cannot be stacked/);
   assert.equal(blocked.body.code, "ACTIVE_BUNDLE_EXISTS");
   assert.equal(blocked.body.activeBundle, undefined);
-  assert.equal(reserve(active, { upgrade: true, planId: "daily" }).status, 400, "an upgrade must cost more");
-  assert.equal(reserve(active, { upgrade: true, planId: "daily" }).body.code, "UPGRADE_PLAN_REQUIRED");
+  assert.equal(reserve(active, { upgrade: true, planId: "daily" }).status, 409, "an upgrade cannot bypass active protection");
+  assert.equal(reserve(active, { upgrade: true, planId: "daily" }).body.code, "ACTIVE_BUNDLE_EXISTS");
 });
 
 test("account renewals and plan switches follow the latest voucher", () => {

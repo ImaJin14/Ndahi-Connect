@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-23
+Last reviewed: 2026-10-24
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -111,6 +111,11 @@ Use this document as the source of truth for product, engineering, security, and
   - Blocker: requires a real encrypted DATA-004 backup, an isolated PostgreSQL target, and an authorized operator to run and record the timed drill.
 
 ### Payment and network consistency
+
+- [-] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
+  - Implemented: shared server-time/quota eligibility blocks customer purchase/renew/switch/legacy upgrade while active; settlement ignores legacy replacement exemptions and retains paid conflicts for support review. Dashboard/onboarding suppress new-purchase controls and offer private sign-in/reconnect guidance. Existing pending expiry/recovery and explicit audited admin replacement are preserved.
+  - Local validation: 893 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending CI. Browser and final CI verification are in progress; no production rollout or physical/provider test is claimed by this entry.
+  - Release and exact validation evidence are tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
 
 - [x] **PAY-001 — Add automated payment reconciliation**
   - Compare local payments with MeSomb/Flutterwave provider status.

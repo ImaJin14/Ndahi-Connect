@@ -110,6 +110,14 @@ test("renewal selects the current catalogue terms even when the voucher has olde
   assert.equal(oldVoucher.plan.price, 300);
 });
 
+test("renewal cannot replace an active metered or unlimited bundle", () => {
+  for (const plan of [weekly, { ...weekly, id: "unlimited", quotaGb: null }]) {
+    const result = renewalEligibility({ planId: plan.id, status: "active" }, [plan]);
+    assert.equal(result.eligible, false);
+    assert.equal(result.code, "active-bundle");
+  }
+});
+
 test("renewal blocks missing and discontinued current plans without falling back to another plan", () => {
   assert.deepEqual(renewalEligibility(null, [weekly]), {
     eligible: false, code: "no-current-plan", reason: "There is no current plan to renew.",

@@ -292,6 +292,7 @@ try {
     assert.equal(await savedCookie(context), undefined);
   }, { signedIn: false });
   await scenario("pending renewal is recovered after browser state is lost", async (page) => {
+    await store.transaction((s) => { s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
     await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", requestKey: "interrupted-account" }, cookie);
     await page.goto(`${portal}/onboarding.html?action=renew`);
     await page.getByRole("button", { name: "Check payment status" }).waitFor();
@@ -468,6 +469,7 @@ try {
     await page.screenshot({ path: `${screenshots}/guest-${outcome}-help.png`, fullPage: true });
   }, { signedIn: false, width: 390 });
   await scenario("an expired renewal stops blocking the account", async (page) => {
+    await store.transaction((s) => { s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
     await post("/api/account/plan/purchase", { action: "renew", planId: "weekly", requestKey: "abandoned-renewal" }, cookie);
     now = new Date(Date.now() + 8 * 60000);
     await page.goto(`${portal}/onboarding.html?action=renew`);
@@ -478,6 +480,7 @@ try {
     assert.deepEqual([renewal.status, Boolean(renewal.checkoutClosedAt)], ["expired", true]);
   });
   await scenario("billing rules are available before payment", async (page) => {
+    await store.transaction((s) => { s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
     await page.goto(`${portal}/onboarding.html?action=renew`);
     await page.locator('[data-plan="weekly"]').click();
     assert.match(await page.locator("#checkoutPolicy").textContent(), /Closing this page does not cancel/);

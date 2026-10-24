@@ -669,6 +669,7 @@ test("discontinued plans are historical-only and account renewal/switching is id
   await f.call("/api/account/setup/pin", "POST", {
     phone: "670000044", code: paid.json.access.code, pin: "2468", confirmPin: "2468",
   });
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const renewal = await f.call("/api/account/plan/purchase", "POST", {
     planId: "weekly", action: "renew", requestKey: "renew-1",
   });
@@ -679,6 +680,7 @@ test("discontinued plans are historical-only and account renewal/switching is id
   assert.equal(duplicate.response.status, 200);
   assert.equal(duplicate.json.payment.id, renewal.json.payment.id);
   assert.equal((await f.call(`/api/payments/${renewal.json.payment.id}/confirm`, "POST")).response.status, 200);
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const switched = await f.call("/api/account/plan/purchase", "POST", {
     planId: "monthly", action: "switch", requestKey: "switch-1",
   });
@@ -699,6 +701,7 @@ test("discontinued plans are historical-only and account renewal/switching is id
 
 test("account renewal requires a session and only accepts the latest purchasable plan", async (t) => {
   const f = await authenticatedFixture(t);
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   for (const action of ["renew", "switch"]) {
     const unauthenticated = await f.call("/api/account/plan/purchase", "POST", {
       planId: "monthly", action,
@@ -765,29 +768,28 @@ for (const status of ["expired", "exhausted"]) {
   });
 }
 
-test("renewal and switching replace the plan only after payment and repeated requests are idempotent", async (t) => {
+test("eligible renewal and switching preserve exhausted history and repeated requests are idempotent", async (t) => {
   let current = new Date("2026-09-22T10:00:00Z");
   const f = await authenticatedFixture(t, { now: () => current }),
     sessionCookie = f.jar.customer_session;
   let previousVoucher = f.initialVoucher, completed = 0;
   for (const [action, planId] of [["renew", "weekly"], ["switch", "monthly"], ["switch", "weekly"]]) {
     current = new Date(+current + 60000);
+    await f.store.transaction((state) => { const old = state.vouchers.find((v) => v.id === previousVoucher.id); old.usedBytes = old.quotaBytes; });
     const input = { planId, action, requestKey: `replacement-${completed}` },
       plan = plans.find((item) => item.id === planId),
       checkout = await f.call("/api/account/plan/purchase", "POST", input);
     assert.equal(checkout.response.status, 201);
     assert.equal(checkout.json.payment.amount, plan.price, "replacements charge the full catalogue price");
-    assert.equal(checkout.json.payment.replaceVoucherId, previousVoucher.id);
+    assert.equal(checkout.json.payment.replaceVoucherId, undefined, "new customer checkouts cannot replace active vouchers");
     const duplicateCheckout = await f.call("/api/account/plan/purchase", "POST", input);
     assert.equal(duplicateCheckout.response.status, 200);
     assert.equal(duplicateCheckout.json.idempotent, true);
     assert.equal(duplicateCheckout.json.payment.id, checkout.json.payment.id);
     const pending = await f.call("/api/account/dashboard");
-    assert.equal(pending.json.activeBundle.id, previousVoucher.id);
-    assert.equal(pending.json.activeBundle.expiresAt, previousVoucher.expiresAt);
-    assert.equal((await f.store.snapshot()).routerCommands.some((command) =>
-      command.action === "disconnect_voucher" && command.targetId === previousVoucher.id
-    ), false, "pending payment must preserve existing network access");
+    assert.equal(pending.json.activeBundle, null, "an exhausted bundle is no longer active");
+    assert.equal(pending.json.currentPlan.id, previousVoucher.id);
+    assert.equal(pending.json.currentPlan.status, "exhausted");
 
     current = new Date(+current + 60000);
     const confirmed = await f.call(`/api/payments/${checkout.json.payment.id}/confirm`, "POST");
@@ -805,9 +807,9 @@ test("renewal and switching replace the plan only after payment and repeated req
 
     const state = await f.store.snapshot(),
       replaced = state.vouchers.find((voucher) => voucher.id === previousVoucher.id);
-    assert.equal(replaced.status, action === "renew" ? "renewed" : "switched");
-    assert.equal(replaced.replacedAt, current.toISOString());
-    assert.equal(replaced.replacedByPaymentId, checkout.json.payment.id);
+    assert.equal(replaced.status, "exhausted");
+    assert.equal(replaced.replacedAt, undefined);
+    assert.equal(replaced.replacedByPaymentId, undefined);
     assert.ok(state.routerCommands.some((command) =>
       command.action === "disconnect_voucher" && command.targetId === previousVoucher.id
     ));
@@ -839,6 +841,7 @@ test("authenticated renewal and switching respect Daily cooldown until the exact
   });
   assert.equal(weekly.response.status, 201);
   await f.call(`/api/payments/${weekly.json.payment.id}/confirm`, "POST");
+  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
   const switchInput = { planId: "daily", action: "switch", requestKey: "daily-switch" },
     blocked = await f.call("/api/account/plan/purchase", "POST", switchInput);
   assert.equal(blocked.response.status, 409);
@@ -893,6 +896,7 @@ test("authenticated payment polling keeps the session alive through renewal and 
     now: () => current, env: { CUSTOMER_SESSION_SECONDS: "20" },
   }), sessionCookie = f.jar.customer_session;
   for (const [action, planId] of [["renew", "weekly"], ["switch", "monthly"]]) {
+    await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
     current = new Date(+current + 15000);
     const purchase = await f.call("/api/account/plan/purchase", "POST", {
       action, planId, requestKey: `session-${action}`,

@@ -15,10 +15,10 @@ export function emailCard(customer) {
 }
 export { vouchersCard } from "./voucher-history.js";
 export function bundleCatalogue(result) {
-  const current = result.currentPlan;
-  return `<section class="surface full" data-portal-view="bundles"><h2>Available packages</h2><div class="voucher-grid">${(result.availablePlans || []).filter((plan) => !plan.discontinued).map((plan) => {
+  const current = result.currentPlan, blocked = Boolean(result.activeBundle) || result.subscriptionPurchaseAccess?.allowed === false;
+  return `<section class="surface full" data-portal-view="bundles"><h2>Available packages</h2>${blocked ? `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>` : ""}<div class="voucher-grid">${(result.availablePlans || []).filter((plan) => !plan.discontinued).map((plan) => {
     const renew = current && current.planId === plan.id;
-    return `<article class="voucher-card"><h3>${h(plan.name)}</h3><p><strong>${h(plan.price.toLocaleString())} FCFA</strong><br>${plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(plan.quotaGb)} GB data`} · ${h(durationLabel(plan.validityHours))}<br>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</p><a class="button secondary-action" href="/onboarding.html?action=${renew ? "renew" : "switch"}&amp;plan=${h(encodeURIComponent(plan.id))}">${renew ? "Review renewal" : "Review package"}</a></article>`;
+    return `<article class="voucher-card"><h3>${h(plan.name)}</h3><p><strong>${h(plan.price.toLocaleString())} FCFA</strong><br>${plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(plan.quotaGb)} GB data`} · ${h(durationLabel(plan.validityHours))}<br>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</p>${blocked ? "" : `<a class="button secondary-action" href="/onboarding.html?action=${renew ? "renew" : "switch"}&amp;plan=${h(encodeURIComponent(plan.id))}">${renew ? "Review renewal" : "Review package"}</a>`}</article>`;
   }).join("")}</div></section>`;
 }
 function showQrModal(data) {

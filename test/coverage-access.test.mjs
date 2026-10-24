@@ -134,6 +134,7 @@ test("a checkout started on Wi-Fi can recover, complete, sign in and show balanc
   assert.equal((await fetch(`${f.base}/api/account/payments/${id}/receipt?format=json`, from(outside, { cookie }))).status, 200);
   assert.equal((await fetch(`${f.base}/api/account/payments/${id}/receipt`, from(outside))).status, 401);
   for (const [action, planId] of [["renew", "weekly"], ["switch", "monthly"]]) {
+    await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
     const input = { action, planId, acknowledge: true, requestKey: `coverage-${action}` };
     assert.equal((await f.post("/api/account/plan/purchase", input, outside, { cookie })).response.status, 403);
     const purchase = await f.post("/api/account/plan/purchase", input, inside, { cookie });
