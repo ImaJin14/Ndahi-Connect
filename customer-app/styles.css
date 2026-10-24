@@ -266,3 +266,11 @@ header .brand,
 #accountBackupOutput code{overflow-wrap:anywhere;word-break:break-word}
 .security-manager-body .device-actions{flex-wrap:wrap}
 @media(max-width:420px){.security-actions>button{flex:1 1 100%}.security-verification{padding:14px}.security-nav{gap:6px}.security-nav button{flex-basis:75px;padding:10px 6px}}
+
+.current-wifi-status{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.current-wifi-indicator{display:inline-block;width:.65rem;height:.65rem;border-radius:50%;background:#66756d;flex:none}
+.current-wifi-connected .current-wifi-indicator{background:#258647;animation:wifi-pulse 2s ease-in-out infinite}
+.current-wifi-disconnected .current-wifi-indicator{background:#bd3f3f;animation:wifi-pulse 2s ease-in-out infinite}
+.current-wifi-pending .current-wifi-indicator{background:#a27400;animation:wifi-pulse 1.4s ease-in-out infinite}
+@keyframes wifi-pulse{50%{box-shadow:0 0 0 .28rem color-mix(in srgb,currentColor 15%,transparent);opacity:.65}}
+@media(prefers-reduced-motion:reduce){.current-wifi-indicator{animation:none!important}}
