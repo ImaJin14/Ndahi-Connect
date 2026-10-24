@@ -127,6 +127,7 @@ export function createHandler(opts = {}) {
     }
   };
   handler.billing = billing;
+  handler.transactionalEmails = context.transactionalEmails;
   handler.serviceMonitor = context.serviceMonitor;
   handler.metricsRegistry = context.performanceMetrics.registry;
   handler.monitoringEnabled = context.serviceMetrics.enabled;
@@ -177,7 +178,7 @@ export const createServer = (opts) => {
     networkSetupTimer,
     monitorTimer;
   const runBilling = () =>
-    handler.billing.run().catch((error) => {
+    Promise.all([handler.billing.run(), handler.transactionalEmails.run()]).catch((error) => {
       handler.logger.error("billing.worker_failed", databaseDiagnostic(error));
     });
   const runSecurityAlerts = () =>

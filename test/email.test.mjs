@@ -46,7 +46,8 @@ test("Resend errors are sanitized and do not expose the API key", async () => {
     fetcher: async () => new Response(JSON.stringify({ message: "Domain not verified" }), { status: 403 }),
   });
   await assert.rejects(adapter.sendVoucher(delivery), (error) => {
-    assert.match(error.message, /Domain not verified/);
+    assert.match(error.message, /Email delivery failed/);
+    assert.doesNotMatch(error.message, /Domain not verified/);
     assert.doesNotMatch(error.message, /never-expose-me/);
     return true;
   });

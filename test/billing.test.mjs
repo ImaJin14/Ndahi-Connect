@@ -189,7 +189,7 @@ test("BILL-002 receipt ownership, frozen allowances and email failure recovery",
   let response = await f.call("/api/account/payments/receipt-email", "POST", { paymentId: id });
   assert.equal(response.json.payment.receiptEmail.status, "failed");
   assert.equal((await f.call(`/api/account/payments/${id}/receipt`)).response.status, 200);
-  failed = false; time = new Date(+time + 61000);
+  failed = false; time = new Date((await f.store.snapshot()).payments.find(p=>p.id===id).receiptEmail.nextAttemptAt);
   response = await f.call("/api/account/payments/receipt-email", "POST", { paymentId: id });
   assert.equal(response.json.payment.receiptEmail.status, "sent");
   await f.call("/api/account/payments/receipt-email", "POST", { paymentId: id });
