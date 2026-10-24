@@ -121,3 +121,13 @@ test('unknown email acknowledgements retry with the same identity and stop after
   for (let n = 0; n < 7; n++) { await sender(); f.advance(3600000); }
   assert.equal(keys.length, 5); assert.equal(new Set(keys).size, 1);
 });
+
+
+test('a newer issued allocation cancels old usage fallback without a legacy activeVoucherId pointer', async () => {
+  const f = await fixture(), calls = [];
+  await f.store.transaction(s => {
+    delete s.customers[0].activeVoucherId; s.notificationStates[0].expiryWarnings = false;
+    s.vouchers.push({ id: 'new', customerId: 'c', status: 'active', activatedAt: new Date(+f.now() + 1).toISOString(), expiresAt: '2030-02-01T00:00:00Z', quotaBytes: 1e9, usedBytes: 0 });
+  });
+  await createNotificationEmailSender({ ...f, config, email: { sendAccountMessage: async m => calls.push(m) } })(); assert.equal(calls.length, 0);
+});
