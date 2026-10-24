@@ -3,6 +3,7 @@ import { wifiHint } from "./wifi-pairing.js";
 import { automaticPoll } from "./automatic-poll.js";
 import { routerLoginUrl } from "./wifi-completion.js";
 
+const stateNeedsHotspotProof = (value, evidence) => value.state === "connected" && (!evidence.hotspot || evidence.hotspot.state !== "authenticated");
 const labels = { unknown: "Connection unknown", unavailable: "Wi-Fi unavailable", stale: "Connection needs checking", connecting: "Connecting…", connected: "Connected", disconnecting: "Disconnecting…", disconnected: "Disconnected", failed: "Connection check failed" };
 
 export function mountCurrentWifi({ container, call, onMainDisconnect }) {
@@ -45,7 +46,7 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
         if (!identify && next.identificationRequired && Date.now() - lastIdentifyAt >= 30000 && context.current()) next = await identifyDevice();
         if (!context.current()) return;
         const evidence = next.connectivity;
-        if (["connected", "disconnected", "connecting", "disconnecting"].includes(next.state) && (!evidence || evidence.version !== 1 || evidence.network.state !== "confirmed" || !Number.isFinite(Date.parse(evidence.expiresAt)) || Date.parse(evidence.expiresAt) <= Date.now())) {
+        if (["connected", "disconnected", "connecting", "disconnecting"].includes(next.state) && (!evidence || evidence.version !== 1 || evidence.network.state !== "confirmed" || !evidence.account || evidence.account.state !== "authenticated" || stateNeedsHotspotProof(next, evidence) || !Number.isFinite(Date.parse(evidence.expiresAt)) || Date.parse(evidence.expiresAt) <= Date.now())) {
           next = { ...next, device: undefined, state: "unknown", message: "This device's NDAHI request path is not confirmed. Checking automatically." };
         }
         failures = 0; value = next; render();
