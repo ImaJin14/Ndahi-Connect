@@ -48,6 +48,7 @@ async function fixture(options = {}) {
     return { response, json, setCookie: set };
   };
   return {
+    server,
     store,
     call,
     jar,
@@ -121,6 +122,8 @@ test("verified payment emails the voucher and delivery failure never reverses pa
   await successful.store.transaction((s) => { s.customers[0].emailVerifiedAt = new Date().toISOString(); });
   const confirmed = await successful.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
   assert.equal(confirmed.response.status, 200);
+  assert.equal(sent.length, 0,"settlement queues email after commit");
+  await successful.server.listeners("request")[0].transactionalEmails.run();
   assert.equal(sent.length, 1);
   assert.equal(sent[0].voucher.code, confirmed.json.access.code);
   assert.equal((await successful.store.snapshot()).vouchers[0].emailStatus, "sent");
@@ -138,6 +141,7 @@ test("verified payment emails the voucher and delivery failure never reverses pa
   await failed.store.transaction((s) => { s.customers[0].emailVerifiedAt = new Date().toISOString(); });
   const secondConfirmation = await failed.call(`/api/payments/${secondPurchase.json.payment.id}/confirm`, "POST");
   assert.equal(secondConfirmation.response.status, 200);
+  await failed.server.listeners("request")[0].transactionalEmails.run();
   const state = await failed.store.snapshot();
   assert.equal(state.payments[0].status, "paid");
   assert.equal(state.vouchers[0].status, "active");

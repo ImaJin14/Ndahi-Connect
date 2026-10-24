@@ -73,13 +73,13 @@ test("AUTH-005 worker tracks delivery failures with backoff and no secrets are q
   });
   await service.run();
   let state = await store.snapshot();
-  assert.equal(state.securityAlerts[0].status, "pending");
+  assert.equal(state.securityAlerts[0].status, "failed");
   assert.equal(state.securityAlerts[0].attempts, 1);
-  assert.match(state.securityAlerts[0].lastError, /provider outage/);
+  assert.match(state.securityAlerts[0].lastError, /could not be confirmed/);
   assert.ok(JSON.stringify(state.securityAlerts[0]).length < 2000);
   assert.doesNotMatch(JSON.stringify(state.securityAlerts[0]), /pin|password|secret/i);
   for (let i = 0; i < 10; i++) {
-    clock = new Date(clock.getTime() + 24 * 3600_000);
+    clock = new Date(clock.getTime() + 31 * 60000);
     await service.run();
   }
   state = await store.snapshot();

@@ -49,7 +49,7 @@ async function fixture(t, { payments, email, now = () => clock, store = createSt
     return { response, json, text };
   };
   return {
-    store, call, jar, base,
+    store, call, jar, base, worker: server.listeners("request")[0].transactionalEmails,
     advance: (seconds) => { clock = new Date(+clock + seconds * 1000); },
     getClock: () => clock,
   };
@@ -245,6 +245,7 @@ test("SECURITY-ALERT: replacing linked email sends alert to previousEmail", asyn
   const pending = state1.customers.find((c) => c.id === customerId).pendingEmail;
   assert.ok(pending);
 
+  await f.worker.run();
   // Use the code actually delivered, including codes with a leading zero.
   assert.match(verificationCode, /^\d{6}$/);
   assert.equal(hashSecret(verificationCode, pepper), pending.codeHash);
