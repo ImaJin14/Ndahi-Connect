@@ -13,6 +13,7 @@ import { createDeviceManagementRoutes } from "./lib/api/device-management.mjs";
 import { createWifiPairingRoutes } from "./lib/api/wifi-pairing.mjs";
 import { createAccountNotificationRoutes } from "./lib/api/notifications.mjs";
 import { deliverActivityPush } from "./lib/notifications.mjs";
+import { createNotificationEmailSender } from "./lib/notification-email.mjs";
 import { createAccountToolsRoutes } from "./lib/api/account-tools.mjs";
 import { createAccountRecoveryRoutes } from "./lib/api/account-recovery.mjs";
 import { createAccountEmailRoutes } from "./lib/api/account-email.mjs";
@@ -155,9 +156,11 @@ export function createHandler(opts = {}) {
   handler.scheduleUsageSync = createUsageSyncScheduler({ store, env, now: clock });
   handler.usageAlertConfig = usageAlertConfig(env);
   const usageSender = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
+  const fallbackSender = createNotificationEmailSender({ store, email: context.email, config: handler.usageAlertConfig, now: clock });
   handler.sendUsageAlerts = async () => {
     const [usage, activity] = await Promise.allSettled([usageSender(), deliverActivityPush({ store, config: handler.usageAlertConfig, now: clock })]);
     if (activity.status === "rejected") logger.error("notification.activity_failed", { errorName: activity.reason?.name });
+    await fallbackSender().catch(error => logger.error("notification.fallback_failed", { errorName: error?.name }));
     if (usage.status === "rejected") throw usage.reason;
     return usage.value;
   };
@@ -247,10 +250,11 @@ export const createServer = (opts) => {
       usageSyncTimer = setInterval(runUsageSync, handler.routerUsageSyncConfig.intervalMs);
       usageSyncTimer.unref();
     }
-    if (handler.usageAlertConfig.enabled) {
-      usageAlertTimer = setInterval(runUsageAlerts, 15000);
-      usageAlertTimer.unref();
-    }
+    // The same durable worker also dispatches opted-in email fallback. It must
+    // keep running when Web Push is unconfigured; each channel checks its own
+    // configuration and consent before delivery.
+    usageAlertTimer = setInterval(runUsageAlerts, 15000);
+    usageAlertTimer.unref();
     if (handler.routerReconciliationConfig.enabled) {
       void runRouterReconciliation();
       routerReconciliationTimer = setInterval(
