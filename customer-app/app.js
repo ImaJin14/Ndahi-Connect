@@ -205,7 +205,6 @@ async function load() {
   stopConnectivity();
   $("#dashboard").innerHTML = `${netBannerMarkup}${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <section class="surface" id="dataBalance">${activeBundleContent(result.bundleStatus)}</section>
-    ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts"><h2>Usage alerts</h2><p>Warnings at 90% used and around 2 MB remaining help you plan a renewal. Manage browser permission and delivery preferences in Notifications.</p><button type="button" id="manageUsageAlerts">Manage data alerts</button></section>' : ""}
     <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
     <section class="surface full" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
     <div class="plan-actions full" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div></div>
@@ -216,6 +215,7 @@ async function load() {
       ${nameCard(result.customer)}
       ${profileCard(result.customer)}
       ${emailCard(result.customer)}
+      <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
       ${accountSecurityCard(result.customer, security, securitySetup)}
       ${accountSessionsCard(security)}
     </div>
@@ -254,7 +254,7 @@ async function load() {
     }
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
-  if ($("#manageUsageAlerts")) $("#manageUsageAlerts").onclick = () => notifications.open({ category: "usage", settings: true });
+  $("#manageNotificationSettings").onclick = () => notifications.open({ category: "usage", settings: true });
   if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };
   if (hotspot && active) watchWifiDevices();
   else clearTimeout(devicePoll);
