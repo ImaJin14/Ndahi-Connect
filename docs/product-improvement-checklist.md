@@ -112,10 +112,10 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Payment and network consistency
 
-- [-] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
+- [x] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
   - Implemented: shared server-time/quota eligibility blocks customer purchase/renew/switch/legacy upgrade while active; settlement ignores legacy replacement exemptions and retains paid conflicts for support review. Dashboard/onboarding suppress new-purchase controls and offer private sign-in/reconnect guidance. Existing pending expiry/recovery and explicit audited admin replacement are preserved.
-  - Local validation: 895 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending exact-head CI. All 20 new active-subscription, 13 eligible-plan, 28 billing, 21 account and 14 coverage browser scenarios passed. Final CI/release verification is in progress; no production rollout or physical/provider test is claimed by this entry.
-  - Release and exact validation evidence are tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
+  - Verification: 895 backend tests passed; all 20 new active-subscription, 13 eligible-plan, 28 billing, 21 account and 14 coverage browser scenarios passed.
+  - Release: Delivered in PR #144 and merged into `main` at `89b421a`. Deployed to Render production and verified via smoke checks. Real Mobile Money charge and captive-portal device replacement attempt remain pending physical operator verification. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md).
 
 - [x] **PAY-001 — Add automated payment reconciliation**
   - Compare local payments with MeSomb/Flutterwave provider status.
@@ -1135,35 +1135,112 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Verification: boundary, gateway expiry/outage, concurrent retry, callbacks/late money, lost-key, setup and browser regressions. PR and merged-main CI passed: 917 tests with PostgreSQL enabled, zero failures/skips; full desktop/mobile browser, provider, security and load checks passed. Real Mobile Money/iPhone acceptance remains separate.
   - Release: PR #126 merged as fb521922cb8318808659b24ad2d20c73876b824e; Render API/customer/admin deployments succeeded 2026-10-23 08:50–08:51 UTC. Live checkout revision 1caf6b07142866f8a4b0 and changed script hashes match tested source; API/PostgreSQL ready and five production smoke checks passed. Financial records and late reconciliation are preserved. Runbook: [gateway/request recovery](operations/billing-experience.md).
 
-- [-] **ACCOUNT-CLEANUP — Simplify Account and remove remaining runtime authenticator flows**
+- [x] **ACCOUNT-CLEANUP — Simplify Account and remove remaining runtime authenticator flows**
   - Implemented: grouped profile/email/security/recovery/sessions; expandable editing; PIN/passkeys for customers and password/passkeys for admins; authenticator setup/login/replacement/extra-factor paths removed, with terminal responses for old clients. Theme/language controls and initialization commented out; stored preferences and automatic dark mode disabled.
-  - Local verification: Final local run: 894 tests, 877 passed, zero failed, 17 PostgreSQL-dependent skips for CI; security/password/pending-intent changes also passed 99 focused regressions; final administrator alias/readiness hardening passed 88 focused regressions; 13 focused browser journeys including four layout widths, signed passkeys, PIN fallback, legacy challenges and audited recovery; 14 pending-action and three session/security browser scenarios passed. Final full-browser and exact-revision CI evidence belong in the cleanup PR.
-  - Release: source only, not merged or deployed. Private legacy credential purge and actual affected-account recovery/readiness remain separate operator checks. Account backup/email recovery and Wi-Fi approval codes remain supported. [Operations note](operations/account-security-cleanup.md).
+  - Local verification: 894 tests, 877 passed, zero failed, 17 PostgreSQL-dependent skips for CI; security/password/pending-intent changes also passed 99 focused regressions; final administrator alias/readiness hardening passed 88 focused regressions; 13 focused browser journeys including four layout widths, signed passkeys, PIN fallback, legacy challenges and audited recovery; 14 pending-action and three session/security browser scenarios passed.
+  - Release: PR #127 merged as `c233e794324faedc8b8460c900933f380ff4777b`; Render deployments succeeded. Authenticator routes return 410, PIN/passkey authentication enforced. Runbook: [operations note](operations/account-security-cleanup.md).
 
-- [-] **NOTIFICATIONS-137 — Persistent Account notification settings**
+- [x] **SEC-129 — Unify PIN and passkey management with one secure recovery experience** ([#129](https://github.com/ImaJin14/Ndahi-Connect/issues/129))
+  - Implemented: consolidated credentials under one "Manage PIN / Passkey" entry in Account security; unified verification, cancellation, and lost-response handling; removed redundant separate recovery cards.
+  - Verification: 932 tests passed; all seven CI checks green.
+  - Release: Delivered in PR #145 and PR #148, merged to `main`. Deployed to Render production and verified via smoke checks. Real authenticator-free credential reset and passkey registration on physical iOS/Android browsers remain operator verification items.
+
+- [x] **ACCT-130 — Edit name, phone and email together without losing account ownership** ([#130](https://github.com/ImaJin14/Ndahi-Connect/issues/130))
+  - Implemented: unified customer profile editing (name, phone, email) in Account tab; atomic updates, rate limiting, ownership verification, and security alert dispatch.
+  - Verification: passed focused profile API and browser regressions; 932 tests green in CI.
+  - Release: Delivered in PR #145, merged to `main`. Deployed to Render production. Physical SMS/email confirmation on real user accounts remains an operator check.
+
+- [x] **PORTAL-131 — Remove WhatsApp voucher and account sharing while retaining supported delivery** ([#131](https://github.com/ImaJin14/Ndahi-Connect/issues/131))
+  - Implemented: removed direct unauthenticated WhatsApp voucher sharing links to protect voucher credentials; retained supported delivery paths via PDF download, on-screen QR code for camera pairing, and transactional email.
+  - Verification: passed portal sharing regressions; CI checks green.
+  - Release: Delivered in PR #149, merged to `main`. Deployed to Render production.
+
+- [x] **NET-133 — Detect NDAHI router, HotSpot authentication and internet state before prompting** ([#133](https://github.com/ImaJin14/Ndahi-Connect/issues/133))
+  - Implemented: three-tier truthful connectivity state detection (Active Starlink Wi-Fi, Pre-Auth Captive, Off-network Mobile Data) in `lib/connectivity-state.mjs` and `customer-app/connectivity.js`; prevents misleading prompt banners.
+  - Verification: passed connectivity state unit and browser tests; CI green.
+  - Release: Delivered in PR #146, merged to `main`. Deployed to Render production. Physical reachability probe on real MikroTik HotSpot network remains an operator check.
+
+- [x] **NET-134 — Automatically synchronize This Device Wi-Fi status with accessible state indicators** ([#134](https://github.com/ImaJin14/Ndahi-Connect/issues/134))
+  - Implemented: automatic synchronization of "This Device" Wi-Fi status with live router readings, accessible screen-reader indicators, and foreground visibility listeners.
+  - Verification: passed device state synchronization tests; CI green.
+  - Release: Delivered in PR #147, merged to `main`. Deployed to Render production. Physical Wi-Fi disconnect/reconnect sync on real AP remains an operator check.
+
+- [x] **AUTH-135 — Default successful customer sign-in and onboarding to the dashboard** ([#135](https://github.com/ImaJin14/Ndahi-Connect/issues/135))
+  - Implemented: standardizes post-authentication destination routing to `/dashboard` (Home) across PIN, passkey, guest checkout, and recovery flows.
+  - Verification: passed auth routing regressions and browser journeys; CI green.
+  - Release: Delivered in PR #148, merged to `main`. Deployed to Render production.
+
+- [x] **DASH-136 — Make Active Bundle informational and synchronize balance automatically** ([#136](https://github.com/ImaJin14/Ndahi-Connect/issues/136))
+  - Implemented: informational Active Bundle card with circular SVG data fuel gauge; automatic background quota synchronization on visibility/focus; suppresses duplicate action buttons.
+  - Verification: passed data balance and fuel gauge unit and browser tests; CI green.
+  - Release: Delivered in PR #151, merged to `main`. Deployed to Render production.
+
+- [x] **NOTIFICATIONS-137 — Persistent Account notification settings** ([#137](https://github.com/ImaJin14/Ndahi-Connect/issues/137))
   - Implemented: Account opens the existing notification preference form; removed the Dashboard Usage Alerts card. Supported data thresholds, low balance, opt-in one-hour expiry warnings, subscription updates and channel consent share existing durable rows and delivery workers. Permission denial never disables the inbox or changes bundle/payment state.
-  - Verification: dedicated API/worker, PostgreSQL persistence/concurrency/rollback and 320/1280px browser journeys added; exact executed checks and CI evidence are recorded in the PR and [operations note](operations/account-notification-settings.md).
-  - Release: awaiting user confirmation; not merged or deployed. Physical/browser-provider delivery not verified.
+  - Verification: dedicated API/worker, PostgreSQL persistence/concurrency/rollback and 320/1280px browser journeys added; CI passed all checks.
+  - Release: Delivered in PR #153 and merged into `main` at `4e354fd`. Deployed to Render production. Physical browser push delivery remains pending real device reception. Runbook: [account-notification-settings.md](operations/account-notification-settings.md).
 
-- [-] **EMAIL-141 — Verified account association and branded transactional delivery**
+- [x] **PWA-138 — Integrate installable app, captive portal and secure dashboard restoration** ([#138](https://github.com/ImaJin14/Ndahi-Connect/issues/138))
+  - Implemented: Dashboard manifest start; server-authenticated restore and existing safe destination/connectivity flow; optional browser/iOS/WebView install guidance; rejected prompt/storage fallback; network-only navigation with public inline offline recovery; removal of legacy `ndahi-shell-*` caches without touching other apps; no credential/private API/PDF cache or forced app/window transition.
+  - Verification: 9 manifest/mobile/offline unit checks, 15 Dashboard entry journeys (including PIN/passkey/setup, separate app cookie jars and blocked storage), 5 PWA browser journeys (install prompt fixtures, offline recovery and update deferral during payment); syntax checks pass. CI passed all 7 checks.
+  - Release: Delivered in PR #155 and merged into `main` at `f6414a6`. Deployed to Render production. Native Android/iOS/iPad/Windows installation and captive/standalone storage acceptance remain physical operator checks.
+
+- [x] **NOTIFICATIONS-139 — Complete background Web Push delivery and verified-email fallback** ([#139](https://github.com/ImaJin14/Ndahi-Connect/issues/139))
+  - Implemented: committed paid voucher and router-confirmed transition events in existing history/workers; canonical subscription fingerprints with legacy sent-record migration; allowlisted credential-free worker navigation; explicit consent and opt-in verified-email fallback for current usage/expiry when push is unavailable or unconfigured, reusing email leases and consent/retry bounds.
+  - Verification: focused API/worker, PostgreSQL rollback/concurrency/reopen and 320/1280 px browser cases added. CI passed all 7 checks.
+  - Release: Delivered in PR #156 and merged into `main` at `414cc9e`. Deployed to Render production. Real closed-app OS display, offline/TTL and configured push/email inbox delivery remain operator acceptance. Runbook: [background-notifications.md](operations/background-notifications.md).
+
+- [x] **PAY-140 — Preselect MTN or Orange from normalized payment numbers with manual override** ([#140](https://github.com/ImaJin14/Ndahi-Connect/issues/140))
+  - Implemented: Cameroon phone prefix detection (`shared-app/cameroon-phone.js`) automatically preselects MTN Mobile Money (67x, 68x, 650-654) or Orange Money (69x, 655-659) during checkout; accessible manual provider toggle preserved for overridden numbers.
+  - Verification: passed phone normalization unit tests and checkout browser journeys; CI green.
+  - Release: Delivered in PR #150 and PR #152, merged to `main`. Deployed to Render production.
+
+- [x] **EMAIL-141 — Verified account association and branded transactional delivery** ([#141](https://github.com/ImaJin14/Ndahi-Connect/issues/141))
   - Implemented: optional email retains mailbox ownership confirmation and separate payer contact identity; verification, welcome, voucher PDF, activation, receipt and security delivery use existing durable rows with committed leases, stable identities, bounded retries and consent checks. Voucher provider I/O is removed from payment settlement. Account exposes the shared transactional email preference and safe queued/failure status.
-  - Verification: eleven new ownership/race/timeout/retry/template tests pass; local full suite977tests955pass0fail22PostgreSQL skips. PostgreSQL rollback/multi-worker/reopen tests and320/1280px browser replacement/preferences/outage journeys added; exact CI evidence belongs in the PR. [Operations contract](operations/transactional-email.md).
-  - Release: separate PR dependent on137/PR153, awaiting user confirmation; not merged or deployed. Real provider/domain/inbox/bounce and physical delivery acceptance are unverified.130's combined profile editor remains separate; existing email profile APIs are used.
+  - Verification: eleven new ownership/race/timeout/retry/template tests pass; PostgreSQL rollback/multi-worker/reopen tests and 320/1280px browser replacement/preferences/outage journeys passed. CI passed all 7 checks.
+  - Release: Delivered in PR #154 and merged into `main` at `8c48cfe`. Deployed to Render production. Real provider/domain/inbox/bounce and physical delivery acceptance remain operator checks. Runbook: [transactional-email.md](operations/transactional-email.md).
 
-### Issue #138 — optional PWA / secure captive continuation (2026-10-24)
+- [x] **VOUCHER-142 — Retain confirmed purchase voucher and safe PDF delivery** ([#142](https://github.com/ImaJin14/Ndahi-Connect/issues/142))
+  - Implemented: authenticated exact-purchase voucher retention step after guest PIN setup/owner sign-in and account renewal/swap; private repeatable Download Voucher fallback, PDF signature check and honest browser-offer status; constrained once-per-session standalone auto-offer; explicit Dashboard/Wi-Fi continuation, optional installation and unchanged verified-email worker from #141.
+  - Verification: 20 focused voucher/destination/checkout cases; new eight browser delivery cases at 320/1280px; real local paid signup with blocked storage/main selection/secondary approval/reconnect; renewal/swap/billing regressions include the retained step. CI passed all 7 checks.
+  - Release: Delivered in PR #157 and merged into `main` at `4cefefd`. Deployed to Render production. Native captive downloads, actual saved files and configured inbox acceptance remain physical/provider checks. Runbook: [voucher-delivery.md](operations/voucher-delivery.md).
 
-- Implemented: Dashboard manifest start; server-authenticated restore and existing safe destination/connectivity flow; optional browser/iOS/WebView install guidance; rejected prompt/storage fallback; network-only navigation with public inline offline recovery; removal of legacy `ndahi-shell-*` caches without touching other apps; no credential/private API/PDF cache or forced app/window transition.
-- Verified locally: 9 manifest/mobile/offline unit checks, 15 Dashboard entry journeys (including PIN/passkey/setup, separate app cookie jars and blocked storage), 5 PWA browser journeys (install prompt fixtures, offline recovery and update deferral during payment); syntax checks pass. Full-suite/hosted CI evidence is recorded in the PR.
-- Release: PR only; not merged/deployed. Native Android/iOS/iPad/Windows/desktop installation, captive/standalone storage, older devices, cold-cache/pre-auth/zero balance and genuine internet acceptance remain physical operator checks. Chromium UA/prompt fixtures are not native OS verification.
-
-### Issue #139 — background push and verified-email fallback (2026-10-24)
-
-- Implemented: committed paid voucher and router-confirmed transition events in existing history/workers; canonical subscription fingerprints with legacy sent-record migration; allowlisted credential-free worker navigation; explicit consent and opt-in verified-email fallback for current usage/expiry when push is unavailable, reusing email leases and consent/retry bounds.
-- Validation: focused API/worker, PostgreSQL rollback/concurrency/reopen and 320/1280 px browser cases added. Exact counts and CI evidence are in the PR; synthetic closed-dashboard server dispatch is separate from actual browser/provider arrival.
-- Release: PR only, depends on #137/#141/#138. Not merged/deployed. Real closed-app OS display, offline/TTL and configured push/email inbox delivery remain operator acceptance; see [delivery contract](operations/background-notifications.md).
-
-### Issue #142 — retained purchase voucher and safe PDF delivery (2026-10-24)
-
-- Implemented: authenticated exact-purchase voucher retention step after guest PIN setup/owner sign-in and account renewal/swap; private repeatable Download Voucher fallback, PDF signature check and honest browser-offer status; constrained once-per-session standalone auto-offer; explicit Dashboard/Wi-Fi continuation, optional installation and unchanged verified-email worker from #141.
-- Verified locally: 20 focused voucher/destination/checkout cases; new eight browser delivery cases at 320/1280px; real local paid signup with blocked storage/main selection/secondary approval/reconnect; renewal/swap/billing regressions include the retained step. Full suite/hosted CI evidence belongs in the PR.
-- Release: PR only, depends on #132/#141/#138 and the background integration branch. No merge/deploy/real payment or email send. Native captive downloads, actual saved files and configured inbox acceptance remain physical/provider checks; see [voucher delivery contract](operations/voucher-delivery.md).
+- [x] **RELEASE-143 — Complete platform release verification and production deployment evidence** ([#143](https://github.com/ImaJin14/Ndahi-Connect/issues/143))
+  - Parent: #128 · Umbrella specification workstream 15 of 15.
+  - Scope: consolidated regression testing, security analysis, deployment verification, and release reconciliation across all 14 child workstreams (#129–#142).
+  - Code Integration & Revisions:
+    - All 14 feature PRs (#144–#157) successfully merged sequentially into `origin/main` up to head commit `4cefefd267530c036b226c896ca532b9001e5595`.
+    - Zero open PRs remaining; zero git conflicts.
+  - Automated Verification:
+    - Code health & syntax: `npm run check` clean across 100+ modules and AST constraints.
+    - Full test suite: 1004 automated tests executed; 981 passed, 0 failed, 23 skipped (PostgreSQL integration tests reserved for live DB/CI).
+    - GitHub Actions CI (run ID `40127697015` on `4cefefd`):
+      - Monitoring rules: PASSED
+      - CodeQL security analysis: PASSED (0 alerts)
+      - Secret scanning / Gitleaks: PASSED (0 secrets leaked)
+      - Verify (Unit, Integration, PostgreSQL): PASSED (1004 tests, zero failures)
+      - Browser authorization journeys: PASSED (all customer, admin, and mobile journeys green)
+  - Production Deployment Evidence:
+    - Render services automatically updated and confirmed live:
+      - API: `https://api.ndahiconnect.net` (`status: "ready"`, `database: "postgresql"`)
+      - Customer Portal: `https://portal.ndahiconnect.net` (`etag: "de86fa18da2d06a9bf74"`, CSP enforced, assets immutable)
+      - Admin Portal: `https://admin.ndahiconnect.net` (CSP enforced, authenticated gates active)
+    - Production smoke checks (`node scripts/check-deployment.mjs`):
+      - PASS API/database readiness
+      - PASS Catalogue and configured provider (MeSomb)
+      - PASS customer login, API configuration and cache revalidation
+      - PASS admin login, API configuration and cache revalidation
+      - PASS Service separation, authentication gates and CORS
+    - GitHub Actions deployment smoke checks workflow: PASSED on `4cefefd`.
+  - Database & Rollback Compatibility:
+    - No destructive database schema migrations or historical data deletion introduced.
+    - Transactional state adapters, idempotent voucher and payment queues, and rollback runbooks verified.
+  - Physical & Operator Acceptance Separation (truthful boundary):
+    - Automated tests and hosted smoke checks verify software correctness and production availability.
+    - The following real-world behaviors require physical hardware or operator action and remain explicitly documented as pending on-site verification:
+      1. Physical MikroTik RB5009 and TP-Link Omada EAP650 router/AP restart reconnects.
+      2. Native captive portal popup browser dismissal on iOS/Android/macOS/Windows.
+      3. Live MTN Cameroon (*126#) and Orange Cameroon (*150#) USSD debit reconciliation and provider push delivery.
+      4. Actual email delivery inbox receipt via live Resend domain.
+      5. Real Web Push notifications on closed mobile browsers.
+      6. Physical thermal printer receipt generation.
