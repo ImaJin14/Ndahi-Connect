@@ -7,6 +7,7 @@ import { createStore } from '../server.mjs';
 import { notificationItems, deliverActivityPush } from '../lib/notifications.mjs';
 import { deliveryId, subscriptionVersion, deliverNotification } from '../lib/notification-delivery.mjs';
 import { createNotificationEmailSender } from '../lib/notification-email.mjs';
+import { createUsageAlertSender } from '../lib/usage-alerts.mjs';
 import { notificationTarget } from '../shared-app/notification-target.js';
 import { pairingFixture } from './helpers/wifi-pairing-fixture.mjs';
 const config = { enabled: true, publicKey: 'fixture', privateKey: 'fixture', subject: 'mailto:fixture@example.test' };
@@ -130,4 +131,15 @@ test('a newer issued allocation cancels old usage fallback without a legacy acti
     s.vouchers.push({ id: 'new', customerId: 'c', status: 'active', activatedAt: new Date(+f.now() + 1).toISOString(), expiresAt: '2030-02-01T00:00:00Z', quotaBytes: 1e9, usedBytes: 0 });
   });
   await createNotificationEmailSender({ ...f, config, email: { sendAccountMessage: async m => calls.push(m) } })(); assert.equal(calls.length, 0);
+});
+
+
+test('explicit global push opt-out also cancels quota delivery while legacy unset consent remains compatible', async () => {
+  const f = await fixture(), calls = [];
+  await f.store.transaction(s => { s.customers[0].pushSubscriptions = [sub()]; s.vouchers[0].usageAlerts.low.status = 'pending'; });
+  await createUsageAlertSender({ ...f, config, send: async () => calls.push('push') })();
+  assert.equal(calls.length, 0);
+  await f.store.transaction(s => { delete s.notificationStates[0].pushEnabled; s.vouchers[0].usageAlerts.low.status = 'pending'; });
+  await createUsageAlertSender({ ...f, config, send: async () => calls.push('push') })();
+  assert.equal(calls.length, 1);
 });
