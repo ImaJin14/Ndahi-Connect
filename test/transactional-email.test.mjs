@@ -551,7 +551,7 @@ test("all email templates are branded, escaped, scoped to portal authentication 
     const [a, b] = requests.slice(-2);
     assert.deepEqual(a, b);
     assert.match(a.body.html, /NDAHI CONNECT|NDAHI/);
-    assert.doesNotMatch(a.body.html, /<script>/);
+    assert.doesNotMatch(a.body.html, /<script\b[^>]*>/i);
     assert.deepEqual(a.body.to, [customer.email]);
     assert.doesNotMatch(a.body.subject, /NC-ABCD/);
     assert.doesNotMatch(a.body.html, /token=|code=|customerId=/);
