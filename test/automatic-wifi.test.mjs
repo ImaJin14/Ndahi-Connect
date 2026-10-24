@@ -46,3 +46,13 @@ test('current device API shares trusted network evidence without authorizing a s
   const other = await f.call('/api/account/device-management/current', undefined, { session: 'secondary' });
   assert.equal(other.body.state, 'unknown'); assert.equal(other.body.connectivity.hotspot.state, 'unknown');
 });
+
+test('legacy suspended accounts cannot read or identify an active router session', async t => {
+  const f = await pairingFixture({ now: new Date(), liveClock: true }); t.after(f.close);
+  await f.call('/api/account/device-management/current/identify', { mac: mainMac, address: '10.20.0.1' });
+  await f.store.transaction(s => { s.customers[0].suspended = true; });
+  assert.equal((await f.call('/api/account/device-management/current')).status, 403);
+  assert.equal((await f.call('/api/account/device-management/current/identify', { mac: mainMac, address: '10.20.0.1' })).status, 403);
+  const evidence = await f.call('/api/account/connectivity');
+  assert.equal(evidence.body.account.state, 'signed-out'); assert.equal(evidence.body.hotspot.state, 'unknown');
+});

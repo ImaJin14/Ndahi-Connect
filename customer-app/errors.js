@@ -1,3 +1,4 @@
+import { customerDestination } from "./customer-destination.js";
 import { replaceContent, sessionStore } from "./compat.js";
 
 export class ApiError extends Error {
@@ -99,12 +100,14 @@ export function showError(target, error, { context = "general", actions = [], in
   replaceContent(target, card);
 }
 
-export function saveReturnPath(path = location.pathname + location.search) {
-  if (path.startsWith("/") && !path.startsWith("//")) sessionStore.set("ndahi-return-to", path);
+export function saveReturnPath(path = location.pathname + location.search + location.hash) {
+  const safe = customerDestination(path, null);
+  if (safe) sessionStore.set("ndahi-return-to", safe);
+  else sessionStore.remove("ndahi-return-to");
 }
 
 export function consumeReturnPath(fallback = "/dashboard") {
   const path = sessionStore.get("ndahi-return-to");
   sessionStore.remove("ndahi-return-to");
-  return path && path.startsWith("/") && !path.startsWith("//") ? path : fallback;
+  return customerDestination(path, fallback);
 }

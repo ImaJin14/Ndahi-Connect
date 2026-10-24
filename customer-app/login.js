@@ -1,4 +1,4 @@
-import { responseError, showError } from "./errors.js";
+import { responseError, showError, saveReturnPath } from "./errors.js";
 import { afterSignInPath } from "./hotspot-path.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { runButton } from "/shared/pending.js";
@@ -83,7 +83,7 @@ $("#login").onsubmit = async (event) => {
             }, { controls: Array.from(gate.querySelectorAll("button")) }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
           };
           gate.querySelector("[data-account-signin]").onclick = () => {
-            accountOnly = true;
+            accountOnly = true; saveReturnPath("/dashboard#account");
             try { const url = new URL(location.href); url.searchParams.set("account", "1"); history.replaceState(null, "", url.href); } catch (_) {}
             gate.remove(); event.target.hidden = false;
             document.querySelectorAll(".alternative-actions,.login-alternatives").forEach((element) => { element.hidden = false; });
@@ -106,7 +106,7 @@ $("#login").onsubmit = async (event) => {
         token: accessToken, pin: input.pin,
         ...(accessMode === "setup" ? { confirmPin: input.confirmPin } : {}),
       }, input.phone);
-      location.href = afterSignInPath(accountOnly);
+      location.replace(await afterSignInPath(accountOnly));
     });
   } catch (error) {
     showError($("#message"), error);
@@ -147,7 +147,7 @@ $("#customerPasskeyLogin").onclick = async () => {
         optionsJSON: result.options,
       });
       await completeSignIn(api, "/api/account/passkey/verify", { challengeId: result.challengeId, response: credential }, phone);
-      location.href = afterSignInPath(accountOnly);
+      location.replace(await afterSignInPath(accountOnly));
     });
   } catch (error) {
     showError($("#message"), error, {

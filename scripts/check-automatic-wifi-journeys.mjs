@@ -18,7 +18,8 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   const page = await browser.newPage({ viewport: { width: 320, height: 900 } });
   await page.clock.install();
-  let state = 'connected', fail = false, reads = 0, disconnects = [], releaseDisconnect;
+  let accountAuthenticated = true, hotspotAuthenticated = true;
+  let state = 'connected', fail = false, rejectDisconnect = false, reads = 0, disconnects = [], releaseDisconnect;
   const device = { mac: 'AA:BB:CC:DD:EE:03', sessionId: '*guest', startedAt: new Date().toISOString(), main: false };
   await page.route('**/api/account/device-management/current', async route => {
     reads++;
@@ -26,10 +27,11 @@ try {
     const stamp = await page.evaluate(() => new Date().toISOString());
     await route.fulfill({ json: { state, message: 'Router evidence: ' + state, checkedAt: ['connected','disconnected','stale'].includes(state) ? stamp : null,
       device: ['connected','disconnecting'].includes(state) ? device : undefined, candidate: { mac: device.mac, address: '10.20.0.30' },
-      connectivity: { version: 1, network: { state: 'confirmed' }, expiresAt: new Date(Date.parse(stamp) + 45000).toISOString() } } });
+      connectivity: { version: 1, network: { state: 'confirmed' }, account: { state: accountAuthenticated ? 'authenticated' : 'signed-out' }, hotspot: { state: state === 'connected' && hotspotAuthenticated ? 'authenticated' : 'unknown' }, expiresAt: new Date(Date.parse(stamp) + 45000).toISOString() } } });
   });
   await page.route('**/api/account/wifi-devices/disconnect', async route => {
     disconnects.push(route.request().postDataJSON());
+    if (rejectDisconnect) return route.fulfill({ status: 409, json: { error: "The router session changed. Check the current device before retrying." } });
     await new Promise(r => { releaseDisconnect = r; });
     state = 'disconnecting'; await route.fulfill({ status: 202, json: {} });
   });
@@ -40,6 +42,11 @@ try {
   assert.equal(await card.locator('[role="status"]').first().getAttribute('aria-live'), 'polite');
   const initial = reads; await page.clock.runFor(30000); assert.ok(reads - initial <= 3, 'stable state checks at most once per ten seconds');
   console.log('PASS stable router-confirmed state is accessible, green and automatically bounded without Refresh');
+  accountAuthenticated = false; await page.clock.runFor(10001); await expectState('unknown');
+  assert.equal(await card.getByRole('button', { name: 'Disconnect this device', exact: true }).count(), 0);
+  accountAuthenticated = true; hotspotAuthenticated = false; await page.clock.runFor(10001); await expectState('unknown');
+  hotspotAuthenticated = true; await page.clock.runFor(10001); await expectState('connected');
+  console.log('PASS inconsistent account or HotSpot evidence cannot label a current device Connected');
   await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
   const hiddenReads = reads; await page.clock.runFor(60000); assert.equal(reads, hiddenReads);
   await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange')); window.dispatchEvent(new Event('pageshow')); });
@@ -67,6 +74,12 @@ try {
   fail = false; state = 'stale'; await page.clock.runFor(60001); await expectState('stale');
   assert.equal(await card.locator('.current-wifi-pending, .current-wifi-connected, .current-wifi-disconnected').count(), 0);
   state = 'connected'; await page.clock.runFor(10001); await expectState('connected');
+  rejectDisconnect = true;
+  await card.getByRole('button', { name: 'Disconnect this device', exact: true }).click();
+  await card.locator('[data-current-message]').filter({ hasText: 'The router session changed.' }).waitFor();
+  await page.clock.runFor(10001);
+  assert.match(await card.locator('[data-current-message]').textContent(), /The router session changed/);
+  assert.equal(disconnects[1].sessionId, '*replacement');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   assert.equal(await card.locator('.current-wifi-indicator').evaluate(e => getComputedStyle(e).animationName), 'none');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
