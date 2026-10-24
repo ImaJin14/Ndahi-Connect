@@ -37,9 +37,21 @@ export function replaceContent(target, child) {
 
 export async function requestJson(url, options = {}, timeoutMs = 15000) {
   const controller = typeof AbortController === "function" ? new AbortController() : null;
-  let timer;
+  let timer, cancel;
+  const external = options.signal;
   try {
+    if (external && external.aborted) throw Object.assign(new Error("The request was cancelled."), { name: "AbortError" });
     return await Promise.race([
+      new Promise((_, reject) => {
+        cancel = () => {
+          const error = new Error("The request was cancelled."); error.name = "AbortError";
+          reject(error); if (controller) controller.abort();
+        };
+        if (external) {
+          if (external.aborted) cancel();
+          else external.addEventListener("abort", cancel);
+        }
+      }),
       (async () => {
         const response = await fetch(url, Object.assign({}, options, controller ? { signal: controller.signal } : {}));
         const body = await response.json();
@@ -54,7 +66,7 @@ export async function requestJson(url, options = {}, timeoutMs = 15000) {
         }, timeoutMs);
       }),
     ]);
-  } finally { clearTimeout(timer); }
+  } finally { clearTimeout(timer); if (external && cancel) external.removeEventListener("abort", cancel); }
 }
 
 let passkeys;

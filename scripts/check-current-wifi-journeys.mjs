@@ -194,7 +194,7 @@ try {
   console.log("PASS lost disconnect response remains pending until router confirmation, retains saved approval and preserves reconnect identity without storage");
 
   await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = new Date(+f.now() - 121000).toISOString(); });
-  await card.getByRole("button", { name: "Refresh connection status", exact: true }).click();
+  assert.equal(await card.getByRole("button", { name: "Refresh connection status", exact: true }).count(), 0);
   // A targeted confirmed disconnect remains valid briefly; after its freshness
   // window expires a stale complete reading must not claim Connected.
   f.advance(121);
