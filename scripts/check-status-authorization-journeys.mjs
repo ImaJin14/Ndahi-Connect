@@ -168,6 +168,9 @@ try {
   await page.getByLabel("Create PIN", { exact: true }).fill("2468");
   await page.getByLabel("Confirm PIN", { exact: true }).fill("2468");
   await page.getByRole("button", { name: "Create PIN and continue" }).click();
+  await page.waitForURL(/\/voucher-ready\.html/);
+  await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+  await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
   await page.waitForURL("**/dashboard");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.equal((await pageContext.cookies(portal)).some((cookie) => cookie.name === "ndahi-checkout"), false);
