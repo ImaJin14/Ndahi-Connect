@@ -1,30 +1,56 @@
-# Installable customer portal
+# Installable customer portal (#138)
 
-Customers can add the portal to their home screen and open it like an app: full screen, with the NC icon, opening at the dashboard.
+The manifest keeps the existing `/dashboard` app id and now starts at Dashboard.
+The server still authenticates every private API call. The existing destination
+allowlist strips unsafe `next` values and credentials; a missing/expired session
+returns to web sign-in/packages. A remembered Wi-Fi candidate is not proof of
+current connectivity: the shared connectivity/current-device flow checks it anew.
+Installation never grants account or Wi-Fi access.
 
-## What customers see
+The optional dashboard offer uses the browser's `beforeinstallprompt` only after
+an explicit tap. Rejected prompts leave the website usable; accepted/dismissed
+choices are snoozed for 14 days, with actual standalone detection hiding the card.
+iPhone/iPad users receive Safari Share → Add to Home Screen guidance. Android
+WebViews receive normal-browser guidance; other browsers get optional menu
+instructions without claiming installation support. Denied storage is tolerated.
+No forced app launch, captive-window close, OS probe spoof or credential transfer
+is attempted. Separate captive/browser/standalone storage may require sign-in.
 
-Once a customer with an active bundle reaches the dashboard after connecting, an **Install NDAHI Connect** card appears:
+## Offline, updates and privacy
 
-| Device | Card |
-| --- | --- |
-| Android: Chrome, Samsung Internet, Edge | **Install app**. One tap opens the browser's own install dialog. |
-| iPhone and iPad | A hint: Share, then **Add to Home Screen**. iPhones only show usage alerts once the app is on the Home Screen. |
-| Android Wi-Fi sign-in popup and in-app browsers | A hint to open the portal in Chrome. These browsers cannot install apps. |
+The service worker never writes or reads cached navigation responses, private
+APIs, checkout pages/keys, credentials, PDFs or account data. Activation removes
+only obsolete `ndahi-shell-*` caches (including older checkout URL entries), not
+other origin caches. Navigation remains network-only; online HTTP errors retain
+their status. Fetch failures show a self-contained public 503/no-store shell with
+Dashboard retry, package, sign-in/recovery and help links. These links need network
+access. Cold-cache/zero-balance/pre-auth access depends on the real router allowlist;
+the app does not create connectivity or promise purchases while offline.
 
-The card disappears once the app is installed. **Not now** hides it for 14 days. No browser installs a site without the customer's confirmation.
+Service-worker activation itself does not reload a client. Existing release checks
+refresh an idle page, defer while payment/checkout/dialog work is pending and
+protect dirty forms. Service-worker registration bypasses HTTP update caching.
+No offline private-page reuse can pair an old dashboard with a new API. Existing
+voucher/receipt history stays on the authenticated server; #142 handles delivery.
+Push changes are coordinated in #139 rather than introducing another worker.
 
-## Behavior of the installed app
+## Verification and release boundaries
 
-- It is the same portal as in the browser. Customers can sign in and view their balance, expiry, history and receipts from any internet connection. When purchase coverage is enabled, buying, renewing or switching a bundle requires NDAHI Wi-Fi.
-- With no connection at all, the service worker (`customer-app/sw.js`) shows a short offline screen with **Try again**. Nothing is cached, so the app always loads the live portal. Release checks on the dashboard and checkout refresh an idle app when a new version is available and defer updates during payments or unsaved changes; see [portal update behavior](portal-account-tools.md#installed-app-updates).
+`node --test test/installable-portal.test.mjs test/mobile-experience.test.mjs`
+checks the served manifest/icons, all-page metadata, online/offline responses,
+private URL cache exclusion and safe old-cache deletion.
+`node scripts/check-dashboard-entry-journeys.mjs` includes PWA browser journeys:
+real PIN/passkey/setup navigation, safe deep links, session restart, separate app
+cookie jars, blocked storage, native prompt fixtures, iPhone guidance, offline
+recovery and release deferral during payment. Prompt/UA/standalone fixtures in
+Chromium are not proof of native installation or closed-app OS behavior.
 
-## Changing the icons
+Before release, record actual Android/iOS/iPadOS/Windows/desktop results (including
+older supported devices): install/menu availability, captive browser switching,
+separate-session sign-in, retained voucher access, app-switch return, offline/cold
+cache/pre-auth/zero balance, update during a pending payment, native popup
+handling and genuine internet access. No physical results, merge or deployment
+are claimed by this implementation.
 
-The icons in `customer-app/assets/icons/` are rendered from the NC brand mark. After a brand change, regenerate them:
-
-```sh
-node scripts/generate-app-icons.mjs
-```
-
-Set `CHROME_PATH` to a local Chrome if Playwright's own browser isn't installed. The name, colors and start page are in `customer-app/manifest.webmanifest`.
+Browser capability references: [MDN installation guidance](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable),
+[web.dev installation/storage restrictions](https://web.dev/learn/pwa/installation).

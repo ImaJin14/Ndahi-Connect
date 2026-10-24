@@ -5,7 +5,7 @@ const storageKey = "ndahi-install", snoozeMs = 14 * 864e5;
 let deferred = null, target = null;
 
 if (typeof window !== "undefined") {
-  if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {});
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferred = event;
@@ -30,23 +30,24 @@ function remember(state) {
 export function settled() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
-    return Boolean(saved && (saved.state === "installed" || (saved.state === "dismissed" && Date.now() - saved.at < snoozeMs)));
+    return Boolean(saved && (["dismissed", "installed"].includes(saved.state) && Number.isFinite(saved.at) && Date.now() >= saved.at && Date.now() - saved.at < snoozeMs));
   } catch { return false; }
 }
 
 export const copy = {
   prompt: "Open your bundle, data and devices straight from your home screen.",
-  iphone: "Tap the Share button in Safari, then Add to Home Screen. On iPhone, usage alerts work once it's on your Home Screen.",
-  webview: "Open portal.ndahiconnect.net in Chrome to install the app on this phone.",
+  iphone: "Tap the Share button in Safari, then Add to Home Screen. Installation is optional. You may need to sign in again; Wi-Fi access is checked separately.",
+  webview: "Keep using Wi-Fi sign-in here, or open portal.ndahiconnect.net in your normal browser for optional installation. You may need to sign in again.",
+  browser: "Keep using this website, or look for Install app / Add to Home Screen in your browser menu if supported. Installation is optional.",
 };
 
 export function getInstallMode(options) {
   const opts = options || {};
   if (opts.installed || opts.settled) return null;
+  if (opts.webView) return "webview";
   if (opts.deferred) return "prompt";
   if (opts.iPhone) return "iphone";
-  if (opts.webView) return "webview";
-  return null;
+  return "browser";
 }
 
 function render() {
@@ -69,9 +70,13 @@ function render() {
   if (install) install.onclick = async () => {
     const prompt = deferred;
     deferred = null;
-    await prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    remember(outcome === "accepted" ? "installed" : "dismissed");
+    install.disabled = true;
+    try {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      remember(outcome === "accepted" ? "installed" : "dismissed");
+      if (outcome === "accepted") { target.hidden = true; target.replaceChildren(); return; }
+    } catch { remember("dismissed"); /* A rejected prompt never blocks web use. */ }
     render();
   };
 }

@@ -97,5 +97,23 @@ try {
     assert.equal((await context.cookies()).some(c => c.name === 'customer_session'), false); assert.equal(await page.locator('#customerPin').isHidden(), true);
     const before = f.calls.length; await page.getByRole('button', { name: 'Request access', exact: true }).click(); await page.waitForURL(/\/pair\?.*#key=/); assert.equal(f.calls.length, before);
   }, { approval: true });
+  await scenario('a new app browser does not inherit captive authentication or its remembered connection', async (page, context) => {
+    const signed = await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } }); assert.equal(signed.status(), 200);
+    const separate = await browser.newContext();
+    try {
+      await separate.route('**/*', route => [portal, api].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort());
+      const fresh = await separate.newPage(); await fresh.goto(portal + '/dashboard');
+      await fresh.waitForURL(portal + '/onboarding.html');
+      assert.equal((await separate.cookies()).some(c => c.name === 'customer_session'), false);
+    } finally { await separate.close(); }
+  });
+  await scenario('an authenticated app restores Dashboard with blocked optional browser storage', async (page, context) => {
+    assert.equal((await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } })).status(), 200);
+    await context.addInitScript(() => { for (const store of ['localStorage', 'sessionStorage']) Object.defineProperty(window, store, { get() { throw new DOMException('denied', 'SecurityError'); } }); });
+    await page.goto(portal + '/dashboard#vouchers'); await page.locator('[data-portal-tab="vouchers"][aria-current="page"]').waitFor();
+    await page.reload(); await page.locator('[data-portal-tab="vouchers"][aria-current="page"]').waitFor();
+  });
   console.log(`PASS ${checks} dashboard entry browser journeys`);
 } finally { if (browser) await browser.close(); await f.close(); await new Promise(r => { website.close(r); website.closeAllConnections(); }); }
+
+await import('./check-pwa-journeys.mjs');

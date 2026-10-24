@@ -17,7 +17,7 @@ test("the portal publishes an installable app manifest with real icons", async (
   assert.equal(response.headers.get("content-type"), "application/manifest+json");
   const manifest = await response.json();
   assert.equal(manifest.name, "NDAHI Connect");
-  assert.equal(manifest.start_url, "/onboarding.html");
+  assert.equal(manifest.start_url, "/dashboard");
   assert.equal(manifest.display, "standalone");
   for (const size of ["192x192", "512x512"]) assert.ok(manifest.icons.some((icon) => icon.sizes === size && icon.purpose === "any"), size);
   assert.ok(manifest.icons.some((icon) => icon.purpose === "maskable"));
@@ -58,4 +58,32 @@ test("the service worker shows an offline screen only when a page cannot load", 
   assert.equal(offline.status, 503);
   assert.equal(offline.headers.get("cache-control"), "no-store");
   assert.match(await offline.text(), /You're offline/);
+});
+
+test("navigation never populates or reads a cache, including private queries and non-OK responses", async () => {
+  const listeners = {}, deleted = [], calls = [], origin = "https://portal.test";
+  const self = { location: { origin }, addEventListener: (n, f) => { listeners[n] = f; },
+    clients: { claim: async () => {} }, skipWaiting: async () => {} };
+  const forbidden = () => { throw Error("private navigation touched Cache API"); };
+  let network = async () => new Response("private", { status: 401 });
+  vm.runInNewContext(await readFile(new URL("../customer-app/sw.js", import.meta.url), "utf8"), {
+    self, Response, URL, Promise, fetch: (...a) => { calls.push(a); return network(...a); },
+    caches: { keys: async () => ["ndahi-shell-v1", "ndahi-shell-v2", "another-app"], delete: async k => deleted.push(k), open: forbidden, match: forbidden },
+  });
+  let pending;
+  listeners.activate({ waitUntil: p => { pending = p; } }); await pending;
+  assert.deepEqual(deleted, ["ndahi-shell-v1", "ndahi-shell-v2"]);
+  const request = { mode: "navigate", method: "GET", url: origin + "/verify.html?code=private&key=secret" };
+  listeners.fetch({ request, respondWith: p => { pending = p; } });
+  assert.equal((await pending).status, 401, "online authentication errors must reach the page");
+  network = async () => { throw Error("offline"); };
+  listeners.fetch({ request, respondWith: p => { pending = p; } });
+  const offline = await pending, html = await offline.text();
+  assert.equal(offline.status, 503); assert.doesNotMatch(html, /private|secret/);
+  assert.match(html, /Try Dashboard again/); assert.match(html, /recover account/);
+  assert.match(offline.headers.get("content-security-policy"), /default-src 'none'/);
+  for (const request of [{ mode: "cors", method: "GET", url: origin + "/api/account/dashboard" },
+    { mode: "navigate", method: "POST", url: origin + "/login" }, { mode: "navigate", method: "GET", url: "https://elsewhere.test" }])
+    listeners.fetch({ request, respondWith: forbidden });
+  assert.equal(calls.length, 2);
 });
