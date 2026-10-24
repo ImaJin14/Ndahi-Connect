@@ -2,6 +2,7 @@ import { createServices } from "./lib/api/services.mjs";
 import { NOT_HANDLED } from "./lib/api/routing.mjs";
 import { createMiddleware } from "./lib/api/middleware.mjs";
 import { createPerformanceRoutes } from "./lib/api/performance.mjs";
+import { createConnectivityRoutes } from "./lib/api/connectivity.mjs";
 import { createPublicRoutes } from "./lib/api/public.mjs";
 import { createPaymentRoutes } from "./lib/api/payments.mjs";
 import { createVoucherRoutes } from "./lib/api/vouchers.mjs";
@@ -63,6 +64,7 @@ export function createHandler(opts = {}) {
     createMiddleware(context),
     createPerformanceRoutes(context),
     createPublicRoutes(context),
+    createConnectivityRoutes(context),
     createPaymentRoutes(context),
     createVoucherRoutes(context),
     createCustomerAuthRoutes(context),

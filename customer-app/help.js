@@ -43,15 +43,15 @@ if (diagBtn) {
     const output = document.getElementById("diagnosticsOutput");
     if (!output) return;
     await runButton(diagBtn, "Testing connection…", async () => {
-      output.innerHTML = '<p class="loading">Pinging NDAHI gateway…</p>';
+      output.innerHTML = '<p class="loading">Checking hosted API reachability…</p>';
       const res = await runConnectionDiagnostics(config.apiUrl || "");
       const qualityClass = res.quality === "good" ? "success" : res.quality === "fair" ? "warning" : "error";
       output.innerHTML = `<div class="diag-card ${qualityClass}">
-        <h3>Gateway Health: ${h(res.quality.toUpperCase())}</h3>
+        <h3>Hosted API reachability: ${h(res.quality.toUpperCase())}</h3>
         <p><strong>Advice:</strong> ${h(res.advice)}</p>
         <div class="stats">
           <div class="stat"><b>${res.avgLatency !== null ? `${h(res.avgLatency)} ms` : "Failed"}</b><small>Average latency</small></div>
-          <div class="stat"><b>${h(res.packetLoss)}%</b><small>Packet loss</small></div>
+          <div class="stat"><b>${h(res.packetLoss)}%</b><small>Failed HTTP checks</small></div>
           <div class="stat"><b>${h(res.jitter)} ms</b><small>Jitter</small></div>
         </div>
       </div>`;

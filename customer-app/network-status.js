@@ -32,42 +32,32 @@ export function applyNetworkStatus(el, status) {
   else el.textContent = LABELS[known];
 }
 
-export function networkBannerState(options) {
-  const opts = options || {};
-  const purchaseAccess = opts.purchaseAccess;
-  const active = opts.active;
-  const zone = opts.zone;
-  if (purchaseAccess && purchaseAccess.allowed === false) {
-    return {
-      status: "off-network",
-      badge: "Mobile Data / Off-network",
-      message: "Viewing via Mobile Data • Purchases require joining NDAHI Wi-Fi",
-      actionText: "Join Wi-Fi",
-      actionHref: "/hotspot",
-    };
-  }
-  const isActive = Boolean(active && (active.status === "active" || (active.remainingBytes > 0 && active.status !== "expired")));
-  if (!isActive) {
-    return {
-      status: "pre-auth",
-      badge: "Pre-Auth Captive",
-      message: "Connected to NDAHI Wi-Fi • Select a bundle or enter voucher to unlock internet",
-      actionText: "Choose package",
-      actionHref: "/dashboard#bundles",
-    };
-  }
-  let linkDetail = "Starlink Active";
-  if (zone && zone.status === "degraded") linkDetail = "Network degraded";
-  else if (zone && zone.status === "offline") linkDetail = "Upstream link offline";
-  else if (zone && zone.status === "maintenance") linkDetail = "Scheduled maintenance";
+export function networkBannerState(options = {}) {
+  const value = options.connectivity, now = Date.now();
+  if (!value || value.version !== 1 || !(Date.parse(value.expiresAt) > now)) return { status: "unknown", badge: "Connection not verified", message: "Checking this device's network. Account access remains available from any network.", actionText: "Connection help", actionHref: "/help#connection" };
+  if (value.network.state !== "confirmed") return { status: "unknown", badge: "NDAHI Wi-Fi not confirmed", message: "This request did not verify NDAHI Wi-Fi. Mobile data, a VPN or routing changes can affect this check.", actionText: "Check Wi-Fi sign-in", actionHref: "/hotspot" };
+  if (value.hotspot.state === "authenticated") return { status: value.internet.state === "available" ? "active" : "degraded", badge: "Router connection confirmed", message: value.internet.state === "available" ? "This device has HotSpot access. The browser's internet check passed." : "This device has HotSpot access. Internet availability is not confirmed; do not buy again to fix connectivity.", actionText: value.internet.state === "available" ? null : "Connection help", actionHref: value.internet.state === "available" ? null : "/help#connection" };
+  if (value.account.state === "signed-out") return { status: "pre-auth", badge: "NDAHI network detected", message: "Sign in to use your existing access or check bundle eligibility. Internet access is not yet confirmed.", actionText: "Sign in", actionHref: "/login" };
+  if (["expired", "exhausted", "none"].includes(value.subscription.state)) return { status: "pre-auth", badge: "NDAHI network detected", message: "Review eligible bundles to connect. Network presence does not grant internet access.", actionText: "View bundles", actionHref: "/dashboard#bundles" };
+  return { status: "unknown", badge: "NDAHI network detected", message: "Your account is available. This device's HotSpot authorization is still being checked.", actionText: "Connection help", actionHref: "/help#connection" };
+}
 
-  return {
-    status: "active",
-    badge: "Connected & Active",
-    message: "Connected to NDAHI Wi-Fi • " + linkDetail,
-    actionText: null,
-    actionHref: null,
-  };
+// Fixed HTTPS/CORS target, no cookies, referrer or account/device details. Only
+// validates an independent browser path, never an SSID, router or purchase right.
+export async function probeBrowserInternet({ signal, request = fetch, now = () => new Date() } = {}) {
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  const abort = () => controller && controller.abort();
+  if (signal && signal.aborted) abort();
+  signal && signal.addEventListener("abort", abort, { once: true });
+  let timer;
+  try {
+    return await Promise.race([(async () => {
+      const response = await request("https://www.cloudflare.com/cdn-cgi/trace?ndahi_check=" + now().getTime(), { credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer", signal: controller ? controller.signal : undefined });
+      const text = response.ok && !response.redirected && /text\/plain/i.test(response.headers.get("content-type") || "") ? await response.text() : "";
+      return { state: /^h=www\.cloudflare\.com$/m.test(text) && /^colo=[A-Z]{3}$/m.test(text) ? "available" : "unavailable", scope: "browser-path", observedAt: now().toISOString() };
+    })(), new Promise((_, reject) => { timer = setTimeout(() => { abort(); reject(Error("Internet check timed out")); }, 3500); })]);
+  } catch (_) { return { state: "unavailable", scope: "browser-path", observedAt: now().toISOString() }; }
+  finally { clearTimeout(timer); signal && signal.removeEventListener("abort", abort); }
 }
 
 export async function runConnectionDiagnostics(apiUrl) {
@@ -98,16 +88,16 @@ export async function runConnectionDiagnostics(apiUrl) {
   const jitter = validPings.length > 1 ? Math.round(Math.abs(maxLatency - minLatency)) : 0;
 
   let quality = "good";
-  let advice = "Wi-Fi connection to gateway is healthy.";
+  let advice = "The hosted NDAHI API is reachable. This does not verify local Wi-Fi or internet authorization.";
   if (packetLoss === 100) {
     quality = "offline";
-    advice = "Cannot reach NDAHI gateway. Check if you are connected to the NDAHI Wi-Fi network.";
+    advice = "The hosted NDAHI API could not be reached. Check your connection; this alone cannot identify the Wi-Fi or router state.";
   } else if (packetLoss > 0 || (avgLatency && avgLatency > 300)) {
     quality = "poor";
-    advice = "High latency or packet loss detected. Move closer to the Wi-Fi access point.";
+    advice = "Slow or failed API requests. Wi-Fi, mobile data, upstream routing or the hosted service may be responsible.";
   } else if (avgLatency && avgLatency > 120) {
     quality = "fair";
-    advice = "Acceptable connection speed to gateway.";
+    advice = "The hosted API responded with moderate latency; local router status is separate.";
   }
   return {
     count,
