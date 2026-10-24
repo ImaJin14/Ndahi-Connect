@@ -314,12 +314,13 @@ try {
   await owner.reload(); // The previous fixture was on a dashboard hash; fetch the newly active bundle.
   await owner.locator("[data-remaining-data]").filter({ hasText: "100 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: /over 90%/ }).waitFor();
-  await owner.getByRole("button", { name: "Manage data alerts", exact: true }).click();
+  await owner.locator('[data-portal-tab="account"]').click(); await owner.getByRole("button", { name: "Manage notification settings", exact: true }).click();
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByLabel("Data-usage push alerts", { exact: true }).waitFor();
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByRole("button", { name: "Back to notifications", exact: true }).click();
   await owner.keyboard.press("Escape");
   await f.store.transaction((s) => { const v = s.vouchers[0]; v.usedBytes = 998000000; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
   await owner.evaluate(() => window.dispatchEvent(new Event("online")));
+  await owner.locator('[data-portal-tab="home"]').click();
   await owner.locator("[data-remaining-data]").filter({ hasText: "2 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: "Low data: 2 MB left" }).waitFor();
   assert.equal((await f.store.snapshot()).vouchers[0].status, "active");
