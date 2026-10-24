@@ -24,7 +24,7 @@ existing backend protection from #132 remains authoritative for all purchases.
 
 ## Verification
 
-- `node --test test/active-bundle.test.mjs test/data-usage.test.mjs`
+- `node --test test/active-bundle.test.mjs test/data-fuel-gauge.test.mjs`
 - `npm run check:active-bundle:browser` (320px and 1280px)
 - `npm run check:notifications:browser` (existing low-data and error journeys)
 - `npm run check` and the complete backend/CI suite before merging.
