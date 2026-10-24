@@ -143,3 +143,11 @@ test('explicit global push opt-out also cancels quota delivery while legacy unse
   await createUsageAlertSender({ ...f, config, send: async () => calls.push('push') })();
   assert.equal(calls.length, 1);
 });
+
+
+test('approaching-expiry push TTL ends with the bundle rather than delivering a stale warning later', async () => {
+  const f = await fixture(), calls = [];
+  await f.store.transaction(s => { s.customers[0].pushSubscriptions = [sub()]; s.notificationStates[0].pushEnabled = true; s.notificationStates[0].pushSince = new Date(+f.now() - 3600000).toISOString(); s.vouchers[0].expiresAt = new Date(+f.now() + 30000).toISOString(); });
+  await deliverActivityPush({ ...f, config, send: async (_sub, payload, options) => calls.push({ payload: JSON.parse(payload), ttl: options.TTL }) });
+  const warning = calls.find(x => x.payload.tag.startsWith('activity-bundle-expiring:')); assert.ok(warning); assert.equal(warning.ttl, 30);
+});
