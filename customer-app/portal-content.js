@@ -1,3 +1,4 @@
+import { downloadVoucherPdf } from "./voucher-delivery.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { showError, responseError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
@@ -67,15 +68,7 @@ export async function voucherAction(event) {
         if (!copied) { input.focus(); input.select(); copied = document.execCommand("copy"); }
         message.textContent = copied ? "Voucher code copied." : "Select the code above and copy it.";
       } else {
-        const response = await fetch(window.NDAHI_CONFIG.apiUrl + `/api/account/vouchers/${encodeURIComponent(button.dataset.downloadVoucher)}/download`, { credentials: "include", cache: "no-store" });
-        if (!response.ok) throw responseError(response, await response.json().catch(() => ({})));
-        if (!(response.headers.get("content-type") || "").startsWith("application/pdf")) throw Error("The voucher download is unavailable. Please try again.");
-        const url = URL.createObjectURL(await response.blob()), link = document.createElement("a");
-        link.href = url;
-        link.download = `ndahi-voucher-${button.dataset.downloadVoucher.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
-        document.body.appendChild(link); link.click(); link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        message.textContent = "Voucher PDF downloaded.";
+        message.textContent = await downloadVoucherPdf({ api: window.NDAHI_CONFIG.apiUrl, id: button.dataset.downloadVoucher });
       }
     });
   } catch (error) { showError(message, error); }
