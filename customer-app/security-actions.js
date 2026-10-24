@@ -14,7 +14,16 @@ export function securityError(target, error) {
     target.textContent = "Passkey not completed. Use your PIN or try your passkey again.";
   } else if (error.name === "NotSupportedError") {
     target.textContent = "Passkeys are unavailable in this browser. Use your PIN, open the secure portal in your browser, or use account recovery.";
-  } else showError(target, error);
+  } else {
+    showError(target, error);
+    if (error.code === "SECURITY_RESULT_UNKNOWN") {
+      const refresh = document.createElement("button"), signIn = document.createElement("a");
+      refresh.type = "button"; refresh.className = "secondary-action"; refresh.textContent = "Refresh security";
+      refresh.onclick = () => target.dispatchEvent(new Event("security-refresh", { bubbles: true }));
+      signIn.href = "/login?account=1"; signIn.textContent = "Sign in with your current PIN or passkey";
+      target.append(refresh, signIn);
+    }
+  }
 }
 
 // Read a committed, session-scoped receipt. Never replay an assertion or
@@ -29,7 +38,7 @@ export async function credentialRequest(call, path, payload, action) {
         { credentials: "include", cache: "no-store" });
       if (response.ok && body.completed && body.action === action) return { confirmedByStatus: true };
     } catch (_) { /* Keep uncertainty; never manufacture a successful result. */ }
-    throw new ApiError(409, "We could not confirm this change. Refresh security before trying again. If your PIN changed, sign in with the new PIN. Recovery remains available below.");
+    throw new ApiError(409, "We could not confirm this change. Refresh security before trying again. If your PIN changed, sign in with the new PIN. Recovery remains available below.", "SECURITY_RESULT_UNKNOWN");
   }
 }
 

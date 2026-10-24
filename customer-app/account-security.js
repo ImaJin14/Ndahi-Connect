@@ -68,6 +68,7 @@ export function mountAccountSecurity({ call, customer, onChanged, restore, setup
   root.querySelectorAll("[data-cancel-security]").forEach(button => { button.onclick = close; });
   if (!passkeysAvailable()) { root.querySelector("[data-passkey-unavailable]").hidden = false; root.querySelector("#addCustomerPasskey").hidden = true; }
   mountAccountRecovery({ root, call, customer, onChanged });
+  root.addEventListener("security-refresh", () => { void onChanged({ panel: securityViewState()?.panel || "pin", message: "Security refreshed. Review your current settings before trying again." }).catch(error => securityError(status, error)); });
 
   function ownerProof(purpose, opener, passkeyId) {
     if (root.hasAttribute("aria-busy")) return;

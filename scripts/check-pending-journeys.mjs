@@ -152,7 +152,7 @@ try {
   });
   await scenario("passkey enrollment keeps duplicate actions locked and restores retry",async page=>{
     const request=await hold(page,"/api/account/passkeys/options",{error:"Fixture passkey options failure"});
-    await page.goto(`${portal}/dashboard#account`);await page.locator("#addCustomerPasskey").click();
+    await page.goto(`${portal}/dashboard#account`);await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
     await page.locator("[data-passkey-owner-proof]").getByRole("button",{name:"Confirm with PIN",exact:true}).click();await request.started;
     assert.equal(await page.locator("#addCustomerPasskey").isDisabled(),true);

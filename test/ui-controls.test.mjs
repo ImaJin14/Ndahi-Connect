@@ -14,6 +14,7 @@ test("every static customer and admin button belongs to a handled form or click 
     adminLogin: await source("admin-app/login.html"),
     customerApp: await source("customer-app/app.js"),
     accountRecovery: await source("customer-app/account-recovery.js"),
+    accountSecurity: await source("customer-app/account-security.js"),
     customerLoginJs: await source("customer-app/login.js"),
     customerVerifyJs: await source("customer-app/verify.js"),
     onboardingJs: await source("customer-app/onboarding.js"),
@@ -24,10 +25,10 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.customerApp, /#logout"\)\.onclick/);
   assert.match(files.customerApp, /button\[data-session\]/);
   assert.match(files.customerApp, /#connectDevice/);
-  assert.match(files.customerApp, /data-remove-passkey/);
-  assert.match(files.customerApp, /data-rename-passkey/);
+  assert.match(files.accountSecurity, /data-remove-passkey/);
+  assert.match(files.accountSecurity, /data-rename-passkey/);
   assert.match(files.customerApp, /data-revoke-session/);
-  assert.match(files.customerApp, /mountAccountRecovery/);
+  assert.match(files.customerApp, /mountAccountSecurity/);
   assert.match(files.accountRecovery, /accountBackup/);
   assert.match(files.customerApp, /#logoutEverywhere"\)/);
   assert.match(files.customerLoginJs, /#login"\)\.onsubmit/);

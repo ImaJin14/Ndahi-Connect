@@ -60,7 +60,7 @@ for (const mode of ["target", "session", "purpose", "expiry", "origin", "rp", "u
   if (mode === "target") input.newPin = input.confirmPin = "1357";
   const result = await f.call(pin, input, mode === "session" ? { session: "secondary" } : {}); assert.equal(result.status, 401);
   const s = await f.store.snapshot(); assert.equal(s.customerPasskeyChallenges.some(x => x.id === options.body.challengeId), false);
-  assert.equal(s.customers[0].pinFailures, undefined, "a failed passkey must not lock PIN sign-in");
+  assert.equal(s.customers[0].pinFailedAttempts || 0, 0, "a failed passkey must not lock PIN sign-in");
   assert.equal((await f.call(pin, input)).status, 401); assert.equal((await f.call(receipt)).status, 404);
 });
 
@@ -82,4 +82,29 @@ test("invalid operation IDs reject before mutation and suspended accounts cannot
   const f = await fixture(t); assert.equal((await f.call(pin, { ...change, operationId: "invalid" })).status, 400);
   await f.call(backup + "/generate", { currentPin: "2468", operationId: actionId });
   await f.store.transaction(s => { s.customers[0].status = "suspended"; }); assert.equal((await f.call(receipt)).status, 403);
+});
+
+test("real passkey registration/removal receipts confirm commits while cryptographic replays still fail", async t => {
+  const f = await fixture(t), key = securityKey();
+  const options = await f.call(passkeys + "/options", { pin: "2468" }); assert.equal(options.status, 200);
+  const input = { operationId: actionId, challengeId: options.body.challengeId, response: securityAssertion(key, options.body.options, { registration: true }) };
+  assert.equal((await f.call(passkeys + "/verify", input)).status, 200);
+  assert.equal((await f.call(receipt)).body.action, "passkey_add");
+  assert.equal((await f.call(passkeys + "/verify", input)).status, 400);
+  assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 1);
+  const removed = await f.call(passkeys + "/remove", { passkeyId: key.record.id, pin: "2468", operationId: "b".repeat(32) });
+  assert.equal(removed.status, 200);
+  assert.equal((await f.call(receipt.replace(actionId, "b".repeat(32)))).body.action, "passkey_remove");
+});
+
+test("last usable credential remains protected and a different real passkey can authorize removal", async t => {
+  const f = await fixture(t), first = securityKey(), replacement = securityKey();
+  await f.store.transaction(s => { delete s.customers[0].pinHash; s.customers[0].passkeys = [first.record]; });
+  const proof = await f.call(passkeys + "/proof/options", { purpose: "passkey_remove", passkeyId: first.record.id });
+  const denied = await f.call(passkeys + "/remove", { passkeyId: first.record.id, operationId: actionId, challengeId: proof.body.challengeId, response: securityAssertion(first, proof.body.options) });
+  assert.equal(denied.status, 409); assert.equal(denied.body.code, "LAST_CREDENTIAL"); assert.equal((await f.call(receipt)).status, 404);
+  await f.store.transaction(s => { s.customers[0].passkeys.push(replacement.record); });
+  const retry = await f.call(passkeys + "/proof/options", { purpose: "passkey_remove", passkeyId: first.record.id });
+  assert.equal((await f.call(passkeys + "/remove", { passkeyId: first.record.id, operationId: actionId, challengeId: retry.body.challengeId, response: securityAssertion(replacement, retry.body.options) })).status, 200);
+  assert.deepEqual((await f.store.snapshot()).customers[0].passkeys.map(x => x.id), [replacement.record.id]);
 });

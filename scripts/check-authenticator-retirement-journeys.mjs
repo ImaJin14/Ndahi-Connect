@@ -83,7 +83,7 @@ try {
     assert.equal(await page.locator("html").getAttribute("data-theme"),null);
     assert.equal(await page.locator("html").getAttribute("lang"),"en");
     const text=await page.locator(".account-layout").textContent();assert.doesNotMatch(text,/authenticator|2FA|MFA|Prepare PIN|sign-in readiness/i);
-    for(const name of ["Your name","Your account number","Your email","PIN and account recovery","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
+    for(const name of ["Your name","Your account number","Your email","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
     assert.equal(await page.locator('#accountSecurity [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"]').count(),0);
     const color=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);assert.notEqual(color,"rgb(11, 19, 16)");
     await page.screenshot({path:`${screenshots}/account-cleanup-${width}.png`,fullPage:true});
@@ -107,7 +107,7 @@ try {
   });
   await scenario("customer registers and removes a real user-verified passkey with fresh PIN authorization", async ({ page, context }) => {
     await virtualKey(page, context); await page.goto(portal + "/dashboard#account");
-    await page.locator("#addCustomerPasskey").click();
+    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     const proof = page.locator("[data-passkey-owner-proof]");
     await proof.getByLabel("Current PIN", { exact: true }).fill("2468");
     await proof.getByRole("button", { name: "Confirm with PIN", exact: true }).click();
@@ -119,21 +119,22 @@ try {
   });
   await scenario("last usable passkey cannot be removed without a verified replacement", async ({ page, context }) => {
     await virtualKey(page, context, { seeded: true, noPin: true }); await page.goto(portal + "/dashboard#account");
+    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click();
     await page.locator("[data-remove-passkey]").click();
     await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with passkey", exact: true }).click();
-    await page.locator("#dashboardMessage").getByText(/last|another|usable|replacement/i).waitFor();
+    await page.locator("#securityOwnerProof").getByText(/last|another|usable|replacement/i).first().waitFor();
     assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 1);
   });
   await scenario("cancelled passkey proof keeps the fresh PIN fallback usable for registration", async ({ page, context }) => {
     const { cdp, authenticatorId } = await virtualKey(page, context, { seeded: true }); await page.goto(portal + "/dashboard#account");
-    await page.locator("#addCustomerPasskey").click();
+    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     const proof = page.locator("[data-passkey-owner-proof]");
     // The library is loaded by the proof action; replace only its assertion
     // prompt, leaving the subsequent real registration ceremony intact.
     await page.addScriptTag({ url: portal + "/vendor/webauthn.js" });
     await page.evaluate(() => { window.SimpleWebAuthnBrowser.startAuthentication = async () => { throw new DOMException("Synthetic cancelled assertion", "NotAllowedError"); }; });
     await proof.getByRole("button", { name: "Confirm with passkey", exact: true }).click();
-    await proof.getByText("Passkey not completed", { exact: true }).waitFor();
+    await proof.getByText(/Passkey not completed.*Use your PIN/).waitFor();
     // Enroll on a different authenticator: WebAuthn correctly refuses creating
     // another copy on the authenticator that already holds an excluded key.
     await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
