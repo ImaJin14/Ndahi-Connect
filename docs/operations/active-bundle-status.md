@@ -17,6 +17,8 @@ online. Failures back off to 15/30/60 seconds. Hidden/offline views pause, resum
 events coalesce, unmount cancels work and invalidated/older responses cannot
 replace current evidence. The local countdown does not invent consumption or
 purchase eligibility. On local expiry the card waits for server confirmation.
+Background balance reads do not extend account authentication; an expired account
+session still requires sign-in under the existing session policy.
 
 Plan and voucher navigation live outside the card. Quick renew / Choose a bundle
 appear only when the server confirms eligibility and no active allocation. The

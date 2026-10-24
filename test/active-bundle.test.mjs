@@ -14,6 +14,12 @@ test('anonymous and another customer cannot read an allocation',async t=>{
  const f=await fixture(t);assert.equal((await f.call(path,undefined,{session:''})).status,401);const r=await f.call(path,undefined,{session:'other'});assert.equal(r.body.bundle,null);assert.equal(r.body.activeId,null);
  assert.equal((await f.call(path,{})).status,405);
 });
+test('automatic balance reads never extend authentication and an expired session cannot read or queue usage',async t=>{
+ const f=await fixture(t),before=(await f.store.snapshot()).dashboardSessions.find(s=>s.id==='main').expiresAt;
+ assert.equal((await f.call(path)).status,200);assert.equal((await f.store.snapshot()).dashboardSessions.find(s=>s.id==='main').expiresAt,before);
+ await f.store.transaction(s=>{s.dashboardSessions.find(s=>s.id==='main').expiresAt=new Date(+f.now()-1).toISOString();s.routerCommands=[];});
+ const r=await f.call(path);assert.equal(r.status,401);assert.equal(r.body.bundle,undefined);assert.equal((await f.store.snapshot()).routerCommands.some(c=>c.action==='sync_usage'),false);
+});
 test('unlimited and unavailable usage stay distinct from zero; stale router counts remain unknown',async t=>{
  const f=await fixture(t);await f.store.transaction(s=>{s.vouchers[0].quotaBytes=null;s.vouchers[0].usedBytes=2000000000;});
  let r=await f.call(path);assert.equal(r.body.bundle.remainingBytes,null);assert.equal(r.body.bundle.usedBytes,2000000000);assert.equal(r.body.bundle.usagePercentage,null);
