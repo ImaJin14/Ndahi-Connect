@@ -14,6 +14,7 @@ import {
   createSecurityAlertService,
 } from "../lib/security-alerts.mjs";
 import { ResendEmailAdapter } from "../lib/email.mjs";
+import { emailVersion } from "../lib/email-delivery.mjs";
 import { hashSecret } from "../lib/security.mjs";
 const origin = "http://customer.test",
   pepper = "pairing-tests";
@@ -562,4 +563,23 @@ test("all email templates are branded, escaped, scoped to portal authentication 
         "%PDF-",
       );
   }
+});
+
+test("delivery versions survive JSONB object-key ordering across commits", () => {
+  const first = {
+    customer: { name: "Owner", phone: "670050001" },
+    plan: { name: "Weekly", quotaGb: 5 },
+  };
+  const persisted = {
+    plan: { quotaGb: 5, name: "Weekly" },
+    customer: { phone: "670050001", name: "Owner" },
+  };
+  assert.equal(
+    emailVersion(["owner@example.test", first]),
+    emailVersion(["owner@example.test", persisted]),
+  );
+  assert.notEqual(
+    emailVersion(["owner@example.test", first]),
+    emailVersion(["changed@example.test", first]),
+  );
 });
