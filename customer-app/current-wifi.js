@@ -7,6 +7,7 @@ const labels = { unknown: "Connection unknown", unavailable: "Wi-Fi unavailable"
 
 export function mountCurrentWifi({ container, call, onMainDisconnect }) {
   if (!container) return () => {};
+  let actionMessage = "";
   let inFlight, stopped = false, busy = false, failures = 0, lastIdentifyAt = -Infinity, value = { state: "unknown", message: "Checking this device's Wi-Fi connection…" };
   const hint = wifiHint(), login = routerLoginUrl(window.NDAHI_CONFIG.hotspotLoginUrl);
   function render() {
@@ -27,7 +28,7 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
       ${login && ["unknown", "stale", "failed"].includes(state) ? `<p><a href="${h(login.href)}">Open Wi-Fi sign-in to identify this device</a></p>` : ""}
       ${value.candidate && ["unknown", "stale", "failed", "disconnected"].includes(state) ? `<button type="button" class="secondary-action" data-current-action="reidentify" ${busy ? "disabled" : ""}>Identify this device again</button>` : ""}
       ${value.identificationOptions?.length ? `<form data-current-identify><p>Identify this installed app once. Match this device's Wi-Fi MAC address in its Wi-Fi settings before choosing it.</p><label>This device <select name="device" required><option value="">Choose the matching device</option>${value.identificationOptions.map((d, i) => `<option value="${i}">${h(d.name || "Unnamed device")} · ${h(d.mac)}</option>`).join("")}</select></label><label><input type="checkbox" name="confirmed" required> I matched the Wi-Fi MAC address on this device.</label><button type="button" data-current-action="identify" ${busy ? "disabled" : ""}>Identify this device</button></form>` : ""}
-      <p>Disconnect ends this session and keeps saved approval. Use Forget device below to remove that approval.</p><p data-current-message role="status" aria-live="polite"></p>`;
+      <p>Disconnect ends this session and keeps saved approval. Use Forget device below to remove that approval.</p><p data-current-message role="status" aria-live="polite">${h(actionMessage)}</p>`;
     if (focused) (container.querySelector(`[data-current-action="${focused}"]`) || container.querySelector("[data-current-state]")).focus();
   }
   function refresh(identify = false, selected, context = { current: () => !stopped && container.isConnected && !document.hidden && navigator.onLine !== false }) {
@@ -86,7 +87,7 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
     if (action === "identify" && !form?.reportValidity()) return;
     const selected = action === "identify" ? { ...value.identificationOptions[Number(form.elements.device.value)], confirmMac: true } : undefined;
     const target = value.device;
-    busy = true; poll.pause();
+    actionMessage = ""; busy = true; poll.pause();
     render();
     try {
       // Let an existing status read finish before starting a user action.
@@ -109,9 +110,11 @@ export function mountCurrentWifi({ container, call, onMainDisconnect }) {
             failure = error;
           }
           await refresh();
-          if (failure && !stopped && container.isConnected && !["disconnecting", "disconnected"].includes(value.state)) container.querySelector("[data-current-message]").textContent = failure.message || "Disconnection was not confirmed. Checking automatically before retrying.";
+          if (failure && !stopped && container.isConnected && !["disconnecting", "disconnected"].includes(value.state)) actionMessage = failure.message || "Disconnection was not confirmed. Checking automatically before retrying.";
         }
       }
+    } catch (error) {
+      actionMessage = error.message || "The device action was not confirmed. Checking automatically.";
     } finally {
       busy = false;
       if (!stopped && container.isConnected) {

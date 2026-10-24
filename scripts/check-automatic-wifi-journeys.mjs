@@ -18,7 +18,7 @@ try {
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   const page = await browser.newPage({ viewport: { width: 320, height: 900 } });
   await page.clock.install();
-  let state = 'connected', fail = false, reads = 0, disconnects = [], releaseDisconnect;
+  let state = 'connected', fail = false, rejectDisconnect = false, reads = 0, disconnects = [], releaseDisconnect;
   const device = { mac: 'AA:BB:CC:DD:EE:03', sessionId: '*guest', startedAt: new Date().toISOString(), main: false };
   await page.route('**/api/account/device-management/current', async route => {
     reads++;
@@ -30,6 +30,7 @@ try {
   });
   await page.route('**/api/account/wifi-devices/disconnect', async route => {
     disconnects.push(route.request().postDataJSON());
+    if (rejectDisconnect) return route.fulfill({ status: 409, json: { error: "The router session changed. Check the current device before retrying." } });
     await new Promise(r => { releaseDisconnect = r; });
     state = 'disconnecting'; await route.fulfill({ status: 202, json: {} });
   });
@@ -67,6 +68,12 @@ try {
   fail = false; state = 'stale'; await page.clock.runFor(60001); await expectState('stale');
   assert.equal(await card.locator('.current-wifi-pending, .current-wifi-connected, .current-wifi-disconnected').count(), 0);
   state = 'connected'; await page.clock.runFor(10001); await expectState('connected');
+  rejectDisconnect = true;
+  await card.getByRole('button', { name: 'Disconnect this device', exact: true }).click();
+  await card.locator('[data-current-message]').filter({ hasText: 'The router session changed.' }).waitFor();
+  await page.clock.runFor(10001);
+  assert.match(await card.locator('[data-current-message]').textContent(), /The router session changed/);
+  assert.equal(disconnects[1].sessionId, '*replacement');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   assert.equal(await card.locator('.current-wifi-indicator').evaluate(e => getComputedStyle(e).animationName), 'none');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
