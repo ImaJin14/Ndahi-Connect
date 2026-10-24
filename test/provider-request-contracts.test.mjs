@@ -347,11 +347,11 @@ test("TEST-003 Resend: retries resend a byte-identical payload under the same ke
   }
 });
 
-test("TEST-003 Resend: rejected requests surface provider messages without credentials", async () => {
+test("TEST-003 Resend: rejected requests hide provider messages and credentials", async () => {
   for (const response of [resend.validationError, resend.unauthorized, resend.idempotencyConflict]) {
     const { adapter } = resendAdapter([response], "re_never_print");
     await assert.rejects(adapter.sendVoucher(voucherDelivery), (error) => {
-      assert.match(error.message, new RegExp(response.body.message.replace(/[.*+?^${}()|[\]\\`]/g, "\\$&")));
+      assert.match(error.message, /Email delivery failed/);
       assert.doesNotMatch(error.message, /re_never_print/);
       return true;
     });

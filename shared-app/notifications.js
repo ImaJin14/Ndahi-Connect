@@ -17,7 +17,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   panel.innerHTML = '<div class="notification-heading"><h2 id="notificationTitle">Notifications</h2><button type="button" data-refresh-notifications aria-label="Refresh notifications" title="Refresh notifications">↻</button><button type="button" data-close-notifications aria-label="Close notifications">✕</button></div><p data-notification-message role="status" aria-live="polite"></p><div data-notification-body></div>';
   document.body.append(backdrop, panel);
   const output = panel.querySelector("[data-notification-message]"), host = panel.querySelector("[data-notification-body]");
-  let inbox, timer, loading = false, tab = "unread", category = "all", settings = false, editing = false, dateEditing = false, generation = 0, requestId = 0, from = "", to = "", cursor = "", previous = [];
+  let inbox, timer, returnFocus = bell, loading = false, tab = "unread", category = "all", settings = false, editing = false, dateEditing = false, generation = 0, requestId = 0, from = "", to = "", cursor = "", previous = [];
   const post = (input) => { generation++; return call({ method: "POST", body: JSON.stringify(input) }); };
   async function call(options = {}) {
     const query = new URLSearchParams({ view: tab, category, from, to, limit: "25", cursor });
@@ -41,7 +41,13 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
     host.innerHTML = settings ? '<form data-notification-settings><h3>Notification settings</h3><p>Security notices and items requiring action stay visible in your inbox.</p>' +
       Object.entries(inbox.preferences.categories).filter(([key]) => inbox.categories[key]).map(([key, enabled]) =>
         '<label><input type="checkbox" name="' + h(key) + '" ' + (enabled ? "checked" : "") + (key === "security" ? " disabled" : "") + '> ' + h(inbox.categories[key]) + '</label>').join("") +
-      (!admin ? '<label><input type="checkbox" name="emailSecurity" ' + (inbox.preferences.emailSecurity ? "checked" : "") + '> Email security notices</label><p>' + (inbox.emailAvailable ? "Sent to your confirmed account email." : "Link and confirm an email in Account to receive email notices.") + '</p><label><input type="checkbox" name="usagePush" ' + (inbox.preferences.usagePush ? "checked" : "") + '> Data-usage push alerts</label>' : "") +
+      (!admin ? '<fieldset><legend>Data and bundle alerts</legend><p>Use the Usage category above to enable or disable these alerts in your inbox.</p>' +
+        [["90", "90% of data used"], ["low", "Low data (about 2 MB remaining)"], ["100", "Data exhausted"]].map(([level, label]) =>
+          '<label><input type="checkbox" name="usage-' + level + '" ' + ((inbox.preferences.usageThresholds || ["90", "low", "100"]).includes(level) ? "checked" : "") + '> ' + h(label) + '</label>').join("") +
+        '<label><input type="checkbox" name="expiryWarnings" ' + (inbox.preferences.expiryWarnings ? "checked" : "") + '> Warn within one hour of bundle expiry</label>' +
+        '<label><input type="checkbox" name="subscriptionUpdates" ' + (inbox.preferences.subscriptionUpdates !== false ? "checked" : "") + '> Expired or exhausted bundle updates</label>' +
+        '<label><input type="checkbox" name="usagePush" ' + (inbox.preferences.usagePush ? "checked" : "") + '> Data-usage push alerts</label><p>Warnings use the latest server reading; arrival at an exact balance or time is not guaranteed.</p></fieldset>' +
+        '<fieldset><legend>Email</legend><label><input type="checkbox" name="emailTransactions" ' + (inbox.preferences.emailTransactions !== false ? "checked" : "") + '> Email welcome, receipts, vouchers and activation notices</label><label><input type="checkbox" name="emailSecurity" ' + (inbox.preferences.emailSecurity ? "checked" : "") + '> Email security notices</label><p>' + (inbox.emailAvailable ? "Sent to your confirmed account email." : "Link and confirm an email in Account to receive email notices.") + '</p></fieldset>' : "") +
       '<label><input type="checkbox" name="pushEnabled" ' + (inbox.preferences.pushEnabled ? "checked" : "") + (inbox.pushAvailable ? "" : " disabled") + '> Push new activity to my subscribed devices</label>' +
       '<p>' + (inbox.pushAvailable ? "Browser notifications require permission on each device. Your in-app inbox always works." : "Browser push is not configured. Your in-app inbox works without it.") + '</p>' +
       (inbox.pushAvailable ? '<button type="button" data-enable-browser>Enable on this device</button><button type="button" data-disable-browser>Disable on this device</button>' : "") +
@@ -59,7 +65,8 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
         event.preventDefault();
         const input = { action: "preferences", categories: {} };
         for (const key of Object.keys(inbox.preferences.categories)) if (form.elements[key]) input.categories[key] = form.elements[key].checked;
-        for (const key of ["pushEnabled", "emailSecurity", "usagePush"]) if (form.elements[key]) input[key] = form.elements[key].checked;
+        for (const key of ["pushEnabled", "emailSecurity", "emailTransactions", "usagePush", "expiryWarnings", "subscriptionUpdates"]) if (form.elements[key]) input[key] = form.elements[key].checked;
+        if (!admin) input.usageThresholds = ["90", "low", "100"].filter((level) => form.elements["usage-" + level]?.checked);
         try { await runButton(form.querySelector('[type="submit"]'), "Saving…", async () => {
           inbox = await post(input); editing = false; badge(); render(); output.textContent = "Notification settings saved.";
         }, { controls: Array.from(form.elements) }); } catch (error) { output.textContent = error.message; }
@@ -82,10 +89,11 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   function close() {
     generation++; dateEditing = false; panel.hidden = true; backdrop.hidden = true; delete panel.dataset.sensitiveOutput;
     document.body.classList.remove("notifications-open");
-    bell.setAttribute("aria-expanded", "false"); bell.focus();
+    bell.setAttribute("aria-expanded", "false"); (returnFocus?.isConnected ? returnFocus : bell).focus();
   }
   bell.onclick = () => {
     if (!panel.hidden) { close(); return; }
+    returnFocus = bell;
     panel.hidden = false; backdrop.hidden = false; panel.dataset.sensitiveOutput = "true";
     document.body.classList.add("notifications-open");
     bell.setAttribute("aria-expanded", "true"); render(); panel.querySelector("[data-close-notifications]").focus(); void refresh();
@@ -133,7 +141,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
       if (button.matches("[data-enable-browser],[data-disable-browser]")) {
         if (!navigator.serviceWorker || typeof PushManager === "undefined" || typeof Notification === "undefined") throw Error("Browser notifications are not supported here. Use the in-app inbox.");
         const enable = button.matches("[data-enable-browser]");
-        if (enable && await Notification.requestPermission() !== "granted") throw Error("Allow notifications in your browser settings, or keep using the in-app inbox.");
+        if (enable && (Notification.permission === "denied" || Notification.permission !== "granted" && await Notification.requestPermission() !== "granted")) throw Error("Allow notifications in your browser settings, or keep using the in-app inbox.");
         await runButton(button, enable ? "Enabling…" : "Disabling…", async () => {
           const registration = await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
           let subscription = await registration.pushManager.getSubscription();
@@ -155,9 +163,11 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   window.addEventListener("pageshow", startPolling);
   window.addEventListener("pagehide", () => clearInterval(timer));
   mounted = { refresh, close, open(filters = {}) {
+    const opener = document.activeElement;
     category = filters.category || "all"; tab = filters.view || "all"; settings = filters.settings === true; editing = false; dateEditing = false;
     from = ""; to = ""; cursor = ""; previous = []; generation++;
     if (panel.hidden) bell.click();
+    returnFocus = opener;
     void refresh(true);
   } }; startPolling(); return mounted;
 }

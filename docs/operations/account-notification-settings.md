@@ -1,0 +1,11 @@
+# Account notification settings (#137)
+
+Account → Notification settings opens the existing notification centre's saved form. The bell remains a shortcut to that same form. The standalone Dashboard Usage Alerts card is removed. `#notificationSettings` selects Account.
+
+The existing `notificationStates` preference row remains the only server preference model. Partial API updates merge in a transaction; omitted fields keep their values. Existing accounts retain usage alerts at 90%, positive balances of about 2 MB, and exhaustion. Each can be disabled. The Usage category gates data/bundle inbox entries; Data-usage push alerts gates that category's delivery. Expired/exhausted bundle updates default on. The new one-hour expiry warning requires opt-in; it uses authoritative stored expiry and the existing activity-push worker/deduplication. Security/action-required inbox entries stay available. Read/archive state never changes the underlying bundle or action.
+
+Push permission is per browser, separate from account preferences. Denied permission is not requested again; unsupported browsers retain settings and inbox access. Existing email security consent remains enforced by the security-email worker. Usage email is not currently an available channel. Threshold recording, usage accounting, Wi-Fi enforcement, and payment authorization remain independent from preferences. Background delivery depends on worker availability and fresh readings, so an exact warning time/balance is not guaranteed.
+
+Verification: API tests cover defaults, validation, concurrent partial updates, cross-session/account isolation, read/archive integrity, worker consent and deduplication. PostgreSQL tests cover real committed persistence, independent sessions, store reopen and rollback. The browser journey covers 320/1280px, Account navigation, card absence on reload, cross-device persistence, labels, keyboard return, denied/unsupported push and pending/error recovery. Run `npm test` with `TEST_DATABASE_URL` for database coverage and `npm run check:notifications:browser` with Chromium installed. PR evidence records actual runs.
+
+Release: implementation only until reviewed and explicitly approved; no deployment or real device/provider arrival is claimed. Approve #137 before its dependent email PR. Physical push delivery remains an operator acceptance check.

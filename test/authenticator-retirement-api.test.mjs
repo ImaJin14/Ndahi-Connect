@@ -52,7 +52,7 @@ async function fixture(t, { retired = true, pin = true } = {}) {
     if (session === undefined && res.headers.get("set-cookie")) cookie = res.headers.get("set-cookie").split(";")[0];
     const text = await res.text(); return { status: res.status, body: JSON.parse(text), text, headers: res.headers };
   };
-  return { store, key, legacy, call, deliveries, advance: (seconds) => { current = new Date(+current + seconds * 1000); } };
+  return { store, key, legacy, call, deliveries, worker:server.listeners("request")[0].transactionalEmails, advance: (seconds) => { current = new Date(+current + seconds * 1000); } };
 }
 
 test("retirement rejects every old authenticator route and outstanding challenge without exposing a secret", async (t) => {
@@ -74,6 +74,7 @@ test("retirement rejects every old authenticator route and outstanding challenge
 test("retired profile changes use fresh PIN/passkey while email confirmation remains independent", async (t) => {
   const f = await fixture(t);
   const email = await f.call("/api/account/profile/email", { email: "new@example.test", pin: "2468" }); assert.equal(email.status, 202);
+  assert.equal(f.deliveries.length,0); await f.worker.run();
   assert.equal((await f.store.snapshot()).customers[0].email, "old@example.test"); assert.equal(f.deliveries.length, 1);
   assert.equal((await f.call("/api/account/profile/email/confirm", { code: "000000" })).status, 400);
   assert.equal((await f.call("/api/account/profile/email/confirm", { code: f.deliveries[0].code })).status, 200);

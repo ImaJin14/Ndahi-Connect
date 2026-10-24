@@ -1140,6 +1140,16 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Local verification: Final local run: 894 tests, 877 passed, zero failed, 17 PostgreSQL-dependent skips for CI; security/password/pending-intent changes also passed 99 focused regressions; final administrator alias/readiness hardening passed 88 focused regressions; 13 focused browser journeys including four layout widths, signed passkeys, PIN fallback, legacy challenges and audited recovery; 14 pending-action and three session/security browser scenarios passed. Final full-browser and exact-revision CI evidence belong in the cleanup PR.
   - Release: source only, not merged or deployed. Private legacy credential purge and actual affected-account recovery/readiness remain separate operator checks. Account backup/email recovery and Wi-Fi approval codes remain supported. [Operations note](operations/account-security-cleanup.md).
 
+- [-] **NOTIFICATIONS-137 — Persistent Account notification settings**
+  - Implemented: Account opens the existing notification preference form; removed the Dashboard Usage Alerts card. Supported data thresholds, low balance, opt-in one-hour expiry warnings, subscription updates and channel consent share existing durable rows and delivery workers. Permission denial never disables the inbox or changes bundle/payment state.
+  - Verification: dedicated API/worker, PostgreSQL persistence/concurrency/rollback and 320/1280px browser journeys added; exact executed checks and CI evidence are recorded in the PR and [operations note](operations/account-notification-settings.md).
+  - Release: awaiting user confirmation; not merged or deployed. Physical/browser-provider delivery not verified.
+
+- [-] **EMAIL-141 — Verified account association and branded transactional delivery**
+  - Implemented: optional email retains mailbox ownership confirmation and separate payer contact identity; verification, welcome, voucher PDF, activation, receipt and security delivery use existing durable rows with committed leases, stable identities, bounded retries and consent checks. Voucher provider I/O is removed from payment settlement. Account exposes the shared transactional email preference and safe queued/failure status.
+  - Verification: eleven new ownership/race/timeout/retry/template tests pass; local full suite977tests955pass0fail22PostgreSQL skips. PostgreSQL rollback/multi-worker/reopen tests and320/1280px browser replacement/preferences/outage journeys added; exact CI evidence belongs in the PR. [Operations contract](operations/transactional-email.md).
+  - Release: separate PR dependent on137/PR153, awaiting user confirmation; not merged or deployed. Real provider/domain/inbox/bounce and physical delivery acceptance are unverified.130's combined profile editor remains separate; existing email profile APIs are used.
+
 ### Issue #138 — optional PWA / secure captive continuation (2026-10-24)
 
 - Implemented: Dashboard manifest start; server-authenticated restore and existing safe destination/connectivity flow; optional browser/iOS/WebView install guidance; rejected prompt/storage fallback; network-only navigation with public inline offline recovery; removal of legacy `ndahi-shell-*` caches without touching other apps; no credential/private API/PDF cache or forced app/window transition.

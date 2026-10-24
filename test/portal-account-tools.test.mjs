@@ -52,7 +52,7 @@ async function fixture(t, { mfa = false } = {}) {
     return response;
   };
   const call = async (path, options) => { const response = await raw(path, options); return { status: response.status, body: await response.json() }; };
-  return { store, call, raw, key, deliveries, advance: (seconds) => { clock = new Date(+clock + seconds * 1000); }, otp: () => totpCode(key, +clock) };
+  return { store, call, raw, key, deliveries, worker:handler.transactionalEmails, billing:handler.billing, advance: (seconds) => { clock = new Date(+clock + seconds * 1000); }, otp: () => totpCode(key, +clock) };
 }
 
 test("MeSomb signup and fulfillment work without email; unconfirmed addresses cannot receive account mail", async (t) => {
@@ -70,7 +70,8 @@ test("MeSomb signup and fulfillment work without email; unconfirmed addresses ca
     });
     const status = await f.call(`/api/account/payments/${purchase.body.payment.id}/status`, { session: phone });
     assert.equal(status.status, 200); assert.equal(status.body.payment.status, "paid");
-    assert.equal(status.body.payment.receiptEmail.status, "needs_email");
+    await f.billing.sendReceipt(purchase.body.payment.id);
+    assert.equal((await f.store.snapshot()).payments.find(p=>p.id===purchase.body.payment.id).receiptEmail.status, "needs_email");
     const dashboard = await f.call("/api/account/dashboard", { session: phone, address: "198.51.100.9" });
     assert.equal(dashboard.body.customer.emailLinked, false);
     assert.ok(dashboard.body.vouchers[0].code);
@@ -101,6 +102,8 @@ test("email linking verifies fresh credentials and mailbox, keeps secrets privat
   f.advance(2);
   const requested = await f.call("/api/account/profile/email", { input });
   assert.equal(requested.status, 202); assert.equal(requested.body.email, "new@example.test");
+  assert.equal(f.deliveries.length,0,"verification is queued after commit");
+  await f.worker.run();
   const delivered = f.deliveries.find((d) => d.kind === "verification");
   assert.match(delivered.code, /^\d{6}$/);
   assert.ok(!JSON.stringify(requested.body).includes(delivered.code));
@@ -131,10 +134,12 @@ test("email codes expire, are session-bound, rate-limited and stop after five in
   const request = () => f.call("/api/account/profile/email", { input: { email: "new@example.test", pin: "2468" } });
   assert.equal((await request()).status, 202);
   assert.equal((await request()).status, 429);
+  await f.worker.run();
   const first = f.deliveries[0].code;
   f.advance(601);
   assert.equal((await f.call("/api/account/profile/email/confirm", { input: { code: first } })).status, 400);
   assert.equal((await request()).status, 202);
+  await f.worker.run();
   const next = f.deliveries.at(-1).code;
   for (let i = 0; i < 5; i++) assert.equal((await f.call("/api/account/profile/email/confirm", { input: { code: "invalid" } })).status, 400);
   assert.equal((await f.call("/api/account/profile/email/confirm", { input: { code: next } })).status, 400);
