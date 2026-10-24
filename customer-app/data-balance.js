@@ -5,8 +5,8 @@ let stopPrevious;
 export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
   if(stopPrevious)stopPrevious();
   const host=document.getElementById('dataBalance');if(!host)return;
-  let snapshot=initial,stopped=false,failures=0,countdown,serverTime=initial?Date.parse(initial.observedAt):Date.now(),anchor=performance.now(),expiredRequest=false;
-  const relevant=()=>!stopped&&host.isConnected&&!document.hidden&&navigator.onLine!==false&&!host.closest('[hidden]');
+  let snapshot=initial,stopped=false,inPage=true,failures=0,countdown,serverTime=initial?Date.parse(initial.observedAt):Date.now(),anchor=performance.now(),expiredRequest=false;
+  const relevant=()=>!stopped&&inPage&&host.isConnected&&!document.hidden&&navigator.onLine!==false&&!host.closest('[hidden]');
   const now=()=>serverTime+performance.now()-anchor;
   const draw=(paused=false)=>{if(!stopped&&host.isConnected){host.innerHTML=activeBundleContent(snapshot,{now:now(),unavailable:failures>0,paused});host.dataset.bundleObservedAt=snapshot?snapshot.observedAt:'';}};
   const tick=()=>{
@@ -26,7 +26,9 @@ export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
     }catch(e){if(context.current()){failures++;draw();onSnapshot(null);}}
   }});
   const wake=()=>{clearTimeout(countdown);if(!host.isConnected)return stop();poll.wake();if(relevant()){draw();tick();}};
-  const stop=()=>{stopped=true;poll.stop();clearTimeout(countdown);document.removeEventListener('visibilitychange',wake);for(const event of ['pageshow','pagehide','online','offline','hashchange'])window.removeEventListener(event,wake);};
-  document.addEventListener('visibilitychange',wake);for(const event of ['pageshow','pagehide','online','offline','hashchange'])window.addEventListener(event,wake);
+  const pageHide=()=>{inPage=false;poll.pause();clearTimeout(countdown);};
+  const pageShow=()=>{inPage=true;wake();};
+  const stop=()=>{stopped=true;poll.stop();clearTimeout(countdown);document.removeEventListener('visibilitychange',wake);window.removeEventListener('pagehide',pageHide);window.removeEventListener('pageshow',pageShow);for(const event of ['online','offline','hashchange'])window.removeEventListener(event,wake);};
+  document.addEventListener('visibilitychange',wake);window.addEventListener('pagehide',pageHide);window.addEventListener('pageshow',pageShow);for(const event of ['online','offline','hashchange'])window.addEventListener(event,wake);
   draw();tick();poll.start();stopPrevious=stop;return stop;
 }
