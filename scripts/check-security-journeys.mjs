@@ -67,6 +67,7 @@ try {
       ];
     });
     await page.goto(`${portal}/dashboard#account`);
+    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click();
     await page.locator('details.rename-passkey:has(form[data-rename-passkey="preview-key"]) summary').click();
     await page.locator('[data-rename-passkey="preview-key"] input[name="label"]').fill("Work laptop");
     await page.locator('[data-rename-passkey="preview-key"]').getByRole("button", { name: "Save name" }).click();

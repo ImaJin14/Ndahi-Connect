@@ -10,7 +10,6 @@ import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
 import { profileCard, nameCard, emailCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
 import { mountPhoneChange, mountEmailLink, mountNameChange } from "./profile.js";
-import { recoveryCard, mountAccountRecovery } from "./account-recovery.js";
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
@@ -20,7 +19,7 @@ import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { mountCurrentWifi } from "./current-wifi.js";
-import { accountSecurityCard, accountSessionsCard } from "./account-security.js";
+import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl,
@@ -35,32 +34,6 @@ const api = window.NDAHI_CONFIG.apiUrl,
 let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
-
-async function passkeyOwnerProof(purpose, passkeyId, opener) {
-  document.querySelector("[data-passkey-owner-proof]")?.querySelector("[data-cancel-proof]")?.click();
-  const host = document.createElement("section"); host.className = "surface";
-  host.setAttribute("data-passkey-owner-proof", ""); host.setAttribute("data-sensitive-output", "");
-  const pin = latestDashboard.customer.pinConfigured !== false,
-    passkey = latestDashboard.customer.passkeys && window.PublicKeyCredential && navigator.credentials;
-  host.innerHTML = `<h3 tabindex="-1">${purpose === "passkey_add" ? "Verify before adding a passkey" : "Verify before removing this passkey"}</h3><p>Confirm account ownership with your current PIN or a passkey.</p><form method="post">${pin ? '<label>Current PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Confirm with PIN</button>' : ""}${passkey ? '<button type="button" data-proof-passkey>Confirm with passkey</button>' : ""}<button type="button" class="secondary-action" data-cancel-proof>Cancel</button><p data-passkey-proof-message role="status" aria-live="polite"></p></form><p><a href="/help#recovery">No working credential? Get account recovery help</a></p>`;
-  $("#accountSecurity").appendChild(host); host.querySelector("h3").focus(); host.scrollIntoView({ block: "nearest" });
-  return new Promise((resolve) => {
-    const form = host.querySelector("form"), message = host.querySelector("[data-passkey-proof-message]");
-    const finish = (input) => { form.reset(); host.remove(); setTimeout(() => { if (opener.isConnected) opener.focus(); }, 0); resolve(input); };
-    form.onsubmit = (event) => { event.preventDefault(); event.stopPropagation(); if (pin && form.reportValidity()) finish({ pin: form.elements.pin.value }); };
-    host.querySelector("[data-cancel-proof]").onclick = () => finish(null);
-    const button = host.querySelector("[data-proof-passkey]");
-    if (button) button.onclick = async () => {
-      try {
-        await runButton(button, "Verifying…", async () => {
-          const browser = await loadPasskeys(), challenge = await call("/api/account/passkeys/proof/options", { method: "POST", body: JSON.stringify({ purpose, ...(passkeyId ? { passkeyId } : {}) }) });
-          const response = await browser.startAuthentication({ optionsJSON: challenge.options });
-          finish({ challengeId: challenge.challengeId, response });
-        }, { controls: Array.from(form.elements) });
-      } catch (error) { showError(message, error, { context: "passkey" }); }
-    };
-  });
-}
 
 async function call(path, options = {}) {
   const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
@@ -202,6 +175,7 @@ window.addEventListener("hashchange", () => {
 });
 
 async function load() {
+  const securityView = securityViewState();
   const [result, security] = await Promise.all([
     call("/api/account/dashboard"), call("/api/account/security"),
   ]);
@@ -260,7 +234,6 @@ async function load() {
       ${profileCard(result.customer)}
       ${emailCard(result.customer)}
       ${accountSecurityCard(result.customer, security, securitySetup)}
-      ${recoveryCard(result.customer)}
       ${accountSessionsCard(security)}
     </div>
     ${vouchersCard(result.vouchers)}
@@ -273,7 +246,10 @@ async function load() {
     await load();
     $("#dashboardMessage").innerHTML = '<div class="success">Account number updated. Your other portal sessions were signed out.</div>';
   } });
-  mountAccountRecovery({ call, customer: result.customer, onChanged: async () => { await load(); $("#dashboardMessage").textContent = "PIN changed. Other portal sessions and previous account backup codes were revoked."; } });
+  mountAccountSecurity({ call, customer: result.customer, restore: securityView, setup: securitySetup, onChanged: async view => {
+    await load();
+    openSecurityManager(view);
+  } });
   mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
     await load();
     if (confirmed) $("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';
@@ -358,51 +334,6 @@ $("#dashboard").onclick = async (event) => {
     } catch (error) { showError($("#billingMessage"), error); }
     return;
   }
-  const passkeyButton = event.target.closest("#addCustomerPasskey");
-  if (passkeyButton) {
-    try {
-      await runButton(passkeyButton, "Opening passkey…", async () => {
-        const proof = await passkeyOwnerProof("passkey_add", undefined, passkeyButton);
-        if (!proof) return;
-        let result = await call("/api/account/passkeys/options", {
-          method: "POST", body: JSON.stringify(proof),
-        });
-        const passkeyBrowser = await loadPasskeys();
-        const credential = await passkeyBrowser.startRegistration({
-          optionsJSON: result.options,
-        });
-        result = await call("/api/account/passkeys/verify", {
-          method: "POST",
-          body: JSON.stringify({
-            challengeId: result.challengeId, response: credential,
-          }),
-        });
-        $("#dashboardMessage").textContent = `Passkey added. ${result.passkeys} enrolled.`;
-        history.replaceState({}, "", "/dashboard#account");
-        await load();
-      });
-    } catch (error) {
-      showError($("#dashboardMessage"), error, {
-        context: "passkey",
-        actions: [{ label: "Try passkey again", run: () => passkeyButton.click() }],
-      });
-    }
-    return;
-  }
-  const removePasskeyButton = event.target.closest("[data-remove-passkey]");
-  if (removePasskeyButton) {
-    try {
-      await runButton(removePasskeyButton, "Removing…", async () => {
-        const passkeyId = removePasskeyButton.dataset.removePasskey;
-        const proof = await passkeyOwnerProof("passkey_remove", passkeyId, removePasskeyButton);
-        if (!proof) return;
-        await call("/api/account/passkeys/remove", { method: "POST", body: JSON.stringify({ passkeyId, ...proof }) });
-        await load();
-        $("#dashboardMessage").textContent = "Passkey removed.";
-      });
-    } catch (error) { showError($("#dashboardMessage"), error); }
-    return;
-  }
   const revokeSessionButton = event.target.closest("[data-revoke-session]");
   if (revokeSessionButton) {
     if (!confirm("Sign out this session? If it's the device you're using now, you'll be signed out too.")) return;
@@ -449,18 +380,6 @@ $("#dashboard").onclick = async (event) => {
 };
 
 $("#dashboard").onsubmit = async (event) => {
-  const renameForm = event.target.closest("[data-rename-passkey]");
-  if (renameForm) {
-    event.preventDefault();
-    try {
-      await runButton(renameForm.querySelector("button"), "Saving…", async () => {
-        await call("/api/account/passkeys/rename", { method: "POST", body: JSON.stringify({ passkeyId: renameForm.dataset.renamePasskey, label: new FormData(renameForm).get("label") }) });
-        await load();
-        $("#dashboardMessage").textContent = "Passkey renamed.";
-      });
-    } catch (error) { showError($("#dashboardMessage"), error); }
-    return;
-  }
   const renameDeviceForm = event.target.closest("[data-rename-device]");
   if (renameDeviceForm) {
     event.preventDefault();
