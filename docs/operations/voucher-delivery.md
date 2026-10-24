@@ -38,7 +38,9 @@ the fallback if mail fails, is disabled or is not verified.
 A bookmark for an unrelated/unconfirmed purchase does not substitute another
 voucher or reveal a code. Session expiry redirects through the safe destination
 allowlist back to this account-authenticated page. No private response/document
-is cached by the service worker. Existing recovery and payment help remain
+is cached by the service worker. Leaving the retained page scrubs its private DOM
+and fences pending reads; history restoration reauthenticates before displaying
+a code. Existing recovery and payment help remain
 available; delivery trouble is never a reason to pay again.
 
 ## Verification / release boundaries

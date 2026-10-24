@@ -82,5 +82,11 @@ try {
     await page.locator('#customerPin').fill('2468'); await page.locator('#loginSubmit').click(); await page.waitForURL(portal + next);
     await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor(); assert.equal(await page.getByLabel('Voucher code', { exact: true }).inputValue(), voucher.code);
   }, { signedIn: false });
+  await scenario('history restoration after session loss reauthenticates before displaying a voucher', async (page, context) => {
+    await page.goto(portal + '/voucher-ready.html?payment=p1'); await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
+    await page.goto(portal + '/wifi-connected.html'); await context.clearCookies({ name: 'customer_session' });
+    await page.goBack(); await page.waitForURL(url => url.pathname === '/login');
+    assert.equal(await page.locator('body').innerText().then(t => t.includes('NC-AAAA-1111')), false);
+  });
   console.log(`PASS ${checks} retained voucher browser journeys; physical captive/download and real email delivery remain separate`);
 } finally { await browser?.close(); await f.close(); await new Promise(r => { website.close(r); website.closeAllConnections(); }); }

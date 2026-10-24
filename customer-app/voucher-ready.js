@@ -9,7 +9,7 @@ import { automaticVoucherDownload, purchasedVoucher, downloadVoucherPdf } from '
 import { startUpdates } from './updates.js';
 const api = window.NDAHI_CONFIG.apiUrl, $ = s => document.querySelector(s), params = new URLSearchParams(location.search);
 const requestedPayment = params.get('payment');
-let voucher, downloading = false, loading = false, offered = false;
+let voucher, downloading = false, loading = false, offered = false, generation = 0, controller;
 async function download() {
   if (!voucher || downloading) return;
   downloading = true;
@@ -19,10 +19,11 @@ async function download() {
 }
 async function load() {
   if (loading) return;
-  loading = true; $('#retryVoucher').hidden = true;
+  loading = true; const ticket = ++generation; controller = typeof AbortController === 'function' ? new AbortController() : null; $('#retryVoucher').hidden = true;
   try {
     if (requestedPayment && !/^[A-Za-z0-9_-]{1,100}$/.test(requestedPayment)) throw Error('This purchase link is unavailable. Use your saved vouchers or payment history.');
-    const { response, body } = await requestJson(api + '/api/account/dashboard', { credentials: 'include', cache: 'no-store' });
+    const { response, body } = await requestJson(api + '/api/account/dashboard', { credentials: 'include', cache: 'no-store', signal: controller?.signal });
+    if (ticket !== generation) return;
     if (response.status === 401) {
       saveReturnPath(); location.replace(withWifiHint('/login?account=1&next=' + encodeURIComponent(location.pathname + (requestedPayment ? '?payment=' + encodeURIComponent(requestedPayment) : '')))); return;
     }
@@ -41,8 +42,8 @@ async function load() {
         if (!sessionStorage.getItem(key)) { sessionStorage.setItem(key, 'offered'); offered = true; void download(); }
       } catch { /* Manual download remains available. */ }
     }
-  } catch (error) { $('#voucherStatus').textContent = error.message || 'Voucher delivery is unavailable. Your confirmed payment is unchanged.'; $('#retryVoucher').hidden = false; }
-  finally { loading = false; }
+  } catch (error) { if (ticket !== generation) return; $('#voucherStatus').textContent = error.message || 'Voucher delivery is unavailable. Your confirmed payment is unchanged.'; $('#retryVoucher').hidden = false; }
+  finally { if (ticket === generation) loading = false; }
 }
 $('#downloadVoucher').onclick = download;
 $('#retryVoucher').onclick = load;
@@ -55,5 +56,11 @@ $('#continueVoucher').onclick = async event => {
   try { consumeReturnPath(null); history.replaceState(null, '', withWifiHint('/voucher-ready.html')); location.assign(await afterSignInPath(false)); }
   finally { button.removeAttribute('aria-busy'); }
 };
+window.addEventListener('pagehide', () => {
+  generation++; controller?.abort(); loading = false; voucher = null;
+  $('#voucherDetails').textContent = ''; $('#voucherDetails').hidden = true; $('#downloadVoucher').hidden = true;
+  $('#voucherStatus').textContent = 'Sign in to retrieve your saved voucher.';
+});
+window.addEventListener('pageshow', event => { if (event.persisted) void load(); });
 startUpdates({ isBusy: () => loading || downloading });
 void load();
