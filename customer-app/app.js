@@ -15,8 +15,8 @@ import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-ti
 import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
-import { formatDataBalance, formatExpiryCountdown, fuelStatusClass } from "/shared/data-usage.js";
 import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { mountCurrentWifi } from "./current-wifi.js";
@@ -30,7 +30,6 @@ const api = window.NDAHI_CONFIG.apiUrl,
     const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
     return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
   })(),
-  fmt = formatDataBalance,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
 let stopConnectivity = () => {};
 let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
@@ -182,7 +181,7 @@ async function load() {
     call("/api/account/dashboard"), call("/api/account/security"),
   ]);
   const active = result.activeBundle,
-    current = result.currentPlan, usage = active?.usagePercentage ?? 0,
+    current = result.currentPlan,
     canPurchase = !active && result.subscriptionPurchaseAccess?.allowed !== false &&
       result.customer.status !== "suspended" && !result.customer.suspended,
     duration = current?.plan?.validityHours === 24 ? "24 hours" : current?.plan?.validityHours === 168 ? "7 days" : "30 days",
@@ -198,37 +197,18 @@ async function load() {
     quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
       ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
       : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
-  const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status)),
-    emptyBundleMessage = pendingPayment
-      ? "A payment is awaiting confirmation. Recheck it in Payment history before paying again."
-      : current?.status === "exhausted"
-      ? "Your last bundle's data is used up. Renew below to reconnect."
-      : current?.status === "expired"
-      ? "Your last bundle expired. Renew or choose a new package below to reconnect."
-      : current
-      ? "This bundle is no longer active."
-      : "Choose a package to get started.",
-    provisioningNotice = active?.routerSyncStatus === "dead_letter"
-      ? '<p class="error">We’re having trouble connecting this bundle to the network. Our systems are retrying automatically.</p>'
-      : active?.routerSyncStatus === "pending"
-      ? "<p>Finishing network setup for this bundle…</p>"
-      : "";
+  const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status));
   const purchaseNotice = result.purchaseAccess?.allowed === false
     ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
   const netBanner = networkBannerState({ purchaseAccess: result.purchaseAccess, active, zone: result.zone });
   const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="Network status"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
-  const statusClass = fuelStatusClass(active ? active.remainingBytes : 0, active ? active.quotaBytes : null);
-  const remainingPct = active && active.quotaBytes ? Math.max(0, 100 - usage) : (active?.quotaBytes === null ? 100 : 0);
-  const circumference = 301.59;
-  const dashOffset = (circumference * (100 - remainingPct) / 100).toFixed(2);
-  const countdown = active?.expiresAt ? formatExpiryCountdown(active.expiresAt) : null;
   stopConnectivity();
   $("#dashboard").innerHTML = `${netBannerMarkup}${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
-    <section class="surface" id="dataBalance"><div class="data-balance-header"><p class="eyebrow">Active bundle</p>${countdown ? `<span class="expiry-pill" data-expiry-countdown title="Bundle expiry">${h(countdown)}</span>` : ""}</div><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<div class="fuel-gauge-container"><div class="fuel-gauge-visual"><svg class="fuel-gauge-svg" viewBox="0 0 120 120" role="img" aria-label="${h(fmt(active.remainingBytes))} remaining out of ${active.quotaBytes ? h(fmt(active.quotaBytes)) : 'unlimited'}"><circle class="fuel-track" cx="60" cy="60" r="48" fill="none" stroke-width="10" /><circle class="fuel-fill ${statusClass}" cx="60" cy="60" r="48" fill="none" stroke-width="10" stroke-dasharray="301.59" stroke-dashoffset="${dashOffset}" stroke-linecap="round" transform="rotate(-90 60 60)" /></svg><div class="fuel-gauge-center"><b class="fuel-remaining-value" data-fuel-remaining>${h(fmt(active.remainingBytes))}</b><small class="fuel-remaining-label">${active.quotaBytes === null ? "Data" : "Left"}</small></div></div><div class="fuel-gauge-info"><div class="stats"><div class="stat"><b data-remaining-data>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b data-used-data>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div></div></div><progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><p id="dataBalanceMessage" class="usage-notice" role="status" hidden></p><div class="data-balance-actions"><button type="button" class="secondary-action" id="refreshDataBalance">Refresh balance</button><a class="button secondary-action" href="/dashboard#bundles">All plans</a></div>${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>${canPurchase && current?.plan && !current.plan.discontinued ? `<div class="data-balance-actions"><button type="button" class="button" data-quick-renew="${h(current.plan.id)}">Quick renew ${h(current.plan.name)}</button><a class="button secondary-action" href="/dashboard#bundles">All plans</a></div>` : ""}`}</section>
+    <section class="surface" id="dataBalance">${activeBundleContent(result.bundleStatus)}</section>
     ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts"><h2>Usage alerts</h2><p>Warnings at 90% used and around 2 MB remaining help you plan a renewal. Manage browser permission and delivery preferences in Notifications.</p><button type="button" id="manageUsageAlerts">Manage data alerts</button></section>' : ""}
     <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
     <section class="surface full" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
-    <div class="plan-actions full">${canPurchase ? '<a class="button" href="/dashboard#bundles">Renew bundle</a>' : ""}<a class="button secondary-action" href="/dashboard#vouchers">View voucher</a></div></div>
+    <div class="plan-actions full" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div></div>
     <section class="surface full" data-portal-view="bundles" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}</p>${canPurchase ? `<div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>`}` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${result.dailyAvailability.available ? "The 100 FCFA Daily bundle is available." : `Daily is available again ${h(new Date(result.dailyAvailability.nextEligibleAt).toLocaleString())}.`}</p></section>
     ${bundleCatalogue(result)}
     <div class="account-layout full" data-portal-view="account">
@@ -262,7 +242,17 @@ async function load() {
   const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
   $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
   if (active) mountInstallCard($("#installApp"));
-  mountDataBalance({ call, voucher: active });
+  mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
+    const actions = $("#bundlePurchaseActions");
+    const markup = bundlePurchaseContent(snapshot);
+    if (actions && actions.innerHTML !== markup) actions.innerHTML = markup;
+    const eligible = Boolean(snapshot && snapshot.purchase.allowed === true && !snapshot.activeId);
+    $("#managePlan").querySelectorAll('a[href^="/onboarding"]').forEach(link => { link.hidden = !eligible; });
+    if (latestDashboard) {
+      latestDashboard.subscriptionPurchaseAccess = snapshot ? snapshot.purchase : { allowed: false };
+      if (snapshot) latestDashboard.activeBundle = snapshot.activeId ? snapshot.bundle : null;
+    }
+  } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   if ($("#manageUsageAlerts")) $("#manageUsageAlerts").onclick = () => notifications.open({ category: "usage", settings: true });
   if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };

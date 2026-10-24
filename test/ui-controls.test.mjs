@@ -107,15 +107,16 @@ test("network status is driven from the API on every customer-facing page, not h
 });
 
 test("the dashboard explains and gives a next step for every empty and first-use state (UX-005)", async () => {
-  const app = await source("customer-app/app.js");
-  assert.match(app, /payment is awaiting confirmation/, "pending voucher/payment state");
-  assert.match(app, /data is used up/, "exhausted bundle state");
-  assert.match(app, /bundle expired/, "expired bundle state");
-  assert.match(app, /trouble connecting this bundle to the network/, "failed provisioning state");
-  assert.match(app, /Finishing network setup/, "in-progress provisioning state");
+  const app = await source("customer-app/app.js"), bundle = await source("customer-app/active-bundle.js");
+  assert.match(app, /Payment awaiting confirmation/, "pending payment has its separate status card");
+  assert.match(bundle, /data is used up/, "exhausted bundle state");
+  assert.match(bundle, /expired:'Expired'/, "expired bundle state");
+  assert.match(bundle, /Network setup needs attention/, "failed provisioning state needs support rather than promising automatic recovery");
+  assert.match(bundle, /Finishing network setup/, "in-progress provisioning state");
   assert.match(app, /Activate a bundle to connect a device/, "no devices, no bundle state is distinct from no devices with an active bundle");
   assert.match(app, /No devices are currently connected/, "no devices, active bundle state");
-  assert.match(app, /Choose a package to get started/, "never purchased state");
+  assert.match(bundle, /No active bundle/, "never purchased card is explicit");
+  assert.match(app, /Choose a package to activate/, "a purchase next step remains outside the card");
 });
 
 test("onboarding keeps authenticated renew and switch journeys account-aware", async () => {

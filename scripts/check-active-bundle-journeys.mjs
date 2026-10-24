@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { createStaticServer } from '../static-server.mjs';
+import { pairingFixture } from '../test/helpers/wifi-pairing-fixture.mjs';
+const server=http.createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const portal=`http://localhost:${server.address().port}`;
+const f=await pairingFixture({origin:portal,now:new Date(),liveClock:true});const api=f.api.replace('127.0.0.1','localhost');
+const assets=createStaticServer('customer',{apiUrl:api,hotspotLoginUrl:'https://connect.bundle.test/login'});server.on('request',(req,res)=>assets.emit('request',req,res));
+const initial=await f.store.snapshot();let browser;
+try{
+ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');browser=await chromium.launch({headless:true,...(process.env.PLAN_CHROME_PATH?{executablePath:process.env.PLAN_CHROME_PATH}:{})});
+ for(const width of [320,1280]){
+  await f.store.transaction(s=>{Object.assign(s,structuredClone(initial));s.vouchers[0].usedBytes=100000000;s.vouchers[0].lastUsageSyncAt=f.now().toISOString();s.vouchers[0].wifiDevicesAt=f.now().toISOString();s.vouchers[0].expiresAt=new Date(+f.now()+3600000).toISOString();});
+  const context=await browser.newContext({viewport:{width,height:950}});await context.addCookies([{name:'customer_session',value:'main',domain:'localhost',path:'/api/account',httpOnly:true,sameSite:'Lax'}]);
+  await context.route('**/*',route=>[portal,api].includes(new URL(route.request().url()).origin)?route.continue({headers:{...route.request().headers(),'cf-connecting-ip':'203.0.113.10'}}):route.abort('blockedbyclient'));
+  const page=await context.newPage();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));let reads=0;page.on('request',r=>{if(r.url().endsWith('/api/account/bundle-status'))reads++;});
+  const first=page.waitForResponse(r=>r.url().endsWith('/api/account/bundle-status'));await page.goto(portal+'/dashboard');const firstValue=await(await first).json();await page.waitForFunction(at=>Date.parse(document.querySelector('#dataBalance')?.dataset.bundleObservedAt)>=Date.parse(at),firstValue.observedAt);const card=page.locator('#dataBalance');await card.locator('[data-remaining-data]').filter({hasText:'900 MB'}).waitFor();
+  assert.equal(await card.locator('button,a').count(),0);assert.equal(await page.getByRole('button',{name:'Refresh balance',exact:true}).count(),0);
+  assert.match(await card.locator('[data-used-data]').textContent(),/100 MB/);assert.match(await card.locator('[data-bundle-devices]').textContent(),/2 of 3/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  await page.clock.install();
+  const update=async(acceptOld=false)=>{const after=+f.now(),read=page.waitForResponse(r=>r.url().endsWith('/api/account/bundle-status'));await page.evaluate(()=>window.dispatchEvent(new Event('online')));await page.clock.runFor(10);const response=await read;if(response.status()===200&&!acceptOld)await page.waitForFunction(at=>Date.parse(document.querySelector('#dataBalance')?.dataset.bundleObservedAt)>=at,after);};
+  const before=reads;await page.clock.runFor(45000);assert.ok(reads-before<=3,'no more than one balance read every15seconds');
+  await f.store.transaction(s=>{s.vouchers[0].usedBytes=998000000;s.vouchers[0].lastUsageSyncAt=f.now().toISOString();});await update();await card.locator('[data-remaining-data]').filter({hasText:'2 MB'}).waitFor();assert.equal(await card.locator('button,a').count(),0);
+  console.log('PASS informational shared balance, consumed/expiry/device facts and bounded automatic updates at '+width+'px');
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'));});const hiddenReads=reads;await page.clock.runFor(45000);assert.equal(reads,hiddenReads);
+  let releaseResume;const resumeHold=new Promise(r=>{releaseResume=r;});await page.route('**/api/account/bundle-status',async route=>{await resumeHold;await route.continue();},{times:1});
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,value:false});document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('pageshow'));});await page.clock.runFor(10);await card.getByText(/Last recorded balance/).waitFor();assert.match(await card.locator('[data-bundle-devices]').textContent(),/Count unavailable/);
+  releaseResume();await card.getByText(/Shared usage confirmed/).waitFor();assert.equal(reads,hiddenReads+1);
+  await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,value:false});window.dispatchEvent(new Event('offline'));});const offlineReads=reads;await page.clock.runFor(30000);assert.equal(reads,offlineReads);await card.getByText(/Updates paused/).waitFor();
+  await page.evaluate(()=>Object.defineProperty(navigator,'onLine',{configurable:true,value:true}));await update();
+  await page.evaluate(()=>window.dispatchEvent(new Event('pagehide')));const leftPageReads=reads;await page.clock.runFor(30000);assert.equal(reads,leftPageReads);await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));await page.clock.runFor(10);await update();
+  console.log('PASS hidden/offline pause and coalesced resume at '+width+'px');
+  await f.store.transaction(s=>{s.vouchers[0].wifiDevicesAt=new Date(+f.now()-121000).toISOString();s.vouchers[0].lastUsageSyncAt=new Date(+f.now()-121000).toISOString();});await update();await card.getByText(/Last recorded balance/).waitFor();assert.match(await card.locator('[data-bundle-devices]').textContent(),/Count unavailable/);
+  await page.route('**/api/account/bundle-status',route=>route.fulfill({status:503,json:{error:'Unavailable'}}),{times:1});await update();await card.getByText(/Current balance could not be checked/).waitFor();assert.equal(await page.locator('#bundlePurchaseActions [data-quick-renew]').count(),0);
+  await update();await card.getByText(/Last recorded balance/).waitFor();
+  console.log('PASS stale/error handling retains recorded usage and hides uncertain device counts at '+width+'px');
+  await f.store.transaction(s=>{s.vouchers[0].quotaBytes=null;s.vouchers[0].usedBytes=4000000000;s.vouchers[0].lastUsageSyncAt=f.now().toISOString();});await update();await card.locator('[data-remaining-data]').filter({hasText:'Unlimited'}).waitFor();assert.match(await card.locator('[data-used-data]').textContent(),/4.00 GB/);
+  await f.store.transaction(s=>{delete s.vouchers[0].usedBytes;s.vouchers[0].quotaBytes=1e9;});await update();await card.locator('[data-remaining-data]').filter({hasText:'Unavailable'}).waitFor();assert.match(await card.locator('[data-used-data]').textContent(),/Unavailable/);
+  console.log('PASS unlimited and unknown usage never become fabricated zero at '+width+'px');
+  await f.store.transaction(s=>{s.vouchers[0].usedBytes=100000000;s.vouchers[0].expiresAt=new Date(+f.now()+2000).toISOString();});await update();
+  await page.route('**/api/account/bundle-status',route=>route.fulfill({status:503,json:{error:'Expiry confirmation unavailable'}}),{times:1});
+  await page.clock.runFor(2200);await card.locator('[data-bundle-status]').filter({hasText:'Confirming expiry'}).waitFor();assert.equal(await page.locator('#bundlePurchaseActions [data-quick-renew]').count(),0);
+  await f.store.transaction(s=>{s.vouchers[0].expiresAt=new Date(+f.now()-1000).toISOString();});await update();await card.locator('[data-bundle-status]').filter({hasText:'Expired'}).waitFor();await page.locator('#bundlePurchaseActions [data-quick-renew]').waitFor();
+  console.log('PASS local expiry waits for authoritative eligibility before enabling outside purchase actions at '+width+'px');
+  await f.store.transaction(s=>{s.vouchers[0].expiresAt=new Date(+f.now()+3600000).toISOString();s.vouchers[0].usedBytes=1e9;s.vouchers[0].status='exhausted';s.vouchers[0].lastUsageSyncAt=f.now().toISOString();});await update();await card.locator('[data-bundle-status]').filter({hasText:'Data exhausted'}).waitFor();assert.equal(await card.locator('button,a').count(),0);await page.locator('#bundlePurchaseActions [data-quick-renew]').waitFor();
+  const terminal=await (await context.request.get(api+'/api/account/bundle-status',{headers:{origin:portal,'cf-connecting-ip':'203.0.113.10'}})).json();
+  await page.route('**/api/account/bundle-status',route=>route.fulfill({json:{...terminal,observedAt:new Date(Date.parse(terminal.observedAt)-60000).toISOString(),activeId:'v1',bundle:{...terminal.bundle,status:'active',usedBytes:0,remainingBytes:1e9},purchase:{allowed:false}}}),{times:1});await update(true);assert.match(await card.locator('[data-bundle-status]').textContent(),/Data exhausted/);
+  await page.reload();await card.locator('[data-bundle-status]').filter({hasText:'Data exhausted'}).waitFor();assert.equal(await card.locator('button,a').count(),0);assert.deepEqual(errors,[]);
+  console.log('PASS confirmed exhaustion enables only outside actions; old replies and history reload cannot restore an active card at '+width+'px');
+  await page.evaluate(()=>{location.hash='account';});await page.locator('[data-portal-view="home"]').waitFor({state:'hidden'});const otherViewReads=reads;await page.clock.runFor(45000);assert.equal(reads,otherViewReads);
+  await page.evaluate(()=>{location.hash='home';});await page.clock.runFor(10);await page.locator('[data-portal-view="home"]').waitFor({state:'visible'});
+  await f.store.transaction(s=>{s.vouchers=[];});await update();await card.getByRole('heading',{name:'No active bundle'}).waitFor();assert.equal(await card.locator('button,a').count(),0);await page.locator('#bundlePurchaseActions').getByRole('link',{name:'Choose a bundle'}).waitFor();
+  console.log('PASS other dashboard views stop bundle reads and empty accounts retain an informational card at '+width+'px');
+  await context.close();
+ }
+}finally{if(browser)await browser.close();await f.close();await new Promise(r=>{server.close(r);server.closeAllConnections();});}

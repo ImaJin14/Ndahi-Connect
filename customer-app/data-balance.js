@@ -1,77 +1,34 @@
-import { formatDataBalance, dataWarning, formatExpiryCountdown, fuelStatusClass } from "/shared/data-usage.js";
-import { runButton } from "/shared/pending.js";
-
+import { activeBundleContent } from './active-bundle.js';
+import { formatExpiryCountdown } from '/shared/data-usage.js';
+import { automaticPoll } from './automatic-poll.js';
 let stopPrevious;
-export function mountDataBalance({ call, voucher }) {
-  stopPrevious?.();
-  const host = document.getElementById("dataBalance"), message = document.getElementById("dataBalanceMessage"), button = document.getElementById("refreshDataBalance");
-  if (!host || !message || !button || !voucher) return;
-  let checking = false, timer;
-
-  function updateGauge(v, remaining, percent) {
-    const status = fuelStatusClass(remaining, v.quotaBytes);
-    const fill = host.querySelector(".fuel-fill");
-    if (fill) {
-      const circumference = 301.59;
-      const remainingPct = v.quotaBytes === null ? 100 : Math.max(0, 100 - percent);
-      const offset = (circumference * (100 - remainingPct) / 100).toFixed(2);
-      fill.style.strokeDashoffset = offset;
-      fill.classList.remove("fuel-good", "fuel-warning", "fuel-danger", "fuel-unlimited");
-      fill.classList.add(status);
-    }
-    const svg = host.querySelector(".fuel-gauge-svg");
-    if (svg) {
-      svg.setAttribute("aria-label", `${formatDataBalance(remaining)} remaining out of ${v.quotaBytes ? formatDataBalance(v.quotaBytes) : "unlimited"}`);
-    }
-  }
-
-  function draw(v) {
-    const remaining = v.quotaBytes === null ? null : Math.max(0, v.quotaBytes - v.usedBytes);
-    const percent = v.quotaBytes ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : 0;
-    const level = dataWarning(v);
-
-    const remainingEl = host.querySelector("[data-remaining-data]");
-    if (remainingEl) remainingEl.textContent = formatDataBalance(remaining);
-    const fuelRemainingEl = host.querySelector("[data-fuel-remaining]");
-    if (fuelRemainingEl) fuelRemainingEl.textContent = formatDataBalance(remaining);
-
-    const usedEl = host.querySelector("[data-used-data]");
-    if (usedEl) usedEl.textContent = percent.toFixed(1) + "%";
-
-    const countdown = host.querySelector("[data-expiry-countdown]");
-    if (countdown && v.expiresAt) {
-      countdown.textContent = formatExpiryCountdown(v.expiresAt) || "Active";
-    }
-
-    const progress = host.querySelector("progress");
-    if (progress) {
-      progress.value = percent;
-      progress.setAttribute("aria-label", percent.toFixed(1) + "% of bundle used");
-    }
-
-    updateGauge(v, remaining, percent);
-
-    const age = Date.now() - Date.parse(v.lastUsageSyncAt), fresh = age >= -5000 && age <= 120000 && !(Date.parse(v.lastUsageSyncAt) < Date.parse(v.activatedAt));
-    const warning = v.status === "expired" ? "This bundle's time has expired. Choose a plan to reconnect." : level === "100" ? "Your bundle's data is used up. Renew or choose another plan." :
-      level === "low" ? "Low data: " + formatDataBalance(remaining) + " left. Renew before your data runs out." : level === "90" ? "You've used over 90% of your shared bundle. Plan a renewal before data runs out." : "";
-    message.textContent = (fresh ? "" : "Last recorded balance; current router readings are unavailable or out of date. ") + warning;
-    message.hidden = !message.textContent;
-  }
-  async function refresh() {
-    if (checking || document.hidden) return;
-    checking = true;
-    try {
-      const result = await call("/api/account/dashboard"), current = result.vouchers.find((v) => v.id === voucher.id);
-      if (result.activeBundle && result.activeBundle.id !== voucher.id) { message.hidden = false; message.textContent = "Your bundle changed. Refresh the dashboard to see the new allocation."; return; }
-      if (current) draw(current);
-    } catch (_) { message.hidden = false; message.textContent = "Current balance could not be checked. The displayed balance may be out of date. Try Refresh balance again."; }
-    finally { checking = false; }
-  }
-  draw(voucher);
-  button.onclick = () => void runButton(button, "Checking…", refresh);
-  const poll = () => { clearInterval(timer); timer = setInterval(() => { if (!["", "#home"].includes(location.hash)) return; void refresh(); }, 15000); };
-  const visibility = () => { if (!document.hidden && ["", "#home"].includes(location.hash)) void refresh(); };
-  document.addEventListener("visibilitychange", visibility); window.addEventListener("pageshow", poll); window.addEventListener("pagehide", () => clearInterval(timer), { once: true });
-  stopPrevious = () => { clearInterval(timer); document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pageshow", poll); };
-  poll();
+export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
+  if(stopPrevious)stopPrevious();
+  const host=document.getElementById('dataBalance');if(!host)return;
+  let snapshot=initial,stopped=false,inPage=true,failures=0,countdown,serverTime=initial?Date.parse(initial.observedAt):Date.now(),anchor=performance.now(),expiredRequest=false;
+  const relevant=()=>!stopped&&inPage&&host.isConnected&&!document.hidden&&navigator.onLine!==false&&!host.closest('[hidden]');
+  const now=()=>serverTime+performance.now()-anchor;
+  const draw=(paused=false)=>{if(!stopped&&host.isConnected){host.innerHTML=activeBundleContent(snapshot,{now:now(),unavailable:failures>0,paused});host.dataset.bundleObservedAt=snapshot?snapshot.observedAt:'';}};
+  const tick=()=>{
+    clearTimeout(countdown);if(!relevant())return;
+    const v=snapshot&&snapshot.bundle;
+    if(v&&v.status==='active'&&Date.parse(v.expiresAt)<=now()&&!expiredRequest){expiredRequest=true;draw();onSnapshot(null);poll.wake();}
+    const pill=host.querySelector('[data-expiry-countdown]');
+    if(pill&&v)pill.textContent=formatExpiryCountdown(v.expiresAt,now())||'Expiry unavailable';
+    countdown=setTimeout(tick,1000);
+  };
+  const poll=automaticPoll({active:relevant,delay:()=>failures?Math.min(60000,15000*2**(failures-1)):15000,onPause:()=>{clearTimeout(countdown);draw(true);onSnapshot(null);},run:async context=>{
+    try{const next=await call('/api/account/bundle-status',{signal:context.signal,cache:'no-store'});
+      if(!context.current())return;
+      if(next.version!==1||!Number.isFinite(Date.parse(next.observedAt)))throw Error('Invalid bundle evidence');
+      if(snapshot&&Date.parse(next.observedAt)<Date.parse(snapshot.observedAt))return;
+      snapshot=next;serverTime=Date.parse(next.observedAt);anchor=performance.now();failures=0;expiredRequest=false;draw();onSnapshot(next);tick();
+    }catch(e){if(context.current()){failures++;draw();onSnapshot(null);}}
+  }});
+  const wake=()=>{clearTimeout(countdown);if(!host.isConnected)return stop();poll.wake();if(relevant()){draw();tick();}};
+  const pageHide=()=>{inPage=false;poll.pause();clearTimeout(countdown);};
+  const pageShow=()=>{inPage=true;wake();};
+  const stop=()=>{stopped=true;poll.stop();clearTimeout(countdown);document.removeEventListener('visibilitychange',wake);window.removeEventListener('pagehide',pageHide);window.removeEventListener('pageshow',pageShow);for(const event of ['online','offline','hashchange'])window.removeEventListener(event,wake);};
+  document.addEventListener('visibilitychange',wake);window.addEventListener('pagehide',pageHide);window.addEventListener('pageshow',pageShow);for(const event of ['online','offline','hashchange'])window.addEventListener(event,wake);
+  draw();tick();poll.start();stopPrevious=stop;return stop;
 }
