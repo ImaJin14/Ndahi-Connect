@@ -37,7 +37,7 @@ $("#verify").onsubmit = async event => {
         : { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin };
       await completeSignIn(api, "/api/account/setup/pin", input, challenge.phone);
       sessionStore.remove("ndahi-login-challenge");
-      location.href = afterSignInPath();
+      location.replace(await afterSignInPath());
     });
   } catch (error) { showError($("#message"), error); }
 };

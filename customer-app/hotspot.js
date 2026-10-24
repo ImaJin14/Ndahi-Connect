@@ -1,3 +1,6 @@
+import { customerDestination } from "./customer-destination.js";
+import { fetchConnectivity } from "./connectivity.js";
+import { withWifiHint } from "./hotspot-path.js";
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
@@ -9,10 +12,7 @@ const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin
   button = document.getElementById("connect"), message = document.getElementById("message"),
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);
 let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll, controlsMounted = false, watchedDisconnect;
-try {
-  const next = new URL(params.get("next") || "/dashboard", location.origin);
-  if (next.origin === location.origin && !/^\/(?:hotspot|login)(?:[/.]|$)/.test(next.pathname)) destination = next;
-} catch (_) { /* Keep the fixed account destination. */ }
+destination = new URL(customerDestination(params.get("next")), location.origin);
 
 
 async function protectedConnect(proof = {}) {
@@ -24,6 +24,7 @@ async function protectedConnect(proof = {}) {
   const account = await requestJson(config.apiUrl + "/api/account/dashboard", { credentials: "include", cache: "no-store" });
   if (account.response.status === 401) {
     const login = new URL("/login", location.origin); login.searchParams.set("mac", hint.mac); login.searchParams.set("address", hint.address);
+    saveReturnPath(destination.pathname + destination.search + destination.hash);
     location.replace(login.href); return;
   }
   if (!account.response.ok) throw responseError(account.response, account.body);
@@ -215,4 +216,21 @@ if (!config.hotspotLoginUrl) location.replace(destination.href);
 else if (params.has("router-error")) {
   message.textContent = "Wi-Fi login was not accepted. Stay on NDAHI Wi-Fi and try again. If this continues, contact support.";
   refreshDevices(true).catch(() => {});
-} else void connect();
+} else void (async () => {
+  // Onboarding also arrives here after a paid account renewal. Complete only
+  // necessary Wi-Fi work; an existing connection or an uncertain request path
+  // goes to the dashboard without asserting internet success.
+  try {
+    const evidence = await fetchConnectivity(config.apiUrl);
+    if (evidence.account.state !== "authenticated") {
+      saveReturnPath(destination.pathname + destination.search + destination.hash);
+      location.replace(withWifiHint("/login")); return;
+    }
+    if (evidence.network.state !== "confirmed" || evidence.hotspot.state === "authenticated" || !wifiHint()) { location.replace(destination.href); return; }
+    if (["expired", "exhausted", "none"].includes(evidence.subscription.state)) { location.replace("/dashboard#bundles"); return; }
+    await connect();
+  } catch (error) {
+    if (!wifiHint()) { location.replace(destination.href); return; }
+    showError(message, error, { actions: [{ label: "Try connecting again", run: connect }, { label: "Open dashboard", run: () => location.replace(destination.href) }] });
+  }
+})();

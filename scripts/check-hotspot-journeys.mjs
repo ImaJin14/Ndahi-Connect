@@ -41,6 +41,9 @@ try {
       if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
       let status = 200, body = {};
       if (url.pathname === "/api/authentication-policy") body = { authenticatorRetired: true, supportedCustomerMethods: ["pin", "passkey"], supportedAdminMethods: ["password", "passkey"] };
+      if (url.pathname === "/api/account/connectivity") body = { version: 1, expiresAt: new Date(Date.now() + 45000).toISOString(),
+        account: { state: unauthorized ? "signed-out" : "authenticated" }, network: { state: outside ? "unconfirmed" : "confirmed" },
+        subscription: { state: "active" }, router: { state: "reachable" }, hotspot: { state: "unauthenticated" } };
       if (url.pathname === "/api/purchase/access") body = { allowed: !outside };
       if (url.pathname === "/api/account/access/begin") {
         if (slowStart) await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -88,7 +91,7 @@ try {
     } finally { await context.close(); }
   }
   await scenario("portal sign-in waits for provisioning then posts credentials to the fixed HTTPS router", async ({ page, posts, credentials }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
@@ -109,7 +112,7 @@ try {
     assert.equal(posts.length, 1);
   });
   await scenario("sign-in outside NDAHI Wi-Fi opens the account without contacting the local router", async ({ page, posts, credentials }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
@@ -141,23 +144,23 @@ try {
     assert.equal(await page.locator("#wifiDevices").isHidden(), true);
   });
   await scenario("a used-up bundle offers renewal instead of sending credentials", async ({ page, posts }) => {
-    await page.goto(`${portal}/hotspot`);
+    await page.goto(`${portal}/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.getByText("Your bundle's data is used up.", { exact: false }).waitFor();
     await page.getByRole("button", { name: "Renew or switch plan", exact: true }).waitFor();
     assert.equal(posts.length, 0);
   }, { exhausted: true });
   await scenario("expired customer sessions return to portal sign-in without sending credentials", async ({ page, posts }) => {
-    await page.goto(`${portal}/hotspot`);
-    await page.waitForURL(`${portal}/login`);
+    await page.goto(`${portal}/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
+    await page.waitForURL(url => url.pathname === "/login");
     assert.equal(posts.length, 0);
   }, { unauthorized: true });
   await scenario("untrusted return destinations cannot redirect credentials or post-login navigation", async ({ page, posts }) => {
-    await page.goto(`${portal}/hotspot?next=${encodeURIComponent("https://outside.test/steal")}`);
+    await page.goto(`${portal}/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30&next=${encodeURIComponent("https://outside.test/steal")}`);
     await page.waitForURL(login);
     assert.equal(posts[0].fields.dst, `${portal}/dashboard`);
   });
   await scenario("older browsers can sign in without storage, newer timeout APIs or the optional passkey download", async ({ page, posts }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
@@ -175,7 +178,7 @@ try {
     await page.getByText("2 of 2 device slots in use", { exact: false }).waitFor();
   }, { fullSlots: true, failedDisconnect: true });
   await scenario("a failed sign-in still shows a useful error without newer DOM APIs", async ({ page, posts }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
@@ -191,7 +194,7 @@ try {
     assert.equal(completions(),0);assert.equal(posts.length,0);
   },{storageDenied:true,missingModern:true});
   await scenario("a lost PIN completion response recovers the expected account without replaying its challenge", async ({ page, posts, completions }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
@@ -202,7 +205,7 @@ try {
     assert.equal(posts.length, 1);
   }, { lostCompletion: true });
   await scenario("a prior session for another account cannot recover an uncertain sign-in", async ({ page, posts, completions }) => {
-    await page.goto(`${portal}/login`);
+    await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
     await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
