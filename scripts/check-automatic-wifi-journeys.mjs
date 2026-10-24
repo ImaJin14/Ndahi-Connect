@@ -81,7 +81,13 @@ try {
   assert.match(await card.locator('[data-current-message]').textContent(), /The router session changed/);
   assert.equal(disconnects[1].sessionId, '*replacement');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  assert.equal(await card.locator('.current-wifi-indicator').evaluate(e => getComputedStyle(e).animationName), 'none');
+  // Polling can replace an indicator between locator resolution and evaluation.
+  // Check the current attached node, so an empty style on an old node is not
+  // mistaken for a reduced-motion regression.
+  await page.waitForFunction(() => {
+    const indicator = document.querySelector('#card .current-wifi-indicator');
+    return indicator && indicator.isConnected && getComputedStyle(indicator).animationName === 'none';
+  });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await page.evaluate(() => { document.querySelector('[data-portal-view]').hidden = true; window.dispatchEvent(new Event('hashchange')); });
   const irrelevantReads = reads; await page.clock.runFor(60000); assert.equal(reads, irrelevantReads);
