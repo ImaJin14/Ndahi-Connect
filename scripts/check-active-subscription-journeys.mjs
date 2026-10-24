@@ -84,8 +84,9 @@ try {
     await page.locator("#loginSubmit").click(); await page.locator("#customerPin").fill(pin); await page.locator("#loginSubmit").click();
     await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Weekly", { exact: true }).waitFor();
     assert.equal((await store.snapshot()).payments.length, 1);
+    await page.locator("#manageDevices summary").click();
     await page.locator("#connectDevice button").click();
-    await page.getByText("Device connected.", { exact: false }).waitFor();
+    await page.getByText("Connected successfully.", { exact: false }).waitFor();
   }, { signedIn: false });
   for (const state of ["expired", "exhausted"]) await scenario(`${state} customer can buy a fresh package and preserves history`, async (page) => {
     await store.transaction((s) => {
@@ -103,7 +104,9 @@ try {
   await scenario("a bundle activated after page load is protected against a stale checkout and focus recheck", async (page) => {
     await exhaust(); await page.goto(portal + "/onboarding.html?action=renew&plan=weekly");
     await page.locator("#checkout").waitFor();
-    await store.transaction((s) => { s.vouchers[0].usedBytes = 0; });
+    await store.transaction((s) => {
+      s.vouchers.unshift({ ...s.vouchers[0], id: randomUUID(), paymentId: undefined, status: "active", usedBytes: 0 });
+    });
     await page.locator('[name="acknowledge"]').check(); await page.locator("#requestPayment").click();
     await page.getByRole("button", { name: "Use existing bundle" }).waitFor();
     assert.equal(await page.locator("#requestPayment").isDisabled(), true);

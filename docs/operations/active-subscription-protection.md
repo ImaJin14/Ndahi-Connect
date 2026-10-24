@@ -5,7 +5,8 @@ Issue: [#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132)
 Customers keep their current usable allowance. Guest checkout (including the
 legacy upgrade flag), authenticated renewal and switching cannot replace an
 active bundle. The same rule is checked inside reservation and settlement
-transactions. An old `replaceVoucherId` is not an exemption.
+transactions, with a further eligibility check before provider submission. An old
+`replaceVoucherId` is not an exemption.
 
 ## Eligibility
 
@@ -18,7 +19,8 @@ already received payments to need review before activation.
 
 The existing lifecycle cleanup marks expired/exhausted vouchers and queues their
 network removal. A new purchase does not rewrite those historical records as an
-early renewal/switch. Full catalogue prices, validity starting at verified
+early renewal/switch. New payment records snapshot billing policy version `2026-10-24`; historical
+receipts keep their existing policy. Full catalogue prices, validity starting at verified
 payment and the Daily seven-day eligibility rule remain in effect.
 
 ## Checkout and recovery

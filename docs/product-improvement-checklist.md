@@ -114,7 +114,7 @@ Use this document as the source of truth for product, engineering, security, and
 
 - [-] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
   - Implemented: shared server-time/quota eligibility blocks customer purchase/renew/switch/legacy upgrade while active; settlement ignores legacy replacement exemptions and retains paid conflicts for support review. Dashboard/onboarding suppress new-purchase controls and offer private sign-in/reconnect guidance. Existing pending expiry/recovery and explicit audited admin replacement are preserved.
-  - Local validation: 893 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending CI. Browser and final CI verification are in progress; no production rollout or physical/provider test is claimed by this entry.
+  - Local validation: 894 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending CI. All 20 new active-subscription browser scenarios plus 28 billing, 21 account and 14 coverage scenarios passed; eligible-plan and final CI verification are in progress; no production rollout or physical/provider test is claimed by this entry.
   - Release and exact validation evidence are tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
 
 - [x] **PAY-001 — Add automated payment reconciliation**
