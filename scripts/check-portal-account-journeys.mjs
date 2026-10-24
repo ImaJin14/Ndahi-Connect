@@ -310,6 +310,7 @@ try {
     await page.locator('#linkEmail [type="submit"]').click(); await page.locator('#confirmEmail').waitFor();
     await page.reload(); await page.locator('#confirmEmail').waitFor();
     await page.screenshot({ path: `${screenshots}/email-confirm-mobile.png`, fullPage: true });
+    await server.listeners("request")[0].transactionalEmails.run();
     await page.locator('#confirmEmail [name="code"]').fill(verificationCodes.get('linked@example.test'));
     await page.locator('#confirmEmail [type="submit"]').click();
     await page.getByText('Email linked. Email updates are enabled. Your other portal sessions were signed out.', { exact: true }).waitFor();
@@ -336,6 +337,7 @@ try {
     await page.route('**/api/account/profile/email/confirm', async (route) => {
       submissions++; await route.fetch(); await route.abort('failed');
     });
+    await server.listeners("request")[0].transactionalEmails.run();
     await page.locator('#confirmEmail [name="code"]').fill(verificationCodes.get('passkey@example.test'));
     await page.locator('#confirmEmail [type="submit"]').click();
     await page.getByText('Email linked. Email updates are enabled. Your other portal sessions were signed out.', { exact: true }).waitFor();
