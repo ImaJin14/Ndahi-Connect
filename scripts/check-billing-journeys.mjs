@@ -523,6 +523,9 @@ try {
     let completions = 0;
     await page.route("**/api/account/setup/pin", async (route) => { completions++; await route.fetch(); await route.abort("failed"); });
     await page.getByRole("button", { name: "Create PIN and continue" }).click();
+    await page.waitForURL(/\/voucher-ready\.html/);
+    await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
     await page.waitForURL("**/dashboard");
     assert.equal(completions, 1);
     assert.equal((await context.cookies(api + "/api/account/setup")).some((c) => c.name === "checkout_setup"), false);

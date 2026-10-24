@@ -20,6 +20,11 @@ export function customerDestination(input, fallback = '/dashboard') {
       if (url.searchParams.get('setup') === 'passkey') clean.searchParams.set('setup', 'passkey');
       const main = url.searchParams.get('main-device');
       if (/^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(main || '')) clean.searchParams.set('main-device', main.toUpperCase());
+    } else if (url.pathname === '/voucher-ready.html') {
+      clean.pathname = '/voucher-ready.html';
+      const payment = url.searchParams.get('payment');
+      if (payment && !/^[A-Za-z0-9_-]{1,100}$/.test(payment)) return fallback;
+      if (payment) clean.searchParams.set('payment', payment);
     } else if (['/onboarding','/onboarding.html'].includes(url.pathname) && ['renew','switch'].includes(url.searchParams.get('action'))) {
       clean.pathname = '/onboarding.html'; clean.searchParams.set('action', url.searchParams.get('action'));
       const plan = url.searchParams.get('plan');
@@ -33,6 +38,7 @@ export function customerEntry({ next, evidence, accountOnly, hasCandidate, hotsp
   const target = customerDestination(next);
   const fresh = evidence && evidence.version === 1 && Number.isFinite(Date.parse(evidence.expiresAt)) && Date.parse(evidence.expiresAt) > now;
   if (!fresh || !evidence.account || !evidence.network || !evidence.subscription || !evidence.router || !evidence.hotspot || evidence.account.state !== 'authenticated') return target;
+  if (target.startsWith('/voucher-ready.html')) return target; // retain the voucher before connection handoff
   const inside = evidence.network.state === 'confirmed';
   if (inside && ['expired','exhausted','none'].includes(evidence.subscription.state) && target === '/dashboard') return '/dashboard#bundles';
   if (!accountOnly && hotspotEnabled && hasCandidate && inside && evidence.subscription.state === 'active' && evidence.router.state === 'reachable' && evidence.hotspot.state !== 'authenticated') {
