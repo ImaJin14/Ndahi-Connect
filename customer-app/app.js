@@ -1,3 +1,4 @@
+import { mountConnectivityBanner } from "./connectivity.js";
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus, networkBannerState } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -31,6 +32,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   })(),
   fmt = formatDataBalance,
   securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
+let stopConnectivity = () => {};
 let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
 let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
 try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
@@ -220,6 +222,7 @@ async function load() {
   const circumference = 301.59;
   const dashOffset = (circumference * (100 - remainingPct) / 100).toFixed(2);
   const countdown = active?.expiresAt ? formatExpiryCountdown(active.expiresAt) : null;
+  stopConnectivity();
   $("#dashboard").innerHTML = `${netBannerMarkup}${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <section class="surface" id="dataBalance"><div class="data-balance-header"><p class="eyebrow">Active bundle</p>${countdown ? `<span class="expiry-pill" data-expiry-countdown title="Bundle expiry">${h(countdown)}</span>` : ""}</div><h2>${active ? h(active.plan.name) : "No active bundle"}</h2>${active ? `<div class="fuel-gauge-container"><div class="fuel-gauge-visual"><svg class="fuel-gauge-svg" viewBox="0 0 120 120" role="img" aria-label="${h(fmt(active.remainingBytes))} remaining out of ${active.quotaBytes ? h(fmt(active.quotaBytes)) : 'unlimited'}"><circle class="fuel-track" cx="60" cy="60" r="48" fill="none" stroke-width="10" /><circle class="fuel-fill ${statusClass}" cx="60" cy="60" r="48" fill="none" stroke-width="10" stroke-dasharray="301.59" stroke-dashoffset="${dashOffset}" stroke-linecap="round" transform="rotate(-90 60 60)" /></svg><div class="fuel-gauge-center"><b class="fuel-remaining-value" data-fuel-remaining>${h(fmt(active.remainingBytes))}</b><small class="fuel-remaining-label">${active.quotaBytes === null ? "Data" : "Left"}</small></div></div><div class="fuel-gauge-info"><div class="stats"><div class="stat"><b data-remaining-data>${h(fmt(active.remainingBytes))}</b><small>Remaining</small></div><div class="stat"><b data-used-data>${h(usage.toFixed(1))}%</b><small>Used</small></div><div class="stat"><b>${h(new Date(active.expiresAt).toLocaleDateString())}</b><small>Expires</small></div></div></div></div><progress class="usage-progress" max="100" value="${h(usage)}" aria-label="${h(usage.toFixed(1))}% of bundle used"></progress><p id="dataBalanceMessage" class="usage-notice" role="status" hidden></p><div class="data-balance-actions"><button type="button" class="secondary-action" id="refreshDataBalance">Refresh balance</button><a class="button secondary-action" href="/dashboard#bundles">All plans</a></div>${provisioningNotice}` : `<p>${h(emptyBundleMessage)}</p>${canPurchase && current?.plan && !current.plan.discontinued ? `<div class="data-balance-actions"><button type="button" class="button" data-quick-renew="${h(current.plan.id)}">Quick renew ${h(current.plan.name)}</button><a class="button secondary-action" href="/dashboard#bundles">All plans</a></div>` : ""}`}</section>
     ${active && active.quotaBytes !== null ? '<section class="surface" id="usageAlerts"><h2>Usage alerts</h2><p>Warnings at 90% used and around 2 MB remaining help you plan a renewal. Manage browser permission and delivery preferences in Notifications.</p><button type="button" id="manageUsageAlerts">Manage data alerts</button></section>' : ""}
@@ -239,6 +242,7 @@ async function load() {
     ${vouchersCard(result.vouchers)}
     <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
   </div>`;
+  stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
   latestDashboard = result;
   mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
   mountNameChange({ call, onChanged: async () => { await load(); $("#dashboardMessage").textContent = "Your display name was updated."; } });
@@ -483,7 +487,8 @@ async function refreshPaymentRecords() {
     });
     const pending = result.payments.find((p) => ["pending", "processing"].includes(p.status)), card = $("#pendingPayment");
     if (card) { card.hidden = !pending; card.innerHTML = pending ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pending)}<a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a>` : ""; }
-    latestDashboard = result;
+    stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
+  latestDashboard = result;
     mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
   } finally { refreshingPayments = false; }
 }

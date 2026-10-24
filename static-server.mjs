@@ -30,7 +30,7 @@ export function createStaticServer(
   const reportUrl = `${apiUrl.replace(/\/$/, "")}/api/csp-report`,
     csp = [
       "default-src 'self'",
-      `connect-src 'self' ${apiUrl}`,
+      `connect-src 'self' ${apiUrl}${kind === 'customer' ? ' https://www.cloudflare.com' : ''}`,
       "style-src 'self' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",

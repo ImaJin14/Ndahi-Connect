@@ -47,50 +47,9 @@ test("fuelStatusClass assigns proper status color classes based on remaining rat
   assert.equal(fuelStatusClass(10e9, 10e9), "fuel-good"); // 100%
 });
 
-test("networkBannerState distinguishes active, captive and off-network states truthfully", () => {
-  // 1. Off-network / mobile data
-  const offNet = networkBannerState({
-    purchaseAccess: { allowed: false, message: "Connect to NDAHI Wi-Fi" },
-    active: { status: "active" },
-  });
-  assert.equal(offNet.status, "off-network");
-  assert.equal(offNet.badge, "Mobile Data / Off-network");
-  assert.match(offNet.message, /Viewing via Mobile Data/);
-  assert.ok(offNet.actionHref);
-
-  // 2. Pre-Auth captive on Wi-Fi without active bundle
-  const captiveNoBundle = networkBannerState({
-    purchaseAccess: { allowed: true },
-    active: null,
-  });
-  assert.equal(captiveNoBundle.status, "pre-auth");
-  assert.equal(captiveNoBundle.badge, "Pre-Auth Captive");
-  assert.match(captiveNoBundle.message, /Select a bundle or enter voucher/);
-
-  // 3. Pre-Auth captive with expired bundle
-  const captiveExpired = networkBannerState({
-    purchaseAccess: { allowed: true },
-    active: { status: "expired", remainingBytes: 0 },
-  });
-  assert.equal(captiveExpired.status, "pre-auth");
-  assert.equal(captiveExpired.badge, "Pre-Auth Captive");
-
-  // 4. Connected & Active on Wi-Fi with normal Starlink connection
-  const activeOnline = networkBannerState({
-    purchaseAccess: { allowed: true },
-    active: { status: "active", remainingBytes: 5e9 },
-    zone: { status: "online" },
-  });
-  assert.equal(activeOnline.status, "active");
-  assert.equal(activeOnline.badge, "Connected & Active");
-  assert.match(activeOnline.message, /Starlink Active/);
-
-  // 5. Connected & Active with degraded upstream
-  const activeDegraded = networkBannerState({
-    purchaseAccess: { allowed: true },
-    active: { status: "active", remainingBytes: 5e9 },
-    zone: { status: "degraded" },
-  });
-  assert.equal(activeDegraded.status, "active");
-  assert.match(activeDegraded.message, /Network degraded/);
+test("a plan or purchase coverage flag alone cannot claim Wi-Fi, paid authorization or a Starlink model", () => {
+  for (const active of [null,{status:"active",remainingBytes:5e9}]) for(const allowed of [true,false]) {
+    const result=networkBannerState({purchaseAccess:{allowed},active,zone:{status:"online"}});
+    assert.equal(result.status,"unknown");assert.doesNotMatch(result.message,/Starlink Active|Connected to NDAHI|Viewing via Mobile Data/);
+  }
 });
