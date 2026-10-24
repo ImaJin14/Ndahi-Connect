@@ -120,10 +120,12 @@ try {
   await owner.getByRole("button", { name: /^Notifications/ }).click();
   await owner.evaluate(async () => {
     await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
-    window.syntheticPush = { permissionCalls: 0, active: false, allowed: false, subscribed: false };
+    window.syntheticPush = { permission: "default", permissionCalls: 0, active: false, allowed: false, subscribed: false };
+    Object.defineProperty(Notification, "permission", { configurable: true, get: () => syntheticPush.permission });
     Notification.requestPermission = async () => {
       syntheticPush.permissionCalls++; syntheticPush.active = navigator.userActivation.isActive;
-      return syntheticPush.allowed ? "granted" : "denied";
+      syntheticPush.permission = syntheticPush.allowed ? "granted" : "denied";
+      return syntheticPush.permission;
     };
     const subscription = { endpoint: "https://fcm.googleapis.com/fcm/send/synthetic", keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) } };
     const target = { toJSON: () => subscription, endpoint: subscription.endpoint, unsubscribe: async () => { syntheticPush.subscribed = false; return true; } };
@@ -137,7 +139,7 @@ try {
   await panel.getByText("Allow notifications in your browser settings, or keep using the in-app inbox.", { exact: true }).waitFor();
   assert.equal(await owner.evaluate(() => syntheticPush.active), true);
   assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions?.length || 0, 0);
-  await owner.evaluate(() => { syntheticPush.allowed = true; });
+  await owner.evaluate(() => { syntheticPush.allowed = true; syntheticPush.permission = "default"; });
   await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
   await panel.getByText("Browser notifications enabled on this device.", { exact: true }).waitFor();
   assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions.length, 1);
