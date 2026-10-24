@@ -274,3 +274,5 @@ header .brand,
 .current-wifi-pending .current-wifi-indicator{background:#a27400;animation:wifi-pulse 1.4s ease-in-out infinite}
 @keyframes wifi-pulse{50%{box-shadow:0 0 0 .28rem color-mix(in srgb,currentColor 15%,transparent);opacity:.65}}
 @media(prefers-reduced-motion:reduce){.current-wifi-indicator{animation:none!important}}
+
+.bundle-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:0}.bundle-facts div{min-width:0}.bundle-facts dt{font-size:.8rem;opacity:.8}.bundle-facts dd{margin:.2rem 0 0;font-weight:700;overflow-wrap:anywhere}.fuel-unknown{stroke:#75857c}@media(max-width:420px){.bundle-facts{grid-template-columns:1fr}}
