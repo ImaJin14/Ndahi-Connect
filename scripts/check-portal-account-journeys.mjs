@@ -301,7 +301,9 @@ try {
     await page.locator('#requestPayment').click(); await page.locator('#confirm').click();
     await page.waitForURL('**/verify.html?setup=checkout');
     await page.locator('#primary').fill('2468'); await page.locator('#confirm').fill('2468');
-    await page.locator('#submitLabel').click(); await page.waitForURL('**/dashboard');
+    await page.locator('#submitLabel').click(); await page.waitForURL(/\/voucher-ready\.html/);
+    await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
+    await page.getByRole('link', { name: 'Continue to Dashboard / Wi-Fi', exact: true }).click(); await page.waitForURL('**/dashboard');
     await page.locator('[data-portal-tab="account"]').click(); await page.getByText('Link email', {exact:true}).click(); await page.locator('#linkEmail').waitFor();
     const before = (await store.snapshot()).customers.find((c) => c.phone === '670050188');
     assert.equal(before.email, ''); assert.equal(before.emailVerificationRequired, true);

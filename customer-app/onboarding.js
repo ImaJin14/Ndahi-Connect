@@ -1,3 +1,4 @@
+import { purchaseVoucherDestination } from "./voucher-delivery.js";
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -328,7 +329,7 @@ async function recoverSavedCheckout(saved) {
       try {
         const setup = await exchangeSetup(saved.paymentId, saved.requestKey);
         clearRequestKey();
-        location.href = withWifiHint(setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout");
+        location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(purchaseVoucherDestination(saved.paymentId)) : "/verify.html?setup=checkout");
         return null;
       } catch { /* Expired/unknown requests retain neutral payment guidance below. */ }
     }
@@ -557,7 +558,7 @@ async function beginAccountSecurity(paid, phone) {
   if (accountAction) {
     clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
-    location.href = window.NDAHI_CONFIG.hotspotLoginUrl ? withWifiHint("/hotspot") : "/dashboard";
+    location.href = withWifiHint(purchaseVoucherDestination(paid.payment.id));
     return;
   }
   const emailMessage = paid.email?.status === "sent"
@@ -569,7 +570,7 @@ async function beginAccountSecurity(paid, phone) {
   const setup = await exchangeSetup(paid.payment.id, requestKey);
   clearRequestKey();
   sessionStore.remove("ndahi-login-challenge");
-  location.href = withWifiHint(setup.mode === "login" ? "/login?payment=confirmed" : "/verify.html?setup=checkout");
+  location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(purchaseVoucherDestination(paid.payment.id)) : "/verify.html?setup=checkout");
 }
 async function checkPayment(paymentId, phone) {
   if (!accountAction && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {

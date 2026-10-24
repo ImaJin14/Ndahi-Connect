@@ -1,5 +1,6 @@
 import { ApiError, showError } from "./errors.js";
-import { afterSignInPath } from "./hotspot-path.js";
+import { purchaseVoucherDestination } from "./voucher-delivery.js";
+import { withWifiHint, afterSignInPath } from "./hotspot-path.js";
 import { formValues, sessionStore, markReady, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { completeSignIn } from "./sign-in-request.js";
@@ -37,7 +38,7 @@ $("#verify").onsubmit = async event => {
         : { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin };
       await completeSignIn(api, "/api/account/setup/pin", input, challenge.phone);
       sessionStore.remove("ndahi-login-challenge");
-      location.replace(await afterSignInPath());
+      location.replace(checkoutSetup && challenge && challenge.paymentId ? withWifiHint(purchaseVoucherDestination(challenge.paymentId)) : await afterSignInPath());
     });
   } catch (error) { showError($("#message"), error); }
 };
@@ -45,7 +46,7 @@ if (checkoutSetup) {
   sessionStore.remove("ndahi-login-challenge"); challenge = null;
   requestJson(api + "/api/account/setup/checkout", { credentials: "include", cache: "no-store" }).then(result => {
     if (!result.response.ok) throw new ApiError(result.response.status, result.body.error || "Setup access has expired.");
-    challenge = { checkoutSetup: true, setupPin: true, phone: result.body.phone, expiresAt: result.body.expiresAt }; showSetup();
+    challenge = { checkoutSetup: true, setupPin: true, paymentId: result.body.paymentId, phone: result.body.phone, expiresAt: result.body.expiresAt }; showSetup();
   }).catch(error => { showSignIn(); showError($("#message"), error); });
 } else if (challenge) showSetup();
 else showSignIn();

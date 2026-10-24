@@ -96,7 +96,7 @@ try {
     await page.goto(portal + "/onboarding.html?action=switch&plan=monthly");
     await page.locator("#checkout").waitFor(); await page.locator('[name="acknowledge"]').check();
     await page.locator("#requestPayment").click(); await page.locator("#confirm").click();
-    await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Monthly", { exact: true }).waitFor();
+    await page.waitForURL(/\/voucher-ready\.html/); await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor(); await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click(); await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Monthly", { exact: true }).waitFor();
     const stored = await store.snapshot(); assert.equal(stored.payments.length, 2);
     assert.equal(stored.vouchers.find((v) => v.id === paid.body.voucher.id).status, state);
     assert.equal(stored.vouchers.filter((v) => v.status === "active").length, 1);

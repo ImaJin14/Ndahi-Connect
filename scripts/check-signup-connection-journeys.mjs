@@ -91,6 +91,10 @@ try {
   await owner.locator("#confirm").fill("2468");
   const connecting = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/connect") && r.status() === 202);
   await owner.locator("#submitLabel").click();
+  await owner.waitForURL(/\/voucher-ready\.html/);
+  await owner.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+  assert.equal(f.calls.length, 0, "voucher remains retrievable before connection begins");
+  await owner.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
   const connection = await connecting, queued = await connection.json();
   const firstOwnerKey = connection.request().postDataJSON().key;
   assert.equal(connection.request().postDataJSON().mac, ownerMac);

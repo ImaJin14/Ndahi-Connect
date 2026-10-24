@@ -202,6 +202,9 @@ try {
     assert.equal(await page.locator("[data-plan]:enabled").count(), 0);
     await post(`/api/payments/${pending.body.payment.id}/confirm`, {}, { "cf-connecting-ip": outside });
     await page.locator("#checkExisting").click();
+    await page.waitForURL(/\/voucher-ready\.html/);
+    await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
     await page.waitForURL(portal + "/dashboard");
     await page.getByText("Payment confirmed. Your new package is active.", { exact: true }).waitFor();
     assert.equal((await store.snapshot()).payments.length, baseline.payments.length + 1);
