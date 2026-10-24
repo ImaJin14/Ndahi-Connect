@@ -10,6 +10,7 @@ import { createPostgresStore } from "../lib/postgres-store.mjs";
 import { MockPaymentAdapter } from "../lib/payments.mjs";
 import { reservePurchase } from "../lib/domain/purchases.mjs";
 import { activeSubscription, subscriptionPurchaseAccess } from "../lib/subscription-policy.mjs";
+import { activationCode } from "../lib/security.mjs";
 
 const initialTime = new Date("2030-01-01T12:00:00Z"), number = "670132001";
 const voucher = (extra = {}) => ({ id: "existing", customerId: "owner", planId: "weekly", status: "active",
@@ -175,6 +176,20 @@ test("a reserved checkout cannot send a provider prompt after another bundle bec
   assert.equal(payment.status, "failed"); assert.equal(payment.creationState, "rejected");
   assert.match(payment.failureReason, /not submitted/); assert.equal(state.vouchers.length, 1);
   assert.equal(payment.receipt, undefined, "unsubmitted checkout is not a received payment");
+});
+
+test("an unauthenticated voucher claim never leaks bundle metadata if another bundle activates during PIN entry", async (t) => {
+  const f = await fixture(t), code = activationCode(); await f.exhaust();
+  await f.store.transaction((s) => { s.vouchers.push({ id: "unclaimed", code, status: "available", planId: "monthly" }); });
+  const begin = await f.call("/api/account/access/begin", { phone: number, code }, "");
+  assert.equal(begin.status, 200);
+  await f.store.transaction((s) => {
+    s.vouchers.unshift({ ...s.vouchers[0], id: "new-active", paymentId: undefined, usedBytes: 0, status: "active" });
+  });
+  const denied = await f.call("/api/account/access/complete", { token: begin.body.token, pin: String(randomInt(1000, 10000)) }, "");
+  assert.equal(denied.status, 409); assert.equal(denied.body.code, "ACTIVE_BUNDLE_EXISTS");
+  assert.deepEqual(Object.keys(denied.body).sort(), ["code", "error"]);
+  assert.equal((await f.store.snapshot()).vouchers.find((v) => v.id === "unclaimed").customerId, undefined);
 });
 
 test("simultaneous old/new confirmations activate once and preserve the other payment for review", async (t) => {

@@ -114,7 +114,7 @@ Use this document as the source of truth for product, engineering, security, and
 
 - [-] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
   - Implemented: shared server-time/quota eligibility blocks customer purchase/renew/switch/legacy upgrade while active; settlement ignores legacy replacement exemptions and retains paid conflicts for support review. Dashboard/onboarding suppress new-purchase controls and offer private sign-in/reconnect guidance. Existing pending expiry/recovery and explicit audited admin replacement are preserved.
-  - Local validation: 894 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending CI. All 20 new active-subscription browser scenarios plus 28 billing, 21 account and 14 coverage scenarios passed; eligible-plan and final CI verification are in progress; no production rollout or physical/provider test is claimed by this entry.
+  - Local validation: 895 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending exact-head CI. All 20 new active-subscription, 13 eligible-plan, 28 billing, 21 account and 14 coverage browser scenarios passed. Final CI/release verification is in progress; no production rollout or physical/provider test is claimed by this entry.
   - Release and exact validation evidence are tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
 
 - [x] **PAY-001 — Add automated payment reconciliation**
@@ -899,6 +899,8 @@ DEP-001/004 and TEST-002/003 are now in progress; A11Y-002/003 and TEST-001 rema
 - Verified foundations complete: 14
 - Recommendation tasks complete: 36
 
+Recorded task checkboxes on 2026-10-24: 65 marked complete, 48 in progress, 2 blocked and 46 not started. These are recorded statuses, not a new production or physical acceptance audit.
+
 ## Implementation tracker
 
 | Task | Status | Verification | Remaining work |
@@ -1077,7 +1079,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - [x] **UX-104 — Active bundle guidance at checkout and voucher redemption ([#104](https://github.com/ImaJin14/Ndahi-Connect/issues/104))**
   - Implemented: structured `ACTIVE_BUNDLE_EXISTS` 409 responses with current package metadata across guest checkout (`/api/purchase`), resale voucher claiming (`/api/account/access/confirm`), and voucher redemption (`/api/vouchers/redeem`); actionable "Sign in to Dashboard" call-to-action in onboarding checkout UI guiding active customers directly to renew or switch in `/dashboard#managePlan`; pruned dead `upgradeFromVoucherId` references in payment settlement logic.
   - Automated verification: `test/domain.test.mjs` and `test/integration.test.mjs` verify structured active bundle error payloads and metadata.
-  - Release: Delivered in PR #106 and merged into `main` at `8d5749d`.
+  - Release: Delivered in PR #106 and merged into `main` at `8d5749d`. Superseded by #132: unauthenticated rejections omit private bundle metadata and guide sign-in to use existing access; active customer replacement is blocked.
 
 - [x] **ADM-105 — Admin replacement/gifted voucher issuance for active bundle accounts ([#105](https://github.com/ImaJin14/Ndahi-Connect/issues/105))**
   - Implemented: supported optional `replaceActive: true` flag in `/api/admin/vouchers/generate`; blocks active bundle customers by default with structured 409 `ACTIVE_BUNDLE_EXISTS` containing active bundle metadata; when `replaceActive: true` is supplied, transitions previous voucher to `status: "replaced"`, records `replacedAt`, `replacedByAdminId`, and `replacedByVoucherId`, queues `disconnect_voucher` on the old voucher and `sync_voucher` on the new voucher, records audit event `voucher.admin_replaced`, and returns replacement confirmation; added confirmation checkbox toggle in admin UI voucher builder (`admin-app/app.js`).
@@ -1099,7 +1101,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 - [x] **UX-111 — 1-tap quick renewal and interactive USSD Mobile Money waiting screen ([#111](https://github.com/ImaJin14/Ndahi-Connect/issues/111))**
   - Implemented: added prominent 1-tap "Quick renew" CTA button on the Home active bundle fuel gauge card (`#dataBalance`) triggering `/onboarding.html?action=renew&plan=${planId}&quick=1` which auto-scrolls and focuses payment checkout; added interactive USSD instructions component (`ussdInstructions`) in `customer-app/payment-timing.js` displaying animated pulse and explicit manual USSD authorization instructions for MTN MoMo (`*126#`) and Orange Money (`*150#`) on payment wait screens in `customer-app/onboarding.js` and `customer-app/app.js`.
-  - Automated verification: `test/ui-controls.test.mjs` and full test suite passing.
+  - Automated verification: `test/ui-controls.test.mjs` and full test suite passing. #132 restricts quick renewal to eligible inactive bundles; the active-bundle CTA is removed.
   - Deployed: deployed to production via commit `94b301c`, certified with release hash `6a30bff8dd66ab8ae980`, and passed production deployment smoke checks.
 
 - [x] **UX-112 — Direct WhatsApp support deep link with prefilled diagnostics ([#112](https://github.com/ImaJin14/Ndahi-Connect/issues/112))**

@@ -28,7 +28,8 @@ payment and the Daily seven-day eligibility rule remain in effect.
 The dashboard exposes `subscriptionPurchaseAccess` separately from Wi-Fi purchase
 coverage. Renew/switch/quick-renew and catalogue purchase links are hidden while
 blocked; direct onboarding/quick/upgrade links cannot enable checkout. A guest
-entering an active account's number receives only a code and safe guidance with
+entering an active account's number, or a resale claim overtaken by a new
+activation before PIN verification, receives only a code and safe guidance with
 **Sign in to connect**. Account data is displayed after authentication.
 
 Same-key replay still retrieves its existing payment and never submits another
