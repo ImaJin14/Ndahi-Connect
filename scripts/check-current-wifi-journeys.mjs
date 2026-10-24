@@ -11,7 +11,9 @@ const website = http.createServer();
 await new Promise((resolve) => website.listen(0, "127.0.0.1", resolve));
 const portal = `http://localhost:${website.address().port}`;
 let routerAvailable = true, identifications = 0;
-const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, router: {
+// This journey advances several 15-minute device leases. Keep account authentication
+// valid separately; Dashboard reads otherwise shorten the fixture session to 30 minutes.
+const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { CUSTOMER_SESSION_SECONDS: "86400" }, router: {
   async readGuestDevice(input) {
     identifications++;
     if (!routerAvailable) throw Error("Router unavailable");
