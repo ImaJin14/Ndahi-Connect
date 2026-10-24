@@ -120,10 +120,12 @@ try {
   await owner.getByRole("button", { name: /^Notifications/ }).click();
   await owner.evaluate(async () => {
     await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
-    window.syntheticPush = { permissionCalls: 0, active: false, allowed: false, subscribed: false };
+    window.syntheticPush = { permission: "default", permissionCalls: 0, active: false, allowed: false, subscribed: false };
+    Object.defineProperty(Notification, "permission", { configurable: true, get: () => syntheticPush.permission });
     Notification.requestPermission = async () => {
       syntheticPush.permissionCalls++; syntheticPush.active = navigator.userActivation.isActive;
-      return syntheticPush.allowed ? "granted" : "denied";
+      syntheticPush.permission = syntheticPush.allowed ? "granted" : "denied";
+      return syntheticPush.permission;
     };
     const subscription = { endpoint: "https://fcm.googleapis.com/fcm/send/synthetic", keys: { p256dh: "B".repeat(87), auth: "a".repeat(22) } };
     const target = { toJSON: () => subscription, endpoint: subscription.endpoint, unsubscribe: async () => { syntheticPush.subscribed = false; return true; } };
@@ -137,7 +139,7 @@ try {
   await panel.getByText("Allow notifications in your browser settings, or keep using the in-app inbox.", { exact: true }).waitFor();
   assert.equal(await owner.evaluate(() => syntheticPush.active), true);
   assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions?.length || 0, 0);
-  await owner.evaluate(() => { syntheticPush.allowed = true; });
+  await owner.evaluate(() => { syntheticPush.allowed = true; syntheticPush.permission = "default"; });
   await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
   await panel.getByText("Browser notifications enabled on this device.", { exact: true }).waitFor();
   assert.equal((await f.store.snapshot()).customers[0].pushSubscriptions.length, 1);
@@ -312,12 +314,13 @@ try {
   await owner.reload(); // The previous fixture was on a dashboard hash; fetch the newly active bundle.
   await owner.locator("[data-remaining-data]").filter({ hasText: "100 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: /over 90%/ }).waitFor();
-  await owner.getByRole("button", { name: "Manage data alerts", exact: true }).click();
+  await owner.locator('[data-portal-tab="account"]').click(); await owner.getByRole("button", { name: "Manage notification settings", exact: true }).click();
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByLabel("Data-usage push alerts", { exact: true }).waitFor();
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByRole("button", { name: "Back to notifications", exact: true }).click();
   await owner.keyboard.press("Escape");
   await f.store.transaction((s) => { const v = s.vouchers[0]; v.usedBytes = 998000000; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
   await owner.evaluate(() => window.dispatchEvent(new Event("online")));
+  await owner.locator('[data-portal-tab="home"]').click();
   await owner.locator("[data-remaining-data]").filter({ hasText: "2 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: "Low data: 2 MB left" }).waitFor();
   assert.equal((await f.store.snapshot()).vouchers[0].status, "active");
