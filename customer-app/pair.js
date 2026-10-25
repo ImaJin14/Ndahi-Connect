@@ -68,7 +68,7 @@ async function poll() {
     render(result.request); message.textContent = "";
   } catch (error) {
     if (ticket !== generation) return;
-    if (error.status === 404) { forget(); clearTimeout(timer); clearInterval(countdown); request = null; retry.hidden = false; cancel.hidden = true; redeem.reset(); redeem.hidden = true; $("pairingReference").hidden = true; }
+    if (error.status === 404) { forget(); clearTimeout(timer); clearInterval(countdown); request = null; retry.hidden = false; cancel.hidden = true; redeem.reset(); redeem.hidden = true; $("pairingReference").hidden = true; document.querySelector(".pair-progress").hidden = true; status.textContent = "This request is unavailable. Request access again."; }
     showError(message, error);
   } finally { polling = false; if (ticket === generation && pending(request)) timer = setTimeout(poll, 5000); }
 }
@@ -113,7 +113,7 @@ redeem.onsubmit = async event => {
     redeem.reset(); render(result.request); message.textContent = ""; clearTimeout(timer); timer = setTimeout(poll, 5000);
   }, { controls: Array.from(redeem.elements) }); } catch (error) { showError(message, error); }
 };
-cancel.onclick = () => { void runButton(cancel, "Cancelling…", async () => { const result = await call("cancel", { id: request.id, key }); render(result.request); }).catch(error => showError(message, error)); };
+cancel.onclick = () => { void runButton(cancel, "Cancelling…", async () => { const result = await call("cancel", { id: request.id, key }); generation++; render(result.request); }).catch(error => showError(message, error)); };
 document.addEventListener("visibilitychange", () => { if (!document.hidden && pending(request)) { clearTimeout(timer); void poll(); } });
 window.addEventListener("pagehide", () => { generation++; clearTimeout(timer); clearInterval(countdown); $("pairingQr").removeAttribute("src"); qrUrl = null; });
 window.addEventListener("pageshow", event => { if (event.persisted && pending(request)) { generation++; polling = false; clearTimeout(timer); void poll(); } });
@@ -127,7 +127,7 @@ void (async () => {
     if (key) {
       try {
         const resumed = await call("status", { key, ...(/^[a-f0-9-]{36}$/.test(id || "") ? { id } : {}), includeQr: true });
-        render(resumed.request); if (pending(request)) timer = setTimeout(poll, 5000); return;
+        render(resumed.request); message.textContent = ""; if (pending(request)) timer = setTimeout(poll, 5000); return;
       } catch (error) {
         if (error.status === 429) {
           request = { ...(/^[a-f0-9-]{36}$/.test(id || "") ? { id } : {}), status: "pending" };

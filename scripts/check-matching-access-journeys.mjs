@@ -79,8 +79,25 @@ try {
       assert.equal(await page.locator(".pair-progress").isVisible(), false);
       await page.getByRole("button", { name: "Request access again", exact: true }).click();
       await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).waitFor();
-      assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false); await noOverflow(page); assert.deepEqual(h.errors, []);
-      console.log(`PASS committed lost reply, denied storage, rapid reload/throttle and expired-request recovery at ${width}px`); checks++;
+      assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false);
+      await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).click();
+      await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      let release, captured;
+      const held = new Promise(resolve => { release = resolve; }), observed = new Promise(resolve => { captured = resolve; });
+      await page.route("**" + publicRoot + "/status", async route => {
+        const response = await route.fetch({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } });
+        assert.equal(response.status(), 200); captured(); await held; await route.fulfill({ response });
+      }, { times: 1 });
+      h.f.advance(2); await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange"))); await observed;
+      await page.getByRole("button", { name: "Cancel request", exact: true }).click();
+      await page.locator("#pairingStatus").filter({ hasText: /cancelled/ }).waitFor();
+      const late = page.waitForResponse(r => r.url().endsWith(publicRoot + "/status")); release(); await late;
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      assert.match(await page.locator("#pairingStatus").textContent(), /cancelled/);
+      assert.equal(await page.locator("#pairingReference").isVisible(), false);
+      assert.equal(await page.locator(".pair-progress").isVisible(), false);
+      await noOverflow(page); assert.deepEqual(h.errors, []);
+      console.log(`PASS committed lost reply, denied storage, rapid reload/throttle, expiry and cancellation despite a delayed poll at ${width}px`); checks++;
     } finally { await h.close(); }
     h = await harness(width);
     try {
