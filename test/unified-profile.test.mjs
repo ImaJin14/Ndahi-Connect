@@ -538,3 +538,13 @@ test("rollback to a legacy API cannot turn a combined confirmation into an email
   assert.equal(c.phone, "690050099");
   assert.equal(c.email, "new@example.test");
 });
+
+test("legacy cached-client profile routes enforce the same canonical suspension state",async t=>{
+  const f=await fixture(t);
+  await f.store.transaction(s=>{s.customers[0].suspended=true;});
+  const before=await f.store.snapshot();
+  for(const path of [root,root+"/name",root+"/phone",root+"/phone/options",root+"/email"]){
+    assert.equal((await f.call(path,{name:"Changed",phone:"690050099",email:"new@example.test",pin:"2468"})).status,403,path);
+  }
+  const after=await f.store.snapshot();assert.deepEqual(after.customers,before.customers);assert.equal(f.messages.length,0);
+});
