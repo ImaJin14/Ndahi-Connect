@@ -513,3 +513,28 @@ test("signed profile passkey proofs bind every field, session and one-use challe
   );
   assert.equal((await f.store.snapshot()).customers[0].name, "Original");
 });
+
+test("rollback to a legacy API cannot turn a combined confirmation into an email-only edit", async (t) => {
+  const f = await fixture(t);
+  assert.equal(
+    (
+      await f.call(root, {
+        name: "Combined",
+        phone: "690050099",
+        email: "new@example.test",
+        pin: "2468",
+      })
+    ).status,
+    202,
+  );
+  const code = await f.code(),
+    pending = (await f.store.snapshot()).customers[0].pendingEmail;
+  // The legacy endpoint checks exactly this keyed hash, so it cannot accept the
+  // new purpose even though it preserves the unknown pending-profile metadata.
+  assert.notEqual(pending.codeHash, hashSecret(code, secret));
+  assert.equal((await f.call(root + "/email/confirm", { code })).status, 200);
+  const c = (await f.store.snapshot()).customers[0];
+  assert.equal(c.name, "Combined");
+  assert.equal(c.phone, "690050099");
+  assert.equal(c.email, "new@example.test");
+});
