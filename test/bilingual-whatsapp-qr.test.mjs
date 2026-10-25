@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { t, getPreferredLanguage, setPreferredLanguage, formatWhatsAppVoucherShare, TRANSLATIONS } from "../shared-app/i18n.js";
+import { t, getPreferredLanguage, setPreferredLanguage, TRANSLATIONS } from "../shared-app/i18n.js";
 import { createStore } from "../server.mjs";
 import { createAccountToolsRoutes } from "../lib/api/account-tools.mjs";
 
@@ -8,7 +8,7 @@ test("i18n translations cover required bilingual keys for English and French", (
   const keys = [
     "navHome", "navBundles", "navAccount", "navNotifications", "logout",
     "activeBundle", "noActiveBundle", "remaining", "used", "expires",
-    "myVouchers", "voucherCodes", "copyCode", "downloadPdf", "shareWhatsApp", "showQrCode"
+    "myVouchers", "voucherCodes", "copyCode", "downloadPdf", "showQrCode"
   ];
   for (const k of keys) {
     assert.ok(TRANSLATIONS.en[k], `Missing English translation for ${k}`);
@@ -18,24 +18,6 @@ test("i18n translations cover required bilingual keys for English and French", (
   }
   // Fallback test
   assert.equal(t("nonExistentKey", "fr"), "nonExistentKey");
-});
-
-test("formatWhatsAppVoucherShare produces properly encoded WhatsApp share URL", () => {
-  const v = {
-    id: "v123",
-    code: "NC-TEST-VOUCH",
-    plan: { name: "Weekly Flex" }
-  };
-  const url = formatWhatsAppVoucherShare(v, "https://connect.ndahi.net");
-  assert.ok(url.startsWith("https://wa.me/?text="));
-  const decoded = decodeURIComponent(url.replace("https://wa.me/?text=", ""));
-  assert.match(decoded, /NC-TEST-VOUCH/);
-  assert.match(decoded, /Weekly Flex/);
-  assert.match(decoded, /action=connect/);
-
-  // Missing code
-  assert.equal(formatWhatsAppVoucherShare(null), "");
-  assert.equal(formatWhatsAppVoucherShare({}), "");
 });
 
 test("API /api/account/vouchers/:id/qr enforces session and returns QR data URL", async () => {
