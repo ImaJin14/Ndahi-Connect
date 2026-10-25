@@ -49,20 +49,13 @@ export function friendlyError(error, context = "general") {
   return { title: "Something went wrong", message: "We couldn’t complete that request. Please try again." };
 }
 
-export function whatsappSupportUrl({ phone, voucher, mac, error, context } = {}) {
-  const config = window.NDAHI_CONFIG || {};
-  const supportNumber = String(config.supportPhone || "").replace(/[^0-9]/g, "");
+// Support remains available; account details and credentials are never placed
+// in third-party URL parameters. Customers can describe their issue themselves.
+export function whatsappSupportUrl() {
+  const supportNumber = String(window.NDAHI_CONFIG?.supportPhone || "").replace(/[^0-9]/g, "");
   if (!supportNumber) return null;
-  const lines = [
-    "Hello NDAHI Support,",
-    "I need assistance with my NDAHI Connect account / connection.",
-    phone ? `Phone: ${phone}` : "",
-    voucher ? `Voucher: ${voucher}` : "",
-    mac ? `Device MAC: ${mac}` : "",
-    context ? `Area: ${context}` : "",
-    error ? `Details: ${error}` : "",
-  ].filter(Boolean);
-  return `https://wa.me/${encodeURIComponent(supportNumber)}?text=${encodeURIComponent(lines.join("\n"))}`;
+  const text = "Hello NDAHI Support,\nI need assistance with my NDAHI Connect service. Never share PINs, voucher codes or recovery codes.";
+  return `https://wa.me/${encodeURIComponent(supportNumber)}?text=${encodeURIComponent(text)}`;
 }
 
 export function showError(target, error, { context = "general", actions = [], includeSupport = false, diagnostics = {} } = {}) {
@@ -73,8 +66,7 @@ export function showError(target, error, { context = "general", actions = [], in
   title.textContent = copy.title;
   body.textContent = copy.message;
   card.append(title, body);
-  const errorMsg = (error && error.message) || copy.message;
-  const waUrl = whatsappSupportUrl({ phone: diagnostics.phone, voucher: diagnostics.voucher, mac: diagnostics.mac, context: context, error: errorMsg });
+  const waUrl = whatsappSupportUrl();
   if (actions.length || (waUrl && includeSupport)) {
     const controls = document.createElement("div");
     controls.className = "error-actions";

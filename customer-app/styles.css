@@ -94,10 +94,6 @@
 .lang-switcher button.active{background:var(--lime);color:#15210c}
 .lang-switcher button:hover:not(.active){background:rgba(255,255,255,.1)}
 
-/* --- WhatsApp Share Button --- */
-.whatsapp-share-btn{display:inline-flex;align-items:center;gap:6px;background:#25d366!important;color:#fff!important;border-color:#25d366!important}
-.whatsapp-share-btn:hover{background:#20bd5a!important;color:#fff!important}
-
 /* --- Mobile Money Brand Badges --- */
 .payment-methods-badges{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
 .momo-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.02em}
