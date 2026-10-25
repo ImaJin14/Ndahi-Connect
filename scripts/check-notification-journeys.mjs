@@ -101,7 +101,7 @@ try {
   await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
   await panel.getByRole("button", { name: "Mark all read", exact: true }).click();
   assert.ok(await panel.locator("[data-notification-id]").count() >= 1);
-  assert.equal((await f.store.snapshot()).wifiPairingRequests.find((p) => p.mac.endsWith("04")).status, "pending");
+  assert.equal((await f.store.snapshot()).wifiPairingRequests.find((p) => p.mac.endsWith("04")).status, "awaiting_confirmation");
   await panel.getByRole("button", { name: "Settings", exact: true }).click();
   await panel.getByLabel("Email security notices", { exact: true }).uncheck();
   await panel.getByRole("button", { name: "Save notification settings", exact: true }).click();

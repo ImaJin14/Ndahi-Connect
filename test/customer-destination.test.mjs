@@ -33,3 +33,11 @@ test('confirmed exhausted bundles show plans without replacing explicit payment/
     e.network.state = 'unconfirmed'; assert.equal(customerEntry({ evidence: e, now }), '/dashboard');
   }
 });
+
+test('request-review intent survives login without a connection detour or untrusted parameters',()=>{
+ const id='11111111-2222-4333-8444-555555555555',url='/pair-review.html?request='+id;
+ assert.equal(customerDestination(url+'&key=secret#steal'),url);
+ for(const input of ['/pair-review.html','/pair-review.html?request=bad','//evil.test'+url])assert.equal(customerDestination(input),'/dashboard');
+ const e=evidence();e.hotspot.state='unauthenticated';
+ assert.equal(customerEntry({next:url,evidence:e,hasCandidate:true,hotspotEnabled:true,now}),url);
+});
