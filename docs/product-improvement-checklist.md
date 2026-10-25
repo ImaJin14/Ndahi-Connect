@@ -1172,3 +1172,8 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Implemented: removed voucher sharing controls, URL/payload builder, translations and styling. Retained authenticated PDF/history, code copy, QR and verified-email delivery. Unrelated WhatsApp support remains with generic text that excludes account/voucher/device/error data.
   - Verification: source/QR/API regressions and320/1280px browser journeys cover history states, reload, copy/PDF/QR/email and support. Exact executed/CI evidence is recorded in the PR and [operations note](operations/voucher-sharing.md).
   - Release: not merged or deployed at implementation time; no live provider/physical acceptance claimed.
+
+- [-] **ACCOUNT-130 — One atomic Edit profile flow** ([#130](https://github.com/ImaJin14/Ndahi-Connect/issues/130))
+  - Implemented: one prepopulated name/phone/optional-email form; all field combinations, normalized uniqueness, PIN/passkey proof, stale-version protection, pending/cancelled email verification and atomic confirmation retain account/history/device ownership. Per the user's25October clarification, phone changes use automatic MTN/Orange suggestions and existing credential proof; no SIM/SMS verification is claimed.
+  - Verification: focused API and PostgreSQL rollback/race/reopen coverage plus14browser cases exercise every field combination at320/1280px, provider suggestions, invalid/lost replies and retained domain data. Exact executed/CI evidence is in the PR and [operations contract](operations/profile-editing.md).
+  - Release: not merged or deployed at implementation time. Real mailbox, physical SIM/device and captive acceptance remain separate; `phoneVerified:false` remains truthful.

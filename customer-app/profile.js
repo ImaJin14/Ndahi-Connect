@@ -1,4 +1,5 @@
 import { formValues, requestJson, loadPasskeys } from "./compat.js";
+import {normalizeCameroonPhone,validCameroonPhone,suggestedPaymentNetwork} from "/shared/cameroon-phone.js";
 import { showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 
@@ -32,7 +33,7 @@ export function mountEmailLink({ call, customer, onChanged }) {
       }, { controls: Array.from(form.elements) });
     } catch (error) { showError(message, error); }
   }
-  form.onsubmit = (event) => { event.preventDefault(); void request(false); };
+  if (form) form.onsubmit = (event) => { event.preventDefault(); void request(false); };
   if (passkey) passkey.onclick = () => { void request(true); };
   if (confirm) confirm.onsubmit = async (event) => {
     event.preventDefault();
@@ -53,52 +54,46 @@ export function mountEmailLink({ call, customer, onChanged }) {
   };
 }
 
-export function mountPhoneChange({ call, customer, onChanged }) {
-  const form = document.getElementById("changePhone");
-  const submit = form.querySelector('[type="submit"]'), passkey = document.getElementById("changePhonePasskey");
-  if (passkey && (!window.PublicKeyCredential || !navigator.credentials)) passkey.hidden = true;
-  async function change(usePasskey) {
-    const input = formValues(form), message = document.getElementById("phoneChangeMessage");
-    if (!form.elements.phone.reportValidity() || !form.elements.confirmChange.reportValidity()) return;
-    const button = usePasskey ? passkey : submit;
-    try {
-      await runButton(button, "Verifying…", async () => {
-        message.textContent = "";
-        let payload = { phone: input.phone, pin: input.pin };
-        if (usePasskey) {
-          const browser = await loadPasskeys();
-          const challenge = await call("/api/account/profile/phone/options", { method: "POST", body: JSON.stringify({ phone: input.phone }) });
-          const response = await browser.startAuthentication({ optionsJSON: challenge.options });
-          payload = { phone: input.phone, challengeId: challenge.challengeId, response };
-        }
-        try {
-          await call("/api/account/profile/phone", { method: "POST", body: JSON.stringify(payload) });
-        } catch (error) {
-          if (!["TypeError", "TimeoutError", "SyntaxError"].includes(error.name)) throw error;
-          // A lost response may already have rotated this browser's session.
-          const recovered = await requestJson(window.NDAHI_CONFIG.apiUrl + "/api/account/dashboard", { credentials: "include", cache: "no-store" });
-          const normalize = (value) => String(value || "").replace(/\D/g, "").replace(/^237/, "");
-          if (!recovered.response.ok || !recovered.body.customer || normalize(recovered.body.customer.phone) !== normalize(input.phone)) throw error;
-        }
-        form.reset();
-        await onChanged();
-      }, { controls: Array.from(form.elements) });
-    } catch (error) { showError(message, error); }
+export function mountProfileEdit({call,customer,onChanged}) {
+  const form=document.getElementById("profileEdit"),passkey=document.getElementById("profileEditPasskey"),cancel=document.getElementById("cancelProfileConfirmation");
+  const message=document.getElementById("profileEditMessage");
+  if(!form)return;
+  if(passkey&&(!window.PublicKeyCredential||!navigator.credentials))passkey.hidden=true;
+  let operationId,signature;
+  function sensitive(){return normalizeCameroonPhone(form.elements.phone.value)!==normalizeCameroonPhone(customer.phone)||form.elements.email.value.trim().toLowerCase()!==(customer.email||"").toLowerCase()||Boolean(form.elements.verifyEmail?.checked);}
+  function update(){
+    const number=form.elements.phone.value,provider=suggestedPaymentNetwork(number);
+    document.getElementById("profilePhoneProvider").textContent=provider ? "Likely provider: "+(provider==="mtn"?"MTN Mobile Money":"Orange Money") : validCameroonPhone(number) ? "Provider could not be suggested. You can select it at checkout." : "Enter a valid Cameroon number.";
+    const removing=Boolean(customer.email&&!form.elements.email.value.trim());
+    document.getElementById("profileEmailRemoval").hidden=!removing;form.elements.removeEmail.required=removing;
+    form.elements.pin.required=sensitive()&&customer.pinConfigured!==false;
   }
-  form.onsubmit = (event) => { event.preventDefault(); void change(false); };
-  if (passkey) passkey.onclick = () => { void change(true); };
-}
-
-export function mountNameChange({ call, onChanged }) {
-  const form = document.getElementById("changeName");
-  form.onsubmit = async (event) => {
-    event.preventDefault();
-    const input = formValues(form), message = document.getElementById("nameChangeMessage");
-    try {
-      await runButton(form.querySelector('[type="submit"]'), "Saving…", async () => {
-        await call("/api/account/profile/name", { method: "POST", body: JSON.stringify(input) });
-        form.reset(); await onChanged();
-      }, { controls: Array.from(form.elements) });
-    } catch (error) { showError(message, error); }
-  };
+  form.oninput=update;update();
+  async function save(usePasskey){
+    const input=formValues(form);input.verifyEmail=Boolean(form.elements.verifyEmail?.checked);input.removeEmail=form.elements.removeEmail.checked;
+    if(!form.elements.name.reportValidity()||!form.elements.phone.reportValidity()||!form.elements.email.reportValidity()||!form.elements.removeEmail.reportValidity())return;
+    if(!usePasskey&&!form.elements.pin.reportValidity())return;
+    const target=JSON.stringify([input.name,input.phone,input.email,input.verifyEmail,input.removeEmail]);
+    if(target!==signature){signature=target;const bytes=crypto.getRandomValues(new Uint8Array(16));operationId=Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");}
+    input.operationId=operationId;input.expectedVersion=customer.profileVersion;
+    try{await runButton(usePasskey?passkey:form.querySelector('[type="submit"]'),"Saving…",async()=>{
+      message.textContent="";
+      if(usePasskey&&sensitive()){
+        const browser=await loadPasskeys(),challenge=await call("/api/account/profile/options",{method:"POST",body:JSON.stringify(input)});
+        input.challengeId=challenge.challengeId;input.response=await browser.startAuthentication({optionsJSON:challenge.options});delete input.pin;
+      }
+      let result;
+      try{result=await call("/api/account/profile",{method:"POST",body:JSON.stringify(input)});}
+      catch(error){
+        if(!lostResponse(error))throw error;
+        const recovered=await call("/api/account/dashboard");
+        if(recovered.customer.pendingProfile?.operationId===operationId)result={verificationPending:true};
+        else if(recovered.customer.name===input.name.trim().replace(/\s+/g," ")&&normalizeCameroonPhone(recovered.customer.phone)===normalizeCameroonPhone(input.phone)&&(recovered.customer.email||"")===input.email.trim().toLowerCase())result={profileSaved:true};
+        else throw error;
+      }
+      await onChanged(result.verificationPending===true);
+    },{controls:Array.from(form.elements)});}catch(error){showError(message,error);}
+  }
+  form.onsubmit=event=>{event.preventDefault();void save(false);};if(passkey)passkey.onclick=()=>void save(true);
+  if(cancel)cancel.onclick=async()=>{try{await runButton(cancel,"Cancelling…",async()=>{await call("/api/account/profile",{method:"POST",body:JSON.stringify({action:"cancel"})});await onChanged(false);document.getElementById("dashboardMessage").textContent="Pending profile changes cancelled.";});}catch(error){showError(document.getElementById("emailConfirmMessage"),error);}};
 }
