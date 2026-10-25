@@ -83,7 +83,7 @@ try {
     assert.equal(await page.locator("html").getAttribute("data-theme"),null);
     assert.equal(await page.locator("html").getAttribute("lang"),"en");
     const text=await page.locator(".account-layout").textContent();assert.doesNotMatch(text,/authenticator|2FA|MFA|Prepare PIN|sign-in readiness/i);
-    for(const name of ["Your name","Your account number","Your email","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
+    for(const name of ["Your profile","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
     assert.equal(await page.locator('#accountSecurity [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"]').count(),0);
     const color=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);assert.notEqual(color,"rgb(11, 19, 16)");
     await page.screenshot({path:`${screenshots}/account-cleanup-${width}.png`,fullPage:true});

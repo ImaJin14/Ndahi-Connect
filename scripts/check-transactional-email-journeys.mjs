@@ -141,10 +141,10 @@ try {
     await page.keyboard.press("Escape");
     await page.locator("#emailAccount summary").click();
     await page
-      .locator('#linkEmail [name="email"]')
+      .locator('#profileEdit [name="email"]')
       .fill("replacement@example.test");
-    await page.locator('#linkEmail [name="pin"]').fill("2468");
-    await page.locator('#linkEmail [type="submit"]').click();
+    await page.locator('#profileEdit [name="pin"]').fill("2468");
+    await page.locator('#profileEdit [type="submit"]').click();
     await page.locator("#confirmEmail").waitFor();
     assert.equal(messages.length, 0);
     await page
@@ -191,7 +191,7 @@ try {
     await page.locator("#confirmEmail").waitFor({ state: "detached" });
     await page
       .locator("#emailAccount")
-      .getByText("replacement@example.test", { exact: true })
+      .getByText("replacement@example.test (confirmed)", { exact: true })
       .waitFor();
     await handler.transactionalEmails.run();
     assert.equal(
