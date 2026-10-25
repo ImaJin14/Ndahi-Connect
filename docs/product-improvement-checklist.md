@@ -112,10 +112,10 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Payment and network consistency
 
-- [-] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
+- [x] **PAY-132 — Protect active subscriptions from customer replacement** ([#132](https://github.com/ImaJin14/Ndahi-Connect/issues/132))
   - Implemented: shared server-time/quota eligibility blocks customer purchase/renew/switch/legacy upgrade while active; settlement ignores legacy replacement exemptions and retains paid conflicts for support review. Dashboard/onboarding suppress new-purchase controls and offer private sign-in/reconnect guidance. Existing pending expiry/recovery and explicit audited admin replacement are preserved.
-  - Local validation: 895 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending exact-head CI. All 20 new active-subscription, 13 eligible-plan, 28 billing, 21 account and 14 coverage browser scenarios passed. Final CI/release verification is in progress; no production rollout or physical/provider test is claimed by this entry.
-  - Release and exact validation evidence are tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
+  - Local validation: 895 backend tests passed, zero failures; 19 PostgreSQL-dependent cases skipped pending exact-head CI. All 20 new active-subscription, 13 eligible-plan, 28 billing, 21 account and 14 coverage browser scenarios passed. Exact final PostgreSQL/CI and deployed-source verification are recorded in the 25 October release report below; physical/provider acceptance remains open in #143.
+  - Release: PR #144 merged as `2b471b1`; included in the production release verified below. Exact validation is tracked on issue #132 and its PR. Runbook: [active-subscription-protection.md](operations/active-subscription-protection.md). No schema migration or historical-data deletion.
 
 - [x] **PAY-001 — Add automated payment reconciliation**
   - Compare local payments with MeSomb/Flutterwave provider status.
@@ -1135,45 +1135,53 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Verification: boundary, gateway expiry/outage, concurrent retry, callbacks/late money, lost-key, setup and browser regressions. PR and merged-main CI passed: 917 tests with PostgreSQL enabled, zero failures/skips; full desktop/mobile browser, provider, security and load checks passed. Real Mobile Money/iPhone acceptance remains separate.
   - Release: PR #126 merged as fb521922cb8318808659b24ad2d20c73876b824e; Render API/customer/admin deployments succeeded 2026-10-23 08:50–08:51 UTC. Live checkout revision 1caf6b07142866f8a4b0 and changed script hashes match tested source; API/PostgreSQL ready and five production smoke checks passed. Financial records and late reconciliation are preserved. Runbook: [gateway/request recovery](operations/billing-experience.md).
 
-- [-] **ACCOUNT-CLEANUP — Simplify Account and remove remaining runtime authenticator flows**
+- [x] **ACCOUNT-CLEANUP — Simplify Account and remove remaining runtime authenticator flows**
   - Implemented: grouped profile/email/security/recovery/sessions; expandable editing; PIN/passkeys for customers and password/passkeys for admins; authenticator setup/login/replacement/extra-factor paths removed, with terminal responses for old clients. Theme/language controls and initialization commented out; stored preferences and automatic dark mode disabled.
   - Local verification: Final local run: 894 tests, 877 passed, zero failed, 17 PostgreSQL-dependent skips for CI; security/password/pending-intent changes also passed 99 focused regressions; final administrator alias/readiness hardening passed 88 focused regressions; 13 focused browser journeys including four layout widths, signed passkeys, PIN fallback, legacy challenges and audited recovery; 14 pending-action and three session/security browser scenarios passed. Final full-browser and exact-revision CI evidence belong in the cleanup PR.
-  - Release: source only, not merged or deployed. Private legacy credential purge and actual affected-account recovery/readiness remain separate operator checks. Account backup/email recovery and Wi-Fi approval codes remain supported. [Operations note](operations/account-security-cleanup.md).
+  - Release: PR #127 merged as `c233e794324faedc8b8460c900933f380ff4777b`; runtime authenticator retirement is confirmed by the live authentication policy. Private legacy credential purge and actual affected-account recovery/readiness remain separate operator checks. Account backup/email recovery and Wi-Fi approval codes remain supported. [Operations note](operations/account-security-cleanup.md).
 
-- [-] **NOTIFICATIONS-137 — Persistent Account notification settings**
+- [x] **NOTIFICATIONS-137 — Persistent Account notification settings**
   - Implemented: Account opens the existing notification preference form; removed the Dashboard Usage Alerts card. Supported data thresholds, low balance, opt-in one-hour expiry warnings, subscription updates and channel consent share existing durable rows and delivery workers. Permission denial never disables the inbox or changes bundle/payment state.
   - Verification: dedicated API/worker, PostgreSQL persistence/concurrency/rollback and 320/1280px browser journeys added; exact executed checks and CI evidence are recorded in the PR and [operations note](operations/account-notification-settings.md).
-  - Release: awaiting user confirmation; not merged or deployed. Physical/browser-provider delivery not verified.
+  - Release: PR #153 merged as `4e354fd`; included in the production release verified below. Physical/browser-provider delivery remains unverified.
 
-- [-] **EMAIL-141 — Verified account association and branded transactional delivery**
+- [x] **EMAIL-141 — Verified account association and branded transactional delivery**
   - Implemented: optional email retains mailbox ownership confirmation and separate payer contact identity; verification, welcome, voucher PDF, activation, receipt and security delivery use existing durable rows with committed leases, stable identities, bounded retries and consent checks. Voucher provider I/O is removed from payment settlement. Account exposes the shared transactional email preference and safe queued/failure status.
   - Verification: eleven new ownership/race/timeout/retry/template tests pass; local full suite977tests955pass0fail22PostgreSQL skips. PostgreSQL rollback/multi-worker/reopen tests and320/1280px browser replacement/preferences/outage journeys added; exact CI evidence belongs in the PR. [Operations contract](operations/transactional-email.md).
-  - Release: separate PR dependent on137/PR153, awaiting user confirmation; not merged or deployed. Real provider/domain/inbox/bounce and physical delivery acceptance are unverified.130's combined profile editor remains separate; existing email profile APIs are used.
+  - Release: PR #154 merged as `8c48cfe`; included in the production release verified below. Real provider/domain/inbox/bounce and physical delivery acceptance are unverified. Combined profile editing is now merged separately through #160.
 
 ### Issue #138 — optional PWA / secure captive continuation (2026-10-24)
 
 - Implemented: Dashboard manifest start; server-authenticated restore and existing safe destination/connectivity flow; optional browser/iOS/WebView install guidance; rejected prompt/storage fallback; network-only navigation with public inline offline recovery; removal of legacy `ndahi-shell-*` caches without touching other apps; no credential/private API/PDF cache or forced app/window transition.
 - Verified locally: 9 manifest/mobile/offline unit checks, 15 Dashboard entry journeys (including PIN/passkey/setup, separate app cookie jars and blocked storage), 5 PWA browser journeys (install prompt fixtures, offline recovery and update deferral during payment); syntax checks pass. Full-suite/hosted CI evidence is recorded in the PR.
-- Release: PR only; not merged/deployed. Native Android/iOS/iPad/Windows/desktop installation, captive/standalone storage, older devices, cold-cache/pre-auth/zero balance and genuine internet acceptance remain physical operator checks. Chromium UA/prompt fixtures are not native OS verification.
+- Release: PR #155 merged as `f6414a6`; deployed source/asset evidence is recorded below. Native Android/iOS/iPad/Windows/desktop installation, captive/standalone storage, older devices, cold-cache/pre-auth/zero balance and genuine internet acceptance remain physical operator checks. Chromium UA/prompt fixtures are not native OS verification.
 
 ### Issue #139 — background push and verified-email fallback (2026-10-24)
 
 - Implemented: committed paid voucher and router-confirmed transition events in existing history/workers; canonical subscription fingerprints with legacy sent-record migration; allowlisted credential-free worker navigation; explicit consent and opt-in verified-email fallback for current usage/expiry when push is unavailable, reusing email leases and consent/retry bounds.
 - Validation: focused API/worker, PostgreSQL rollback/concurrency/reopen and 320/1280 px browser cases added. Exact counts and CI evidence are in the PR; synthetic closed-dashboard server dispatch is separate from actual browser/provider arrival.
-- Release: PR only, depends on #137/#141/#138. Not merged/deployed. Real closed-app OS display, offline/TTL and configured push/email inbox delivery remain operator acceptance; see [delivery contract](operations/background-notifications.md).
+- Release: PR #156 merged as `414cc9e`; deployed source/asset evidence is recorded below. Real closed-app OS display, offline/TTL and configured push/email inbox delivery remain operator acceptance; see [delivery contract](operations/background-notifications.md).
 
 ### Issue #142 — retained purchase voucher and safe PDF delivery (2026-10-24)
 
 - Implemented: authenticated exact-purchase voucher retention step after guest PIN setup/owner sign-in and account renewal/swap; private repeatable Download Voucher fallback, PDF signature check and honest browser-offer status; constrained once-per-session standalone auto-offer; explicit Dashboard/Wi-Fi continuation, optional installation and unchanged verified-email worker from #141.
 - Verified locally: 20 focused voucher/destination/checkout cases; new eight browser delivery cases at 320/1280px; real local paid signup with blocked storage/main selection/secondary approval/reconnect; renewal/swap/billing regressions include the retained step. Full suite/hosted CI evidence belongs in the PR.
-- Release: PR only, depends on #132/#141/#138 and the background integration branch. No merge/deploy/real payment or email send. Native captive downloads, actual saved files and configured inbox acceptance remain physical/provider checks; see [voucher delivery contract](operations/voucher-delivery.md).
+- Release: PR #157 merged as `4cefefd`; deployed source/asset evidence is recorded below. No real payment or email send was performed for acceptance. Native captive downloads, actual saved files and configured inbox acceptance remain physical/provider checks; see [voucher delivery contract](operations/voucher-delivery.md).
 
-- [-] **PORTAL-131 — Retire WhatsApp voucher/account sharing** ([#131](https://github.com/ImaJin14/Ndahi-Connect/issues/131))
+- [x] **PORTAL-131 — Retire WhatsApp voucher/account sharing** ([#131](https://github.com/ImaJin14/Ndahi-Connect/issues/131))
   - Implemented: removed voucher sharing controls, URL/payload builder, translations and styling. Retained authenticated PDF/history, code copy, QR and verified-email delivery. Unrelated WhatsApp support remains with generic text that excludes account/voucher/device/error data.
   - Verification: source/QR/API regressions and320/1280px browser journeys cover history states, reload, copy/PDF/QR/email and support. Exact executed/CI evidence is recorded in the PR and [operations note](operations/voucher-sharing.md).
-  - Release: not merged or deployed at implementation time; no live provider/physical acceptance claimed.
+  - Release: PR #159 merged as `4a6be43`; included in the production release verified below. No live provider/physical acceptance claimed.
 
-- [-] **ACCOUNT-130 — One atomic Edit profile flow** ([#130](https://github.com/ImaJin14/Ndahi-Connect/issues/130))
+- [x] **ACCOUNT-130 — One atomic Edit profile flow** ([#130](https://github.com/ImaJin14/Ndahi-Connect/issues/130))
   - Implemented: one prepopulated name/phone/optional-email form; all field combinations, normalized uniqueness, PIN/passkey proof, stale-version protection, pending/cancelled email verification and atomic confirmation retain account/history/device ownership. Per the user's25October clarification, phone changes use automatic MTN/Orange suggestions and existing credential proof; no SIM/SMS verification is claimed.
   - Verification: focused API and PostgreSQL rollback/race/reopen coverage plus14browser cases exercise every field combination at320/1280px, provider suggestions, invalid/lost replies and retained domain data. Exact executed/CI evidence is in the PR and [operations contract](operations/profile-editing.md).
-  - Release: not merged or deployed at implementation time. Real mailbox, physical SIM/device and captive acceptance remain separate; `phoneVerified:false` remains truthful.
+  - Release: PR #160 merged as `dac2fb6` and verified live below. Real mailbox, physical device and captive acceptance remain separate; `phoneVerified:false` remains truthful.
+
+
+### Platform release verification — 25 October 2026 (#143)
+
+- Implemented and merged: the fourteen feature workstreams #129–#142 have their own reviewed PRs. The correct profile editor is PR #160 and WhatsApp-sharing retirement is PR #159; PR #145 is security, PR #149 removes a duplicate connection banner and PR #150 adds reduced-motion verification.
+- Automated verification: exact PR #160 head `4c4da7fe040afeac3db228f1bc026bd42a721c03` passes all seven CI checks and **1,023 tests with PostgreSQL enabled, zero failures/skips**. An independent local continuation passed 44 focused API/security tests and 14 profile-edit browser journeys at 320/1280 px. Merged code tree is `93c365d68eea746cee629314e24b0d5a40e52550`.
+- Production: feature merge `dac2fb6` is live on API/customer/admin; PostgreSQL ready, all 20 checked asset hashes match, and strict public smoke checks pass. Source integration, deployed revisions, immutable asset hashes and smoke results are recorded in the [release report](releases/portal-upgrade-2026-10-25.md) and [PR #158 final release evidence](https://github.com/ImaJin14/Ndahi-Connect/pull/158). A successful test or provider fixture is not a real charge, mailbox receipt, OS push notification or router connection.
+- Still open: issue #143 and parent #128 retain real router/browsing, captive/native installation, actual payment/email/push and saved-file acceptance. No real message, charge, account mutation or router change was performed for this release verification.
