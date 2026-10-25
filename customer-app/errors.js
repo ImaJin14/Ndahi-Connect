@@ -52,7 +52,8 @@ export function friendlyError(error, context = "general") {
 // Support remains available; account details and credentials are never placed
 // in third-party URL parameters. Customers can describe their issue themselves.
 export function whatsappSupportUrl() {
-  const supportNumber = String(window.NDAHI_CONFIG?.supportPhone || "").replace(/[^0-9]/g, "");
+  const config = window.NDAHI_CONFIG || {};
+  const supportNumber = String(config.supportPhone || "").replace(/[^0-9]/g, "");
   if (!supportNumber) return null;
   const text = "Hello NDAHI Support,\nI need assistance with my NDAHI Connect service. Never share PINs, voucher codes or recovery codes.";
   return `https://wa.me/${encodeURIComponent(supportNumber)}?text=${encodeURIComponent(text)}`;
