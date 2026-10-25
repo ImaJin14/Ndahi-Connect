@@ -9,8 +9,8 @@ import { wifiDeviceList } from "./wifi-devices.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
-import { profileCard, nameCard, emailCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
-import { mountPhoneChange, mountEmailLink, mountNameChange } from "./profile.js";
+import { profileCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
+import { mountProfileEdit, mountEmailLink } from "./profile.js";
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
@@ -212,9 +212,7 @@ async function load() {
     ${bundleCatalogue(result)}
     <div class="account-layout full" data-portal-view="account">
       <section class="account-overview" aria-label="Your account"><p class="eyebrow">Your account</p><h2>${h(result.customer.name || "Account settings")}</h2><p>Manage your profile, sign-in and recovery in one place.</p></section>
-      ${nameCard(result.customer)}
       ${profileCard(result.customer)}
-      ${emailCard(result.customer)}
       <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
       ${accountSecurityCard(result.customer, security, securitySetup)}
       ${accountSessionsCard(security)}
@@ -225,18 +223,18 @@ async function load() {
   stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
   latestDashboard = result;
   mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
-  mountNameChange({ call, onChanged: async () => { await load(); $("#dashboardMessage").textContent = "Your display name was updated."; } });
-  mountPhoneChange({ call, customer: result.customer, onChanged: async () => {
+  mountProfileEdit({call,customer:result.customer,onChanged:async pending=>{
     await load();
-    $("#dashboardMessage").innerHTML = '<div class="success">Account number updated. Your other portal sessions were signed out.</div>';
-  } });
+    if(pending){$("#confirmEmail")?.scrollIntoView({block:"center"});$("#confirmEmail input")?.focus();}
+    else {$("#dashboardMessage").textContent="Your profile was updated.";$("#editProfile summary")?.focus();}
+  }});
   mountAccountSecurity({ call, customer: result.customer, restore: securityView, setup: securitySetup, onChanged: async view => {
     await load();
     openSecurityManager(view);
   } });
   mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
     await load();
-    if (confirmed) $("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';
+    if (confirmed) {$("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';$("#editProfile summary")?.focus();}
     else $("#confirmEmail")?.scrollIntoView({ block: "center" });
   } });
   const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });

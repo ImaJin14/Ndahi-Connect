@@ -29,7 +29,6 @@ export const TRANSLATIONS = {
     voucherCode: "Voucher code",
     copyCode: "Copy code",
     downloadPdf: "Download PDF",
-    shareWhatsApp: "WhatsApp",
     showQrCode: "Show QR Code",
     qrTitle: "Voucher QR Code",
     qrInstruction: "Scan with another phone or camera to connect",
@@ -84,7 +83,6 @@ export const TRANSLATIONS = {
     voucherCode: "Code ticket",
     copyCode: "Copier le code",
     downloadPdf: "Télécharger PDF",
-    shareWhatsApp: "WhatsApp",
     showQrCode: "Afficher code QR",
     qrTitle: "Code QR du ticket",
     qrInstruction: "Scannez avec la caméra d'un autre appareil pour vous connecter",
@@ -136,14 +134,4 @@ export function t(key, lang) {
   const currentLang = lang || getPreferredLanguage();
   const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   return dict[key] || TRANSLATIONS.en[key] || key;
-}
-
-export function formatWhatsAppVoucherShare(voucher, baseUrl) {
-  if (!voucher || !voucher.code) return "";
-  const base = baseUrl || (typeof location !== "undefined" ? location.origin : "https://connect.ndahi.net");
-  const code = voucher.code;
-  const plan = (voucher.plan && voucher.plan.name) || voucher.planId || "NDAHI Connect";
-  const url = base + "/onboarding.html?action=connect&code=" + encodeURIComponent(code);
-  const text = "NDAHI Connect - " + plan + "\nCode: " + code + "\nActivation: " + url;
-  return "https://wa.me/?text=" + encodeURIComponent(text);
 }

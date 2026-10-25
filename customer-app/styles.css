@@ -94,10 +94,6 @@
 .lang-switcher button.active{background:var(--lime);color:#15210c}
 .lang-switcher button:hover:not(.active){background:rgba(255,255,255,.1)}
 
-/* --- WhatsApp Share Button --- */
-.whatsapp-share-btn{display:inline-flex;align-items:center;gap:6px;background:#25d366!important;color:#fff!important;border-color:#25d366!important}
-.whatsapp-share-btn:hover{background:#20bd5a!important;color:#fff!important}
-
 /* --- Mobile Money Brand Badges --- */
 .payment-methods-badges{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
 .momo-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.02em}
@@ -276,3 +272,5 @@ header .brand,
 @media(prefers-reduced-motion:reduce){.current-wifi-indicator{animation:none!important}}
 
 .bundle-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:0}.bundle-facts div{min-width:0}.bundle-facts dt{font-size:.8rem;opacity:.8}.bundle-facts dd{margin:.2rem 0 0;font-weight:700;overflow-wrap:anywhere}.fuel-unknown{stroke:#75857c}@media(max-width:420px){.bundle-facts{grid-template-columns:1fr}}
+
+.profile-facts{display:grid;gap:6px;margin:16px 0}.profile-facts dt{font-size:13px;color:var(--muted)}.profile-facts dd{margin:0 0 10px;overflow-wrap:anywhere}#profileEdit{min-width:0}#profileEdit label{min-width:0}
