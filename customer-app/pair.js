@@ -36,6 +36,7 @@ function render(value) {
   request = value; progress.hidden = false; form.hidden = true; account.hidden = true;
   cancel.hidden = !["pending", "awaiting_code", "awaiting_confirmation"].includes(value.status);
   const ready = value.status === "connected" && value.completionReady === true, matching = value.protocol === 3 && value.status === "awaiting_confirmation";
+  document.querySelector(".pair-progress").hidden = !pending(value) && !ready;
   retry.hidden = pending(value) || ready; completion.hidden = !ready; redeem.hidden = value.status !== "awaiting_code";
   $("pairingReference").hidden = !matching;
   if (matching) {

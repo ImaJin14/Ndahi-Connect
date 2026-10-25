@@ -76,6 +76,7 @@ try {
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false);
       h.f.advance(301); await page.reload(); await page.locator("#pairingStatus").filter({ hasText: /expired/ }).waitFor();
       assert.equal(await page.locator("#pairingReference").isVisible(), false);
+      assert.equal(await page.locator(".pair-progress").isVisible(), false);
       await page.getByRole("button", { name: "Request access again", exact: true }).click();
       await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).waitFor();
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false); await noOverflow(page); assert.deepEqual(h.errors, []);
