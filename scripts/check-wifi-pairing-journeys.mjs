@@ -59,16 +59,14 @@ try {
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
   await guest.locator("#pairingMessage").filter({ hasText: /network|reach|fetch|connection/i }).waitFor();
   await guest.reload();
-  await guest.getByLabel("Account phone number", { exact: true }).fill("670050001");
-  await guest.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
-  await guest.getByRole("button", { name: "Request access", exact: true }).click();
-  await guest.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor().catch(async (e) => {
+  assert.equal(await guest.getByLabel("Account phone number", { exact: true }).isVisible(), false);
+  await guest.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor().catch(async (e) => {
     console.error(await guest.locator("#pairingMessage").textContent()); throw e;
   });
   assert.equal(await guest.locator("#pairingCode").count(), 0);
   assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 1);
   await guest.reload();
-  await guest.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await guest.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   assert.equal(new URL(guest.url()).searchParams.get("mac"), guestMac);
   assert.equal(new URL(guest.url()).searchParams.get("address"), "10.20.0.30"); assert.doesNotMatch(guest.url(), /670050001|NC-AAAA/);
   assert.equal(await guest.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
@@ -77,13 +75,12 @@ try {
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const row = owner.locator("[data-request]").first();
   await row.getByText("Galaxy Note 8 · ending EE:03", { exact: true }).waitFor();
-  await row.getByRole("button", { name: "Approve & show code", exact: true }).click();
-  const displayed = await row.getByLabel("Approval code", { exact: true }).textContent();
-  assert.match(displayed, /^\d{6}$/);
-  assert.equal(f.calls.length, 0, "main approval alone must not connect the guest");
-  assert.equal(handoffs.length, 0, "owner approval must not complete captive sign-in");
-  await guest.getByLabel("Approval code from your main device").fill(displayed);
-  await guest.getByRole("button", { name: "Enter code and connect", exact: true }).click();
+  const displayed = await row.getByLabel("Matching request code", { exact: true }).textContent();
+  assert.match(displayed, /^\d{3} \d{3}$/);
+  assert.equal(displayed, await guest.getByLabel("Matching request code", { exact: true }).textContent());
+  assert.equal(f.calls.length, 0, "displaying a reference must not connect the guest");
+  assert.equal(handoffs.length, 0, "displaying a reference must not finish captive sign-in");
+  await row.getByRole("button", { name: "Codes match — allow device", exact: true }).click();
   await row.getByText("Connecting — waiting for the router", { exact: true }).waitFor();
   assert.equal(f.calls.length, 0);
   assert.equal(handoffs.length, 0, "queued connection is not confirmation");
@@ -136,9 +133,9 @@ try {
   await expired.getByLabel("Account phone number", { exact: true }).fill("670050001");
   await expired.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
   await expired.getByRole("button", { name: "Request access", exact: true }).click();
-  await expired.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await expired.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   await expired.reload();
-  await expired.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await expired.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   f.advance(301);
   await expired.locator("#pairingStatus").filter({ hasText: "expired" }).waitFor();
   assert.equal(await expired.locator("#pairingRedeem").isHidden(), true);
@@ -151,7 +148,7 @@ try {
   await expired.getByLabel("Account phone number", { exact: true }).fill("670050001");
   await expired.getByLabel("Active voucher code", { exact: true }).fill("NC-AAAA-1111");
   await expired.getByRole("button", { name: "Request access", exact: true }).click();
-  await expired.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await expired.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   await owner.locator("[data-request]").filter({ has: owner.locator("[data-pairing-approval]") }).getByRole("button", { name: "Decline", exact: true }).click();
   await expired.locator("#pairingStatus").filter({ hasText: "declined" }).waitFor();

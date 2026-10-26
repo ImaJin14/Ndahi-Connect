@@ -48,7 +48,7 @@ try {
         if (url.pathname.startsWith("/api/account/")) accountRequests.push(url.pathname);
         if (wrongCode && url.pathname.endsWith("/redeem")) return route.fulfill({ status: 401, headers, json: { error: "Approval code was not accepted." } });
         assert.equal(url.pathname, "/api/wifi/pairing/status");
-        assert.deepEqual(request.postDataJSON(), { id, key });
+        assert.deepEqual(request.postDataJSON(), { id, key, includeQr: true });
         return route.fulfill({ headers, json: { request: { id, status: state, completionReady: ready,
           updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 300000).toISOString() } } });
       });

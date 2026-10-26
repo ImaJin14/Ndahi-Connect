@@ -78,7 +78,7 @@ $("#login").onsubmit = async (event) => {
           requestButton.onclick = async () => {
             try { await runButton(requestButton, "Requesting…", async () => {
               if (!key) key = randomId();
-              const reply = await startWifiRequest((payload) => call("/api/wifi/pairing/request", payload), { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address }, (next) => { key = next; });
+              const reply = await startWifiRequest((payload) => call("/api/wifi/pairing/request", payload), { phone: input.phone, code: input.code, key, mac: hint.mac, address: hint.address, protocol: 3 }, (next) => { key = next; });
               location.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + key + "&request=" + encodeURIComponent(reply.request.id);
             }, { controls: Array.from(gate.querySelectorAll("button")) }); } catch (error) { showError(gate.querySelector("[data-access-message]"), error); }
           };

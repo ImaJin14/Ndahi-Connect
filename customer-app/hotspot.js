@@ -56,6 +56,17 @@ async function protectedConnect(proof = {}) {
       message.textContent = "This device needs approval from your main device.";
       const link = document.createElement("a"); link.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address); link.textContent = "Request access";
       message.append(" ", link);
+      link.onclick = event => {
+        event.preventDefault();
+        void runButton(link, "Requesting…", async () => {
+          const payload = { key: input.key, mac: hint.mac, address: hint.address, protocol: 3 };
+          const reply = await startWifiRequest(data => call("/api/account/device-management/pairing/request", data, true), payload, next => {
+            input.key = key = next;
+            try { history.replaceState(null, "", location.pathname + location.search + "#wifi_key=" + key); } catch (_) {}
+          });
+          location.assign("/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + payload.key + "&request=" + encodeURIComponent(reply.request.id));
+        }).catch(error => showError(message, error));
+      };
       if (!document.querySelector("#recoverWifiOwner")) {
         const recovery = document.createElement("details"); recovery.id = "recoverWifiOwner";
         recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
@@ -81,6 +92,9 @@ async function protectedConnect(proof = {}) {
   }
   if (!result) throw new ApiError(408, "Wi-Fi preparation is taking longer than expected. Try again.");
   let request = result.request;
+  if (["pending", "awaiting_code", "awaiting_confirmation"].includes(request.status)) {
+    location.replace("/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + key + "&request=" + encodeURIComponent(request.id)); return;
+  }
   while (Date.now() < deadline && request.status === "connecting") {
     message.textContent = "Connecting… Waiting for the router to confirm this device.";
     await new Promise((resolve) => setTimeout(resolve, 2000));

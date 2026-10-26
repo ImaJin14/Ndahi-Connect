@@ -3,31 +3,61 @@
 The first owner-authenticated device connects through the API and is then asked
 **Is this your main device?** Choosing Yes opens owner verification with PIN or
 passkey; choosing No keeps internet access and skips main-device linking. Main
-selection is explicit and survives renewals and Wi-Fi departures. Authenticator
-sign-in and verification for main selection remain optional.
+selection is explicit and survives renewals and Wi-Fi departures. Customer
+account verification uses PIN or passkey; admin password/passkey is unchanged.
 
 ## Additional-device flow
 
-1. Join NDAHI Wi-Fi and enter the account number and active voucher. A new,
-   unapproved device gets a restricted **Request access** page. It receives no
-   account session and no internet access from those details alone.
-2. The owner sees the request in the main browser's notification bell and
-   **Connection requests**. The router-announced name and MAC suffix identify the
-   requested device. The owner chooses **Approve & show code** or **Decline**.
-3. Only the main controlling browser receives the six-digit approval code. The
-   requesting device enters that code to complete approval. It works for one
-   request, customer, voucher, router revision and pinned guest MAC/IP/host row.
-   Pending requests expire after five minutes. Issuing the code starts a fresh
-   five-minute window, capped by bundle expiry; repeat taps reuse the same code
-   and do not extend that window. Five wrong redemption codes fail the request.
-4. Redemption rechecks current ownership, the bundle, remaining data, fresh device
-   readings and available slots. **Connecting** reserves a slot. **Connected** is
-   shown only after the router confirms the exact session.
+1. Join NDAHI Wi-Fi. A signed-in requester uses **Request access** with the
+   current account session and eligible active bundle; no phone, voucher or owner
+   recovery proof is requested again. A captive guest enters the linked account
+   number and active voucher once; **Request access** carries that context forward
+   without creating an account session or asking for the owner's PIN.
+2. The requesting device displays a six-digit **matching request code**, a QR and
+   a five-minute countdown. The main browser opens the exact request from its
+   notification bell, Connection requests, or the QR. It sees the same code,
+   router-announced device label, MAC suffix and expiry.
+3. The main browser compares the codes and explicitly chooses **Codes match —
+   allow device** or **Decline**. Scanning the QR, displaying the code, opening a
+   notification, or GETting the review page never approves. A QR opened in a
+   different browser cannot transfer the main controller cookie.
+4. Confirmation rechecks current ownership, active paid bundle, quota, router
+   mapping/freshness, revocation barriers and device slots. **Connecting** reserves
+   a slot durably; **Connected** and native captive completion are offered only
+   after the router confirms the exact target. The requester does not enter a
+   second code. Lost replies/reloads resume the same operation, including when
+   storage is blocked.
 
-When no main browser has been set, requests remain pending with a setup message
-and the owner's bell shows **Set your main device**. The owner must select one
-before a code can be issued. Reading or archiving a notification grants no access.
-The approval code is separate from an authenticator code.
+The matching reference is not an authorization secret and cannot redeem a request.
+The QR contains only `/pair-review.html?request=<opaque UUID>`, with no account,
+voucher, PIN, main credential or requester bearer key. Reading the exact request
+requires its customer session; approval additionally requires the current main
+controller, CSRF/origin protection, explicit match flag and exact reference. A
+cached id-only approval fails safely. References expire five minutes after request
+creation, capped by bundle expiry; scans, polls and repeat approvals never extend
+that deadline. A main-controller replacement cancels earlier waiting requests.
+
+When no main browser has been set, requests wait with a setup message and the
+owner's bell shows **Set your main device**. Selecting the first main browser
+allows those waiting requests to be reviewed; no automatic approval occurs.
+Reading or archiving a notification grants no access.
+
+### Earlier requests and mixed deployment
+
+New requests use protocol 3 and a distinct `awaiting_confirmation` state. Existing
+protocol-2 `pending`/`awaiting_code` requests keep the earlier **Approve & show
+code** and requester code-entry path until they complete or expire. Their secret
+is never the new matching reference. A new frontend must not offer code entry for
+protocol 3, and the redemption API rejects it even after admission.
+
+Release the API before the portal. No database migration is required; the existing
+request JSON rows store the protocol and reference verifier. Older APIs cannot
+approve the distinct new pending state, even with an id-only click. During API
+rollback an unapproved protocol-3 request must be retried on compatible code;
+never convert it into an automatically approved legacy request. Already admitted
+jobs retain the existing worker authorization, expiry and idempotency checks.
+Current/previous peppers can recover the same reference; losing both makes it
+unavailable and requires a new request rather than showing an invalid code.
 
 The account number is the phone number already linked to the voucher. A second
 person using that voucher requests access under that account; they do not create
@@ -162,7 +192,7 @@ portal repeatedly cannot repair an installed redirect that drops MAC/IP.
    secrets into logs or screenshots. A pre-existing older assisted-pairing flag
    must be re-enabled to install this policy version.
 5. Test first-device Yes and No; an additional voucher/number sign-in; the main
-   bell and code; wrong code, decline, cancellation and expiry; full device slots;
+   bell and matching code/QR; mismatch, decline, cancellation and expiry; full slots;
    approved reconnection; explicit main recovery; and a browserless device.
    Check that entering the public voucher directly cannot log in to the router,
    and old public cookies cannot admit an unapproved device.
@@ -175,15 +205,18 @@ portal repeatedly cannot repair an installed redirect that drops MAC/IP.
 Requests and redemptions use the existing separate pairing IP budget (default
 600 per fifteen minutes). Status polling uses a bearer key, at most once per
 1.5 seconds while pending; the UI polls every five seconds. Each customer has at
-most three pending/awaiting-code/connecting requests and ten starts per fifteen
-minutes. Completed request records are kept for seven days. Codes are hashed;
-main-only display can be recovered from a nonce and the current/previous pepper.
+most three pending/awaiting-confirmation/awaiting-code/connecting requests and ten
+starts per fifteen minutes. Completed records are kept for seven days. Legacy
+secrets and matching references have separate hash/nonce domains. QR PNG rendering
+happens after storage commits only when explicitly requested, not on each poll.
 Request recovery uses session storage or a URL fragment; phone/voucher and codes
 are not placed in that fragment. No requesting-device account cookie is issued.
 
 Automated tests use isolated accounts and synthetic router responses. They verify
-API authorization, expiry, replay, main transfer, first-connection races, slot
-races, private credential writes and 320px browser journeys. They do not establish
+API/CSRF authorization, session reuse, exact QR/notification destinations, expiry,
+replay, main transfer, first-connection races, slot races, transactional rollback,
+PostgreSQL reopen/independent workers, private credential writes and 320/1280px
+browser journeys. The actual rendered QR is decoded in browser verification. They do not establish
 production enablement or physical compatibility. See also
 [notifications](notifications.md) and [device management](device-management.md).
 

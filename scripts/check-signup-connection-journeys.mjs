@@ -122,22 +122,21 @@ try {
   const requested = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 201);
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
   const firstGuestKey = (await requested).request().postDataJSON().key;
-  await guest.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await guest.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const row = owner.locator("[data-request]").filter({ hasText: "ending EF:02" });
-  await row.getByRole("button", { name: "Approve & show code", exact: true }).click();
-  const code = await row.getByLabel("Approval code", { exact: true }).textContent();
-  assert.match(code, /^\d{6}$/);
-  await guest.getByLabel("Approval code from your main device").fill(code);
-  const redeem = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/redeem") && r.status() === 202);
-  await guest.getByRole("button", { name: "Enter code and connect", exact: true }).click();
-  const guestConnection = (await (await redeem).json()).request;
+  const code = await row.getByLabel("Matching request code", { exact: true }).textContent();
+  assert.match(code, /^\d{3} \d{3}$/);
+  assert.equal(code, await guest.getByLabel("Matching request code", { exact: true }).textContent());
+  const confirmed = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/pairing/approve") && r.status() === 202);
+  await row.getByRole("button", { name: "Codes match — allow device", exact: true }).click();
+  const guestConnection = (await (await confirmed).json()).request;
   assert.equal(f.calls.length, 1, "guest stays offline until the router confirms");
   await confirmConnection(guestConnection);
   await guest.waitForURL(portal + "/wifi-connected.html");
   assert.equal((await guest.context().cookies()).some((c) => c.name === "customer_session"), false);
   assert.equal((await guest.request.get(f.api + "/api/account/dashboard")).status(), 401);
-  console.log("PASS a second browser requests and redeems main-device approval after the real signup without receiving an account session");
+  console.log("PASS a second browser matches the main-device request code after real signup without receiving an account session");
 
   routerEpoch++;
   await f.store.transaction((s) => {
@@ -176,15 +175,13 @@ try {
   await third.getByLabel("Account phone number", { exact: true }).fill(phone);
   await third.getByLabel("Active voucher code", { exact: true }).fill(voucher.code);
   await third.getByRole("button", { name: "Request access", exact: true }).click();
-  await third.locator("#pairingStatus").filter({ hasText: "waiting for the main device" }).waitFor();
+  await third.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
   assert.equal(f.calls.length, 4, "an unknown MAC must still require main-device approval");
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const thirdRow = owner.locator("[data-request]").filter({ hasText: "ending EF:03" });
-  await thirdRow.getByRole("button", { name: "Approve & show code", exact: true }).click();
-  const thirdCode = await thirdRow.getByLabel("Approval code", { exact: true }).textContent();
-  await third.getByLabel("Approval code from your main device").fill(thirdCode);
-  await third.getByRole("button", { name: "Enter code and connect", exact: true }).click();
-  await third.locator("#pairingMessage").filter({ hasText: "All device slots are in use" }).waitFor();
+  await thirdRow.getByRole("button", { name: "Codes match — allow device", exact: true }).click();
+  await thirdRow.locator("[data-pairing-error]").filter({ hasText: "All device slots are in use" }).waitFor();
+  assert.equal((await f.store.snapshot()).wifiPairingRequests.find(p => p.mac.endsWith("EF:03")).status, "awaiting_confirmation");
   assert.equal(f.calls.length, 4);
   console.log("PASS an unknown third device requires approval and cannot exceed the bundle's two-device limit");
   for (const page of [owner, guest]) {

@@ -7,16 +7,16 @@ const secret = "pairing-tests", pinHash = await argon2.hash("2468");
 export const mainMac = "AA:BB:CC:DD:EE:01", guestMac = "AA:BB:CC:DD:EE:03";
 export const publicRoot = "/api/wifi/pairing", ownerRoot = "/api/account/device-management/pairing";
 // A real API, isolated memory state, and a synthetic router. No production access.
-export async function pairingFixture({ origin = "http://customer.test", env = {}, router = {}, liveClock = false, now = new Date("2030-01-01T12:00:00Z") } = {}) {
+export async function pairingFixture({ origin = "http://customer.test", env = {}, router = {}, liveClock = false, store: providedStore, seed = true, now = new Date("2030-01-01T12:00:00Z") } = {}) {
   let at = now; const started = Date.now(), clock = () => liveClock ? new Date(+at + Date.now() - started) : at;
-  const store = createStore({ persistent: false }), calls = [];
+  const store = providedStore || createStore({ persistent: false }), calls = [];
   const fakeRouter = {
     async readGuestDevice({ mac, address }) { return { mac, address, loginAddress: address, hostId: "*guest-" + mac.slice(-2), server: "ndahi-hotspot", name: "Galaxy Note 8" }; },
     async connectWifiDevice(device) { calls.push(device); return { confirmed: true, device: { mac: device.mac, address: device.loginAddress, sessionId: "*new", startedAt: clock().toISOString(), name: "Galaxy Note 8", usedBytes: 0 } }; },
     async readUsage() { return []; },
     ...router,
   };
-  await store.transaction((s) => {
+  if (seed) await store.transaction((s) => {
     s.networkSetup = { runtimeRouterEnabled: true, connections: { router: { mode: "live", revision: "router-1" } }, assistedConnections: { enabled: true, revision: "router-1" }, deviceApproval: { version: 1, revision: "router-1" } };
     s.customers.push({ id: "c1", name: "Imajin", phone: "670050001", pinHash,
       wifiMainDevice: { mac: mainMac, name: "imajin", routerRevision: "router-1", controllerHash: hashSecret("controller", secret), pinVersion: hashSecret(pinHash, secret) } },
