@@ -48,7 +48,6 @@ async function call(path, options = {}) {
   if (!response.ok) throw responseError(response, result);
   return result;
 }
-const dailyBlocked = (plan) => plan.id === "daily" && account && account.dailyAvailability?.available !== true;
 function setPurchaseAccess(access) {
   purchaseAccess = access && typeof access.allowed === "boolean" ? access : { allowed: false, message: "Connect to NDAHI Wi-Fi, then check again to purchase a bundle." };
   $("#purchaseAccessNotice").hidden = purchaseAccess.allowed;
@@ -100,7 +99,7 @@ function changeLabel(plan) {
 }
 function policy(plan) {
   const active = account?.activeBundle?.status === "active",
-    eligibility = plan.id === "daily" ? " Daily can be purchased once every 7 days." : "";
+    eligibility = plan.id === "daily" ? " Buy Daily again after expiry or data exhaustion, including on the same day." : "";
   if (accountAction || upgradePurchase) {
     return `${active ? "Your current bundle must expire or use up its data before another purchase. " : "Your previous package is not active. "}${plan.name} starts on payment confirmation with ${durationLabel(plan.validityHours)} of validity. The full ${money(plan.price)} package price is due; no prorated credit is applied. Reconnect devices with the new activation code.${eligibility}`;
   }
@@ -111,9 +110,9 @@ function notice(message, links = true) {
 }
 function renderPlans() {
   $("#plans").innerHTML = plans.map((plan) => {
-    const blocked = !subscriptionAccess.allowed || dailyBlocked(plan) || (accountAction === "renew" && (!renewal || !renewal.eligible));
+    const blocked = !subscriptionAccess.allowed || (accountAction === "renew" && (!renewal || !renewal.eligible));
     const eligibility = !subscriptionAccess.allowed ? "Your existing bundle is protected from replacement." : blocked
-      ? `Daily is available again ${date(account && account.dailyAvailability ? account.dailyAvailability.nextEligibleAt : null)}.`
+      ? renewal?.reason || "This package cannot be renewed."
       : accountAction === "renew" ? "Eligible to renew now." : "";
     const highlight = planHighlightBadge(plan);
     const badge = accountAction === "switch" ? changeLabel(plan) : accountAction === "renew" ? "Your renewal" : highlight;
@@ -417,7 +416,7 @@ async function resumeSavedCheckout(button, saved, checked) {
 }
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
-  if (!plan || !purchaseAccess.allowed || !subscriptionAccess.allowed || dailyBlocked(plan) || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
+  if (!plan || !purchaseAccess.allowed || !subscriptionAccess.allowed || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
   selected = plan;
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   return true;
@@ -542,12 +541,13 @@ function clearRequestKey() {
 function releaseFailedPayment() {
   clearRequestKey();
   paymentInProgress = undefined;
+  $("#purchase").elements.acknowledge.checked = false;
   showPaymentDeadline(null);
   $("#purchaseFields").disabled = false;
   if (accountAction) $("#purchase").elements.payerPhone.value = account.customer.phone;
   // A recovered snapshot remains valid for the original payment, but only a current,
   // eligible package can be offered for a new charge after that payment closes.
-  selected = plans.find((plan) => plan.id === selected?.id && !dailyBlocked(plan));
+  selected = plans.find((plan) => plan.id === selected?.id);
   if (accountAction === "renew" && !renewal?.eligible) selected = undefined;
   renderCheckoutReview();
   if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);

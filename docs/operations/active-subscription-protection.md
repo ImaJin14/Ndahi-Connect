@@ -19,9 +19,9 @@ already received payments to need review before activation.
 
 The existing lifecycle cleanup marks expired/exhausted vouchers and queues their
 network removal. A new purchase does not rewrite those historical records as an
-early renewal/switch. New payment records snapshot billing policy version `2026-10-24`; historical
+early renewal/switch. New payment records snapshot billing policy version `2026-11-03`; historical
 receipts keep their existing policy. Full catalogue prices, validity starting at verified
-payment and the Daily seven-day eligibility rule remain in effect.
+payment remain in effect. Daily can be repurchased immediately after expiry or data exhaustion, including on the same day; usable active bundles still block another purchase.
 
 ## Checkout and recovery
 

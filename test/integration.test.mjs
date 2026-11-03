@@ -344,7 +344,7 @@ test("the dashboard exposes the pending-payment and exhausted-bundle data the em
   assert.equal(pending.json.activeBundle, null, "the renewal has not been confirmed yet");
   assert.ok(pending.json.payments.some((payment) => payment.id === renewal.json.payment.id && payment.status === "pending"));
 });
-test("stacking and Daily same-day renewal are rejected; exhausted non-daily renews", async (t) => {
+test("stacking is rejected; exhausted Daily and larger bundles can be repurchased", async (t) => {
   const f = await fixture();
   t.after(f.close);
   async function purchase(phone, planId) {
@@ -383,7 +383,7 @@ test("stacking and Daily same-day renewal are rejected; exhausted non-daily rene
       phone: "670000020",
       planId: "daily",
     })).response.status,
-    409,
+    201,
   );
 });
 
@@ -663,26 +663,22 @@ test("forgot PIN uses a single-use emailed token and invalidates existing sessio
   assert.equal(unknown.json.message, requested.json.message);
 });
 
-test("Daily has a rolling seven-day cooldown and keeps 24-hour validity", async (t) => {
+test("Daily can be repurchased at exact expiry, retaining 250 FCFA and 24-hour validity", async (t) => {
   let current = new Date("2026-09-07T10:00:00Z");
-  const f = await fixture({ now: () => new Date(current) });
-  t.after(f.close);
+  const f = await fixture({ now: () => new Date(current) }); t.after(f.close);
   const first = await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" }),
     paid = await f.call(`/api/payments/${first.json.payment.id}/confirm`, "POST");
+  assert.equal(first.json.payment.amount, 250);
   assert.equal(+new Date(paid.json.voucher.expiresAt) - +new Date(paid.json.voucher.activatedAt), 24 * 36e5);
-  current = new Date("2026-09-08T10:01:00Z");
-  const blocked = await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" });
-  assert.equal(blocked.response.status, 409);
-  assert.equal(blocked.json.nextEligibleAt, "2026-09-14T10:00:00.000Z");
-  current = new Date("2026-09-14T10:00:00Z");
-  assert.equal((await f.call("/api/purchase", "POST", {
-    phone: "670000042", planId: "daily",
-  })).response.status, 201);
-  const pendingOnly = await f.call("/api/purchase", "POST", { phone: "670000043", planId: "daily" });
-  await f.store.transaction((state) => { state.payments.find((x) => x.id === pendingOnly.json.payment.id).status = "failed"; });
-  assert.equal((await f.call("/api/purchase", "POST", {
-    phone: "670000043", planId: "daily",
-  })).response.status, 201);
+  assert.equal((await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" })).response.status, 409);
+  current = new Date(paid.json.voucher.expiresAt);
+  const repeat = await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" });
+  assert.equal(repeat.response.status, 201);
+  const confirmations = await Promise.all([0, 1].map(() => f.call(`/api/payments/${repeat.json.payment.id}/confirm`, "POST")));
+  assert.deepEqual(confirmations.map((r) => r.response.status), [200, 200]);
+  assert.equal(confirmations[0].json.voucher.id, confirmations[1].json.voucher.id);
+  assert.equal(+new Date(confirmations[0].json.voucher.expiresAt) - +current, 24 * 36e5);
+  assert.equal((await f.store.snapshot()).vouchers.length, 2);
 });
 
 test("discontinued plans are historical-only and account renewal/switching is idempotent", async (t) => {
@@ -856,37 +852,26 @@ test("eligible renewal and switching preserve exhausted history and repeated req
   }
 });
 
-test("authenticated renewal and switching respect Daily cooldown until the exact eligible time", async (t) => {
-  let current = new Date("2026-09-22T10:00:00Z");
-  const f = await authenticatedFixture(t, {
-    planId: "daily", now: () => current, env: { CUSTOMER_SESSION_SECONDS: "691200" },
-  }), nextEligibleAt = "2026-09-29T10:00:00.000Z";
-  current = new Date("2026-09-23T10:00:00Z");
-  const renewal = await f.call("/api/account/plan/purchase", "POST", {
-    planId: "daily", action: "renew", requestKey: "daily-renewal",
-  });
-  assert.equal(renewal.response.status, 409);
-  assert.equal(renewal.json.nextEligibleAt, nextEligibleAt);
-  const weekly = await f.call("/api/account/plan/purchase", "POST", {
-    planId: "weekly", action: "switch", requestKey: "weekly-switch",
-  });
-  assert.equal(weekly.response.status, 201);
-  await f.call(`/api/payments/${weekly.json.payment.id}/confirm`, "POST");
-  await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
-  const switchInput = { planId: "daily", action: "switch", requestKey: "daily-switch" },
-    blocked = await f.call("/api/account/plan/purchase", "POST", switchInput);
-  assert.equal(blocked.response.status, 409);
-  assert.equal(blocked.json.nextEligibleAt, nextEligibleAt);
-  const unavailable = await f.call("/api/account/dashboard");
-  assert.deepEqual(unavailable.json.dailyAvailability, { available: false, nextEligibleAt });
-  assert.equal((await f.store.snapshot()).payments.length, 2);
-  current = new Date(nextEligibleAt);
-  assert.equal((await f.call("/api/account/dashboard")).json.dailyAvailability.available, true);
-  const eligible = await f.call("/api/account/plan/purchase", "POST", switchInput);
-  assert.equal(eligible.response.status, 201);
-  const confirmed = await f.call(`/api/payments/${eligible.json.payment.id}/confirm`, "POST");
-  assert.equal(confirmed.response.status, 200);
-  assert.equal(+new Date(confirmed.json.voucher.expiresAt) - +current, 24 * 36e5);
+test("authenticated Daily repurchases and switches work on the same day after exhaustion", async (t) => {
+  const current = new Date("2026-09-22T10:00:00Z");
+  const f = await authenticatedFixture(t, { planId: "daily", now: () => current });
+  for (const [planId, action] of [["daily", "renew"], ["weekly", "switch"], ["daily", "switch"]]) {
+    await f.store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
+    const input = { planId, action, requestKey: `same-day-${planId}-${action}` };
+    const purchase = await f.call("/api/account/plan/purchase", "POST", input);
+    assert.equal(purchase.response.status, 201);
+    const duplicate = await f.call("/api/account/plan/purchase", "POST", input);
+    assert.equal(duplicate.json.payment.id, purchase.json.payment.id);
+    const paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
+    assert.equal(paid.response.status, 200);
+    assert.equal(+new Date(paid.json.voucher.expiresAt) - +current, (planId === "daily" ? 24 : 168) * 36e5);
+    if (planId === "daily") assert.equal(purchase.json.payment.amount, 250);
+    assert.equal((await f.call("/api/account/plan/purchase", "POST", { ...input, requestKey: input.requestKey + "-active" })).json.code, "ACTIVE_BUNDLE_EXISTS");
+    assert.deepEqual((await f.call("/api/account/dashboard")).json.dailyAvailability, { available: true, nextEligibleAt: null });
+  }
+  const stored = await f.store.snapshot();
+  assert.equal(stored.payments.length, 4);
+  assert.equal(stored.vouchers.filter((v) => v.status === "active").length, 1);
 });
 
 test("account payment status requires its owner's active session and payment IDs cannot bypass it", async (t) => {
