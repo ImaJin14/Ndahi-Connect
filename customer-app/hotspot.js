@@ -52,10 +52,11 @@ async function protectedConnect(proof = {}) {
     }
     catch (error) {
       if (error.code === "DEVICE_REFRESH_REQUIRED") { message.textContent = "Refreshing your Wi-Fi connection…"; await new Promise((resolve) => setTimeout(resolve, 2000)); continue; }
-      if (error.code !== "DEVICE_APPROVAL_REQUIRED") throw error;
-      message.textContent = "This device needs approval from your main device.";
+      const single = error.code === "OWNER_VERIFICATION_REQUIRED";
+      if (!single && error.code !== "DEVICE_APPROVAL_REQUIRED") throw error;
+      message.textContent = single ? "Verify account ownership to connect this device." : "This device needs approval from your main device.";
       const link = document.createElement("a"); link.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address); link.textContent = "Request access";
-      message.append(" ", link);
+      if (!single) message.append(" ", link);
       link.onclick = event => {
         event.preventDefault();
         void runButton(link, "Requesting…", async () => {
@@ -70,6 +71,13 @@ async function protectedConnect(proof = {}) {
       if (!document.querySelector("#recoverWifiOwner")) {
         const recovery = document.createElement("details"); recovery.id = "recoverWifiOwner";
         recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
+        if (single) {
+          recovery.open = true;
+          recovery.querySelector("summary").textContent = "Verify this device";
+          recovery.querySelector("p").textContent = "Use your account PIN or passkey to connect this device. Your bundle supports one device at a time.";
+          recovery.querySelector("[type=submit]").textContent = "Verify PIN and connect";
+          recovery.querySelector("[data-recover-passkey]").textContent = "Connect with passkey";
+        }
         message.after(recovery);
         const form = recovery.querySelector("form"), output = recovery.querySelector("[data-recovery-message]");
         const recover = async (usePasskey) => {
@@ -104,7 +112,8 @@ async function protectedConnect(proof = {}) {
     if (!["pending", "awaiting_code", "connecting"].includes(request.status)) { try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {} }
     throw new ApiError(408, request.message || "Connection is not confirmed. Try again to check the existing request.");
   }
-  if (request.firstDevice || proof.recover) { destination.searchParams.set("main-device", hint.mac); destination.hash = "home"; }
+  if ((!request.deviceCapabilities || request.deviceCapabilities.mainDeviceSupported !== false) && (request.firstDevice || proof.recover)) { destination.searchParams.set("main-device", hint.mac); destination.hash = "home"; }
+  if (request.deviceCapabilities && request.deviceCapabilities.mainDeviceSupported === false) destination.searchParams.delete("main-device");
   location.replace(destination.href);
 }
 
