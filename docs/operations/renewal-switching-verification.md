@@ -28,7 +28,7 @@ Updated 2026-09-23 following the owner's copy review:
 - Per-GB and per-day rates and their explanatory paragraph are not displayed.
 - The generic "One-time package" and "Available once every 7 days" badges and the
   "across full validity" suffix have been removed.
-- The Daily seven-day purchase restriction remains enforced and is explained in
+- Daily can be repurchased after expiry or exhaustion without a seven-day wait, as explained in
   eligibility and checkout details. Removing the badge does not change eligibility.
 
 Full-price payment, replacement timing, consent, and no-carryover disclosures remain
@@ -83,7 +83,7 @@ copy and rate-display removals. The scenarios cover:
 - Desktop, 390px mobile, and 320px reflow without horizontal overflow.
 - Keyboard focus containment/restoration and touch access to the last package.
 - Accessible names for package articles and comparison tables.
-- Daily cooldown, missing/discontinued plans, and custom-duration lateral changes.
+- Same-day Daily repurchase after exhaustion/expiry, missing/discontinued plans, and custom-duration lateral changes.
 - Locked selection while payment creation is in flight and reopening a pending checkout.
 - Pending-payment restoration, authenticated cookie-path polling, and declined-payment retry.
 - Payments confirmed while the page is closed, and logged-out return-to-login behavior.

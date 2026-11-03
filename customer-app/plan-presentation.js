@@ -105,7 +105,7 @@ export function planHighlightBadge(plan) {
   return "";
 }
 
-export function renewalEligibility(currentVoucher, cataloguePlans, dailyAvailability) {
+export function renewalEligibility(currentVoucher, cataloguePlans) {
   if (!currentVoucher?.planId) {
     return {
       eligible: false, code: "no-current-plan", reason: "There is no current plan to renew.",
@@ -123,17 +123,6 @@ export function renewalEligibility(currentVoucher, cataloguePlans, dailyAvailabi
     return {
       eligible: false, code: "plan-unavailable", reason: "This plan is no longer available for renewal.",
       plan: null, nextEligibleAt: null,
-    };
-  }
-  if (plan.id === "daily" && dailyAvailability?.available !== true) {
-    return {
-      eligible: false,
-      code: dailyAvailability?.available === false ? "daily-cooldown" : "eligibility-unavailable",
-      reason: dailyAvailability?.available === false
-        ? "The Daily plan is available once every 7 days."
-        : "Daily plan eligibility could not be confirmed.",
-      plan,
-      nextEligibleAt: dailyAvailability?.nextEligibleAt || null,
     };
   }
   return {

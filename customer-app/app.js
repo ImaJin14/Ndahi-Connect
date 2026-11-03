@@ -183,9 +183,7 @@ async function load() {
   const active = result.activeBundle,
     current = result.currentPlan,
     dailyPlan = result.availablePlans.find((plan) => plan.id === "daily"),
-    dailyNotice = result.dailyAvailability.available
-      ? dailyPlan ? `The ${dailyPlan.price.toLocaleString()} FCFA Daily bundle is available.` : "The Daily bundle is available."
-      : `Daily is available again ${new Date(result.dailyAvailability.nextEligibleAt).toLocaleString()}.`,
+    dailyNotice = `${dailyPlan ? `The ${dailyPlan.price.toLocaleString()} FCFA Daily bundle` : "Daily"} can be purchased again after expiry or data exhaustion, including on the same day.`,
     canPurchase = !active && result.subscriptionPurchaseAccess?.allowed !== false &&
       result.customer.status !== "suspended" && !result.customer.suspended,
     duration = current?.plan?.validityHours === 24 ? "24 hours" : current?.plan?.validityHours === 168 ? "7 days" : "30 days",
