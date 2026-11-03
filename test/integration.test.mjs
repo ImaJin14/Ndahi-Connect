@@ -76,13 +76,13 @@ async function authenticatedFixture(t, { planId = "weekly", ...options } = {}) {
 }
 test("catalogue contains the required prices, quotas, validity and device limits", () => {
   assert.deepEqual(plans.map((x) => x.price), [
-    100,
-    500,
-    2000,
-    5500,
+    250,
+    1000,
+    3000,
+    6000,
     10000,
-    12500,
     15000,
+    20000,
     30000,
   ]);
   assert.deepEqual(plans.map((x) => x.deviceLimit), [
@@ -96,6 +96,7 @@ test("catalogue contains the required prices, quotas, validity and device limits
     6,
   ]);
   assert.equal(plans.at(-1).quotaGb, null);
+  assert.equal(plans.find((plan) => plan.id === "monthly").quotaGb, 15);
 });
 test("activation codes are fixed-length, human-readable, unique and opaque", () => {
   const codes = new Set(Array.from({ length: 1000 }, activationCode));
@@ -104,6 +105,32 @@ test("activation codes are fixed-length, human-readable, unique and opaque", () 
   assert.equal([...codes][0].length, 12);
   assert.equal(normalizeActivationCode("nc abcd 5678"), "NC-ABCD-5678");
   assert.notEqual(hashSecret("123456", "pepper"), "123456");
+});
+test("checkout uses new Monthly terms while an earlier payment settles its recorded terms", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const created = await f.call("/api/purchase", "POST", { phone: "670000061", planId: "monthly" });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.json.payment.amount, 3000);
+  assert.equal(created.json.payment.plan.quotaGb, 15);
+  // Model a checkout reserved before the price change without mutating the
+  // current catalogue or charging/repricing the old payment.
+  await f.store.transaction((s) => {
+    const payment = s.payments.find((p) => p.id === created.json.payment.id);
+    payment.amount = 2000;
+    Object.assign(payment.planSnapshot, { price: 2000, quotaGb: 10 });
+  });
+  const confirmed = await f.call(`/api/payments/${created.json.payment.id}/confirm`, "POST");
+  assert.equal(confirmed.response.status, 200);
+  assert.equal(confirmed.json.voucher.quotaBytes, 10e9);
+  assert.equal(confirmed.json.voucher.plan.quotaGb, 10);
+  assert.equal(confirmed.json.voucher.plan.price, 2000);
+  const state = await f.store.snapshot();
+  assert.equal(state.payments[0].receipt.amount, 2000);
+  assert.equal(state.payments[0].receipt.plan.quotaGb, 10);
+  const current = (await f.call("/api/plans")).json.plans.find((plan) => plan.id === "monthly");
+  assert.equal(current.price, 3000);
+  assert.equal(current.quotaGb, 15);
 });
 test("verified payment emails the voucher and delivery failure never reverses payment", async (t) => {
   const sent = [], successful = await fixture({
@@ -667,7 +694,7 @@ test("discontinued plans are historical-only and account renewal/switching is id
     })).response.status, 400);
   }
   const catalogue = await f.call("/api/plans");
-  assert.ok(!catalogue.json.plans.some((plan) => [3000, 4000].includes(plan.price)));
+  assert.ok(!catalogue.json.plans.some((plan) => ["plus", "connect20"].includes(plan.id)));
   const purchase = await f.call("/api/purchase", "POST", { phone: "670000044", planId: "weekly" }),
     paid = await f.call(`/api/payments/${purchase.json.payment.id}/confirm`, "POST");
   await f.call("/api/account/setup/pin", "POST", {

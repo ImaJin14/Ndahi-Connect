@@ -4,16 +4,17 @@ import { authEdgeScopes, createServer, createStore, customerCsrfPaths, ensureSta
 import { totpCode, totpSecret, totpUri, verifyTotp } from "../lib/security.mjs";
 test("public Wi-Fi catalogue is complete", () => {
   assert.deepEqual(plans.map((p) => p.price), [
-    100,
-    500,
-    2000,
-    5500,
+    250,
+    1000,
+    3000,
+    6000,
     10000,
-    12500,
     15000,
+    20000,
     30000,
   ]);
   assert.equal(plans.find((p) => p.id === "connect30").quotaGb, 30);
+  assert.equal(plans.find((p) => p.id === "monthly").quotaGb, 15);
   assert.equal(plans.find((p) => p.id === "connect75").quotaGb, 75);
 });
 test("daily is one device and other plans have their intended limits", () => {

@@ -114,8 +114,8 @@ try {
       await load(page, "switch");
       assert.equal(await page.locator(".comparison").count(), 7);
       assert.equal(await page.locator('[data-plan="weekly"]').count(), 0);
-      assert.match(await page.locator('[data-card="monthly"]').textContent(), /Upgrade.*1,500 FCFA more/s);
-      assert.match(await page.locator('[data-card="daily"]').textContent(), /Downgrade.*400 FCFA less/s);
+      assert.match(await page.locator('[data-card="monthly"]').textContent(), /Upgrade.*2,000 FCFA more/s);
+      assert.match(await page.locator('[data-card="daily"]').textContent(), /Downgrade.*750 FCFA less/s);
       await noOverflow(page);
       await page.screenshot({ path: `${screenshotDir}/switch-desktop.png`, fullPage: true });
       for (const width of [390, 320]) {
@@ -173,7 +173,7 @@ try {
       assert.match(await page.locator("#planNotice").textContent(), /no current plan|no longer available/);
     });
     await scenario("custom duration and lateral change", (state) => {
-      state.bundles.push({ id: "custom", name: "Flexible", price: 500, quotaGb: 4, validityHours: 36, deviceLimit: 2 });
+      state.bundles.push({ id: "custom", name: "Flexible", price: 1000, quotaGb: 4, validityHours: 36, deviceLimit: 2 });
     }, async (page) => {
       await load(page, "switch");
       assert.match(await page.locator('[data-card="custom"]').textContent(), /Lateral change.*36 hours.*132 hours shorter/s);

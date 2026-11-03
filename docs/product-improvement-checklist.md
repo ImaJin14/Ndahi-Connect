@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-10-24
+Last reviewed: 2026-11-03
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -899,7 +899,7 @@ DEP-001/004 and TEST-002/003 are now in progress; A11Y-002/003 and TEST-001 rema
 - Verified foundations complete: 14
 - Recommendation tasks complete: 36
 
-Recorded task checkboxes on 2026-10-24: 65 marked complete, 48 in progress, 2 blocked and 46 not started. These are recorded statuses, not a new production or physical acceptance audit.
+Recorded task checkboxes on 2026-11-03: 71 marked complete, 47 in progress, 2 blocked and 46 not started. These are recorded statuses, not a new production or physical acceptance audit.
 
 ## Implementation tracker
 
@@ -1193,3 +1193,13 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - Enforcement: distinct protocol-3 pending state rejects old id-only approval and reference redemption; exact customer/controller/CSRF/origin/expiry checks preserve fresh router mapping, quota, last-slot races, removal barriers and committed queued access. The reference/QR is never a credential. Existing first-main selection/defer, recovery, saved reconnects, browserless addition and in-flight legacy requests remain supported.
 - Local verification: all nine new browser journeys pass at 320/1280px, including decoding the actual QR image, signed-in HotSpot and notification navigation, transient errors, lost replies, blocked storage, rapid reload, expiry, decline, explicit main confirmation and exact router-confirmed completion. Focused authorization/destination tests and syntax checks pass. Existing notification, paid-signup/reconnect/last-slot, 15 captive-completion, Dashboard/PWA/voucher-delivery and current-Wi-Fi suites pass. Hosted PostgreSQL verification exercises rollback, independent-handler last-slot races, store reopen and multi-worker admission. The user-approved handoff also updates the exact CSRF inventory for the new route. Final frozen-head complete test counts and hosted checks are recorded in the PR; earlier partial runs are not substituted for that evidence.
 - Release: [PR #162](https://github.com/ImaJin14/Ndahi-Connect/pull/162) tracks the reviewed implementation; exact merge, deployment revisions and live verification are recorded in its release evidence. Real MikroTik/phone captive closure, camera scanning in the registered main browser, physical/private-MAC behavior and provider/native acceptance remain operator checks under #143/#128. No production account, message, charge or router change was made.
+
+## Bundle pricing update (2026-11-03)
+
+- [-] **BILL-20261103 — Apply the approved bundle catalogue and retain Connect 75**
+  - Implemented locally: Daily 250 FCFA/1 GB/24h; Weekly 1,000 FCFA/5 GB/7 days; Monthly 3,000 FCFA/15 GB/30 days; Connect 30 6,000 FCFA/30 GB; Family 10,000 FCFA/50 GB; Connect 75 15,000 FCFA/75 GB; Max 20,000 FCFA/100 GB; Unlimited Home 30,000 FCFA. All larger plans retain 30-day validity and existing simultaneous-device limits.
+  - Scope: catalogue amounts/allowances and accurate purchase displays. Daily's seven-day eligibility restriction, active-bundle protection, payment timing and renewal rules remain unchanged; repeatable Daily and the broader commercial rollout proposal were not included in this instruction.
+  - Historical purchases: customer balance/history and admin voucher views use recorded payment terms, receipt snapshots or issued allowance/face value. Previously reserved payments settle their recorded price and allowance. Existing quotas, device limits, expiry and receipts are not rewritten.
+  - Automated: `npm run check` and `git diff --check` pass. Integrated onto current production base `d38aba6`: full local suite 1,050 tests, 1,025 passed, 0 failed, 25 PostgreSQL-dependent skips; offline provider contracts pass. The original focused pricing/payment suite also passed all 46 cases. All 13 plan browser scenarios and 28 billing browser scenarios pass using installed Chrome and isolated mock providers. The payment gateway expiry fixture now returns the amount actually requested instead of the obsolete 500 FCFA Weekly amount.
+  - Release: reviewed integration prepared on latest production code; CI and deployment verification pending. Physical router/device and real Mobile Money verification: not performed. Before release, inspect any persisted admin bundle overrides because explicit overrides take precedence over catalogue defaults; update those through the existing authorized admin workflow if necessary.
+  - Tracker: one additional implemented task awaiting production verification; this is separate from the historical milestone totals above.
