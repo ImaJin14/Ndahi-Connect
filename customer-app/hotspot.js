@@ -52,7 +52,8 @@ async function protectedConnect(proof = {}) {
     }
     catch (error) {
       if (error.code === "DEVICE_REFRESH_REQUIRED") { message.textContent = "Refreshing your Wi-Fi connection…"; await new Promise((resolve) => setTimeout(resolve, 2000)); continue; }
-      const single = error.code === "OWNER_VERIFICATION_REQUIRED";
+      const replacement = error.code === "SINGLE_DEVICE_SLOT_OCCUPIED" && error.replacement;
+      const single = error.code === "OWNER_VERIFICATION_REQUIRED" || Boolean(replacement);
       if (!single && error.code !== "DEVICE_APPROVAL_REQUIRED") throw error;
       message.textContent = single ? "Verify account ownership to connect this device." : "This device needs approval from your main device.";
       const link = document.createElement("a"); link.href = "/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address); link.textContent = "Request access";
@@ -68,14 +69,17 @@ async function protectedConnect(proof = {}) {
           location.assign("/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + payload.key + "&request=" + encodeURIComponent(reply.request.id));
         }).catch(error => showError(message, error));
       };
+      if (replacement && document.querySelector("#recoverWifiOwner")) document.querySelector("#recoverWifiOwner").remove();
       if (!document.querySelector("#recoverWifiOwner")) {
         const recovery = document.createElement("details"); recovery.id = "recoverWifiOwner";
         recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
         if (single) {
           recovery.open = true;
           recovery.querySelector("summary").textContent = "Verify this device";
-          recovery.querySelector("p").textContent = "Use your account PIN or passkey to connect this device. Your bundle supports one device at a time.";
-          recovery.querySelector("[type=submit]").textContent = "Verify PIN and connect";
+          recovery.querySelector("p").textContent = replacement
+            ? "Currently connected: " + replacement.name + " · ending " + replacement.mac.slice(-5) + ". Verify ownership to disconnect it and connect this device. Your paid data and expiry stay the same."
+            : "Use your account PIN or passkey to connect this device. Your bundle supports one device at a time.";
+          recovery.querySelector("[type=submit]").textContent = replacement ? "Switch connection to this device" : "Verify PIN and connect";
           recovery.querySelector("[data-recover-passkey]").textContent = "Connect with passkey";
         }
         message.after(recovery);
@@ -83,10 +87,11 @@ async function protectedConnect(proof = {}) {
         const recover = async (usePasskey) => {
           const pin = form.elements.pin.value;
           try { await runButton(form.querySelector(usePasskey ? "[data-recover-passkey]" : '[type="submit"]'), "Verifying…", async () => {
-            let payload = { recover: true, pin };
+            const switchInput = replacement ? { replace: true, replacement: { mac: replacement.mac, sessionId: replacement.sessionId, startedAt: replacement.startedAt } } : {};
+            let payload = { recover: true, pin, ...switchInput };
             if (usePasskey) {
-              const challenge = await call("/api/account/device-management/connect/options", input, true), browser = await loadPasskeys();
-              payload = { recover: true, challengeId: challenge.challengeId, response: await browser.startAuthentication({ optionsJSON: challenge.options }) };
+              const challenge = await call("/api/account/device-management/connect/options", { ...input, ...switchInput }, true), browser = await loadPasskeys();
+              payload = { recover: true, ...switchInput, challengeId: challenge.challengeId, response: await browser.startAuthentication({ optionsJSON: challenge.options }) };
             } else if (!/^\d{4}$/.test(pin)) throw Error("Enter your four-digit account PIN.");
             await protectedConnect(payload); form.reset();
           }, { controls: Array.from(form.elements) }); } catch (error) { showError(output, error); }
@@ -104,7 +109,7 @@ async function protectedConnect(proof = {}) {
     location.replace("/pair?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address) + "#key=" + key + "&request=" + encodeURIComponent(request.id)); return;
   }
   while (Date.now() < deadline && request.status === "connecting") {
-    message.textContent = "Connecting… Waiting for the router to confirm this device.";
+    message.textContent = request.connectionPhase === "disconnecting" ? request.message : "Connecting… Waiting for the router to confirm this device.";
     await new Promise((resolve) => setTimeout(resolve, 2000));
     request = (await call("/api/wifi/pairing/status", { id: request.id, key })).request;
   }

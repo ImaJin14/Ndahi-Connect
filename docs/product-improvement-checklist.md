@@ -1204,6 +1204,17 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Tracker: one additional implemented task awaiting release, separate from historical milestone totals.
 
 
+
+## Safe one-device replacement and transitions (#166)
+
+- [-] **WIFI-166 — Confirm removal before switching a one-device connection**
+  - Implemented: authenticated occupied-slot notice names the exact current device. Explicit Switch connection to this device requires fresh PIN/passkey proof bound to that router session and purchased voucher. One atomic reservation queues an exact-session disconnect and a dependent connection; uncertain/failed/superseded removal retains the slot. Old workers ignore the new command kinds during rolling release.
+  - Enforcement: current account/session, PIN version, router revision, purchased capacity, expiry/quota and confirmed disconnection are rechecked by workers. Single-device allowances make main registration dormant, retain it for a valid upgrade, and avoid secondary-approval expiry for that dormant allowance. Paid quota, expiry, payment history and receipts are unchanged.
+  - Automated: full local suite 1,077 tests, 1,051 passed, 0 failed, 26 PostgreSQL-dependent skips. All eight single-device browser journeys pass at 320/1280px, alongside paid multi-device signup/reconnect/last-slot regressions. New PostgreSQL rollback/independent-handler race/store-reopen/multi-worker verification runs in CI. Queued admission now requires a current router observation; existing bounded-expiry fixtures explicitly provide one.
+  - Release: dependent PR after #165; review and release both device PRs together. Not merged or deployed. Physical router/device and real provider acceptance remain pending.
+  - Tracker: one additional implemented task awaiting release, separate from historical milestone totals.
+
+
 ## Bundle pricing update (2026-11-03)
 
 - [-] **BILL-20261103 — Apply the approved bundle catalogue and retain Connect 75**

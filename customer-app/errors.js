@@ -16,6 +16,7 @@ export function responseError(response, result = {}) {
     error.retryAfterSeconds = Number(result.retryAfterSeconds);
     if (result.payment && typeof result.payment.id === "string") error.payment = result.payment;
   }
+  if (result.code === "SINGLE_DEVICE_SLOT_OCCUPIED" && result.replacement) error.replacement = result.replacement;
   return error;
 }
 

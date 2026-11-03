@@ -1,18 +1,19 @@
 import assert from "node:assert/strict";
 import http from "node:http";
 import { createStaticServer } from "../static-server.mjs";
-import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
+import { pairingFixture, guestMac, mainMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
 let checks = 0;
-async function harness(width, { limit = 1, returning = false } = {}) {
+async function harness(width, { limit = 1, returning = false, occupied = false } = {}) {
   const website = http.createServer(); await new Promise(r => website.listen(0, "127.0.0.1", r));
-  const portal = `http://127.0.0.1:${website.address().port}`, f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true });
+  const portal = `http://127.0.0.1:${website.address().port}`, f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, router: { async disconnectWifiDevice() { return { confirmed: true, outcome: "disconnected" }; } } });
   await f.store.transaction(s => {
     s.vouchers[0].deviceLimit = limit; s.vouchers[0].planId = "custom-plan"; s.vouchers[0].wifiDevices = [];
     s.bundles.push({ id: "custom-plan", name: "Custom allowance", price: 500, quotaGb: 1, deviceLimit: limit, validityHours: 24 });
     delete s.customers[0].wifiMainDevice;
-    if (returning) s.customers[0].wifiFirstConnectedAt = f.now().toISOString();
+    if (returning || occupied) s.customers[0].wifiFirstConnectedAt = f.now().toISOString();
+    if (occupied) s.vouchers[0].wifiDevices = [{ mac: mainMac, name: "Owner phone", address: "10.20.0.1", sessionId: "*old", startedAt: f.now().toISOString() }];
   });
   const staticServer = createStaticServer("customer", { apiUrl: f.api, hotspotLoginUrl: "https://connect.single.test/login" });
   website.on("request", (req, res) => staticServer.emit("request", req, res));
@@ -56,6 +57,25 @@ try {
       await h.f.process(); await page.waitForURL(/\/dashboard/);
       assert.equal(new URL(page.url()).searchParams.has("main-device"), false);
       assert.deepEqual(h.errors, []); checks++; console.log(`PASS ${width}px returning single owner uses ordinary PIN proof and router confirmation`);
+    } finally { await h.close(); }
+    h = await harness(width, { occupied: true });
+    try {
+      const { page } = h, before = (await h.f.store.snapshot()).vouchers[0];
+      await page.goto(h.portal + "/hotspot?mac=" + guestMac + "&address=10.20.0.30");
+      await page.getByRole("button", { name: "Switch connection to this device", exact: true }).waitFor();
+      assert.match(await page.locator("#recoverWifiOwner").textContent(), /Owner phone/);
+      await page.getByLabel("Account PIN", { exact: true }).fill("2468");
+      await page.getByRole("button", { name: "Switch connection to this device", exact: true }).click();
+      await page.locator("#message").filter({ hasText: /previous device is disconnected/ }).waitFor();
+      let state = await h.f.store.snapshot(), p = state.wifiPairingRequests[0];
+      assert.equal(h.f.calls.length, 0); assert.equal(state.vouchers[0].wifiDevices[0].mac, mainMac);
+      await h.f.process(p.disconnectCommandId); await h.f.process(p.commandId);
+      await page.waitForURL(/\/dashboard/);
+      state = await h.f.store.snapshot();
+      assert.deepEqual(state.vouchers[0].wifiDevices.map(d => d.mac), [guestMac]);
+      assert.equal(state.vouchers[0].quotaBytes, before.quotaBytes); assert.equal(state.vouchers[0].expiresAt, before.expiresAt);
+      assert.equal(new URL(page.url()).searchParams.has("main-device"), false);
+      assert.deepEqual(h.errors, []); checks++; console.log(`PASS ${width}px explicit switch names the previous device and waits for exact router removal before connection`);
     } finally { await h.close(); }
     h = await harness(width, { limit: 2 });
     try {
