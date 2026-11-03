@@ -44,11 +44,11 @@ test('MeSomb EXPIRED is terminal and preserves optional gateway expiry evidence'
 });
 async function fixture(t) {
  let now = at(0), gateway = 'PENDING', reads = 0, charges = 0;
- const states = new Map();
+ const states = new Map(), amounts = new Map();
  const store = createStore({ persistent: false });
  const adapter = new MeSombPaymentAdapter({ applicationKey: 'synthetic', accessKey: 'synthetic', secretKey: 'synthetic', client: {
-  async makeCollect(input) { charges++; states.set(input.trxID, 'PENDING'); return { success: true, transaction: { pk: input.trxID, status: 'PENDING' } }; },
-  async checkTransactions(ids) { reads++; if (gateway === 'OFFLINE') throw Error('synthetic gateway outage'); return [{ pk: ids[0], status: states.get(ids[0]) || 'PENDING', amount: 500, currency: 'XAF' }]; },
+  async makeCollect(input) { charges++; states.set(input.trxID, 'PENDING'); amounts.set(input.trxID, input.amount); return { success: true, transaction: { pk: input.trxID, status: 'PENDING' } }; },
+  async checkTransactions(ids) { reads++; if (gateway === 'OFFLINE') throw Error('synthetic gateway outage'); return [{ pk: ids[0], status: states.get(ids[0]) || 'PENDING', amount: amounts.get(ids[0]), currency: 'XAF' }]; },
  } });
  const handler = createHandler({ store, payments: { mesomb: adapter }, validateConfig: false, now: () => now, env: {
   NODE_ENV: 'test', PAYMENT_MODE: 'mesomb', CUSTOMER_APP_URL: 'http://customer.test', SECRET_PEPPER: 'synthetic-payments', CUSTOMER_SESSION_SECRET: 'synthetic-payments',

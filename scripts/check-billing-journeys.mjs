@@ -339,7 +339,7 @@ try {
     // A fresh checkout opens with the details the API returned already filled in.
     await resumed.locator('[data-plan="weekly"]').click();
     assert.equal(await resumed.locator("#selected").textContent(), "Buy Weekly");
-    assert.match(await resumed.locator("#checkoutSummary").textContent(), /500 FCFA\s*\/\s*7 days/);
+    assert.match(await resumed.locator("#checkoutSummary").textContent(), /1,000 FCFA\s*\/\s*7 days/);
     assert.match(await resumed.locator("#checkoutSummary").textContent(), /5 GB data\s*·\s*1 device/);
     assert.match(await resumed.locator("#checkoutPolicy").textContent(), /starts on payment confirmation and lasts 7 days/);
     assert.match(await resumed.locator("#checkoutPolicy").textContent(), /Closing this page does not cancel a submitted payment/);
