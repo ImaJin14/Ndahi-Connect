@@ -147,14 +147,17 @@ try {
       assert.equal(state.vouchers[0].planId, "monthly");
       assert.equal(state.vouchers[1].status, "exhausted");
     });
-    await scenario("Daily cooldown blocks renewal", (state) => {
+    await scenario("Daily renews immediately after exhaustion", (state) => {
       state.vouchers[0].planId = "daily";
       state.payments[0].planId = "daily";
     }, async (page) => {
       await load(page);
       assert.equal(await page.locator("[data-plan]").count(), 1);
-      assert.equal(await page.locator("[data-plan]").isDisabled(), true);
-      assert.match(await page.locator("#planNotice").textContent(), /once every 7 days.*Next eligible/s);
+      assert.equal(await page.locator("[data-plan]").isEnabled(), true);
+      await page.locator("[data-plan]").click();
+      assert.match(await page.locator("#checkout").textContent(), /250 FCFA/);
+      assert.match(await page.locator("#checkout").textContent(), /same day/);
+      assert.doesNotMatch(await page.locator("body").textContent(), /once every 7 days|Next eligible/);
     });
     await scenario("touch and accessible plan/table names reach the last alternative", null, async (page) => {
       await load(page, "switch");
