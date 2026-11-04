@@ -52,3 +52,11 @@ test("Resend errors are sanitized and do not expose the API key", async () => {
     return true;
   });
 });
+
+test("Home voucher email describes shared household access without a device cap",async()=>{
+ let body;
+ const adapter=new ResendEmailAdapter({apiKey:"synthetic-email",from:"NDAHI <hello@example.com>",fetcher:async(url,options)=>{body=JSON.parse(options.body);return Response.json({id:"home-email"});}});
+ await adapter.sendVoucher({...delivery,voucher:{...delivery.voucher,accessMode:"home"}});
+ assert.match(body.text,/no household device-count limit/);assert.match(body.html,/Home access/);
+ assert.doesNotMatch(body.text,/Devices: 1/);assert.doesNotMatch(body.html,/<strong>Devices:<\/strong> 1/);
+});

@@ -1,0 +1,2 @@
+const api=window.NDAHI_CONFIG?.apiUrl;
+if(api)fetch(api+"/api/admin/home",{credentials:"include"}).then(async response=>{if(!response.ok)return;const info=await response.json();if(!info.enabled&&!info.households.length)return;const link=document.createElement("a");link.href="/home-routers.html";link.textContent="NDAHI Home connections";document.querySelector("header").append(link);}).catch(()=>{});

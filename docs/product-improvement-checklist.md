@@ -1233,3 +1233,15 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Validation: syntax checks and full local suite pass: 1,052 tests, 1,026 passed, 0 failed, 26 PostgreSQL-dependent skips. All 13 renewal/switching browser scenarios pass. Added Daily-specific same-key races and late/duplicate callback coverage in memory and PostgreSQL; hosted PostgreSQL verification pending.
   - Release: separate PR for #164; not merged or deployed. Physical router/device and real Mobile Money acceptance not performed. Supersedes historical Daily-cooldown requirements in UX-006/UX-010.
   - Tracker: one additional implemented task awaiting verification and release, separate from historical milestone totals.
+
+
+## NDAHI Home self-service WISP household access (#170)
+
+- [-] **WISP-170 — Self-service Home linking and shared bundle enforcement** ([#170](https://github.com/ImaJin14/Ndahi-Connect/issues/170), children #171–#178)
+  - Implemented for review: normalized payload collections and additive indexes; single-use local gateway linking; owner-verified replacement; exclusive direct/Home assignment with final usage reconciliation; shared remaining quota/calendar expiry; verified-payment renewal and recoverable activation; EN/FR customer flow and audited masked admin controls.
+  - Reviewed Antigravity additions: accepted UI/test-command wiring; corrected unsupported schema/test/compatibility claims and replaced the global IPv6 change with a scoped review template. Corrected repeated mode-switch accounting and narrowed firewall-guard acceptance during review. Existing unrelated checkout drafts remain untouched.
+  - Tested locally: syntax and diff checks; full-suite snapshot 1,119 tests, 1,090 passed, zero failures, 29 PostgreSQL-dependent skips; latest focused Home suite 38 passed. Home PostgreSQL claim/reload/uniqueness tests passed in initial CI; final full CI tracked in [PR #179](https://github.com/ImaJin14/Ndahi-Connect/pull/179). Home browser journeys: 18 checks at 320px/1280px with local API, synthetic gateway and mock payments; screenshots inspected. These results do not verify RouterOS hardware behavior.
+  - Delivery evidence: `docs/issues/ndahi-home-170.md`; configuration, customer setup, rollback, pilot/KPI measurements and residual limitations in `docs/operations/ndahi-home.md`; blocked-from-import scoped RouterOS template in `docs/operations/ndahi-home-network.rsc`.
+  - Pending: final full CI and migration/restore rehearsal, real Mobile Money acceptance, physical TL-WR902AC V3/EAP650/RB5009 pilot, independent quota/cutoff/IPv6/FastTrack/cap/reconnect/outage measurements and old-device acceptance. RB5009 reboot/counter loss currently fails closed for support review; automatic recovery is not implemented. AP ether2 link flapping remains a physical pilot blocker.
+  - Deployment: `NDAHI_HOME_ENABLED` defaults off. Not merged or deployed; no hardware verification claimed. Keep all hardware-dependent issue acceptance criteria open.
+  - Tracker: one additional implemented task awaiting CI/review and physical acceptance; separate from historical milestone totals.
