@@ -141,6 +141,7 @@ test("a login started before expiry may finish bounded confirmation, but an aban
   const f = await fixture(t, { router: { connectWifiDevice(device) { return new Promise((resolve) => { finish = () => resolve({ confirmed: true,
     device: { mac: device.mac, address: device.loginAddress, sessionId: "*late", startedAt: f.now().toISOString() } }); }); } } }), r = await f.request();
   await approve(f, r); f.advance(295);
+  await f.store.transaction(s => { s.vouchers[0].wifiDevicesAt = f.now().toISOString(); });
   const processing = f.process();
   while (!finish) await new Promise((resolve) => setImmediate(resolve));
   f.advance(6);

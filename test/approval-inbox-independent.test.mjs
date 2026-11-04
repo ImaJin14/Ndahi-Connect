@@ -31,8 +31,8 @@ test("confirming one connection does not make stale observations of other device
   const issued = await f.call(ownerRoot + "/approve", { id: request.body.request.id });
   assert.equal((await f.call(publicRoot + "/redeem", { id: request.body.request.id, key: request.requestKey,
     approvalCode: issued.body.approvalCode }, { session: "", controller: "" })).status, 202);
-  f.advance(130);
   await f.process();
+  f.advance(130);
   const state = await f.store.snapshot();
   assert.equal(state.wifiPairingRequests[0].status, "connected");
   assert.equal(observedWifiDevices(state, f.now()).find((d) => d.mac === "AA:BB:CC:DD:EE:01").fresh, false,
