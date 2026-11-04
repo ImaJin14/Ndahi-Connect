@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-11-03
+Last reviewed: 2026-11-04
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -899,7 +899,7 @@ DEP-001/004 and TEST-002/003 are now in progress; A11Y-002/003 and TEST-001 rema
 - Verified foundations complete: 14
 - Recommendation tasks complete: 36
 
-Recorded task checkboxes on 2026-11-03: 71 marked complete, 47 in progress, 2 blocked and 46 not started. These are recorded statuses, not a new production or physical acceptance audit.
+Recorded task checkboxes on 2026-11-04: 74 marked complete, 47 in progress, 2 blocked and 46 not started. These are recorded statuses, not a new production or physical acceptance audit.
 
 ## Implementation tracker
 
@@ -1197,22 +1197,24 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 ## Device entitlement follow-up (#165)
 
-- [-] **WIFI-165 — Main-device setup only for multi-device purchases**
+- [x] **WIFI-165 — Main-device setup only for multi-device purchases**
   - Implemented: shared issued-voucher capability across account, device management, current-device and pairing views. One-device owners connect directly, with ordinary PIN/passkey proof for a returning unapproved device; setup/manual/legacy approvals are rejected by the server and queued main approvals cannot run after a downgrade. Old setup links are removed and signed-in pairing links go to direct connection. Private router access remains enabled.
-  - Automated: new single-device API cases and six real-API browser journeys at 320/1280px pass. Full local suite passes: 1,061 tests, 1,036 passed, 0 failed, 25 PostgreSQL-dependent skips. Existing paid signup/reconnect/two-slot browser scenarios pass; additional browser and hosted PostgreSQL results are recorded in the PR.
-  - Release: implementation for #165; not merged or deployed. Review and release with dependent #166 safe replacement/transitions. Physical router/device acceptance remains pending; see [access contract](operations/single-device-access.md).
-  - Tracker: one additional implemented task awaiting release, separate from historical milestone totals.
+  - Automated: final main CI passes all 1,079 PostgreSQL tests with zero failures/skips, provider contracts, 300-customer memory/PostgreSQL loads, desktop/mobile browser journeys and security scans.
+  - Merged: [PR #168](https://github.com/ImaJin14/Ndahi-Connect/pull/168).
+  - Deployed and hosted-verified: revision `772654f7fce4bb2ce0bd931898d7e0840f52b867`; [main CI](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41771734586) passes all 1,079 PostgreSQL tests, provider/load/security and desktop/mobile checks. All three Render service events confirm the revision; six strict smoke groups and 18 exact asset hashes pass. Physical router/device and real payment acceptance were not performed; see [release evidence](releases/bundles-and-device-access-2026-11-04.md).
+  - Tracker: implemented, tested, deployed and hosted-verified; physical acceptance remains separate.
 
 
 
 ## Safe one-device replacement and transitions (#166)
 
-- [-] **WIFI-166 — Confirm removal before switching a one-device connection**
+- [x] **WIFI-166 — Confirm removal before switching a one-device connection**
   - Implemented: authenticated occupied-slot notice names the exact current device. Explicit Switch connection to this device requires fresh PIN/passkey proof bound to that router session and purchased voucher. One atomic reservation queues an exact-session disconnect and a dependent connection; uncertain/failed/superseded removal retains the slot. Old workers ignore the new command kinds during rolling release.
   - Enforcement: current account/session, PIN version, router revision, purchased capacity, expiry/quota and confirmed disconnection are rechecked by workers. Single-device allowances make main registration dormant, retain it for a valid upgrade, and avoid secondary-approval expiry for that dormant allowance. Paid quota, expiry, payment history and receipts are unchanged.
-  - Automated: full local suite 1,077 tests, 1,051 passed, 0 failed, 26 PostgreSQL-dependent skips. All eight single-device browser journeys pass at 320/1280px, alongside paid multi-device signup/reconnect/last-slot regressions. New PostgreSQL rollback/independent-handler race/store-reopen/multi-worker verification runs in CI. Queued admission now requires a current router observation; existing bounded-expiry fixtures explicitly provide one.
-  - Release: dependent PR after #165; review and release both device PRs together. Not merged or deployed. Physical router/device and real provider acceptance remain pending.
-  - Tracker: one additional implemented task awaiting release, separate from historical milestone totals.
+  - Automated: final main CI passes all 1,079 PostgreSQL tests with zero failures/skips, provider contracts, 300-customer memory/PostgreSQL loads, desktop/mobile browser journeys and security scans.
+  - Merged: [PR #169](https://github.com/ImaJin14/Ndahi-Connect/pull/169).
+  - Deployed and hosted-verified: revision `772654f7fce4bb2ce0bd931898d7e0840f52b867`; [main CI](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41771734586) passes all 1,079 PostgreSQL tests, provider/load/security and desktop/mobile checks. All three Render service events confirm the revision; six strict smoke groups and 18 exact asset hashes pass. Physical router/device and real payment acceptance were not performed; see [release evidence](releases/bundles-and-device-access-2026-11-04.md).
+  - Tracker: implemented, tested, deployed and hosted-verified; physical acceptance remains separate.
 
 
 ## Bundle pricing update (2026-11-03)
@@ -1228,8 +1230,9 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 ## Repeatable Daily bundle (#164)
 
-- [-] **BILL-164 — Remove the Daily seven-day repurchase restriction**
+- [x] **BILL-164 — Remove the Daily seven-day repurchase restriction**
   - Implemented: purchase reservation, verified settlement, account eligibility and portal renewal/checkout use expiry or data exhaustion without an extra wait. Daily remains 250 FCFA / 1 GB / 24 hours from verified payment; no recurring debit or stacking of usable allowances. New terms use policy version 2026-11-03; historical receipts and purchased terms remain intact.
-  - Validation: syntax checks and full local suite pass: 1,052 tests, 1,026 passed, 0 failed, 26 PostgreSQL-dependent skips. All 13 renewal/switching browser scenarios pass. Added Daily-specific same-key races and late/duplicate callback coverage in memory and PostgreSQL; hosted PostgreSQL verification pending.
-  - Release: separate PR for #164; not merged or deployed. Physical router/device and real Mobile Money acceptance not performed. Supersedes historical Daily-cooldown requirements in UX-006/UX-010.
-  - Tracker: one additional implemented task awaiting verification and release, separate from historical milestone totals.
+  - Automated: final main CI passes all 1,079 PostgreSQL tests with zero failures/skips, provider contracts, 300-customer memory/PostgreSQL loads, desktop/mobile browser journeys and security scans.
+  - Merged: [PR #167](https://github.com/ImaJin14/Ndahi-Connect/pull/167).
+  - Deployed and hosted-verified: revision `772654f7fce4bb2ce0bd931898d7e0840f52b867`; [main CI](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41771734586) passes all 1,079 PostgreSQL tests, provider/load/security and desktop/mobile checks. All three Render service events confirm the revision; six strict smoke groups and 18 exact asset hashes pass. Physical router/device and real payment acceptance were not performed; see [release evidence](releases/bundles-and-device-access-2026-11-04.md).
+  - Tracker: implemented, tested, deployed and hosted-verified; physical acceptance remains separate.
