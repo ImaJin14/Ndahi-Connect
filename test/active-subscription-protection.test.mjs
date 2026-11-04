@@ -45,7 +45,7 @@ for (const input of [
   }
 });
 
-async function fixture(t, { store = createStore({ persistent: false }), seed = true } = {}) {
+async function fixture(t, { store = createStore({ persistent: false }), seed = true, planId = "weekly" } = {}) {
   let now = new Date(initialTime), charges = 0;
   const adapter = new MockPaymentAdapter(), create = adapter.createPayment.bind(adapter);
   adapter.createPayment = async (...args) => { charges++; return create(...args); };
@@ -68,7 +68,7 @@ async function fixture(t, { store = createStore({ persistent: false }), seed = t
   };
   let original;
   if (seed) {
-    const created = await call("/api/purchase", { phone: number, planId: "weekly", requestKey: randomUUID() });
+    const created = await call("/api/purchase", { phone: number, planId, requestKey: randomUUID() });
     assert.equal(created.status, 201);
     const paid = await call(`/api/payments/${created.body.payment.id}/confirm`, {});
     assert.equal(paid.status, 200);
@@ -251,4 +251,32 @@ test("PostgreSQL rollback cannot leave a reservation or release active protectio
   }), { scope: ["customer:" + number] });
   assert.equal(rejected.body.code, "ACTIVE_BUNDLE_EXISTS");
   assert.equal((await store.snapshot()).payments.length, 0);
+});
+
+for (const database of [false, true]) test(`${database ? "PostgreSQL" : "memory"} Daily same-day concurrent renewals and late callbacks preserve one allowance`, database ? postgres : {}, async (t) => {
+  const makeStore = database ? await postgresFixture(t) : null;
+  const f = await fixture(t, { ...(makeStore ? { store: makeStore() } : {}), planId: "daily" });
+  const g = makeStore ? await fixture(t, { store: makeStore(), seed: false }) : f;
+  await f.exhaust();
+  const input = { phone: number, planId: "daily", requestKey: randomUUID() };
+  const reservations = await Promise.all([f, g].map(api => api.call("/api/purchase", input)));
+  assert.ok(reservations.every(r => [200, 201].includes(r.status)));
+  assert.equal(reservations[0].body.payment.id, reservations[1].body.payment.id);
+  const older = reservations[0].body.payment;
+  f.advance(300); if (g !== f) g.advance(300);
+  const newer = await f.call("/api/purchase", { ...input, requestKey: randomUUID() });
+  assert.equal(newer.status, 201);
+  // The late paid callback fulfills despite recent paid Daily history.
+  assert.equal((await g.call(`/api/payments/${older.id}/confirm`, {})).status, 200);
+  assert.equal((await f.call(`/api/payments/${older.id}/confirm`, {})).status, 200);
+  const active = (await f.store.snapshot()).vouchers.find(v => v.paymentId === older.id);
+  const late = await f.call(`/api/payments/${newer.body.payment.id}/confirm`, {});
+  assert.equal(late.status, 409); assert.equal(late.body.code, "ACTIVE_BUNDLE_EXISTS");
+  const stored = await f.store.snapshot();
+  assert.equal(stored.vouchers.length, 2);
+  assert.equal(stored.vouchers.filter(v => v.status === "active").length, 1);
+  assert.deepEqual(stored.vouchers.find(v => v.id === active.id), active);
+  assert.equal(stored.payments.find(p => p.id === newer.body.payment.id).fulfillmentStatus, "needs_review");
+  assert.equal(stored.payments.find(p => p.id === older.id).amount, 250);
+  assert.equal(f.charges() + (g !== f ? g.charges() : 0), 3);
 });

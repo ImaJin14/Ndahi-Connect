@@ -1203,3 +1203,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Automated: `npm run check` and `git diff --check` pass. Integrated onto current production base `d38aba6`: full local suite 1,050 tests, 1,025 passed, 0 failed, 25 PostgreSQL-dependent skips; offline provider contracts pass. The original focused pricing/payment suite also passed all 46 cases. All 13 plan browser scenarios and 28 billing browser scenarios pass using installed Chrome and isolated mock providers. The payment gateway expiry fixture now returns the amount actually requested instead of the obsolete 500 FCFA Weekly amount.
   - Release: reviewed integration prepared on latest production code; CI and deployment verification pending. Physical router/device and real Mobile Money verification: not performed. Before release, inspect any persisted admin bundle overrides because explicit overrides take precedence over catalogue defaults; update those through the existing authorized admin workflow if necessary.
   - Tracker: one additional implemented task awaiting production verification; this is separate from the historical milestone totals above.
+
+
+## Repeatable Daily bundle (#164)
+
+- [-] **BILL-164 — Remove the Daily seven-day repurchase restriction**
+  - Implemented: purchase reservation, verified settlement, account eligibility and portal renewal/checkout use expiry or data exhaustion without an extra wait. Daily remains 250 FCFA / 1 GB / 24 hours from verified payment; no recurring debit or stacking of usable allowances. New terms use policy version 2026-11-03; historical receipts and purchased terms remain intact.
+  - Validation: syntax checks and full local suite pass: 1,052 tests, 1,026 passed, 0 failed, 26 PostgreSQL-dependent skips. All 13 renewal/switching browser scenarios pass. Added Daily-specific same-key races and late/duplicate callback coverage in memory and PostgreSQL; hosted PostgreSQL verification pending.
+  - Release: separate PR for #164; not merged or deployed. Physical router/device and real Mobile Money acceptance not performed. Supersedes historical Daily-cooldown requirements in UX-006/UX-010.
+  - Tracker: one additional implemented task awaiting verification and release, separate from historical milestone totals.

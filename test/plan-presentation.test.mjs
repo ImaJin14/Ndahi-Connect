@@ -131,14 +131,14 @@ test("renewal blocks missing and discontinued current plans without falling back
   }
 });
 
-test("Daily renewal uses server eligibility and retains the next eligible date", () => {
-  const nextEligibleAt = "2026-09-30T12:00:00.000Z";
-  const blocked = renewalEligibility({ planId: "daily" }, [daily], { available: false, nextEligibleAt });
-  assert.equal(blocked.eligible, false);
-  assert.equal(blocked.code, "daily-cooldown");
-  assert.equal(blocked.nextEligibleAt, nextEligibleAt);
-  assert.equal(blocked.plan, daily);
-  assert.equal(renewalEligibility({ planId: "daily" }, [daily], { available: true }).eligible, true);
-  assert.equal(renewalEligibility({ planId: "daily" }, [daily]).code, "eligibility-unavailable");
-  assert.equal(renewalEligibility({ planId: "weekly" }, [weekly], { available: false }).eligible, true);
+test("Daily renewal has no historical cooldown but still protects an active bundle", () => {
+  for (const availability of [undefined, { available: false, nextEligibleAt: "2030-01-08T12:00:00Z" }, { available: true }]) {
+    for (const status of ["expired", "exhausted"]) {
+      const result = renewalEligibility({ planId: "daily", status }, [daily], availability);
+      assert.equal(result.eligible, true);
+      assert.equal(result.nextEligibleAt, null);
+      assert.equal(result.plan, daily);
+    }
+    assert.equal(renewalEligibility({ planId: "daily", status: "active" }, [daily], availability).code, "active-bundle");
+  }
 });
