@@ -29,13 +29,16 @@ narrowed firewall matcher acceptance before continuing delivery.
 ## Local evidence
 
 - `npm run check`: passed, including new server/browser module syntax.
-- Local full-suite snapshot: 1,119 tests; 1,090 passed, zero failed, 29
-  database-dependent skips (no local PostgreSQL). Latest focused Home security/domain/API suite: 38 passed.
-  Current hosted CI status and evidence: [PR #179](https://github.com/ImaJin14/Ndahi-Connect/pull/179).
-- `npm run check:home:browser`: 18 checks passed at 320px/1280px with real browser,
+- Hosted full-suite validation: 1,120 tests passed, zero failures or skips,
+  including PostgreSQL, plus both 300-customer load tests and all seven checks on
+  [run 41903679541](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41903679541).
+  Latest Home security/domain/API suite: 38 passed locally. Current head CI:
+  [PR #179](https://github.com/ImaJin14/Ndahi-Connect/pull/179).
+- `npm run check:home:browser`: 20 checks passed at 320px/1280px with real browser,
   local API and **synthetic** gateway/mock payments. Linking, assignment, shared
   balance, French, main dashboard, exhausted offsite renewal, paid router outage,
-  recovery and masked admin view. Screenshots inspected locally.
+  recovery, masked admin view and PIN-less owner revocation through a virtual
+  authenticator with server-verified WebAuthn. Screenshots inspected locally.
 - Added PostgreSQL tests for concurrent claims, uniqueness and all four collection
   reloads. Both passed against disposable PostgreSQL in initial CI run
   [41901266984](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41901266984).

@@ -5,6 +5,7 @@ import {mkdir} from "node:fs/promises";
 import {setDefaultResultOrder} from "node:dns";
 import {createStaticServer} from "../static-server.mjs";
 import {pairingFixture} from "../test/helpers/wifi-pairing-fixture.mjs";
+import {securityKey} from "../test/helpers/customer-security-key.mjs";
 import {hashSecret} from "../lib/security.mjs";
 
 setDefaultResultOrder("ipv4first");
@@ -64,7 +65,13 @@ try{
    await f.store.transaction(s=>{s.adminUsers.push({id:"home-owner",username:"owner",role:"owner",active:true});s.adminSessions.push({id:"home-admin",userId:"home-owner",role:"owner",tokenHash:hashSecret("home-admin","home-admin-fixture"),csrfToken:"admin-csrf",expiresAt:new Date(+f.now()+3600000).toISOString()});});
    await context.addCookies([{name:"admin_session",value:"home-admin",domain:"localhost",path:"/api/admin",httpOnly:true,sameSite:"Lax"}]);
    await page.goto(admin+"/home-routers.html");await page.locator("#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
-   assert.deepEqual(errors,[]);console.log(`PASS ${width}px Home local challenge, assignment, shared balance, French, dashboard, off-site exhausted renewal, outage/recovery and masked admin view`);
+   const key=securityKey(),cdp=await context.newCDPSession(page);await cdp.send("WebAuthn.enable");
+   const {authenticatorId}=await cdp.send("WebAuthn.addVirtualAuthenticator",{options:{protocol:"ctap2",transport:"internal",hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
+   await cdp.send("WebAuthn.addCredential",{authenticatorId,credential:{credentialId:Buffer.from(key.record.id,"base64url").toString("base64"),isResidentCredential:false,rpId:"localhost",privateKey:key.privateKey.export({format:"der",type:"pkcs8"}).toString("base64"),signCount:0}});
+   await f.store.transaction(s=>{delete s.customers[0].pinHash;s.customers[0].passkeys=[key.record];});
+   await page.goto(portal+"/home-router.html");const revoked=page.waitForResponse(r=>r.url().endsWith("/home/revoke"));await page.locator("#revokeHomePasskey").click();assert.equal((await revoked).status(),202);
+   await f.handler.homeService.run();assert.equal((await f.store.snapshot()).homeConnections.some(h=>h.status==="linked"),false);checks++;
+   assert.deepEqual(errors,[]);console.log(`PASS ${width}px Home local challenge, assignment, shared balance, French, dashboard, off-site exhausted renewal, outage/recovery, masked admin view and PIN-less passkey revocation`);
   }finally{await context.close();await f.close();await stop(website);await stop(adminWebsite);}
  }
  console.log(JSON.stringify({checks,result:"passed",screenshots:output,evidence:"Local browser/API with synthetic gateway and mock payment only; no hardware, production network or charge."}));
