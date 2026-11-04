@@ -1194,6 +1194,16 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - Local verification: all nine new browser journeys pass at 320/1280px, including decoding the actual QR image, signed-in HotSpot and notification navigation, transient errors, lost replies, blocked storage, rapid reload, expiry, decline, explicit main confirmation and exact router-confirmed completion. Focused authorization/destination tests and syntax checks pass. Existing notification, paid-signup/reconnect/last-slot, 15 captive-completion, Dashboard/PWA/voucher-delivery and current-Wi-Fi suites pass. Hosted PostgreSQL verification exercises rollback, independent-handler last-slot races, store reopen and multi-worker admission. The user-approved handoff also updates the exact CSRF inventory for the new route. Final frozen-head complete test counts and hosted checks are recorded in the PR; earlier partial runs are not substituted for that evidence.
 - Release: [PR #162](https://github.com/ImaJin14/Ndahi-Connect/pull/162) tracks the reviewed implementation; exact merge, deployment revisions and live verification are recorded in its release evidence. Real MikroTik/phone captive closure, camera scanning in the registered main browser, physical/private-MAC behavior and provider/native acceptance remain operator checks under #143/#128. No production account, message, charge or router change was made.
 
+
+## Device entitlement follow-up (#165)
+
+- [-] **WIFI-165 — Main-device setup only for multi-device purchases**
+  - Implemented: shared issued-voucher capability across account, device management, current-device and pairing views. One-device owners connect directly, with ordinary PIN/passkey proof for a returning unapproved device; setup/manual/legacy approvals are rejected by the server and queued main approvals cannot run after a downgrade. Old setup links are removed and signed-in pairing links go to direct connection. Private router access remains enabled.
+  - Automated: new single-device API cases and six real-API browser journeys at 320/1280px pass. Full local suite passes: 1,061 tests, 1,036 passed, 0 failed, 25 PostgreSQL-dependent skips. Existing paid signup/reconnect/two-slot browser scenarios pass; additional browser and hosted PostgreSQL results are recorded in the PR.
+  - Release: implementation for #165; not merged or deployed. Review and release with dependent #166 safe replacement/transitions. Physical router/device acceptance remains pending; see [access contract](operations/single-device-access.md).
+  - Tracker: one additional implemented task awaiting release, separate from historical milestone totals.
+
+
 ## Bundle pricing update (2026-11-03)
 
 - [-] **BILL-20261103 — Apply the approved bundle catalogue and retain Connect 75**

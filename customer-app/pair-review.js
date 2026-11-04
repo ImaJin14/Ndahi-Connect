@@ -18,6 +18,10 @@ async function refresh() {
     const result = await call("/api/account/device-management/pairing?request=" + encodeURIComponent(id));
     if (ticket !== generation) return;
     const request = result.requests[0];
+    if (result.deviceCapabilities?.mainDeviceSupported === false) {
+      host.innerHTML = '<p>This bundle does not use device approvals. Open Wi-Fi sign-in on the device you want to connect.</p><a href="/dashboard#home">Back to dashboard</a>';
+      message.textContent = ""; return;
+    }
     // serverTime changes on every poll; it is not a reason to replace a focused
     // approval button. Only visible/authority state belongs in this signature.
     const stable = JSON.stringify([request.status, request.comparisonCode, request.referenceUnavailable, request.name, request.macSuffix, request.expiresAt, request.message, result.isMainController, result.enabled]);

@@ -17,13 +17,15 @@ export async function mountDeviceControls({ container, call, onChanged }) {
   message.setAttribute("role", "status");
   try {
     info = await call("/api/account/device-management");
-    const main = info.mainDevice;
-    container.innerHTML = `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
-      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button><div data-device-proof hidden></div><div data-pairing-controls></div>
+    const supportsMain = (!info.deviceCapabilities || info.deviceCapabilities.mainDeviceSupported !== false);
+    const main = supportsMain && info.mainDevice;
+    container.innerHTML = `${supportsMain ? `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
+      <button type="button" data-select-main>${main ? "Select / recover main device" : "Select main device"}</button>` : ""}<div data-device-proof hidden></div>${supportsMain ? "<div data-pairing-controls></div>" : ""}
       ${!document.getElementById("wifiDeviceList") && (info.approvedDevices || []).length ? `<section data-approved-devices><h3>Saved device approvals</h3><p>Forget a device to require fresh approval, even when it is offline. Router removal must finish before it can be approved again.</p>${info.approvedDevices.map((d) => `<div class="device"><div><strong>${h(d.name || "Unnamed device")} · ending ${h(d.mac.slice(-5))}${d.main ? " · Main device" : ""}</strong>${d.routerChanged ? "<p>Approval belongs to a previous router.</p>" : ""}${d.removal ? `<p role="status">${d.removal === "failed" ? "Saved approval revoked. Router removal needs support review." : "Saved approval revoked. Waiting for router removal; its slot is not confirmed free."}</p>` : ""}</div>${d.removal ? "" : `<button type="button" data-forget-device="${h(d.id)}">Forget device</button>`}</div>`).join("")}<button type="button" data-refresh-approvals>Refresh saved approvals</button></section>` : ""}`;
     container.appendChild(message);
     const query = new URLSearchParams(location.search), candidate = query.get("main-device");
-    if ((!main || info.setupRequired) && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(candidate || "")) {
+    if (!supportsMain && candidate) { const url = new URL(location.href); url.searchParams.delete("main-device"); history.replaceState(null, "", url.href); }
+    if (supportsMain && (!main || info.setupRequired) && /^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(candidate || "")) {
       const prompt = document.createElement("section"); prompt.className = "main-device-prompt";
       prompt.innerHTML = '<h3>Is this your main device?</h3><p>This device is connected. Choose whether this browser should manage other devices.</p><button type="button" data-main-yes>Yes, set as main device</button><button type="button" data-main-no class="secondary-action">No, skip for now</button>';
       container.prepend(prompt);
@@ -34,7 +36,7 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       prompt.querySelector("[data-main-no]").onclick = clear;
     }
   } catch (error) {
-    container.textContent = "Main-device controls could not load. Refresh to try again.";
+    container.textContent = "Device controls could not load. Refresh to try again.";
     return;
   }
   async function showProof(mac, disconnect) {
@@ -121,7 +123,8 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     const refresh = event.target.closest("[data-refresh-approvals]");
     if (refresh) void runButton(refresh, "Refreshing…", onChanged).catch((error) => showError(message, error));
   };
-  container.querySelector("[data-select-main]").onclick = () => showProof(null, false).catch((error) => showError(message, error));
+  const selectMain = container.querySelector("[data-select-main]");
+  if (selectMain) selectMain.onclick = () => showProof(null, false).catch((error) => showError(message, error));
   void mountPairingControls({ container: container.querySelector("[data-pairing-controls]"), call });
   container.closest("section").addEventListener("click", (event) => {
     const button = event.target.closest("[data-main-disconnect]");

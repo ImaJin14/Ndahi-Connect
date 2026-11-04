@@ -77,6 +77,10 @@ async function identifyAccount() {
   if (result.response.status === 401) { authenticated = false; csrfToken = undefined; return; }
   if (!result.response.ok) throw responseError(result.response, result.body);
   authenticated = true; csrfToken = result.body.csrfToken;
+  if (result.body.deviceCapabilities && result.body.deviceCapabilities.connectionMode === "single" && hint) {
+    location.replace("/hotspot?mac=" + encodeURIComponent(hint.mac) + "&address=" + encodeURIComponent(hint.address));
+    return;
+  }
 }
 function showStart() {
   form.hidden = !hint || authenticated; account.hidden = !hint || !authenticated;
