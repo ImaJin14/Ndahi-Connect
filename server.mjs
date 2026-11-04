@@ -1,3 +1,4 @@
+import { createHomeRoutes } from "./lib/api/home.mjs";
 import { createServices } from "./lib/api/services.mjs";
 import { NOT_HANDLED } from "./lib/api/routing.mjs";
 import { createMiddleware } from "./lib/api/middleware.mjs";
@@ -70,6 +71,7 @@ export function createHandler(opts = {}) {
     createVoucherRoutes(context),
     createCustomerAuthRoutes(context),
     createAuthenticatorManagementRoutes(context),
+    createHomeRoutes(context),
     createAccountRoutes(context),
     createDeviceManagementRoutes(context),
     createWifiPairingRoutes(context),
@@ -127,6 +129,8 @@ export function createHandler(opts = {}) {
       }
     }
   };
+  handler.homeService = context.homeService;
+  handler.homeWorkerEnabled = env.NDAHI_HOME_ENABLED === "true" || env.NDAHI_HOME_DRAIN_ENABLED === "true";
   handler.billing = billing;
   handler.transactionalEmails = context.transactionalEmails;
   handler.serviceMonitor = context.serviceMonitor;
@@ -196,6 +200,8 @@ export const createServer = (opts) => {
     handler.reconcilePayments().catch((error) => {
       handler.logger.error("payment.reconciliation_failed", databaseDiagnostic(error));
     });
+  const runHome = () => handler.homeService.run().catch(() => handler.logger.error("home.worker_failed"));
+  let homeTimer;
   const runRouterQueue = () =>
     handler.routerProcessor.run().catch((error) => {
       handler.logger.error("network.command_worker_failed", databaseDiagnostic(error));
@@ -217,6 +223,11 @@ export const createServer = (opts) => {
       handler.logger.error("network.setup_worker_failed");
     });
   server.on("listening", () => {
+    if (handler.homeWorkerEnabled) {
+      void runHome();
+      homeTimer = setInterval(runHome, 5000);
+      homeTimer.unref();
+    }
     if (handler.monitoringEnabled) {
       void handler.serviceMonitor.run();
       monitorTimer = setInterval(() => handler.serviceMonitor.run(), 60000);
@@ -275,6 +286,7 @@ export const createServer = (opts) => {
     clearInterval(webhookTimer);
     clearInterval(routerTimer);
     clearInterval(routerReconciliationTimer);
+    clearInterval(homeTimer);
     clearInterval(usageSyncTimer);
     clearInterval(usageAlertTimer);
     clearInterval(securityAlertsTimer);

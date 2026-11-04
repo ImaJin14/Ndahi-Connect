@@ -1,0 +1,67 @@
+# NDAHI Home delivery and review evidence
+
+Parent [#170](https://github.com/ImaJin14/Ndahi-Connect/issues/170) and all children
+were opened before implementation. Dependency order: #171 → #172 → #173/#175 →
+#174/#176/#177 → #178. All stay open for outstanding real-device acceptance.
+
+| Issue | Implemented | Remaining acceptance |
+| --- | --- | --- |
+| [#171](https://github.com/ImaJin14/Ndahi-Connect/issues/171) | Four normalized payload collections; additive migration 008 with uniqueness/due indexes; JSON defaults and state migration. | Migration/restore rehearsal. Home PostgreSQL claim/reload/uniqueness tests passed in initial CI; migration does not create four tables. |
+| [#172](https://github.com/ImaJin14/Ndahi-Connect/issues/172) | Session-bound two-minute, single-use local HotSpot proof; trusted host/MAC; atomic competing claims; replacement owner proof and revocation barrier. | Actual local HTTPS/captive portal, negative hardware cases and residual MAC-cloning risk acceptance. |
+| [#173](https://github.com/ImaJin14/Ndahi-Connect/issues/173) | Exclusive assignment, direct credential/grant revocation, final counter reconciliation, usage offset returning to direct, fresh native Home meter on reassignment. | Active-session and packet-capture proof across repeated transitions. |
+| [#174](https://github.com/ImaJin14/Ndahi-Connect/issues/174) | Existing server-verified payments; frozen Home target; one entitlement per payment; pending router activation; exhausted-before-expiry/offsite renewal; active-with-data blocker. | Real provider acceptance, healthy latency measurements. A changed/removed link requires verified reassignment, never arbitrary browser identifiers. |
+| [#175](https://github.com/ImaJin14/Ndahi-Connect/issues/175) | Private MAC-bound native user; aggregate remaining quota; local calendar/volatile guards; strict IPv6/FastTrack/firewall preparation; monotonic fail-closed counters and reboot handling. | Native RouterOS transport/scripts/counter semantics and all quota/traffic/reconnect/outage trials. No automatic lost-counter recovery. |
+| [#176](https://github.com/ImaJin14/Ndahi-Connect/issues/176) | Explicit Home flow, EN/FR, new account/link/assign/buy/renew, shared usage/freshness, pending/retry, masked identity; direct counters/controls hidden for Home. | Real old-device and assistive-technology acceptance. No WISP management API. |
+| [#177](https://github.com/ImaJin14/Ndahi-Connect/issues/177) | Owner/operator masked view, safe retry/revoke with audit reason, customer-assisted verified replacement; bounded durable worker retries. | Support pilot, load/freshness and lost-counter operational rehearsal. |
+| [#178](https://github.com/ImaJin14/Ndahi-Connect/issues/178) | Security/domain/API/gateway and browser checks; reviewed network template; setup/rollback/pilot/KPI runbook. | Final CI tracked in PR #179; physical pilot and deployment decision. |
+
+## Review of Antigravity additions
+
+Accepted the newer customer UI and package-script wiring after independent local
+browser validation. Replaced the checklist/issue/runbook/network-template claims
+that confused existing payload tables with new tables, overstated PostgreSQL
+verification, named unverified WISP models, used invented local service URLs, or
+proposed globally disabling IPv6. The corrected template cannot be imported as a
+whole and places scoped Home jumps first. Unrelated main-checkout drafts remain
+untouched. The review also found and corrected mode-switch accounting gaps and
+narrowed firewall matcher acceptance before continuing delivery.
+
+## Local evidence
+
+- `npm run check`: passed, including new server/browser module syntax.
+- Hosted full-suite validation: 1,120 tests passed, zero failures or skips,
+  including PostgreSQL, plus both 300-customer load tests and all seven checks on
+  [run 41903679541](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41903679541).
+  Latest Home security/domain/API suite: 38 passed locally. Current head CI:
+  [PR #179](https://github.com/ImaJin14/Ndahi-Connect/pull/179).
+- `npm run check:home:browser`: 20 checks passed at 320px/1280px with real browser,
+  local API and **synthetic** gateway/mock payments. Linking, assignment, shared
+  balance, French, main dashboard, exhausted offsite renewal, paid router outage,
+  recovery, masked admin view and PIN-less owner revocation through a virtual
+  authenticator with server-verified WebAuthn. Screenshots inspected locally.
+- Added PostgreSQL tests for concurrent claims, uniqueness and all four collection
+  reloads. Both passed against disposable PostgreSQL in initial CI run
+  [41901266984](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/41901266984).
+  That run also exposed an existing mock-confirmation response-before-commit race
+  in a separate PostgreSQL payment test; the route now buffers the response until
+  commit. Static synthetic credentials were replaced/derived at runtime after scanner
+  findings, and the feature commits consolidated with a retained local backup;
+  no real key was involved and no scanner exclusion was added. Final CI is tracked
+  in PR #179. No production database, payment, router or network writes for tests.
+- `git diff --check`: passed at review.
+
+## Proposed KPIs and pending hardware work
+
+All hardware KPI values are **proposed targets**, not measurements: exactly one
+upstream and mode; zero duplicate payment entitlement, unauthorized claim or
+allowance/validity reset; zero successful new general-internet connections after
+confirmed cutoff; retained portal/payment paths; no configured household cap.
+Proposed healthy activation/renewal p95 ≤30s, usage freshness ≤60s, maximum native
+quota overshoot ≤1 MiB per entitlement across ≥100 exhaustion trials. Compare
+independent packet capture, native and durable counters and explain layer/sample
+differences. Details and rejection gates are in the
+[operations runbook](../operations/ndahi-home.md).
+
+Feature flag remains off. No Home merge, production deployment or hardware
+verification is claimed. Resolve the AP ether2 link instability before the named
+TL-WR902AC V3/EAP650/RB5009 pilot. Other WISP models require separate acceptance.
