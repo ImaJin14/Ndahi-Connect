@@ -45,7 +45,7 @@ No rollback or database restoration was performed. Use the existing release/roll
 
 ## Hosted acceptance
 
-Live API revision matched `772654f7fce4bb2ce0bd931898d7e0840f52b867` with PostgreSQL ready. All eight public prices/allowances/device limits match the approved catalogue. All six strict deployment smoke groups passed. 18 deployed asset SHA-256 hashes match the tested source. Customer asset revision: `588c05731e55eff52423`. Admin asset revision: `0d6538eff1aa72b47cc9`. 
+Live API revision matched `772654f7fce4bb2ce0bd931898d7e0840f52b867` with PostgreSQL ready. All eight public prices/allowances/device limits match the approved catalogue. All six strict deployment smoke groups passed. 18 deployed asset SHA-256 hashes match the tested source. Customer asset revision: `588c05731e55eff52423`. Admin asset revision: `0d6538eff1aa72b47cc9`.
 
 The 320px and 1280px browser checks confirm all eight offers, repeatable Daily billing terms, protected dashboard entry through public bundles and no JavaScript errors. Only GET/HEAD/OPTIONS requests reached production during browser verification; account/payment/device mutations were blocked. Public pairing configuration at verification: `{"approvalRequired": true, "enabled": true, "matchingReferences": true}`.
 
