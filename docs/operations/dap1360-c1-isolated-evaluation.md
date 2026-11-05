@@ -2,23 +2,55 @@
 
 ## Known facts and limits
 
-The user supplied H/W C1 and F/W label 3.00 on 5 November 2026 and confirmed the
-unit is not joined to NDAHI Connect. The label is not a runtime firmware reading.
-No connection, reset, firmware flash or settings change has been performed.
+The user supplied H/W C1 and F/W label 3.00 on 5 November 2026, disconnected its
+Ethernet uplink from the MikroTik, and connected this PC's Wi-Fi (`wlo1`) to its
+offline `dlink` setup network (`B8:A3:86:5D:88:39`) using a temporary local-only
+`192.168.0.49/24` profile (`ipv4.never-default=yes`) while preserving the wired
+`enp4s0` default route. No settings change, reset, firmware flash, or upstream
+connection to NDAHI Connect was performed, and the temporary Wi-Fi profile was
+removed afterward.
+
+Read-only HTTP/DOM inspection of `http://192.168.0.50/` (`GET`/`HEAD`/`OPTIONS`
+only; all `POST` and external requests blocked; saved locally at
+`/tmp/ndahi-dap-ui-inspection.json`) verified:
+
+- **Runtime hardware/firmware (`/st_device.htm`):** `Hardware Version: C1`,
+  `Firmware Version: 3.00 , 09, Nov, 2011`, LAN and Wireless MAC
+  `B8:A3:86:5D:88:39`.
+- **Current state (`/st_device.htm`, `/lan.htm`, `/wireless.htm`):** Operating in
+  `Access Point` mode (`mode0=0`), SSID `dlink`, security `Open / Disabled`, WPS
+  `Enable / Unconfigured`, and LAN IPv4 `Dynamic IP (DHCP)` (`lan_type=1`, fallen
+  back to `169.254.192.144` with uplink unplugged; static fallback address is
+  `192.168.0.50/24` with an internal DHCP server range `192.168.0.100–200`
+  disabled by default). Because `mode0=0` and `lan_type=1`, plugging its Ethernet
+  port into the MikroTik bridges wireless clients directly onto the MikroTik LAN.
+- **Wizard vs manual modes (`/wizard_select.htm` vs `/wireless.htm`):** The Setup
+  Wizard (`#mode_select`) offers only `Access Point` (`0`), `Repeater` (`4`), and
+  `Wireless Client` (`1`). The manual Wireless Setup page (`#mode0` on
+  `/wireless.htm`) exposes all seven modes: `Access Point` (`0`),
+  `Wireless Client` (`1`), `Bridge` (`2`), `Bridge with AP` (`3`),
+  `Repeater` (`4`), `WISP Client Router` (`5`), and `WISP Repeater` (`6`).
+- **Single-SSID constraint in WISP modes (`/wireless.htm`):** Selecting
+  `WISP Client Router` (`5`) or `WISP Repeater` (`6`) reveals `WAN Settings`
+  (`#wanType`: `Static IP`, `Dynamic IP(DHCP)`, `PPPoE`, `PPTP`, plus `hostName`,
+  `dhcpMtuSize`, `dnsMode`, `wan_macAddr`). However, `/wireless.htm` provides only
+  a **single** SSID field (`#ssid0`) and a **single** wireless security block
+  (`#authType` / `#pskValue0` / `#wepKey0`), which configure the upstream (root)
+  AP connection. Firmware 3.00 does **not** expose a second, independent local
+  SSID or separate downstream WPA2 passphrase in `WISP Repeater` mode. Because the
+  upstream NDAHI hotspot SSID is open for captive-portal onboarding, a standalone
+  DAP-1360 C1 in `WISP Repeater` mode cannot broadcast a separate WPA2-secured
+  private household Wi-Fi network; using its NAT (`WISP Client Router`) with a
+  private WPA2 household SSID requires either a downstream AP on its Ethernet LAN
+  port or a dual-VAP/WISP-router model that supports independent WAN client and
+  LAN AP security.
 
 D-Link's [RevC security notice SAP10495](https://supportannouncement.us.dlink.com/security/publication.aspx?name=SAP10495)
 lists firmware 3.04 and earlier as affected and RevC as end-of-support, with no
-security remediation available. The supplied 3.00 label falls in that range.
-This unit is an isolated functionality candidate, not a supported production
-acceptance device. Do not treat a successful NAT test as security approval.
-
-The official [RevC manual](https://ftp.dlink.de/dap/dap-1360/documentation/DAP-1360_man_revc_Manual_en.pdf),
-printed pages 18–19 and 41–42, describes WISP Repeater as a routed/NAT mode for
-wired and wireless clients, while WISP Client Router serves wired clients.
-Its radio operates at 2.4 GHz. These mode names differ from ordinary Repeater or
-Bridge. Confirm the actual firmware offers an independent private SSID/password;
-the current evidence does not establish that capability. If unavailable, this
-single unit does not meet the complete private household Wi-Fi journey.
+security remediation available. The verified running 3.00 firmware (09 Nov 2011)
+falls in that range. This unit is an isolated bench candidate only, not a
+supported production acceptance device. Do not treat a bench NAT test as security
+or standalone-CPE approval.
 
 ## Prepare an isolated test
 
@@ -63,11 +95,12 @@ This query has not been run against production in this verification.
 
 | Item | State |
 | --- | --- |
-| H/W and label F/W | User-reported C1 / 3.00 |
-| Runtime firmware/settings access | Pending |
+| H/W and running F/W | Verified `C1` / `3.00 , 09, Nov, 2011` (`B8:A3:86:5D:88:39`) |
+| Runtime firmware/settings access | Verified read-only on isolated `192.168.0.50` (`mode0=0`, `lan_type=1`, `dlink` open AP) |
+| WISP modes in manual UI (`/wireless.htm`) | `WISP Client Router` (`mode0=5`) and `WISP Repeater` (`mode0=6`) present with WAN DHCP/Static/PPPoE/PPTP |
+| Independent private SSID/password | **Not supported standalone on F/W 3.00** (single `#ssid0` and `#authType` shared with root AP) |
 | Joined to isolated upstream | Not done |
-| Independent private SSID/password | Not verified |
-| One upstream NAT identity with two private clients | Not tested |
+| One upstream NAT identity with two private clients | Not tested (requires wired LAN clients or a downstream AP in `WISP Client Router` mode) |
 | NDAHI native quota/expiry and recovery | Not tested |
 | Production Home enablement | Disabled; not approved by this evaluation |
 

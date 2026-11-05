@@ -90,9 +90,16 @@ not add multi-site isolation or change AP coverage/SSIDs.
 
 ## Pilot and enablement
 
-The user reports an available D-Link DAP-1360 C1 with firmware label 3.00, not yet
-joined to NDAHI Connect. Runtime firmware, private-SSID capability and NAT have
-not been verified. See [isolated evaluation notes](../operations/dap1360-c1-isolated-evaluation.md).
+The user supplied a D-Link DAP-1360 C1 (`B8:A3:86:5D:88:39`). Offline read-only
+inspection at `http://192.168.0.50/` confirmed running firmware `3.00 , 09, Nov, 2011`,
+current `Access Point` + DHCP-bridged LAN state (`mode0=0`, `lan_type=1`), and the
+presence of `WISP Client Router` (`mode0=5`) and `WISP Repeater` (`mode0=6`) on
+`/wireless.htm`. However, `/wireless.htm` exposes only a single `#ssid0` and
+`#authType` (used for the root AP in WISP modes), so a standalone DAP-1360 C1 on
+firmware 3.00 cannot simultaneously join an open upstream hotspot SSID and broadcast
+an independent WPA2-secured private household Wi-Fi network without a separate
+downstream AP on its Ethernet LAN port. See
+[isolated evaluation notes](../operations/dap1360-c1-isolated-evaluation.md).
 No WISP household pilot, native quota/expiry cutoff, independent overshoot,
 reconnection, replacement, required payment paths or outage recovery has been
 physically accepted. Home remains disabled. Issues #170–#178 stay open for these
