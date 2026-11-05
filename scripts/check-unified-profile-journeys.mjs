@@ -26,7 +26,10 @@ try {
   const { chromium } = await import(
     process.env.PLAYWRIGHT_MODULE || "playwright"
   );
-  browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({
+    headless: true,
+    ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}),
+  });
   for (const width of [320, 1280])
     for (const fields of [
       ["name"],
@@ -63,6 +66,7 @@ try {
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(portal + "/dashboard#account");
+      await page.getByText("Edit profile", { exact: true }).waitFor({ state: "visible" });
       assert.equal(
         await page.getByText("Edit profile", { exact: true }).count(),
         1,

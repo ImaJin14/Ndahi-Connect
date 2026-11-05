@@ -8,7 +8,7 @@ function largeState({ customers = 20000, vouchers = 50000, sessions = 30000 } = 
   const s = blank();
   for (let i = 0; i < customers; i++) {
     s.customers.push({
-      id: `c${i}`, phone: String(670000000 + i), name: `Student ${i}`,
+      id: `c${i}`, phone: String(670000000 + i), name: `Customer ${i}`,
       status: i % 50 === 0 ? "suspended" : undefined, pinHash: "secret", totpSecret: i % 7 ? undefined : "totp",
     });
   }
@@ -46,7 +46,7 @@ test("records are filtered, searched and paged newest first without exposing sec
   assert.equal(first.items.find((c) => c.id === "c112").authenticatorEnrolled, true);
   const suspended = queryRecords(s, { collection: "customers", status: "suspended" });
   assert.deepEqual(suspended.items.map((c) => c.id), ["c100", "c50", "c0"]);
-  assert.equal(queryRecords(s, { collection: "customers", q: "student 11" }).total, 11);
+  assert.equal(queryRecords(s, { collection: "customers", q: "customer 11" }).total, 11);
   const beyond = queryRecords(s, { collection: "customers", page: 99, pageSize: 50 });
   assert.equal(beyond.page, 3, "pages past the end clamp to the last page");
   assert.equal(queryRecords(s, { collection: "vouchers", q: "670000005" }).items[0].id, "v5", "vouchers are searchable by customer phone");
@@ -56,7 +56,7 @@ test("records are filtered, searched and paged newest first without exposing sec
 test("record queries stay fast and bounded at production scale", () => {
   const s = largeState();
   for (const query of [
-    { collection: "customers", q: "student 1999" },
+    { collection: "customers", q: "customer 1999" },
     { collection: "vouchers", status: "active", page: 200 },
     { collection: "vouchers", q: "670019999" },
     { collection: "sessions", status: "online", pageSize: 100 },

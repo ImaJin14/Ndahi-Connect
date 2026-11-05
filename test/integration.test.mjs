@@ -304,12 +304,14 @@ test("public and authenticated status reflect the real zone state, not a static 
   t.after(f.close);
   const initial = await f.call("/api/status");
   assert.equal(initial.json.service, "online");
+  assert.equal(initial.json.zone, "ndahi-wisp-main");
   await f.store.transaction((state) => {
-    state.zone = { ...state.zone, status: "degraded", notes: "One access point is offline for repair." };
+    state.zone = { ...state.zone, id: "ndahi-zone-north", status: "degraded", notes: "One access point is offline for repair." };
   });
   const degraded = await f.call("/api/status");
   assert.equal(degraded.response.status, 200);
   assert.equal(degraded.json.service, "degraded");
+  assert.equal(degraded.json.zone, "ndahi-zone-north");
   assert.equal(degraded.json.zoneNotes, "One access point is offline for repair.");
   await f.store.transaction((state) => {
     state.customers.push({ id: "c1", phone: "670000012", name: "Zone Check", email: "", pinHash: "x", createdAt: new Date().toISOString() });
@@ -945,8 +947,8 @@ test("customer checkout supports administrator-created bundles", async (t) => {
   t.after(f.close);
   await f.store.transaction((state) => {
     state.bundles.push({
-      id: "custom-campus-night",
-      name: "Campus Night",
+      id: "custom-wisp-night",
+      name: "WISP Night",
       price: 800,
       quotaGb: 12,
       validityHours: 12,
@@ -957,7 +959,7 @@ test("customer checkout supports administrator-created bundles", async (t) => {
   const purchase = await f.call("/api/purchase", "POST", {
     name: "Custom Customer",
     phone: "670000050",
-    planId: "custom-campus-night",
+    planId: "custom-wisp-night",
   });
   assert.equal(purchase.response.status, 201);
   assert.equal(purchase.json.payment.amount, 800);
@@ -966,7 +968,7 @@ test("customer checkout supports administrator-created bundles", async (t) => {
     "POST",
   );
   assert.equal(confirmed.response.status, 200);
-  assert.equal(confirmed.json.voucher.plan.name, "Campus Night");
+  assert.equal(confirmed.json.voucher.plan.name, "WISP Night");
   assert.equal(confirmed.json.voucher.deviceLimit, 2);
 });
 
@@ -1055,4 +1057,44 @@ test("admin can generate custom resale vouchers that activate on first redemptio
   assert.ok(redeemed.json.voucher.customerId);
   assert.ok(redeemed.json.voucher.expiresAt);
   assert.equal(synchronized.length, 1);
+});
+
+test("administrator can update zone id and status and public status reflects it", async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  const login = await f.call("/api/admin/login", "POST", { pin: "9999" }, null, {
+    origin: "http://admin.test",
+  });
+  assert.equal(login.response.status, 200);
+  const updated = await f.call("/api/admin/zone", "POST", {
+    id: "ndahi-zone-south",
+    status: "degraded",
+    notes: "Maintenance on southern AP",
+  }, null, {
+    origin: "http://admin.test",
+    cookie: login.setCookie.split(";")[0],
+    headers: login.json.csrfToken ? { "x-csrf-token": login.json.csrfToken } : {},
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.json.zone.id, "ndahi-zone-south");
+  assert.equal(updated.json.zone.status, "degraded");
+
+  const status = await f.call("/api/status");
+  assert.equal(status.response.status, 200);
+  assert.equal(status.json.zone, "ndahi-zone-south");
+  assert.equal(status.json.service, "degraded");
+  assert.equal(status.json.zoneNotes, "Maintenance on southern AP");
+  for (const id of [null, 17, "", "a", "../other-zone", "a".repeat(41)]) {
+    const rejected = await f.call("/api/admin/zone", "POST", { id, status: "online" }, null, {
+      origin: "http://admin.test", cookie: login.setCookie.split(";")[0],
+      headers: login.json.csrfToken ? { "x-csrf-token": login.json.csrfToken } : {},
+    });
+    assert.equal(rejected.response.status, 400);
+    const unchanged = await f.call("/api/status");
+    assert.equal(unchanged.json.zone, "ndahi-zone-south");
+    assert.equal(unchanged.json.service, "degraded");
+  }
+  // Existing stored IDs are preserved until an explicit administrator change.
+  await f.store.transaction(state => { state.zone.id = "student-zone-1"; });
+  assert.equal((await f.call("/api/status")).json.zone, "student-zone-1");
 });
