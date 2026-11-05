@@ -68,13 +68,13 @@ test("detectClientPlatform and privateMacGuidance prioritize the active mobile O
   assert.equal(iosView.mac, "DA:A1:19:10:20:30");
   assert.equal(iosView.platforms[0].id, "ios");
   assert.equal(iosView.platforms[0].recommended, true);
-  assert.match(iosView.platforms[0].steps, /Settings → Wi-Fi → NDAHI Connect → Turn off "Private Wi-Fi Address"\./);
-  assert.equal(iosView.platforms[0].toggleState, "Off");
+  assert.match(iosView.platforms[0].steps, /choose "Fixed" to keep a stable private address/);
+  assert.equal(iosView.platforms[0].toggleState, "Fixed / Off");
 
   const androidView = privateMacGuidance("66:77:88:99:aa:bb", "android");
   assert.equal(androidView.platforms[0].id, "android");
   assert.equal(androidView.platforms[0].recommended, true);
-  assert.match(androidView.platforms[0].steps, /Settings → Network → NDAHI Connect → Privacy → "Use device MAC"\./);
+  assert.match(androidView.platforms[0].steps, /Settings → Network → NDAHI Connect → Privacy → "Use device MAC"/);
   assert.equal(androidView.platforms[0].toggleState, "Use device MAC");
 });
 
@@ -134,8 +134,8 @@ test("mountPrivateMacAdvisory renders only for randomized MACs and remembers dis
   assert.equal(randomResult.visible, true);
   assert.equal(randomResult.mac, "DA:A1:19:22:33:44");
   assert.equal(randomContainer.hidden, false);
-  assert.match(randomContainer.innerHTML, /Private Wi-Fi address detected/);
-  assert.match(randomContainer.innerHTML, /Turn off &quot;Private Wi-Fi Address&quot;/);
+  assert.match(randomContainer.innerHTML, /Possible private Wi-Fi address/);
+  assert.match(randomContainer.innerHTML, /choose &quot;Fixed&quot;/);
   assert.match(randomContainer.innerHTML, /&quot;Use device MAC&quot;/);
 
   // Navigating to /login without query parameters still remembers the detected MAC in the session

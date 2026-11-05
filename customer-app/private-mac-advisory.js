@@ -18,6 +18,7 @@ export function normalizeMac(value) {
   return /^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(raw) ? raw : "";
 }
 
+// This heuristic does not prove address rotation or identify an operating system.
 // IEEE 802 locally administered unicast MAC addresses have bit 1 (0x02) set
 // and bit 0 (0x01) clear in the first octet, so the second hex digit is 2, 6, A, or E.
 export function isRandomizedMac(value) {
@@ -75,15 +76,15 @@ export function privateMacGuidance(mac, platform) {
   const ios = {
     id: "ios",
     label: "iOS (iPhone / iPad)",
-    steps: 'Settings → Wi-Fi → NDAHI Connect → Turn off "Private Wi-Fi Address".',
+    steps: 'Settings → Wi-Fi → NDAHI Connect → Private Wi-Fi Address. On iOS 18 or later, choose "Fixed" to keep a stable private address. If connection problems continue, you can choose "Off" (or turn the switch off on older versions) for this network only.',
     toggleLabel: "Private Wi-Fi Address",
-    toggleState: "Off",
+    toggleState: "Fixed / Off",
     recommended: detectedPlatform === "ios",
   };
   const android = {
     id: "android",
     label: "Android",
-    steps: 'Settings → Network → NDAHI Connect → Privacy → "Use device MAC".',
+    steps: 'If repeated approvals are a problem: Settings → Network → NDAHI Connect → Privacy → "Use device MAC" for this network only. Menu names vary by phone.',
     toggleLabel: "Privacy",
     toggleState: "Use device MAC",
     recommended: detectedPlatform === "android",
@@ -92,8 +93,8 @@ export function privateMacGuidance(mac, platform) {
     mac: normalized,
     macSuffix: normalized ? normalized.slice(-5) : "",
     platform: detectedPlatform,
-    title: "Private Wi-Fi address detected",
-    summary: "Randomized Wi-Fi addresses change how the hotspot sees your phone or tablet, which can use up device slots early or ask for repeated sign-in approvals.",
+    title: "Possible private Wi-Fi address",
+    summary: "This address may be private or locally assigned. It does not tell us whether it changes. If your Wi-Fi address changes, the hotspot may count a new device or ask for approval again. You can keep your current settings and continue. Changing them may briefly disconnect Wi-Fi; using your device MAC reduces address privacy on this network.",
     platforms: detectedPlatform === "android" ? [android, ios] : [ios, android],
   };
 }

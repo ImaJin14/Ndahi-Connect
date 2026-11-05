@@ -66,10 +66,10 @@ try {
     const banner = page.locator("#privateMacAdvisory");
     await banner.waitFor({ state: "visible" });
     const text = await banner.textContent();
-    assert.match(text, /Private Wi-Fi address detected/);
+    assert.match(text, /Possible private Wi-Fi address/);
     assert.match(text, /DA:A1:19:44:55:66/);
-    assert.match(text, /Settings → Wi-Fi → NDAHI Connect → Turn off "Private Wi-Fi Address"\./);
-    assert.match(text, /Settings → Network → NDAHI Connect → Privacy → "Use device MAC"\./);
+    assert.match(text, /choose "Fixed" to keep a stable private address/);
+    assert.match(text, /Settings → Network → NDAHI Connect → Privacy → "Use device MAC"/);
     assert.equal(
       await banner.locator(".private-mac-platform").first().getAttribute("data-mac-platform"),
       "ios",
