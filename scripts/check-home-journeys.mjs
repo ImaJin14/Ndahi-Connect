@@ -7,6 +7,7 @@ import {createStaticServer} from "../static-server.mjs";
 import {pairingFixture} from "../test/helpers/wifi-pairing-fixture.mjs";
 import {securityKey} from "../test/helpers/customer-security-key.mjs";
 import {hashSecret} from "../lib/security.mjs";
+import {homePilotTemplate} from "../lib/home-pilot.mjs";
 
 setDefaultResultOrder("ipv4first");
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||"playwright");
@@ -37,6 +38,7 @@ try{
   const context=await browser.newContext({viewport:{width,height:900}}),errors=[];
   await context.addCookies([{name:"customer_session",value:"main",domain:"localhost",path:"/api/account",httpOnly:true,sameSite:"Lax"}]);
   await context.addInitScript(()=>{Object.defineProperty(window,"sessionStorage",{get(){throw new DOMException("Blocked","SecurityError");}});});
+  await context.addInitScript(()=>{if(window.SubmitEvent)Object.defineProperty(SubmitEvent.prototype,"submitter",{get(){return undefined;}});});
   await context.route("**/*",async route=>{
    const url=route.request().url();
    if(url===gateway){const input=new URLSearchParams(route.request().postData());assert.equal(input.get("password"),fixturePassword);proofs.add(input.get("username"));return route.fulfill({status:302,headers:{location:input.get("dst")},body:""});}
@@ -46,6 +48,7 @@ try{
   const page=await context.newPage();page.on("pageerror",e=>errors.push(e.message));page.setDefaultTimeout(15000);
   try{
    await page.goto(portal+"/home-router.html");await page.locator("#enrollHome").waitFor();
+   await page.getByRole("heading",{name:"Use any WISP/NAT router",exact:true}).waitFor();
    await page.locator("#enrollHome").click();await page.getByRole("button",{name:"Continue to local gateway sign-in",exact:true}).click();
    await page.locator("#confirmHome").waitFor();await page.locator('#confirmHome [name="name"]').fill("Family router");await page.locator('#confirmHome [name="confirm"]').check();
    await page.getByRole("button",{name:"Confirm household connection",exact:true}).click();await page.locator("#homeStatus h3").filter({hasText:"Family router"}).waitFor();checks++;
@@ -65,6 +68,19 @@ try{
    await f.store.transaction(s=>{s.adminUsers.push({id:"home-owner",username:"owner",role:"owner",active:true});s.adminSessions.push({id:"home-admin",userId:"home-owner",role:"owner",tokenHash:hashSecret("home-admin","home-admin-fixture"),csrfToken:"admin-csrf",expiresAt:new Date(+f.now()+3600000).toISOString()});});
    await context.addCookies([{name:"admin_session",value:"home-admin",domain:"localhost",path:"/api/admin",httpOnly:true,sameSite:"Lax"}]);
    await page.goto(admin+"/home-routers.html");await page.locator("#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
+   await page.locator("#homeQueueAge").waitFor();
+   await page.route(api+"/api/admin/home/readiness",route=>route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic readiness failure"})}));
+   await page.locator("#checkHomeReadiness").focus();await page.keyboard.press("Enter");
+   await page.locator("#homeAdminMessage").getByText("Synthetic readiness failure",{exact:true}).waitFor();
+   assert.equal(await page.locator("#checkHomeReadiness").isEnabled(),true);
+   await page.unroute(api+"/api/admin/home/readiness");
+   await page.locator("#checkHomeReadiness").click();await page.locator("#homeReadiness").getByRole("heading",{name:"Readiness checks",exact:true}).waitFor();checks++;
+   await page.locator("#homePilotFile").setInputFiles({name:"synthetic-pilot.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify({...homePilotTemplate(),evidenceKind:"synthetic"}))});
+   await page.locator("#homePilotReason").fill("Synthetic browser fixture; no physical acceptance");
+   await page.locator("#homePilotImport button[type=submit]").click();
+   await page.locator("#homePilotStatus").getByText("Incomplete or failed checks",{exact:true}).waitFor();checks++;
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"Home operations must fit the viewport");
+   await page.screenshot({path:`${output}/home-admin-${width}.png`,fullPage:true});
    const key=securityKey(),cdp=await context.newCDPSession(page);await cdp.send("WebAuthn.enable");
    const {authenticatorId}=await cdp.send("WebAuthn.addVirtualAuthenticator",{options:{protocol:"ctap2",transport:"internal",hasResidentKey:true,hasUserVerification:true,isUserVerified:true,automaticPresenceSimulation:true}});
    await cdp.send("WebAuthn.addCredential",{authenticatorId,credential:{credentialId:Buffer.from(key.record.id,"base64url").toString("base64"),isResidentCredential:false,rpId:"localhost",privateKey:key.privateKey.export({format:"der",type:"pkcs8"}).toString("base64"),signCount:0}});

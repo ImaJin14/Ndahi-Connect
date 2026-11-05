@@ -176,7 +176,7 @@ test('critical login and connection module graphs avoid unsupported syntax and r
       await check(ref.startsWith('/shared/') ? resolve('shared-app', ref.slice(8)) : resolve(dirname(file), ref));
     }
   }
-  for (const entry of ['login.js', 'verify.js', 'hotspot.js']) await check(resolve('customer-app', entry));
+  for (const entry of ['login.js', 'verify.js', 'hotspot.js', 'home-router.js', 'home-entry.js']) await check(resolve('customer-app', entry));
   assert.ok(visited.size >= 8);
 });
 
