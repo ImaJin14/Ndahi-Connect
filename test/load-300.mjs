@@ -42,7 +42,7 @@ try {
     users.map((u) =>
       post("/api/purchase", {
         phone: u.phone,
-        name: `Student ${u.phone}`,
+        name: `Customer ${u.phone}`,
         planId: "weekly",
       })
     ),

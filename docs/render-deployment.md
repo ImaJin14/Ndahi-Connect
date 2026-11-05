@@ -91,7 +91,7 @@ domain verified before committing `BOOTSTRAP_MODE: "false"`. The API sends only 
 Flutterwave verification and records delivery status on the voucher; a failed
 email does not reverse payment or deactivate access.
 
-MikroTik and Omada endpoints on a private campus LAN are not directly reachable from Render. Route them through the restricted on-site management bridge, a VPN, or a mutually authenticated tunnel. Never expose the router administration UI directly.
+MikroTik and Omada endpoints on a private on-site LAN are not directly reachable from Render. Route them through the restricted on-site management bridge, a VPN, or a mutually authenticated tunnel. Never expose the router administration UI directly.
 
 ## 4. Verify the temporary deployment
 

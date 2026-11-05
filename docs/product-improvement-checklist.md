@@ -735,9 +735,12 @@ Use this document as the source of truth for product, engineering, security, and
 
 ### Multi-site WISP capabilities
 
-- [ ] **WISP-001 — Replace remaining student-zone runtime terminology**
-  - Update internal zone defaults, status responses, documentation, and coverage descriptions.
-  - Acceptance: public and operational language consistently reflects a managed public Wi-Fi WISP.
+- [-] **WISP-001 — Replace remaining student-zone runtime terminology**
+  - Implemented: Updated internal zone defaults from `student-zone-1` to `ndahi-wisp-main` in `lib/api/state.mjs`. Enabled dynamic zone ID reporting on `/api/status` derived from active state (`s.zone?.id || "ndahi-wisp-main"`). Extended `POST /api/admin/zone` configuration endpoint in `lib/api/network.mjs` to validate and update zone `id`, auditing `zoneId`.
+  - Tested: Independent review passes default/stored zone reporting, valid administrator updates, rejection of invalid IDs without changing zone state, adapters and admin record queries. Existing saved IDs remain unchanged until an explicit administrator update; no automatic identity migration.
+  - Deployed: No. Separate reviewed draft on `feat/wisp-runtime-terminology-001`; not part of the deployed Home release.
+  - Physical verification: Not performed. Zone IDs are metadata; this change does not configure radio coverage, SSIDs or multi-site isolation. Fixed coverage descriptions still require a separate verified update.
+  - Acceptance: public, administrative, and operational runtime language consistently reflects a managed public Wi-Fi WISP.
 
 - [ ] **WISP-002 — Support multiple sites and coverage zones**
   - Acceptance: customers, vouchers, routers, access points, bundles, and reports can be scoped by site.
@@ -852,7 +855,11 @@ Use this document as the source of truth for product, engineering, security, and
 - [ ] **DOC-001 — Align authentication documentation with voucher-first login**
   - Acceptance: README, operator guidance, support content, and diagrams match implemented behavior.
 
-- [ ] **DOC-002 — Remove stale campus/student terminology**
+- [-] **DOC-002 — Remove stale campus/student terminology**
+  - Implemented: Scrubbed legacy student/campus references across `docs/project-report.md`, `docs/render-deployment.md`, `docs/operations/performance.md`, and test suites (`test/adapters.test.mjs`, `test/load-300.mjs`, `test/admin-records.test.mjs`, `test/integration.test.mjs`).
+  - Tested: Reviewed the changed documentation and fixture names; focused automated tests pass. This is not a claim that every repository asset was audited. Dated historical documents remain historical evidence.
+  - Deployed: No. Separate reviewed draft on `feat/wisp-runtime-terminology-001`.
+  - Physical verification: Not applicable to text changes. Broader runtime coverage descriptions and documentation alignment remain pending.
   - Acceptance: runtime status, RouterOS notes, deployment docs, reports, and public copy use approved WISP terminology.
 
 - [ ] **DOC-003 — Document business rules**
@@ -1242,6 +1249,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Reviewed Antigravity additions: accepted UI/test-command wiring; corrected unsupported schema/test/compatibility claims and replaced the global IPv6 change with a scoped review template. Corrected repeated mode-switch accounting and narrowed firewall-guard acceptance during review. Existing unrelated checkout drafts remain untouched.
   - Tested locally: syntax and diff checks; hosted suite 1,120 tests passed with zero failures/skips, including PostgreSQL and both 300-customer load tests (run 41903679541); latest focused Home suite 38 passed. Home PostgreSQL claim/reload/uniqueness tests passed in initial CI; final full CI tracked in [PR #179](https://github.com/ImaJin14/Ndahi-Connect/pull/179). Home browser journeys: 20 checks at 320px/1280px with local API, synthetic gateway and mock payments, including PIN-less passkey revocation through a virtual authenticator; screenshots inspected. These results do not verify RouterOS hardware behavior.
   - Delivery evidence: `docs/issues/ndahi-home-170.md`; configuration, customer setup, rollback, pilot/KPI measurements and residual limitations in `docs/operations/ndahi-home.md`; blocked-from-import scoped RouterOS template in `docs/operations/ndahi-home-network.rsc`.
-  - Pending: final full CI and migration/restore rehearsal, real Mobile Money acceptance, physical TL-WR902AC V3/EAP650/RB5009 pilot, independent quota/cutoff/IPv6/FastTrack/cap/reconnect/outage measurements and old-device acceptance. RB5009 reboot/counter loss currently fails closed for support review; automatic recovery is not implemented. AP ether2 link flapping remains a physical pilot blocker.
-  - Deployment: `NDAHI_HOME_ENABLED` defaults off. Not merged or deployed; no hardware verification claimed. Keep all hardware-dependent issue acceptance criteria open.
+  - Pending: final full CI and migration/restore rehearsal, real Mobile Money acceptance, physical TL-WR902AC V3/EAP650/RB5009 pilot, independent quota/cutoff/IPv6/FastTrack/cap/reconnect/outage measurements and old-device acceptance. RB5009 reboot/counter loss currently fails closed for support review; automatic recovery is not implemented. Read-only ether2 observation on 5 November shows 1 Gbps/full duplex, unchanged historical link-down count and zero observed errors; root cause and load/long-term stability remain unverified.
+  - Deployment verified 2026-11-05: PR #179 merged as `011b75d46c8ec27d96c3d637e64862d3af878ac7`; Render API/customer/admin deploy records succeeded for that exact revision. Live API revision matches, PostgreSQL is ready, and `/api/home/config` returns `enabled: false`. Strict production smoke checks pass. No physical pilot verification claimed; hardware-dependent criteria remain open. See `docs/releases/ndahi-home-2026-11-05.md`.
+  - User-provided pilot hardware: D-Link DAP-1360 C1, firmware 3.00. Official RevC documentation describes WISP routing, but D-Link advisory SAP10495 lists RevC firmware 3.04 and earlier as affected and end-of-support. Limit this device to isolated functionality evaluation; it is not a supported production acceptance unit. Connection state and ether2 stability remain unverified.
   - Tracker: one additional implemented task awaiting CI/review and physical acceptance; separate from historical milestone totals.
