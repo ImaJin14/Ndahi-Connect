@@ -274,3 +274,19 @@ header .brand,
 .bundle-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:0}.bundle-facts div{min-width:0}.bundle-facts dt{font-size:.8rem;opacity:.8}.bundle-facts dd{margin:.2rem 0 0;font-weight:700;overflow-wrap:anywhere}.fuel-unknown{stroke:#75857c}@media(max-width:420px){.bundle-facts{grid-template-columns:1fr}}
 
 .profile-facts{display:grid;gap:6px;margin:16px 0}.profile-facts dt{font-size:13px;color:var(--muted)}.profile-facts dd{margin:0 0 10px;overflow-wrap:anywhere}#profileEdit{min-width:0}#profileEdit label{min-width:0}
+.private-mac-banner{background:var(--surface,#fff);border:1px solid var(--border,#cbd5e1);border-left:4px solid #d97706;border-radius:12px;padding:14px 16px;margin:0 0 16px;box-shadow:0 2px 8px rgba(15,23,42,.05);min-width:0}
+.private-mac-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.private-mac-eyebrow{margin:0 0 2px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#b45309}
+.private-mac-title{margin:0;font-size:16px;line-height:1.35}
+.private-mac-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;font-weight:600;color:var(--muted,#475569)}
+.private-mac-summary{margin:0 0 12px;font-size:14px;line-height:1.45;color:var(--text,#0f172a)}
+.private-mac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.private-mac-platform{border:1px solid var(--border,#cbd5e1);border-radius:10px;padding:10px 12px;background:rgba(248,250,252,.85);min-width:0}
+.private-mac-platform-active{border-color:#0f766e;background:rgba(240,253,250,.9)}
+.private-mac-platform-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;font-size:13px}
+.private-mac-pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0f766e;color:#fff;font-size:11px;font-weight:700}
+.private-mac-steps{margin:0 0 8px;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.private-mac-toggle-hint{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;background:#fff;border:1px solid var(--border,#cbd5e1);font-size:12px;font-weight:600}
+.private-mac-toggle-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:999px;background:#e2e8f0;color:#0f172a;font-size:11px;font-weight:700}
+.private-mac-toggle-dot{width:8px;height:8px;border-radius:50%;background:#0f766e;display:inline-block}
+.private-mac-dismiss{width:auto;min-height:36px;padding:6px 12px;font-size:13px}
