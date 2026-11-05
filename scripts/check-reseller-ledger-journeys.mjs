@@ -192,24 +192,39 @@ try {
     assert.match(await row.locator('[data-cell="commission"]').textContent(), /200 FCFA \(10%\)/);
     assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,800 FCFA/);
 
-    // Configure commission split to 15%
+    // Configure commission split to 15% (prospective only — already-redeemed sales keep their agreed 10% rate)
     const commForm = page.locator("[data-reseller-commission-form]");
     await commForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
     await commForm.locator('input[name="commissionPercent"]').fill("15");
     await commForm.locator('button[type="submit"]').click();
     await page.getByText("Updated commission split for Buea Market Kiosk to 15%.").waitFor();
-    assert.match(await row.locator('[data-cell="commission"]').textContent(), /300 FCFA \(15%\)/);
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,700 FCFA/);
+    assert.match(await row.locator('[data-cell="commission"]').textContent(), /200 FCFA \(15%\)/);
+    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,800 FCFA/);
 
-    // Record a 1,200 FCFA cash remittance handoff
+    // Record a 1,200 FCFA cash remittance handoff and verify lost-response retry deduplication
     const remitForm = page.locator("[data-reseller-remittance-form]");
     await remitForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
     await remitForm.locator('input[name="amount"]').fill("1200");
     await remitForm.locator('input[name="note"]').fill("Evening cash drop");
+
+    let failFirstRemittanceResponse = true;
+    await page.route("**/api/admin/resellers/remittances", async (route) => {
+      if (failFirstRemittanceResponse) {
+        failFirstRemittanceResponse = false;
+        const response = await route.fetch();
+        assert.equal(response.status(), 201);
+        await route.abort("failed");
+        return;
+      }
+      await route.continue();
+    });
+
     await remitForm.locator('button[type="submit"]').click();
-    await page.getByText("Recorded 1,200 FCFA cash remittance from Buea Market Kiosk.").waitFor();
+    // Retry after lost response — reuses the same operationKey and avoids double-crediting
+    await remitForm.locator('button[type="submit"]').click();
+    await page.getByText("Already recorded 1,200 FCFA cash remittance from Buea Market Kiosk (duplicate submission prevented).").waitFor();
     assert.match(await row.locator('[data-cell="remitted"]').textContent(), /1,200 FCFA/);
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /500 FCFA/);
+    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /600 FCFA/);
     assert.match(await page.locator("[data-remittance-history-table]").textContent(), /Evening cash drop/);
 
     // Generate 2 more resale vouchers assigned directly to Buea Market Kiosk
@@ -250,7 +265,7 @@ try {
     assert.equal(await page.locator("[data-reseller-commission-form]").count(), 0);
     assert.match(
       await page.locator('[data-reseller-row="staff-reseller-1"] [data-cell="outstanding"]').textContent(),
-      /500 FCFA/,
+      /600 FCFA/,
     );
 
     assert.deepEqual(errors, []);

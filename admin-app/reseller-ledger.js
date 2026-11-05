@@ -4,6 +4,13 @@ const escapeHtml = (value) =>
     (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char],
   );
 
+function createOperationKey() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `op-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function formatFcfa(amount) {
   const num = Math.round(Number(amount || 0));
   return `${(Number.isFinite(num) ? num : 0).toLocaleString("en-US")} FCFA`;
@@ -86,7 +93,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
               (r) => `<tr data-reseller-row="${escapeHtml(r.resellerId)}">
                 <td>
                   <strong>${escapeHtml(r.displayName || r.username)}</strong>
-                  <div class="table-subtext">@${escapeHtml(r.username)}${r.active ? "" : " (inactive)"}</div>
+                  <div class="table-subtext">@${escapeHtml(r.username)}${r.role && r.role !== "reseller" ? ` (${escapeHtml(r.role)})` : ""}${r.active ? "" : " (inactive)"}</div>
                 </td>
                 <td data-cell="stock">${escapeHtml(r.unsoldVouchers)} unsold / ${escapeHtml(r.redeemedVouchers)} sold / ${escapeHtml(r.assignedVouchers)} total</td>
                 <td data-cell="collected">${escapeHtml(formatFcfa(r.cashCollected))}</td>
@@ -124,6 +131,10 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
               </label>
               <label>Commission percentage (%)
                 <input type="number" name="commissionPercent" min="0" max="100" step="0.5" value="${escapeHtml(resellers[0]?.commissionPercent ?? 10)}" required>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" name="applyToUnsoldStock" value="true">
+                Apply new rate to existing unsold stock (completed sales keep agreed rate)
               </label>
               <button type="submit" class="secondary-action">Save commission %</button>
             </form>
@@ -171,6 +182,8 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
 export function mountResellerLedger(container, { initialLedger, role = "owner", call } = {}) {
   if (!container) return { refresh: async () => {} };
   let currentLedger = initialLedger;
+  let pendingRemittanceKey = createOperationKey();
+  let pendingRemittanceSignature = "";
 
   function render(statusMessage = "") {
     container.innerHTML = renderResellerLedgerMarkup(currentLedger, { role });
@@ -181,6 +194,23 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
 
     const remittanceForm = container.querySelector("[data-reseller-remittance-form]");
     if (remittanceForm && typeof call === "function") {
+      remittanceForm.dataset.operationKey = pendingRemittanceKey;
+      const syncSignature = () => {
+        const data = new FormData(remittanceForm);
+        const nextSig = JSON.stringify([
+          String(data.get("resellerId") || ""),
+          String(data.get("amount") || ""),
+          String(data.get("note") || "").trim(),
+        ]);
+        if (pendingRemittanceSignature && nextSig !== pendingRemittanceSignature) {
+          pendingRemittanceKey = createOperationKey();
+          pendingRemittanceSignature = nextSig;
+          remittanceForm.dataset.operationKey = pendingRemittanceKey;
+        }
+      };
+      remittanceForm.addEventListener("input", syncSignature);
+      remittanceForm.addEventListener("change", syncSignature);
+
       remittanceForm.onsubmit = async (event) => {
         event.preventDefault();
         const submitBtn = remittanceForm.querySelector('button[type="submit"]');
@@ -188,13 +218,33 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
         try {
           const payload = Object.fromEntries(new FormData(remittanceForm));
           payload.amount = Number(payload.amount);
+          const nextSig = JSON.stringify([
+            String(payload.resellerId || ""),
+            String(payload.amount || ""),
+            String(payload.note || "").trim(),
+          ]);
+          if (pendingRemittanceSignature && nextSig !== pendingRemittanceSignature) {
+            pendingRemittanceKey = createOperationKey();
+          }
+          pendingRemittanceSignature = nextSig;
+          const operationKey = pendingRemittanceKey;
+          payload.operationKey = operationKey;
+
           const response = await call("/api/admin/resellers/remittances", {
             method: "POST",
+            headers: { "idempotency-key": operationKey },
             body: JSON.stringify(payload),
           });
           currentLedger = response.resellerLedger || currentLedger;
+          // Rotate operation key only after a confirmed response so retrying a lost response reuses it.
+          pendingRemittanceKey = createOperationKey();
+          pendingRemittanceSignature = "";
+          const resellerLabel =
+            response.reseller?.displayName || response.reseller?.username || "reseller";
           render(
-            `Recorded ${formatFcfa(response.remittance?.amount)} cash remittance from ${response.reseller?.displayName || response.reseller?.username || "reseller"}.`,
+            response.replayed
+              ? `Already recorded ${formatFcfa(response.remittance?.amount)} cash remittance from ${resellerLabel} (duplicate submission prevented).`
+              : `Recorded ${formatFcfa(response.remittance?.amount)} cash remittance from ${resellerLabel}.`,
           );
         } catch (error) {
           if (messageEl) messageEl.textContent = error.message || "Could not record remittance.";
@@ -219,8 +269,12 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
         const submitBtn = commissionForm.querySelector('button[type="submit"]');
         if (submitBtn) submitBtn.disabled = true;
         try {
-          const payload = Object.fromEntries(new FormData(commissionForm));
-          payload.commissionPercent = Number(payload.commissionPercent);
+          const formData = new FormData(commissionForm);
+          const payload = {
+            resellerId: formData.get("resellerId"),
+            commissionPercent: Number(formData.get("commissionPercent")),
+            applyToUnsoldStock: formData.get("applyToUnsoldStock") === "true",
+          };
           const response = await call("/api/admin/resellers/commission", {
             method: "POST",
             body: JSON.stringify(payload),
