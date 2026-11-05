@@ -9,10 +9,12 @@ import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedChec
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { configurePairingLink } from "./wifi-pairing.js";
+import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
 
 mountThemeToggle();
+mountPrivateMacAdvisory();
 
 void configurePairingLink(document.getElementById("assistedConnectionLink"));
 

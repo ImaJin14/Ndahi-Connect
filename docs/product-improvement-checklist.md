@@ -1245,3 +1245,13 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Pending: final full CI and migration/restore rehearsal, real Mobile Money acceptance, physical TL-WR902AC V3/EAP650/RB5009 pilot, independent quota/cutoff/IPv6/FastTrack/cap/reconnect/outage measurements and old-device acceptance. RB5009 reboot/counter loss currently fails closed for support review; automatic recovery is not implemented. AP ether2 link flapping remains a physical pilot blocker.
   - Deployment: `NDAHI_HOME_ENABLED` defaults off. Not merged or deployed; no hardware verification claimed. Keep all hardware-dependent issue acceptance criteria open.
   - Tracker: one additional implemented task awaiting CI/review and physical acceptance; separate from historical milestone totals.
+
+
+## Private randomized MAC address detection and guidance (#124)
+
+- [-] **UX-124 — Detect and advise on iOS/Android private randomized MAC addresses** ([#124](https://github.com/ImaJin14/Ndahi-Connect/issues/124))
+  - Implemented: IEEE 802 locally administered unicast MAC detection (`customer-app/private-mac-advisory.js`, matching second hexadecimal digit `2`, `6`, `A`, or `E` on `XX:XX:XX:XX:XX:FF` / `XX-XX-XX-XX-XX-FF`) wired into `customer-app/onboarding.html` (`customer-app/onboarding.js`) and `customer-app/login.html` (`customer-app/login.js`) with responsive styling in `customer-app/styles.css`. Displays platform-aware iOS (`Settings → Wi-Fi → NDAHI Connect → Turn off "Private Wi-Fi Address".`) and Android (`Settings → Network → NDAHI Connect → Privacy → "Use device MAC".`) guidance with visual toggle hints when a randomized MAC is present, hides for hardware OUI MACs, and remembers dismissal for the active session through `sessionStore` (including when browser storage is blocked).
+  - Tested: unit/DOM/AST compatibility tests in `test/private-mac-advisory.test.mjs`, `test/connection-reliability.test.mjs`, and `test/ui-controls.test.mjs`; full local suite passes 1,124 tests (1,095 passed, 0 failed, 29 PostgreSQL-dependent skips reserved for CI); real Chromium browser journeys at 320px/1280px across iOS/Android user agents and blocked-storage contexts in `scripts/check-private-mac-journeys.mjs`.
+  - Deployed: No. Prepared on branch `feat/private-mac-advisory-124` for PR review.
+  - Physical verification: Not performed. On-site captive redirect verification on physical iOS and Android devices remains pending.
+  - Tracker: one additional implemented task awaiting CI/review, deployment, and physical device acceptance; separate from historical milestone totals.
