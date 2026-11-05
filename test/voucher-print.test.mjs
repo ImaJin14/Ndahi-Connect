@@ -98,7 +98,7 @@ test("thermal POS slip layout renders 58mm and 80mm high-contrast slips without 
   assert.match(html58, /1 GB/);
   assert.match(html58, /24 hours \(1 day\)/);
   assert.match(html58, /Starts on first redemption/);
-  assert.match(html58, /<svg/);
+  assert.match(html58, /QR unavailable/);
 
   for (const pii of ["c-leak", "Private Customer", "677889900", "699112233", "private@example.com"]) {
     assert.ok(!html58.includes(pii), `Thermal slip leaked ${pii}`);
@@ -130,10 +130,11 @@ test("bulk A4 sheet layout chunks vouchers into 21-card (3x7) pages with clean p
   assert.ok(!html.includes("6700000"));
 });
 
-test("renderQrBlockMarkup renders crisp monochrome SVG matrix for voucher codes", () => {
-  const markup = renderQrBlockMarkup({ code: "NC-TEST-9999" });
-  assert.match(markup, /class="voucher-qr-box"/);
-  assert.match(markup, /<svg[^>]+shape-rendering="crispEdges"/);
+test("QR markup only accepts encoded PNG and cannot inject SVG or pretend to encode a missing QR", () => {
+  assert.match(renderQrBlockMarkup({ code: "NC-TEST" }), /QR unavailable/);
+  const malicious = '<svg onload="alert(1)"><text>Private customer</text></svg>';
+  const safe = sanitizePrintableVoucher({ code: "NC-TEST", qrCode: malicious });
+  assert.equal(safe.qrCode, "");
+  assert.ok(!renderQrBlockMarkup({ code: "NC-TEST", qrCode: malicious }).includes("<svg"));
   assert.deepEqual(VOUCHER_PRINT_LAYOUTS, ["thermal-58", "thermal-80", "a4-sheet"]);
 });
-

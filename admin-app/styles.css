@@ -236,6 +236,7 @@
   width: 100%;
   height: 100%;
 }
+.voucher-qr-img { image-rendering: pixelated; }
 .thermal-meta {
   margin: 6px 0;
   padding: 5px 0;
@@ -334,6 +335,7 @@
   margin: 0;
   font-size: 10px;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 .a4-code {
   display: inline-block;
@@ -373,6 +375,12 @@
 }
 
 @media print {
+  @page voucher-a4 { size: A4; margin: 6mm; }
+  @page voucher-58 { size: 58mm 160mm; margin: 2mm; }
+  @page voucher-80 { size: 80mm 160mm; margin: 2mm; }
+  body[data-voucher-print-layout="a4-sheet"] { page: voucher-a4; }
+  body[data-voucher-print-layout="thermal-58"] { page: voucher-58; }
+  body[data-voucher-print-layout="thermal-80"] { page: voucher-80; }
   @page {
     margin: 6mm;
   }
@@ -382,6 +390,7 @@
     padding: 0 !important;
   }
   body > header,
+  main > .page-head,
   .admin-nav,
   .update-notice,
   .setup-banner,
@@ -406,6 +415,7 @@
     border: 0 !important;
     box-shadow: none !important;
     max-width: none !important;
+    width: auto !important;
     overflow: visible !important;
   }
   .voucher-print-thermal {

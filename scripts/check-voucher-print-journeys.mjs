@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import jsQR from "jsqr";
 import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -16,6 +17,7 @@ const apiServer = createServer({
   validateConfig: false,
   env: {
     NODE_ENV: "test",
+    CUSTOMER_APP_URL: "http://127.0.0.1:8957",
     PAYMENT_MODE: "mock",
     EMAIL_MODE: "mock",
     MIKROTIK_MODE: "mock",
@@ -52,6 +54,11 @@ await store.transaction((s) => {
 
 const baseline = await store.snapshot();
 let browser, website, checks = 0;
+function assertPaperWidth(pdf, expectedMm) {
+  const box = pdf.toString("latin1").match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
+  assert.ok(box, "PDF must declare its physical page dimensions");
+  assert.ok(Math.abs(Number(box[1]) * 25.4 / 72 - expectedMm) < 0.3, `PDF paper width must be ${expectedMm}mm`);
+}
 
 try {
   await listen(apiServer, 8958);
@@ -111,16 +118,43 @@ try {
     assert.equal(await layoutSelect.inputValue(), "a4-sheet");
     assert.equal(await page.locator(".a4-voucher-page").count(), 2);
     assert.equal(await page.locator(".a4-voucher-card").count(), 24);
-    assert.equal(await page.locator(".a4-voucher-card svg").count(), 24);
+    assert.equal(await page.locator(".a4-voucher-card img").count(), 24);
+
+    // Decode actual rendered pixels: a decorative pattern is not a QR code.
+    const pixels = await page.locator(".a4-voucher-card img").first().evaluate(async (img) => {
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+      return { width: canvas.width, height: canvas.height, data: Array.from(ctx.getImageData(0, 0, canvas.width, canvas.height).data) };
+    });
+    const decoded = jsQR(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height);
+    assert.ok(decoded, "printed QR must decode");
+    const redemption = new URL(decoded.data);
+    assert.equal(redemption.origin, "http://127.0.0.1:8957");
+    assert.equal(redemption.pathname, "/onboarding.html");
+    assert.equal(redemption.searchParams.get("action"), "connect");
+    assert.equal(redemption.searchParams.get("code"), await page.locator(".a4-code").first().textContent());
+    assert.deepEqual([...redemption.searchParams.keys()].sort(), ["action", "code"]);
+    const a4Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-a4.pdf", preferCSSPageSize: true });
+    assertPaperWidth(a4Pdf, 210);
+    assert.equal((a4Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 2, "24 cards must fit exactly two A4 PDF pages");
 
     // Switch to 58mm thermal POS slip
     await layoutSelect.selectOption("thermal-58");
     assert.equal(await page.locator('[data-print-surface="thermal-58"]').count(), 1);
     assert.equal(await page.locator(".thermal-slip").count(), 24);
 
+    const thermal58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-58.pdf", preferCSSPageSize: true });
+    assertPaperWidth(thermal58Pdf, 58);
+    assert.equal((thermal58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 24, "one thermal slip per page");
+
     // Switch to 80mm thermal POS slip
     await layoutSelect.selectOption("thermal-80");
     assert.equal(await page.locator('[data-print-surface="thermal-80"]').count(), 1);
+
+    const thermal80Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-80.pdf", preferCSSPageSize: true });
+    assertPaperWidth(thermal80Pdf, 80);
 
     // Click Print vouchers and verify window.print() is invoked and @media print hides admin shell chrome
     await page.getByRole("button", { name: "Print vouchers", exact: true }).click();
@@ -128,6 +162,7 @@ try {
 
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator(".admin-nav").isVisible(), false);
+    assert.equal(await page.locator("main > .page-head").isVisible(), false);
     assert.equal(await page.locator("#generate").isVisible(), false);
     assert.equal(await page.locator(".voucher-print-toolbar").isVisible(), false);
     assert.equal(await page.locator("#voucherPrintSurface").isVisible(), true);
@@ -150,6 +185,7 @@ try {
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
     assert.equal(await page.locator(".thermal-slip").count(), 1);
 
+    await page.pdf({ path: "/tmp/ndahi-voucher-print-assigned.pdf", preferCSSPageSize: true });
     const printHtml = await page.locator("#voucherPrintSurface").innerHTML();
     for (const forbidden of ["cust-pii-1", "Confidential Customer Name", "670998877", "confidential@example.com"]) {
       assert.ok(!printHtml.includes(forbidden), `Printed voucher surface leaked customer PII: ${forbidden}`);

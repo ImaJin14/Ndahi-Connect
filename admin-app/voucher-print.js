@@ -93,13 +93,8 @@ export function sanitizePrintableVoucher(voucher = {}, fallbackPlan = {}) {
   const status = voucher.status === "available" ? "available" : String(voucher.status || "available");
   const expiresAt = status === "available" ? null : voucher.expiresAt || null;
   const qrCode =
-    typeof voucher.qrCode === "string" &&
-    (voucher.qrCode.startsWith("<svg") || voucher.qrCode.startsWith("data:image/"))
+    typeof voucher.qrCode === "string" && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(voucher.qrCode)
       ? voucher.qrCode
-      : "";
-  const redemptionUrl =
-    typeof voucher.redemptionUrl === "string" && /^https?:\/\//i.test(voucher.redemptionUrl)
-      ? voucher.redemptionUrl
       : "";
 
   const safe = {
@@ -114,7 +109,6 @@ export function sanitizePrintableVoucher(voucher = {}, fallbackPlan = {}) {
         ? "Starts on first redemption"
         : `Expires ${new Date(expiresAt).toISOString().slice(0, 10)}`,
     qrCode,
-    redemptionUrl,
   };
   for (const key of Object.keys(safe)) {
     if (FORBIDDEN_PII_KEYS.has(key)) delete safe[key];
@@ -122,50 +116,12 @@ export function sanitizePrintableVoucher(voucher = {}, fallbackPlan = {}) {
   return Object.freeze(safe);
 }
 
-/**
- * Generates a high-contrast monochrome matrix SVG when a server-generated QR SVG
- * is not provided, or normalizes a server-generated SVG for crisp print rendering.
- */
+/** Only render the server's encoded PNG; never insert supplied SVG markup. */
 export function renderQrBlockMarkup(item) {
-  if (typeof item.qrCode === "string" && item.qrCode.trim().startsWith("<svg")) {
-    return `<div class="voucher-qr-box" aria-label="QR code for voucher ${h(item.code)}">${item.qrCode}</div>`;
-  }
-  if (typeof item.qrCode === "string" && item.qrCode.startsWith("data:image/")) {
+  if (typeof item.qrCode === "string" && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(item.qrCode)) {
     return `<div class="voucher-qr-box"><img src="${h(item.qrCode)}" alt="QR code for voucher ${h(item.code)}" class="voucher-qr-img"></div>`;
   }
-  // Deterministic high-contrast finder + code matrix fallback SVG
-  const seed = String(item.code || "NDAHI");
-  const size = 21;
-  const cells = [];
-  const finder = (r, c) =>
-    (r < 7 && c < 7) || (r < 7 && c >= size - 7) || (r >= size - 7 && c < 7);
-  const finderDark = (r, c) => {
-    const lr = r >= size - 7 ? r - (size - 7) : r;
-    const lc = c >= size - 7 ? c - (size - 7) : c;
-    return (
-      lr === 0 ||
-      lr === 6 ||
-      lc === 0 ||
-      lc === 6 ||
-      (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4)
-    );
-  };
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      let dark = false;
-      if (finder(r, c)) {
-        dark = finderDark(r, c);
-      } else if (r === 6 || c === 6) {
-        dark = (r + c) % 2 === 0;
-      } else {
-        const idx = r * size + c;
-        const ch = seed.charCodeAt(idx % seed.length) || 78;
-        dark = ((ch * 31 + r * 17 + c * 13) & 3) <= 1;
-      }
-      if (dark) cells.push(`<rect x="${c + 2}" y="${r + 2}" width="1" height="1" fill="#000"/>`);
-    }
-  }
-  return `<div class="voucher-qr-box" aria-label="QR code for voucher ${h(item.code)}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size + 4} ${size + 4}" shape-rendering="crispEdges" role="img" aria-label="Voucher QR ${h(item.code)}"><rect width="${size + 4}" height="${size + 4}" fill="#fff"/>${cells.join("")}</svg></div>`;
+  return '<p class="voucher-qr-unavailable">QR unavailable — enter the voucher code.</p>';
 }
 
 export function renderThermalSlipsHtml(vouchers = [], plan = {}, widthMm = 58) {
@@ -197,7 +153,7 @@ export function renderThermalSlipsHtml(vouchers = [], plan = {}, widthMm = 58) {
     <p><strong>How to connect:</strong></p>
     <ol>
       <li>Join <strong>NDAHI Connect</strong> Wi-Fi</li>
-      <li>Scan the QR code or open the login page</li>
+      <li>Scan the QR code or open portal.ndahiconnect.net</li>
       <li>Enter code <strong>${h(item.code)}</strong></li>
     </ol>
   </footer>
