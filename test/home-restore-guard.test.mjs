@@ -7,6 +7,8 @@ test("native Home restore rehearsal rejects production, remote and hidden databa
   assert.throws(() => isolatedHomeRehearsalTarget({}));
   for (const url of ["postgres://example.render.com/postgres", "postgres://localhost/ndahi_postgres",
     "postgres://localhost/postgres?database=production", "postgres://localhost/postgres?host=external.render.com",
+    "postgres://localhost/postgres?host=/tmp/private-postgres&host=external.render.com",
+    "postgres://localhost/postgres?host=/tmp/private-postgres,external.render.com",
     "https://localhost/postgres"]) assert.throws(() => isolatedHomeRehearsalTarget({ ...confirmation, HOME_REHEARSAL_DATABASE_URL: url }));
   assert.equal(isolatedHomeRehearsalTarget({ ...confirmation, HOME_REHEARSAL_DATABASE_URL: "postgres://localhost:55479/postgres?host=/tmp/private-postgres" }).pathname, "/postgres");
 });

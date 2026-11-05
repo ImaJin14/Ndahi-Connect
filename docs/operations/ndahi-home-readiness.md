@@ -74,7 +74,9 @@ Use a private local PostgreSQL test cluster and installed `pg_dump`/`pg_restore`
 `HOME_PG_BIN` optionally selects their directory. The command refuses remote or
 application database targets, creates two uniquely named synthetic databases,
 replays migrations, tests rollback, restores a custom-format archive and compares
-all normalized state. It removes only databases it created. Credentials go through
+all normalized state. Duplicate/multiple host overrides are rejected and inherited
+libpq connection overrides are removed from dump/restore child processes. It removes
+only databases it created. Credentials go through
 child environment variables, not command-line arguments. This is not a test of a
 production encrypted R2 backup or production RPO/RTO; those remain a separate drill.
 

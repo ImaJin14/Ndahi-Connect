@@ -18,7 +18,8 @@ export function isolatedHomeRehearsalTarget(env) {
   if (!["postgres:", "postgresql:"].includes(url.protocol) ||
       !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) || url.pathname !== "/postgres" ||
       [...url.searchParams.keys()].some(key => key !== "host") ||
-      (url.searchParams.has("host") && !url.searchParams.get("host").startsWith("/")))
+      url.searchParams.getAll("host").length > 1 ||
+      (url.searchParams.has("host") && (!url.searchParams.get("host").startsWith("/") || url.searchParams.get("host").includes(","))))
     throw Error("Use a private local test cluster's postgres database; production and remote targets are refused");
   return url;
 }
@@ -55,8 +56,11 @@ export async function rehearseHomePostgres(env = process.env) {
     assert.deepEqual(await store.snapshot(), before);
     directory = await mkdtemp(join(tmpdir(), "ndahi-home-native-restore-"));
     const archive = join(directory, "synthetic-home.dump"), bin = env.HOME_PG_BIN || "";
-    const childEnv = { ...process.env, PGHOST: target.searchParams.get("host") || target.hostname,
-      PGPORT: target.port || "5432", PGSSLMODE: "disable", PGPASSFILE: "/dev/null" };
+    const childEnv = { ...process.env };
+    // Inherited libpq service/hostaddr/options must never redirect this drill.
+    for (const key of Object.keys(childEnv)) if (key.startsWith("PG")) delete childEnv[key];
+    Object.assign(childEnv, { PGHOST: target.searchParams.get("host") || target.hostname.replace(/^\[|\]$/g, ""),
+      PGPORT: target.port || "5432", PGSSLMODE: "disable", PGPASSFILE: "/dev/null" });
     if (target.username) childEnv.PGUSER = decodeURIComponent(target.username);
     if (target.password) childEnv.PGPASSWORD = decodeURIComponent(target.password);
     else delete childEnv.PGPASSWORD;
