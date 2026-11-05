@@ -14,7 +14,7 @@ API latency is measured from request receipt to response completion, including p
 | `voucher_redemption` | `POST /api/vouchers/redeem` | 1.0 s | 2.0 s |
 | `admin` | all other `/api/admin/*` routes | 1.5 s | 3.0 s |
 
-Throughput objective: sustain the campus peak of 300 customers purchasing and redeeming at the same moment with no failed requests. The CI load test verifies this against memory and PostgreSQL stores. The server-error ratio must stay below 2% for each operation.
+Throughput objective: sustain the peak load of 300 concurrent customers purchasing and redeeming at the same moment with no failed requests. The CI load test verifies this against memory and PostgreSQL stores. The server-error ratio must stay below 2% for each operation.
 
 Core Web Vitals targets use the p75 of mobile visitors over one hour, when at least 50 samples were received:
 
