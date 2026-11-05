@@ -1245,3 +1245,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Pending: final full CI and migration/restore rehearsal, real Mobile Money acceptance, physical TL-WR902AC V3/EAP650/RB5009 pilot, independent quota/cutoff/IPv6/FastTrack/cap/reconnect/outage measurements and old-device acceptance. RB5009 reboot/counter loss currently fails closed for support review; automatic recovery is not implemented. AP ether2 link flapping remains a physical pilot blocker.
   - Deployment: `NDAHI_HOME_ENABLED` defaults off. Not merged or deployed; no hardware verification claimed. Keep all hardware-dependent issue acceptance criteria open.
   - Tracker: one additional implemented task awaiting CI/review and physical acceptance; separate from historical milestone totals.
+
+
+## Reseller inventory, sales tracking, and cash remittance ledger (#117)
+
+- [-] **ADMIN-117 — Reseller inventory, commission splits, and cash remittance ledger** ([#117](https://github.com/ImaJin14/Ndahi-Connect/issues/117))
+  - Implemented locally: `lib/reseller-ledger.mjs`, `lib/api/admin-resellers.mjs`, `lib/api/admin.mjs`, `lib/api/admin-vouchers.mjs`, `lib/api/reporting.mjs`, `admin-app/reseller-ledger.js`, `admin-app/app.js`, and `admin-app/styles.css`. Tracks assigned stock, unsold vs. redeemed resale vouchers, configurable per-reseller commission percentage (`commissionPercent`), gross cash collected, net payable to owner, and audited cash remittance handoffs (`POST /api/admin/resellers/remittances`, `POST /api/admin/resellers/commission`, `GET /api/admin/resellers/ledger`). Supports assigning generated resale voucher batches directly to an active reseller (`assignedResellerId`), while enforcing strict RBAC so `reseller` staff accounts only see their own inventory, sales, commission earnings, and outstanding balance.
+  - Tested locally: `npm run check`, `node --test test/reseller-ledger.test.mjs` (`2/2` passed), `node scripts/check-reseller-ledger-journeys.mjs` (`2/2` Playwright Chromium journeys passed for Owner and Reseller roles), and `npm test` passed on 2026-11-05.
+  - Pending: PR review, CI checks, and production deployment verification.
+  - Tracker: one additional implemented task awaiting review and release, separate from historical milestone totals.
