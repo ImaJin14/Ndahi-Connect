@@ -90,15 +90,15 @@ not add multi-site isolation or change AP coverage/SSIDs.
 
 ## Pilot and enablement
 
-The user supplied a D-Link DAP-1360 C1 (`B8:A3:86:5D:88:39`). Offline read-only
+The user supplied a D-Link DAP-1360 C1 (MAC ending `88:39`). Offline read-only
 inspection at `http://192.168.0.50/` confirmed running firmware `3.00 , 09, Nov, 2011`,
 current `Access Point` + DHCP-bridged LAN state (`mode0=0`, `lan_type=1`), and the
 presence of `WISP Client Router` (`mode0=5`) and `WISP Repeater` (`mode0=6`) on
 `/wireless.htm`. However, `/wireless.htm` exposes only a single `#ssid0` and
-`#authType` (used for the root AP in WISP modes), so a standalone DAP-1360 C1 on
-firmware 3.00 cannot simultaneously join an open upstream hotspot SSID and broadcast
-an independent WPA2-secured private household Wi-Fi network without a separate
-downstream AP on its Ethernet LAN port. See
+`#authType` (used for the root AP in WISP modes). The UI provides no independent
+private SSID/security controls for an open upstream hotspot. This finding does
+not verify runtime NAT or wireless isolation. A separate downstream AP or another
+CPE with independent WAN/LAN wireless settings is needed for further evaluation. See
 [isolated evaluation notes](../operations/dap1360-c1-isolated-evaluation.md).
 No WISP household pilot, native quota/expiry cutoff, independent overshoot,
 reconnection, replacement, required payment paths or outage recovery has been

@@ -4,7 +4,7 @@
 
 The user supplied H/W C1 and F/W label 3.00 on 5 November 2026, disconnected its
 Ethernet uplink from the MikroTik, and connected this PC's Wi-Fi (`wlo1`) to its
-offline `dlink` setup network (`B8:A3:86:5D:88:39`) using a temporary local-only
+offline `dlink` setup network (BSSID ending `88:39`) using a temporary local-only
 `192.168.0.49/24` profile (`ipv4.never-default=yes`) while preserving the wired
 `enp4s0` default route. No settings change, reset, firmware flash, or upstream
 connection to NDAHI Connect was performed, and the temporary Wi-Fi profile was
@@ -15,8 +15,8 @@ only; all `POST` and external requests blocked; saved locally at
 `/tmp/ndahi-dap-ui-inspection.json`) verified:
 
 - **Runtime hardware/firmware (`/st_device.htm`):** `Hardware Version: C1`,
-  `Firmware Version: 3.00 , 09, Nov, 2011`, LAN and Wireless MAC
-  `B8:A3:86:5D:88:39`.
+  `Firmware Version: 3.00 , 09, Nov, 2011`, LAN and Wireless MAC ending
+  `88:39`.
 - **Current state (`/st_device.htm`, `/lan.htm`, `/wireless.htm`):** Operating in
   `Access Point` mode (`mode0=0`), SSID `dlink`, security `Open / Disabled`, WPS
   `Enable / Unconfigured`, and LAN IPv4 `Dynamic IP (DHCP)` (`lan_type=1`, fallen
@@ -37,10 +37,11 @@ only; all `POST` and external requests blocked; saved locally at
   a **single** SSID field (`#ssid0`) and a **single** wireless security block
   (`#authType` / `#pskValue0` / `#wepKey0`), which configure the upstream (root)
   AP connection. Firmware 3.00 does **not** expose a second, independent local
-  SSID or separate downstream WPA2 passphrase in `WISP Repeater` mode. Because the
-  upstream NDAHI hotspot SSID is open for captive-portal onboarding, a standalone
-  DAP-1360 C1 in `WISP Repeater` mode cannot broadcast a separate WPA2-secured
-  private household Wi-Fi network; using its NAT (`WISP Client Router`) with a
+  SSID or separate downstream WPA2 passphrase in `WISP Repeater` mode. If the
+  upstream hotspot uses an open SSID, this UI provides no way to configure a
+  separate WPA2-secured household network on the same unit. This is a UI-based
+  compatibility finding; upstream association and wireless isolation have not
+  been tested. Using its NAT (`WISP Client Router`) with a
   private WPA2 household SSID requires either a downstream AP on its Ethernet LAN
   port or a dual-VAP/WISP-router model that supports independent WAN client and
   LAN AP security.
@@ -95,10 +96,10 @@ This query has not been run against production in this verification.
 
 | Item | State |
 | --- | --- |
-| H/W and running F/W | Verified `C1` / `3.00 , 09, Nov, 2011` (`B8:A3:86:5D:88:39`) |
+| H/W and running F/W | Verified `C1` / `3.00 , 09, Nov, 2011` (MAC ending `88:39`) |
 | Runtime firmware/settings access | Verified read-only on isolated `192.168.0.50` (`mode0=0`, `lan_type=1`, `dlink` open AP) |
 | WISP modes in manual UI (`/wireless.htm`) | `WISP Client Router` (`mode0=5`) and `WISP Repeater` (`mode0=6`) present with WAN DHCP/Static/PPPoE/PPTP |
-| Independent private SSID/password | **Not supported standalone on F/W 3.00** (single `#ssid0` and `#authType` shared with root AP) |
+| Independent private SSID/password | No independent controls exposed on F/W 3.00 (single `#ssid0` and `#authType` shared with root AP); runtime isolation not tested |
 | Joined to isolated upstream | Not done |
 | One upstream NAT identity with two private clients | Not tested (requires wired LAN clients or a downstream AP in `WISP Client Router` mode) |
 | NDAHI native quota/expiry and recovery | Not tested |
