@@ -9,6 +9,7 @@ import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
+import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -213,8 +214,14 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         body: JSON.stringify(payload),
       });
       const vouchers = result.vouchers || [result.voucher];
-      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div>`;
-      $("#closeGenerated").onclick = () => { $("#generated").replaceChildren(); $("#generate").reset(); updateVoucherBuilder(); };
+      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div class="action-row"><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><div id="voucherPrintPreview"></div>`;
+      const printController = mountGeneratedVoucherPrint({
+        container: $("#voucherPrintPreview"),
+        vouchers,
+        plan: result.plan,
+        layout: vouchers.length > 1 ? "a4-sheet" : "thermal-58",
+      });
+      $("#closeGenerated").onclick = () => { printController?.destroy(); $("#generated").replaceChildren(); $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
           link = document.createElement("a");
