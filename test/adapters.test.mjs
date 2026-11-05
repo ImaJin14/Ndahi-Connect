@@ -45,8 +45,8 @@ test("Flutterwave creates a Cameroon francophone mobile money charge", async () 
       amount: 500,
       currency: "XAF",
       payerPhone: "670000001",
-      email: "student@example.test",
-      customerName: "Student Name",
+      email: "customer@example.test",
+      customerName: "Customer Name",
       network: "mtn",
       planId: "weekly",
     });
@@ -117,7 +117,7 @@ test("MeSomb creates, verifies, signs, and refunds Cameroon payments", async () 
   });
   const payment = {
     id: "payment-1", amount: 500, currency: "XAF", payerPhone: "670000001",
-    email: "student@example.test", customerName: "Student Name", network: "mtn",
+    email: "customer@example.test", customerName: "Customer Name", network: "mtn",
     planId: "weekly", providerReference: "mesomb-transaction-1",
   };
   const created = await adapter.createPayment(payment);
@@ -158,7 +158,7 @@ test("MikroTik and Omada adapters keep credentials server-side", async () => {
     const status = await new OmadaAdapter({
       url: "https://omada.test",
       token: "secret",
-      siteId: "campus",
+      siteId: "main-site",
     }).status();
     assert.equal(status.accessPoints.length, 1);
     assert.equal(calls.length, 2);

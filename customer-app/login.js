@@ -7,10 +7,12 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { completeSignIn } from "./sign-in-request.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
+import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { randomId } from "./compat.js";
 import { mountThemeToggle } from "./portal-nav.js";
 
 mountThemeToggle();
+mountPrivateMacAdvisory();
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);

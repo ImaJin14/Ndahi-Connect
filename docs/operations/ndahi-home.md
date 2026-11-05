@@ -1,10 +1,13 @@
 # NDAHI Home: setup, operation and pilot
 
-Status: implemented for review; disabled by default. Local tests use synthetic
-RouterOS/payment boundaries. No production deployment or real-device acceptance
-has been performed for this feature. The AP uplink flap on ether2 remains an
-unresolved physical pilot blocker; the exact faulty cable/connector/port is not
-established.
+Status: merged and deployed with Home disabled. Production verification on
+5 November 2026 confirmed merged SHA `011b75d`, healthy PostgreSQL, disabled
+`/api/home/config`, matching frontend artifacts and passing smoke checks. See
+[release evidence](../releases/ndahi-home-2026-11-05.md).
+Native Home authorization/usage tests still use synthetic RouterOS boundaries.
+Read-only ether2 observation now shows 1 Gbps/full duplex, zero observed errors
+and no new link-down count during the check; the original physical fault's cause
+is not established, and load/long-term pilot verification remains pending.
 
 ## Product and compatibility
 
@@ -25,7 +28,10 @@ The named pilot candidate is **TP-Link TL-WR902AC V3 in Share Hotspot mode**.
 Record exact firmware and regional hardware revision before acceptance. TP-Link
 [documents the Hotspot/WISP setup](https://www.tp-link.com/uk/support/faq/2032/).
 This is a proposed pilot, not verified NDAHI compatibility. Other models and
-firmware require their own pilot. AP, bridge, repeater and client modes must not
+firmware require their own pilot. The user-provided DAP-1360 C1 / label firmware
+3.00 is not connected and is end-of-support; see the separate
+[isolated functionality notes](dap1360-c1-isolated-evaluation.md). It is not a
+completed compatibility or production acceptance result. AP, bridge, repeater and client modes must not
 be assumed to provide NAT. The API cannot reliably distinguish a router from a
 phone: the customer explicitly selects Home mode and declares the NAT setup.
 
@@ -79,7 +85,10 @@ are revoked and final usage saved before the replacement receives access.
   RB5009 RouterOS 7 REST, scripting, HotSpot, scheduler and scoped management
   permissions must be tested on the actual version. Inspect script errors first.
 - Apply the existing migration workflow with migration `008_ndahi_home.sql`.
-  Four collections map to existing normalized payload tables: `homeConnections`
+  The standard production readiness check proves readable tables and migration
+  004 ordinals, not presence of the new Home indexes. Verify all three migration
+  008 indexes in the target database before any Home pilot/enablement. Four
+  collections map to existing normalized payload tables: `homeConnections`
   → events/home_connection, `homeChallenges` → challenges/home_enrollment,
   `homeOperations` → events/home_operation, `homeUsageObservations` →
   events/home_usage. Migration 008 adds unique active-MAC/customer indexes and

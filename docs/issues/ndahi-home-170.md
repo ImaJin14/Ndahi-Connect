@@ -62,6 +62,14 @@ independent packet capture, native and durable counters and explain layer/sample
 differences. Details and rejection gates are in the
 [operations runbook](../operations/ndahi-home.md).
 
-Feature flag remains off. No Home merge, production deployment or hardware
-verification is claimed. Resolve the AP ether2 link instability before the named
-TL-WR902AC V3/EAP650/RB5009 pilot. Other WISP models require separate acceptance.
+Release verified 5 November 2026: PR #179 merged as `011b75d` and all three
+production services deployed that exact revision; Home remains disabled. Fresh
+strict smoke and 16 selected asset hashes match the release. See
+[release evidence](../releases/ndahi-home-2026-11-05.md).
+
+Read-only ether2 observations now show 1 Gbps/full duplex, no new link-down count
+and zero observed error counters. This does not prove the Home NAT/quota pilot or
+identify the earlier physical fault. The named TL-WR902AC V3 pilot remains a
+candidate. The available DAP-1360 C1 / label 3.00 is disconnected and requires the
+separate isolated evaluation and security caveats; no model compatibility is
+claimed from its WISP mode name. All physical acceptance criteria remain open.

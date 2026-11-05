@@ -1,13 +1,17 @@
 # NDAHI Connect Project Report
 
-**Report date:** 21 August 2026  
-**Project:** NDAHI Connect Student-Zone Internet Access Platform  
-**Production domain:** `ndahiconnect.net`  
-**Status:** Pre-launch integration and operational-readiness phase
+> Historical snapshot dated 21 August 2026. Terminology was reviewed on
+> 5 November 2026; provider, release and readiness statements below describe the
+> original snapshot. See `product-improvement-checklist.md` for current status.
+
+- **Report date:** 21 August 2026
+- **Project:** NDAHI Connect Managed Public Wi-Fi & WISP Platform
+- **Production domain:** `ndahiconnect.net`
+- **Status:** Pre-launch integration and operational-readiness phase
 
 ## 1. Executive summary
 
-NDAHI Connect is a web-based platform for selling, activating, and managing Wi-Fi access across a student zone. It combines a customer portal, a secured administrator dashboard, a backend API, PostgreSQL persistence, Flutterwave Mobile Money collection, transactional voucher email, MikroTik hotspot enforcement, and Omada network monitoring.
+NDAHI Connect is a web-based platform for selling, activating, and managing Wi-Fi access across managed coverage zones. It combines a customer portal, a secured administrator dashboard, a backend API, PostgreSQL persistence, Flutterwave Mobile Money collection, transactional voucher email, MikroTik hotspot enforcement, and Omada network monitoring.
 
 The core application and its production deployment structure are implemented. Customer and administrator services are deployed separately on Render and attached to dedicated subdomains. The voucher system uses secure, fixed-format `NC-XXXX-XXXX` codes while keeping plan, customer, payment, usage, and expiry information in the database.
 
@@ -17,7 +21,7 @@ The principal external blocker to live payment testing is Flutterwave approval o
 
 The project is intended to:
 
-- Provide students with a simple way to select and pay for internet packages.
+- Provide customers and households with a simple way to select and pay for internet packages.
 - Issue secure vouchers only after verified payment.
 - Allow customers to activate permitted devices and monitor their subscriptions.
 - Enforce quota, expiry, and simultaneous-device limits on MikroTik.
@@ -261,4 +265,4 @@ NDAHI Connect should be considered ready for public launch only when:
 
 NDAHI Connect has progressed from a functional pilot into a substantially production-oriented platform with separated services, secure authentication, persistent data, opaque vouchers, verified-payment controls, transactional email, network adapters, administrative workflows, and automated quality checks.
 
-The application software is largely complete for the initial deployment scope. Production launch is presently dependent on Flutterwave XAF approval and final validation of Resend and the on-site network integrations. Completion of the launch-critical checklist will convert the current pre-launch deployment into an operational student internet service.
+The application software is largely complete for the initial deployment scope. Production launch is presently dependent on Flutterwave XAF approval and final validation of Resend and the on-site network integrations. Completion of the launch-critical checklist will convert the current pre-launch deployment into an operational managed public Wi-Fi service.

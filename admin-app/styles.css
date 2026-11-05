@@ -199,3 +199,333 @@
   margin-bottom: 8px;
 }
 
+/* --- Printable Thermal POS Slip & Bulk A4 Voucher Sheet (Issue #116) --- */
+.voucher-print-toolbar {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcf9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.voucher-print-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.voucher-print-format-label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #425149;
+}
+.voucher-print-privacy-note {
+  margin: 0;
+  font-size: 12px;
+}
+.voucher-print-surface {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.voucher-print-thermal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.thermal-slip {
+  background: #fff;
+  color: #000;
+  border: 1px dashed #222;
+  padding: 10px 8px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.voucher-print-thermal-58 .thermal-slip {
+  width: 58mm;
+  max-width: 100%;
+}
+.voucher-print-thermal-80 .thermal-slip {
+  width: 80mm;
+  max-width: 100%;
+}
+.thermal-header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  background: transparent;
+  color: #000;
+  height: auto;
+  position: static;
+  display: block;
+}
+.thermal-brand {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.thermal-subtitle {
+  margin: 2px 0 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.thermal-plan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.thermal-plan-price {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.thermal-code-block {
+  border: 2px solid #000;
+  padding: 6px 4px;
+  text-align: center;
+  margin-bottom: 6px;
+  background: #fff;
+}
+.thermal-code-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.thermal-voucher-code {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #000;
+  word-break: keep-all;
+}
+.thermal-slip .voucher-qr-box {
+  width: 92px;
+  height: 92px;
+  margin: 6px auto;
+}
+.voucher-qr-box svg,
+.voucher-qr-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.voucher-qr-img { image-rendering: pixelated; }
+.thermal-meta {
+  margin: 6px 0;
+  padding: 5px 0;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+}
+.thermal-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 2px 0;
+}
+.thermal-meta dt {
+  font-weight: 700;
+}
+.thermal-meta dd {
+  margin: 0;
+  text-align: right;
+}
+.thermal-instructions {
+  font-size: 10px;
+}
+.thermal-instructions p {
+  margin: 0 0 3px;
+}
+.thermal-instructions ol {
+  margin: 0;
+  padding-left: 15px;
+}
+
+/* Bulk A4 Cuttable Sheet (3 columns x 7 rows = 21 cards per page) */
+.a4-voucher-page {
+  background: #fff;
+  color: #000;
+  border: 1px solid var(--line);
+  padding: 8mm;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+  break-after: page;
+  page-break-after: always;
+}
+.a4-voucher-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+.a4-voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px dashed #000;
+  border-left: 1px dashed #000;
+}
+.a4-voucher-card {
+  border-right: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 36mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.a4-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid #000;
+  padding-bottom: 2px;
+  margin-bottom: 4px;
+  font-size: 9px;
+}
+.a4-brand {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.a4-price {
+  font-size: 10px;
+  font-weight: 800;
+}
+.a4-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.a4-card-main {
+  min-width: 0;
+  flex: 1;
+}
+.a4-plan {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.a4-code {
+  display: inline-block;
+  margin: 2px 0;
+  padding: 2px 4px;
+  border: 1.5px solid #000;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #000;
+  background: #fff;
+  word-break: keep-all;
+}
+.a4-specs,
+.a4-connect {
+  margin: 1px 0 0;
+  font-size: 8.5px;
+  line-height: 1.25;
+  color: #111;
+}
+.a4-voucher-card .voucher-qr-box {
+  width: 48px;
+  height: 48px;
+  flex: none;
+}
+
+@media (max-width: 680px) {
+  .a4-voucher-grid {
+    grid-template-columns: 1fr;
+  }
+  .voucher-print-controls button,
+  .voucher-print-format-label,
+  .voucher-print-format-label select {
+    width: 100%;
+  }
+}
+
+@media print {
+  @page voucher-a4 { size: A4; margin: 6mm; }
+  @page voucher-58 { size: 58mm 160mm; margin: 2mm; }
+  @page voucher-80 { size: 80mm 160mm; margin: 2mm; }
+  body[data-voucher-print-layout="a4-sheet"] { page: voucher-a4; }
+  body[data-voucher-print-layout="thermal-58"] { page: voucher-58; }
+  body[data-voucher-print-layout="thermal-80"] { page: voucher-80; }
+  @page {
+    margin: 6mm;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+  }
+  body > header,
+  main > .page-head,
+  .admin-nav,
+  .update-notice,
+  .setup-banner,
+  .more-menu,
+  .tab-panel:not(#panel-voucher-create),
+  #panel-voucher-create > .section-heading,
+  #generate,
+  .generated-heading,
+  .generated-codes,
+  .voucher-print-toolbar {
+    display: none !important;
+  }
+  main,
+  .tab-panels,
+  #panel-voucher-create,
+  #generated,
+  #voucherPrintPreview,
+  #voucherPrintSurface {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+  .voucher-print-thermal {
+    display: block !important;
+  }
+  .thermal-slip {
+    border: 0;
+    border-bottom: 1px dashed #000;
+    margin: 0 auto 4mm;
+    break-after: page;
+    page-break-after: always;
+  }
+  .a4-voucher-page {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .a4-voucher-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
