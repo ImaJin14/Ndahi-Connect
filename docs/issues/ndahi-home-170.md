@@ -2,16 +2,18 @@
 
 Parent [#170](https://github.com/ImaJin14/Ndahi-Connect/issues/170) and all children
 were opened before implementation. Dependency order: #171 → #172 → #173/#175 →
-#174/#176/#177 → #178. All stay open for outstanding real-device acceptance.
+#174/#176/#177 → #178. Software workstreams #172, #173, #174 and #176 were
+closed after the 5 November acceptance audit. Parent #170 and #171/#175/#177/#178
+remain open for migration, native enforcement, operational and physical acceptance.
 
 | Issue | Implemented | Remaining acceptance |
 | --- | --- | --- |
 | [#171](https://github.com/ImaJin14/Ndahi-Connect/issues/171) | Four normalized payload collections; additive migration 008 with uniqueness/due indexes; JSON defaults and state migration. | Migration/restore rehearsal. Home PostgreSQL claim/reload/uniqueness tests passed in initial CI; migration does not create four tables. |
-| [#172](https://github.com/ImaJin14/Ndahi-Connect/issues/172) | Session-bound two-minute, single-use local HotSpot proof; trusted host/MAC; atomic competing claims; replacement owner proof and revocation barrier. | Actual local HTTPS/captive portal, negative hardware cases and residual MAC-cloning risk acceptance. |
-| [#173](https://github.com/ImaJin14/Ndahi-Connect/issues/173) | Exclusive assignment, direct credential/grant revocation, final counter reconciliation, usage offset returning to direct, fresh native Home meter on reassignment. | Active-session and packet-capture proof across repeated transitions. |
-| [#174](https://github.com/ImaJin14/Ndahi-Connect/issues/174) | Existing server-verified payments; frozen Home target; one entitlement per payment; pending router activation; exhausted-before-expiry/offsite renewal; active-with-data blocker. | Real provider acceptance, healthy latency measurements. A changed/removed link requires verified reassignment, never arbitrary browser identifiers. |
+| [#172](https://github.com/ImaJin14/Ndahi-Connect/issues/172) | **Software complete; issue closed.** Session-bound two-minute, single-use local HotSpot proof; trusted host/MAC; atomic competing claims; replacement owner proof and revocation barrier. | Tracked in #175/#178: actual local HTTPS/captive portal, negative hardware cases and residual MAC-cloning risk acceptance. |
+| [#173](https://github.com/ImaJin14/Ndahi-Connect/issues/173) | **Software complete; issue closed.** Exclusive assignment, direct credential/grant revocation, final counter reconciliation, usage offset returning to direct, fresh native Home meter on reassignment. | Tracked in #175/#178: active-session and packet-capture proof across repeated transitions. |
+| [#174](https://github.com/ImaJin14/Ndahi-Connect/issues/174) | **Software complete; issue closed.** Existing server-verified payments; frozen Home target; one entitlement per payment; pending router activation; exhausted-before-expiry/offsite renewal; active-with-data blocker. | Tracked in #178/#143: real provider acceptance and healthy latency measurements. A changed/removed link requires verified reassignment, never arbitrary browser identifiers. |
 | [#175](https://github.com/ImaJin14/Ndahi-Connect/issues/175) | Private MAC-bound native user; aggregate remaining quota; local calendar/volatile guards; strict IPv6/FastTrack/firewall preparation; monotonic fail-closed counters and reboot handling. | Native RouterOS transport/scripts/counter semantics and all quota/traffic/reconnect/outage trials. No automatic lost-counter recovery. |
-| [#176](https://github.com/ImaJin14/Ndahi-Connect/issues/176) | Explicit Home flow, EN/FR, new account/link/assign/buy/renew, shared usage/freshness, pending/retry, masked identity; direct counters/controls hidden for Home. | Real old-device and assistive-technology acceptance. No WISP management API. |
+| [#176](https://github.com/ImaJin14/Ndahi-Connect/issues/176) | **Software complete; issue closed.** Explicit Home flow, EN/FR, new account/link/assign/buy/renew, shared usage/freshness, pending/retry, masked identity; direct counters/controls hidden for Home. | Tracked in #178/#143: real old-device and assistive-technology acceptance. No WISP management API. |
 | [#177](https://github.com/ImaJin14/Ndahi-Connect/issues/177) | Owner/operator masked view, safe retry/revoke with audit reason, customer-assisted verified replacement; bounded durable worker retries. | Support pilot, load/freshness and lost-counter operational rehearsal. |
 | [#178](https://github.com/ImaJin14/Ndahi-Connect/issues/178) | Security/domain/API/gateway and browser checks; reviewed network template; setup/rollback/pilot/KPI runbook. | Final CI tracked in PR #179; physical pilot and deployment decision. |
 
@@ -73,3 +75,9 @@ identify the earlier physical fault. The named TL-WR902AC V3 pilot remains a
 candidate. The available DAP-1360 C1 / label 3.00 is disconnected and requires the
 separate isolated evaluation and security caveats; no model compatibility is
 claimed from its WISP mode name. All physical acceptance criteria remain open.
+
+## Issue acceptance audit — 5 November 2026
+
+Completed software issues #172/#173/#174/#176 were closed with individual test and release evidence. The live release remains `91ad174`; Home remains disabled. Fresh verification passed 42 focused Home/advisory tests and 20 Home browser journeys at 320px/1280px, including blocked storage and supplementary keyboard activation/focus checks. Expired/exhausted assignment rejected without changing voucher state or queueing work. Final main CI42016061250 passed 1,130 tests with PostgreSQL and no skips.
+
+These closures certify the implementation/API/browser scope. They do not certify packet-level restriction, physical router possession, quota overshoot, provider completion or native phone behavior. Shared physical/KPI conditions remain under open parent #170 and workstreams #171/#175/#177/#178; no native acceptance checkbox was waived.

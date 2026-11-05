@@ -10,6 +10,7 @@ import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
+import { mountResellerLedger } from "/reseller-ledger.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -130,11 +131,12 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     <label>Device limit<input name="deviceLimit" type="number" min="1" value="1"></label>
   </div>
   <label id="voucherQuantity">Quantity<input name="quantity" type="number" min="1" max="100" value="1"></label>
+  <label id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active) ? "" : "hidden"}>Assign to reseller (optional)<select name="assignedResellerId" id="voucherResellerSelect"><option value="">Unassigned stock</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
 <section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="tab-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
-<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="voucherRecords"></div></section>
+<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="admin-nav-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
@@ -168,6 +170,10 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     if (!resale && purposeChanged) $("#voucherSaleType").value = "";
     if (!resale) customerPicker ??= mountCustomerPicker($("#customerSearch"), $("#customerSelect"), call);
     $("#voucherQuantity").hidden = !resale;
+    if ($("#voucherResellerField")) {
+      const hasResellerOptions = ($("#voucherResellerSelect")?.options?.length || 0) > 1;
+      $("#voucherResellerField").hidden = !resale || !["owner", "operator"].includes(adminRole) || !hasResellerOptions;
+    }
     $("#voucherExistingPlan").hidden = custom;
     $("#voucherCustomFields").hidden = !custom;
     $("#voucherHelp").textContent = resale
@@ -203,6 +209,11 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
       await load();
     }, "#bundleMessage");
   };
+  const resellerLedgerView = mountResellerLedger($("#resellerLedger"), {
+    initialLedger: x.resellerLedger,
+    role: adminRole,
+    call,
+  });
   $("#generate").onsubmit = async (e) => {
     e.preventDefault();
     await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Generating…", async () => {
@@ -230,6 +241,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         link.click();
         URL.revokeObjectURL(link.href);
       };
+      await resellerLedgerView.refresh();
     });
   };
   void mountNetworkSetup($("#networkSetup"), call);
