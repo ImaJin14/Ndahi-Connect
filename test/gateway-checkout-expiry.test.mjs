@@ -25,7 +25,10 @@ test('refund and activation-review history never create an indefinite new-checko
   const s = blank(); s.customers.push({ id: 'c', phone: '670050099' });
   const old = { id: 'old', customerId: 'c', provider: 'mesomb', confirmedAt: at(-1000).toISOString(), createdAt: at(-1200).toISOString(), ...extra };
   s.payments.push(old); const copy = structuredClone(old);
-  assert.equal(reserve(s, 0).status, 201); assert.deepEqual(old, copy);
+  const outcome = reservePurchase(s, { planId: 'weekly', action: 'switch' }, {
+   accountCustomerId: 'c', clock: () => at(0), provider: 'mesomb', requester: { ip: '127.0.0.1' },
+  });
+  assert.equal(outcome.status, 201); assert.deepEqual(old, copy);
  }
 });
 test('an actual admin suspension status prevents reservation and guests receive no bundle metadata', () => {

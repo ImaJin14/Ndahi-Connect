@@ -360,6 +360,9 @@ test("stacking is rejected; exhausted Daily and larger bundles can be repurchase
   }
   const first = await purchase("670000010", "weekly");
   assert.equal(first.response.status, 200);
+  assert.equal((await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000010", code: first.json.access.code, pin: "2468", confirmPin: "2468",
+  })).response.status, 200);
   const blocked = await f.call("/api/purchase", "POST", {
     phone: "670000010",
     planId: "monthly",
@@ -370,10 +373,15 @@ test("stacking is rejected; exhausted Daily and larger bundles can be repurchase
   await f.store.transaction((s) => {
     s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes;
   });
-  const renewed = await purchase("670000010", "monthly");
+  const renewal = await f.call("/api/account/plan/purchase", "POST", { action: "switch", planId: "monthly" });
+  assert.equal(renewal.response.status, 201);
+  const renewed = await f.call(`/api/payments/${renewal.json.payment.id}/confirm`, "POST");
   assert.equal(renewed.response.status, 200);
   const daily = await purchase("670000020", "daily");
   assert.equal(daily.response.status, 200);
+  assert.equal((await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000020", code: daily.json.access.code, pin: "2468", confirmPin: "2468",
+  })).response.status, 200);
   await f.store.transaction((s) => {
     const v = s.vouchers.find((x) =>
       x.customerId === s.customers.find((c) => c.phone === "670000020").id
@@ -381,9 +389,8 @@ test("stacking is rejected; exhausted Daily and larger bundles can be repurchase
     v.usedBytes = v.quotaBytes;
   });
   assert.equal(
-    (await f.call("/api/purchase", "POST", {
-      phone: "670000020",
-      planId: "daily",
+    (await f.call("/api/account/plan/purchase", "POST", {
+      action: "renew", planId: "daily",
     })).response.status,
     201,
   );
@@ -674,7 +681,10 @@ test("Daily can be repurchased at exact expiry, retaining 250 FCFA and 24-hour v
   assert.equal(+new Date(paid.json.voucher.expiresAt) - +new Date(paid.json.voucher.activatedAt), 24 * 36e5);
   assert.equal((await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" })).response.status, 409);
   current = new Date(paid.json.voucher.expiresAt);
-  const repeat = await f.call("/api/purchase", "POST", { phone: "670000042", planId: "daily" });
+  assert.equal((await f.call("/api/account/setup/pin", "POST", {
+    phone: "670000042", code: paid.json.access.code, pin: "2468", confirmPin: "2468",
+  })).response.status, 200);
+  const repeat = await f.call("/api/account/plan/purchase", "POST", { action: "renew", planId: "daily" });
   assert.equal(repeat.response.status, 201);
   const confirmations = await Promise.all([0, 1].map(() => f.call(`/api/payments/${repeat.json.payment.id}/confirm`, "POST")));
   assert.deepEqual(confirmations.map((r) => r.response.status), [200, 200]);

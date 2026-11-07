@@ -1283,3 +1283,20 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Deployed: pending review and exact-head CI. Existing production revision is `91ad174` from merged #180–#182; Home remains disabled. No production schema, payment, router or network writes were made for this task.
   - Physically verified: pending actual firmware/topology, local HTTPS/captive portal, two-client aggregate usage, at least 100 quota/activation trials, IPv6/FastTrack bypass negatives, outage/reboot/reconnect, provider payment and old-device accessibility acceptance. No universal model certification is claimed.
   - Evidence and next steps: `docs/issues/ndahi-home-170.md`, `docs/operations/ndahi-home-readiness.md` and its deliberately incomplete pilot template. Keep the remaining parent/hardware acceptance gates open.
+
+## Returning account details and purchase matching (2026-11-07)
+
+- [x] **ACCOUNT-IDENTITY — Reuse the original phone account across purchases**
+  - Implemented: signed-in users opening the general Packages page reuse their saved name, account number and email, with authenticated renewal/switch checkout and voucher delivery. A different Mobile Money payer remains specific to the transaction and does not transfer bundle ownership or change the account profile.
+  - Implemented: a fresh guest checkout matching an established account, paid purchase or owned voucher requires sign-in before another payment. Active-bundle protection still directs users to their existing access. Original checkout-key retries/recovery and unfinished PIN setup remain available; public responses do not expose saved profile details. Sign-in returns to the selected package without submitting payment automatically.
+  - Tested: `npm run check`, diff/syntax checks and all 1,157 automated tests pass with disposable local PostgreSQL, zero failures or skips. Ten new real-API Chromium journeys pass at 320/1280px, covering conflicting details, sign-in return, original-profile renewal/switch, alternate payers and lost-response recovery. Existing plan, billing, paid signup, dashboard/PWA and voucher-delivery browser regressions also pass.
+  - Deployed: not merged or deployed; implemented on isolated branch `fix/phone-account-identity`. Existing working-copy drafts remain untouched. No production account/history merge, customer charge, outbound notification or router mutation was performed.
+  - Physically verified: pending real customer/device and Mobile Money acceptance after deployment; local router/payment fixtures do not establish physical behavior.
+
+## Existing account reconciliation (7 November 2026)
+
+- [-] **ACCOUNT-RECONCILIATION — Audit and reconcile conflicting saved account identities**
+  - Implemented locally: private normalized-number inventory; historical guest-detail differences remain transaction evidence. Safe repairs retain the earliest credentialed original account and its profile, move eligible unclaimed duplicate payment/voucher ownership together, normalize unambiguous numbers, revoke affected browser authority and record an audit trail. Payer numbers never establish account ownership.
+  - Safeguards: exact keyed inventory digest checked under the exclusive store transaction; private new-file backup before commit; rollback on backup failure; ambiguous credentials, verified email, additional account state, active bundle overlap, unsettled payments and device/Home authority require individual review.
+  - Tested locally: all 1,178 tests pass with disposable PostgreSQL 18.6, zero failures/skips; 39 focused API/reconciliation/store cases include foreign-key-safe reparenting, backup rollback, JSONB round trips/reopen, stale credentials and concurrent application. All ten account-purchase browser journeys, required syntax and offline provider contracts pass.
+  - Deployed/physically verified: hosted CI, production rollout and live inventory/application remain pending; no production reconciliation is claimed. See [runbook](operations/account-reconciliation.md) and [release evidence](releases/account-identity-2026-11-07.md).

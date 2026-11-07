@@ -73,7 +73,7 @@ test("BILL-006 a paid guest key expires at the checkout deadline without PIN set
   assert.equal((await f.call("/api/purchase/recover", "POST", { requestKey: input.requestKey })).response.status, 404);
 });
 
-test("BILL-006 an existing customer with a PIN still sees a guest purchase confirm", async (t) => {
+test("BILL-006 an existing customer with a PIN must sign in before another purchase", async (t) => {
   const f = await fixture(t), first = guest();
   const firstId = (await f.call("/api/purchase", "POST", first)).json.payment.id;
   const firstPaid = await f.call(`/api/payments/${firstId}/confirm`, "POST");
@@ -81,11 +81,9 @@ test("BILL-006 an existing customer with a PIN still sees a guest purchase confi
   await f.store.transaction((s) => { s.vouchers.forEach((v) => { v.status = "expired"; }); });
   const again = guest({ phone: first.phone });
   const created = await f.call("/api/purchase", "POST", again);
-  assert.equal(created.response.status, 201);
-  await f.call(`/api/payments/${created.json.payment.id}/confirm`, "POST");
-  const confirmed = await status(f, created.json.payment.id, again.requestKey);
-  assert.equal(confirmed.response.status, 200);
-  assert.equal(confirmed.json.payment.status, "paid");
+  assert.equal(created.response.status, 409);
+  assert.equal(created.json.code, "ACCOUNT_SIGN_IN_REQUIRED");
+  assert.equal((await f.store.snapshot()).payments.length, 1);
 });
 
 test("BILL-006 an unpaid key expires with checkout rather than the financial polling window", async (t) => {
