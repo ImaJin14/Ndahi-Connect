@@ -1305,7 +1305,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 - [x] Implemented: scoped reseller stock/sales balances, prospective commissions, immutable cash/correction retries, retained credits, owner correction UI and reload recovery.
 - [x] Implemented: versioned conservative production account repair with transactional encrypted before-images and public aggregate results. Ambiguous ownership is held for review.
-- [x] Tested: all 1,186 tests pass with PostgreSQL, no failures/skips; owner/reseller browser flows pass at 320px and 1280px, including uncertain-response reload and corrections.
+- [x] Tested: all 1,187 tests pass with PostgreSQL, no failures/skips; owner/reseller browser flows pass at 320px and 1280px, including uncertain-response reload and corrections.
 - [ ] Deployed: pending PR #183 exact-head CI, merge and rollout; record actual repair counts in release evidence.
 - [ ] Physically verified: no real cash entry, purchase or router operation performed in verification.
 
