@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, stat, rm } from "node:fs/promises";
+import { mkdtemp, open, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { blank, createStore } from "../lib/api/state.mjs";
@@ -109,8 +109,11 @@ test("runner backs up affected rows privately, refuses existing backup, rolls ba
   const backupFile = join(dir, "before.json"), expectedDigest = report(await store.snapshot()).digest;
   const result = await runAccountReconciliation({ store, pepper, apply: true, expectedDigest, backupFile, now: () => now });
   assert.equal(result.removedCustomerCount, 1);
-  assert.equal((await stat(backupFile)).mode & 0o777, 0o600);
-  assert.equal(JSON.parse(await readFile(backupFile, "utf8")).collections.payments.before[0].customerId, "duplicate");
+  const backup = await open(backupFile, "r");
+  try {
+    assert.equal((await backup.stat()).mode & 0o777, 0o600);
+    assert.equal(JSON.parse(await backup.readFile("utf8")).collections.payments.before[0].customerId, "duplicate");
+  } finally { await backup.close(); }
   await store.transaction(s => Object.assign(s, fixture()));
   const before = await store.snapshot();
   await assert.rejects(runAccountReconciliation({ store, pepper, apply: true, expectedDigest, backupFile, now: () => now }), { code: "EEXIST" });
