@@ -103,7 +103,9 @@ test("payments that involve money are never closed", () => {
   const held = blank();
   held.customers.push({ id: "c1", phone: "670000001" });
   held.payments.push({ id: "held", customerId: "c1", status: "paid", confirmedAt: old, fulfillmentStatus: "needs_review", createdAt: old });
-  assert.equal(reserveAt(held, 0).status, 201, "activation review does not masquerade as a live request");
+  assert.equal(reservePurchase(held, { planId: "weekly", action: "switch" }, {
+    accountCustomerId: "c1", clock: () => late, provider: "mesomb", requester: { ip: "127.0.0.1" }, ...timing,
+  }).status, 201, "activation review does not masquerade as a live request for the signed-in owner");
 });
 
 async function fixture(t) {

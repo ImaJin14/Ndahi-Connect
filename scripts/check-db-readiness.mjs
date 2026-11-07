@@ -1,6 +1,7 @@
 import pg from "pg";
 import { normalizedCollections } from "../lib/postgres-store.mjs";
 import { databaseDiagnostic } from "../lib/database-diagnostics.mjs";
+import { inspectHomeDatabase } from "../lib/home-database-readiness.mjs";
 
 if (!process.env.DATABASE_URL) {
   console.error(JSON.stringify({ status: "unavailable", code: "DATABASE_URL_MISSING" }));
@@ -32,7 +33,17 @@ if (!process.env.DATABASE_URL) {
       if (ordinalChecks.length) {
         console.error(JSON.stringify({ status: "migration_required", migration: "004_incremental_ordinals.sql", tables: ordinalChecks.map((row) => row.name) }));
         process.exitCode = 1;
-      } else console.log(JSON.stringify({ status: "ready", access: "readable" }));
+      } else {
+        if (process.env.NDAHI_HOME_ENABLED === "true") {
+          const client = await pool.connect();
+          try {
+            const home = await inspectHomeDatabase(client);
+            console.log(JSON.stringify({ component: "home", ...home }));
+            if (home.status !== "ready") process.exitCode = 1;
+          } finally { client.release(); }
+        }
+        if (!process.exitCode) console.log(JSON.stringify({ status: "ready", access: "readable" }));
+      }
     }
   } catch (error) {
     // Never log error.message: drivers may include usernames or connection details.

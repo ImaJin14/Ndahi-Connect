@@ -162,8 +162,9 @@ test("financial integrity: redeemed revocation preserves sales, commission chang
     status: "active",
   };
   const state = { adminUsers: [user], vouchers: [voucher], bundles: [] };
-
+  const pristine = structuredClone(state);
   const before = computeResellerRow(state, user);
+  assert.deepEqual(state, pristine, "reading a ledger cannot settle or rewrite voucher terms");
   assert.equal(before.cashCollected, 1000);
   assert.equal(before.commissionEarned, 100);
   assert.equal(before.netPayableToOwner, 900);
@@ -175,6 +176,8 @@ test("financial integrity: redeemed revocation preserves sales, commission chang
   assert.equal(afterRevoke.cashCollected, 1000);
   assert.equal(afterRevoke.netPayableToOwner, 900);
   assert.equal(afterRevoke.revokedVouchers, 1);
+  voucher.status = "refunded";
+  assert.equal(computeResellerRow(state, user).cashCollected, 1000, "refund access status cannot erase historical cash; an audited adjustment records the credit");
   voucher.status = "active";
 
   // 2. Changing the account's role does not hide historical reseller balances
@@ -185,10 +188,13 @@ test("financial integrity: redeemed revocation preserves sales, commission chang
   user.role = "reseller";
 
   // 3. Updating commission rate does not rewrite past redeemed sales
+  user.commissionHistory = [{ previousCommissionPercent: 10, commissionPercent: 20, effectiveAt: "2030-01-02T00:00:00Z" }];
   user.commissionPercent = 20;
   const afterRateChange = computeResellerRow(state, user);
   assert.equal(afterRateChange.commissionEarned, 100);
   assert.equal(afterRateChange.netPayableToOwner, 900);
+  user.adjustments = [{ id: "refund", amount: -1200, reason: "Audited correction" }];
+  assert.equal(computeResellerRow(state, user).creditBalance, 300, "a credit beyond current debt remains visible");
 });
 
 test("owner and reseller API routes enforce RBAC, idempotent remittances, prospective commission splits, and audited adjustments", async (t) => {
@@ -302,6 +308,9 @@ test("owner and reseller API routes enforce RBAC, idempotent remittances, prospe
   assert.equal(graceRow.commissionEarned, 500);
   assert.equal(graceRow.netPayableToOwner, 2500);
   assert.equal(graceRow.outstandingBalance, 2500);
+  const immutable = await call("owner", "/api/admin/vouchers/classify", { voucherId: batch1.body.vouchers[0].id, saleType: "gift" });
+  assert.equal(immutable.status, 409);
+  assert.equal(immutable.body.code, "LEDGER_ADJUSTMENT_REQUIRED");
 
   // 4. Operator and Reseller cannot mutate commission, remittances, or adjustments
   for (const actor of ["operator", "reseller"]) {
@@ -321,6 +330,12 @@ test("owner and reseller API routes enforce RBAC, idempotent remittances, prospe
 
   // 5. Owner records a 1,500 FCFA cash remittance and retries the exact same operation key after a simulated lost response
   const operationKey = randomUUID();
+  for (const invalidKey of [undefined, "short", "x".repeat(121)]) {
+    const rejected = await call("owner", "/api/admin/resellers/remittances", { resellerId: "staff-reseller-1", amount: 1500,
+      ...(invalidKey === undefined ? {} : { operationKey: invalidKey }) });
+    assert.equal(rejected.status, 400);
+    assert.equal(rejected.body.code, "OPERATION_KEY_REQUIRED");
+  }
   const remit1 = await call(
     "owner",
     "/api/admin/resellers/remittances",
@@ -350,6 +365,9 @@ test("owner and reseller API routes enforce RBAC, idempotent remittances, prospe
   assert.equal(remitReplay.body.replayed, true);
   assert.equal(remitReplay.body.reseller.remittedTotal, 1500);
   assert.equal(remitReplay.body.reseller.outstandingBalance, 1000);
+  const crossAction = await call("owner", "/api/admin/resellers/adjustments", { resellerId: "staff-reseller-1", amount: -1500,
+    reason: "Conflicting use of handoff key", operationKey });
+  assert.equal(crossAction.status, 409);
 
   // Reusing the same operationKey with a different amount is rejected with 409
   const remitConflict = await call(

@@ -18,6 +18,9 @@ async function fixture(env={}){
   async readHome(v){return {...meter(v),generation:v.homeGeneration};},
   async revokeHome(v){const reading={...meter(v),generation:v.homeGeneration};meter(v).connected=false;return {confirmed:true,reading};},
  }});
+ // This fixture exercises production auth/CSRF with a synthetic gateway/store.
+ // Database definition validation is covered against PostgreSQL separately.
+ f.store.homeSchemaReadiness = async () => ({ status: "ready", checks: [] });
  f.handler.homeService.wake=()=>{};
  return {...f,calls};
 }

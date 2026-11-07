@@ -95,6 +95,28 @@ test("finite native-quota observation exhausts without modifying validity; unlim
  const u=voucher({quotaBytes:null,homeGeneration:"g",homeAccounting:{base:0,raw:0,epoch:"e"}});applyHomeUsage(s,u,{bytes:1e12,epoch:"e",generation:"g"},at);assert.equal(u.status,"active");
 });
 
+test("confirmed quota cutoff records final usage once and does not queue terminal households forever", async () => {
+ const f=await fixture();await f.store.transaction(s=>requestHomeMode(s,"c1","v1","home",at));await f.service.run();
+ const expires=(await f.store.snapshot()).vouchers[0].expiresAt;
+ f.meter.bytes=1000;f.advance();await f.service.run();
+ let state=await f.store.snapshot();assert.equal(state.vouchers[0].homeStatus,"exhausted");
+ assert.equal(state.vouchers[0].usedBytes,1020);assert.equal(state.vouchers[0].expiresAt,expires);
+ assert.equal(f.meter.connected,false);
+ assert.equal(state.homeUsageObservations.filter(o=>o.type==="authorization.cutoff_confirmed").length,1);
+ const operations=state.homeOperations.length;f.advance();await f.service.run();state=await f.store.snapshot();
+ assert.equal(state.homeOperations.length,operations);
+ assert.equal(state.homeUsageObservations.filter(o=>o.type==="authorization.cutoff_confirmed").length,1);
+});
+
+test("an unconfirmed native revocation never becomes a successful cutoff observation", async () => {
+ const f=await fixture();await f.store.transaction(s=>requestHomeMode(s,"c1","v1","home",at));await f.service.run();
+ f.router.revokeHome=async()=>({confirmed:false});f.meter.bytes=1000;f.advance();await f.service.run();
+ const state=await f.store.snapshot();
+ assert.equal(state.homeUsageObservations.some(o=>o.type==="authorization.cutoff_confirmed"),false);
+ assert.equal(state.vouchers[0].homeStatus,"activation_pending");
+ assert.equal(state.homeOperations.some(o=>o.status==="retry"),true);
+});
+
 test("repeated direct/Home switches retain all traffic with a fresh Home meter and reduced direct cap",async()=>{
  const f=await fixture();await f.store.transaction(s=>requestHomeMode(s,"c1","v1","home",at));await f.service.run();
  const initial=(await f.store.snapshot()).vouchers[0];f.meter.bytes=45;

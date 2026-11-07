@@ -45,6 +45,47 @@ function gateway(){
  return {rows,calls,router};
 }
 const challenge=()=>({id:"challenge-1",expiresAt:new Date(+now+120000).toISOString()});
+test("Home readiness uses GET-only safety inspection and does not expose router records or credentials", async () => {
+ const g=gateway();g.rows["ip/hotspot/profile"][0].password="never-expose";
+ const good=await g.router.inspectHomeReadiness();assert.equal(good.status,"configuration_verified");
+ assert.equal(good.nativePilot,"pending");assert.equal(good.checks.length,6);
+ assert.equal(JSON.stringify(good).includes("never-expose"),false);assert.equal(g.calls.every(c=>c.method==="GET"),true);
+ g.rows["ip/firewall/filter"]=[];const bad=await g.router.inspectHomeReadiness();
+ assert.equal(bad.status,"blocked");assert.equal(bad.code,"HOME_NETWORK_UNVERIFIED");
+ assert.equal(g.calls.every(c=>c.method==="GET"),true);
+});
+test("an invalid HotSpot or missing guest interface cannot pass static readiness", async () => {
+ for(const alter of [r=>{r.invalid="true";},r=>{delete r.interface;}]){
+  const g=gateway();alter(g.rows["ip/hotspot"][0]);
+  assert.equal((await g.router.inspectHomeReadiness()).status,"blocked");
+  await assert.rejects(g.router.beginHomeEnrollment(challenge()),{code:"HOME_NETWORK_UNVERIFIED"});
+  assert.equal(g.calls.every(c=>c.method==="GET"),true);
+ }
+});
+test("standard upstream sessions work across arbitrary vendor and locally administered MACs without a model registry", async () => {
+ for(const upstream of ["00:11:22:33:44:55","D4:35:1D:00:00:01","02:00:00:00:00:01","FE:00:00:00:00:01"]){
+  const g=gateway(),ch=challenge();g.rows["ip/hotspot/host"][0]["mac-address"]=upstream;
+  const login=await g.router.beginHomeEnrollment(ch);
+  g.rows["ip/hotspot/active"].push({".id":"*enroll",user:login.username,server:"ndahi-hotspot","mac-address":upstream,address:"10.20.0.90"});
+  assert.equal((await g.router.verifyHomeEnrollment(ch)).mac,upstream);
+ }
+});
+test("multicast and unspecified identities cannot become a verified Home router", async () => {
+ for(const upstream of ["01:00:5E:00:00:01","FF:FF:FF:FF:FF:FF","00:00:00:00:00:00"]){
+  const g=gateway(),ch=challenge();g.rows["ip/hotspot/host"][0]["mac-address"]=upstream;
+  const login=await g.router.beginHomeEnrollment(ch);
+  g.rows["ip/hotspot/active"].push({".id":"*enroll",user:login.username,server:"ndahi-hotspot","mac-address":upstream,address:"10.20.0.90"});
+  await assert.rejects(g.router.verifyHomeEnrollment(ch),{code:"HOME_PROOF_REQUIRED"});
+ }
+});
+test("Home authorization follows a new trusted DHCP address while a changed upstream MAC requires new linking", async () => {
+ const g=gateway();g.rows["ip/hotspot/host"][0].address="10.20.1.33";
+ const result=await g.router.authorizeHome({voucher:voucher(),connection:{mac,address:"10.20.0.90"}});
+ assert.equal(result.address,"10.20.1.33");
+ const changed=gateway();changed.rows["ip/hotspot/host"][0]["mac-address"]="02:00:00:00:00:09";
+ await assert.rejects(changed.router.authorizeHome({voucher:voucher(),connection:{mac,address:"10.20.0.90"}}));
+ assert.equal(changed.calls.every(c=>c.method==="GET"),true);
+});
 test("enrollment fails before writes if restricted forwarding is absent",async()=>{const g=gateway();g.rows["ip/firewall/filter"]=[];await assert.rejects(g.router.beginHomeEnrollment(challenge()),{code:"HOME_NETWORK_UNVERIFIED"});assert.equal(g.calls.some(c=>c.method!=="GET"),false);});
 test("IPv6 or FastTrack bypass blocks Home authorization before credential creation",async()=>{
  for(const change of [g=>{g.rows["ipv6/settings"][0]["disable-ipv6"]="false";},g=>{g.rows["ip/firewall/filter"].push({chain:"forward",action:"fasttrack-connection"});}]){

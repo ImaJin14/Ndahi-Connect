@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "evidenceKind": "physical",
+  "device": {
+    "model": "",
+    "hardwareRevision": "",
+    "firmware": ""
+  },
+  "gatewayVersion": "",
+  "startedAt": "",
+  "completedAt": "",
+  "configurationHash": "",
+  "capabilities": {
+    "mode": "wisp-nat",
+    "privateLan": false,
+    "stableUpstreamMac": false,
+    "privateLanType": "integrated-wifi"
+  },
+  "bytesPerGB": 1000000000,
+  "usage": "upload+download",
+  "meter": "independent-capture",
+  "checks": [
+    {
+      "id": "local_https",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "link_security_negatives",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "aggregate_two_clients",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "quota_cutoff",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "expiry_cutoff",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "ipv6_no_bypass",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "fasttrack_no_bypass",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "backend_outage",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "router_restart",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "signal_loss",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "offsite_renewal",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "payment_router_outage",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "replacement",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "rollback",
+      "result": "not_run",
+      "evidenceHash": ""
+    },
+    {
+      "id": "old_device_accessibility",
+      "result": "not_run",
+      "evidenceHash": ""
+    }
+  ],
+  "quotaTrials": [],
+  "activationTrials": []
+}

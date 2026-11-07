@@ -194,7 +194,7 @@ test("an unauthenticated voucher claim never leaks bundle metadata if another bu
 
 test("simultaneous old/new confirmations activate once and preserve the other payment for review", async (t) => {
   const f = await fixture(t); await f.exhaust();
-  const purchase = () => f.call("/api/purchase", { phone: number, planId: "monthly", requestKey: randomUUID() });
+  const purchase = () => f.call("/api/account/plan/purchase", { action: "switch", planId: "monthly", requestKey: randomUUID() });
   const older = await purchase(); f.advance(300); const newer = await purchase();
   const results = await Promise.all([older, newer].map((r) => f.call(`/api/payments/${r.body.payment.id}/confirm`, {})));
   assert.deepEqual(results.map((r) => r.status).sort(), [200, 409]);
@@ -257,14 +257,15 @@ for (const database of [false, true]) test(`${database ? "PostgreSQL" : "memory"
   const makeStore = database ? await postgresFixture(t) : null;
   const f = await fixture(t, { ...(makeStore ? { store: makeStore() } : {}), planId: "daily" });
   const g = makeStore ? await fixture(t, { store: makeStore(), seed: false }) : f;
+  if (g !== f) assert.equal((await g.call("/api/account/login/pin", { phone: number, pin: f.original.pin })).status, 200);
   await f.exhaust();
-  const input = { phone: number, planId: "daily", requestKey: randomUUID() };
-  const reservations = await Promise.all([f, g].map(api => api.call("/api/purchase", input)));
+  const input = { action: "renew", planId: "daily", requestKey: randomUUID() };
+  const reservations = await Promise.all([f, g].map(api => api.call("/api/account/plan/purchase", input)));
   assert.ok(reservations.every(r => [200, 201].includes(r.status)));
   assert.equal(reservations[0].body.payment.id, reservations[1].body.payment.id);
   const older = reservations[0].body.payment;
   f.advance(300); if (g !== f) g.advance(300);
-  const newer = await f.call("/api/purchase", { ...input, requestKey: randomUUID() });
+  const newer = await f.call("/api/account/plan/purchase", { ...input, requestKey: randomUUID() });
   assert.equal(newer.status, 201);
   // The late paid callback fulfills despite recent paid Daily history.
   assert.equal((await g.call(`/api/payments/${older.id}/confirm`, {})).status, 200);

@@ -21,6 +21,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
   const totals = summary.totals || {};
   const resellers = Array.isArray(summary.resellers) ? summary.resellers : [];
   const remittances = Array.isArray(summary.remittances) ? summary.remittances : [];
+  const adjustments = Array.isArray(summary.adjustments) ? summary.adjustments : [];
   const isReseller = role === "reseller" || summary.scope === "self";
   const canManage = role === "owner" && summary.canManageRemittances !== false;
 
@@ -70,7 +71,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
       <article class="sales-card">
         <p class="section-kicker">Cash remitted &amp; balance</p>
         <strong data-total-outstanding>${escapeHtml(formatFcfa(totals.outstandingBalance))} due</strong>
-        <span>Remitted to owner: ${escapeHtml(formatFcfa(totals.remittedTotal))}</span>
+        <span>Remitted to owner: ${escapeHtml(formatFcfa(totals.remittedTotal))} · Credit: ${escapeHtml(formatFcfa(totals.creditBalance))}</span>
       </article>
     </div>
 
@@ -100,7 +101,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
                 <td data-cell="commission">${escapeHtml(formatFcfa(r.commissionEarned))} (${escapeHtml(r.commissionPercent)}%)</td>
                 <td data-cell="net-payable">${escapeHtml(formatFcfa(r.netPayableToOwner))}</td>
                 <td data-cell="remitted">${escapeHtml(formatFcfa(r.remittedTotal))}</td>
-                <td data-cell="outstanding"><strong>${escapeHtml(formatFcfa(r.outstandingBalance))}</strong></td>
+                <td data-cell="outstanding"><strong>${escapeHtml(formatFcfa(r.outstandingBalance))}</strong>${r.creditBalance ? `<small>Credit: ${escapeHtml(formatFcfa(r.creditBalance))}</small>` : ""}</td>
               </tr>`,
             )
             .join("")}
@@ -137,6 +138,14 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
                 Apply new rate to existing unsold stock (completed sales keep agreed rate)
               </label>
               <button type="submit" class="secondary-action">Save commission %</button>
+            </form>
+            <form class="reseller-ledger-form" data-reseller-adjustment-form>
+              <h4>Record a balance correction</h4>
+              <p>Positive amounts add to the amount due; negative amounts credit the reseller. Completed sales remain in history.</p>
+              <label>Reseller<select name="resellerId" required>${resellerOptions}</select></label>
+              <label>Correction (FCFA)<input type="number" name="amount" min="-100000000" max="100000000" step="1" required></label>
+              <label>Reason<input name="reason" maxlength="200" required></label>
+              <button type="submit" class="secondary-action">Record adjustment</button>
             </form>
           </div>`
         : ""
@@ -176,14 +185,75 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
           : `<p>No cash remittances recorded yet.</p>`
       }
     </details>
+    <details class="reseller-remittance-history"><summary>Audited balance corrections (${escapeHtml(adjustments.length)})</summary>
+      ${adjustments.length ? `<ul>${adjustments.map(item => `<li>${escapeHtml(item.createdAt)} · ${escapeHtml(item.resellerName)} · ${escapeHtml(formatFcfa(item.amount))} · ${escapeHtml(item.reason)} · ${escapeHtml(item.recordedBy)}</li>`).join("")}</ul>` : "<p>No balance corrections recorded.</p>"}
+    </details>
   </section>`;
 }
 
-export function mountResellerLedger(container, { initialLedger, role = "owner", call } = {}) {
+export function mountResellerLedger(container, { initialLedger, role = "owner", scopeKey, call } = {}) {
   if (!container) return { refresh: async () => {} };
   let currentLedger = initialLedger;
-  let pendingRemittanceKey = createOperationKey();
-  let pendingRemittanceSignature = "";
+  const operations = new Map();
+  for (const type of ["remittance", "adjustment"]) {
+    const state = { storageKey: scopeKey ? `ndahi-reseller-${type}:${scopeKey}` : "", pending: null, error: "" };
+    try {
+      const saved = state.storageKey && sessionStorage.getItem(state.storageKey);
+      if (saved) {
+        state.pending = JSON.parse(saved);
+        if (!/^[A-Za-z0-9_-]{16,120}$/.test(state.pending.key || "") || !state.pending.payload?.resellerId || !Number.isInteger(state.pending.payload.amount)) throw new Error("Invalid saved operation");
+      }
+    } catch { state.error = "Saved ledger action access is unavailable. Use a browser with session storage before recording cash or corrections."; }
+    operations.set(type, state);
+  }
+  function bindFinancialForm(form, type, messageEl) {
+    if (!form || typeof call !== "function") return;
+    const state = operations.get(type), textField = type === "remittance" ? "note" : "reason";
+    if (state.pending) {
+      for (const name of ["resellerId", "amount", textField]) form.elements[name].value = state.pending.payload[name] ?? "";
+      for (const control of form.querySelectorAll("input, select")) control.disabled = true;
+      form.dataset.operationKey = state.pending.key;
+      if (messageEl && !messageEl.textContent) messageEl.textContent = "An earlier ledger action may already be recorded. Retry the saved action to confirm it before entering another.";
+    }
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const button = form.querySelector('button[type="submit"]');
+      if (button.disabled) return;
+      button.disabled = true;
+      try {
+        if (state.error || !state.storageKey) throw new Error(state.error || "Reload the signed-in ledger before recording a change.");
+        if (!state.pending) {
+          if ([...operations.values()].some(other => other !== state && other.pending)) throw new Error("Confirm the earlier saved ledger action before recording another.");
+          const payload = Object.fromEntries(new FormData(form));
+          payload.amount = Number(payload.amount); payload[textField] = String(payload[textField] || "").trim();
+          state.pending = { key: createOperationKey(), payload };
+          const serialized = JSON.stringify(state.pending);
+          try {
+            sessionStorage.setItem(state.storageKey, serialized);
+            if (sessionStorage.getItem(state.storageKey) !== serialized) throw new Error("Storage unavailable");
+          } catch { state.pending = null; throw new Error("Enable session storage before recording this change; nothing was submitted."); }
+        }
+        const response = await call(`/api/admin/resellers/${type === "remittance" ? "remittances" : "adjustments"}`, {
+          method: "POST", headers: { "idempotency-key": state.pending.key },
+          body: JSON.stringify({ ...state.pending.payload, operationKey: state.pending.key }),
+        });
+        sessionStorage.removeItem(state.storageKey); state.pending = null;
+        currentLedger = response.resellerLedger || currentLedger;
+        const label = response.reseller?.displayName || response.reseller?.username || "reseller";
+        const amount = response[type]?.amount;
+        render(type === "remittance"
+          ? response.replayed ? `Already recorded ${formatFcfa(amount)} cash remittance from ${label} (duplicate submission prevented).` : `Recorded ${formatFcfa(amount)} cash remittance from ${label}.`
+          : `${response.replayed ? "Already recorded" : "Recorded"} ${formatFcfa(amount)} balance correction for ${label}.`);
+      } catch (error) {
+        // Retain the exact key and immutable payload across unknown replies,
+        // navigation and reload. Validation rejections have no committed action.
+        if (error.status >= 400 && error.status < 500) {
+          try { sessionStorage.removeItem(state.storageKey); state.pending = null; } catch { /* retain the saved action */ }
+        }
+        render(error.message || "Could not confirm the change. Retry the saved action.");
+      } finally { if (button.isConnected) button.disabled = false; }
+    };
+  }
 
   function render(statusMessage = "") {
     container.innerHTML = renderResellerLedgerMarkup(currentLedger, { role });
@@ -192,67 +262,8 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
       messageEl.textContent = statusMessage;
     }
 
-    const remittanceForm = container.querySelector("[data-reseller-remittance-form]");
-    if (remittanceForm && typeof call === "function") {
-      remittanceForm.dataset.operationKey = pendingRemittanceKey;
-      const syncSignature = () => {
-        const data = new FormData(remittanceForm);
-        const nextSig = JSON.stringify([
-          String(data.get("resellerId") || ""),
-          String(data.get("amount") || ""),
-          String(data.get("note") || "").trim(),
-        ]);
-        if (pendingRemittanceSignature && nextSig !== pendingRemittanceSignature) {
-          pendingRemittanceKey = createOperationKey();
-          pendingRemittanceSignature = nextSig;
-          remittanceForm.dataset.operationKey = pendingRemittanceKey;
-        }
-      };
-      remittanceForm.addEventListener("input", syncSignature);
-      remittanceForm.addEventListener("change", syncSignature);
-
-      remittanceForm.onsubmit = async (event) => {
-        event.preventDefault();
-        const submitBtn = remittanceForm.querySelector('button[type="submit"]');
-        if (submitBtn) submitBtn.disabled = true;
-        try {
-          const payload = Object.fromEntries(new FormData(remittanceForm));
-          payload.amount = Number(payload.amount);
-          const nextSig = JSON.stringify([
-            String(payload.resellerId || ""),
-            String(payload.amount || ""),
-            String(payload.note || "").trim(),
-          ]);
-          if (pendingRemittanceSignature && nextSig !== pendingRemittanceSignature) {
-            pendingRemittanceKey = createOperationKey();
-          }
-          pendingRemittanceSignature = nextSig;
-          const operationKey = pendingRemittanceKey;
-          payload.operationKey = operationKey;
-
-          const response = await call("/api/admin/resellers/remittances", {
-            method: "POST",
-            headers: { "idempotency-key": operationKey },
-            body: JSON.stringify(payload),
-          });
-          currentLedger = response.resellerLedger || currentLedger;
-          // Rotate operation key only after a confirmed response so retrying a lost response reuses it.
-          pendingRemittanceKey = createOperationKey();
-          pendingRemittanceSignature = "";
-          const resellerLabel =
-            response.reseller?.displayName || response.reseller?.username || "reseller";
-          render(
-            response.replayed
-              ? `Already recorded ${formatFcfa(response.remittance?.amount)} cash remittance from ${resellerLabel} (duplicate submission prevented).`
-              : `Recorded ${formatFcfa(response.remittance?.amount)} cash remittance from ${resellerLabel}.`,
-          );
-        } catch (error) {
-          if (messageEl) messageEl.textContent = error.message || "Could not record remittance.";
-        } finally {
-          if (submitBtn) submitBtn.disabled = false;
-        }
-      };
-    }
+    bindFinancialForm(container.querySelector("[data-reseller-remittance-form]"), "remittance", messageEl);
+    bindFinancialForm(container.querySelector("[data-reseller-adjustment-form]"), "adjustment", messageEl);
 
     const commissionForm = container.querySelector("[data-reseller-commission-form]");
     if (commissionForm && typeof call === "function") {

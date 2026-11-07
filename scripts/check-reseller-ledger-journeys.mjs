@@ -169,9 +169,12 @@ try {
     ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}),
   });
 
+  const baseline = await store.snapshot();
+  for (const width of [320, 1280]) {
+  await store.transaction(s => Object.assign(s, structuredClone(baseline)));
   // Journey 1: Owner views reseller inventory, updates commission %, assigns new stock, and records cash remittance
   {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
     await context.route("**/*", (route) =>
       origins.has(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"),
     );
@@ -220,7 +223,12 @@ try {
     });
 
     await remitForm.locator('button[type="submit"]').click();
-    // Retry after lost response — reuses the same operationKey and avoids double-crediting
+    await page.locator('[data-reseller-remittance-form] input[name="amount"]:disabled').waitFor();
+    await page.reload();
+    await page.locator("[data-reseller-remittance-form]").waitFor();
+    assert.equal(await remitForm.locator('input[name="amount"]').inputValue(), "1200");
+    assert.equal(await remitForm.locator('input[name="amount"]').isDisabled(), true);
+    // Reload after a lost reply retains the exact key and immutable handoff payload.
     await remitForm.locator('button[type="submit"]').click();
     await page.getByText("Already recorded 1,200 FCFA cash remittance from Buea Market Kiosk (duplicate submission prevented).").waitFor();
     assert.match(await row.locator('[data-cell="remitted"]').textContent(), /1,200 FCFA/);
@@ -236,15 +244,22 @@ try {
 
     await page.goto(`${adminOrigin}/dashboard#vouchers`);
     assert.match(await row.locator('[data-cell="stock"]').textContent(), /3 unsold \/ 2 sold \/ 5 total/);
+    const adjustment = page.locator("[data-reseller-adjustment-form]");
+    await adjustment.locator('[name="resellerId"]').selectOption("staff-reseller-1");
+    await adjustment.locator('[name="amount"]').fill("-100");
+    await adjustment.locator('[name="reason"]').fill("Audited customer credit");
+    await adjustment.locator('button[type="submit"]').click();
+    await page.getByText("Recorded -100 FCFA balance correction for Buea Market Kiosk.").waitFor();
+    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /500 FCFA/);
 
     assert.deepEqual(errors, []);
     await context.close();
-    console.log("PASS owner manages reseller inventory, commission split, and audited cash remittance");
+    console.log(`PASS ${width}px owner inventory, prospective commission and reload-safe cash remittance`);
   }
 
   // Journey 2: Reseller sees only their own stock, sales, commission earnings, and remittance balance
   {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
     await context.route("**/*", (route) =>
       origins.has(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"),
     );
@@ -265,12 +280,13 @@ try {
     assert.equal(await page.locator("[data-reseller-commission-form]").count(), 0);
     assert.match(
       await page.locator('[data-reseller-row="staff-reseller-1"] [data-cell="outstanding"]').textContent(),
-      /600 FCFA/,
+      /500 FCFA/,
     );
 
     assert.deepEqual(errors, []);
     await context.close();
-    console.log("PASS reseller role sees only own stock, sales, earnings, and remittance balance");
+    console.log(`PASS ${width}px reseller sees only own stock, sales and remittance balance`);
+  }
   }
 } finally {
   await browser?.close();

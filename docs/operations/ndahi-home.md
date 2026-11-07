@@ -24,23 +24,31 @@ upstream capacity and equipment. Existing calendar validity starts at verified
 payment settlement, including time spent waiting for router recovery. Remaining
 validity is never extended by reconnecting or replacing a router.
 
-The named pilot candidate is **TP-Link TL-WR902AC V3 in Share Hotspot mode**.
-Record exact firmware and regional hardware revision before acceptance. TP-Link
-[documents the Hotspot/WISP setup](https://www.tp-link.com/uk/support/faq/2032/).
-This is a proposed pilot, not verified NDAHI compatibility. Other models and
-firmware require their own pilot. The user-provided DAP-1360 C1 / label firmware
-3.00 is not connected and is end-of-support; see the separate
-[isolated functionality notes](dap1360-c1-isolated-evaluation.md). It is not a
-completed compatibility or production acceptance result. AP, bridge, repeater and client modes must not
-be assumed to provide NAT. The API cannot reliably distinguish a router from a
-phone: the customer explicitly selects Home mode and declares the NAT setup.
+Home supports a vendor-neutral capability contract: wireless upstream, IPv4 NAT,
+a private LAN and stable upstream identity. Integrated private Wi-Fi, Ethernet
+clients and an external LAN access point are supported topologies; no model/OUI
+allow-list or vendor API is used. Match the available Wi-Fi band/security, and keep
+the LAN subnet separate from upstream/management. Bridge or repeater modes without
+NAT do not meet the Home contract. A changed WAN MAC requires verified replacement.
+
+Physical reports record exact model/revision/firmware and topology; they do not
+turn a product family into a compatibility guarantee. The earlier TL-WR902AC V3
+candidate is an example, not a required device or validated model. The available
+DAP-1360 C1 firmware 3.00 remains limited to isolated evaluation because of its
+end-of-support security status and observed single-SSID controls; see
+[its evaluation notes](dap1360-c1-isolated-evaluation.md). A separate LAN AP can
+provide private Wi-Fi for a routed CPE with only wired downstream access. The
+application does not certify a device's firmware security or infer NAT from its
+name. See the [readiness/migration and pilot workflow](ndahi-home-readiness.md).
 
 ## Customer setup
 
 1. In the WISP router's own interface, select Share Hotspot / WISP NAT, choose
-   NDAHI Connect as upstream, and set a private Wi-Fi name and password. Ensure
-   the private subnet differs from 10.20.0.0/22. Use the vendor's instructions.
-2. Connect the phone to that private Wi-Fi. Open the normal HTTPS customer
+   NDAHI Connect as upstream, and configure a separate private LAN. Use integrated
+   Wi-Fi, wired clients or a private AP on its LAN; set Wi-Fi credentials in that
+   device. Keep its subnet distinct from upstream and management. Use the
+   vendor's instructions.
+2. Connect the device through that private LAN. Open the normal HTTPS customer
    portal and choose Home router. Existing customers sign in; a new Home account
    may register with a Cameroon account number and PIN. Registration does not
    verify SIM ownership and cannot overwrite an existing account.
@@ -86,7 +94,9 @@ are revoked and final usage saved before the replacement receives access.
   permissions must be tested on the actual version. Inspect script errors first.
 - Apply the existing migration workflow with migration `008_ndahi_home.sql`.
   The standard production readiness check proves readable tables and migration
-  004 ordinals, not presence of the new Home indexes. Verify all three migration
+  004 ordinals. The new Home readiness command/protected endpoint verifies index
+  expressions, predicates and usability; enabled-Home predeploy also checks them.
+  Verify all three migration
   008 indexes in the target database before any Home pilot/enablement. Four
   collections map to existing normalized payload tables: `homeConnections`
   → events/home_connection, `homeChallenges` → challenges/home_enrollment,
@@ -196,7 +206,8 @@ router. AP isolation, WPA policy and management isolation remain necessary.
 
 ## Physical pilot and KPI evidence (all pending)
 
-Use one RB5009, EAP650-Outdoor and TL-WR902AC V3. Record firmware, NTP, topology,
+Use the actual RB5009/AP topology and any WISP/NAT CPE meeting the capability
+contract. Record its exact model/revision/firmware, NTP, topology,
 reviewed configuration hash, start/end timestamps and anonymized entitlement
 references. Repair the physical ether2 path first. Measure with an independent
 capture/counter on a controlled test endpoint plus native and database readings.
@@ -216,6 +227,16 @@ Do not use mock tests as hardware evidence.
 | Reconnection | Prove cookie/worker reconnect without paying/relinking, then test missing cookie and documented manual recovery. No allowance or expiry increase. |
 | Rollback | Rehearse the drain above with direct customers unaffected; preserve paid state, counters and audit trail. |
 
-Keep #170–#178 open for hardware acceptance and attach measured results, including
-failed trials. If quota, no-bypass, timing, safe recovery or required-path targets
+Keep #170/#175/#178 and the remaining #171/#177 acceptance gates open; attach
+measured results, including failed trials. Software issues #172/#173/#174/#176
+are closed without claiming physical acceptance. If quota, no-bypass, timing, safe recovery or required-path targets
 fail, keep Home disabled and revise the implementation before another pilot.
+
+## Readiness implementation follow-up
+
+The current readiness work adds catalog-based migration 008 validation, an
+additive-only migration command, isolated native dump/restore rehearsal, GET-only
+gateway diagnostics, vendor-neutral customer setup, operational queue/usage/cutoff
+metrics and audited operator-reported pilot summaries. These software checks do
+not replace physical enforcement measurements. See `ndahi-home-readiness.md` for
+commands, access controls, report fields and unresolved acceptance limits.

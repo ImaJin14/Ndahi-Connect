@@ -131,7 +131,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     <label>Device limit<input name="deviceLimit" type="number" min="1" value="1"></label>
   </div>
   <label id="voucherQuantity">Quantity<input name="quantity" type="number" min="1" max="100" value="1"></label>
-  <label id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active) ? "" : "hidden"}>Assign to reseller (optional)<select name="assignedResellerId" id="voucherResellerSelect"><option value="">Unassigned stock</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
+  <label id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}>Assign to reseller (optional)<select name="assignedResellerId" id="voucherResellerSelect"><option value="">Unassigned stock</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
@@ -211,6 +211,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   };
   const resellerLedgerView = mountResellerLedger($("#resellerLedger"), {
     initialLedger: x.resellerLedger,
+    scopeKey: x.scopeKey,
     role: adminRole,
     call,
   });

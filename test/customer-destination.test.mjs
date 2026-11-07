@@ -4,10 +4,12 @@ import { customerDestination, customerEntry } from '../customer-app/customer-des
 const now = Date.now();
 const evidence = () => ({ version: 1, expiresAt: new Date(now + 45000).toISOString(), account: { state: 'authenticated' }, network: { state: 'confirmed' }, subscription: { state: 'active' }, router: { state: 'reachable' }, hotspot: { state: 'authenticated' } });
 test('default landing is Dashboard and validated necessary destinations retain only supported intent', () => {
-  for (const input of [null, '', '/login', '/verify.html?setup=checkout', '/pair', '/hotspot?next=/login', '/onboarding.html', '/unknown']) assert.equal(customerDestination(input), '/dashboard');
-  for (const input of ['/dashboard#payments', '/dashboard#devices', '/dashboard#account', '/dashboard#sessions', '/onboarding.html?action=renew&plan=weekly']) assert.equal(customerDestination(input), input);
+  for (const input of [null, '', '/login', '/verify.html?setup=checkout', '/pair', '/hotspot?next=/login', '/unknown']) assert.equal(customerDestination(input), '/dashboard');
+  for (const input of ['/dashboard#payments', '/dashboard#devices', '/dashboard#account', '/dashboard#sessions', '/onboarding.html', '/onboarding.html?plan=weekly', '/onboarding.html?action=renew&plan=weekly']) assert.equal(customerDestination(input), input);
   assert.equal(customerDestination('/dashboard.html?next=https://evil.test&phone=670000000#account'), '/dashboard#account');
   assert.equal(customerDestination('/onboarding.html?action=switch&plan=weekly&quick=1&key=secret'), '/onboarding.html?action=switch&plan=weekly');
+  assert.equal(customerDestination('/onboarding?plan=weekly&quick=1&phone=670000000&next=https://evil.test'), '/onboarding.html?plan=weekly');
+  assert.equal(customerDestination('/onboarding.html?action=unsupported'), '/dashboard');
 });
 test('external, protocol-relative, encoded, malformed and loop destinations cannot leave safe routes', () => {
   for (const input of ['https://evil.test', '//evil.test', '/\\evil.test', '/%5cevil.test', '/%255cevil.test', '/%25255cevil.test', '/%0aLocation:evil', '/dashboard%zz', '/dashboard#unrecognised', '/dashboard/../login', '/login?next=/dashboard', '/verify', '/dashboard\t#account']) assert.equal(customerDestination(input), '/dashboard', input);
