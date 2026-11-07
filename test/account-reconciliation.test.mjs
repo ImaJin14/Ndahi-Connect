@@ -57,6 +57,7 @@ test("merge retains original profile and credentials and all financial/router te
 for (const [reason, change] of [
   ["DUPLICATE_HAS_IDENTITY_OR_ACCESS", s => { s.customers[1].pinHash = "other-credential"; }],
   ["DUPLICATE_HAS_IDENTITY_OR_ACCESS", s => { s.customers[1].emailVerifiedAt = now.toISOString(); }],
+  ["DUPLICATE_HAS_IDENTITY_OR_ACCESS", s => { s.customers[1].phoneVerified = true; }],
   ["SUSPENDED_ACCOUNT", s => { s.customers[1].suspended = true; }],
   ["ORIGINAL_ACCOUNT_UNCERTAIN", s => { delete s.customers[0].createdAt; }],
   ["ORIGINAL_CREDENTIAL_REQUIRED", s => { delete s.customers[0].pinHash; }],

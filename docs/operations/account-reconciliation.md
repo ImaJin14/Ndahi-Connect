@@ -74,3 +74,9 @@ backup failure, digest stability after JSONB round trips, transactional foreign
 keys, independent-worker races, reopen and repeat-run behavior. Production
 inventory/application counts and deployment revisions belong in the release
 report. Synthetic tests do not establish real Mobile Money/router acceptance.
+
+## Authorized deployment repair
+
+Production `start:api` runs `scripts/deploy-account-reconciliation.mjs` before serving requests. Version 1 takes an exclusive transaction, inventories the current database and applies the same conservative repair policy as the CLI. Ambiguous ownership remains for review. A durable version marker makes subsequent starts no-ops.
+
+Changed-row before-images are encrypted with AES-256-GCM using a purpose-derived SECRET_PEPPER key and retained atomically in the private zone setting. Preserve the deployment pepper for recovery. Neither the encrypted backup nor account identifiers appear in public status or the owner dashboard. `/api/status` exposes only aggregate completion counts. Startup fails if the repair transaction fails; no router or payment-provider work is performed by this script.
