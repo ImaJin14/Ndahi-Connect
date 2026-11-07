@@ -157,6 +157,8 @@ function renderAccount() {
   } else {
     plans = cataloguePlans.filter((plan) => plan.id !== current?.planId);
   }
+}
+function renderAccountContact() {
   const form = $("#purchase");
   for (const name of ["name", "phone", "email"]) form.elements[name].value = account.customer[name] || "";
   form.elements.name.readOnly = true;
@@ -169,7 +171,7 @@ function renderAccount() {
   $("#purchase .form-row").hidden = true;
   form.elements.email.closest("label").hidden = !needsPaymentEmail;
   $("#accountContact").hidden = false;
-  $("#accountContact").innerHTML = `<div><dt>Account number</dt><dd>${h(account.customer.phone)}</dd></div><div><dt>Email notifications</dt><dd>${account.customer.emailLinked ? h(account.customer.email) : 'Link an email in Account to receive updates and receipts.'}</dd></div>`;
+  $("#accountContact").innerHTML = `<div><dt>Account name</dt><dd>${h(account.customer.name)}</dd></div><div><dt>Account number</dt><dd>${h(account.customer.phone)}</dd></div><div><dt>Email notifications</dt><dd>${account.customer.emailLinked ? h(account.customer.email) : 'Link an email in Account to receive updates and receipts.'}</dd></div>`;
   $("#accountPayer").hidden = false;
   form.elements.payerPhone.disabled = false;
   form.elements.payerPhone.required = true;
@@ -227,6 +229,7 @@ async function initialize() {
     }
   }
   if (accountAction) renderAccount();
+  if (account) renderAccountContact();
   for (const payment of account?.payments || []) {
     const key = `ndahi-payment-${payment.action || "purchase"}-${payment.planId}`;
     if (["paid", "failed", "refunded", "expired"].includes(payment.status) && payment.requestKey &&
@@ -263,7 +266,7 @@ async function initialize() {
     };
     renderPlans();
   }
-  if (!pending && !accountAction) {
+  if (!pending && !account) {
     const setup = await availableSetup();
     if (setup) {
       clearRequestKey(); paymentInProgress = { id: setup.paymentId, status: "paid" }; renderPlans();
@@ -296,7 +299,7 @@ function fillSavedDetails(details) {
   }
 }
 function bindCheckoutDeadline(payment) {
-  if (!payment || accountAction) return;
+  if (!payment || account) return;
   const remaining = Date.parse(payment.guestAccessExpiresAt) - Date.parse(payment.serverTime);
   if (!Number.isFinite(remaining)) return;
   const options = { expiresAt: Date.now() + Math.max(0, remaining) };
@@ -445,7 +448,7 @@ function renderCheckoutReview() {
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  if (accountAction && !paymentInProgress) $("#purchase").elements.payerPhone.value = account.customer.phone;
+  if (account && !paymentInProgress) $("#purchase").elements.payerPhone.value = account.customer.phone;
   renderCheckoutReview();
   $("#message").textContent = "";
   showCheckout();
@@ -546,7 +549,7 @@ function releaseFailedPayment() {
   $("#purchase").elements.acknowledge.checked = false;
   showPaymentDeadline(null);
   $("#purchaseFields").disabled = false;
-  if (accountAction) $("#purchase").elements.payerPhone.value = account.customer.phone;
+  if (account) $("#purchase").elements.payerPhone.value = account.customer.phone;
   // A recovered snapshot remains valid for the original payment, but only a current,
   // eligible package can be offered for a new charge after that payment closes.
   selected = plans.find((plan) => plan.id === selected?.id);
@@ -557,7 +560,7 @@ function releaseFailedPayment() {
 }
 async function beginAccountSecurity(paid, phone) {
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
-  if (accountAction) {
+  if (account) {
     clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
     location.href = withWifiHint(purchaseVoucherDestination(paid.payment.id));
@@ -575,12 +578,12 @@ async function beginAccountSecurity(paid, phone) {
   location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(purchaseVoucherDestination(paid.payment.id)) : "/verify.html?setup=checkout");
 }
 async function checkPayment(paymentId, phone) {
-  if (!accountAction && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {
+  if (!account && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {
     await beginAccountSecurity({ payment: paymentInProgress }, phone);
     return true;
   }
   let checkoutKey;
-  if (!accountAction) {
+  if (!account) {
     checkoutKey = paymentInProgress?.id === paymentId ? paymentInProgress.requestKey : undefined;
     if (!checkoutKey) {
       // The owner session or an in-memory checkout key may still permit recovery.
@@ -591,11 +594,11 @@ async function checkPayment(paymentId, phone) {
   }
   let status;
   try {
-    status = await call(`${accountAction ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
+    status = await call(`${account ? "/api/account" : "/api"}/payments/${paymentId}/status`, {
       headers: checkoutKey ? { "x-checkout-key": checkoutKey } : {},
     });
   } catch (error) {
-    if (!accountAction && error.status === 404) {
+    if (!account && error.status === 404) {
       releaseFailedPayment();
       notice("Checkout access expired. Check your payments or contact support before paying again.", false);
       throw new ApiError(404, `Checkout access has expired or is unavailable. This does not confirm whether money was deducted. Check your payments or contact support before paying again. Payment reference: ${paymentId}.`, "CHECKOUT_ACCESS_EXPIRED");
@@ -612,7 +615,7 @@ async function checkPayment(paymentId, phone) {
     });
     return true;
   }
-  if (status.payment.status === "paid" && (accountAction || status.access?.code)) {
+  if (status.payment.status === "paid" && (account || status.access?.code)) {
     await beginAccountSecurity(status, phone);
     return true;
   }
@@ -651,7 +654,7 @@ $("#purchase").onsubmit = async (event) => {
   renderPlans();
   $("#requestPayment").textContent = "Creating payment...";
   try {
-    const action = accountAction;
+    const action = account ? accountAction || (account.currentPlan?.planId === selected.id ? "renew" : "switch") : null;
     activeRequestKey = `ndahi-payment-${action || "purchase"}-${selected.id}`;
     let requestKey = checkoutStore.get(activeRequestKey);
     if (!requestKey) { requestKey = randomId(); checkoutStore.set(activeRequestKey, requestKey); }
@@ -678,7 +681,7 @@ $("#purchase").onsubmit = async (event) => {
     $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
-    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${accountAction ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
+    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
     if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
@@ -699,7 +702,7 @@ $("#purchase").onsubmit = async (event) => {
     else void waitForPayment(created.payment.id, purchaseInput.phone);
   } catch (error) {
     paymentWindow?.close();
-    if (accountAction && !paymentInProgress && (["TimeoutError", "TypeError", "SyntaxError"].includes(error.name) || error.status >= 500)) {
+    if (account && !paymentInProgress && (["TimeoutError", "TypeError", "SyntaxError"].includes(error.name) || error.status >= 500)) {
       try {
         const refreshed = await call("/api/account/dashboard"), requestKey = activeRequestKey && checkoutStore.get(activeRequestKey);
         const recorded = requestKey && refreshed.payments.find((payment) => payment.requestKey === requestKey);
@@ -712,7 +715,7 @@ $("#purchase").onsubmit = async (event) => {
       } catch (_) { /* Keep the original error and checkout key for recovery. */ }
     }
     // The API answered and turned the request down, so there is nothing to resume later.
-    if (!accountAction && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
+    if (!account && !paymentInProgress && error.status >= 400 && error.status < 500) clearRequestKey();
     if (error.code === "PAYMENT_IN_PROGRESS") {
       if (error.payment) {
         paymentInProgress = error.payment;
@@ -741,6 +744,14 @@ $("#purchase").onsubmit = async (event) => {
     coverageError = error.code === "OUTSIDE_COVERAGE";
     if (coverageError) setPurchaseAccess({ allowed: false, message: error.message });
     if (error.code === "ACTIVE_BUNDLE_EXISTS") subscriptionAccess = { allowed: false, code: error.code, message: error.message };
+    const accountSignInActions = error.code === "ACCOUNT_SIGN_IN_REQUIRED" ? [
+      { label: "Sign in to existing account", run: () => {
+        const next = "/onboarding.html?plan=" + encodeURIComponent(selected.id);
+        saveReturnPath(next);
+        location.assign(withWifiHint("/login?account=1&next=" + encodeURIComponent(next)));
+      } },
+      { label: "Recover account", run: () => location.assign("/forgot-pin") },
+    ] : null;
     const activeBundleActions = error.code === "ACTIVE_BUNDLE_EXISTS" ? [
       { label: account ? "Use existing bundle" : "Sign in to connect", run: () => {
         sessionStore.set("ndahi-return-to", "/dashboard");
@@ -749,7 +760,7 @@ $("#purchase").onsubmit = async (event) => {
       { label: "Back to packages", run: () => { location.reload(); } },
     ] : null;
     showError($("#message"), error, {
-      actions: activeBundleActions || [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
+      actions: accountSignInActions || activeBundleActions || [{ label: paymentInProgress ? "Check payment again" : purchaseAccess.allowed ? "Try again" : "I've connected — check again",
         run: () => paymentInProgress ? waitForPayment(paymentInProgress.id, purchaseInput.phone) : purchaseAccess.allowed ? event.target.requestSubmit() : recheckPurchaseAccess() }],
     });
   } finally {

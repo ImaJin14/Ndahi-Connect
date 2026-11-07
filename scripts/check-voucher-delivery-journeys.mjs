@@ -69,8 +69,16 @@ try {
   await scenario('a paid saved checkout for an established account returns through owner sign-in to the exact voucher', async (page, context) => {
     await f.store.transaction(s => { s.vouchers[0].status = 'exhausted'; s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
     const requestKey = 'a1'.repeat(16);
-    const created = await f.call('/api/purchase', { phone: '670050001', name: 'Existing owner', planId: 'weekly', requestKey });
+    const created = await f.call('/api/account/plan/purchase', { action: 'switch', planId: 'weekly', requestKey });
     assert.equal(created.status, 201); const id = created.body.payment.id;
+    // Seed the historical guest audience explicitly: new repeat purchases now
+    // require account sign-in, while pre-existing guest keys must still recover.
+    await f.store.transaction(s => {
+      const payment = s.payments.find(p => p.id === id);
+      payment.checkoutAudience = 'guest';
+      payment.customerName = 'Existing owner';
+      payment.guestCheckoutDetails = { phone: '670050001', name: 'Existing owner', email: '', network: null };
+    });
     assert.equal((await f.call('/api/payments/' + id + '/confirm', {})).status, 200);
     await context.addCookies([{ name: 'ndahi-checkout', value: encodeURIComponent(JSON.stringify({ value: JSON.stringify({ paymentId: id, requestKey, planId: 'weekly' }), expiresAt: Date.now() + 60000 })), domain: '127.0.0.1', path: '/' }]);
     await page.route('**/api/purchase/recover', route => route.fulfill({ status: 404, json: { error: 'Synthetic lost recovery response' } }), { times: 1 });

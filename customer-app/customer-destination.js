@@ -29,8 +29,11 @@ export function customerDestination(input, fallback = '/dashboard') {
       const payment = url.searchParams.get('payment');
       if (payment && !/^[A-Za-z0-9_-]{1,100}$/.test(payment)) return fallback;
       if (payment) clean.searchParams.set('payment', payment);
-    } else if (['/onboarding','/onboarding.html'].includes(url.pathname) && ['renew','switch'].includes(url.searchParams.get('action'))) {
-      clean.pathname = '/onboarding.html'; clean.searchParams.set('action', url.searchParams.get('action'));
+    } else if (['/onboarding','/onboarding.html'].includes(url.pathname)) {
+      const action = url.searchParams.get('action');
+      if (action !== null && !['renew','switch'].includes(action)) return fallback;
+      clean.pathname = '/onboarding.html';
+      if (action) clean.searchParams.set('action', action);
       const plan = url.searchParams.get('plan');
       if (/^[A-Za-z0-9_-]{1,80}$/.test(plan || '')) clean.searchParams.set('plan', plan);
       if (url.searchParams.get('upgrade') === '1') clean.searchParams.set('upgrade', '1');

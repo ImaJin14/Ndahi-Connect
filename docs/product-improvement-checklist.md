@@ -1283,3 +1283,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Deployed: pending review and exact-head CI. Existing production revision is `91ad174` from merged #180–#182; Home remains disabled. No production schema, payment, router or network writes were made for this task.
   - Physically verified: pending actual firmware/topology, local HTTPS/captive portal, two-client aggregate usage, at least 100 quota/activation trials, IPv6/FastTrack bypass negatives, outage/reboot/reconnect, provider payment and old-device accessibility acceptance. No universal model certification is claimed.
   - Evidence and next steps: `docs/issues/ndahi-home-170.md`, `docs/operations/ndahi-home-readiness.md` and its deliberately incomplete pilot template. Keep the remaining parent/hardware acceptance gates open.
+
+## Returning account details and purchase matching (2026-11-07)
+
+- [x] **ACCOUNT-IDENTITY — Reuse the original phone account across purchases**
+  - Implemented: signed-in users opening the general Packages page reuse their saved name, account number and email, with authenticated renewal/switch checkout and voucher delivery. A different Mobile Money payer remains specific to the transaction and does not transfer bundle ownership or change the account profile.
+  - Implemented: a fresh guest checkout matching an established account, paid purchase or owned voucher requires sign-in before another payment. Active-bundle protection still directs users to their existing access. Original checkout-key retries/recovery and unfinished PIN setup remain available; public responses do not expose saved profile details. Sign-in returns to the selected package without submitting payment automatically.
+  - Tested: `npm run check`, diff/syntax checks and all 1,157 automated tests pass with disposable local PostgreSQL, zero failures or skips. Ten new real-API Chromium journeys pass at 320/1280px, covering conflicting details, sign-in return, original-profile renewal/switch, alternate payers and lost-response recovery. Existing plan, billing, paid signup, dashboard/PWA and voucher-delivery browser regressions also pass.
+  - Deployed: not merged or deployed; implemented on isolated branch `fix/phone-account-identity`. Existing working-copy drafts remain untouched. No production account/history merge, customer charge, outbound notification or router mutation was performed.
+  - Physically verified: pending real customer/device and Mobile Money acceptance after deployment; local router/payment fixtures do not establish physical behavior.
