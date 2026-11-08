@@ -5,10 +5,11 @@ import { applySchemaMigrations } from "../scripts/migrate-postgres.mjs";
 test("Render migration runner applies schema in dependency order", async () => {
   const queries = [];
   const files = await applySchemaMigrations({ query: async (sql) => queries.push(sql) });
-  assert.deepEqual(files, ["001_ndahi_state.sql", "002_normalized_schema.sql", "003_retention_archives.sql", "004_incremental_ordinals.sql", "008_ndahi_home.sql"]);
+  assert.deepEqual(files, ["001_ndahi_state.sql", "002_normalized_schema.sql", "003_retention_archives.sql", "004_incremental_ordinals.sql", "008_ndahi_home.sql", "010_device_store.sql"]);
   assert.match(queries[0], /CREATE TABLE IF NOT EXISTS ndahi_state/);
   assert.match(queries[1], /CREATE TABLE IF NOT EXISTS customers/);
   assert.match(queries[2], /CREATE TABLE IF NOT EXISTS retention_archives/);
+  assert.match(queries[5], /store_order_checkout_unique/);
 });
 
 test("schema failure rolls back and stops before further migrations or data conversion", async () => {

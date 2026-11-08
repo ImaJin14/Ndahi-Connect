@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Networking equipment from NDAHI Connect. Browse devices, pay with Mobile Money and collect locally."
+    />
+    <title>NDAHI Store — Better connections</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/config.js"></script>
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header>
+      <a class="brand" href="/" aria-label="NDAHI Store home"
+        ><span class="brand-mark">N</span
+        ><span
+          >NDAHI<span class="brand-sub" id="storeName"
+            >CONNECT / STORE</span
+          ></span
+        ></a
+      >
+      <nav aria-label="Main">
+        <a href="#shop" data-label="shop">Shop</a
+        ><a href="#orders" data-label="orders">My orders</a
+        ><a id="portal" target="_blank" rel="noopener" data-label="account"
+          >Sign in</a
+        ><button id="language" class="language" aria-label="Change language">
+          FR
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+      <div id="message" role="status" aria-live="polite"></div>
+      <div id="view"><p>Loading store…</p></div>
+    </main>
+    <footer>
+      <a class="brand" href="/">NDAHI CONNECT</a>
+      <p id="footerText">Equipment for your everyday connections.</p>
+      <p id="storeContact"></p>
+      <a id="internet" target="_blank" rel="noopener">Internet packages ↗</a>
+    </footer>
+    <dialog id="productDialog" aria-labelledby="productTitle">
+      <button class="close" aria-label="Close">×</button>
+      <div id="productDetail"></div>
+    </dialog>
+    <dialog id="checkoutDialog" aria-labelledby="checkoutTitle">
+      <button class="close" aria-label="Close">×</button>
+      <div id="checkoutDetail"></div>
+    </dialog>
+  </body>
+</html>

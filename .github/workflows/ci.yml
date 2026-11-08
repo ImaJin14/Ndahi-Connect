@@ -86,6 +86,8 @@ jobs:
           STATUS_AUTH_PORT: 8397
           ADMIN_AUTH_API_PORT: 8498
           ADMIN_AUTH_PORT: 8499
+      - name: Verify device store and admin management journeys
+        run: npm run check:store:browser
       - name: Upload browser failure screenshots
         if: failure()
         uses: actions/upload-artifact@v7
@@ -94,6 +96,7 @@ jobs:
           path: |
             /tmp/ndahi-*-checks
             /tmp/ndahi-home-qa
+            /tmp/ndahi-store-*.png
           if-no-files-found: ignore
 
   monitoring:
