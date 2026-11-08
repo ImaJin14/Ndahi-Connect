@@ -94,7 +94,15 @@ test("the admin dashboard reports bundles sold, gifts and the revenue breakdown"
   const base = `http://127.0.0.1:${server.address().port}`,
     login = await fetch(base + "/api/admin/login", { method: "POST", headers: { "content-type": "application/json", origin: "http://admin.test" }, body: JSON.stringify({ pin: "9999" }) }),
     body = await (await fetch(base + "/api/admin/dashboard", { headers: { cookie: login.headers.get("set-cookie").split(";")[0] } })).json();
-  assert.equal(body.metrics.revenue, 1000);
+  assert.equal((await fetch(base + "/api/admin/settlements")).status, 401);
+  const settlements = await fetch(base + "/api/admin/settlements", { headers: { cookie: login.headers.get("set-cookie").split(";")[0] } });
+  assert.equal(settlements.status, 200);
+  assert.equal(settlements.headers.get("cache-control"), "no-store");
+  const report = await settlements.json();
+  assert.equal(report.amount, null, "mock payments must never become real settlement revenue");
+  assert.equal(report.basis, "completed-provider-net-settlements");
+  assert.equal(body.metrics.revenue, null, "paid order values are not provider net settlements");
+  assert.equal(body.sales.online.amount, 1000);
   assert.equal(body.metrics.bundlesSold, 1);
   assert.equal(body.metrics.giftedBundles, 1);
   assert.deepEqual(body.sales.gifts, { bundles: 1, faceValue: 400 });

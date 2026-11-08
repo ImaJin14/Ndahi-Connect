@@ -49,3 +49,11 @@ The user confirmed the store is live after correcting API_URL. Public config and
 This follow-up adds the NS store header/favicon/touch icons/manifest and NA admin favicon links. Store is a primary admin tab beside Home; Customers, Bundles and Connections also move out of More. Existing role restrictions are retained. Local verification: 15 admin browser journeys, 6 final navigation/role checks, and 14 pending-state scenarios passed. Physical devices and real payments remain unverified. Deployment of this follow-up is pending.
 
 Before PR #188 merge, custom-domain HTTPS became ready: the public store health endpoint returned HTTP 200 with body `ok`, and the API catalogue accepted Origin https://store.ndahiconnect.net. Chromium verified the content-hashed NS and NA favicon URLs serve PNG successfully, the NS header, and all store manifest icon URLs. Repository build passed.
+
+## Icons/navigation release — deployed
+
+[PR #188](https://github.com/ImaJin14/Ndahi-Connect/pull/188) merged on 8 November 2026 as `0d9f1b425d35dfcd5a787eaf37c659e06533522f`. All seven PR checks passed on head `b0294aa14b759a6a7ca503484c1d07d9ca478197` ([CI](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/42442356064)); merged-main CI [42442979895](https://github.com/ImaJin14/Ndahi-Connect/actions/runs/42442979895) also passed.
+
+Render reports success for admin deployment `7630912098`, customer `7630912093`, store `7630912083` and API `7630912077`, around 04:38:58–04:39:09 Africa/Douala. Public store HTTPS works. Live revisions match local catalogues: store `ccb28a838d5c2fdb71ab`, admin `ca194429bac75d3024e4`. Compared exact delivered bytes for store icon/touch/manifest and admin navigation/app/CSS/icon. Chromium verified NS store logo/favicon at 320px and 1280px with no page errors or horizontal overflow, plus the NA favicon on admin login. All read-only production deployment smoke groups pass.
+
+The policy review draft is deliberately unpublished and unknown seller/contact details remain blank at the owner's request. Launch reminders, legal review and implementation gaps are recorded in the product checklist and draft; no timed notification was scheduled because no reminder tool was available. Checkout remains closed. Real payments/refunds, mail delivery, pickup and physical device acceptance remain unverified.

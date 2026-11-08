@@ -39,13 +39,15 @@ function values(form) {
 }
 const fcfa = (n) => `${Number(n).toLocaleString()} FCFA`;
 
-export function mountStore(root, { call, role }) {
+export function mountStore(root, { call, role, csrf }) {
   let state,
-    tab = "products",
+    tab = "overview",
+    orderFilter = "all",
     query = "",
-    images = [];
+    images = [],
+    loading;
   root.innerHTML =
-    '<h2>Store</h2><p>Manage the device catalogue, inventory and customer orders.</p><button type="button" id="loadStore">Open store management</button><p id="storeAdminMessage" role="status" aria-live="polite"></p><div id="storeAdminContent"></div>';
+    '<h2>Store</h2><p>Manage the device catalogue, inventory and customer orders.</p><button type="button" id="retryStore" hidden>Retry loading store</button><p id="storeAdminMessage" role="status" aria-live="polite"></p><div id="storeAdminContent"></div>';
   const $ = (s) => root.querySelector(s),
     message = $("#storeAdminMessage"),
     content = $("#storeAdminContent");
@@ -69,8 +71,28 @@ export function mountStore(root, { call, role }) {
     }
   }
   async function load() {
-    state = await call("/api/admin/store");
-    render();
+    if (loading) return loading;
+    const retry = $("#retryStore");
+    retry.hidden = true;
+    message.textContent = "Loading store management…";
+    content.setAttribute("aria-busy", "true");
+    loading = (async () => {
+      try {
+        state = await call("/api/admin/store");
+        render();
+        message.textContent = "";
+      } catch (error) {
+        retry.hidden = false;
+        throw error;
+      } finally {
+        content.removeAttribute("aria-busy");
+        loading = undefined;
+      }
+    })();
+    return loading;
+  }
+  function activate() {
+    if (!state) return run(null, load);
   }
   async function save(path, input) {
     const result = await call("/api/admin/store/" + path, {
@@ -82,24 +104,103 @@ export function mountStore(root, { call, role }) {
     message.textContent = "Saved.";
     return result;
   }
+  function missingConfiguration() {
+    const s = state.settings;
+    return [
+      ["contact", "Contact details"],
+      ["pickup", "Pickup location"],
+      ["warranty", "Warranty in EN and FR"],
+      ["returns", "Returns in EN and FR"],
+    ]
+      .filter(([key]) =>
+        typeof s[key] === "object"
+          ? !s[key]?.en?.trim() || !s[key]?.fr?.trim()
+          : !s[key]?.trim(),
+      )
+      .map(([, label]) => label);
+  }
+  function go(destination, filter = "all") {
+    tab = destination;
+    query = "";
+    orderFilter = filter;
+    render();
+  }
   function render() {
-    content.innerHTML = `<div class="action-row">${["products", "categories", "inventory", "orders", "settings"].map((id) => `<button type="button" class="${tab === id ? "" : "secondary"}" data-store-tab="${id}">${id[0].toUpperCase() + id.slice(1)}</button>`).join("")}<button type="button" id="refreshStore">Refresh</button></div><div id="storeWorkspace"></div>`;
-    root.querySelectorAll("[data-store-tab]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          tab = b.dataset.storeTab;
-          query = "";
-          render();
-        }),
-    );
+    const s = state.settings,
+      missing = missingConfiguration();
+    const controls = ["overview", "settings"].includes(tab);
+    content.innerHTML = `<div class="store-toolbar"><p id="storeCheckoutStatus" role="status" class="store-state ${s.open ? "is-open" : ""}">${s.open ? "Open — accepting new orders" : "Closed — new orders paused"}</p><div class="action-row"><a href="https://store.ndahiconnect.net" target="_blank" rel="noopener">View storefront ↗</a><button type="button" id="refreshStore" class="secondary">Refresh</button></div></div><nav class="store-sections" aria-label="Store management sections">${[
+      ["overview", "Overview"],
+      ["orders", "Orders"],
+      ["products", "Products"],
+      ["inventory", "Stock"],
+      ["categories", "Categories"],
+      ["settings", "Settings"],
+    ]
+      .map(
+        ([id, label]) =>
+          `<button type="button" class="secondary" aria-pressed="${tab === id}" data-store-tab="${id}">${label}</button>`,
+      )
+      .join(
+        "",
+      )}</nav><div id="storeWorkspace"></div>${controls ? `<section class="store-controls" aria-label="Store controls"><h3>Checkout control</h3><p>Pause new orders without hiding products or stopping existing order management.</p>${missing.length ? `<p class="store-setup-note">Configuration missing: ${h(missing.join(", "))}.</p>` : ""}<div class="action-row"><button type="button" id="toggleStoreCheckout" ${!s.open && missing.length ? "disabled" : ""}>${s.open ? "Close checkout" : "Open checkout"}</button>${tab !== "settings" ? '<button type="button" id="configureStore" class="secondary">Store settings</button>' : ""}</div><p class="form-help">Approve policies and complete payment and device testing before opening.</p></section>` : ""}`;
+    root.querySelectorAll("[data-store-tab]").forEach((b) => {
+      b.onclick = () => go(b.dataset.storeTab);
+    });
+    const toggle = $("#toggleStoreCheckout");
+    if (toggle)
+      toggle.onclick = (e) =>
+        run(e.currentTarget, async () => {
+          if (
+            !s.open &&
+            !confirm(
+              "Open checkout for new purchases? Confirm approved policies, accurate stock and prices, pickup details, and completed payment/device acceptance testing.",
+            )
+          )
+            return;
+          await save("settings/save", { ...s, open: !s.open });
+          message.textContent = state.settings.open
+            ? "Checkout opened."
+            : "Checkout closed. Existing orders can still be managed.";
+        });
+    const configure = $("#configureStore");
+    if (configure) configure.onclick = () => go("settings");
     $("#refreshStore").onclick = (e) => run(e.currentTarget, load);
-    ({
-      products: products,
-      categories: categories,
-      inventory: inventory,
-      orders: orders,
-      settings: settings,
-    })[tab]();
+    ({ overview, products, categories, inventory, orders, settings })[tab]();
+  }
+  function overview() {
+    const count = (status) =>
+      state.orders.filter((o) => o.status === status).length;
+    const low = state.products.filter(
+      (p) => p.status === "published" && p.available <= 3,
+    );
+    const cards = [
+      ["preparing", "To prepare", "Paid orders to get ready"],
+      ["ready", "Ready for pickup", "Orders awaiting collection"],
+      ["review", "Payment review", "Payments needing investigation"],
+    ];
+    $("#storeWorkspace").innerHTML =
+      `<h3>Store overview</h3><div class="store-summary">${cards.map(([status, label, description]) => `<button type="button" class="store-summary-card" data-order-filter="${status}"><strong>${count(status)}</strong><span>${label}</span><small>${description}</small></button>`).join("")}</div><div class="store-quick-actions"><button type="button" id="quickAddProduct">Add product</button><button type="button" id="quickStock" class="secondary">Update stock</button><button type="button" id="quickOrders" class="secondary">View all orders</button></div><div class="store-overview-grid"><section><h4>Catalogue at a glance</h4><p><strong>${state.products.filter((p) => p.status === "published").length}</strong> published · <strong>${state.products.filter((p) => p.status === "draft").length}</strong> drafts · <strong>${state.products.reduce((n, p) => n + Number(p.available || 0), 0)}</strong> available stock units</p>${state.products.length ? "" : "<p>Add your first product, then record its stock before publishing it.</p>"}<button type="button" id="quickProducts" class="secondary">Manage products</button></section><section><h4>Stock to check</h4><p>Published products with 3 or fewer available units.</p>${
+        low.length
+          ? `<ul>${low
+              .slice(0, 5)
+              .map(
+                (p) => `<li>${h(p.name.en)} — ${h(p.available)} available</li>`,
+              )
+              .join("")}</ul>`
+          : "<p>No low-stock products.</p>"
+      }<button type="button" id="quickInventory" class="secondary">Manage stock</button></section></div>`;
+    root.querySelectorAll("[data-order-filter]").forEach((b) => {
+      b.onclick = () => go("orders", b.dataset.orderFilter);
+    });
+    $("#quickAddProduct").onclick = () => {
+      go("products");
+      editProduct(emptyProduct());
+    };
+    $("#quickStock").onclick = $("#quickInventory").onclick = () =>
+      go("inventory");
+    $("#quickOrders").onclick = () => go("orders");
+    $("#quickProducts").onclick = () => go("products");
   }
   function products() {
     const w = $("#storeWorkspace");
@@ -301,7 +402,27 @@ export function mountStore(root, { call, role }) {
   }
   function orders() {
     const w = $("#storeWorkspace");
-    w.innerHTML = `<h3>Orders</h3><label>Search orders<input type="search" id="storeOrderSearch" value="${h(query)}" placeholder="Reference, customer or phone"></label><div id="storeOrderRows"></div><div id="orderEditor"></div>`;
+    w.innerHTML = `<h3>Orders</h3><label>Order status<select id="storeOrderStatus">${[
+      ["all", "All orders"],
+      ["preparing", "To prepare"],
+      ["ready", "Ready for pickup"],
+      ["review", "Payment review"],
+      ["awaiting_payment", "Awaiting payment"],
+      ["collected", "Collected"],
+      ["cancelled", "Cancelled"],
+      ["expired", "Expired"],
+    ]
+      .map(
+        ([value, label]) =>
+          `<option value="${value}" ${orderFilter === value ? "selected" : ""}>${label}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><label>Search orders<input type="search" id="storeOrderSearch" value="${h(query)}" placeholder="Reference, customer or phone"></label><div id="storeOrderRows"></div><div id="orderEditor"></div>`;
+    $("#storeOrderStatus").onchange = (e) => {
+      orderFilter = e.target.value;
+      orderRows();
+    };
     $("#storeOrderSearch").oninput = (e) => {
       query = e.target.value;
       orderRows();
@@ -309,13 +430,16 @@ export function mountStore(root, { call, role }) {
     orderRows();
   }
   function orderRows() {
-    const list = state.orders.filter((o) =>
-      `${o.reference} ${o.contact.name} ${o.contact.phone}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
+    const list = state.orders.filter(
+      (o) =>
+        (orderFilter === "all" || o.status === orderFilter) &&
+        `${o.reference} ${o.contact.name} ${o.contact.phone}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
     );
-    $("#storeOrderRows").innerHTML =
-      `<div class="table-scroll"><table><thead><tr><th>Reference</th><th>Customer</th><th>Item</th><th>Payment</th><th>Order</th><th>Actions</th></tr></thead><tbody>${list.map((o) => `<tr><td>${h(o.reference)}</td><td>${h(o.contact.name)}<br>${h(o.contact.phone)}</td><td>${h(o.product.name.en)} × ${h(o.quantity)}<br>${h(fcfa(o.amount))}</td><td>${h(o.paymentStatus)}${o.paymentReview ? `<br>${h(o.paymentReview)}` : ""}</td><td>${h(o.status)}</td><td><button data-order-edit="${h(o.id)}">Manage</button></td></tr>`).join("")}</tbody></table></div>`;
+    $("#storeOrderRows").innerHTML = !list.length
+      ? '<p class="store-empty" role="status">No orders match this view.</p>'
+      : `<div class="table-scroll"><table><thead><tr><th>Reference</th><th>Customer</th><th>Item</th><th>Payment</th><th>Order</th><th>Actions</th></tr></thead><tbody>${list.map((o) => `<tr><td>${h(o.reference)}</td><td>${h(o.contact.name)}<br>${h(o.contact.phone)}</td><td>${h(o.product.name.en)} × ${h(o.quantity)}<br>${h(fcfa(o.amount))}</td><td>${h(o.paymentStatus)}${o.paymentReview ? `<br>${h(o.paymentReview)}` : ""}</td><td>${h(o.status)}</td><td><button data-order-edit="${h(o.id)}">Manage</button></td></tr>`).join("")}</tbody></table></div>`;
     root
       .querySelectorAll("[data-order-edit]")
       .forEach(
@@ -326,7 +450,14 @@ export function mountStore(root, { call, role }) {
   }
   function editOrder(o) {
     $("#orderEditor").innerHTML =
-      `<h3>${h(o.reference)}</h3><p>${h(o.contact.name)} · ${h(o.contact.phone)} · ${h(o.contact.email || "")}</p><p>Payment: ${h(o.paymentStatus)}${o.payment.refund ? ` (refund: ${h(o.payment.refund.status)})` : ""} · Fulfilment: ${h(o.status)} · Stock: ${h(o.stockState)}</p><p>Pickup: ${h(o.pickup)} · ${h(o.hours)}</p><div class="action-row"><button data-order-action="verify">Check provider payment</button>${o.status === "preparing" && o.paymentStatus === "paid" ? '<button data-order-action="ready">Mark ready for pickup</button>' : ""}${!o.payment.confirmedAt && !["paid", "refund-pending", "refunded"].includes(o.paymentStatus) ? '<button data-order-action="cancel">Cancel unpaid order</button>' : ""}<button data-order-action="rotate-link">Replace tracking link</button></div>${o.status === "ready" ? `<form id="collectOrder">${field("collectionCode", "Customer collection code", "", "text", 'required autocomplete="off"')}<button>Confirm collection</button></form>` : ""}<form id="orderNotes">${field("serialNumbers", "Serial numbers", o.serialNumbers || "")}<label>Support / warranty notes<textarea name="notes" maxlength="2000">${h(o.notes || "")}</textarea></label><label>Return status<select name="returnStatus">${["none", "requested", "received", "resolved"].map((status) => `<option ${status === o.returnStatus ? "selected" : ""}>${status}</option>`).join("")}</select></label><button>Save after-sales details</button></form><form id="orderContact">${field("name", "Order contact name", o.contact.name, "text", 'required maxlength="120"')}${field("phone", "Order contact phone", o.contact.phone, "tel", "required")}${field("email", "Order contact email", o.contact.email || "", "email")}<button>Correct order contact</button></form>${role === "owner" && o.paymentStatus === "paid" && !o.payment.refund ? `<form id="refundOrder"><h4>Full refund</h4>${field("reason", "Refund reason", "", "text", 'required maxlength="300"')}${checkbox("restock", "Equipment is unsent or physically returned and can be restocked", false)}<p class="form-help">Stock is restored only after confirmed refund, when this checkbox is selected.</p><button>Authorize full refund</button></form>` : ""}${role === "owner" && o.payment.refund?.status === "uncertain" && !o.payment.refund.providerReference ? `<form id="refundReference"><h4>Reconcile uncertain refund</h4>${field("providerReference", "Reference verified in the provider dashboard", "", "text", 'required maxlength="200"')}<button>Verify refund reference</button></form>` : ""}<h4>Order history</h4>${o.history.map((e) => `<p>${h(e.at)} · ${h(e.action)} · ${h(e.actor)}</p>`).join("")}<p id="replacementLink"></p>`;
+      `<h3>${h(o.reference)}</h3><p>${h(o.contact.name)} · ${h(o.contact.phone)} · ${h(o.contact.email || "")}</p><p>Payment: ${h(o.paymentStatus)}${o.payment.refund ? ` (refund: ${h(o.payment.refund.status)})` : ""} · Fulfilment: ${h(o.status)} · Stock: ${h(o.stockState)}</p><p>Pickup: ${h(o.pickup)} · ${h(o.hours)}</p><div class="action-row">${o.receiptAvailable ? '<button type="button" id="adminStoreReceipt">Download store receipt</button>' : ""}<button data-order-action="verify">Check provider payment</button>${o.status === "preparing" && o.paymentStatus === "paid" ? '<button data-order-action="ready">Mark ready for pickup</button>' : ""}${!o.payment.confirmedAt && !["paid", "refund-pending", "refunded"].includes(o.paymentStatus) ? '<button data-order-action="cancel">Cancel unpaid order</button>' : ""}<button data-order-action="rotate-link">Replace tracking link</button></div>${o.status === "ready" ? `<form id="collectOrder">${field("collectionCode", "Customer collection code", "", "text", 'required autocomplete="off"')}<button>Confirm collection</button></form>` : ""}<form id="orderNotes">${field("serialNumbers", "Serial numbers", o.serialNumbers || "")}<label>Support / warranty notes<textarea name="notes" maxlength="2000">${h(o.notes || "")}</textarea></label><label>Return status<select name="returnStatus">${["none", "requested", "received", "resolved"].map((status) => `<option ${status === o.returnStatus ? "selected" : ""}>${status}</option>`).join("")}</select></label><button>Save after-sales details</button></form><form id="orderContact">${field("name", "Order contact name", o.contact.name, "text", 'required maxlength="120"')}${field("phone", "Order contact phone", o.contact.phone, "tel", "required")}${field("email", "Order contact email", o.contact.email || "", "email")}<button>Correct order contact</button></form>${role === "owner" && o.paymentStatus === "paid" && !o.payment.refund ? `<form id="refundOrder"><h4>Full refund</h4>${field("reason", "Refund reason", "", "text", 'required maxlength="300"')}${checkbox("restock", "Equipment is unsent or physically returned and can be restocked", false)}<p class="form-help">Stock is restored only after confirmed refund, when this checkbox is selected.</p><button>Authorize full refund</button></form>` : ""}${role === "owner" && o.payment.refund?.status === "uncertain" && !o.payment.refund.providerReference ? `<form id="refundReference"><h4>Reconcile uncertain refund</h4>${field("providerReference", "Reference verified in the provider dashboard", "", "text", 'required maxlength="200"')}<button>Verify refund reference</button></form>` : ""}<h4>Order history</h4>${o.history.map((e) => `<p>${h(e.at)} · ${h(e.action)} · ${h(e.actor)}</p>`).join("")}<p id="replacementLink"></p>`;
+    const receiptButton = $("#adminStoreReceipt");
+    if (receiptButton) receiptButton.onclick = (event) => run(event.currentTarget, async () => {
+      const response = await fetch(window.NDAHI_CONFIG.apiUrl + "/api/admin/store/receipt", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": csrf?.() || "" }, body: JSON.stringify({ orderId: o.id }) });
+      if (!response.ok) { const body = await response.json(); throw Error(body.error || "Receipt unavailable."); }
+      const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = url; link.download = `ndahi-store-receipt-${o.id}.pdf`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+    });
     const update = async (action, input = {}) => {
       const result = await save("orders/update", {
         id: o.id,
@@ -385,18 +516,18 @@ export function mountStore(root, { call, role }) {
   function settings() {
     const s = state.settings;
     $("#storeWorkspace").innerHTML =
-      `<h3>Store content and settings</h3><p>Saved content appears in the store without a code deployment. Configure pickup and policies before opening checkout.</p><form id="storeSettingsForm">${field("name", "Store name", s.name, "text", 'required maxlength="100"')}${checkbox("open", "Accept new orders", s.open)}${bilingual("introduction", "Introduction", s.introduction, true)}${bilingual("banner", "Announcement banner", s.banner, true)}${field("contact", "Public contact details", s.contact, "text", 'maxlength="300"')}<label>Pickup location and instructions<textarea name="pickup" maxlength="1000">${h(s.pickup)}</textarea></label>${field("hours", "Pickup hours", s.hours, "text", 'maxlength="300"')}${bilingual("warranty", "Warranty policy", s.warranty, true)}${bilingual("returns", "Returns and refund policy", s.returns, true)}<button>Save store settings</button></form>`;
+      `<h3>Store content and settings</h3><p>Saved content appears in the store without a code deployment. Configure pickup and policies before opening checkout.</p><form id="storeSettingsForm">${field("name", "Store name", s.name, "text", 'required maxlength="100"')}${bilingual("introduction", "Introduction", s.introduction, true)}${bilingual("banner", "Announcement banner", s.banner, true)}${field("contact", "Public contact details", s.contact, "text", 'maxlength="300"')}<label>Pickup location and instructions<textarea name="pickup" maxlength="1000">${h(s.pickup)}</textarea></label>${field("hours", "Pickup hours", s.hours, "text", 'maxlength="300"')}${bilingual("warranty", "Warranty policy", s.warranty, true)}${bilingual("returns", "Returns and refund policy", s.returns, true)}<button>Save store settings</button></form>`;
     $("#storeSettingsForm").onsubmit = (e) => {
       e.preventDefault();
       run(e.submitter, () =>
         save("settings/save", {
           ...values(e.target),
           version: s.version,
-          open: e.target.elements.open.checked,
+          open: s.open,
         }),
       );
     };
   }
-  $("#loadStore").onclick = (e) => run(e.currentTarget, load);
-  return { load };
+  $("#retryStore").onclick = (e) => run(e.currentTarget, load);
+  return { load, activate };
 }

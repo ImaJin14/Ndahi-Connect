@@ -1,8 +1,9 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 const $ = (s) => document.querySelector(s),
   api = window.NDAHI_CONFIG.apiUrl;
-let lang = localStorage.getItem("ndahi-store-language") === "fr" ? "fr" : "en",
-  data,
+// Language switching is temporarily disabled; retain translations for later.
+const lang = "en";
+let data,
   account = { authenticated: false, orders: [] },
   category = "",
   search = "",
@@ -282,7 +283,6 @@ function layout() {
   document
     .querySelectorAll("[data-label]")
     .forEach((el) => (el.textContent = t(el.dataset.label)));
-  $("#language").textContent = lang === "en" ? "FR" : "EN";
   $("#portal").href = data.portalUrl + "/login";
   $("#internet").href = data.portalUrl + "/onboarding.html";
   $("#internet").textContent = t("internet");
@@ -433,9 +433,17 @@ async function showOrder(id, token, verify = false) {
   );
   const o = result.order;
   $("#view").innerHTML =
-    `<div class="section-top"><h1>${h(t("order"))}</h1><a href="#orders">${h(t("orders"))}</a></div>${orderCard(o)}<div class="actions"><button id="checkPayment">${h(t("check"))}</button>${token ? `<button class="secondary" id="copyLink">${h(t("copy"))}</button>` : ""}${token && account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claim"))}</button>` : ""}</div><p class="form-help">${h(t("reserved"))}</p>${token ? `<label for="privateLink">${h(t("link"))}</label><input readonly id="privateLink" value="${h(location.origin + "/" + orderHash(id, token))}">` : ""}`;
+    `<div class="section-top"><h1>${h(t("order"))}</h1><a href="#orders">${h(t("orders"))}</a></div>${orderCard(o)}<div class="actions"><button id="checkPayment">${h(t("check"))}</button>${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? `<button class="secondary" id="copyLink">${h(t("copy"))}</button>` : ""}${token && account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claim"))}</button>` : ""}</div><p class="form-help">${h(t("reserved"))}</p>${token ? `<label for="privateLink">${h(t("link"))}</label><input readonly id="privateLink" value="${h(location.origin + "/" + orderHash(id, token))}">` : ""}`;
   $("#checkPayment").onclick = (e) =>
     action(e.currentTarget, () => showOrder(id, token, true));
+  if ($("#downloadStoreReceipt")) $("#downloadStoreReceipt").onclick = (e) => action(e.currentTarget, async () => {
+    const response = await fetch(api + (account.authenticated ? "/api/account/store/receipt" : "/api/store/receipt"), {
+      method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(account.authenticated ? { "x-csrf-token": account.csrfToken } : {}) }, body: JSON.stringify({ orderId: id, token }),
+    });
+    if (!response.ok) { const result = await response.json(); throw Error(result.error || "Receipt unavailable."); }
+    const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement("a");
+    link.href = url; link.download = `ndahi-store-receipt-${id}.pdf`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+  });
   if ($("#copyLink"))
     $("#copyLink").onclick = (e) =>
       action(e.currentTarget, async () => {
@@ -468,12 +476,7 @@ async function route() {
     $("#message").textContent = e.message;
   }
 }
-$("#language").onclick = () => {
-  lang = lang === "en" ? "fr" : "en";
-  localStorage.setItem("ndahi-store-language", lang);
-  document.querySelectorAll("dialog[open]").forEach((d) => d.close());
-  void route();
-};
+
 document
   .querySelectorAll(".close")
   .forEach((b) => (b.onclick = () => b.closest("dialog").close()));

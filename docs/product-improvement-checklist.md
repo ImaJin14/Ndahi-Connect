@@ -1303,11 +1303,36 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 
 ## Device store (8 November 2026)
 
-- [x] Store NS favicon, Apple touch icon and app manifest added using the established forest/lime app icon design; NA favicon linked on admin login/dashboard/router pages. Build plus Chromium favicon/manifest asset checks passed; deployment pending.
+- [x] Implemented locally: storefront language toggle temporarily removed; English is used even with an old French preference, while translations and bilingual catalogue/policy fields remain saved. Store management now opens on Overview with order-work cards, product/stock shortcuts, low-stock visibility, and compact section navigation. Orders support status filters and clear empty states; checkout control stays separate from daily work. Verified 38 store browser checks at 320px/1280px, six navigation/role journeys, syntax/diff checks and mobile/desktop screenshots. Not yet deployed; no live settings or policies were changed.
 
-- [x] Admin Store now has its own navigation tab beside Home. Customers, Bundles and Connections also have dedicated tabs; More retains Generate voucher, owner-only Network setup, Audit and installation. The mobile bar scrolls horizontally and keeps the active tab visible. Verified admin browser journeys at 320/390/1280px, Back/reload and role restrictions; deployment and physical-device verification are pending.
+- [x] Implemented locally: Store tab opens management directly with loading/error/retry states; removed the extra Open store management button. Added visible open/closed status, explicit checkout controls, configuration requirements, published-product/stock/order counts, settings and storefront shortcuts. Store 503 errors stay in the panel instead of redirecting to login. Settings edits preserve checkout state; API version checks remain in force. Verified 36 store browser checks at 320px/1280px (mock payments), six navigation/role journeys, syntax/diff checks and a mobile screenshot. This follow-up is not yet deployed; no live checkout state was changed.
 
-- [x] Store header uses the **NS** logo alongside the customer **NC** and admin **NA** branding. Verified the HTML change and retained existing styling; deployment of this logo change is pending.
+- [x] Icons/navigation release [PR #188](https://github.com/ImaJin14/Ndahi-Connect/pull/188) merged at `0d9f1b4`; all PR and main CI checks passed. All four Render services deployed successfully. Exact store/admin revisions and asset bytes, live 320px/1280px store rendering, NS/NA favicons and production smoke checks passed. Policy draft remains unpublished, checkout closed; physical/payment acceptance pending.
+
+### Reminder — complete these before public store launch
+
+Owner requested all unknown business details remain blank for now. Review this list before publishing policies or opening checkout. Policy draft: [review copy](store-policies-draft.md). No timed notification has been scheduled.
+
+- [ ] Confirm legal seller name, business address and applicable registration/tax details.
+- [ ] Fill public support phone/email, privacy contact, service hours, pickup address and collection hours.
+- [ ] Confirm preparation estimates, complaint response time and uncollected-order handling.
+- [ ] Review the official-law policy audit: use at least 15 working days for withdrawal, preserve missing-disclosure extensions, and track refund deadlines from notice; approve return-cost and model-warranty commitments with local counsel.
+- [ ] Confirm privacy retention periods, hosting/payment/email providers, processing locations, transfer arrangements and actual browser storage/analytics.
+- [ ] Implement/verify full-terms consent/version evidence, contract acceptance and acknowledgment, downloadable bilingual contract copies for guests, and an integrity-protected contract archive/access process (including applicable ten-year preservation).
+- [ ] Resolve data-processing and international-transfer authorisation requirements, minors’ safeguards, breach response, provider contracts and rights handling; verify current regulatory procedures with local counsel.
+- [ ] Approve English/French policy versions after legal review, then publish footer links and align admin returns/warranty settings with them.
+- [ ] Add actual products, images, prices, stock, package contents and compatibility/setup details.
+- [ ] Physically test every model advertised as compatible and complete real payment, refund, collection and notification acceptance.
+- [ ] Check whether any email addresses used @store.ndahiconnect.net before its mail DNS was disabled; resolve any affected mailbox/forwarding service.
+- [x] Production API accepts https://store.ndahiconnect.net; live store/admin revision and logo/icon/navigation asset checks pass after PR #188.
+- [ ] Review all launch checks before the owner enables checkout.
+
+
+- [x] Store NS favicon, Apple touch icon and app manifest added using the established forest/lime app icon design; NA favicon linked on admin login/dashboard/router pages. Build plus Chromium favicon/manifest asset checks passed; deployed through PR #188 and live NS/NA favicon bytes verified.
+
+- [x] Admin Store now has its own navigation tab beside Home. Customers, Bundles and Connections also have dedicated tabs; More retains Generate voucher, owner-only Network setup, Audit and installation. The mobile bar scrolls horizontally and keeps the active tab visible. Verified admin browser journeys at 320/390/1280px, Back/reload and role restrictions; deployed through PR #188 with exact live admin revision/assets verified; physical-device verification is pending.
+
+- [x] Store header uses the **NS** logo alongside the customer **NC** and admin **NA** branding. Verified the HTML change and retained existing styling; deployed through PR #188; live NS header checked at 320px/1280px.
 
 - [x] Implemented locally: dedicated EN/FR `store-app` frontend and store APIs; guest/account checkout, private order tracking and account history; full editable store CRUD through Admin → More → Store for products, categories, images, prices, stock and store content/policies. Includes collection verification, after-sales notes, contact corrections and owner-only full refunds. The catalogue starts empty and checkout closed.
 - [x] Implemented locally: separate hardware order/payment records, transactional stock reservations and immutable product/price/policy snapshots, verified settlement, late-payment review, safe payment/refund retries, optional-email status updates, zero-loss migration mappings and additive PostgreSQL uniqueness indexes. Hardware sales never issue vouchers or modify account identity/bundles.
@@ -1323,3 +1348,17 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 - [x] Deployed: PR #183 merged as `826481a`; all seven PR checks and main CI pass. API/customer/admin Render deployments succeeded at 18:37 UTC. Exact API revision, seven asset comparisons, six strict smoke groups and six read-only browser checks pass. Account audit: complete, zero repairs required, zero review cases; six historical checkout differences retained. See [release evidence](releases/reseller-ledger-2026-11-07.md).
 - [ ] Physically verified: no real cash entry, purchase or router operation performed in verification.
 
+
+## Customer bundle expiry message (8 November 2026)
+
+- [x] Implemented locally: confirmed expiry now shows “No active bundle” and “You don’t have an active bundle. Subscribe to get connected.” with guidance to the existing package selection below; the expired balance gauge is hidden. Accounts without a bundle get the same invitation. Unknown/unavailable status is kept separate, and expiry confirmation/purchase eligibility rules are unchanged.
+- [x] Verified 14 active-bundle browser scenarios at 320px/1280px, including server-confirmed expiry, local expiry uncertainty, stale/offline reads, exhaustion, reload and no-bundle accounts; syntax/diff and existing UI checks pass.
+- [ ] Deployment and physical-device acceptance of this message change remain pending.
+
+## Email setup, provider settlements and store receipts (8 November 2026)
+
+- [x] Implemented locally: optional signup-email completion popup after PIN setup, prefilled email, PIN proof and mailbox code, resend/change and dismiss/reopen. Existing unverified accounts get a setup reminder. Arbitrary signup email is never marked verified automatically; original account identity remains unchanged.
+- [x] Implemented locally: admin headline uses completed payment-provider net settlements after fees/deductions, with provider-account scope and date window. It does not substitute orders, offline voucher records, mock payments or balances. Flutterwave history is paginated/validated and briefly cached. MeSomb's current adapter has no supported complete net-settlement history: the total remains **Unavailable** until a supported source is integrated.
+- [x] Implemented locally: immutable NS-branded paid store PDF receipts, private-token/account-protected customer downloads and authorized admin downloads; original purchase details retained with current refund status. Store emails cover pending payment, preparation, pickup, collection, review, cancellation/expiry and refund progress; verified-payment emails attach the PDF. Retry/deduplication includes payment/refund state and does not starve older orders.
+- [x] Tested locally: 33 targeted store/payment/reporting/receipt API tests passed; 20 follow-up report/receipt tests include unauthorized settlement access and mock-money exclusion. Store browser suite passes 40 checks at 320px/1280px including saved PDF signature/filename, admin controls and guest checkout. Email setup passes mobile/desktop PIN/code flows with mocked delivery. Syntax/build and diff checks pass.
+- [ ] Deployment of these follow-ups remains pending. Real provider settlement reconciliation, real mailbox delivery/attachment opening, real Mobile Money purchase/refund, saved receipt inspection on a physical phone and pickup acceptance remain unverified. Policies remain unpublished and store checkout remains closed.
