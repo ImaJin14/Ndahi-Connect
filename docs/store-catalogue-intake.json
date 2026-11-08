@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Owner-requested catalogue intake; not a production import or stock ledger write",
+  "requestedOn": "2026-11-08",
+  "currency": "XAF",
+  "requestedUnits": 22,
+  "publication": "owner_approved_live_unpriced_listings_awaiting_deployment",
+  "products": [
+    {
+      "intakeId": "travel-router-ax1500",
+      "requestedName": "TP-Link AX1500 travel router",
+      "requestedStock": 10,
+      "confirmedModel": null,
+      "price": null,
+      "status": "draft",
+      "candidateModel": "TL-WR1502X; other AX1500 travel models exist",
+      "descriptionCandidateOnly": {
+        "en": "Portable dual-band Wi-Fi 6 router for travel and shared connections. The TL-WR1502X supports router, access-point and WISP modes, with Gigabit Ethernet and Type-C power. Confirm the supplied model before using this description.",
+        "fr": "Routeur portable Wi-Fi 6 double bande pour les déplacements. Le TL-WR1502X propose les modes routeur, point d’accès et WISP, des ports Ethernet Gigabit et une alimentation Type-C. Confirmer le modèle fourni avant utilisation de ce texte."
+      },
+      "officialSources": [
+        "https://www.tp-link.com/us/home-networking/wifi-router/tl-wr1502x/"
+      ],
+      "pending": [
+        "exact model and hardware revision",
+        "selling price",
+        "contents of actual supplied package",
+        "local warranty terms",
+        "NDAHI compatibility test"
+      ]
+    },
+    {
+      "intakeId": "tp-link-cpe210",
+      "requestedName": "TP-Link CPE210",
+      "requestedStock": 6,
+      "confirmedModel": "CPE210",
+      "hardwareRevision": null,
+      "price": null,
+      "status": "draft",
+      "description": {
+        "en": "Outdoor 2.4 GHz wireless CPE with a directional 9 dBi antenna, designed for point-to-point links and outdoor networking. Supports wireless rates up to 300 Mbps and passive PoE power. Installation and alignment are required.",
+        "fr": "CPE extérieur 2,4 GHz avec antenne directionnelle de 9 dBi, conçu pour les liaisons point à point et les réseaux extérieurs. Débit radio théorique jusqu’à 300 Mbit/s et alimentation PoE passive. Installation et orientation nécessaires."
+      },
+      "specifications": {
+        "en": "2.4 GHz; up to 300 Mbps wireless; directional 9 dBi antenna; passive PoE. Ethernet ports and supplied accessories require hardware-version confirmation.",
+        "fr": "2,4 GHz ; débit radio jusqu’à 300 Mbit/s ; antenne directionnelle 9 dBi ; PoE passif. Vérifier les ports Ethernet et accessoires selon la version."
+      },
+      "officialSources": [
+        "https://www.tp-link.com/eg/business-networking/pharos-cpe/cpe210/",
+        "https://support.omadanetworks.com/en/product/cpe210/"
+      ],
+      "pending": [
+        "selling price",
+        "hardware revision and regional package",
+        "local warranty terms",
+        "NDAHI compatibility test"
+      ]
+    },
+    {
+      "intakeId": "wavlink-ac1200",
+      "requestedName": "Wavlink AC1200",
+      "requestedStock": 2,
+      "confirmedModel": null,
+      "price": null,
+      "status": "draft",
+      "description": null,
+      "officialSourceCandidates": [
+        "https://www.wavlink.com/en_us/product/WL-WN575A3.html",
+        "https://www.wavlink.com/en_us/product/WL-WN575A4",
+        "https://www.wavlink.com/en_us/product/AERIAL"
+      ],
+      "pending": [
+        "exact WL/WS model code; AC1200 alone is not a model",
+        "selling price",
+        "official description for confirmed model",
+        "actual package and warranty",
+        "NDAHI compatibility test"
+      ]
+    },
+    {
+      "intakeId": "wavlink-mini",
+      "requestedName": "Wavlink Mini",
+      "requestedStock": 4,
+      "confirmedModel": null,
+      "price": null,
+      "status": "draft",
+      "description": null,
+      "officialSourceCandidates": [
+        "https://www.wavlink.com/en_us/product/WL-WN525N2.html",
+        "https://www.wavlink.com/en_us/product/WL-WN519N2"
+      ],
+      "pending": [
+        "exact WL/WS model code; Mini alone is not a model",
+        "selling price",
+        "official description for confirmed model",
+        "actual package and warranty",
+        "NDAHI compatibility test"
+      ]
+    }
+  ],
+  "notes": [
+    "Quantities are supplied by the owner; no physical stock count performed.",
+    "No selling prices, manufacturer warranty duration or NDAHI interoperability claims are invented.",
+    "Wireless class/radio link rates are not internet throughput guarantees.",
+    "Internet subscription is separate; no voucher is included or created by this intake.",
+    "Store checkout remains closed."
+  ],
+  "approval": "Owner requested immediate live publication on 8 November 2026; prices and exact model details to be updated later."
+}

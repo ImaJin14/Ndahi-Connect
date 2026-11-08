@@ -570,3 +570,18 @@ test("store refund authorization is owner-only and verified refund restores stoc
     409,
   );
 });
+
+test("published unpriced products are visible but cannot reserve stock or charge, even when checkout is open", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => { s.storeProducts[0].price = null; });
+  const catalogue = await f.call("/api/store/catalogue");
+  assert.equal(catalogue.body.products[0].price, null);
+  const result = await f.call("/api/store/checkout", f.checkout({ expectedPrice: null }));
+  assert.equal(result.status, 409); assert.match(result.body.error, /Price is not confirmed/);
+  assert.equal(f.charges(), 0); assert.equal((await f.store.snapshot()).storeOrders.length, 0);
+  const p=(await f.store.snapshot()).storeProducts[0];
+  const save=await f.call("/api/admin/store/products/save", {...p,price:null},{role:"owner",csrf:"csrf-owner"});
+  assert.equal(save.status,200);
+  const invalid=await f.call("/api/admin/store/products/save", {...p,version:p.version+1,price:0},{role:"owner",csrf:"csrf-owner"});
+  assert.equal(invalid.status,400);
+});

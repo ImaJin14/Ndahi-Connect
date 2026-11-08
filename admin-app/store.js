@@ -4,7 +4,7 @@ const emptyProduct = () => ({
   name: loc(),
   sku: "",
   categoryId: "",
-  price: 1,
+  price: null,
   cost: 0,
   status: "draft",
   featured: false,
@@ -17,7 +17,7 @@ const emptyProduct = () => ({
   setup: loc(),
 });
 const field = (name, label, value = "", type = "text", extra = "") =>
-  `<label>${h(label)}<input name="${h(name)}" type="${type}" value="${h(value)}" ${extra}></label>`;
+  `<label>${h(label)}<input name="${h(name)}" type="${type}" value="${h(value ?? "")}" ${extra}></label>`;
 const bilingual = (name, label, value = loc(), large = false) =>
   ["en", "fr"]
     .map(
@@ -37,7 +37,7 @@ function values(form) {
   }
   return out;
 }
-const fcfa = (n) => `${Number(n).toLocaleString()} FCFA`;
+const fcfa = (n) => n == null ? "Price to be confirmed" : `${Number(n).toLocaleString()} FCFA`;
 
 export function mountStore(root, { call, role, csrf }) {
   let state,
@@ -249,7 +249,7 @@ export function mountStore(root, { call, role, csrf }) {
   function editProduct(p) {
     images = structuredClone(p.images);
     $("#storeEditor").innerHTML =
-      `<h3>${p.id ? "Edit product" : "New product"}</h3><form id="storeProductForm"><div class="form-grid">${bilingual("name", "Name", p.name)}${field("sku", "SKU / model", p.sku, "text", 'required maxlength="80"')}${field("price", "Selling price (FCFA)", p.price, "number", 'required min="1" max="100000000"')}${role === "owner" ? field("cost", "Internal cost (FCFA)", p.cost, "number", 'min="0" max="100000000"') : ""}<label>Category<select name="categoryId"><option value="">Uncategorized</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(c.name.en)}</option>`).join("")}</select></label><label>Status<select name="status">${["draft", "published", "archived"].map((status) => `<option ${p.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>${checkbox("featured", "Featured product", p.featured)}${["description", "specifications", "compatibility", "contents", "warranty", "setup"].map((key) => bilingual(key, key[0].toUpperCase() + key.slice(1), p[key], true)).join("")}</div><h4>Product images</h4><p class="form-help">Up to four images. Uploads are resized to a maximum of 960px and saved with the product. Add alternative text in both languages.</p><label>Upload image<input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp"></label><div id="storeImages"></div><div class="action-row"><button type="submit">Save product</button><button type="button" id="cancelProduct">Cancel</button></div></form>`;
+      `<h3>${p.id ? "Edit product" : "New product"}</h3><form id="storeProductForm"><div class="form-grid">${bilingual("name", "Name", p.name)}${field("sku", "SKU / model", p.sku, "text", 'required maxlength="80"')}${field("price", "Selling price (FCFA)", p.price, "number", 'min="1" max="100000000" placeholder="Price to be confirmed"')}${role === "owner" ? field("cost", "Internal cost (FCFA)", p.cost, "number", 'min="0" max="100000000"') : ""}<label>Category<select name="categoryId"><option value="">Uncategorized</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(c.name.en)}</option>`).join("")}</select></label><label>Status<select name="status">${["draft", "published", "archived"].map((status) => `<option ${p.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>${checkbox("featured", "Featured product", p.featured)}${["description", "specifications", "compatibility", "contents", "warranty", "setup"].map((key) => bilingual(key, key[0].toUpperCase() + key.slice(1), p[key], true)).join("")}</div><h4>Product images</h4><p class="form-help">Up to four images. Uploads are resized to a maximum of 960px and saved with the product. Add alternative text in both languages.</p><label>Upload image<input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp"></label><div id="storeImages"></div><div class="action-row"><button type="submit">Save product</button><button type="button" id="cancelProduct">Cancel</button></div></form>`;
     renderImages();
     $("#cancelProduct").onclick = () => $("#storeEditor").replaceChildren();
     $("#storeImageUpload").onchange = (e) =>
@@ -287,7 +287,7 @@ export function mountStore(root, { call, role, csrf }) {
           ...input,
           id: p.id,
           version: p.version,
-          price: Number(input.price),
+          price: input.price === "" ? null : Number(input.price),
           cost: Number(input.cost || 0),
           featured: e.target.elements.featured.checked,
           images,
