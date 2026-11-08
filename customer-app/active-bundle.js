@@ -2,7 +2,10 @@ import { escapeHtml as h } from '/shared/safe-html.js';
 import { formatDataBalance as fmt, formatExpiryCountdown, fuelStatusClass, dataWarning } from '/shared/data-usage.js';
 export function activeBundleContent(snapshot, { now = Date.now(), unavailable = false, paused = false } = {}) {
   const v=snapshot&&snapshot.bundle;
-  if(!v)return '<p class="eyebrow">Active bundle</p><h2>No active bundle</h2><p>Your bundle information will appear here after activation.</p><p role="status">'+(unavailable?'Bundle status is unavailable. Checking automatically when connected.':'No active allocation is recorded.')+'</p>';
+  if(!v)return unavailable
+    ? '<p class="eyebrow">Active bundle</p><h2>Bundle status unavailable</h2><p role="status">We could not check your bundle. Checking automatically when connected.</p>'
+    : '<p class="eyebrow">Active bundle</p><h2>No active bundle</h2><p>You don’t have an active bundle. Subscribe to get connected.</p>';
+  if(v.status==='expired'&&!snapshot.activeId&&!unavailable&&!paused)return '<p class="eyebrow">Active bundle</p><h2>No active bundle</h2><p data-bundle-status role="status">Expired</p><p>You don’t have an active bundle. Subscribe to get connected.</p><p>Your previous bundle has expired. Choose a package below to get back online.</p>';
   const awaiting=v.status==='active'&&Number.isFinite(Date.parse(v.expiresAt))&&Date.parse(v.expiresAt)<=now;
   const status=awaiting?'Confirming expiry':v.status==='active'?'Active':({expired:'Expired',exhausted:'Data exhausted',suspended:'Account suspended'})[v.status]||'Status unavailable';
   const known=Number.isFinite(v.usedBytes),limited=Number.isFinite(v.quotaBytes),percent=limited&&known&&v.quotaBytes>0?Math.min(100,v.usedBytes/v.quotaBytes*100):null;
