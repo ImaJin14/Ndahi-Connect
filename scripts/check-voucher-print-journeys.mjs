@@ -192,6 +192,110 @@ try {
     }
   });
 
+  await scenario("admin can print a specific user's active voucher from the Vouchers table, Details panel, and Customers tab without PII leakage", async (page) => {
+    await store.transaction((s) => {
+      s.customers.push({ id: "cust-user-2", name: "Second Customer", phone: "670112233" });
+      s.payments.push({
+        id: "pay-pii-1",
+        customerId: "cust-pii-1",
+        planId: "weekly",
+        status: "paid",
+        amount: 1000,
+        currency: "XAF",
+        provider: "mock",
+        providerReference: "MOMO-PRIVATE-REF",
+        payerPhone: "699887766",
+      });
+      s.vouchers.push(
+        {
+          id: "v-active-user-1",
+          customerId: "cust-pii-1",
+          paymentId: "pay-pii-1",
+          planId: "weekly",
+          code: "NC-USER-ONE1",
+          status: "active",
+          activatedAt: at.toISOString(),
+          expiresAt: "2030-01-08T12:00:00.000Z",
+          quotaBytes: 5e9,
+          usedBytes: 1e9,
+          deviceLimit: 2,
+        },
+        {
+          id: "v-expired-user-2",
+          customerId: "cust-user-2",
+          planId: "daily",
+          code: "NC-USER-TWO2",
+          status: "expired",
+          activatedAt: "2029-12-30T12:00:00.000Z",
+          expiresAt: "2029-12-31T12:00:00.000Z",
+          quotaBytes: 1e9,
+          usedBytes: 1e9,
+          deviceLimit: 1,
+        },
+      );
+    });
+
+    await page.goto(`${admin}/dashboard#vouchers`);
+    await page.locator('[data-voucher-record="v-active-user-1"]').waitFor();
+
+    // Active voucher row exposes Print voucher; expired voucher row does not
+    assert.equal(await page.locator('[data-voucher-record="v-active-user-1"] [data-print-voucher="v-active-user-1"]').count(), 1);
+    assert.equal(await page.locator('[data-voucher-record="v-expired-user-2"] [data-print-voucher]').count(), 0);
+
+    // Expand Details to verify ownership, then click Print voucher slip from inside Details
+    await page.getByRole("button", { name: "Details for voucher NC-USER-ONE1", exact: true }).click();
+    const detailsPanel = page.locator('[data-voucher-panel="v-active-user-1"]');
+    await detailsPanel.getByText("Confidential Customer Name", { exact: true }).waitFor();
+    await detailsPanel.getByRole("button", { name: "Print voucher slip", exact: true }).click();
+
+    await page.locator("#activeVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
+    assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
+    assert.equal(await page.locator("#activeVoucherPrint .thermal-slip").count(), 1);
+    assert.match(await page.locator("#activeVoucherPrint .thermal-slip").textContent(), /Expires 2030-01-08/);
+
+    // Verify QR code decodes to exact onboarding redemption link for NC-USER-ONE1
+    const pixels = await page.locator("#activeVoucherPrint .thermal-slip img").first().evaluate(async (img) => {
+      await img.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+      return { width: canvas.width, height: canvas.height, data: Array.from(ctx.getImageData(0, 0, canvas.width, canvas.height).data) };
+    });
+    const decoded = jsQR(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height);
+    assert.ok(decoded, "active voucher printed QR must decode");
+    assert.equal(decoded.data, "http://127.0.0.1:8957/onboarding.html?action=connect&code=NC-USER-ONE1");
+
+    // Verify zero PII leaks onto the printed surface
+    const slipHtml = await page.locator("#voucherPrintSurface").innerHTML();
+    for (const forbidden of ["cust-pii-1", "Confidential Customer Name", "670998877", "confidential@example.com", "pay-pii-1", "MOMO-PRIVATE-REF", "699887766"]) {
+      assert.ok(!slipHtml.includes(forbidden), `Active voucher slip leaked PII: ${forbidden}`);
+    }
+
+    // Verify @media print hides table and admin shell and produces a 1-page 58mm PDF
+    await page.emulateMedia({ media: "print" });
+    assert.equal(await page.locator("#voucherRecords").isVisible(), false);
+    assert.equal(await page.locator("#voucherPrintSurface").isVisible(), true);
+    await page.emulateMedia({ media: null });
+
+    const active58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-active-58.pdf", preferCSSPageSize: true });
+    assertPaperWidth(active58Pdf, 58);
+    assert.equal((active58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 1);
+
+    // Close preview in Vouchers tab
+    await page.getByRole("button", { name: "Close print preview", exact: true }).click();
+    assert.equal(await page.locator("#voucherPrintPreview").count(), 0);
+
+    // Now navigate to Customers tab and print directly from User One's customer row
+    await page.getByRole("link", { name: "Customers", exact: true }).click();
+    await page.locator('[data-print-customer-voucher="cust-pii-1"]').waitFor();
+    await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
+
+    await page.locator("#customerVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
+    const customer58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-customer-58.pdf", preferCSSPageSize: true });
+    assertPaperWidth(customer58Pdf, 58);
+    assert.equal((customer58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 1);
+  });
+
   console.log(`${checks} voucher print browser journeys passed.`);
 } finally {
   await browser?.close();

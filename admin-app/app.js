@@ -33,6 +33,31 @@ function revenueSummary(sales) {
 let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
+let activePrintController = null;
+function clearPrintContainers() {
+  activePrintController?.destroy();
+  activePrintController = null;
+  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint"]) {
+    $(selector)?.replaceChildren();
+  }
+}
+function openSingleVoucherPrintPreview(targetContainer, result) {
+  if (!targetContainer || !result?.voucher) return;
+  clearPrintContainers();
+  if ($("#actionMessage")) $("#actionMessage").textContent = "";
+  const voucher = result.voucher;
+  targetContainer.innerHTML = `<div class="generated-heading"><div><strong>Voucher slip ready to print (${h(voucher.code)})</strong><p>${voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : "Active voucher. Customer and payment details are excluded from the printed slip."}</p></div><div class="action-row"><button type="button" class="secondary-action" data-close-voucher-print>Close print preview</button></div></div><div class="generated-codes"><code>${h(voucher.code)}</code></div><div id="voucherPrintPreview"></div>`;
+  activePrintController = mountGeneratedVoucherPrint({
+    container: targetContainer.querySelector("#voucherPrintPreview"),
+    vouchers: [voucher],
+    plan: result.plan,
+    layout: "thermal-58",
+  });
+  targetContainer.querySelector("[data-close-voucher-print]").onclick = () => {
+    clearPrintContainers();
+  };
+  targetContainer.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+}
 window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
   const message = document.querySelector("#actionMessage") || document.querySelector("#app");
@@ -133,8 +158,8 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
   <button>Generate resale vouchers</button>
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
-<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="admin-nav-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
-<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
+<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="admin-nav-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
+<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
 <section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="admin-nav-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
 <section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
@@ -237,14 +262,15 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         body: JSON.stringify(payload),
       });
       const vouchers = result.vouchers || [result.voucher];
+      clearPrintContainers();
       $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div class="action-row"><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><div id="voucherPrintPreview"></div>`;
-      const printController = mountGeneratedVoucherPrint({
+      activePrintController = mountGeneratedVoucherPrint({
         container: $("#voucherPrintPreview"),
         vouchers,
         plan: result.plan,
         layout: vouchers.length > 1 ? "a4-sheet" : "thermal-58",
       });
-      $("#closeGenerated").onclick = () => { printController?.destroy(); $("#generated").replaceChildren(); $("#generate").reset(); updateVoucherBuilder(); };
+      $("#closeGenerated").onclick = () => { clearPrintContainers(); $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
           link = document.createElement("a");
@@ -318,7 +344,7 @@ function mountRecordViews(canManagePayments, retired) {
     collection: "customers",
     title: "Customers",
     headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td><button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover PIN</button>` : ""}</td></tr>`,
+    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td>${c.status !== "suspended" ? `<button type="button" class="secondary-action" data-print-customer-voucher="${h(c.id)}">Print active voucher</button> ` : ""}<button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover PIN</button>` : ""}</td></tr>`,
   });
   wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
@@ -346,6 +372,10 @@ function mountRecordViews(canManagePayments, retired) {
     title: "Vouchers",
     headers: ["Code", "Bundle", "Status", "Sale", "Email", "Devices", "Actions"],
     row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(saleLabel(v))}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
+      ["active", "available"].includes(v.status) && v.permissions?.code !== false && v.code && v.code !== "Restricted"
+        ? `<button type="button" class="secondary-action" data-print-voucher="${h(v.id)}">Print voucher</button> `
+        : ""
+    }${
       v.status === "active" ? `<button data-voucher="${h(v.id)}">Revoke</button>` : ""
     }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}${
       v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => ` <button class="secondary-action" data-classify="${h(v.id)}" data-sale-type="${type}">Mark ${type === "sold" ? "sold" : "gift"}</button>`).join("") : ""
@@ -407,7 +437,7 @@ $("#app").onclick = async (e) => {
     $("#bundle").hidden = false;
     return;
   }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -420,6 +450,20 @@ $("#app").onclick = async (e) => {
         $("#bundleMessage").textContent = error.message;
         return;
       }
+    } else if (button.dataset.printVoucher) {
+      const result = await call("/api/admin/vouchers/print", {
+        method: "POST",
+        body: JSON.stringify({ voucherId: button.dataset.printVoucher }),
+      });
+      openSingleVoucherPrintPreview($("#activeVoucherPrint"), result);
+      return;
+    } else if (button.dataset.printCustomerVoucher) {
+      const result = await call("/api/admin/vouchers/print", {
+        method: "POST",
+        body: JSON.stringify({ customerId: button.dataset.printCustomerVoucher }),
+      });
+      openSingleVoucherPrintPreview($("#customerVoucherPrint"), result);
+      return;
     } else if (button.dataset.resendEmail) {
       const result = await call("/api/admin/vouchers/resend-email", {
         method: "POST",
