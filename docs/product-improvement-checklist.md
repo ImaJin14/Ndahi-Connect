@@ -1382,3 +1382,9 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Implemented: one-time audited, transactional inventory publication; restart/concurrency protection, SKU conflict checks and preservation of later admin edits/deletions. No checkout-open, payment, customer or policy changes.
 - [x] Tested locally: 17 store/publication/API unit tests, including inventory idempotency and unpriced purchase protection; mobile/desktop catalogue and existing store regressions checked before release.
 - [ ] Deployment and exact live product/stock verification tracked in the release PR. User will update selling prices, exact travel/Wavlink models, photos, package details and warranty later; physical compatibility remains unverified.
+
+## MoMo customer payment message (9 November 2026)
+
+- [x] Implemented: send MeSomb’s documented customer `message` field with “NDAHI Connect - Internet bundle payment” or “NDAHI Connect - Store purchase”. Existing transaction references/signing retained; store descriptions no longer use an undefined plan ID.
+- [x] Verified outgoing signed HTTP payloads through the real SDK with offline fixtures for MTN/Orange and internet/store cases. No real payment request or phone popup was triggered.
+- [ ] Deployment and actual MTN/Orange popup display remain to verify. Operator/gateway merchant display may use the configured MeSomb application/business name; its production value is not established by a synthetic fixture.

@@ -210,7 +210,7 @@ test("TEST-003 MeSomb collection goes through the real SDK with a signed asynchr
       amount: 500, service: "MTN", payer: "670000001", country: "CM", currency: "XAF", amount_currency: "XAF",
       fees: false, conversion: false,
       customer: { email: "ada@example.test", firstName: "Ada", lastName: "Lovelace Byron", country: "CM" },
-      reference: "contract-payment-1", description: "NDAHI Connect weekly package",
+      reference: "contract-payment-1", message: "NDAHI Connect - Internet bundle payment", description: "NDAHI Connect weekly package",
     });
     assert.equal(mesombSignatureMatches({ method: "POST", url, headers: options.headers, body: options.body, ...mesombKeys }), true);
     assert.equal(mesombSignatureMatches({ method: "POST", url, headers: options.headers, body: options.body, ...mesombKeys, secretKey: "other" }), false);
@@ -612,3 +612,19 @@ test("TEST-003 sandbox exercises share fetch serialization with read-only contra
   assert.equal(results[2].failed, false);
   assert.equal(globalThis.fetch, original);
 });
+
+for (const network of ["mtn", "orange"]) {
+  for (const storePurchase of [false, true]) {
+    test(`MeSomb customer message identifies NDAHI Connect for ${network} ${storePurchase ? "store" : "internet"} payments`, async () => {
+      await withFetch(mesombRoute({ "/payment/collect/": mesomb.collectPending }), async (calls) => {
+        const input = { ...payment, network, ...(storePurchase ? { id: "store-contract-order", planId: undefined } : {}) };
+        await new MeSombPaymentAdapter(mesombKeys).createPayment(input);
+        const body = JSON.parse(calls[0].options.body);
+        assert.equal(body.message, storePurchase ? "NDAHI Connect - Store purchase" : "NDAHI Connect - Internet bundle payment");
+        assert.equal(body.reference, input.id); assert.equal(body.amount, input.amount); assert.equal(body.currency, input.currency);
+        assert.doesNotMatch(body.description, /undefined/);
+        assert.equal(mesombSignatureMatches({ method: "POST", url: calls[0].url, headers: calls[0].options.headers, body: calls[0].options.body, ...mesombKeys }), true);
+      });
+    });
+  }
+}
