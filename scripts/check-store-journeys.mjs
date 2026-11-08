@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -118,6 +119,9 @@ try {
       page = await context.newPage(),
       errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    await context.addInitScript(() =>
+      localStorage.setItem("ndahi-store-language", "fr"),
+    );
     await page.goto("http://127.0.0.1:9193/");
     await page
       .getByRole("heading", { name: "Find your connection." })
@@ -139,37 +143,38 @@ try {
       .click();
     assert.equal(await page.locator(".product").count(), 1);
     checks++;
-    await page.locator("#language").click();
-    await page
-      .getByRole("heading", { name: "Trouvez votre connexion." })
-      .waitFor();
+    assert.equal(await page.locator("#language").count(), 0);
+    assert.equal(await page.locator("html").getAttribute("lang"), "en");
     checks++;
-    await page.getByRole("button", { name: "Voir l’appareil" }).click();
+    await page.getByRole("button", { name: "View device" }).click();
     await page.locator("#productTitle").waitFor();
-    await page.getByRole("button", { name: "Acheter cet appareil" }).click();
-    await page.getByLabel("Nom complet").fill("Guest browser buyer");
-    await page.getByLabel("Téléphone de contact").fill("670000099");
-    await page.getByLabel("Numéro Mobile Money").fill("690000099");
-    await page.getByRole("button", { name: "Payer par Mobile Money" }).click();
+    await page.getByRole("button", { name: "Buy this device" }).click();
+    await page.getByLabel("Full name").fill("Guest browser buyer");
+    await page.getByLabel("Contact phone").fill("670000099");
+    await page.getByLabel("Mobile Money number").fill("690000099");
+    await page.getByRole("button", { name: "Pay with Mobile Money" }).click();
     await page.waitForURL(/#order\//);
-    await page.getByRole("button", { name: "Vérifier le paiement" }).click();
-    await page
-      .getByText("Préparation de votre commande", { exact: true })
-      .waitFor();
+    await page.getByRole("button", { name: "Check payment" }).click();
+    await page.getByText("Preparing your order", { exact: true }).waitFor();
+    checks++;
+    const receiptDownload = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download receipt", exact: true }).click();
+    const receiptFile = await receiptDownload;
+    assert.match(receiptFile.suggestedFilename(), /^ndahi-store-receipt-/);
+    const receiptBytes = await readFile(await receiptFile.path());
+    assert.equal(receiptBytes.subarray(0, 5).toString(), "%PDF-");
     checks++;
     const url = page.url();
     await page.reload();
-    await page
-      .getByText("Préparation de votre commande", { exact: true })
-      .waitFor();
+    await page.getByText("Preparing your order", { exact: true }).waitFor();
     assert.equal(page.url(), url);
     checks++;
     await page
-      .getByRole("link", { name: "Mes commandes", exact: true })
+      .getByRole("link", { name: "My orders", exact: true })
       .first()
       .click();
     await page
-      .getByRole("heading", { name: "Commandes récentes sur ce navigateur" })
+      .getByRole("heading", { name: "Recent orders on this browser" })
       .waitFor();
     checks++;
     assert.deepEqual(errors, []);
@@ -186,11 +191,101 @@ try {
       },
     ]);
     const panel = await staff.newPage();
+    panel.setDefaultTimeout(15000);
     activePage = panel;
     panel.on("dialog", (dialog) => dialog.accept());
     panel.on("pageerror", (e) => errors.push(e.message));
+    let firstStoreRead = true;
+    await panel.route("**/api/admin/store", async (route) => {
+      if (route.request().method() !== "GET") return route.continue();
+      if (firstStoreRead) {
+        firstStoreRead = false;
+        return route.fulfill({
+          status: 503,
+          headers: {
+            "Access-Control-Allow-Origin": "http://127.0.0.1:9191",
+            "Access-Control-Allow-Credentials": "true",
+          },
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Store temporarily unavailable" }),
+        });
+      }
+      return route.continue();
+    });
     await panel.goto("http://127.0.0.1:9191/dashboard#store");
-    await panel.getByRole("button", { name: "Open store management" }).click();
+    await panel
+      .getByText("Store temporarily unavailable", { exact: true })
+      .waitFor();
+    await panel
+      .getByRole("button", { name: "Retry loading store", exact: true })
+      .click();
+    checks++;
+    assert.equal(
+      await panel
+        .getByRole("button", { name: "Open store management" })
+        .count(),
+      0,
+    );
+    await panel
+      .getByRole("button", { name: "Close checkout", exact: true })
+      .click();
+    await panel
+      .getByText("Closed — new orders paused", { exact: true })
+      .waitFor();
+    assert.equal((await store.snapshot()).storeSettings.open, false);
+    await panel
+      .getByRole("button", { name: "Open checkout", exact: true })
+      .click();
+    await panel
+      .getByText("Open — accepting new orders", { exact: true })
+      .waitFor();
+    assert.equal((await store.snapshot()).storeSettings.open, true);
+    checks++;
+    await panel.getByRole("link", { name: "Home", exact: true }).click();
+    await panel.getByRole("link", { name: "Store", exact: true }).click();
+    await panel
+      .getByRole("heading", { name: "Store overview", exact: true })
+      .waitFor();
+    await panel.locator('[data-order-filter="preparing"]').click();
+    assert.equal(
+      await panel.locator("#storeOrderStatus").inputValue(),
+      "preparing",
+    );
+    assert.equal(
+      await panel.locator("#storeOrderRows tbody tr").count(),
+      (await store.snapshot()).storeOrders.filter(
+        (o) => o.status === "preparing",
+      ).length,
+    );
+    await panel.locator("#storeOrderStatus").selectOption("collected");
+    await panel
+      .getByText("No orders match this view.", { exact: true })
+      .waitFor();
+    await panel.locator("#storeOrderStatus").selectOption("all");
+    assert.equal(
+      await panel.locator("#storeOrderRows tbody tr").count(),
+      (await store.snapshot()).storeOrders.length,
+    );
+    await panel.getByRole("button", { name: "Overview", exact: true }).click();
+    await panel
+      .getByRole("button", { name: "Update stock", exact: true })
+      .click();
+    await panel
+      .getByRole("heading", { name: "Inventory", exact: true })
+      .waitFor();
+    await panel.getByRole("button", { name: "Overview", exact: true }).click();
+    await panel.screenshot({
+      path: `/tmp/ndahi-store-overview-${width}.png`,
+      fullPage: true,
+    });
+    assert.equal(
+      await panel.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    checks++;
+
     await panel
       .getByRole("button", { name: "Add product", exact: true })
       .waitFor();
@@ -213,13 +308,11 @@ try {
       ctx.fillRect(0, 0, 20, 20);
       return canvas.toDataURL("image/png");
     });
-    await panel
-      .locator("#storeImageUpload")
-      .setInputFiles({
-        name: "test.png",
-        mimeType: "image/png",
-        buffer: Buffer.from(imageData.split(",")[1], "base64"),
-      });
+    await panel.locator("#storeImageUpload").setInputFiles({
+      name: "test.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(imageData.split(",")[1], "base64"),
+    });
     await panel.locator("#storeImages fieldset").waitFor();
     await panel.locator('[name="image0.en"]').fill("Test product image");
     await panel.locator('[name="image0.fr"]').fill("Image du produit test");
@@ -258,7 +351,7 @@ try {
     await panel.getByRole("button", { name: "Save category" }).click();
     await panel.getByText(new RegExp("Test accessories " + width)).waitFor();
     checks++;
-    await panel.getByRole("button", { name: "Inventory", exact: true }).click();
+    await panel.getByRole("button", { name: "Stock", exact: true }).click();
     await panel.locator('#stockForm [name="delta"]').fill("2");
     await panel
       .locator('#stockForm [name="reason"]')
@@ -283,6 +376,33 @@ try {
         .settings.banner.en,
       "Browser store update " + width,
     );
+    checks++;
+    await panel.unroute("**/api/admin/store");
+    await panel.route("**/api/admin/store", async (route) => {
+      const response = await route.fetch();
+      const snapshot = await response.json();
+      snapshot.settings.open = false;
+      snapshot.settings.contact = "";
+      return route.fulfill({ response, json: snapshot });
+    });
+    await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+    await panel
+      .getByText("Closed — new orders paused", { exact: true })
+      .waitFor();
+    assert.equal(
+      await panel
+        .getByRole("button", { name: "Open checkout", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await panel
+      .getByText("Configuration missing: Contact details.", { exact: true })
+      .waitFor();
+    await panel.unroute("**/api/admin/store");
+    await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+    await panel
+      .getByText("Open — accepting new orders", { exact: true })
+      .waitFor();
     checks++;
     await panel.screenshot({
       path: `/tmp/ndahi-store-admin-${width}.png`,
