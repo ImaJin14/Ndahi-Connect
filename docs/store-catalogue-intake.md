@@ -20,11 +20,12 @@ The structured [catalogue intake](store-catalogue-intake.json) records quantitie
 
 Descriptions are short original paraphrases of manufacturer facts, not copied marketing text. Advertised wireless rates do not guarantee internet speed. No physical compatibility test, local warranty, included voucher or accessory inventory is asserted.
 
-## Apply after confirmation
+## Update the live listings later
 
-1. Confirm model codes, hardware versions and selling prices; use the corresponding official regional/revision documentation to finish the copy.
-2. Sign in through the normal admin app as owner/operator and check existing SKUs before creation. Live editing requires an authorized admin session; no credentials are requested or embedded in this intake.
-3. Create draft products with confirmed prices and descriptions. Enter the requested stock using the inventory ledger and an explicit receipt reason; check for existing stock/movements before any retry.
-4. Review actual photos, supplied accessories, warranty and compatibility. Publish only approved listings; keep checkout closed until the separate launch requirements are fulfilled.
+1. Confirm model codes, hardware versions and selling prices; use the matching official regional/revision documentation to finish the copy.
+2. In **Admin → Store → Products**, edit the existing SKUs `ND-TPLINK-AX1500`, `ND-TPLINK-CPE210`, `ND-WAVLINK-AC1200` and `ND-WAVLINK-MINI`. Do not create duplicate products.
+3. Enter a positive whole-FCFA price when confirmed; leave it blank while unknown. Update descriptions, real photos, supplied accessories and warranty. No redeployment is needed for these admin edits.
+4. Initial stock is received once as 10/6/2/4. Do not receive it again when editing a product. Use the inventory ledger with a reason for any later physical stock change.
+5. Checkout remains closed until the separate launch requirements are fulfilled. Unpriced products remain unpurchasable even after the owner eventually opens checkout.
 
 The versioned publication batch in `lib/initial-store-catalogue.mjs` creates the four approved listings and records initial stock once in the inventory ledger. Restarts do not replenish stock or overwrite later admin edits. Existing matching SKUs stop the batch for review. It does not open checkout or alter customer accounts, payments or policies. Pending details remain visible in the listing copy. Deployment and live verification are recorded in the matching release PR.
