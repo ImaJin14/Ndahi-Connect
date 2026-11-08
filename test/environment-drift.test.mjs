@@ -133,7 +133,7 @@ test("unknown services and malformed Blueprints fail closed", () => {
 
 test("every web service checks its environment before deploying", () => {
   const web = parse(text).services.filter((service) => service.type === "web");
-  assert.equal(web.length, 3);
+  assert.equal(web.length, 4);
   for (const service of web) {
     const command = service.preDeployCommand || "";
     assert.ok(command.startsWith(`npm run check:environment -- ${service.name}`), service.name);

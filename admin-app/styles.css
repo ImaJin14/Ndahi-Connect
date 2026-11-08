@@ -529,3 +529,22 @@
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
+
+/* Store management shares the admin palette and remains usable on narrow screens. */
+#panel-store form { margin: 20px 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; }
+#panel-store .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+#panel-store label { display: block; margin: 12px 0; font-size: 13px; font-weight: 600; }
+#panel-store input, #panel-store select, #panel-store textarea { width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); font: inherit; }
+#panel-store textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+#panel-store input[type="checkbox"] { width: auto; margin-right: 8px; }
+#panel-store fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: 14px 0; }
+#panel-store fieldset img { object-fit: contain; max-width: 100%; }
+#panel-store .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+#panel-store .form-help, #storeAdminMessage { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#panel-store button:disabled { opacity: .55; cursor: wait; }
+#panel-store input:focus-visible, #panel-store select:focus-visible, #panel-store textarea:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+@media (max-width: 600px) {
+  #panel-store .form-grid { grid-template-columns: 1fr; }
+  #panel-store form { padding: 12px; }
+  #panel-store .action-row button { flex: 1 1 auto; }
+}

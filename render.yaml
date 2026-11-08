@@ -70,6 +70,29 @@ services:
         value: "true"
 
   - type: web
+    name: ndahi-store
+    preDeployCommand: npm run check:environment -- ndahi-store
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm run start:store
+    healthCheckPath: /healthz
+    domains:
+      - store.ndahiconnect.net
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: API_URL
+        sync: false
+      - key: CUSTOMER_APP_URL
+        value: https://portal.ndahiconnect.net
+
+  - type: web
     name: ndahi-admin
     runtime: node
     region: frankfurt
@@ -106,6 +129,8 @@ services:
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 60
     envVars:
+      - key: STORE_APP_URL
+        value: https://store.ndahiconnect.net
       - key: NODE_ENV
         value: production
       - key: HOST

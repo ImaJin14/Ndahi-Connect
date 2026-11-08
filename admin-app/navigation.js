@@ -5,11 +5,11 @@ const primary = [
   ["payments", "Payments", "M4 3h16v19l-4-2-4 2-4-2-4 2Zm4 5h8M8 12h8M8 16h5"],
   ["more", "More", "M4 5h16M4 12h16M4 19h16"],
 ];
-const secondary = ["connections", "network-setup", "bundles", "voucher-create", "customers", "audit"];
+const secondary = ["store", "connections", "network-setup", "bundles", "voucher-create", "customers", "audit"];
 let mounted = false, currentRole, changed;
 export function activeAdminView(role = currentRole) {
   const view = location.hash.slice(1);
-  const allowed = [...primary.map(([id]) => id), ...secondary.filter((id) => id !== "network-setup" || role === "owner")];
+  const allowed = [...primary.map(([id]) => id), ...secondary.filter((id) => (id !== "network-setup" || role === "owner") && (id !== "store" || ["owner", "operator"].includes(role)))];
   return allowed.includes(view) ? view : "home";
 }
 function apply(focus = false) {

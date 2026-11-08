@@ -1,3 +1,4 @@
+import { createStoreRoutes } from './lib/api/store.mjs';
 import { createHomeRoutes } from "./lib/api/home.mjs";
 import { createServices } from "./lib/api/services.mjs";
 import { NOT_HANDLED } from "./lib/api/routing.mjs";
@@ -67,6 +68,7 @@ export function createHandler(opts = {}) {
     createPerformanceRoutes(context),
     createPublicRoutes(context),
     createConnectivityRoutes(context),
+    createStoreRoutes(context),
     createPaymentRoutes(context),
     createVoucherRoutes(context),
     createCustomerAuthRoutes(context),
@@ -168,6 +170,7 @@ export function createHandler(opts = {}) {
     if (usage.status === "rejected") throw usage.reason;
     return usage.value;
   };
+  handler.storeCommerce = context.storeCommerce;
   return handler;
 }
 
@@ -183,7 +186,8 @@ export const createServer = (opts) => {
     billingTimer,
     securityAlertsTimer,
     networkSetupTimer,
-    monitorTimer;
+    monitorTimer,
+    storeTimer;
   const runBilling = () =>
     Promise.all([handler.billing.run(), handler.transactionalEmails.run()]).catch((error) => {
       handler.logger.error("billing.worker_failed", databaseDiagnostic(error));
@@ -223,6 +227,8 @@ export const createServer = (opts) => {
       handler.logger.error("network.setup_worker_failed");
     });
   server.on("listening", () => {
+    storeTimer = setInterval(() => { void handler.storeCommerce.run().catch(error => handler.logger.error("store.worker_failed", databaseDiagnostic(error))); }, 15000);
+    storeTimer.unref();
     if (handler.homeWorkerEnabled) {
       void runHome();
       homeTimer = setInterval(runHome, 5000);
@@ -280,6 +286,7 @@ export const createServer = (opts) => {
     timer.unref();
   });
   server.on("close", () => {
+    clearInterval(storeTimer);
     clearInterval(networkSetupTimer);
     clearInterval(billingTimer);
     clearInterval(timer);

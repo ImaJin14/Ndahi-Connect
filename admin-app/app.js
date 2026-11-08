@@ -1,3 +1,4 @@
+import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { mountNetworkSetup } from "/network-setup.js";
@@ -95,6 +96,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
   ${[
     ["connections", "Connections"],
     ...(x.profile.role === "owner" ? [["network-setup", "Network setup"]] : []),
+    ...(["owner", "operator"].includes(x.profile.role) ? [["store", "Store"]] : []),
     ["bundles", "Bundles"],
     ["voucher-create", "Generate voucher"],
     ["customers", "Customers"],
@@ -144,6 +146,15 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     const wrapper = document.createElement("div");
     wrapper.className = "table-scroll";
     table.before(wrapper); wrapper.append(table);
+  }
+  if (["owner", "operator"].includes(adminRole)) {
+    const panel = document.createElement("section");
+    panel.className = "card tab-panel";
+    panel.dataset.tabPanel = "store";
+    panel.id = "panel-store";
+    panel.hidden = activeAdminTab !== "store";
+    $("#app").append(panel);
+    mountStore(panel, { call, role: adminRole });
   }
   mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);

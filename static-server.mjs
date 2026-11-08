@@ -10,6 +10,7 @@ export function createStaticServer(
     apiUrl = process.env.API_URL || "http://localhost:8082",
     production = process.env.NODE_ENV === "production",
     telemetry = process.env.PERFORMANCE_METRICS_ENABLED === "true",
+    portalUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080",
     supportEmail = process.env.SUPPORT_EMAIL || "",
     supportPhone = process.env.SUPPORT_PHONE || "",
     hotspotLoginUrl = process.env.HOTSPOT_LOGIN_URL || "",
@@ -24,7 +25,7 @@ export function createStaticServer(
     }
     hotspotOrigin = login.origin;
   }
-  const root = join(process.cwd(), kind === "admin" ? "admin-app" : "customer-app");
+  const root = join(process.cwd(), kind === "admin" ? "admin-app" : kind === "store" ? "store-app" : "customer-app");
   let assets;
   const getAssets = () => assets ||= createAssetCatalog(root, { telemetry }).catch((error) => { assets = undefined; throw error; });
   const reportUrl = `${apiUrl.replace(/\/$/, "")}/api/csp-report`,
@@ -81,13 +82,13 @@ export function createStaticServer(
         "content-type": "text/javascript",
         "cache-control": "no-store",
       });
-      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, app: kind, supportEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail) ? supportEmail : "", supportPhone: /^\+?[0-9 ()-]{6,24}$/.test(supportPhone) ? supportPhone : "", ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
+      return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, portalUrl, app: kind, supportEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail) ? supportEmail : "", supportPhone: /^\+?[0-9 ()-]{6,24}$/.test(supportPhone) ? supportPhone : "", ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
     }
-    if (url.pathname === "/" || url.pathname === "/index.html") {
+    if (kind !== "store" && (url.pathname === "/" || url.pathname === "/index.html")) {
       res.writeHead(302, { ...securityHeaders, location: kind === "customer" ? "/onboarding.html" : "/login", "cache-control": "no-store" });
       return res.end();
     }
-    let path = url.pathname;
+    let path = kind === "store" && url.pathname === "/" ? "/index.html" : url.pathname;
     if (path === "/help" && kind === "customer") path = "/help.html";
     if (path === "/dashboard") path = "/index.html";
     if (path === "/login") path = "/login.html";
@@ -122,7 +123,7 @@ const main = process.argv[1] &&
 if (main) {
   const kind = process.env.APP_KIND || "customer",
     port = Number(process.env.PORT ||
-      (kind === "admin" ? process.env.ADMIN_PORT || 8081 : process.env.CUSTOMER_PORT || 8080));
+      (kind === "admin" ? process.env.ADMIN_PORT || 8081 : kind === "store" ? process.env.STORE_PORT || 8083 : process.env.CUSTOMER_PORT || 8080));
   createStaticServer(kind).listen(
     port,
     process.env.HOST || "0.0.0.0",

@@ -1,0 +1,371 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { chromium } from "playwright";
+import { createServer, createStore } from "../server.mjs";
+import { createStaticServer } from "../static-server.mjs";
+import { hashSecret } from "../lib/security.mjs";
+import { storeState } from "../lib/device-store.mjs";
+const store = createStore({ persistent: false }),
+  secret = randomUUID(),
+  token = randomUUID(),
+  csrf = randomUUID();
+const enFr = (en, fr = en) => ({ en, fr });
+await store.transaction((s) => {
+  storeState(s);
+  Object.assign(s.storeSettings, {
+    open: true,
+    contact: "Store test desk",
+    pickup: "NDAHI office — test pickup location",
+    hours: "Monday–Saturday, 09:00–17:00",
+    warranty: enFr("Test warranty terms", "Conditions de garantie de test"),
+    returns: enFr(
+      "Contact us for returns.",
+      "Contactez-nous pour les retours.",
+    ),
+  });
+  s.storeCategories.push(
+    {
+      id: "routers",
+      version: 1,
+      name: enFr("Travel routers", "Routeurs de voyage"),
+      position: 0,
+      hidden: false,
+    },
+    {
+      id: "extenders",
+      version: 1,
+      name: enFr("Wi-Fi extenders", "Répéteurs Wi-Fi"),
+      position: 1,
+      hidden: false,
+    },
+  );
+  for (const [id, name, fr, categoryId, price] of [
+    ["test-router", "Travel router", "Routeur de voyage", "routers", 18000],
+    ["test-extender", "Wi-Fi extender", "Répéteur Wi-Fi", "extenders", 12000],
+    ["test-cable", "Ethernet cable", "Câble Ethernet", "", 2000],
+  ])
+    s.storeProducts.push({
+      id,
+      version: 1,
+      sku: id,
+      name: enFr(name, fr),
+      description: enFr(
+        "Fixture equipment for browser validation.",
+        "Équipement de test pour validation navigateur.",
+      ),
+      specifications: enFr("Test specification"),
+      compatibility: enFr("Physical compatibility is not verified."),
+      contents: enFr("Device and setup guide"),
+      warranty: enFr("Test warranty"),
+      setup: enFr("Follow the setup guide."),
+      categoryId,
+      price,
+      cost: 1000,
+      images: [],
+      stock: 10,
+      status: "published",
+      featured: id === "test-router",
+    });
+  s.adminUsers.push({
+    id: "owner",
+    username: "owner",
+    role: "owner",
+    active: true,
+  });
+  s.adminSessions.push({
+    id: "owner-session",
+    userId: "owner",
+    role: "owner",
+    tokenHash: hashSecret(token, secret),
+    csrfToken: csrf,
+    expiresAt: "2035-01-01T00:00:00Z",
+  });
+});
+const api = createServer({
+  store,
+  validateConfig: false,
+  env: {
+    NODE_ENV: "test",
+    PAYMENT_MODE: "mock",
+    SECRET_PEPPER: secret,
+    ADMIN_SESSION_SECRET: secret,
+    STORE_APP_URL: "http://127.0.0.1:9193",
+    CUSTOMER_APP_URL: "http://127.0.0.1:9190",
+    ADMIN_APP_URL: "http://127.0.0.1:9191",
+    ALLOWED_ADMIN_ORIGINS: "http://127.0.0.1:9191",
+    NETWORK_QUEUE_ENABLED: "false",
+    BILLING_WORKER_ENABLED: "false",
+    PAYMENT_WEBHOOK_REPLAY_ENABLED: "false",
+  },
+});
+const website = createStaticServer("store", {
+    apiUrl: "http://127.0.0.1:9192",
+  }),
+  admin = createStaticServer("admin", { apiUrl: "http://127.0.0.1:9192" });
+const listen = (server, port) =>
+  new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
+let browser, activePage;
+let checks = 0;
+try {
+  await listen(api, 9192);
+  await listen(website, 9193);
+  await listen(admin, 9191);
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  for (const width of [320, 1280]) {
+    const context = await browser.newContext({
+        viewport: { width, height: 1000 },
+      }),
+      page = await context.newPage(),
+      errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("http://127.0.0.1:9193/");
+    await page
+      .getByRole("heading", { name: "Find your connection." })
+      .waitFor();
+    assert.equal(await page.locator(".product").count(), 3);
+    checks++;
+    assert.ok(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    );
+    checks++;
+    await page.screenshot({
+      path: `/tmp/ndahi-store-${width}.png`,
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: "Travel routers", exact: true })
+      .click();
+    assert.equal(await page.locator(".product").count(), 1);
+    checks++;
+    await page.locator("#language").click();
+    await page
+      .getByRole("heading", { name: "Trouvez votre connexion." })
+      .waitFor();
+    checks++;
+    await page.getByRole("button", { name: "Voir l’appareil" }).click();
+    await page.locator("#productTitle").waitFor();
+    await page.getByRole("button", { name: "Acheter cet appareil" }).click();
+    await page.getByLabel("Nom complet").fill("Guest browser buyer");
+    await page.getByLabel("Téléphone de contact").fill("670000099");
+    await page.getByLabel("Numéro Mobile Money").fill("690000099");
+    await page.getByRole("button", { name: "Payer par Mobile Money" }).click();
+    await page.waitForURL(/#order\//);
+    await page.getByRole("button", { name: "Vérifier le paiement" }).click();
+    await page
+      .getByText("Préparation de votre commande", { exact: true })
+      .waitFor();
+    checks++;
+    const url = page.url();
+    await page.reload();
+    await page
+      .getByText("Préparation de votre commande", { exact: true })
+      .waitFor();
+    assert.equal(page.url(), url);
+    checks++;
+    await page
+      .getByRole("link", { name: "Mes commandes", exact: true })
+      .first()
+      .click();
+    await page
+      .getByRole("heading", { name: "Commandes récentes sur ce navigateur" })
+      .waitFor();
+    checks++;
+    assert.deepEqual(errors, []);
+    await context.close();
+    const staff = await browser.newContext({
+      viewport: { width, height: 1000 },
+    });
+    await staff.addCookies([
+      {
+        name: "admin_session",
+        value: token,
+        domain: "127.0.0.1",
+        path: "/api/admin",
+      },
+    ]);
+    const panel = await staff.newPage();
+    activePage = panel;
+    panel.on("dialog", (dialog) => dialog.accept());
+    panel.on("pageerror", (e) => errors.push(e.message));
+    await panel.goto("http://127.0.0.1:9191/dashboard#store");
+    await panel.getByRole("button", { name: "Open store management" }).click();
+    await panel
+      .getByRole("button", { name: "Add product", exact: true })
+      .waitFor();
+    await panel
+      .getByRole("button", { name: "Add product", exact: true })
+      .click();
+    const form = panel.locator("#storeProductForm");
+    await form.locator('[name="name.en"]').fill("Browser draft " + width);
+    await form
+      .locator('[name="name.fr"]')
+      .fill("Brouillon navigateur " + width);
+    await form.locator('[name="sku"]').fill("BROWSER-" + width);
+    await form.locator('[name="price"]').fill("5000");
+    const imageData = await panel.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 20;
+      canvas.height = 20;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#174e38";
+      ctx.fillRect(0, 0, 20, 20);
+      return canvas.toDataURL("image/png");
+    });
+    await panel
+      .locator("#storeImageUpload")
+      .setInputFiles({
+        name: "test.png",
+        mimeType: "image/png",
+        buffer: Buffer.from(imageData.split(",")[1], "base64"),
+      });
+    await panel.locator("#storeImages fieldset").waitFor();
+    await panel.locator('[name="image0.en"]').fill("Test product image");
+    await panel.locator('[name="image0.fr"]').fill("Image du produit test");
+
+    await panel
+      .getByRole("button", { name: "Save product", exact: true })
+      .click();
+    await panel
+      .getByRole("row")
+      .filter({ hasText: "BROWSER-" + width })
+      .waitFor();
+    checks++;
+    const row = panel.getByRole("row").filter({ hasText: "BROWSER-" + width });
+    await row.getByRole("button", { name: "Edit", exact: true }).click();
+    await panel.locator('#storeProductForm [name="price"]').fill("5500");
+    await panel
+      .getByRole("button", { name: "Save product", exact: true })
+      .click();
+    await row.getByText("5,500 FCFA", { exact: true }).waitFor();
+    checks++;
+    await row.getByRole("button", { name: "Delete", exact: true }).click();
+    await row.waitFor({ state: "detached" });
+    checks++;
+    await panel
+      .getByRole("button", { name: "Categories", exact: true })
+      .click();
+    await panel
+      .getByRole("button", { name: "Add category", exact: true })
+      .click();
+    await panel
+      .locator('#categoryForm [name="name.en"]')
+      .fill("Test accessories " + width);
+    await panel
+      .locator('#categoryForm [name="name.fr"]')
+      .fill("Accessoires test " + width);
+    await panel.getByRole("button", { name: "Save category" }).click();
+    await panel.getByText(new RegExp("Test accessories " + width)).waitFor();
+    checks++;
+    await panel.getByRole("button", { name: "Inventory", exact: true }).click();
+    await panel.locator('#stockForm [name="delta"]').fill("2");
+    await panel
+      .locator('#stockForm [name="reason"]')
+      .fill("Browser stock receipt " + width);
+    await panel.getByRole("button", { name: "Record adjustment" }).click();
+    await panel
+      .getByRole("cell", {
+        name: "Browser stock receipt " + width + " / owner",
+      })
+      .waitFor();
+    checks++;
+    await panel.getByRole("button", { name: "Settings", exact: true }).click();
+    await panel
+      .locator('#storeSettingsForm [name="banner.en"]')
+      .fill("Browser store update " + width);
+    await panel
+      .locator('#storeSettingsForm [name="banner.fr"]')
+      .fill("Actualité boutique " + width);
+    await panel.getByRole("button", { name: "Save store settings" }).click();
+    assert.equal(
+      (await (await fetch("http://127.0.0.1:9192/api/store/catalogue")).json())
+        .settings.banner.en,
+      "Browser store update " + width,
+    );
+    checks++;
+    await panel.screenshot({
+      path: `/tmp/ndahi-store-admin-${width}.png`,
+      fullPage: true,
+    });
+    assert.ok(
+      await panel.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    );
+    checks++;
+    assert.deepEqual(errors, []);
+    await staff.close();
+  }
+  const recoveryContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    }),
+    recovery = await recoveryContext.newPage();
+  await recovery.goto("http://127.0.0.1:9193/");
+  await recovery.locator('[data-product="test-cable"]').click();
+  await recovery.getByRole("button", { name: "Buy this device" }).click();
+  await recovery.getByLabel("Full name").fill("Lost response buyer");
+  await recovery.getByLabel("Contact phone", { exact: true }).fill("670000098");
+  await recovery
+    .getByLabel("Mobile Money number", { exact: true })
+    .fill("690000098");
+  await recovery.route(
+    "**/api/store/checkout",
+    async (route) => {
+      await route.fetch();
+      await route.abort();
+    },
+    { times: 1 },
+  );
+  await recovery.getByRole("button", { name: "Pay with Mobile Money" }).click();
+  await recovery
+    .locator("#checkoutError")
+    .filter({ hasText: /fetch/i })
+    .waitFor();
+  await recovery.reload();
+  await recovery.getByRole("button", { name: "Resume checkout" }).click();
+  await recovery.getByRole("button", { name: "Pay with Mobile Money" }).click();
+  await recovery.waitForURL(/#order\//);
+  await recovery.getByRole("button", { name: "Check payment" }).click();
+  await recovery.getByText("Preparing your order", { exact: true }).waitFor();
+  checks++;
+  await recoveryContext.close();
+  const s = await store.snapshot();
+  assert.equal(s.vouchers.length, 0);
+  assert.equal(s.storeOrders.length, 3);
+  assert.ok(s.storeOrders.every((o) => o.payment.status === "paid"));
+  checks++;
+  console.log(
+    JSON.stringify({
+      status: "passed",
+      checks,
+      widths: [320, 1280],
+      payments: "mock",
+      hardware: "not physically verified",
+      screenshots: "/tmp/ndahi-store-*.png",
+    }),
+  );
+} catch (error) {
+  if (activePage) {
+    console.error(
+      await activePage
+        .locator("#storeAdminMessage")
+        .textContent()
+        .catch(() => ""),
+    );
+    await activePage
+      .screenshot({
+        path: "/tmp/ndahi-store-browser-failure.png",
+        fullPage: true,
+      })
+      .catch(() => {});
+  }
+  throw error;
+} finally {
+  await browser?.close();
+  for (const app of [api, website, admin])
+    await new Promise((resolve) => {
+      app.closeAllConnections();
+      app.close(resolve);
+    });
+}

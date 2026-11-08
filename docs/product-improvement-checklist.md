@@ -1301,6 +1301,14 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Tested locally: all 1,178 tests pass with disposable PostgreSQL 18.6, zero failures/skips; 39 focused API/reconciliation/store cases include foreign-key-safe reparenting, backup rollback, JSONB round trips/reopen, stale credentials and concurrent application. All ten account-purchase browser journeys, required syntax and offline provider contracts pass.
   - Deployed and audited: PR #185 deployed at `f813bf2`; PR #183 deployed at `826481a` on API/customer/admin. The authorized version-1 inventory completed at 18:37:36 UTC: zero changed/merged customers, zero review cases, six retained historical checkout-detail differences. No unsafe ownership merge was required. See [runbook](operations/account-reconciliation.md) and [release evidence](releases/account-identity-2026-11-07.md).
 
+## Device store (8 November 2026)
+
+- [x] Implemented locally: dedicated EN/FR `store-app` frontend and store APIs; guest/account checkout, private order tracking and account history; full editable store CRUD through Admin → More → Store for products, categories, images, prices, stock and store content/policies. Includes collection verification, after-sales notes, contact corrections and owner-only full refunds. The catalogue starts empty and checkout closed.
+- [x] Implemented locally: separate hardware order/payment records, transactional stock reservations and immutable product/price/policy snapshots, verified settlement, late-payment review, safe payment/refund retries, optional-email status updates, zero-loss migration mappings and additive PostgreSQL uniqueness indexes. Hardware sales never issue vouchers or modify account identity/bundles.
+- [x] Tested locally: repository syntax/build and diff checks; all 1,219 automated tests with disposable PostgreSQL passed with no failures/skips; 32 focused store tests and 30 mobile/desktop browser checks passed at 320px/1280px, including EN/FR guest checkout, tracking/reload, catalogue/content CRUD, inventory and lost-response recovery. Payment providers were mocked; screenshots inspected. Exact final counts are recorded in the store operations runbook.
+- [ ] Deployed: `render.yaml` includes the store service and API origin configuration; actual hosting, DNS and HTTPS for `store.ndahiconnect.net` remain pending. No production changes were made.
+- [ ] Physically verified: real Mobile Money purchases/refunds, pickup fulfilment, stock reconciliation and each advertised compatible model remain pending. Delivery, multi-product carts and bundled internet offers remain later phases. [Proposal](../store-app/readme.md) · [Operations](operations/device-store.md).
+
 ## Reseller ledger and automatic account repair (7 November 2026)
 
 - [x] Implemented: scoped reseller stock/sales balances, prospective commissions, immutable cash/correction retries, retained credits, owner correction UI and reload recovery.
