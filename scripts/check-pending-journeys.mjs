@@ -170,7 +170,7 @@ try {
     generation.release(); await idle(page, "#generate button");
     assert.equal(generation.count(), 1);
     await page.getByText("Fixture generation failure", { exact: true }).waitFor();
-    await page.getByRole("tab", { name: "Connections" }).click();
+    await page.getByRole("link", { name: "Connections", exact: true }).click();
     const sync = await hold(page, "/api/admin/integrations/sync-usage", { error: "Fixture sync failure" });
     await page.locator("#syncUsage").click(); await sync.started;
     await page.evaluate(() => document.querySelector("#syncUsage").onclick());
