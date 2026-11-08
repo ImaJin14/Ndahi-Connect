@@ -82,10 +82,10 @@ test("administrators reclassify generated vouchers but never online purchases", 
 test("the admin dashboard reports bundles sold, gifts and the revenue breakdown", async (t) => {
   const store = createStore({ persistent: false });
   await store.transaction((s) => {
-    s.payments.push({ id: "p1", status: "paid", amount: 1000 });
+    s.payments.push({ id: "p1", status: "paid", amount: 1000, currency: "XAF", provider: "mesomb", providerReference: "gateway-p1", confirmedAt: "2026-11-02T10:00:00+01:00" });
     s.vouchers.push({ id: "g", generatedByAdmin: true, saleType: "gift", saleAmount: 0, faceValue: 400, status: "active", activatedAt: at, planId: "weekly" });
   });
-  const server = createServer({ store, env: {
+  const server = createServer({ store, now: () => new Date("2026-11-08T17:00:00+01:00"), env: {
     PAYMENT_MODE: "mock", SESSION_COOKIE_SECURE: "false", ADMIN_SESSION_SECRET: "admin-secret", ADMIN_PIN: "9999",
     ADMIN_APP_URL: "http://admin.test", ALLOWED_ADMIN_ORIGINS: "http://admin.test", BILLING_WORKER_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false",
   } });
@@ -101,7 +101,10 @@ test("the admin dashboard reports bundles sold, gifts and the revenue breakdown"
   const report = await settlements.json();
   assert.equal(report.amount, null, "mock payments must never become real settlement revenue");
   assert.equal(report.basis, "completed-provider-net-settlements");
-  assert.equal(body.metrics.revenue, null, "paid order values are not provider net settlements");
+  assert.equal(body.metrics.revenue, 1000, "cash headline includes only confirmed collections since November");
+  assert.equal(body.cashCollected.amount, 1000);
+  assert.equal(body.cashCollected.from, "2026-11-01T00:00:00+01:00");
+  assert.match(body.cashCollected.basis, /before-fees/);
   assert.equal(body.sales.online.amount, 1000);
   assert.equal(body.metrics.bundlesSold, 1);
   assert.equal(body.metrics.giftedBundles, 1);
