@@ -370,7 +370,13 @@ try {
     await panel
       .locator('#storeSettingsForm [name="banner.fr"]')
       .fill("Actualité boutique " + width);
+    const settingsSaved = panel.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/admin/store/settings/save") &&
+        response.status() === 200,
+    );
     await panel.getByRole("button", { name: "Save store settings" }).click();
+    await settingsSaved;
     assert.equal(
       (await (await fetch("http://127.0.0.1:9192/api/store/catalogue")).json())
         .settings.banner.en,
