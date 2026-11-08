@@ -1369,3 +1369,16 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Tested locally: 27 cash/API/settlement tests and four integrated owner/reseller dashboard browser journeys at 320px/1280px; build and diff checks pass. Peer voucher-print integration retained.
 - [ ] Release: matching issue #198; merge/deployment evidence recorded in [cash release notes](releases/cash-collected-2026-11-08.md). Real provider statement reconciliation and physical-device acceptance remain pending.
 - [ ] MeSomb completed net settlements still need a supported provider reporting interface (#191); see [provider requirements](operations/provider-net-settlements.md).
+
+## Initial store catalogue intake (8 November 2026)
+
+- [x] Recorded owner-requested stock: TP-Link AX1500 travel router10, CPE210 six, Wavlink AC1200 two and Wavlink Mini four (22 units). Checked official manufacturer sources and prepared [catalogue intake](store-catalogue-intake.md) with CPE210 EN/FR copy and conditional TP-Link travel-router copy.
+- [ ] Confirm exact travel-router/Wavlink model codes, hardware revisions and all four FCFA selling prices; finish model-specific official descriptions, real package contents and local warranty.
+- [ ] Apply through an authorized admin session using draft products and inventory ledger entries; review/publish approved listings. No live catalogue/stock change or physical compatibility test performed by intake preparation. Checkout remains closed.
+
+## Owner-approved live initial catalogue (8 November 2026)
+
+- [x] Implemented: publish the four requested products with 10/6/2/4 units (22 total), conservative EN/FR descriptions, null prices displayed as “Price to be confirmed”, editable admin fields and server-side purchase rejection until a positive price is set. Exact model details/warranty remain unconfirmed where not supplied.
+- [x] Implemented: one-time audited, transactional inventory publication; restart/concurrency protection, SKU conflict checks and preservation of later admin edits/deletions. No checkout-open, payment, customer or policy changes.
+- [x] Tested locally: 17 store/publication/API unit tests, including inventory idempotency and unpriced purchase protection; mobile/desktop catalogue and existing store regressions checked before release.
+- [ ] Deployment and exact live product/stock verification tracked in the release PR. User will update selling prices, exact travel/Wavlink models, photos, package details and warranty later; physical compatibility remains unverified.

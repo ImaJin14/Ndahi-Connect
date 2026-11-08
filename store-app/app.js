@@ -203,7 +203,7 @@ const t = (key) => words[lang][key] || key,
   l = (value) =>
     typeof value === "object" ? value?.[lang] || value?.en || "" : value || "",
   money = (n) =>
-    `${Number(n).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
+    n == null ? (lang === "fr" ? "Prix à confirmer" : "Price to be confirmed") : `${Number(n).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
 const routerArt =
   '<svg viewBox="0 0 460 290" fill="none" aria-hidden="true"><circle cx="240" cy="137" r="110" stroke="#c6d4b8"/><circle cx="240" cy="137" r="80" stroke="#c6d4b8"/><ellipse cx="242" cy="240" rx="135" ry="13" fill="#c4cfb6"/><path d="m144 176 162-13 53 42-161 18-54-47Z" fill="#fcfdf7" stroke="#bcc9ad"/><path d="m144 176 54 47v17l-54-45v-19Z" fill="#dbe3d2"/><path d="m198 223 161-18v17l-161 18v-17Z" fill="#e8eddf"/><path d="M164 180 150 73M318 175l12-110" stroke="#fdfef9" stroke-width="12" stroke-linecap="round"/><path d="m223 208 6-1m9 0 6-1m10 0 6-1" stroke="#759451" stroke-width="3" stroke-linecap="round"/><path d="M209 119c15-17 43-17 58 0m-46 10c9-10 23-10 33 0m-22 9c3-3 7-3 10 0" stroke="#739250" stroke-width="4" stroke-linecap="round"/></svg>';
 async function call(path, input) {
@@ -328,7 +328,7 @@ function showProduct(id) {
   selected = data.products.find((p) => p.id === id);
   const p = selected;
   $("#productDetail").innerHTML =
-    `<div class="detail-grid"><div>${visual(p)}<div class="gallery">${p.images.map((im) => `<img src="${h(im.data)}" alt="${h(l(im.alt))}">`).join("")}</div></div><div><p class="eyebrow">${h(p.sku)}</p><h2 id="productTitle">${h(l(p.name))}</h2><p class="price">${h(money(p.price))}</p><p class="details">${h(l(p.description))}</p><p class="form-help">${h(t("separate"))}</p><button id="buy" ${!p.available || !data.settings.open || !data.paymentProviders.length ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div></div><div class="details">${[
+    `<div class="detail-grid"><div>${visual(p)}<div class="gallery">${p.images.map((im) => `<img src="${h(im.data)}" alt="${h(l(im.alt))}">`).join("")}</div></div><div><p class="eyebrow">${h(p.sku)}</p><h2 id="productTitle">${h(l(p.name))}</h2><p class="price">${h(money(p.price))}</p><p class="details">${h(l(p.description))}</p><p class="form-help">${h(t("separate"))}</p><button id="buy" ${p.price == null || !p.available || !data.settings.open || !data.paymentProviders.length ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div></div><div class="details">${[
       "specifications",
       "compatibility",
       "contents",
