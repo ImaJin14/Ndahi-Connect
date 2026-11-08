@@ -1,4 +1,4 @@
-import { mountSettlementReport } from "/settlements.js";
+import { mountCashCollectedReport } from "/cash-collected.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -22,13 +22,7 @@ const saleLabel = (v) => v.paymentId ? "Online" : v.saleType === "sold" ? "Sold"
 const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
 // Operational sale counts are separate from provider-reported net settlements.
 function revenueSummary(sales) {
-  if (!sales) return "";
-  const bundles = (n) => `${n} bundle${n === 1 ? "" : "s"}`,
-    line = (label, n, amount) => `<tr><td>${h(label)}</td><td>${h(bundles(n))}</td><td>${h(amount)}</td></tr>`;
-  return `<div id="settlementReport"></div><h3>Recorded sales activity</h3><div class="table-scroll"><table><thead><tr><th>Source</th><th>Bundles</th><th>Amount</th></tr></thead><tbody>${
-    line("Online bundle payments (before fees)", sales.online.bundles, fcfa(sales.online.amount))}${
-    line("Recorded offline voucher sales", sales.vouchers.bundles, fcfa(sales.vouchers.amount))}${
-    line("Gifts (not revenue)", sales.gifts.bundles, `${fcfa(sales.gifts.faceValue)} face value`)}</tbody></table></div><p class="form-help">These records are not provider settlements. Voucher sales count once a voucher is activated; resale codes count when a customer claims them, and revoked sales are excluded.${sales.unclassified.bundles ? ` ${h(bundles(sales.unclassified.bundles))} generated before sale tracking ${sales.unclassified.bundles === 1 ? "is" : "are"} unclassified: mark each as sold or gift in Vouchers.` : ""}</p>`;
+  return sales ? `<div id="cashCollectedReport"></div>` : "";
 }
 let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
@@ -113,7 +107,7 @@ async function load() {
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
 <section class="card tab-panel" data-tab-panel="home" id="panel-home"><h2>Overview</h2><div class="metrics">${
     Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : k === "revenue" ? ' id="netSettlementsMetric"' : ""}>${k === "revenue" ? (x.sales ? "Checking provider…" : "Unavailable") : h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices"><span class="live-pulse" aria-hidden="true"></span>Active Wi-Fi sessions</a>' : h(k === "revenue" ? "Net provider settlements" : k.replace(/([A-Z])/g, " $1"))}</div>`
+      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : k === "revenue" ? ' id="cashCollectedMetric"' : ""}>${k === "revenue" ? (x.cashCollected?.amount == null ? "Unavailable" : fcfa(x.cashCollected.amount)) : h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices"><span class="live-pulse" aria-hidden="true"></span>Active Wi-Fi sessions</a>' : h(k === "revenue" ? "Cash collected before fees" : k.replace(/([A-Z])/g, " $1"))}</div>`
     ).join("")
   }</div><p>Manage live connections, vouchers and payments from the navigation.</p><div class="action-row"><a class="button-link" href="/dashboard#devices">View devices</a><a class="button-link secondary-link" href="/dashboard#connections">Network commands &amp; health</a></div></section>
 <section class="card tab-panel" data-tab-panel="devices" id="panel-devices"><h2>Live Wi-Fi devices</h2><div class="device-controls"><button type="button" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>Refresh devices</button><div id="wifiSummary" role="status" aria-live="polite"></div></div><div id="wifiMessage" role="status" aria-live="polite"></div><div id="wifiRecords"></div></section>
@@ -180,7 +174,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     $("#app").append(panel);
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
   }
-  if (x.sales) void mountSettlementReport({ call });
+  if (x.sales) mountCashCollectedReport(x.cashCollected);
   mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "store") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   mountAdminInstall($("#adminInstall"));
