@@ -38,6 +38,7 @@ $("#verify").onsubmit = async event => {
         : { phone: challenge.phone, code: challenge.code, pin: form.pin, confirmPin: form.confirmPin };
       await completeSignIn(api, "/api/account/setup/pin", input, challenge.phone);
       sessionStore.remove("ndahi-login-challenge");
+      sessionStore.set("ndahi-email-setup-prompt", "1");
       location.replace(checkoutSetup && challenge && challenge.paymentId ? withWifiHint(purchaseVoucherDestination(challenge.paymentId)) : await afterSignInPath());
     });
   } catch (error) { showError($("#message"), error); }
