@@ -87,6 +87,15 @@ try {
     await page.goto(`${admin}/dashboard`);
     await page.locator("#activeSessionsMetric").waitFor();
     assert.equal(await page.locator("#activeSessionsMetric").textContent(), "2");
+    for (const [id, label] of [["store", "Store"], ["customers", "Customers"], ["bundles", "Bundles"], ["connections", "Connections"]]) {
+      await page.getByRole("link", { name: label, exact: true }).click();
+      await page.locator(`[data-tab-panel="${id}"]:visible`).waitFor();
+      assert.equal(await page.locator(`[data-admin-nav="${id}"]`).getAttribute("aria-current"), "page");
+      assert.equal(await page.locator("[data-admin-more]").isVisible(), false);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    }
+    await page.getByRole("link", { name: "More", exact: true }).click();
+    assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
     await page.getByRole("link", { name: "Devices", exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
     assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
@@ -142,6 +151,9 @@ try {
   for (const role of ["operator", "auditor", "reseller"]) await scenario(`navigation preserves ${role} access and hides owner setup`, async (page) => {
     await page.goto(`${admin}/dashboard#network-setup`);
     await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
+    await page.goto(`${admin}/dashboard#store`);
+    await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
     await page.getByRole("link", { name: "More", exact: true }).click();
     assert.equal(await page.getByRole("tab", { name: "Network setup", exact: true }).count(), 0);
     await page.getByRole("link", { name: "Devices", exact: true }).click();
