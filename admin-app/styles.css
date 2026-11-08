@@ -6,7 +6,7 @@
 .setup-banner{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-bottom:20px;padding:20px 22px;border:1px solid #e8cf8b;border-radius:13px;background:#fff8e7}.setup-banner h2{font:600 21px 'Playfair Display',serif;margin:3px 0 6px}.setup-banner p{max-width:720px;margin:0;color:#685b3e;font-size:13px;line-height:1.55}.setup-services{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:260px}@media(max-width:760px){.setup-banner{align-items:flex-start;flex-direction:column}.setup-services{justify-content:flex-start;min-width:0}}
 .password-field{position:relative;display:block}.password-field input{padding-right:70px}.password-toggle{position:absolute;right:5px;top:50%;width:auto;min-width:56px;padding:7px 9px;transform:translateY(-50%);background:transparent;color:var(--forest)}.password-toggle:hover{background:#eef3e9}.login-shell [hidden]{display:none}.login-shell .section-kicker{margin-bottom:6px}
 
-[hidden]{display:none!important}.admin-dashboard main{padding-bottom:110px;min-width:0}.admin-dashboard .page-head h1{font-size:clamp(27px,4vw,38px)}.admin-dashboard .metrics{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.metric a{color:var(--forest)}.admin-nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(80px,1fr);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:var(--forest);border-top:1px solid #245b45;box-shadow:0 -3px 15px #003b2b12}.admin-nav a{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 2px;color:#d8e7d7;text-decoration:none;font-size:11px;min-width:0;min-height:48px;border-radius:8px}.admin-nav svg{width:23px;height:23px;flex:none}.admin-nav a[aria-current]{background:#174f37;color:var(--lime);font-weight:700}.admin-nav a:focus-visible,a.button-link:focus-visible{outline:3px solid var(--lime);outline-offset:-3px}.button-link{display:inline-block;border-radius:8px;background:var(--lime);color:var(--forest);font-size:13px;font-weight:700;padding:10px 15px;text-decoration:none}.secondary-link{background:#eef3e9}.more-menu .admin-tabs{flex-wrap:wrap;border:0;border-radius:8px;margin-bottom:16px}.more-menu .admin-tabs button{white-space:normal}.device-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}#wifiSummary,#wifiMessage{font-size:13px;line-height:1.6;color:var(--muted)}#wifiMessage{color:var(--forest);margin-bottom:12px}#wifiSummary button{margin:6px 0}.admin-install{display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--line)}.admin-install h3{margin:0}.admin-install p{font-size:13px;line-height:1.5;color:var(--muted)}.admin-install img{border-radius:10px;flex:none}.admin-dashboard .card{min-width:0}.admin-dashboard .tab-panel td{overflow-wrap:anywhere}.update-notice{position:fixed;left:16px;right:16px;bottom:100px;z-index:6;max-width:600px;margin:auto;padding:14px;border:1px solid #92b681;border-radius:10px;background:#f2f9e9;color:var(--forest);box-shadow:0 4px 20px #003b2b20;font-size:13px}.update-notice button{margin:8px}.keyboard-open .admin-nav{display:none}.admin-dashboard #generated:empty{display:none}
+[hidden]{display:none!important}.admin-dashboard main{padding-bottom:110px;min-width:0}.admin-dashboard .page-head h1{font-size:clamp(27px,4vw,38px)}.admin-dashboard .metrics{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.metric a{color:var(--forest)}.admin-nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(80px,1fr);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:var(--forest);border-top:1px solid #245b45;box-shadow:0 -3px 15px #003b2b12}.admin-nav a{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 2px;color:#d8e7d7;text-decoration:none;font-size:11px;min-width:0;min-height:48px;border-radius:8px}.admin-nav svg{width:23px;height:23px;flex:none}.admin-nav a[aria-current]{background:#174f37;color:var(--lime);font-weight:700}.admin-nav a:focus-visible,a.button-link:focus-visible{outline:3px solid var(--lime);outline-offset:-3px}.button-link{display:inline-block;border-radius:8px;background:var(--lime);color:var(--forest);font-size:13px;font-weight:700;padding:10px 15px;text-decoration:none}.secondary-link{background:#eef3e9}.more-menu .admin-tabs{flex-wrap:wrap;border:0;border-radius:8px;margin-bottom:16px}.more-menu .admin-tabs button{white-space:normal}.device-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}#wifiSummary,#wifiMessage{font-size:13px;line-height:1.6;color:var(--muted)}#wifiMessage{color:var(--forest);margin-bottom:12px}#wifiSummary button{margin:6px 0}.admin-install{display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--line)}.admin-install h3{margin:0}.admin-install p{font-size:13px;line-height:1.5;color:var(--muted)}.admin-install img{border-radius:10px;flex:none}.admin-dashboard .card{min-width:0}.admin-dashboard .tab-panel td{overflow-wrap:anywhere}.update-notice{position:fixed;left:16px;right:16px;bottom:100px;z-index:6;max-width:600px;margin:auto;padding:14px;border:1px solid #92b681;border-radius:10px;background:#f2f9e9;color:var(--forest);box-shadow:0 4px 20px #003b2b20;font-size:13px}.update-notice button{margin:8px}.keyboard-open .admin-nav{display:none}.admin-dashboard #generated:empty,.admin-dashboard #activeVoucherPrint:empty,.admin-dashboard #customerVoucherPrint:empty{display:none}
 @media(min-width:1000px){.admin-dashboard{padding-left:190px}.admin-dashboard header{margin-left:-190px;padding-left:215px}.admin-nav{top:76px;bottom:0;right:auto;width:190px;display:flex;flex-direction:column;padding:20px 12px;gap:8px}.admin-nav a{flex-direction:row;gap:12px;justify-content:flex-start;font-size:14px;padding:14px}.admin-dashboard main{padding-bottom:50px}.admin-dashboard .update-notice{left:210px;bottom:20px}}
 @media(max-width:620px){.admin-install{flex-wrap:wrap}.admin-install>div{flex:1;min-width:160px}.admin-install button{width:100%}.more-menu .admin-tabs{display:grid;grid-template-columns:1fr 1fr}.admin-dashboard .metrics{grid-template-columns:1fr 1fr}.admin-dashboard .card{overflow:visible}.admin-dashboard table{min-width:420px}.admin-dashboard header{padding:0 14px}.brand small{letter-spacing:.1em;margin-left:5px}.admin-dashboard .tab-panels>.card{border-radius:13px}.device-controls{align-items:flex-start}.update-notice{bottom:100px}}
 .admin-dashboard .records-pager{flex-wrap:wrap;gap:8px}.admin-dashboard .records-pager span{flex:1;min-width:100px}.admin-dashboard .records-pager .secondary-action{width:auto;min-width:0}.admin-dashboard .records-toolbar,.admin-dashboard .records-filter{min-width:0;max-width:100%}.admin-dashboard .table-scroll{max-width:100%}
@@ -466,13 +466,14 @@
   }
 }
 
+@page voucher-a4 { size: A4; margin: 6mm; }
+@page voucher-58 { size: 58mm 160mm; margin: 2mm; }
+@page voucher-80 { size: 80mm 160mm; margin: 2mm; }
+body[data-voucher-print-layout="a4-sheet"] { page: voucher-a4; }
+body[data-voucher-print-layout="thermal-58"] { page: voucher-58; }
+body[data-voucher-print-layout="thermal-80"] { page: voucher-80; }
+
 @media print {
-  @page voucher-a4 { size: A4; margin: 6mm; }
-  @page voucher-58 { size: 58mm 160mm; margin: 2mm; }
-  @page voucher-80 { size: 80mm 160mm; margin: 2mm; }
-  body[data-voucher-print-layout="a4-sheet"] { page: voucher-a4; }
-  body[data-voucher-print-layout="thermal-58"] { page: voucher-58; }
-  body[data-voucher-print-layout="thermal-80"] { page: voucher-80; }
   @page {
     margin: 6mm;
   }
@@ -480,6 +481,7 @@
     background: #fff !important;
     color: #000 !important;
     padding: 0 !important;
+    min-height: 0 !important;
   }
   body > header,
   main > .page-head,
@@ -487,9 +489,17 @@
   .update-notice,
   .setup-banner,
   .more-menu,
-  .tab-panel:not(#panel-voucher-create),
+  .tab-panel:not(#panel-voucher-create):not([data-voucher-print-host="true"]),
+  body:has(.tab-panel[data-voucher-print-host="true"]) .tab-panel:not([data-voucher-print-host="true"]),
   #panel-voucher-create > .section-heading,
   #generate,
+  #panel-vouchers > h2,
+  #panel-vouchers > p,
+  #resellerLedger,
+  #voucherRecords,
+  #panel-customers > h2,
+  #customerRecords,
+  #panel-customers > details,
   .generated-heading,
   .generated-codes,
   .voucher-print-toolbar {
@@ -497,9 +507,13 @@
   }
   main,
   .tab-panels,
-  #panel-voucher-create,
-  #generated,
+  #panel-voucher-create:not([hidden]),
+  .tab-panel[data-voucher-print-host="true"],
+  #generated:not(:empty),
+  #activeVoucherPrint:not(:empty),
+  #customerVoucherPrint:not(:empty),
   #voucherPrintPreview,
+  [data-voucher-print-host="true"],
   #voucherPrintSurface {
     display: block !important;
     margin: 0 !important;
@@ -508,6 +522,7 @@
     box-shadow: none !important;
     max-width: none !important;
     width: auto !important;
+    min-height: 0 !important;
     overflow: visible !important;
   }
   .voucher-print-thermal {
@@ -519,6 +534,11 @@
     margin: 0 auto 4mm;
     break-after: page;
     page-break-after: always;
+  }
+  .thermal-slip:last-child {
+    break-after: auto;
+    page-break-after: auto;
+    margin-bottom: 0;
   }
   .a4-voucher-page {
     border: 0;

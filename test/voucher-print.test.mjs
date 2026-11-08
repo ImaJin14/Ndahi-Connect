@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { blank } from "../server.mjs";
+import { createAdminVouchersRoutes } from "../lib/api/admin-vouchers.mjs";
 import {
   A4_CARDS_PER_PAGE,
   VOUCHER_PRINT_LAYOUTS,
@@ -137,4 +139,126 @@ test("QR markup only accepts encoded PNG and cannot inject SVG or pretend to enc
   assert.equal(safe.qrCode, "");
   assert.ok(!renderQrBlockMarkup({ code: "NC-TEST", qrCode: malicious }).includes("<svg"));
   assert.deepEqual(VOUCHER_PRINT_LAYOUTS, ["thermal-58", "thermal-80", "a4-sheet"]);
+});
+
+test("POST /api/admin/vouchers/print prepares a single active or available voucher slip with QR and enforces RBAC and PII boundaries", async () => {
+  const s = blank();
+  const route = createAdminVouchersRoutes({
+    deliverVoucherEmail: async () => false,
+    clock: () => new Date("2030-01-01T12:00:00Z"),
+    customerOrigin: "https://portal.ndahiconnect.net",
+  });
+  s.customers.push(
+    { id: "c-user-1", name: "User One", phone: "670111222", email: "user1@example.com" },
+    { id: "c-no-voucher", name: "User Two", phone: "670333444" },
+  );
+  s.payments.push({
+    id: "pay-1",
+    customerId: "c-user-1",
+    planId: "weekly",
+    status: "paid",
+    amount: 1000,
+    payerPhone: "699000111",
+    providerReference: "REF-SECRET-1",
+  });
+  s.vouchers.push(
+    {
+      id: "v-user-1",
+      customerId: "c-user-1",
+      paymentId: "pay-1",
+      planId: "weekly",
+      code: "NC-USER-0001",
+      status: "active",
+      activatedAt: "2030-01-01T12:00:00Z",
+      expiresAt: "2030-01-08T12:00:00Z",
+      quotaBytes: 5e9,
+      usedBytes: 1e9,
+      deviceLimit: 2,
+    },
+    {
+      id: "v-reseller-own",
+      customerId: null,
+      planId: "daily",
+      code: "NC-RESL-0002",
+      status: "available",
+      generatedByAdmin: true,
+      generatedByAdminId: "staff-reseller",
+      assignedResellerId: "staff-reseller",
+      quotaBytes: 1e9,
+      usedBytes: 0,
+      deviceLimit: 1,
+    },
+    {
+      id: "v-expired",
+      customerId: "c-user-1",
+      planId: "daily",
+      code: "NC-EXPR-0003",
+      status: "expired",
+      expiresAt: "2029-12-31T12:00:00Z",
+      quotaBytes: 1e9,
+      usedBytes: 1e9,
+      deviceLimit: 1,
+    },
+  );
+
+  async function callPrint(i, role = "owner", adminUser = { id: `staff-${role}`, role }) {
+    const res = {
+      writeHead(status) { this.status = status; },
+      end(value) { this.text = value; this.body = JSON.parse(value); },
+    };
+    await route(
+      { method: "POST", headers: {}, socket: {}, adminActor: role },
+      res,
+      new URL("http://api.test/api/admin/vouchers/print"),
+      { s, i, role, adminUser, administrator: { userId: adminUser?.id }, effects: {} },
+    );
+    return res;
+  }
+
+  // Print by voucherId
+  const byVoucher = await callPrint({ voucherId: "v-user-1" }, "owner");
+  assert.equal(byVoucher.status, 200);
+  assert.equal(byVoucher.body.voucher.code, "NC-USER-0001");
+  assert.match(byVoucher.body.voucher.qrCode, /^data:image\/png;base64,/);
+  assert.equal(byVoucher.body.plan.name, "Weekly");
+  assert.equal(byVoucher.body.voucher.customerId, undefined);
+  assert.equal(byVoucher.body.voucher.paymentId, undefined);
+  for (const forbidden of ["c-user-1", "User One", "670111222", "user1@example.com", "pay-1", "699000111", "REF-SECRET-1"]) {
+    assert.ok(!byVoucher.text.includes(forbidden), `Print response leaked ${forbidden}`);
+  }
+  const activeSlipHtml = renderThermalSlipsHtml([byVoucher.body.voucher], byVoucher.body.plan, 58);
+  assert.match(activeSlipHtml, /NC-USER-0001/);
+  assert.match(activeSlipHtml, /Expires 2030-01-08/);
+  assert.match(activeSlipHtml, /<img src="data:image\/png;base64,/);
+
+  // Print by customerId
+  const byCustomer = await callPrint({ customerId: "c-user-1" }, "operator");
+  assert.equal(byCustomer.status, 200);
+  assert.equal(byCustomer.body.voucher.id, "v-user-1");
+  assert.equal(byCustomer.body.voucher.code, "NC-USER-0001");
+
+  // Customer without active voucher -> 404
+  const noActive = await callPrint({ customerId: "c-no-voucher" }, "owner");
+  assert.equal(noActive.status, 404);
+  assert.match(noActive.body.error, /does not have an active voucher/i);
+
+  // Expired voucher -> 409
+  const expiredRes = await callPrint({ voucherId: "v-expired" }, "owner");
+  assert.equal(expiredRes.status, 409);
+  assert.match(expiredRes.body.error, /Only active or available vouchers can be printed/);
+
+  // Auditor denied -> 403
+  const auditorRes = await callPrint({ voucherId: "v-user-1" }, "auditor");
+  assert.equal(auditorRes.status, 403);
+
+  // Reseller can print own stock, but not another customer's voucher or customerId lookup
+  const resellerOwn = await callPrint({ voucherId: "v-reseller-own" }, "reseller", { id: "staff-reseller", role: "reseller" });
+  assert.equal(resellerOwn.status, 200);
+  assert.equal(resellerOwn.body.voucher.code, "NC-RESL-0002");
+
+  const resellerOther = await callPrint({ voucherId: "v-user-1" }, "reseller", { id: "staff-reseller", role: "reseller" });
+  assert.equal(resellerOther.status, 404);
+
+  const resellerCustomerLookup = await callPrint({ customerId: "c-user-1" }, "reseller", { id: "staff-reseller", role: "reseller" });
+  assert.equal(resellerCustomerLookup.status, 403);
 });

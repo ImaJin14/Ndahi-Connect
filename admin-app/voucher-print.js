@@ -202,6 +202,8 @@ export function renderVoucherPrintLayout(vouchers = [], plan = {}, layout = "the
   return renderThermalSlipsHtml(vouchers, plan, 58);
 }
 
+let activePrintCleanup = null;
+
 export function mountGeneratedVoucherPrint({
   container,
   vouchers = [],
@@ -210,12 +212,23 @@ export function mountGeneratedVoucherPrint({
   printWindow = typeof window !== "undefined" ? window : null,
 } = {}) {
   if (!container) return null;
+  if (typeof activePrintCleanup === "function") {
+    activePrintCleanup();
+  }
   let currentLayout = VOUCHER_PRINT_LAYOUTS.includes(layout) ? layout : "thermal-58";
+  const hostPanel = typeof container.closest === "function" ? container.closest(".tab-panel") : null;
 
   const applyBodyPrintLayout = (activeLayout) => {
     if (typeof document !== "undefined" && document.body) {
       if (activeLayout) document.body.dataset.voucherPrintLayout = activeLayout;
       else delete document.body.dataset.voucherPrintLayout;
+    }
+    if (activeLayout) {
+      if (container.dataset) container.dataset.voucherPrintHost = "true";
+      if (hostPanel?.dataset) hostPanel.dataset.voucherPrintHost = "true";
+    } else {
+      if (container.dataset) delete container.dataset.voucherPrintHost;
+      if (hostPanel?.dataset) delete hostPanel.dataset.voucherPrintHost;
     }
   };
 
@@ -256,6 +269,13 @@ export function mountGeneratedVoucherPrint({
     }
   };
 
+  const destroy = () => {
+    if (activePrintCleanup === destroy) activePrintCleanup = null;
+    applyBodyPrintLayout("");
+    container.replaceChildren();
+  };
+  activePrintCleanup = destroy;
+
   render();
   return {
     getLayout: () => currentLayout,
@@ -265,10 +285,7 @@ export function mountGeneratedVoucherPrint({
         render();
       }
     },
-    destroy: () => {
-      applyBodyPrintLayout("");
-      container.replaceChildren();
-    },
+    destroy,
   };
 }
 

@@ -22,17 +22,20 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
     for (const entry of entries.values()) {
       entry.open = false; entry.panel.hidden = true; entry.button.setAttribute("aria-expanded", "false");
     }
+    document.querySelector("#activeVoucherPrint")?.replaceChildren();
+    document.querySelector("#customerVoucherPrint")?.replaceChildren();
   }
   const value = (v) => v === null || v === undefined || v === "" ? "—" : String(v);
   const bytes = (v) => v === null ? "Unlimited" : `${Number(v || 0).toLocaleString()} bytes`;
-  function markup(data) {
+  function markup(data, canPrint = false) {
     const field = (label, v) => `<dt>${h(label)}</dt><dd style="overflow-wrap:anywhere;margin:0 0 .75rem">${h(value(v))}</dd>`,
-      owner = data.ownership;
+      owner = data.ownership,
+      printable = canPrint && ["active", "available"].includes(data.voucher.status);
     return `<dl>${field("Ownership", owner.state === "unlinked" ? "Not linked yet" : owner.state === "unavailable" ? "Linked account unavailable" : "Linked to a customer account")}${
       data.permissions.contacts && owner.state === "linked" ? field("Customer name", owner.name) + field("Account phone", owner.accountPhone) : owner.state === "linked" ? field("Customer contact", "Restricted for this staff role") : ""
     }${field("Bundle", data.plan?.name)}${field("Voucher status", data.voucher.status)}${field("Remaining data", bytes(data.remainingBytes))}${field("Activated", data.voucher.activatedAt)}${field("Expires", data.voucher.expiresAt)}${field("Device limit", data.voucher.deviceLimit)}${
       data.permissions.payment && data.payment ? field("Payment reference", data.payment.providerReference || data.payment.id) + field("Payment status", data.payment.status) + field("Payment amount", `${value(data.payment.amount)} ${value(data.payment.currency)}`) + field("Payer phone (may differ from account phone)", data.payment.payerPhone) : ""
-    }</dl>`;
+    }</dl>${printable ? `<div class="action-row"><button type="button" class="secondary-action" data-print-voucher="${h(data.voucher.id)}">Print voucher slip</button></div>` : ""}`;
   }
   async function load(entry) {
     invalidate(entry);
@@ -51,8 +54,9 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
       if (data.scopeKey !== expectedScope || check.scopeKey !== expectedScope || check.id !== entry.id) {
         accessLost(); void refreshRecords(); return;
       }
-      const signature = JSON.stringify(data);
-      if (entry.signature !== signature) { entry.content.innerHTML = markup(data); entry.signature = signature; }
+      const canPrint = Boolean(entry.canPrint && data.voucher && ["active", "available"].includes(data.voucher.status));
+      const signature = JSON.stringify({ data, canPrint });
+      if (entry.signature !== signature) { entry.content.innerHTML = markup(data, canPrint); entry.signature = signature; }
     } catch (error) {
       if (error.name === "AbortError" || !current()) return;
       if ([401, 403, 404].includes(error.status)) {
@@ -96,6 +100,7 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
     for (const item of items) {
       let entry = entries.get(item.id);
       if (!entry) { entry = create(item); entries.set(item.id, entry); }
+      entry.canPrint = Boolean(item.permissions?.code && item.code && item.code !== "Restricted" && ["active", "available"].includes(item.status));
       entry.button.setAttribute("aria-label", `Details for voucher ${item.code || item.id}`);
       const html = renderRow({ ...item, code: item.code || "Restricted" });
       if (entry.html !== html) {
@@ -103,6 +108,7 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
         template.innerHTML = `<table><tbody>${html}</tbody></table>`;
         entry.base.replaceChildren(...template.content.querySelector("tr").childNodes);
         if (!item.permissions?.manage) entry.base.querySelectorAll("[data-voucher], [data-resend-email], [data-classify]").forEach((b) => b.remove());
+        if (!item.permissions?.code) entry.base.querySelectorAll("[data-print-voucher]").forEach((b) => b.remove());
         entry.base.lastElementChild.append(" ", entry.button); entry.html = html;
         if (focused) entry.button.focus({ preventScroll: true });
       }
