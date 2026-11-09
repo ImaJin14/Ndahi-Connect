@@ -1,3 +1,4 @@
+import { openVoucherPrintPreview } from "/shared/voucher-print-preview.js";
 import { downloadVoucherPdf } from "./voucher-delivery.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { showError, responseError } from "./errors.js";
@@ -46,9 +47,13 @@ function showQrModal(data) {
 }
 
 export async function voucherAction(event) {
-  const button = event.target.closest("[data-copy-voucher], [data-download-voucher], [data-show-qr]");
+  const button = event.target.closest("[data-copy-voucher], [data-download-voucher], [data-show-qr], [data-print-voucher]");
   if (!button) return false;
   const card = button.closest(".voucher-card"), message = card.querySelector("[data-voucher-message]");
+  if (button.hasAttribute("data-print-voucher")) {
+    const { url } = openVoucherPrintPreview({ voucherIds: [button.dataset.printVoucher] });
+    message.replaceChildren(); const link = document.createElement("a"); link.href = url; link.textContent = "Open print preview in this tab"; message.appendChild(link); return true;
+  }
   try {
     const actionLabel = button.hasAttribute("data-copy-voucher") ? "Copying…" : button.hasAttribute("data-show-qr") ? "Loading QR…" : "Downloading…";
     await runButton(button, actionLabel, async () => {

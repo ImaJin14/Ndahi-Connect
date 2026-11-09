@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import jsQR from "jsqr";
 import { randomUUID } from "node:crypto";
@@ -147,9 +148,27 @@ try {
     const thermal80Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-80.pdf", preferCSSPageSize: true });
     assertPaperWidth(thermal80Pdf, 80);
 
-    // Click Print vouchers and verify window.print() is invoked and @media print hides admin shell chrome
+    // Dedicated preview opens directly from the tap; native printing stays in its own click handler.
+    await page.context().addInitScript(() => { window.printCalls = 0; window.print = () => { window.printCalls++; }; });
+    const popupEvent = page.context().waitForEvent("page");
     await page.getByRole("button", { name: "Print vouchers", exact: true }).click();
-    assert.equal(await page.evaluate(() => window.printCalls), 1);
+    const popup = await popupEvent;
+    await popup.getByRole("button", { name: "Print", exact: true }).waitFor();
+    await popup.waitForFunction(() => !document.querySelector("#printNow").disabled);
+    await popup.setViewportSize({ width: 390, height: 844 });
+    assert.equal(await popup.locator(".thermal-slip").count(), 24);
+    assert.equal(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await popup.screenshot({ path: "/tmp/ndahi-mobile-voucher-preview.png", fullPage: false });
+    assert.equal(await popup.locator("#paperWidth").inputValue(), "80");
+    await popup.getByRole("button", { name: "Print", exact: true }).click();
+    assert.equal(await popup.evaluate(() => window.printCalls), 1);
+    assert.equal(await page.evaluate(() => window.printCalls), 0);
+    const fileEvent = popup.waitForEvent("download");
+    await popup.getByRole("button", { name: "Download PDF", exact: true }).click();
+    const file = await fileEvent, data = await readFile(await file.path());
+    assertPaperWidth(data, 80);
+    assert.equal((data.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 24);
+    await popup.close();
 
     await page.emulateMedia({ media: "print" });
     assert.equal(await page.locator(".admin-nav").isVisible(), false);

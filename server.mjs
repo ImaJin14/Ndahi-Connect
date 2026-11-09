@@ -1,3 +1,4 @@
+import { createVoucherPrintRoutes } from "./lib/api/voucher-print.mjs";
 import { createStoreRoutes } from './lib/api/store.mjs';
 import { createHomeRoutes } from "./lib/api/home.mjs";
 import { createServices } from "./lib/api/services.mjs";
@@ -78,6 +79,7 @@ export function createHandler(opts = {}) {
     createDeviceManagementRoutes(context),
     createWifiPairingRoutes(context),
     createAccountNotificationRoutes(context),
+    createVoucherPrintRoutes(context),
     createAccountToolsRoutes(context),
     createAccountEmailRoutes(context),
     createAccountRecoveryRoutes(context),
