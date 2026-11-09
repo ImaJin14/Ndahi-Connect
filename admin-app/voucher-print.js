@@ -1,3 +1,4 @@
+import { openVoucherPrintPreview } from "../shared-app/voucher-print-preview.js";
 import { escapeVoucherHtml as h, VOUCHER_PRINT_LAYOUTS, renderThermalSlipsHtml } from "./voucher-slip.js";
 export { VOUCHER_PRINT_LAYOUTS, formatValidityLabel, formatAllowanceLabel, formatPriceFcfa, formatDeviceLabel, sanitizePrintableVoucher, renderQrBlockMarkup, renderThermalSlipsHtml } from "./voucher-slip.js";
 
@@ -65,8 +66,11 @@ export function mountGeneratedVoucherPrint({
     if (printButton) {
       printButton.onclick = () => {
         applyBodyPrintLayout(currentLayout);
-        if (printWindow && typeof printWindow.print === "function") {
-          printWindow.print();
+        if (printWindow && typeof printWindow.open === "function") {
+          const { url } = openVoucherPrintPreview({ voucherIds: vouchers.map(v => v.id), widthMm: currentLayout === "thermal-80" ? 80 : 58, target: printWindow });
+          let fallback = container.querySelector("[data-open-print-preview]");
+          if (!fallback) { fallback = document.createElement("a"); fallback.dataset.openPrintPreview = "true"; fallback.textContent = "Open print preview in this tab"; container.querySelector(".voucher-print-controls").appendChild(fallback); }
+          fallback.href = url;
         }
       };
     }
