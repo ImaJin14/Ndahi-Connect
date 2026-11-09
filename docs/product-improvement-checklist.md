@@ -1395,3 +1395,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: voucher format/authorization unit tests and browser journeys verify bulk/single slips, real QR decoding, 58mm/80mm PDF paper widths, one slip per page and print invocation. Native phone printer selection and physical paper output remain unverified.
 - Tracked: shared admin/customer/email voucher design (#205), reliable mobile native printing (#206), and active-voucher account-aware PIN/passkey connection (#207). Those three changes are proposed/tracked, not implemented by the A4 removal.
 - Deployment: pending release verification; see the matching PR for final deployment evidence.
+
+### Unified voucher slip design — issue #205 (9 November 2026)
+
+- Implemented: Generate Vouchers thermal slip is the shared presentation model/HTML for admin and reseller print previews, customer PDF downloads, and voucher emails. PDFs use the same branding, boxed code, QR, package/price, allowance, validity, device/Home access, activation/status and instructions. Only 58mm/80mm widths; customer downloads and email attachment default to 58mm.
+- Implemented: email embeds its QR with a CID attachment and includes the canonical thermal PDF. Purchase snapshots win over changed catalogue details. Slips exclude phone/customer/payment identifiers; email greeting and delivery address remain outside the slip. Issued versus print/download status is explicit; current expired/exhausted access is labelled without mutating or reactivating vouchers. Retry payloads remain byte-identical.
+- Tested: 74 focused model/PDF/email/provider/ownership tests and all three voucher-print browser scenarios pass, including QR decode, both PDF widths, single-page thermal pagination, privacy and role boundaries. Build/diff checks pass; final release evidence belongs in the matching PR.
+- Deployment and physical acceptance: deployment pending verification. Physical printer selection, printed-paper appearance, real email inbox/client rendering and real phone/router QR connection remain unverified. #206/#207 remain separate follow-ups.
