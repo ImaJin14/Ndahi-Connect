@@ -1401,14 +1401,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented: Generate Vouchers thermal slip is the shared presentation model/HTML for admin and reseller print previews, customer PDF downloads, and voucher emails. PDFs use the same branding, boxed code, QR, package/price, allowance, validity, device/Home access, activation/status and instructions. Only 58mm/80mm widths; customer downloads and email attachment default to 58mm.
 - Implemented: email embeds its QR with a CID attachment and includes the canonical thermal PDF. Purchase snapshots win over changed catalogue details. Slips exclude phone/customer/payment identifiers; email greeting and delivery address remain outside the slip. Issued versus print/download status is explicit; current expired/exhausted access is labelled without mutating or reactivating vouchers. Retry payloads remain byte-identical.
 - Tested: 74 focused model/PDF/email/provider/ownership tests and all three voucher-print browser scenarios pass, including QR decode, both PDF widths, single-page thermal pagination, privacy and role boundaries. Build/diff checks pass; final release evidence belongs in the matching PR.
-- Deployment and physical acceptance: deployment pending verification. Physical printer selection, printed-paper appearance, real email inbox/client rendering and real phone/router QR connection remain unverified. #206/#207 remain separate follow-ups.
+- Deployed: PR #210 merged at 216ab3f; all four Render services, exact live API/admin assets and six production smoke groups verified. Physical printer selection, printed-paper appearance, real email inbox/client rendering and real phone/router QR connection remain unverified. #206/#207 remain separate follow-ups.
 
 ### Mobile voucher printing — issue #206 (9 November 2026)
 
 - Implemented: dedicated authenticated admin/reseller/customer print page; opens synchronously from Print voucher and includes a same-tab fallback. Print is enabled only after QR images/fonts finish and invokes the native dialog directly from the tap. Explicit 58mm/80mm selection and protected single/bulk PDF download, with one slip per page.
 - Implemented: iPhone Safari Share → Print/AirPrint network guidance, Android/PDF fallback, no automatic printing, no voucher code in the preview URL, no-store private responses, customer ownership/CSRF and reseller scope checks. Back/forward restoration clears and rechecks private preview content.
 - Tested: 44 focused print/PDF/email/provider tests and all three print browser journeys pass. Browser test exercises dedicated preview at 390px, direct print invocation and actual bulk PDF download. Physical phone printer picker and paper output remain unverified and tracked under #116.
-- Deployment: pending PR/release verification. Account-aware QR connection is separate issue #207.
+- Deployed: PR #211 merged at ea2a3fb; main CI and all four Render deployments passed. Exact live API/admin/customer revisions and print assets verified; six production smoke groups passed. Physical acceptance remains unverified. Account-aware QR connection is separate issue #207.
 
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
