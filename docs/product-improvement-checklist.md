@@ -1409,3 +1409,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented: iPhone Safari Share → Print/AirPrint network guidance, Android/PDF fallback, no automatic printing, no voucher code in the preview URL, no-store private responses, customer ownership/CSRF and reseller scope checks. Back/forward restoration clears and rechecks private preview content.
 - Tested: 44 focused print/PDF/email/provider tests and all three print browser journeys pass. Browser test exercises dedicated preview at 390px, direct print invocation and actual bulk PDF download. Physical phone printer picker and paper output remain unverified and tracked under #116.
 - Deployment: pending PR/release verification. Account-aware QR connection is separate issue #207.
+
+### Active-voucher QR connection — issue #207 (9 November 2026)
+
+- Implemented: account-specific, replaceable QR locators open a dedicated connection page. Scanning alone grants no account session; fresh owner PIN or user-verified passkey signs in and issues a single-use, 90-second connection authorization bound to the account, voucher, device and attempt. Main-device designation and existing device limits remain enforced.
+- Implemented: ownership/credential changes and QR replacement invalidate locators and queued authorizations. Inactive, exhausted, suspended, preparing and Home bundles have clear outcomes. Legacy printed active-voucher links use the same proof flow; unassigned vouchers keep activation. Missing Wi-Fi identification offers hotspot sign-in, and interrupted router confirmation resumes without duplicate connection requests.
+- Tested: 41 focused QR/security/connection/server tests and five QR browser journeys pass, including a signed passkey assertion, replay/expiry/device/account checks, explicit account switching and reload recovery. Full isolated suite previously passed 1,275 tests with 41 conditional local skips; hosted release checks remain pending.
+- Deployment: pending PR and hosted verification. Physical phone scanning, printer selection/paper output, real email inbox rendering and real router connection remain unverified.

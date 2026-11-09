@@ -48,7 +48,7 @@
     "auth:migration:readiness": "node scripts/authentication-migration-readiness.mjs",
     "check:authenticator:retirement": "node scripts/check-authenticator-retirement-journeys.mjs",
     "auth:retirement": "node scripts/authenticator-retirement.mjs",
-    "check:vouchers:browser": "node scripts/check-voucher-details-journeys.mjs && node scripts/check-voucher-print-journeys.mjs",
+    "check:vouchers:browser": "node scripts/check-voucher-details-journeys.mjs && node scripts/check-voucher-print-journeys.mjs && node scripts/check-voucher-qr-journeys.mjs",
     "check:voucher-print:browser": "node scripts/check-voucher-print-journeys.mjs",
     "check:security:unified": "node scripts/check-unified-security-journeys.mjs",
     "check:connectivity:browser": "node scripts/check-connectivity-journeys.mjs",

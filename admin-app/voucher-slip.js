@@ -148,6 +148,7 @@ export function sanitizePrintableVoucher(
           : Number.isFinite(timestamp)
             ? `Expires ${new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Africa/Douala" }).format(new Date(timestamp)) + " " + new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" }).format(new Date(timestamp))} (Africa/Douala)`
             : "Expiry not recorded",
+    qrConnection: voucher.qrConnection === true || String(voucher.qrRedemptionUrl || "").includes("/voucher-connect.html"),
     statusLabel,
     statusHeading: issued ? "Status at issue" : "Current status",
     notice:
@@ -197,7 +198,7 @@ export function voucherSlipInstructions(item) {
   return [
     "Join NDAHI Connect Wi-Fi",
     "Scan the QR code or open portal.ndahiconnect.net",
-    `Enter code ${item.code}`,
+    item.qrConnection ? "Authorize with your account PIN or passkey" : `Enter code ${item.code}`,
   ];
 }
 
