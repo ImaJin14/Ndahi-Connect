@@ -144,8 +144,8 @@ async function begin() {
     document.querySelector("#bundleName").textContent = result.planName;
     passkeyButton.hidden =
       !result.passkeyAvailable || !window.PublicKeyCredential;
-    document.querySelector("#wifiGuidance").hidden = Boolean(hint);
-    if (!hint) {
+    document.querySelector("#wifiGuidance").hidden = result.wifiReady;
+    if (!result.wifiReady) {
       message.textContent =
         "NDAHI Wi-Fi has not identified this device yet. Open Wi-Fi sign-in before entering your PIN.";
       const login = routerLoginUrl(window.NDAHI_CONFIG.hotspotLoginUrl),

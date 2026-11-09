@@ -58,6 +58,8 @@ test("scan is account-specific limited context and does not create a login or le
     before = await f.store.snapshot(),
     reply = await begin(f);
   assert.equal(reply.status, 200);
+  assert.equal(reply.body.wifiReady, true);
+  assert.equal((await begin(f, { mac: "", address: "" })).body.wifiReady, false);
   assert.equal(reply.headers.get("set-cookie"), null);
   assert.equal(
     (await f.store.snapshot()).dashboardSessions.length,
