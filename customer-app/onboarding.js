@@ -1,3 +1,5 @@
+import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
+redirectLegacyVoucherScan();
 import { purchaseVoucherDestination } from "./voucher-delivery.js";
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
 import { applyNetworkStatus, fetchNetworkStatus } from "./network-status.js";

@@ -273,7 +273,12 @@ try {
     });
     const decoded = jsQR(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height);
     assert.ok(decoded, "active voucher printed QR must decode");
-    assert.equal(decoded.data, "http://127.0.0.1:8957/onboarding.html?action=connect&code=NC-USER-ONE1");
+    const activeQr = new URL(decoded.data);
+    assert.equal(activeQr.origin, "http://127.0.0.1:8957");
+    assert.equal(activeQr.pathname, "/voucher-connect.html");
+    assert.match(new URLSearchParams(activeQr.hash.slice(1)).get("qr"), /^[A-Za-z0-9_-]{32,128}$/);
+    assert.equal(activeQr.searchParams.get("action"), "connect");
+    assert.equal(activeQr.searchParams.has("code"), false);
 
     // Verify zero PII leaks onto the printed surface
     const slipHtml = await page.locator("#voucherPrintSurface").innerHTML();

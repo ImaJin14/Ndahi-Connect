@@ -39,9 +39,27 @@ function showQrModal(data) {
       <p style="margin: 0 0 10px; font-weight: 700; font-size: 17px;">${h(data.planName || "")}</p>
       <img src="${h(data.qrCode)}" alt="QR Code for voucher ${h(data.code)}" class="voucher-qr-image">
       <p class="voucher-qr-code" style="font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; margin: 10px 0 6px;">${h(data.code)}</p>
-      <p style="color: var(--muted); font-size: 13px; margin: 0;">Scan with camera on another device to activate automatically.</p>
+      <p style="color: var(--muted); font-size: 13px; margin: 0;">Scan on the device you want to connect, then authorize with your account PIN or passkey.</p>
     </div>
+    ${data.canRotate ? '<details><summary>Replace this QR</summary><p>Copies of the QR shown here will stop working. Download or print its replacement after updating it.</p><form id="rotateVoucherQr"><label>Current account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><label><input name="confirm" type="checkbox" required> Replace old QR copies</label><button type="submit">Replace QR</button><p data-rotate-qr-message role="status" aria-live="polite"></p></form></details>' : ""}
   `;
+  const rotate = dialog.querySelector("#rotateVoucherQr");
+  if (rotate) rotate.onsubmit = async event => {
+    event.preventDefault(); const output = rotate.querySelector("[data-rotate-qr-message]");
+    try { await runButton(rotate.querySelector("button"), "Replacing…", async () => {
+      const api = window.NDAHI_CONFIG.apiUrl;
+      const account = await fetch(api + "/api/account/dashboard", { credentials: "include", cache: "no-store" });
+      if (!account.ok) throw Error("Sign in again before replacing the QR.");
+      const value = await account.json();
+      const response = await fetch(api + "/api/account/qr-connect/rotate", { method: "POST", credentials: "include", cache: "no-store", headers: { "content-type": "application/json", "x-csrf-token": value.csrfToken }, body: JSON.stringify({ voucherId: data.voucherId, pin: rotate.elements.pin.value }) });
+      if (!response.ok) throw responseError(response, await response.json().catch(() => ({})));
+      const refreshed = await fetch(api + "/api/account/vouchers/" + encodeURIComponent(data.voucherId) + "/qr", { credentials: "include", cache: "no-store" });
+      if (!refreshed.ok) throw Error("The QR was replaced. Reopen it from Vouchers to view the new copy.");
+      dialog.querySelector(".voucher-qr-image").src = (await refreshed.json()).qrCode;
+      rotate.reset(); output.textContent = "Account QR replaced. Download or print a new voucher for the updated QR.";
+    }, { controls: Array.from(rotate.elements) }); } catch (error) { showError(output, error); } finally { rotate.elements.pin.value = ""; }
+  };
+  dialog.onclose = () => { if (rotate) rotate.elements.pin.value = ""; };
   dialog.querySelector("#voucherQrClose").onclick = () => dialog.close();
   dialog.showModal();
 }

@@ -131,11 +131,32 @@ try {
           "Unavailable",
         );
       }
-      assert.equal(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth + 1,
-        ),
-        true,
+      // Record errors arrive independently of the already-rendered summary metrics.
+      // Measure the settled error/retry layout as well as the successful table.
+      await page.waitForFunction(
+        () => !document.querySelector('#panel-payments [aria-busy="true"]'),
+      );
+      const layout = await page.evaluate(() => ({
+        width: innerWidth,
+        scroll: document.documentElement.scrollWidth,
+        overflowing: [...document.querySelectorAll("body *")]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width && (r.right > innerWidth + 1 || r.left < -1);
+          })
+          .map((el) => ({
+            tag: el.tagName,
+            id: el.id,
+            className: el.className,
+            text: el.textContent.slice(0, 100),
+            width: el.getBoundingClientRect().width,
+            right: el.getBoundingClientRect().right,
+          }))
+          .slice(0, 20),
+      }));
+      assert.ok(
+        layout.scroll <= width + 1,
+        JSON.stringify({ role, ...layout }),
       );
       assert.deepEqual(errors, []);
       await context.close();

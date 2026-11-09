@@ -1,3 +1,4 @@
+import { resumeVoucherScanFromWifi } from "./voucher-qr-context.js";
 import { customerDestination } from "./customer-destination.js";
 import { fetchConnectivity } from "./connectivity.js";
 import { withWifiHint } from "./hotspot-path.js";
@@ -8,6 +9,7 @@ import { requestJson, markReady, randomId, loadPasskeys } from "./compat.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 
+if (!resumeVoucherScanFromWifi(wifiHint())) {
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);
@@ -262,3 +264,5 @@ else if (params.has("router-error")) {
     showError(message, error, { actions: [{ label: "Try connecting again", run: connect }, { label: "Open dashboard", run: () => location.replace(destination.href) }] });
   }
 })();
+
+}
