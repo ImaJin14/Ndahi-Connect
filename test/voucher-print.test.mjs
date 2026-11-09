@@ -3,13 +3,11 @@ import assert from "node:assert/strict";
 import { blank } from "../server.mjs";
 import { createAdminVouchersRoutes } from "../lib/api/admin-vouchers.mjs";
 import {
-  A4_CARDS_PER_PAGE,
   VOUCHER_PRINT_LAYOUTS,
   formatAllowanceLabel,
   formatDeviceLabel,
   formatPriceFcfa,
   formatValidityLabel,
-  renderBulkA4SheetHtml,
   renderQrBlockMarkup,
   renderThermalSlipsHtml,
   renderVoucherPrintLayout,
@@ -111,25 +109,14 @@ test("thermal POS slip layout renders 58mm and 80mm high-contrast slips without 
   assert.match(html80, /data-paper-width="80mm"/);
 });
 
-test("bulk A4 sheet layout chunks vouchers into 21-card (3x7) pages with clean page breaks and no PII", () => {
-  const vouchers = Array.from({ length: 25 }, (_, i) => ({
-    id: `v-${i + 1}`,
-    code: `NC-BULK-${String(i + 1).padStart(4, "0")}`,
-    status: "available",
-    customerName: `Hidden Buyer ${i + 1}`,
-    phone: `6700000${String(i + 1).padStart(2, "0")}`,
-  }));
-  const plan = { name: "Weekly", price: 1000, quotaGb: 5, validityHours: 168, deviceLimit: 2 };
-
-  const html = renderBulkA4SheetHtml(vouchers, plan);
-  assert.equal(A4_CARDS_PER_PAGE, 21);
-  assert.match(html, /data-print-surface="a4-sheet"/);
-  assert.equal((html.match(/class="a4-voucher-page"/g) || []).length, 2, "25 vouchers should span 2 A4 pages (21 + 4)");
-  assert.equal((html.match(/class="a4-voucher-card"/g) || []).length, 25);
-  assert.match(html, /NC-BULK-0001/);
-  assert.match(html, /NC-BULK-0025/);
-  assert.ok(!html.includes("Hidden Buyer"));
-  assert.ok(!html.includes("6700000"));
+test("retired and unknown print layouts fall back to thermal slips without dropping bulk vouchers", () => {
+  const vouchers = Array.from({ length: 25 }, (_, i) => ({ code: `NC-BULK-${i + 1}` }));
+  for (const layout of ["a4-sheet", "unknown", undefined]) {
+    const html = renderVoucherPrintLayout(vouchers, {}, layout);
+    assert.match(html, /data-print-surface="thermal-58"/);
+    assert.equal((html.match(/class="thermal-slip"/g) || []).length, 25);
+    assert.ok(!html.includes("a4-voucher"));
+  }
 });
 
 test("QR markup only accepts encoded PNG and cannot inject SVG or pretend to encode a missing QR", () => {
@@ -138,7 +125,7 @@ test("QR markup only accepts encoded PNG and cannot inject SVG or pretend to enc
   const safe = sanitizePrintableVoucher({ code: "NC-TEST", qrCode: malicious });
   assert.equal(safe.qrCode, "");
   assert.ok(!renderQrBlockMarkup({ code: "NC-TEST", qrCode: malicious }).includes("<svg"));
-  assert.deepEqual(VOUCHER_PRINT_LAYOUTS, ["thermal-58", "thermal-80", "a4-sheet"]);
+  assert.deepEqual(VOUCHER_PRINT_LAYOUTS, ["thermal-58", "thermal-80"]);
 });
 
 test("POST /api/admin/vouchers/print prepares a single active or available voucher slip with QR and enforces RBAC and PII boundaries", async () => {

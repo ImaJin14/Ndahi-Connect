@@ -262,7 +262,7 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         container: $("#voucherPrintPreview"),
         vouchers,
         plan: result.plan,
-        layout: vouchers.length > 1 ? "a4-sheet" : "thermal-58",
+        layout: "thermal-58",
       });
       $("#closeGenerated").onclick = () => { clearPrintContainers(); $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {

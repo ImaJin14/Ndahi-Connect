@@ -1388,3 +1388,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Implemented: send MeSomb’s documented customer `message` field with “NDAHI Connect - Internet bundle payment” or “NDAHI Connect - Store purchase”. Existing transaction references/signing retained; store descriptions no longer use an undefined plan ID.
 - [x] Verified outgoing signed HTTP payloads through the real SDK with offline fixtures for MTN/Orange and internet/store cases. No real payment request or phone popup was triggered.
 - [ ] Deployment and actual MTN/Orange popup display remain to verify. Operator/gateway merchant display may use the configured MeSomb application/business name; its production value is not established by a synthetic fixture.
+
+### Voucher print formats and follow-up work (9 November 2026)
+
+- Implemented: removed A4 voucher sheet rendering, selector, CSS and named page size (#208). Bulk and single vouchers default to the same 58mm thermal slip; 80mm remains available. Retired/unknown layout values safely fall back to 58mm.
+- Tested: voucher format/authorization unit tests and browser journeys verify bulk/single slips, real QR decoding, 58mm/80mm PDF paper widths, one slip per page and print invocation. Native phone printer selection and physical paper output remain unverified.
+- Tracked: shared admin/customer/email voucher design (#205), reliable mobile native printing (#206), and active-voucher account-aware PIN/passkey connection (#207). Those three changes are proposed/tracked, not implemented by the A4 removal.
+- Deployment: pending release verification; see the matching PR for final deployment evidence.
