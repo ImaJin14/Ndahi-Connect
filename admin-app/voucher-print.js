@@ -9,8 +9,7 @@ const h = (value) =>
     })[char],
   );
 
-export const VOUCHER_PRINT_LAYOUTS = Object.freeze(["thermal-58", "thermal-80", "a4-sheet"]);
-export const A4_CARDS_PER_PAGE = 21;
+export const VOUCHER_PRINT_LAYOUTS = Object.freeze(["thermal-58", "thermal-80"]);
 
 const FORBIDDEN_PII_KEYS = new Set([
   "customer",
@@ -69,7 +68,7 @@ export function formatDeviceLabel(deviceLimit, accessMode) {
 
 /**
  * Strips any personal customer or payment identifiers and returns a strictly
- * anonymous, print-safe voucher model suitable for resale slips and A4 sheets.
+ * anonymous, print-safe voucher model suitable for resale slips.
  */
 export function sanitizePrintableVoucher(voucher = {}, fallbackPlan = {}) {
   const plan = voucher.plan && typeof voucher.plan === "object" ? voucher.plan : fallbackPlan || {};
@@ -162,43 +161,8 @@ export function renderThermalSlipsHtml(vouchers = [], plan = {}, widthMm = 58) {
     .join("")}</div>`;
 }
 
-export function renderBulkA4SheetHtml(vouchers = [], plan = {}) {
-  const items = vouchers.map((v) => sanitizePrintableVoucher(v, plan));
-  const pages = [];
-  for (let i = 0; i < items.length; i += A4_CARDS_PER_PAGE) {
-    pages.push(items.slice(i, i + A4_CARDS_PER_PAGE));
-  }
-  if (!pages.length) pages.push([]);
-  return `<div class="voucher-print-sheet voucher-print-a4" data-print-surface="a4-sheet" data-cards-per-page="${A4_CARDS_PER_PAGE}">${pages
-    .map(
-      (pageItems, pageIndex) => `<section class="a4-voucher-page" data-a4-page="${pageIndex + 1}" aria-label="Printable voucher sheet page ${pageIndex + 1}">
-  <div class="a4-voucher-grid">${pageItems
-    .map(
-      (item, cardIndex) => `<article class="a4-voucher-card" data-voucher-card="${pageIndex * A4_CARDS_PER_PAGE + cardIndex}" data-voucher-code="${h(item.code)}">
-      <div class="a4-card-top">
-        <span class="a4-brand">NDAHI CONNECT</span>
-        <strong class="a4-price">${h(item.priceLabel)}</strong>
-      </div>
-      <div class="a4-card-body">
-        <div class="a4-card-main">
-          <p class="a4-plan">${h(item.planName)}</p>
-          <code class="a4-code">${h(item.code)}</code>
-          <p class="a4-specs">${h(item.allowanceLabel)} · ${h(item.validityLabel)} · ${h(item.deviceLabel)}</p>
-          <p class="a4-connect">Join <strong>NDAHI Connect</strong> Wi-Fi → Enter code or scan QR · ${h(item.expiryNote)}</p>
-        </div>
-        ${renderQrBlockMarkup(item)}
-      </div>
-    </article>`,
-    )
-    .join("")}</div>
-</section>`,
-    )
-    .join("")}</div>`;
-}
-
 export function renderVoucherPrintLayout(vouchers = [], plan = {}, layout = "thermal-58") {
   if (layout === "thermal-80") return renderThermalSlipsHtml(vouchers, plan, 80);
-  if (layout === "a4-sheet") return renderBulkA4SheetHtml(vouchers, plan);
   return renderThermalSlipsHtml(vouchers, plan, 58);
 }
 
@@ -240,7 +204,6 @@ export function mountGeneratedVoucherPrint({
           <select id="voucherPrintLayout" aria-label="Print layout">
             <option value="thermal-58"${currentLayout === "thermal-58" ? " selected" : ""}>Thermal POS slip (58mm)</option>
             <option value="thermal-80"${currentLayout === "thermal-80" ? " selected" : ""}>Thermal POS slip (80mm)</option>
-            <option value="a4-sheet"${currentLayout === "a4-sheet" ? " selected" : ""}>Bulk A4 cuttable sheet (3×7 grid)</option>
           </select>
         </label>
         <button type="button" id="printVouchersNow">Print vouchers</button>

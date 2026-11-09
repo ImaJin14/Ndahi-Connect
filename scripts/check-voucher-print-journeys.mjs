@@ -95,7 +95,7 @@ try {
     }
   }
 
-  await scenario("bulk voucher generation defaults to A4 3x7 cuttable sheet and supports switching to 58mm/80mm thermal slips and launching print", async (page) => {
+  await scenario("bulk voucher generation offers only 58mm/80mm thermal slips and launches print", async (page) => {
     await page.goto(`${admin}/dashboard#voucher-create`);
     await page.locator("#generate").waitFor();
 
@@ -113,15 +113,15 @@ try {
     await page.getByText("24 vouchers generated", { exact: true }).waitFor();
     await page.locator("#voucherPrintPreview").waitFor();
 
-    // Multi-voucher batch defaults to A4 bulk cuttable sheet (3x7 = 21 per page -> 2 pages for 24 vouchers)
+    // Bulk generation uses the same thermal slip design as individual vouchers.
     const layoutSelect = page.locator("#voucherPrintLayout");
-    assert.equal(await layoutSelect.inputValue(), "a4-sheet");
-    assert.equal(await page.locator(".a4-voucher-page").count(), 2);
-    assert.equal(await page.locator(".a4-voucher-card").count(), 24);
-    assert.equal(await page.locator(".a4-voucher-card img").count(), 24);
+    assert.equal(await layoutSelect.inputValue(), "thermal-58");
+    assert.deepEqual(await layoutSelect.locator("option").evaluateAll(options => options.map(o => o.value)), ["thermal-58", "thermal-80"]);
+    assert.equal(await page.locator(".thermal-slip").count(), 24);
+    assert.equal(await page.locator(".thermal-slip img").count(), 24);
 
     // Decode actual rendered pixels: a decorative pattern is not a QR code.
-    const pixels = await page.locator(".a4-voucher-card img").first().evaluate(async (img) => {
+    const pixels = await page.locator(".thermal-slip img").first().evaluate(async (img) => {
       await img.decode();
       const canvas = document.createElement("canvas");
       canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
@@ -134,17 +134,8 @@ try {
     assert.equal(redemption.origin, "http://127.0.0.1:8957");
     assert.equal(redemption.pathname, "/onboarding.html");
     assert.equal(redemption.searchParams.get("action"), "connect");
-    assert.equal(redemption.searchParams.get("code"), await page.locator(".a4-code").first().textContent());
+    assert.equal(redemption.searchParams.get("code"), await page.locator(".thermal-voucher-code").first().textContent());
     assert.deepEqual([...redemption.searchParams.keys()].sort(), ["action", "code"]);
-    const a4Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-a4.pdf", preferCSSPageSize: true });
-    assertPaperWidth(a4Pdf, 210);
-    assert.equal((a4Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 2, "24 cards must fit exactly two A4 PDF pages");
-
-    // Switch to 58mm thermal POS slip
-    await layoutSelect.selectOption("thermal-58");
-    assert.equal(await page.locator('[data-print-surface="thermal-58"]').count(), 1);
-    assert.equal(await page.locator(".thermal-slip").count(), 24);
-
     const thermal58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-58.pdf", preferCSSPageSize: true });
     assertPaperWidth(thermal58Pdf, 58);
     assert.equal((thermal58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 24, "one thermal slip per page");
