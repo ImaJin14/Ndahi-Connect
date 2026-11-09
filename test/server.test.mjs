@@ -126,6 +126,8 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/security/pin/options",
     "/api/account/security/recovery-codes/generate",
     "/api/account/security/sessions/revoke",
+    "/api/account/vouchers/print-pdf",
+    "/api/account/vouchers/print-preview",
     "/api/account/wifi-devices/disconnect",
   ]);
 });
