@@ -6,6 +6,7 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { storeState } from "../lib/device-store.mjs";
+import { adminLinkName } from "./admin-nav.mjs";
 const store = createStore({ persistent: false }),
   secret = randomUUID(),
   token = randomUUID(),
@@ -242,7 +243,7 @@ try {
     assert.equal((await store.snapshot()).storeSettings.open, true);
     checks++;
     await panel.getByRole("link", { name: "Home", exact: true }).click();
-    await panel.getByRole("link", { name: "Store", exact: true }).click();
+    await panel.getByRole("link", { name: adminLinkName("Store"), exact: true }).click();
     await panel
       .getByRole("heading", { name: "Store overview", exact: true })
       .waitFor();

@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
 
 const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
 const store = createStore({ persistent: false }), secret = randomUUID(), tokens = Object.fromEntries(["owner", "operator", "auditor", "reseller"].map((r) => [r, randomUUID()]));
@@ -62,7 +63,7 @@ try {
       return route.fulfill({ contentType: "application/json", body: JSON.stringify({ report }) });
     });
     await page.goto(`${admin}/dashboard#more`);
-    await page.getByRole("tab", { name: "Network setup", exact: true }).click();
+    await openAdminMore(page, "Network setup");
     const button = page.getByRole("button", { name: "Check purchase access", exact: true });
     await button.click();
     assert.equal(await page.locator("#networkPurchaseCheck").isDisabled(), true);
@@ -88,15 +89,15 @@ try {
     await page.locator("#activeSessionsMetric").waitFor();
     assert.equal(await page.locator("#activeSessionsMetric").textContent(), "2");
     for (const [id, label] of [["store", "Store"], ["customers", "Customers"], ["bundles", "Bundles"], ["connections", "Connections"]]) {
-      await page.getByRole("link", { name: label, exact: true }).click();
+      await page.getByRole("link", { name: adminLinkName(label), exact: true }).click();
       await page.locator(`[data-tab-panel="${id}"]:visible`).waitFor();
       assert.equal(await page.locator(`[data-admin-nav="${id}"]`).getAttribute("aria-current"), "page");
       assert.equal(await page.locator("[data-admin-more]").isVisible(), false);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
-    await page.getByRole("link", { name: "Devices", exact: true }).click();
+    for (const tab of ["Network setup", "Generate voucher", "Audit"]) assert.equal(await adminMoreCount(page, tab), 1, tab);
+    if (!uiV2) assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
     assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
     await page.reload(); await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
@@ -154,9 +155,8 @@ try {
     assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
     await page.goto(`${admin}/dashboard#store`);
     await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    assert.equal(await page.getByRole("tab", { name: "Network setup", exact: true }).count(), 0);
-    await page.getByRole("link", { name: "Devices", exact: true }).click();
+    assert.equal(await adminMoreCount(page, "Network setup"), 0);
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
     assert.equal(await page.locator("#refreshWifi").isVisible(), role === "operator");
     assert.equal(await page.getByRole("button", { name: "Disconnect", exact: true }).count(), role === "operator" ? 2 : 0);
@@ -173,7 +173,7 @@ try {
     await context.setOffline(true); await page.reload(); await page.getByRole("heading", { name: "You're offline" }).waitFor();
     assert.ok(!(await page.locator("body").innerText()).includes("670042001"));
     await context.setOffline(false); await page.getByRole("link", { name: "Try again" }).click();
-    await page.getByRole("link", { name: "Devices", exact: true }).click(); await page.locator("#wifiRecords").waitFor();
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click(); await page.locator("#wifiRecords").waitFor();
   });
   await scenario("the admin install button invokes the available browser prompt and hides after installation", async (page) => {
     await page.goto(`${admin}/dashboard#more`);
@@ -205,8 +205,7 @@ try {
     assert.equal(reloads, 0); assert.equal(await page.locator('#bundle [name="name"]').inputValue(), "Unsaved bundle");
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "true"; document.querySelector("#bundle").reset(); });
     await page.clock.fastForward(61000); assert.equal(reloads, 0);
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    await page.getByRole("tab", { name: "Generate voucher", exact: true }).click();
+    await openAdminMore(page, "Generate voucher");
     await page.getByRole("button", { name: "Generate resale vouchers" }).click();
     await page.getByText("1 voucher generated").waitFor();
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "false"; });

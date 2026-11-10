@@ -5,14 +5,18 @@
 //   node scripts/redesign-preview.mjs
 //
 //   Portal (v2 by default)  http://localhost:8080   sign-in details are printed at start
+//   Admin (v2)              http://localhost:8081   one-click sign-in from :8090
 //   API                     http://localhost:8082
 //   Design + comparisons    http://localhost:8090
 //
-// The portal reloads its files when customer-app-v2/, admin-app-v2/ or
+// Both apps reload their files when customer-app-v2/, admin-app-v2/ or
 // shared-app/ change; open tabs then offer "Refresh app". Ports can be moved
-// with PREVIEW_PORTAL_PORT, PREVIEW_API_PORT and PREVIEW_DESIGN_PORT.
+// with PREVIEW_PORTAL_PORT, PREVIEW_ADMIN_PORT, PREVIEW_API_PORT and
+// PREVIEW_DESIGN_PORT. Cookies ignore ports, so :8090 can sign a browser in to
+// the local apps.
 import http from "node:http";
-import { readFile, readdir, mkdir } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { watch } from "node:fs";
 import { join, normalize, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,23 +25,49 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { MockEmailAdapter } from "../lib/email.mjs";
 import { publishInitialStoreCatalogue } from "../lib/initial-store-catalogue.mjs";
+import { hashSecret } from "../lib/security.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const screensDir = join(root, "docs/redesign/screens");
 const portalPort = Number(process.env.PREVIEW_PORTAL_PORT || 8080);
+const adminPort = Number(process.env.PREVIEW_ADMIN_PORT || 8081);
 const apiPort = Number(process.env.PREVIEW_API_PORT || 8082);
 const designPort = Number(process.env.PREVIEW_DESIGN_PORT || 8090);
-const portal = `http://localhost:${portalPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
+const portal = `http://localhost:${portalPort}`, admin = `http://localhost:${adminPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
 const captures = "/tmp/ndahi-redesign-preview";
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
+const NOT_YET = "Navigation only — screen not rebuilt yet", SHELL = "Admin shell — screen not rebuilt yet";
 export const SCREENS = [
-  { id: "home", title: "Home", status: "Redesigned", phone: "PhoneHome", desktop: "Main", path: "/dashboard#home" },
-  { id: "internet", title: "Internet", status: "Navigation only — screen not rebuilt yet", phone: "PhoneInternet", desktop: "DesktopInternet", path: "/dashboard#internet" },
-  { id: "shop", title: "Shop", status: "Navigation only — store panel until Phase 4", phone: "PhoneShop", desktop: "Shop", path: "/dashboard#shop" },
-  { id: "activity", title: "Activity", status: "Navigation only — screen not rebuilt yet", phone: "PhoneActivity", desktop: "DesktopActivity", path: "/dashboard#activity" },
-  { id: "account", title: "Account", status: "Navigation only — screen not rebuilt yet", phone: "PhoneAccount", desktop: "DesktopAccount", path: "/dashboard#account" },
+  { id: "home", app: "portal", title: "Home", status: "Redesigned", phone: "PhoneHome", desktop: "Main", path: "/dashboard#home" },
+  { id: "internet", app: "portal", title: "Internet", status: NOT_YET, phone: "PhoneInternet", desktop: "DesktopInternet", path: "/dashboard#internet" },
+  { id: "shop", app: "portal", title: "Shop", status: "Navigation only — store panel until Phase 4", phone: "PhoneShop", desktop: "Shop", path: "/dashboard#shop" },
+  { id: "activity", app: "portal", title: "Activity", status: NOT_YET, phone: "PhoneActivity", desktop: "DesktopActivity", path: "/dashboard#activity" },
+  { id: "account", app: "portal", title: "Account", status: NOT_YET, phone: "PhoneAccount", desktop: "DesktopAccount", path: "/dashboard#account" },
+  // Admin artboards are desktop (1280px) only.
+  ...[
+    ["admin-login", "Sign in", "AdminLogin", "/login", "Restyle pending (today's sign-in method stays until Phase 6)"],
+    ["admin-home", "Home", "Admin", "/dashboard#home"],
+    ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices"],
+    ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections"],
+    ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html"],
+    ["admin-setup", "Network setup", "AdminNetworkSetup", "/dashboard#network-setup"],
+    ["admin-bundles", "Bundles", "AdminBundles", "/dashboard#bundles"],
+    ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles"],
+    ["admin-vouchers", "Vouchers", "AdminVouchers", "/dashboard#vouchers"],
+    ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers"],
+    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments"],
+    ["admin-store", "Store orders", "AdminStore", "/dashboard#store"],
+    ["admin-products", "Products", "AdminProducts", "/dashboard#products"],
+    ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products"],
+    ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash"],
+    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers"],
+    ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers"],
+    ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers"],
+    ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit"],
+    ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile"],
+  ].map(([id, title, desktop, path, status]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path })),
 ];
 
 // Local demo prices for the initial catalogue (the owner's launch prices).
@@ -48,11 +78,13 @@ const listen = (server, port) => new Promise((resolve, reject) => { server.once(
 
 async function startApi() {
   setDefaultResultOrder("ipv4first");
-  const store = createStore({ persistent: false });
+  const store = createStore({ persistent: false }), adminSecret = randomUUID();
+  const staff = { owner: randomUUID(), operator: randomUUID(), reseller: randomUUID() };
   const server = createServer({ store, email: new MockEmailAdapter(), env: {
     NODE_ENV: "test", PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock",
     CUSTOMER_APP_URL: portal, SESSION_COOKIE_SECURE: "false", BILLING_WORKER_ENABLED: "false",
     NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false",
+    ADMIN_SESSION_SECRET: adminSecret, ADMIN_APP_URL: admin, ALLOWED_ADMIN_ORIGINS: admin,
   } });
   await listen(server, apiPort);
   const post = async (path, input, cookie = "") => {
@@ -77,22 +109,35 @@ async function startApi() {
       activatedAt: new Date(now - 12 * 864e5).toISOString(), expiresAt: new Date(now - 5 * 864e5).toISOString() });
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) product.price = DEMO_PRICES[product.sku];
     s.storeSettings.open = true;
+    // Demo staff with ready sessions (as the admin journeys do); the preview's
+    // sign-in links hand these to the browser.
+    const expiresAt = new Date(now + 30 * 864e5).toISOString();
+    for (const [role, token] of Object.entries(staff)) {
+      s.adminUsers.push({ id: `preview-${role}`, username: `demo-${role}`, name: `Demo ${role}`, role, active: true, passkeys: [] });
+      s.adminSessions.push({ userId: `preview-${role}`, tokenHash: hashSecret(token, adminSecret), role, csrfToken: randomUUID(), expiresAt });
+    }
   });
-  return { server, cookie, code: paid.body.access.code };
+  return { server, cookie, code: paid.body.access.code, staff };
 }
 
-// The portal's static server caches its files, so a change swaps in a fresh one.
-function startPortal() {
-  const make = () => createStaticServer("customer", { apiUrl: api, portalUrl: portal, supportEmail: "support@example.test", supportPhone: "+237 670 000 000", env: { UI_V2_PERCENT: "100" } });
-  let current = make(), timer;
-  const server = http.createServer((req, res) => current.emit("request", req, res));
+// The static servers cache their files, so a change swaps in fresh ones.
+function startApps() {
+  const makers = {
+    portal: () => createStaticServer("customer", { apiUrl: api, portalUrl: portal, supportEmail: "support@example.test", supportPhone: "+237 670 000 000", env: { UI_V2_PERCENT: "100" } }),
+    admin: () => createStaticServer("admin", { apiUrl: api, portalUrl: portal }),
+  };
+  const current = { portal: makers.portal(), admin: makers.admin() };
+  let timer;
   for (const folder of ["customer-app-v2", "admin-app-v2", "shared-app"]) {
     watch(join(root, folder), { recursive: true }, () => {
       clearTimeout(timer);
-      timer = setTimeout(() => { current = make(); console.log(`[preview] ${new Date().toLocaleTimeString()} files changed; open tabs will offer Refresh app`); }, 300);
+      timer = setTimeout(() => { current.portal = makers.portal(); current.admin = makers.admin(); console.log(`[preview] ${new Date().toLocaleTimeString()} files changed; open tabs will offer Refresh app`); }, 300);
     });
   }
-  return listen(server, portalPort).then(() => server);
+  return Promise.all([
+    listen(http.createServer((req, res) => current.portal.emit("request", req, res)), portalPort),
+    listen(http.createServer((req, res) => current.admin.emit("request", req, res)), adminPort),
+  ]);
 }
 
 async function boards() {
@@ -118,30 +163,37 @@ function page(title, body) {
 
 async function indexPage(state) {
   const groups = await boards();
-  const built = SCREENS.map((s) => `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span>
+  const card = (s) => s.app === "admin"
+    ? `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span>
+    <p class="meta">Design: <a href="/design/${s.desktop}.dc.html">${escape(s.desktop)}</a><br>Build: <a href="${admin}${s.path}">${escape(admin + s.path)}</a></p></div>`
+    : null;
+  const built = SCREENS.filter((s) => s.app === "portal").map((s) => `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span>
     <p class="meta">Design: <a href="/design/${s.phone}.dc.html">phone</a> · <a href="/design/${s.desktop}.dc.html">desktop</a><br>Build: <a href="${portal}${s.path}">${escape(portal + s.path)}</a></p></div>`).join("");
   const design = groups.map((g) => `<section><h2>${escape(g.title)}</h2><div class="cards">${g.items.map((i) => `<div class="card"><a href="/design/${escape(i.file)}"><strong>${escape(i.title)}</strong></a><p class="meta">${escape(i.file)} · ${i.width} × ${i.height}</p></div>`).join("")}</div></section>`).join("");
   return page("Screens", `<section><h1>Customer portal — built so far</h1>
     <p>Sign in at <a href="${portal}/login">${portal}/login</a>: phone <code>${DEMO.phone}</code>, voucher code <code>${escape(state.code)}</code>, then PIN <code>${DEMO.pin}</code> (today's sign-in still asks for the code; the PIN-only sign-in is a later phase). In-memory demo data; payments use the mock provider (look for <em>Simulate payment approval</em>). Add <code>?ui=old</code> to any portal address to see v1, <code>?ui=new</code> to come back.</p>
+    <p><a href="/sign-in/portal"><strong>Open the portal signed in as ${escape(DEMO.name)}</strong></a> (skips the sign-in form).</p>
     <div class="cards">${built}</div><p class="meta">Design kit reference: <a href="${portal}/ui-kit.html">${portal}/ui-kit.html</a></p></section>
+    <section><h1>Admin — built so far</h1><p>Open the admin signed in as <a href="/sign-in/admin/owner"><strong>owner</strong></a>, <a href="/sign-in/admin/operator">operator</a> or <a href="/sign-in/admin/reseller">reseller</a> (demo staff; today's admin sign-in method stays until Phase 6).</p>
+    <div class="cards">${SCREENS.filter((s) => s.app === "admin").map(card).join("")}</div></section>
     <section><h1>The design canvas</h1><p class="meta">Rendered locally from <code>docs/redesign/screens/</code>. Links between screens work as on the canvas; props go in the address, for example <a href="/design/PhoneOrder.dc.html?guest=true">PhoneOrder.dc.html?guest=true</a>.</p></section>${design}`);
 }
 
 async function comparePage() {
   const stamp = Date.now();
-  const rows = SCREENS.map((s) => `<section><h2>${escape(s.title)} <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span></h2>
-    ${[390, 1280].map((width) => `<div class="pair"><figure><figcaption>Design · ${width}px (${width < 768 ? s.phone : s.desktop})</figcaption><img loading="lazy" src="/captures/${s.id}-design-${width}.png?${stamp}" alt="Design ${escape(s.title)} at ${width}px"></figure><figure><figcaption>Build · ${width}px</figcaption><img loading="lazy" src="/captures/${s.id}-build-${width}.png?${stamp}" alt="Build ${escape(s.title)} at ${width}px"></figure></div>`).join("")}</section>`).join("");
+  const rows = SCREENS.map((s) => `<section><h2>${s.app === "admin" ? "Admin · " : ""}${escape(s.title)} <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span></h2>
+    ${(s.app === "admin" ? [1280] : [390, 1280]).map((width) => `<div class="pair"><figure><figcaption>Design · ${width}px (${width < 768 ? s.phone : s.desktop})</figcaption><img loading="lazy" src="/captures/${s.id}-design-${width}.png?${stamp}" alt="Design ${escape(s.title)} at ${width}px"></figure><figure><figcaption>Build · ${width}px</figcaption><img loading="lazy" src="/captures/${s.id}-build-${width}.png?${stamp}" alt="Build ${escape(s.title)} at ${width}px"></figure></div>`).join("")}</section>`).join("");
   return page("Design vs build", `<section><h1>Design vs build</h1><p>Captures of each canvas artboard beside the running v2 portal (signed in as the demo customer). Phone captures are one 390 × 844 screen; desktop captures are the whole page.</p>
     <form method="post" action="/captures"><button>Capture again</button></form><p class="meta">Captures are saved in <code>${captures}</code>.</p></section>${rows}`);
 }
 
-export async function capture({ cookie, only } = {}) {
+export async function capture({ cookie, staff, only } = {}) {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   await mkdir(captures, { recursive: true });
   const browser = await chromium.launch();
   try {
     for (const screen of SCREENS.filter((s) => !only || only.includes(s.id))) {
-      for (const width of [390, 1280]) {
+      for (const width of screen.app === "admin" ? [1280] : [390, 1280]) {
         const phone = width < 768, height = phone ? 844 : 900;
         const designPage = await browser.newPage({ viewport: { width, height } });
         await designPage.goto(`${design}/design/${phone ? screen.phone : screen.desktop}.dc.html`);
@@ -153,11 +205,14 @@ export async function capture({ cookie, only } = {}) {
         const context = await browser.newContext({ viewport: { width, height } });
         await context.addCookies([
           { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
-          { name: "customer_session", value: cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" },
+          screen.app === "admin"
+            ? { name: "admin_session", value: staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
+            : { name: "customer_session", value: cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" },
         ]);
         const buildPage = await context.newPage();
-        await buildPage.goto(portal + screen.path);
-        await buildPage.waitForSelector(`[data-portal-tab="${screen.id}"][aria-current="page"]`).catch(() => {});
+        await buildPage.goto((screen.app === "admin" ? admin : portal) + screen.path);
+        if (screen.app === "admin") await buildPage.waitForSelector("#adminSideMenu nav", { timeout: 15000 }).catch(() => {});
+        else await buildPage.waitForSelector(`[data-portal-tab="${screen.id}"][aria-current="page"]`).catch(() => {});
         await buildPage.evaluate(() => document.fonts.ready);
         await buildPage.waitForTimeout(800);
         await buildPage.screenshot({ path: `${captures}/${screen.id}-build-${width}.png`, fullPage: !phone });
@@ -176,8 +231,17 @@ function startDesign(state) {
       if (url.pathname === "/") return send(200, TYPES[".html"], await indexPage(state));
       if (url.pathname === "/compare") return send(200, TYPES[".html"], await comparePage());
       if (url.pathname === "/captures" && req.method === "POST") {
-        await capture({ cookie: state.cookie });
+        await capture({ cookie: state.cookie, staff: state.staff });
         res.writeHead(303, { location: "/compare" }); return res.end();
+      }
+      // One-click sign-in: hand the demo session to this browser (cookies ignore ports).
+      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))$/.exec(url.pathname);
+      if (signIn) {
+        const cookies = ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", signIn[2]
+          ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
+          : `${state.cookie}; Path=/api/account; SameSite=Lax; HttpOnly`];
+        res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
+        return res.end();
       }
       if (url.pathname === "/design/support.js") return send(200, TYPES[".js"], await readFile(join(root, "scripts/redesign-preview-canvas.js")));
       const [, area, name] = /^\/(design|captures)\/([\w.-]+)$/.exec(url.pathname) || [];
@@ -196,13 +260,14 @@ function startDesign(state) {
 const main = process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (main) {
   const state = await startApi();
-  await startPortal();
+  await startApps();
   await startDesign(state);
   console.log(`[preview] Portal  ${portal}/login  (phone ${DEMO.phone}, voucher code ${state.code}, then PIN ${DEMO.pin}; v2 by default)`);
-  console.log(`[preview] Design  ${design}  (canvas screens, design vs build)`);
+  console.log(`[preview] Admin   ${admin}  (sign in as demo staff from ${design})`);
+  console.log(`[preview] Design  ${design}  (canvas screens, design vs build, one-click sign-in)`);
   console.log(`[preview] API     ${api}  (in-memory, mock providers)`);
   if (process.argv.includes("--capture")) {
-    await capture({ cookie: state.cookie });
+    await capture({ cookie: state.cookie, staff: state.staff });
     console.log(`[preview] Captures written to ${captures}`);
   }
 }
