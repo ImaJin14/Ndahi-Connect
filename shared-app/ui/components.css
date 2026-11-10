@@ -66,6 +66,9 @@
   text-transform: uppercase;
 }
 .nd-eyebrow--lg { font-size: var(--nd-fs-caption); letter-spacing: 0.16em; }
+/* --nd-lime-text is for light surfaces; on forest the eyebrow turns lime. */
+.nd-on-forest .nd-eyebrow, .nd-hero .nd-eyebrow, .nd-topnav .nd-eyebrow, .nd-sidemenu .nd-eyebrow { color: var(--nd-lime); }
+.nd-on-forest .nd-meta, .nd-hero .nd-meta { color: var(--nd-on-forest-muted); }
 .nd-h1, .nd-h2, .nd-h3 { margin: 0; font-family: var(--nd-font-display); font-weight: 600; line-height: var(--nd-lh-tight); }
 .nd-h1 { font-size: var(--nd-fs-h1); }
 .nd-h1--lg { font-size: var(--nd-fs-h1-lg); }
