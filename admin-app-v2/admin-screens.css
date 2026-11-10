@@ -1,0 +1,23 @@
+/* Redesigned admin screens (admin-app-v2): screen layouts and screen-only
+   details; components come from shared-app/ui. One section per canvas screen. */
+.admin-dashboard .nd-h2 { color: var(--nd-ink); }
+.admin-link { color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; }
+
+/* ---------- Home (canvas: Admin) ---------- */
+.admin-home { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-home__metrics { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.admin-home .nd-metric { padding: var(--nd-space-18); }
+.admin-home .nd-metric__value { font-size: 26px; }
+.admin-home .nd-metric__label { display: block; margin-top: 2px; }
+.admin-home a.nd-metric__label { color: var(--nd-muted); text-decoration: none; }
+.admin-home a.nd-metric__label:hover { color: var(--nd-forest); text-decoration: underline; }
+.admin-home__row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--nd-space-20); }
+.admin-home__attention { flex: 1 1 320px; min-width: 0; }
+.admin-home__attention .nd-h2 { margin-bottom: var(--nd-space-14); }
+.admin-home__payments { flex: 999 1 460px; min-width: 0; }
+.admin-attention { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-10); min-height: 52px; margin-bottom: var(--nd-space-8); padding: 0 var(--nd-space-14); border-radius: var(--nd-radius-control); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); font-weight: 600; text-decoration: none; }
+.admin-attention--info { background: var(--nd-info-bg); color: var(--nd-info-fg); }
+.admin-attention--neutral { background: var(--nd-sage); color: var(--nd-ink); }
+.admin-attention--danger { background: var(--nd-danger-bg); color: var(--nd-danger-fg); }
+.admin-attention:hover { text-decoration: underline; }
+.admin-attention:last-child { margin-bottom: 0; }

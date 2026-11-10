@@ -5,6 +5,7 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
+import { lowContrastText } from "./ui-checks.mjs";
 
 const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
 const store = createStore({ persistent: false }), secret = randomUUID(), tokens = Object.fromEntries(["owner", "operator", "auditor", "reseller"].map((r) => [r, randomUUID()]));
@@ -48,6 +49,23 @@ try {
     catch (e) { await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw e; }
     finally { await context.close(); }
   }
+  // Redesigned admin Home (v2 only; canvas: Admin).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned admin Home shows metrics, Needs attention and latest payments at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#home`);
+    await page.getByRole("heading", { name: "Your operations.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Needs attention", exact: true }).waitFor();
+    await page.locator("#homeAttention > *").first().waitFor();
+    assert.equal(await page.locator("#activeSessionsMetric").textContent(), "2");
+    await page.getByRole("heading", { name: "Latest payments", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Print vouchers", exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
+    await page.getByRole("link", { name: adminLinkName("Payments"), exact: true }).click();
+    await page.locator('[data-admin-nav="payments"][aria-current]').waitFor();
+    assert.equal(await page.getByRole("link", { name: "Print vouchers", exact: true }).count(), 0, "head actions belong to Home");
+  }, { width });
+
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
     const gate = new Promise((r) => { release = r; });
@@ -101,7 +119,7 @@ try {
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
     assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
     await page.reload(); await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Payments", exact: true }).click();
+    await page.getByRole("link", { name: adminLinkName("Payments"), exact: true }).click();
     await page.goBack(); assert.equal(new URL(page.url()).hash, "#devices");
     assert.equal(await page.locator('[data-admin-nav="devices"]').getAttribute("aria-current"), "page");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

@@ -34,7 +34,7 @@ HREFS.homerouters = "/home-routers.html";
 const ROLES = { owner: "adminRoleOwner", operator: "adminRoleOperator", auditor: "adminRoleAuditor", reseller: "adminRoleReseller" };
 const STORE_ROLES = ["owner", "operator"];
 
-let mounted = false, currentRole, changed, homeRouters = false;
+let mounted = false, currentRole, changed, homeRouters = false, badges = {};
 
 // Role rules (unchanged from v1): network setup for the owner, the store for
 // owners and operators. Cash and resellers follow the sections the dashboard
@@ -71,6 +71,7 @@ function renderMenu(view) {
     canAccess: (menu) => canAccess(menu),
     hrefs: HREFS,
     homeHref: "/dashboard#home",
+    badges,
     signOut: false,
     linkId: (id) => "admin-nav-" + id,
     lang: currentLanguage(),
@@ -88,6 +89,8 @@ function apply(focus) {
       if (row && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, link.offsetLeft - (row.clientWidth - link.offsetWidth) / 2);
     } else link.removeAttribute("aria-current");
   });
+  // Each screen's own buttons beside the title (marked data-head-view in app.js).
+  document.querySelectorAll("[data-head-view]").forEach((action) => { action.hidden = action.dataset.headView !== view; });
   const title = document.getElementById("adminTitle"), label = document.getElementById("adminEyebrow");
   if (label) label.textContent = eyebrow(view, lang);
   if (title) title.textContent = t(config.title, lang);
@@ -95,6 +98,12 @@ function apply(focus) {
   if (focus && section) section.scrollIntoView({ block: "start" });
   else if (focus && title) { window.scrollTo(0, 0); title.focus({ preventScroll: true }); }
   if (changed) changed(view);
+}
+
+// Counts shown on menu items (for example { payments: 2, store: 3 }).
+export function setAdminBadges(next) {
+  badges = next || {};
+  if (mounted) renderMenu(activeAdminView());
 }
 
 // Shows the Home routers item once NDAHI Home is known to be in use.

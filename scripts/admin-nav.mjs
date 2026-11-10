@@ -10,9 +10,13 @@ export const uiV2 = process.env.NDAHI_UI_VARIANT === "v2";
 const V2_NAMES = { Devices: "Live devices", Store: "Store orders", Audit: "Audit log" };
 const V2_MORE = { "Network setup": "Network setup", "Generate voucher": "Vouchers", Audit: "Audit log" };
 
-// The v2 name of a v1 admin link, for example adminLinkName("Devices").
+// The name of a v1 admin link on the version under test, for example
+// adminLinkName("Devices"). On v2 a menu item with a count is named
+// "Store orders, 3 need attention", so v2 gets a pattern that allows it.
 export function adminLinkName(name) {
-  return uiV2 ? V2_NAMES[name] || name : name;
+  if (!uiV2) return name;
+  const label = (V2_NAMES[name] || name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^${label}(, \\d+ need attention)?$`);
 }
 
 // The sign-out button: "Logout" in v1's header, "Sign out" in the v2 side menu.

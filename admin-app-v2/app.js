@@ -6,13 +6,15 @@ import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
-import { activeAdminView, mountAdminNavigation } from "/navigation.js";
+import { activeAdminView, mountAdminNavigation, setAdminBadges } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 import { mountResellerLedger } from "/reseller-ledger.js";
+import { format, t } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -89,6 +91,54 @@ async function runAction(button, text, task, message = "#actionMessage") {
     ($(message) || $("#actionMessage") || $("#app")).textContent = error.message || "The action could not be completed.";
   }
 }
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const maskPhone = (phone) => { const digits = String(phone || "").replace(/\D/g, "").slice(-9); return digits.length === 9 ? `${digits[0]}•• •• ${digits.slice(5, 7)} ${digits.slice(7)}` : "—"; };
+const PAYMENT_TONES = { paid: ["adminStatusPaid", "success"], pending: ["adminStatusWaiting", "warning"], processing: ["adminStatusWaiting", "warning"], refunded: ["adminStatusRefunded", ""], "refund-pending": ["adminStatusRefunded", ""] };
+const METHODS = { mtn: "MTN MoMo", orange: "Orange Money" };
+const paymentMethod = (p) => p.methodLabel || METHODS[p.network] || METHODS[p.provider] || (p.provider === "mock" ? L("adminMethodTest") : "Mobile Money");
+
+// Needs attention: only real signals, each linking to where it is handled.
+async function loadHomeAttention(x, storeRole, contacts) {
+  const host = $("#homeAttention");
+  if (!host) return;
+  // Tones follow the canvas: waiting money orange, orders blue, stock neutral, failures red.
+  const items = [], item = (href, text, tone) => items.push(`<a class="admin-attention admin-attention--${tone}" href="${href}">${h(text)}<span aria-hidden="true">→</span></a>`);
+  const [pending, store] = await Promise.all([
+    contacts ? call("/api/admin/records?collection=payments&status=pending&pageSize=50").catch(() => null) : null,
+    storeRole ? call("/api/admin/store").catch(() => null) : null,
+  ]);
+  const late = (pending?.items || []).filter((p) => Date.now() - Date.parse(p.createdAt) > 10 * 60000).length;
+  if (late) item("/dashboard#payments", late === 1 ? L("adminAttentionPaymentsOne") : L("adminAttentionPayments", { count: late }), "warning");
+  const badges = { payments: late };
+  if (store) {
+    const preparing = store.orders.filter((o) => o.status === "preparing").length;
+    const orders = $("#homeOrdersMetric");
+    if (orders) orders.textContent = String(preparing);
+    badges.store = preparing;
+    if (preparing) item("/dashboard#store", preparing === 1 ? L("adminAttentionOrdersOne") : L("adminAttentionOrders", { count: preparing }), "info");
+    const lang = currentLanguage();
+    store.products.filter((p) => p.status === "published" && p.available <= 3).forEach((p) => item("/dashboard#products", L("adminAttentionStock", { name: typeof p.name === "object" ? p.name[lang] || p.name.en : p.name, count: p.available }), "neutral"));
+  }
+  if (x.paymentWebhooks?.deadLetters) item("/dashboard#payments", L("adminAttentionWebhooks", { count: x.paymentWebhooks.deadLetters }), "danger");
+  if (x.paymentReconciliation?.issues?.length) item("/dashboard#payments", L("adminAttentionPaymentChecks", { count: x.paymentReconciliation.issues.length }), "warning");
+  if (x.networkCommands?.deadLetters) item("/dashboard#connections", L("adminAttentionCommands", { count: x.networkCommands.deadLetters }), "danger");
+  if (x.networkReconciliation?.issues?.length) item("/dashboard#connections", L("adminAttentionNetworkChecks", { count: x.networkReconciliation.issues.length }), "warning");
+  // Side menu counts, as on the canvas: payments waiting, orders to prepare.
+  setAdminBadges(badges);
+  host.innerHTML = items.length ? items.join("") : `<p class="nd-meta">${h(L("adminAttentionNone"))}</p>`;
+}
+
+async function loadHomePayments() {
+  const host = $("#homePayments");
+  if (!host) return;
+  const result = await call("/api/admin/records?collection=payments&pageSize=4").catch(() => null);
+  if (!result) { host.closest("section").hidden = true; return; }
+  host.innerHTML = result.items.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColFor"))}</th><th scope="col">${h(L("adminColMethod"))}</th><th scope="col">${h(L("adminColStatus"))}</th></tr></thead><tbody>${result.items.map((p) => {
+    const [key, tone] = PAYMENT_TONES[p.status] || ["adminStatusFailed", "danger"], plan = p.planSnapshot?.name || p.plan?.name;
+    return `<tr><td>${h(maskPhone(p.payerPhone))}</td><td>${h(plan ? L("adminForBundle", { plan }) : L("adminForPayment"))}</td><td>${h(paymentMethod(p))}</td><td><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L(key))}</span></td></tr>`;
+  }).join("")}</tbody></table>` : `<p class="nd-meta">${h(L("adminNoPayments"))}</p>`;
+}
+
 async function load() {
   const x = await call("/api/admin/dashboard");
   adminRole = x.profile.role;
@@ -103,13 +153,18 @@ async function load() {
       (b) => `<option value="${h(b.id)}">${h(b.name)}</option>`,
     );
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
+  // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
+  const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}`;
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
-<section class="card tab-panel" data-tab-panel="home" id="panel-home"><h2>Overview</h2><div class="metrics">${
-    Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : k === "revenue" ? ' id="cashCollectedMetric"' : ""}>${k === "revenue" ? (x.cashCollected?.amount == null ? "Unavailable" : fcfa(x.cashCollected.amount)) : h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices"><span class="live-pulse" aria-hidden="true"></span>Active Wi-Fi sessions</a>' : h(k === "revenue" ? "Cash collected before fees" : k.replace(/([A-Z])/g, " $1"))}</div>`
-    ).join("")
-  }</div><p>Manage live connections, vouchers and payments from the navigation.</p><div class="action-row"><a class="button-link" href="/dashboard#devices">View devices</a><a class="button-link secondary-link" href="/dashboard#connections">Network commands &amp; health</a></div></section>
+<section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">
+<div class="nd-metric"><b class="nd-metric__value" id="activeSessionsMetric">${h(x.metrics.activeSessions)}</b><a class="nd-metric__label" href="/dashboard#devices">${h(L("adminMetricDevicesOnline"))}</a></div>
+<div class="nd-metric"><b class="nd-metric__value">${h(x.metrics.bundlesSold)}</b><span class="nd-metric__label">${h(L("adminMetricBundlesSold"))}</span></div>
+<div class="nd-metric"><b class="nd-metric__value" id="cashCollectedMetric">${x.cashCollected?.amount == null ? h(L("adminUnavailable")) : fcfa(x.cashCollected.amount)}</b><span class="nd-metric__label">${h(L("adminMetricCollected"))}</span></div>
+${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="homeOrdersMetric">…</b><a class="nd-metric__label" href="/dashboard#store">${h(L("adminMetricOrdersToPrepare"))}</a></div>` : ""}
+</div><div class="admin-home__row"><section class="nd-panel admin-home__attention" aria-labelledby="homeAttentionTitle"><h2 class="nd-h2" id="homeAttentionTitle">${h(L("adminAttentionTitle"))}</h2><div id="homeAttention" aria-live="polite"></div></section>
+${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
 <section class="card tab-panel" data-tab-panel="devices" id="panel-devices"><h2>Live Wi-Fi devices</h2><div class="device-controls"><button type="button" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>Refresh devices</button><div id="wifiSummary" role="status" aria-live="polite"></div></div><div id="wifiMessage" role="status" aria-live="polite"></div><div id="wifiRecords"></div></section>
 <section class="card tab-panel" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div id="adminInstall"></div></section><div class="tab-panels">
 <section class="card integration-card tab-panel" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
@@ -170,6 +225,8 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   if (x.sales) mountCashCollectedReport(x.cashCollected);
   mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
+  void loadHomeAttention(x, storeRole, access.contacts);
+  void loadHomePayments();
   mountAdminInstall($("#adminInstall"));
   renderWifiSummary(x.wifi);
   $("#refreshWifi").onclick = async (event) => {
