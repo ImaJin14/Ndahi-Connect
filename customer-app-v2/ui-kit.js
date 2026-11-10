@@ -1,12 +1,12 @@
 // Design-kit reference page (redesign Phase 1). Sample content only: this page
 // calls no API. Component strings come from shared-app/i18n.js; the sample
 // copy below is page-only (English is read from the HTML, French is here).
-import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { format, getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
 import { announce, clear, h, localize, setDocumentLanguage } from "/shared/ui/dom.js";
 import { icon, renderIcons } from "/shared/ui/icons.js";
 import { enhancePinToggles, focusFirstError, setBusy, setFieldError } from "/shared/ui/field.js";
 import { enhanceChoiceGroup, enhanceTabs } from "/shared/ui/choice.js";
-import { notificationsLabel, renderAdminMenu, renderBackButton, renderBrand, renderNetworkStatus, renderPortalHeader, renderTabBar } from "/shared/ui/navigation.js";
+import { notificationsLabel, renderAdminMenu, renderBackButton, renderBrand, renderNetworkStatus, renderPortalHeader } from "/shared/ui/navigation.js";
 import { renderMeter, renderStepper, renderSteps, stepCount } from "/shared/ui/progress.js";
 import { renderState } from "/shared/ui/states.js";
 
@@ -308,17 +308,18 @@ function renderDynamic() {
     h("a", { class: "nd-icon-btn nd-icon-btn--on-forest", href: "#kit-navigation", "aria-label": notificationsLabel(2, lang) },
       icon("bell", { size: 20 }), h("span", { class: "nd-icon-btn__dot", "aria-hidden": "true" })));
   mount("kit-hero-status", renderNetworkStatus("online", lang));
-  mount("kit-tabbar", renderTabBar({ current: "home", lang }));
   mount("kit-sidemenu", renderAdminMenu({
     current: "payments",
     badges: { payments: 2, store: 3 },
     lang,
     onSignOut: () => announce(L("kitDemoOnly")),
   }));
-  mount("kit-topnav", renderPortalHeader({
+  mount("kit-portalnav", renderPortalHeader({
     current: "home",
     network: "online",
     notifications: { count: 2, href: "#kit-navigation" },
+    badges: { activity: { count: 1, label: format("portalPendingOne", { count: 1 }, lang) } },
+    phoneBar: true,
     lang,
   }));
 

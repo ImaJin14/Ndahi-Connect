@@ -28,20 +28,6 @@ function tabHref(hrefs, id) {
   return (hrefs && hrefs[id]) || "#" + id;
 }
 
-// Phone: fixed bottom bar, hidden at 768px and wider. Give the page body
-// the nd-has-tabbar class so content is not hidden behind it.
-export function renderTabBar(options) {
-  const settings = options || {};
-  const lang = settings.lang || currentLanguage();
-  return h("nav", { class: "nd-tabbar", "aria-label": t("uiNavMain", lang) },
-    PORTAL_TABS.map((id) => h("a", {
-      class: "nd-tabbar__tab",
-      href: tabHref(settings.hrefs, id),
-      "aria-current": id === settings.current ? "page" : null,
-      "data-tab": id,
-    }, icon(TAB_ICONS[id]), h("span", { class: "nd-tabbar__label", text: t(TAB_LABELS[id], lang) }))));
-}
-
 const NETWORK_LABELS = { online: "networkOnline", degraded: "networkDegraded", offline: "networkOffline", maintenance: "maintenance", unknown: "unavailable" };
 
 // Dot + label, for example "Network online". `status` is one of online,
@@ -57,30 +43,54 @@ export function notificationsLabel(count, lang) {
   return count > 0 ? format("uiNotificationsNew", { count }, lang) : t("uiNotifications", lang);
 }
 
-// Desktop: forest header shown at 768px and wider.
+// The five portal links, for a <nav class="nd-topnav__links">. The same links
+// are the bottom tab bar on phones and the header links from 768px.
+//   renderPortalTabs({ current: "home", hrefs: { home: "/dashboard#home" },
+//                      badges: { activity: { count: 1, label: "1 payment awaiting confirmation" } } })
+// A badge shows its count on the icon; its label is added to the link's name.
+export function renderPortalTabs(options) {
+  const settings = options || {};
+  const lang = settings.lang || currentLanguage();
+  const badges = settings.badges || {};
+  return PORTAL_TABS.map((id) => {
+    const label = t(TAB_LABELS[id], lang), badge = badges[id];
+    const count = badge ? Number(badge.count) || 0 : 0;
+    return h("a", {
+      class: "nd-topnav__link",
+      href: tabHref(settings.hrefs, id),
+      "aria-current": id === settings.current ? "page" : null,
+      "aria-label": count > 0 && badge.label ? label + ", " + badge.label : null,
+      "data-portal-tab": id,
+    },
+    h("span", { class: "nd-topnav__icon" }, icon(TAB_ICONS[id]),
+      count > 0 ? h("span", { class: "nd-topnav__badge", "aria-hidden": "true", text: count > 99 ? "99+" : String(count) }) : null),
+    h("span", { class: "nd-topnav__label", text: label }));
+  });
+}
+
+// The whole header for pages built in JavaScript. Pages written in HTML can
+// keep the header in markup and fill its nav with renderPortalTabs().
 //   renderPortalHeader({ current: "home", homeHref: "/dashboard", network: "online",
-//                        notifications: { count: 2, href: "/notifications" } })
+//                        notifications: { count: 2, href: "/notifications" }, actions: [button] })
+// phoneBar: true keeps a slim forest bar (brand and actions) above the content
+// on phones; without it, phones show only the tab bar.
 export function renderPortalHeader(options) {
   const settings = options || {};
   const lang = settings.lang || currentLanguage();
   const notifications = settings.notifications || null;
-  return h("header", { class: "nd-topnav" },
+  return h("header", { class: "nd-topnav" + (settings.phoneBar ? " nd-topnav--phone-bar" : "") },
     h("div", { class: "nd-topnav__inner" },
-      renderBrand({ href: settings.homeHref || tabHref(settings.hrefs, "home"), large: true, tag: "CONNECT" }),
-      h("nav", { class: "nd-topnav__links", "aria-label": t("uiNavMain", lang) },
-        PORTAL_TABS.map((id) => h("a", {
-          class: "nd-topnav__link",
-          href: tabHref(settings.hrefs, id),
-          "aria-current": id === settings.current ? "page" : null,
-          "data-tab": id,
-        }, icon(TAB_ICONS[id], { size: 18 }), t(TAB_LABELS[id], lang)))),
+      renderBrand({ href: settings.homeHref || tabHref(settings.hrefs, "home"), tag: "CONNECT" }),
+      h("nav", { class: "nd-topnav__links", id: settings.navId, "aria-label": t("uiNavMain", lang) },
+        renderPortalTabs({ current: settings.current, hrefs: settings.hrefs, badges: settings.badges, lang })),
       h("div", { class: "nd-topnav__aside" },
         settings.network ? renderNetworkStatus(settings.network, lang) : null,
         notifications ? h("a", {
           class: "nd-icon-btn nd-icon-btn--on-forest nd-icon-btn--outlined",
           href: notifications.href,
           "aria-label": notificationsLabel(notifications.count || 0, lang),
-        }, icon("bell", { size: 18 }), notifications.count > 0 ? h("span", { class: "nd-icon-btn__dot", "aria-hidden": "true" }) : null) : null)));
+        }, icon("bell", { size: 18 }), notifications.count > 0 ? h("span", { class: "nd-icon-btn__dot", "aria-hidden": "true" }) : null) : null,
+        settings.actions || null)));
 }
 
 // ---------- Admin ----------

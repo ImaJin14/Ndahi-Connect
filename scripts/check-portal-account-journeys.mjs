@@ -5,6 +5,7 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
+import { portalNavDesktopWidth, portalTab, portalTabBadge, uiV2 } from './portal-tabs.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
 const apiPort = Number(process.env.PORTAL_TOOLS_API_PORT || 8798), portalPort = Number(process.env.PORTAL_TOOLS_PORT || 8797);
@@ -66,16 +67,17 @@ try {
       assert.equal(await page.locator('#billing').isVisible(), false);
       const layout = await page.evaluate(() => {
         const nav = document.querySelector('#portalNav').getBoundingClientRect(), main = document.querySelector('main').getBoundingClientRect();
-        return { nav: { x: nav.x, y: nav.y, width: nav.width, height: nav.height }, mainX: main.x,
+        return { nav: { x: nav.x, y: nav.y, width: nav.width, height: nav.height }, mainX: main.x, mainY: main.y,
           overflow: document.documentElement.scrollWidth > innerWidth, height: innerHeight };
       });
       assert.equal(layout.overflow, false);
-      if (width < 1000) assert.ok(Math.abs(layout.nav.y + layout.nav.height - layout.height) < 2);
+      if (width < portalNavDesktopWidth) assert.ok(Math.abs(layout.nav.y + layout.nav.height - layout.height) < 2);
+      else if (uiV2) assert.ok(layout.nav.y + layout.nav.height <= layout.mainY, 'the redesigned nav sits in the header above the content');
       else assert.ok(layout.nav.x + layout.nav.width <= layout.mainX);
-      await page.locator('[data-portal-tab="vouchers"]').click();
+      await page.locator(portalTab("vouchers")).click();
       await page.locator('[data-portal-view="vouchers"]').first().waitFor({ state: 'visible' });
       await page.reload();
-      await page.locator('[data-portal-tab="vouchers"][aria-current="page"]').waitFor();
+      await page.locator(portalTab("vouchers") + '[aria-current="page"]').waitFor();
       await page.goBack();
       await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
       await page.locator('[data-portal-tab="account"]').click();
@@ -318,7 +320,7 @@ try {
     const after = (await store.snapshot()).customers.find((c) => c.id === before.id);
     assert.equal(after.email, 'linked@example.test'); assert.ok(after.emailVerifiedAt);
     assert.equal(after.pendingEmail, undefined);
-    await page.locator('[data-portal-tab="payments"]').click();
+    await page.locator(portalTab("payments")).click();
     await page.getByRole('button', { name: 'Email receipt', exact: true }).click();
     await page.getByText('Receipt sent to your account email.', { exact: true }).waitFor();
   }, 320);
@@ -367,9 +369,9 @@ try {
     await makePurchaseEligible();
     await post('/api/account/plan/purchase', { action: 'renew', planId: 'weekly', payerPhone: '670050199', requestKey: 'badge' }, cookie);
     await page.goto(`${portal}/dashboard`);
-    await page.locator('[data-portal-tab="payments"] .nav-badge').waitFor();
-    assert.equal(await page.locator('[data-portal-tab="payments"] .nav-badge').innerText(), '1');
-    await page.locator('[data-portal-tab="payments"]').click();
+    await page.locator(portalTabBadge("payments")).waitFor();
+    assert.equal(await page.locator(portalTabBadge("payments")).innerText(), '1');
+    await page.locator(portalTab("payments")).click();
     await page.getByText('Payment number: 670050199', { exact: true }).waitFor();
   });
   for (const protection of ['payment', 'unsaved', 'offline']) {
