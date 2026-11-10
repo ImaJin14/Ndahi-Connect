@@ -97,6 +97,10 @@ The repository includes a Render Blueprint and GitHub Actions quality gate. Foll
 
 The physical path remains Starlink → RB5009 → managed PoE/injector → EAP650-Outdoor. Enable client isolation, block management networks, use surge protection/grounding and UPS backup, and field-test around walls and metal roofing.
 
+## Front-end redesign rollout (v1/v2)
+
+The customer portal and admin app can serve a redesigned front end (`customer-app-v2/`, `admin-app-v2/`) beside the current one, against the same API and database. Testers opt in with `?ui=new` and out with `?ui=old`; `UI_V2_PERCENT` (default `0`) samples new portal visitors, and `UI_V2_OFF=true` sends everyone back to v1. With the defaults every visitor gets v1. Follow the [UI rollout runbook](docs/operations/ui-rollout.md) to ramp, compare versions, roll back and finally remove v1.
+
 ## Verification
 
 ```bash

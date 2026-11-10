@@ -1,0 +1,495 @@
+import { mountConnectivityBanner } from "./connectivity.js";
+import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
+import { applyNetworkStatus, networkBannerState } from "./network-status.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
+import { sessionStore, loadPasskeys, requestJson } from "./compat.js";
+import { runButton } from "/shared/pending.js";
+import { hotspotPath } from "./hotspot-path.js";
+import { wifiDeviceList } from "./wifi-devices.js";
+import { mountDeviceControls } from "./device-controls.js";
+import { mountInstallCard } from "./install.js";
+import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
+import { profileCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
+import { mountProfileEdit, mountEmailLink } from "./profile.js";
+import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
+import { startUpdates } from "./updates.js";
+import { migrateLegacyCheckout } from "./checkout-store.js";
+import { mountNotifications } from "/shared/notifications.js";
+import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
+import { mountDataBalance } from "./data-balance.js";
+import { mountVoucherHistory } from "./voucher-history.js";
+import { mountCurrentWifi } from "./current-wifi.js";
+import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
+
+migrateLegacyCheckout();
+const api = window.NDAHI_CONFIG.apiUrl,
+  $ = (selector) => document.querySelector(selector),
+  deviceId = (() => {
+    try { const saved = localStorage.getItem("ndahi-device"); if (saved) return saved; } catch (_) {}
+    const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  })(),
+  securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
+let stopConnectivity = () => {};
+let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
+let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
+try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
+
+async function call(path, options = {}) {
+  const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
+  if (response.status === 401 && result.code !== "VERIFICATION_FAILED") {
+    saveReturnPath();
+    location.replace("/onboarding.html");
+    throw responseError(response, result);
+  }
+  if (!response.ok) throw responseError(response, result);
+  return result;
+}
+
+function paymentActions(payment, emailLinked) {
+  const confirmed = Boolean(payment.confirmedAt) || ["paid", "refunded", "refund-pending"].includes(payment.status),
+    receiptAvailable = confirmed && payment.receiptAvailable,
+    recheckLabel = ["paid", "refund-pending"].includes(payment.status) && payment.refund?.status === "pending" ? "Check refund status"
+      : ["pending", "processing"].includes(payment.status) ? "Check payment status" : "";
+  return `${recheckLabel ? `<button type="button" data-recheck-payment="${h(payment.id)}">${recheckLabel}</button>` : ""}${receiptAvailable ? `<button type="button" class="secondary-action" data-view-receipt="${h(payment.id)}">View receipt</button>${emailLinked ? `<button type="button" data-email-receipt="${h(payment.id)}">Email receipt</button><small>Receipt email: ${h(payment.receiptEmail?.status || "awaiting delivery")}</small>` : '<a href="#account">Link an email to receive receipts</a>'}` : ""}<button type="button" class="secondary-action" data-copy-payment="${h(payment.providerReference || payment.id)}">Copy reference</button><a class="payment-help" href="/help#payment">Payment help</a>${confirmed && payment.status === "paid" && !payment.refund ? `<details><summary>Request a refund</summary><form data-refund-payment="${h(payment.id)}"><label>Reason<textarea name="reason" maxlength="500" required></textarea></label><p>Support will review your request. This does not confirm a refund.</p><button>Send refund request</button></form></details>` : ""}`;
+}
+
+
+function paymentRow(payment, customer) {
+  return `<tr data-payment-row="${h(payment.id)}"><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.methodLabel || "Mobile Money")}<br><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small><br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${paymentActions(payment, customer.emailLinked)}</td></tr>`;
+}
+
+function receiptPreview(receipt) {
+  const details = [
+    ["Package", receipt.plan?.name || "Not recorded"],
+    ["Payment method", receipt.methodLabel || "Mobile Money"],
+    ["Payment number", receipt.payerPhone || "Not recorded"],
+    ["Payment reference", receipt.providerReference || "Not recorded for this historical payment"],
+    ["Data allowance", receipt.dataLabel || "Not recorded"],
+    ["Validity", receipt.validityLabel || "Not recorded"],
+    ["Device limit", receipt.deviceLabel || "Not recorded"],
+  ];
+  if (receipt.refundStatus) details.push(["Refund status", receipt.refundStatus]);
+  return `<div class="receipt-brand"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></div><p class="receipt-number">Receipt ${h(receipt.number)}</p><div class="receipt-total"><span>Amount paid</span><strong>${h(receipt.amountLabel)}</strong></div><p class="receipt-paid-at">Paid ${h(receipt.paidAtLabel)}</p><p class="receipt-customer"><strong>Customer</strong><br>${h(receipt.customerName || "Customer")}</p><dl class="receipt-details">${details.map(([name, value]) => `<div><dt>${h(name)}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>${receipt.refundMessage ? `<p class="receipt-note">${h(receipt.refundMessage)}</p>` : ""}<p class="receipt-note">Keep this receipt as proof of payment.</p>`;
+}
+
+async function openReceipt(button) {
+  const request = ++receiptRequest;
+  receiptController?.abort();
+  receiptController = new AbortController();
+  const signal = receiptController.signal;
+  currentReceipt = null;
+  receiptOpener = button;
+  $("#receiptDownload").hidden = true;
+  $("#receiptDownload").disabled = false;
+  $("#receiptDownload").textContent = "Download PDF";
+  $("#receiptMessage").replaceChildren();
+  $("#receiptPreview").textContent = "Loading your receipt…";
+  $("#receiptPreview").setAttribute("aria-busy", "true");
+  $("#receiptDialog").showModal();
+  document.body.classList.add("modal-open");
+  try {
+    const { receipt } = await call(`/api/account/payments/${encodeURIComponent(button.dataset.viewReceipt)}/receipt?format=json`, { signal });
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    currentReceipt = receipt;
+    $("#receiptPreview").innerHTML = receiptPreview(receipt);
+    $("#receiptDownload").hidden = false;
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) {
+      $("#receiptPreview").replaceChildren();
+      showError($("#receiptMessage"), error);
+    }
+  } finally {
+    if (request === receiptRequest) $("#receiptPreview").removeAttribute("aria-busy");
+  }
+}
+
+$("#receiptClose").onclick = () => $("#receiptDialog").close();
+$("#receiptDialog").addEventListener("close", () => {
+  receiptRequest++;
+  receiptController?.abort();
+  receiptController = null;
+  currentReceipt = null;
+  document.body.classList.remove("modal-open");
+  if (receiptOpener?.isConnected) receiptOpener.focus();
+});
+$("#receiptDownload").onclick = async (event) => {
+  const receipt = currentReceipt, request = receiptRequest, signal = receiptController?.signal, button = event.currentTarget;
+  if (!receipt) return;
+  $("#receiptMessage").replaceChildren();
+  button.disabled = true;
+  button.textContent = "Preparing PDF…";
+  try {
+    const response = await fetch(`${api}/api/account/payments/${encodeURIComponent(receipt.paymentId)}/receipt`, {
+      credentials: "include", headers: { accept: "application/pdf" }, signal,
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) { saveReturnPath(); location.replace("/login"); }
+      throw responseError(response, result);
+    }
+    const file = await response.blob();
+    if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/pdf") || await file.slice(0, 5).text() !== "%PDF-") {
+      throw responseError({ status: 409 }, { error: "The PDF receipt is unavailable. Please try again." });
+    }
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    const url = URL.createObjectURL(file), link = document.createElement("a");
+    link.href = url;
+    link.download = `ndahi-receipt-${String(receipt.paymentId).replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    $("#receiptMessage").textContent = "Your PDF receipt is ready to save.";
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) showError($("#receiptMessage"), error);
+  } finally {
+    if (request === receiptRequest) { button.disabled = false; button.textContent = "Download PDF"; }
+  }
+};
+
+// Keep router-reported presence current while this view is open.
+let devicePoll;
+function watchWifiDevices() {
+  clearTimeout(devicePoll);
+  const tick = async () => {
+    const target = $("#wifiDeviceList");
+    if (!target || target.closest("[hidden]") || !$("#manageDevices")?.open) return;
+    if (!document.hidden) {
+      try { target.innerHTML = wifiDeviceList(await call("/api/account/wifi-devices")); }
+      catch (_) {
+        const stale = target.querySelector("[data-refresh-error]") || document.createElement("p");
+        stale.dataset.refreshError = "true";
+        stale.textContent = "Device updates are unavailable. The last device list may be out of date.";
+        if (!stale.isConnected) target.appendChild(stale);
+      }
+    }
+    devicePoll = setTimeout(tick, 5000);
+  };
+  void tick();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && $("#wifiDeviceList")) watchWifiDevices(); });
+window.addEventListener("hashchange", () => {
+  if (activePortalView() === "home" && $("#wifiDeviceList")) setTimeout(watchWifiDevices, 0);
+  else clearTimeout(devicePoll);
+});
+
+async function load() {
+  const securityView = securityViewState();
+  const [result, security] = await Promise.all([
+    call("/api/account/dashboard"), call("/api/account/security"),
+  ]);
+  const active = result.activeBundle,
+    current = result.currentPlan,
+    dailyPlan = result.availablePlans.find((plan) => plan.id === "daily"),
+    dailyNotice = `${dailyPlan ? `The ${dailyPlan.price.toLocaleString()} FCFA Daily bundle` : "Daily"} can be purchased again after expiry or data exhaustion, including on the same day.`,
+    canPurchase = !active && result.subscriptionPurchaseAccess?.allowed !== false &&
+      result.customer.status !== "suspended" && !result.customer.suspended,
+    duration = current?.plan?.validityHours === 24 ? "24 hours" : current?.plan?.validityHours === 168 ? "7 days" : "30 days",
+    remaining = active ? Math.max(0, new Date(active.expiresAt) - Date.now()) : 0,
+    remainingText = active ? `${Math.floor(remaining / 36e5)}h ${Math.floor(remaining % 36e5 / 6e4)}m` : "Not active";
+  csrfToken = result.csrfToken;
+  applyNetworkStatus($(".network-state"), result.zone?.status);
+  $("#differentCode").open = !active;
+  // With a HotSpot, devices and their slots come from the router itself.
+  const hotspot = Boolean(window.NDAHI_CONFIG.hotspotLoginUrl) && active?.accessMode !== "home" && !active?.accessTransitionId,
+    wifiConnect = active && hotspot ? '<section class="surface full" id="currentWifi" aria-label="This device connection"></section>' : "",
+    thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
+    quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
+      ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
+      : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
+  const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status));
+  const purchaseNotice = result.purchaseAccess?.allowed === false
+    ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
+  const netBanner = networkBannerState({ purchaseAccess: result.purchaseAccess, active, zone: result.zone });
+  const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="Network status"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
+  stopConnectivity();
+  $("#dashboard").innerHTML = `${netBannerMarkup}${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
+    <section class="surface" id="dataBalance">${activeBundleContent(result.bundleStatus)}</section>
+    <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
+    <section class="surface full" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
+    <div class="plan-actions full" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div></div>
+    <section class="surface full" data-portal-view="bundles" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${current.accessMode === "home" ? "All home devices share this allowance" : `${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}`}</p>${canPurchase && current.accessMode === "home" ? '<a class="button" href="/home-router.html">Manage / renew Home router access</a>' : canPurchase ? `<div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>`}` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${h(dailyNotice)}</p></section>
+    ${active?.accessMode === "home" ? '<p><a href="/home-router.html">Home router bundles and renewal</a></p>' : bundleCatalogue(result)}
+    <div class="account-layout full" data-portal-view="account">
+      <section class="account-overview" aria-label="Your account"><p class="eyebrow">Your account</p><h2>${h(result.customer.name || "Account settings")}</h2><p>Manage your profile, sign-in and recovery in one place.</p></section>
+      ${profileCard(result.customer)}
+      <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
+      ${accountSecurityCard(result.customer, security, securitySetup)}
+      ${accountSessionsCard(security)}
+    </div>
+    ${vouchersCard(result.vouchers)}
+    <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
+  </div>`;
+  if (active?.accessMode === "home" || active?.accessTransitionId) {
+    const controls = document.getElementById("manageDevices");
+    if (controls) { controls.textContent=""; const link=document.createElement("a"); link.href="/home-router.html"; link.textContent="Manage your Home router · All home devices share this allowance"; controls.replaceWith(link); }
+  }
+  stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
+  latestDashboard = result;
+  mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
+  mountProfileEdit({call,customer:result.customer,onChanged:async pending=>{
+    await load();
+    if(pending){$("#confirmEmail")?.scrollIntoView({block:"center"});$("#confirmEmail input")?.focus();}
+    else {$("#dashboardMessage").textContent="Your profile was updated.";$("#editProfile summary")?.focus();}
+  }});
+  mountAccountSecurity({ call, customer: result.customer, restore: securityView, setup: securitySetup, onChanged: async view => {
+    await load();
+    openSecurityManager(view);
+  } });
+  mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
+    await load();
+    if (confirmed) {$("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';$("#editProfile summary")?.focus();}
+    else $("#confirmEmail")?.scrollIntoView({ block: "center" });
+  } });
+  const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
+  $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
+  if (active) mountInstallCard($("#installApp"));
+  mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
+    const actions = $("#bundlePurchaseActions");
+    const markup = bundlePurchaseContent(snapshot);
+    if (actions && actions.innerHTML !== markup) actions.innerHTML = markup;
+    const eligible = Boolean(snapshot && snapshot.purchase.allowed === true && !snapshot.activeId);
+    $("#managePlan").querySelectorAll('a[href^="/onboarding"]').forEach(link => { link.hidden = !eligible; });
+    if (latestDashboard) {
+      latestDashboard.subscriptionPurchaseAccess = snapshot ? snapshot.purchase : { allowed: false };
+      if (snapshot) latestDashboard.activeBundle = snapshot.activeId ? snapshot.bundle : null;
+    }
+  } });
+  mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
+  $("#manageNotificationSettings").onclick = () => notifications.open({ category: "usage", settings: true });
+  if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };
+  if (hotspot && active) watchWifiDevices();
+  else clearTimeout(devicePoll);
+  stopCurrentWifi();
+  if (hotspot) {
+    const controls = mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
+    stopCurrentWifi = mountCurrentWifi({ container: $("#currentWifi"), call, onMainDisconnect: async (mac) => { $("#manageDevices").open = true; return (await controls)?.disconnect(mac); } });
+  }
+  const planNotice = sessionStore.get("ndahi-plan-notice");
+  if (planNotice) {
+    $("#dashboardMessage").innerHTML = `<div class="success">${h(planNotice)}</div>`;
+    sessionStore.remove("ndahi-plan-notice");
+  }
+  if (securitySetup) {
+    $("#accountSecurity").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("#addCustomerPasskey").focus({ preventScroll: true });
+  }
+}
+
+$("#redeem").onsubmit = async (event) => {
+  event.preventDefault();
+  const button = event.submitter || event.target.querySelector("button");
+  $("#redeemMessage").textContent = "";
+  try {
+    await runButton(button, "Connecting…", async () => {
+      const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(event.target)), deviceId }) });
+      $("#redeemMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
+    });
+  } catch (error) { showError($("#redeemMessage"), error); }
+};
+
+$("#dashboard").onclick = async (event) => {
+  const quickRenew = event.target.closest("[data-quick-renew]");
+  if (quickRenew && !latestDashboard?.activeBundle && latestDashboard?.subscriptionPurchaseAccess?.allowed !== false) {
+    location.assign("/onboarding.html?action=renew&plan=" + encodeURIComponent(quickRenew.dataset.quickRenew) + "&quick=1");
+    return;
+  }
+  if (await voucherAction(event)) return;
+  const copy = event.target.closest("[data-copy-payment]");
+  if (copy) {
+    try {
+      await runButton(copy, "Copying…", async () => {
+        let copied = false;
+        try { if (navigator.clipboard) { await navigator.clipboard.writeText(copy.dataset.copyPayment); copied = true; } } catch (_) {}
+        if (!copied) {
+          const input = document.createElement("textarea"); input.value = copy.dataset.copyPayment;
+          document.body.appendChild(input); input.select(); copied = document.execCommand("copy"); input.remove(); copy.focus();
+        }
+        $("#billingMessage").textContent = copied ? "Payment reference copied." : `Payment reference: ${copy.dataset.copyPayment}`;
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const receiptButton = event.target.closest("[data-view-receipt]");
+  if (receiptButton) { await openReceipt(receiptButton); return; }
+  const billingButton = event.target.closest("[data-recheck-payment], [data-email-receipt]");
+  if (billingButton) {
+    try {
+      await runButton(billingButton, billingButton.dataset.emailReceipt ? "Sending…" : "Checking…", async () => {
+        const id = billingButton.dataset.recheckPayment || billingButton.dataset.emailReceipt;
+        const result = billingButton.dataset.emailReceipt
+          ? await call("/api/account/payments/receipt-email", { method: "POST", body: JSON.stringify({ paymentId: id }) })
+          : await call(`/api/account/payments/${encodeURIComponent(id)}/status`);
+        await load();
+        $("#billingMessage").textContent = billingButton.dataset.emailReceipt
+          ? result.payment.receiptEmail?.status === "sent" ? "Receipt sent to your account email." : "Email delivery is pending or unavailable. You can download the receipt here."
+          : result.payment.recoveryMessage || result.payment.refund?.message || `Payment status: ${result.payment.status}.`;
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const revokeSessionButton = event.target.closest("[data-revoke-session]");
+  if (revokeSessionButton) {
+    if (!confirm("Sign out this session? If it's the device you're using now, you'll be signed out too.")) return;
+    try {
+      await runButton(revokeSessionButton, "Signing out…", async () => {
+        const result = await call("/api/account/security/sessions/revoke", { method: "POST", body: JSON.stringify({ sessionId: revokeSessionButton.dataset.revokeSession }) });
+        if (result.loggedOut) { location.href = "/login"; return; }
+        await load();
+        $("#dashboardMessage").textContent = "Session signed out.";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const logoutEverywhereButton = event.target.closest("#logoutEverywhere");
+  if (logoutEverywhereButton) {
+    if (!confirm("Log out everywhere? This signs out every device, including this one.")) return;
+    try {
+      await runButton(logoutEverywhereButton, "Signing out…", async () => {
+        await call("/api/account/security/logout-everywhere", { method: "POST", body: "{}" });
+        location.href = "/login";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  if (event.target.closest("[data-refresh-wifi]")) { watchWifiDevices(); return; }
+  const wifiDevice = event.target.closest("button[data-wifi-device]");
+  if (wifiDevice) {
+    try {
+      await runButton(wifiDevice, "Disconnecting…", async () => {
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession, startedAt: wifiDevice.dataset.wifiStarted, retainApproval: true }) });
+        watchWifiDevices();
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const button = event.target.closest("button[data-session]");
+  if (!button) return;
+  try {
+    await runButton(button, "Disconnecting…", async () => {
+      await call("/api/account/devices/disconnect", { method: "POST", body: JSON.stringify({ sessionId: button.dataset.session }) });
+      await load();
+    });
+  } catch (error) { showError($("#dashboardMessage"), error); }
+};
+
+$("#dashboard").onsubmit = async (event) => {
+  const renameDeviceForm = event.target.closest("[data-rename-device]");
+  if (renameDeviceForm) {
+    event.preventDefault();
+    try {
+      await runButton(renameDeviceForm.querySelector("button"), "Saving…", async () => {
+        const mac = renameDeviceForm.dataset.renameDevice;
+        const nickname = new FormData(renameDeviceForm).get("nickname");
+        await call("/api/account/device-management/nickname", { method: "POST", body: JSON.stringify({ mac, nickname }) });
+        watchWifiDevices();
+        await load();
+        $("#dashboardMessage").textContent = "Device nickname saved.";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const refundForm = event.target.closest("[data-refund-payment]");
+  if (refundForm) {
+    event.preventDefault();
+    try {
+      await runButton(refundForm.querySelector("button"), "Sending…", async () => {
+        await call("/api/account/payments/refund", { method: "POST", body: JSON.stringify({ paymentId: refundForm.dataset.refundPayment, reason: new FormData(refundForm).get("reason") }) });
+        await load();
+        $("#billingMessage").textContent = "Refund requested. Support will review it; you can track its status here.";
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const form = event.target.closest("#connectDevice");
+  if (!form) return;
+  event.preventDefault();
+  const button = form.querySelector("button");
+  try {
+    await runButton(button, "Connecting…", async () => {
+      const result = await call("/api/account/devices/connect", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(form)), deviceId }) });
+      $("#dashboardMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
+    });
+  } catch (error) { showError($("#connectMessage"), error); }
+};
+
+function applyLanguage(lang) {
+  document.documentElement.lang = lang;
+  const brandSmall = document.querySelector(".brand small");
+  if (brandSmall) brandSmall.textContent = t("brandSmall", lang);
+  const portalTitle = document.getElementById("portalTitle");
+  if (portalTitle) portalTitle.textContent = t("portalTitle", lang);
+  const eyebrow = document.querySelector(".welcome .eyebrow");
+  if (eyebrow) eyebrow.textContent = t("eyebrowDashboard", lang);
+  const logout = document.getElementById("logout");
+  if (logout) logout.textContent = t("logout", lang);
+}
+
+function mountLanguageSwitcher() {
+  const current = getPreferredLanguage();
+  document.querySelectorAll(".lang-switcher [data-lang]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.lang === current);
+    btn.onclick = () => {
+      const selected = btn.dataset.lang;
+      setPreferredLanguage(selected);
+      document.querySelectorAll(".lang-switcher [data-lang]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.lang === selected);
+      });
+      applyLanguage(selected);
+    };
+  });
+  applyLanguage(current);
+}
+
+// Language selection is temporarily disabled.
+// mountLanguageSwitcher();
+
+$("#logout").onclick = async (event) => {
+  try {
+    await runButton(event.currentTarget, "Logging out…", async () => {
+      await call("/api/account/logout", { method: "POST", body: "{}" });
+      location.href = "/login";
+    });
+  } catch (error) { showError($("#dashboardMessage"), error); }
+};
+
+load().catch((error) => {
+  if (error.status !== 401) {
+    applyNetworkStatus($(".network-state"), "unavailable");
+    showError($("#dashboard"), error, {
+      actions: [{ label: "Try again", run: () => location.reload() }],
+    });
+  }
+});
+
+async function refreshPaymentRecords() {
+  if (refreshingPayments || document.hidden || !latestDashboard || !["home", "payments"].includes(activePortalView())) return;
+  refreshingPayments = true;
+  try {
+    const result = await call("/api/account/dashboard");
+    const rows = document.querySelectorAll("[data-payment-row]");
+    rows.forEach((row) => {
+      if (row.contains(document.activeElement) || row.querySelector("textarea")?.value) return;
+      const payment = result.payments.find((p) => p.id === row.dataset.paymentRow);
+      if (payment) row.outerHTML = paymentRow(payment, result.customer);
+    });
+    const pending = result.payments.find((p) => ["pending", "processing"].includes(p.status)), card = $("#pendingPayment");
+    if (card) { card.hidden = !pending; card.innerHTML = pending ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pending)}<a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a>` : ""; }
+    stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
+  latestDashboard = result;
+    mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
+  } finally { refreshingPayments = false; }
+}
+mountPaymentTimers({ onExpired: refreshPaymentRecords });
+setInterval(() => {
+  if (latestDashboard?.payments.some((p) => ["pending", "processing"].includes(p.status))) void refreshPaymentRecords().catch(() => {});
+}, 15000);
+window.addEventListener("online", () => { void refreshPaymentRecords().catch(() => {}); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshPaymentRecords().catch(() => {}); });
+startUpdates({ isBusy: () => Boolean(document.querySelector("[data-sensitive-output]")) });
