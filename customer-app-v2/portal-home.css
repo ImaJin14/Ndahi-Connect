@@ -1,0 +1,111 @@
+/* Redesigned page head and Home (customer-app-v2). Layout and Home-only
+   variants; the components come from shared-app/ui. Canvas: PhoneHome, Main. */
+
+/* ---------- Page head (every tab) ---------- */
+.portal-page .dashboard-shell { margin-top: 0; padding-top: 0; }
+.portal-head { display: flex; flex-direction: column; gap: var(--nd-space-6); padding: var(--nd-space-20) 0 var(--nd-space-8); }
+.portal-head__title { margin: 0; color: var(--nd-ink); font-family: var(--nd-font-display); font-size: var(--nd-fs-h1); font-weight: 600; line-height: var(--nd-lh-tight); }
+/* Focus is moved here by script after a tab change; it is not a control. */
+.portal-head__title:focus { outline: none; }
+.portal-head__notices { display: flex; flex-direction: column; gap: var(--nd-space-8); margin-top: var(--nd-space-8); }
+.portal-head__notices:empty { display: none; }
+.portal-head__notices .network-state-banner { margin: 0; }
+.portal-head__notices > p { margin: 0; font-size: var(--nd-fs-small); }
+#dashboardMessage:empty { display: none; }
+
+/* ---------- Home ---------- */
+.home-view { display: flex; flex-direction: column; gap: var(--nd-space-16); }
+.home-bundle { display: flex; flex-direction: column; gap: var(--nd-space-14); padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-hero); background: var(--nd-paper); box-shadow: var(--nd-shadow-raised); }
+.home-bundle #dataBalance { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.home-bundle #dataBalance > p { margin: 0; }
+.home-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--nd-space-12); }
+.home-card__top .nd-pill { flex-shrink: 0; margin: 0; }
+.home-card__plan { margin: 2px 0 0; font-family: var(--nd-font-display); font-size: var(--nd-fs-title-sm); font-weight: 600; line-height: 1.2; }
+.home-card__figure { margin: 2px 0 0; }
+.home-card__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--nd-space-8); margin: var(--nd-space-4) 0 0; padding-top: var(--nd-space-10); border-top: 1px solid var(--nd-line); }
+.home-card__facts > div { min-width: 0; }
+.home-card__facts dt { color: var(--nd-muted); font-size: var(--nd-fs-caption); }
+.home-card__facts dd { margin: 2px 0 0; font-size: var(--nd-fs-meta); font-weight: 600; overflow-wrap: anywhere; }
+.home-bundle__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-10); }
+
+.home-pending { border-color: var(--nd-warning-line); background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+.home-pending h2 { margin: 0 0 var(--nd-space-8); font-size: 18px; }
+.home-pending a { color: var(--nd-forest); }
+
+.home-quick__list { margin: 0; padding: 0; list-style: none; }
+.home-quick__link { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 52px; border-bottom: 1px solid var(--nd-line); color: var(--nd-ink); font-size: var(--nd-fs-body); font-weight: 600; text-decoration: none; }
+.home-quick__link span { color: var(--nd-lime-text); }
+.home-quick__list li:last-child .home-quick__link { border-bottom: 0; }
+
+.home-purchase { display: flex; flex-wrap: wrap; gap: var(--nd-space-10); }
+.home-purchase:empty { display: none; }
+
+.home-shop__items { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.home-view a.nd-section-head__link { color: var(--nd-forest); }
+.home-activity .nd-row:last-child { border-bottom: 0; }
+.home-shop__few { color: var(--nd-warning-fg); font-weight: 600; }
+
+@media (max-width: 767.98px) {
+  .portal-page .dashboard-shell { padding-left: var(--nd-space-16); padding-right: var(--nd-space-16); }
+  /* Phones show one product. */
+  .home-shop__item + .home-shop__item { display: none; }
+  /* Home hero: the forest band continues from the slim header bar. */
+  body[data-current-tab="home"] .portal-head { margin: 0 calc(-1 * var(--nd-space-16)); padding: var(--nd-space-6) var(--nd-space-18) var(--nd-space-18); background: var(--nd-forest); color: var(--nd-on-forest); }
+  body[data-current-tab="home"] .portal-head__title { color: var(--nd-on-forest); }
+  body[data-current-tab="home"] .portal-head .nd-eyebrow { color: var(--nd-lime); }
+  body[data-current-tab="home"] .portal-head__notices > p { color: var(--nd-on-forest-soft); }
+  /* The design shows a one-line network status in the hero; the banner keeps its
+     wording (journeys and customers rely on it) as a compact chip. */
+  body[data-current-tab="home"] .portal-head .network-state-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px var(--nd-space-10); padding: var(--nd-space-10) var(--nd-space-12); border: 0; border-radius: var(--nd-radius-panel); background: rgba(255, 255, 255, 0.08); color: var(--nd-on-forest-soft); }
+  body[data-current-tab="home"] .portal-head .network-banner-indicator { margin-top: 5px; }
+  body[data-current-tab="home"] .portal-head .network-banner-text { display: block; }
+  body[data-current-tab="home"] .portal-head .network-banner-badge { display: block; padding: 0; border-radius: 0; background: transparent; color: var(--nd-white); }
+  body[data-current-tab="home"] .portal-head .network-banner-message { display: block; margin-top: 2px; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); }
+  body[data-current-tab="home"] .portal-head .network-banner-action { grid-column: 2; justify-self: start; color: var(--nd-lime); font-size: var(--nd-fs-meta); font-weight: 700; }
+  /* The bundle card overlaps the hero, but only when nothing (an error or the
+     account-setup card) sits between them. */
+  body[data-current-tab="home"] #dashboardMessage:empty + #dashboard { margin: 0 calc(-1 * var(--nd-space-16)); padding: 0 var(--nd-space-16); background: linear-gradient(var(--nd-forest) 54px, transparent 54px); }
+}
+
+@media (min-width: 768px) {
+  .portal-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--nd-space-16); padding: var(--nd-space-32) 0 var(--nd-space-12); }
+  .portal-head > * { grid-column: 1; }
+  .portal-head__title { font-size: var(--nd-fs-h1-xl); }
+  .portal-head__action { grid-column: 2; grid-row: 1 / span 2; align-self: end; }
+  /* Two columns: bundle and shop on the left, quick actions and activity on
+     the right; everything else full width. "dense" lets the right column
+     fill in beside the bundle card. */
+  .home-view { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); grid-auto-flow: row dense; gap: var(--nd-space-22); align-items: start; }
+  .home-view > * { grid-column: 1 / -1; }
+  .home-view > .home-bundle, .home-view > .home-shop { grid-column: 1; }
+  .home-view > .home-quick, .home-view > .home-activity { grid-column: 2; }
+  /* Desktop bundle card: forest, as on the Main canvas screen. */
+  .home-bundle { padding: 26px; border-color: var(--nd-forest); background: var(--nd-forest); color: var(--nd-on-forest); box-shadow: none; }
+  .home-bundle .nd-eyebrow { color: var(--nd-lime); }
+  .home-bundle .nd-meta, .home-bundle .nd-figure__unit, .home-bundle .nd-meter-legend, .home-card__facts dt { color: var(--nd-on-forest-muted); }
+  .home-bundle .nd-error { color: var(--nd-danger-bg); }
+  .home-card__plan { font-size: var(--nd-fs-title); }
+  /* Stat boxes, value above label, as on the Main canvas screen. */
+  .home-card__facts { gap: var(--nd-space-10); padding-top: 0; border-top: 0; }
+  .home-card__facts > div { display: flex; flex-direction: column-reverse; justify-content: flex-end; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: rgba(255, 255, 255, 0.08); }
+  .home-card__facts dd { margin: 0; font-size: 18px; font-weight: 700; }
+  .home-card__facts dt { margin-top: var(--nd-space-4); font-size: var(--nd-fs-meta); }
+  .home-bundle .nd-meter-bar { background: rgba(255, 255, 255, 0.16); }
+  .home-bundle .nd-meter-bar::-webkit-progress-bar { background: rgba(255, 255, 255, 0.16); }
+  .home-bundle .nd-meter-bar:not(.nd-meter-bar--warning):not(.nd-meter-bar--danger)::-webkit-progress-value { background: var(--nd-lime); }
+  .home-bundle .nd-meter-bar:not(.nd-meter-bar--warning):not(.nd-meter-bar--danger)::-moz-progress-bar { background: var(--nd-lime); }
+  .home-bundle__actions { display: flex; flex-wrap: wrap; }
+  .home-bundle__actions .nd-btn--block { display: inline-flex; width: auto; }
+  .home-bundle .nd-btn--secondary { border-color: var(--nd-line-on-forest); background: transparent; color: var(--nd-on-forest-soft); }
+  .home-bundle .nd-btn--secondary:hover { border-color: var(--nd-line-on-forest); background: rgba(255, 255, 255, 0.08); color: var(--nd-white); }
+  .home-quick, .home-shop { padding: var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+  .home-quick .nd-h3 { margin-bottom: var(--nd-space-8); }
+  /* Tinted rows with an arrow, as on the Main canvas screen. */
+  .home-quick__list { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+  .home-quick__link { min-height: 48px; padding: 0 var(--nd-space-14); border-bottom: 0; border-radius: var(--nd-radius-control); background: var(--nd-sage); font-size: var(--nd-fs-small); }
+  .home-quick__link:hover { background: #e5ede0; }
+  .home-shop__items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--nd-space-12); }
+  .home-shop__item { flex-direction: column; align-items: stretch; }
+  .home-shop__item .nd-thumb { width: 100%; height: 110px; }
+  .home-shop__item .nd-chevron { display: none; }
+}

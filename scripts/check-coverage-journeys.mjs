@@ -135,7 +135,8 @@ try {
   }, { signedIn: true, address: inside });
   await scenario("customers can read balances and receipts while renewals and switches require Wi-Fi", async (page) => {
     await page.goto(portal + "/dashboard");
-    await page.getByText("Remaining", { exact: true }).waitFor();
+    // The balance hook both UI versions render (v2 has no "Remaining" label).
+    await page.locator("#dataBalance [data-remaining-data]").waitFor();
     await page.getByText("Your balance and payment history are available here.", { exact: false }).waitFor();
     await page.locator(portalTab("payments")).click();
     await page.getByRole("button", { name: "View receipt", exact: true }).click();

@@ -12,7 +12,7 @@ import { renderPortalTabs } from "/shared/ui/navigation.js";
 const HREFS = { home: "/dashboard#home", internet: "/dashboard#internet", shop: "/dashboard#shop", activity: "/dashboard#activity", account: "/dashboard#account" };
 const PANEL_TABS = { home: "home", bundles: "internet", vouchers: "internet", shop: "shop", payments: "activity", account: "account" };
 const aliases = {
-  internet: "bundles", activity: "payments", devices: "home", managePlan: "bundles", billing: "payments",
+  internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
   accountSecurity: "account", notificationSettings: "account", sessionActivity: "account", sessions: "account",
 };
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
@@ -48,10 +48,21 @@ function applyView(scroll = false) {
     if (link.dataset.portalTab === tab) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  // Page styles key off the current tab (the Home hero on phones). Not
+  // data-portal-tab: journeys select the tab links by that attribute.
+  document.body.setAttribute("data-current-tab", tab);
   const title = document.getElementById("portalTitle");
   if (title) title.textContent = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang);
+  const eyebrow = document.getElementById("portalEyebrow");
+  if (eyebrow) {
+    eyebrow.textContent = tab === "home" ? new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" }) : "";
+    eyebrow.hidden = tab !== "home";
+  }
+  const headAction = document.getElementById("portalHeadAction");
+  if (headAction) headAction.hidden = tab !== "home";
   if (["sessions", "sessionActivity"].includes(hash) && openDetails("sessionActivity")) return;
   if (hash === "devices" && openDetails("manageDevices")) return;
+  if (hash === "redeem" && openDetails("differentCode")) return;
   const section = SECTIONS[hash] && document.getElementById(SECTIONS[hash]);
   if (section && scroll) { section.scrollIntoView({ block: "start" }); return; }
   if (scroll) {
@@ -115,7 +126,7 @@ export function mountPortalNavigation(pending = 0, name) {
   if (!mounted) {
     mounted = true;
     // Once only: app.js changes the logout label while signing out.
-    ["header", "#shopPanel"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
+    ["header", "#shopPanel", "#portalHead"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
     window.addEventListener("hashchange", () => applyView(true));
     if (window.visualViewport) {
       const keyboard = () => document.body.classList.toggle("nd-keyboard-open", window.innerHeight - window.visualViewport.height > 150 &&

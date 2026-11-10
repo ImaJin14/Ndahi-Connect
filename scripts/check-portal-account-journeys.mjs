@@ -6,6 +6,7 @@ import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
 import { portalNavDesktopWidth, portalTab, portalTabBadge, uiV2 } from './portal-tabs.mjs';
+import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
 const apiPort = Number(process.env.PORTAL_TOOLS_API_PORT || 8798), portalPort = Number(process.env.PORTAL_TOOLS_PORT || 8797);
@@ -59,6 +60,58 @@ try {
     catch (error) { console.error(JSON.stringify({pageErrors:errors})); await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw error; }
     finally { await context.close(); }
   }
+  // Redesigned Home (v2 only): hero, bundle card, quick actions, shop suggestion, recent activity.
+  const storeCatalogue = (open) => ({ settings: { open }, categories: [], products: [
+    { id: 'router', name: { en: 'Travel router', fr: 'Routeur de voyage' }, price: 100000, available: 3, images: [] },
+    { id: 'cpe', name: 'Outdoor CPE', price: null, available: 1, images: [] },
+    { id: 'gone', name: 'Sold out', price: 5000, available: 0, images: [] },
+  ] });
+  if (uiV2) for (const width of [390, 1280]) {
+    await scenario(`redesigned Home shows the hero, bundle card, quick actions and catalogue suggestion at ${width}px`, async (page) => {
+      const phone = width < 768;
+      await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: storeCatalogue(true) }));
+      await page.goto(`${portal}/dashboard#home`);
+      await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
+      assert.equal(await page.getAttribute('body', 'data-current-tab'), 'home');
+      assert.equal(await page.locator('#portalEyebrow').isVisible(), !phone, 'the date shows on desktop Home only, as on the canvas');
+      assert.ok((await page.locator('#portalEyebrow').textContent()).trim(), 'the date is filled in');
+      const card = page.locator('.home-bundle');
+      await card.locator('#dataBalance [data-remaining-data]').waitFor();
+      assert.equal(await page.locator('#dataBalance a, #dataBalance button').count(), 0, 'the balance itself holds no controls');
+      assert.equal(await card.getByRole('link', { name: 'Bundle details', exact: true }).getAttribute('href'), '/dashboard#internet');
+      assert.equal(await card.getByRole('link', { name: 'Devices', exact: true }).getAttribute('href'), '/dashboard#devices');
+      const shop = page.locator('#homeShop');
+      await shop.waitFor();
+      assert.equal(await shop.locator('.home-shop__item').count(), 2, 'only products in stock are suggested');
+      assert.equal(await shop.locator('.home-shop__item:visible').count(), phone ? 1 : 2);
+      const first = shop.locator('.home-shop__item').first();
+      assert.match(await first.innerText(), phone ? /Travel router[\s\S]*100,000 FCFA · Collect locally/ : /Travel router[\s\S]*100,000 FCFA · 3 in stock/);
+      assert.equal(await first.getAttribute('href'), 'https://store.ndahiconnect.net/');
+      assert.equal(await first.getAttribute('target'), '_blank');
+      assert.match(await shop.locator('.home-shop__item').nth(1).innerText(), phone ? /Price to be confirmed · Collect locally/ : /Price to be confirmed · Only 1 left/);
+      if (!phone) await page.getByRole('link', { name: 'Bundles & vouchers', exact: true }).waitFor();
+      assert.equal(await page.locator('#bundlePurchaseActions').isVisible(), false, 'no purchase links while a bundle is active');
+      const activity = page.getByRole('heading', { name: 'Recent activity', exact: true });
+      if (phone) assert.equal(await activity.isVisible(), false, 'recent activity is a desktop panel');
+      else { await activity.waitFor(); await page.locator('.home-activity .nd-row').first().getByText(/^Bundle · /).waitFor(); }
+      assert.deepEqual(await lowContrastText(page), [], 'rendered text contrast');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
+      await page.getByRole('link', { name: phone ? 'Enter voucher' : 'Enter a voucher code', exact: true }).click();
+      await page.waitForURL('**/dashboard#redeem');
+      await page.locator(`${portalTab('vouchers')}[aria-current="page"]`).waitFor();
+      assert.equal(await page.locator('#differentCode').evaluate((details) => details.open), true, 'Enter voucher opens the code form');
+    }, width);
+  }
+  if (uiV2) await scenario('redesigned Home hides the shop suggestion while the store is closed', async (page) => {
+    await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: storeCatalogue(false) }));
+    const read = page.waitForResponse('**/api/store/catalogue');
+    await page.goto(`${portal}/dashboard#home`);
+    await read;
+    await page.locator('#dataBalance [data-remaining-data]').waitFor();
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    assert.equal(await page.locator('#homeShop').isVisible(), false);
+  });
   for (const width of [320, 390, 768, 1280]) {
     await scenario(`portal navigation supports dedicated views, Back and refresh at ${width}px`, async (page) => {
       await page.goto(`${portal}/dashboard#home`);

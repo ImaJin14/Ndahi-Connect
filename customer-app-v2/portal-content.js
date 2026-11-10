@@ -4,6 +4,46 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { showError, responseError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { durationLabel } from "./plan-presentation.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+import { ICONS } from "/shared/ui/icons.js";
+
+// ---------- Redesigned Home (kit markup; see docs/redesign/screens/PhoneHome and Main) ----------
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const svg = (name) => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`;
+
+// Phone: two tiles. Desktop: a card of four links.
+export function homeQuickActions() {
+  const links = [["/dashboard#redeem", "homeQuickVoucherLong"], ["/dashboard#devices", "connectDevice"], ["/dashboard#devices", "homeQuickAnotherDevice"], ["/help", "homeQuickHelp"]];
+  return `<section class="home-quick" aria-labelledby="homeQuickTitle"><h2 id="homeQuickTitle" class="nd-h3 nd-wide-only">${h(L("homeQuickTitle"))}</h2>`
+    + `<div class="nd-grid-2 nd-narrow-only"><a class="nd-tile" href="/dashboard#redeem">${svg("voucher")}${h(L("homeQuickVoucher"))}</a><a class="nd-tile" href="/dashboard#devices">${svg("internet")}${h(L("homeQuickAddDevice"))}</a></div>`
+    + `<ul class="home-quick__list nd-wide-only">${links.map(([href, key]) => `<li><a class="home-quick__link" href="${href}">${h(L(key))}<span aria-hidden="true">→</span></a></li>`).join("")}</ul></section>`;
+}
+
+const ACTIVITY = { paid: ["homeActivityPaid", "success"], pending: ["homeActivityWaiting", "warning"], processing: ["homeActivityWaiting", "warning"], refunded: ["homeActivityRefunded", ""], "refund-pending": ["homeActivityRefundPending", ""] };
+
+// Desktop only: the three latest payments. Shop orders join in Phase 4.
+export function homeRecentActivity(payments) {
+  if (!payments || !payments.length) return "";
+  const rows = payments.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 3).map((payment) => {
+    const [key, tone] = ACTIVITY[payment.status] || ["homeActivityFailed", "danger"];
+    const date = new Date(payment.createdAt).toLocaleDateString(currentLanguage(), { day: "numeric", month: "short" });
+    return `<div class="nd-row"><span class="nd-row__main"><span class="nd-row__title">${h(L("homeActivityBundle", { plan: (payment.plan && payment.plan.name) || payment.planId }))}</span><span class="nd-meta">${h(date)} · ${h(payment.methodLabel || "Mobile Money")}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L(key))}</span></div>`;
+  }).join("");
+  return `<section class="home-activity nd-card nd-wide-only" aria-labelledby="homeActivityTitle"><div class="nd-section-head"><h2 id="homeActivityTitle" class="nd-h3">${h(L("homeActivityTitle"))}</h2><a class="nd-section-head__link" href="/dashboard#activity">${h(L("homeActivitySeeAll"))}</a></div>${rows}</section>`;
+}
+
+// Up to three products in stock from the store catalogue (phones show the first).
+// Prices and names come from the catalogue; nothing is hard-coded.
+export function homeShopItems(catalogue, storeUrl) {
+  const lang = currentLanguage();
+  const name = (value) => (value && typeof value === "object" ? value[lang] || value.en || "" : value || "");
+  return (catalogue.products || []).filter((product) => product.available > 0).slice(0, 3).map((product) => {
+    const price = product.price == null ? L("homePriceTbc") : `${Number(product.price).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
+    const image = product.images && product.images[0] && /^data:image\//.test(product.images[0].data) ? `<img src="${h(product.images[0].data)}" alt="" loading="lazy">` : svg("shop");
+    return `<a class="nd-media-row home-shop__item" href="${h(storeUrl)}" target="_blank" rel="noopener"><span class="nd-thumb">${image}</span><span class="nd-media-row__body"><span class="nd-media-row__title">${h(name(product.name))}</span><span class="nd-meta nd-narrow-only">${h(L("homeShopMeta", { price }))}</span><span class="nd-meta nd-wide-only${product.available <= 2 ? " home-shop__few" : ""}">${h(L(product.available <= 2 ? "homeShopFew" : "homeShopStock", { price, count: product.available }))}</span></span><span class="nd-chevron" aria-hidden="true">›</span></a>`;
+  }).join("");
+}
 
 export function profileCard(customer) {
   const pending = customer.pendingEmail && Date.parse(customer.pendingEmail.expiresAt)>Date.now() ? customer.pendingEmail : null;

@@ -1,27 +1,68 @@
+// The Home bundle card (redesign): plan, status, data left with a meter, expiry
+// countdown and devices, then consumed / allowance / expiry. data-balance.js
+// re-renders it in place, so it stays an HTML string and holds no links or
+// buttons (those sit beside #dataBalance). The data-* hooks and the English
+// wording match v1, which the browser journeys check.
 import { escapeHtml as h } from '/shared/safe-html.js';
 import { formatDataBalance as fmt, formatExpiryCountdown, fuelStatusClass, dataWarning } from '/shared/data-usage.js';
-export function activeBundleContent(snapshot, { now = Date.now(), unavailable = false, paused = false } = {}) {
-  const v=snapshot&&snapshot.bundle;
-  if(!v)return unavailable
-    ? '<p class="eyebrow">Active bundle</p><h2>Bundle status unavailable</h2><p role="status">We could not check your bundle. Checking automatically when connected.</p>'
-    : '<p class="eyebrow">Active bundle</p><h2>No active bundle</h2><p>You don’t have an active bundle. Subscribe to get connected.</p>';
-  if(v.status==='expired'&&!snapshot.activeId&&!unavailable&&!paused)return '<p class="eyebrow">Active bundle</p><h2>No active bundle</h2><p data-bundle-status role="status">Expired</p><p>You don’t have an active bundle. Subscribe to get connected.</p><p>Your previous bundle has expired. Choose a package below to get back online.</p>';
-  const awaiting=v.status==='active'&&Number.isFinite(Date.parse(v.expiresAt))&&Date.parse(v.expiresAt)<=now;
-  const status=awaiting?'Confirming expiry':v.status==='active'?'Active':({expired:'Expired',exhausted:'Data exhausted',suspended:'Account suspended'})[v.status]||'Status unavailable';
-  const known=Number.isFinite(v.usedBytes),limited=Number.isFinite(v.quotaBytes),percent=limited&&known&&v.quotaBytes>0?Math.min(100,v.usedBytes/v.quotaBytes*100):null;
-  const evidenceExpired=Number.isFinite(Date.parse(snapshot.expiresAt))&&Date.parse(snapshot.expiresAt)<=now;
-  const freshness=unavailable?'Current balance could not be checked. Last recorded values are shown; retrying automatically.':paused?'Updates paused while offline or this view is hidden. Last recorded values are shown.':evidenceExpired?'Last recorded balance; checking for current readings.':v.usage.state==='stale'?'Last recorded balance; router readings are out of date.':v.usage.state==='unavailable'?'Usage is unavailable.':v.usage.state==='recorded'?'Recorded shared usage.':'Shared usage confirmed by the router.';
-  const warning=dataWarning(v),quotaLabel=v.quotaBytes===null?'Unlimited':fmt(v.quotaBytes),remaining=v.quotaBytes===null?null:known&&limited?Math.max(0,v.quotaBytes-v.usedBytes):undefined;
-  const gaugeClass=remaining===undefined?'fuel-unknown':fuelStatusClass(remaining,v.quotaBytes);
-  const provisioning=v.provisioning==='dead_letter'?'<p class="error">Network setup needs attention. Contact support if you cannot connect.</p>':v.provisioning==='pending'?'<p>Finishing network setup for this bundle…</p>':'';
-  const devices=!unavailable&&!paused&&!evidenceExpired&&v.devices.state==='fresh'?`${v.devices.count} of ${v.devices.limit===null?'unknown':v.devices.limit}`:v.devices.source==='account-sessions'&&!unavailable&&!paused&&!evidenceExpired?`${v.devices.count} recorded sessions (limit ${v.devices.limit===null?'unknown':v.devices.limit})`:'Count unavailable'+(v.devices.limit===null?'':` (limit ${v.devices.limit})`);
-  return `<div class="data-balance-header"><p class="eyebrow">Active bundle</p><span class="expiry-pill" data-expiry-countdown>${h(formatExpiryCountdown(v.expiresAt,now)||'Expiry unavailable')}</span></div><h2>${h(v.plan.name)}</h2><p data-bundle-status role="status">${h(status)}</p>
-    <div class="fuel-gauge-container"><div class="fuel-gauge-visual"><svg class="fuel-gauge-svg" viewBox="0 0 120 120" role="img" aria-label="${h(fmt(remaining))} remaining out of ${h(quotaLabel)}"><circle class="fuel-track" cx="60" cy="60" r="48" fill="none" stroke-width="10"/><circle class="fuel-fill ${gaugeClass}" cx="60" cy="60" r="48" fill="none" stroke-width="10" stroke-dasharray="301.59" stroke-dashoffset="${percent===null?0:301.59*percent/100}" stroke-linecap="round" transform="rotate(-90 60 60)"/></svg><div class="fuel-gauge-center"><b class="fuel-remaining-value" data-fuel-remaining>${h(fmt(remaining))}</b><small class="fuel-remaining-label">${v.quotaBytes===null?'Data':'Left'}</small></div></div><div class="fuel-gauge-info"><dl class="bundle-facts"><div><dt>Remaining</dt><dd data-remaining-data>${h(fmt(remaining))}</dd></div><div><dt>Consumed</dt><dd data-used-data>${h(known?fmt(v.usedBytes):'Unavailable')}${percent===null?'':` (${h(percent.toFixed(1))}%)`}</dd></div><div><dt>Allowance</dt><dd>${h(quotaLabel)}</dd></div><div><dt>Expires</dt><dd>${Number.isFinite(Date.parse(v.expiresAt))?`<time datetime="${h(v.expiresAt)}">${h(new Date(v.expiresAt).toLocaleString())}</time>`:'Unavailable'}</dd></div>${v.accessMode==='home'?'<div><dt>Home access</dt><dd>All home devices share this allowance.</dd></div>':`<div><dt>Connected devices</dt><dd data-bundle-devices>${h(devices)}</dd></div>`}</dl></div></div>
-    ${percent===null?'':`<progress class="usage-progress" max="100" value="${percent}" aria-label="${h(percent.toFixed(1))}% of bundle used"></progress>`}<p id="dataBalanceMessage" class="usage-notice" role="status">${h(freshness)}${warning==='low'?' Low data: '+h(fmt(remaining))+' left.':warning==='90'?" You've used over 90% of your shared allowance.":''}${v.status==='exhausted'?" Your bundle's data is used up.":''}${awaiting?' Validity has ended; confirming the server status before offering another purchase.':''}</p>${v.usage.observedAt?`<small>Usage recorded: ${h(new Date(v.usage.observedAt).toLocaleTimeString())}</small>`:''}${provisioning}`;
+import { format } from '/shared/i18n.js';
+import { currentLanguage } from '/shared/ui/dom.js';
+
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const STATUS = { active: ['homeStatusActive', 'success'], expired: ['homeStatusExpired', ''], exhausted: ['homeStatusExhausted', 'danger'], suspended: ['homeStatusSuspended', 'danger'] };
+const METER_TONE = { 'fuel-warning': ' nd-meter-bar--warning', 'fuel-danger': ' nd-meter-bar--danger' };
+
+function heading(title) {
+  return `<p class="nd-eyebrow">${h(L('activeBundle'))}</p><h2 class="home-card__plan">${h(title)}</h2>`;
 }
+
+export function activeBundleContent(snapshot, { now = Date.now(), unavailable = false, paused = false } = {}) {
+  const v = snapshot && snapshot.bundle;
+  if (!v) return unavailable
+    ? `${heading(L('homeStatusUnavailableTitle'))}<p class="nd-meta" role="status">${h(L('homeStatusUnavailableBody'))}</p>`
+    : `${heading(L('noActiveBundle'))}<p class="nd-meta">${h(L('homeNoBundleBody'))}</p>`;
+  if (v.status === 'expired' && !snapshot.activeId && !unavailable && !paused) {
+    return `<div class="home-card__top"><div>${heading(L('noActiveBundle'))}</div><p class="nd-pill" data-bundle-status role="status">${h(L('homeStatusExpired'))}</p></div><p class="nd-meta">${h(L('homeNoBundleBody'))}</p><p class="nd-meta">${h(L('homeExpiredBody'))}</p>`;
+  }
+  const awaiting = v.status === 'active' && Number.isFinite(Date.parse(v.expiresAt)) && Date.parse(v.expiresAt) <= now;
+  const [statusKey, tone] = awaiting ? ['homeStatusConfirming', 'warning'] : STATUS[v.status] || ['unavailable', ''];
+  const known = Number.isFinite(v.usedBytes), limited = Number.isFinite(v.quotaBytes);
+  const percent = limited && known && v.quotaBytes > 0 ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : null;
+  const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
+  const freshness = L(unavailable ? 'homeFreshUnavailable' : paused ? 'homeFreshPaused' : evidenceExpired ? 'homeFreshExpired'
+    : v.usage.state === 'stale' ? 'homeFreshStale' : v.usage.state === 'unavailable' ? 'homeFreshNone' : v.usage.state === 'recorded' ? 'homeFreshRecorded' : 'homeFreshConfirmed');
+  const warning = dataWarning(v), unlimited = v.quotaBytes === null;
+  const quotaLabel = unlimited ? fmt(null) : fmt(v.quotaBytes);
+  const remaining = unlimited ? null : known && limited ? Math.max(0, v.quotaBytes - v.usedBytes) : undefined;
+  const meterTone = remaining === undefined ? '' : METER_TONE[fuelStatusClass(remaining, v.quotaBytes)] || '';
+  const provisioning = v.provisioning === 'dead_letter' ? `<p class="nd-error" role="alert">${h(L('homeProvisionFailed'))}</p>` : v.provisioning === 'pending' ? `<p class="nd-meta">${h(L('homeProvisionPending'))}</p>` : '';
+  const fresh = !unavailable && !paused && !evidenceExpired;
+  const limit = v.devices.limit === null ? L('homeDevicesUnknown') : v.devices.limit;
+  const counted = fresh && v.devices.state === 'fresh';
+  const devices = counted ? L('homeDevicesCount', { count: v.devices.count, limit })
+    : fresh && v.devices.source === 'account-sessions' ? L('homeDevicesSessions', { count: v.devices.count, limit })
+    : L('homeDevicesUnavailable') + (v.devices.limit === null ? '' : ' ' + L('homeDevicesLimit', { limit: v.devices.limit }));
+  const message = [freshness,
+    warning === 'low' ? L('homeLowData', { amount: fmt(remaining) }) : warning === '90' ? L('homeOver90') : '',
+    v.status === 'exhausted' ? L('homeDataUsedUp') : '',
+    awaiting ? L('homeAwaitingExpiry') : ''].filter(Boolean).join(' ');
+  // Short day, month and time ("18 Nov, 00:16"); the full instant stays in datetime.
+  const expires = Number.isFinite(Date.parse(v.expiresAt)) ? `<time datetime="${h(v.expiresAt)}">${h(new Date(v.expiresAt).toLocaleString(currentLanguage(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</time>` : h(L('homeValueUnavailable'));
+  return `<div class="home-card__top"><div>${heading(v.plan.name)}</div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''}" data-bundle-status role="status">${h(L(statusKey))}</p></div>
+    <p class="nd-figure home-card__figure"><span data-remaining-data>${h(fmt(remaining))}</span> <span class="nd-figure__unit">${h(unlimited ? L('homeUnlimitedData') : L('homeLeftOf', { quota: quotaLabel }))}</span></p>
+    ${percent === null ? '' : `<progress class="nd-meter-bar${meterTone}" max="100" value="${(100 - percent).toFixed(1)}" aria-hidden="true"></progress>`}
+    <div class="nd-meter-legend"><span data-expiry-countdown>${h(formatExpiryCountdown(v.expiresAt, now) || L('homeExpiryUnavailable'))}</span>${v.accessMode === 'home' ? `<span>${h(L('homeHomeAccessValue'))}</span>` : `<span><span data-bundle-devices>${h(devices)}</span>${counted ? ' ' + h(L('homeDevicesSuffix')) : ''}</span>`}</div>
+    <dl class="home-card__facts"><div><dt>${h(L('homeConsumed'))}</dt><dd data-used-data>${h(known ? fmt(v.usedBytes) : L('homeValueUnavailable'))}${percent === null ? '' : ` (${h(percent.toFixed(1))}%)`}</dd></div><div><dt>${h(L('homeAllowance'))}</dt><dd>${h(quotaLabel)}</dd></div><div><dt>${h(L('homeExpires'))}</dt><dd>${expires}</dd></div></dl>
+    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${v.usage.observedAt ? `<p class="nd-meta home-card__recorded">${h(L('homeUsageRecorded', { time: new Date(v.usage.observedAt).toLocaleTimeString() }))}</p>` : ''}${provisioning}`;
+}
+
 export function bundlePurchaseContent(snapshot) {
-  if(snapshot?.bundle?.accessMode==='home')return '<a class="button" href="/home-router.html">Manage / renew Home router access</a>';
-  if(!snapshot||snapshot.purchase.allowed!==true||snapshot.activeId)return '<a class="button secondary-action" href="/dashboard#bundles">All plans</a><a class="button secondary-action" href="/dashboard#vouchers">View voucher</a>';
-  const plan=snapshot.bundle&&snapshot.bundle.plan;
-  return `${plan&&!plan.discontinued?`<button type="button" data-quick-renew="${h(plan.id)}">Quick renew ${h(plan.name)}</button>`:''}<a class="button" href="/dashboard#bundles">Choose a bundle</a><a class="button secondary-action" href="/dashboard#vouchers">View voucher</a>`;
+  if (snapshot && snapshot.bundle && snapshot.bundle.accessMode === 'home') return `<a class="nd-btn" href="/home-router.html">${h(L('homeHomeRouterAccess'))}</a>`;
+  // An active bundle cannot be topped up, so Home offers no purchase links then.
+  if (snapshot && snapshot.activeId) return '';
+  if (!snapshot || snapshot.purchase.allowed !== true) {
+    return `<a class="nd-btn nd-btn--sm nd-btn--secondary" href="/dashboard#bundles">${h(L('homeAllPlans'))}</a><a class="nd-btn nd-btn--sm nd-btn--secondary" href="/dashboard#vouchers">${h(L('homeViewVoucher'))}</a>`;
+  }
+  const plan = snapshot.bundle && snapshot.bundle.plan;
+  return `${plan && !plan.discontinued ? `<button type="button" class="nd-btn" data-quick-renew="${h(plan.id)}">${h(L('homeQuickRenew', { plan: plan.name }))}</button>` : ''}<a class="nd-btn nd-btn--secondary" href="/dashboard#bundles">${h(L('homeChooseBundle'))}</a><a class="nd-btn nd-btn--secondary" href="/dashboard#vouchers">${h(L('homeViewVoucher'))}</a>`;
 }

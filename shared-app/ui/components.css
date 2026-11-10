@@ -60,6 +60,8 @@
 .nd-icon { display: inline-flex; flex-shrink: 0; }
 /* Shown from 768px only (for example secondary header text on phones). */
 @media (max-width: 767.98px) { .nd-wide-only { display: none !important; } }
+/* Phones only: hidden from 768px. */
+@media (min-width: 768px) { .nd-narrow-only { display: none !important; } }
 
 /* ---------- Typography ---------- */
 .nd-eyebrow {
@@ -401,6 +403,19 @@ select.nd-input { padding-right: 40px; background-image: linear-gradient(45deg, 
 .nd-meter { height: 8px; overflow: hidden; border-radius: var(--nd-radius-pill); background: var(--nd-track); }
 .nd-meter__fill { width: 0; height: 100%; border-radius: var(--nd-radius-pill); background: var(--nd-meter); }
 .nd-meter-legend { display: flex; justify-content: space-between; gap: var(--nd-space-12); color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+/* The same meter as a native <progress max="100" value="64"> for markup built as
+   an HTML string, where the CSP rules out style="width". Each engine's
+   pseudo-elements get their own rule: an unknown one drops the whole rule. */
+.nd-meter-bar { display: block; width: 100%; height: 8px; margin: 0; overflow: hidden; border: 0; border-radius: var(--nd-radius-pill); background: var(--nd-track); color: var(--nd-meter); -webkit-appearance: none; appearance: none; }
+.nd-meter-bar::-webkit-progress-bar { border-radius: var(--nd-radius-pill); background: var(--nd-track); }
+.nd-meter-bar::-webkit-progress-value { border-radius: var(--nd-radius-pill); background: var(--nd-meter); }
+.nd-meter-bar::-moz-progress-bar { border-radius: var(--nd-radius-pill); background: var(--nd-meter); }
+.nd-meter-bar--warning { color: var(--nd-status-degraded); }
+.nd-meter-bar--warning::-webkit-progress-value { background: var(--nd-status-degraded); }
+.nd-meter-bar--warning::-moz-progress-bar { background: var(--nd-status-degraded); }
+.nd-meter-bar--danger { color: var(--nd-danger); }
+.nd-meter-bar--danger::-webkit-progress-value { background: var(--nd-danger); }
+.nd-meter-bar--danger::-moz-progress-bar { background: var(--nd-danger); }
 
 /* ---------- Progress: vertical steps and horizontal stepper ---------- */
 .nd-steps { display: flex; flex-direction: column; gap: var(--nd-space-12); margin: 0; padding: 0; list-style: none; }

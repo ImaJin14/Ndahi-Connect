@@ -56,7 +56,7 @@ test("kit code stays inside the Chrome 73 / Safari 12.1 floor", async () => {
       assert.doesNotMatch(source, pattern, `${path} uses ${name}`);
     }
   }
-  for (const path of [`${kitDir}/tokens.css`, `${kitDir}/components.css`, "customer-app-v2/ui-kit.css"]) {
+  for (const path of [`${kitDir}/tokens.css`, `${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/portal-home.css"]) {
     const css = (await read(path)).replace(/\/\*[\s\S]*?\*\//g, "");
     // One unsupported selector or at-rule drops the whole rule on old browsers.
     for (const [pattern, name] of [[/@layer/, "@layer"], [/:is\(/, ":is()"], [/:where\(/, ":where()"], [/:has\(/, ":has()"], [/(^|[;{\s])inset\s*:/, "inset"], [/@container/, "@container"]]) {
@@ -73,7 +73,7 @@ test("kit code stays inside the Chrome 73 / Safari 12.1 floor", async () => {
 
 test("every --nd-* variable the kit uses is defined in tokens.css", async () => {
   const { values } = await tokens();
-  for (const path of [`${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/ui-kit.js"]) {
+  for (const path of [`${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/ui-kit.js", "customer-app-v2/portal-home.css"]) {
     for (const [, name] of (await read(path)).matchAll(/var\((--nd-[\w-]+)/g)) {
       // The reference page builds some names from the lists checked below.
       if (!name.endsWith("-")) assert.ok(values.has(name), `${path} uses undefined ${name}`);

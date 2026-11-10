@@ -9,7 +9,8 @@ import { wifiDeviceList } from "./wifi-devices.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
-import { profileCard, vouchersCard, bundleCatalogue, voucherAction } from "./portal-content.js";
+import { profileCard, vouchersCard, bundleCatalogue, voucherAction, homeQuickActions, homeRecentActivity, homeShopItems } from "./portal-content.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 import { mountProfileEdit, mountEmailLink } from "./profile.js";
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
@@ -175,6 +176,22 @@ window.addEventListener("hashchange", () => {
   else clearTimeout(devicePoll);
 });
 
+// Home shop suggestion from the public catalogue. Hidden when the store is
+// closed, empty or unreachable; the request is made once per page.
+let shopRequest;
+function loadHomeShop() {
+  const section = $("#homeShop"), list = $("#homeShopItems"), store = $("#shopPanel a[href]");
+  if (!section || !list || !store) return;
+  shopRequest = shopRequest || fetch(api + "/api/store/catalogue", { cache: "no-store" }).then((response) => (response.ok ? response.json() : null)).catch(() => null);
+  shopRequest.then((catalogue) => {
+    if (!catalogue || (catalogue.settings && catalogue.settings.open === false) || !section.isConnected) return;
+    const markup = homeShopItems(catalogue, store.href);
+    if (!markup) return;
+    list.innerHTML = markup;
+    section.hidden = false;
+  });
+}
+
 async function load() {
   const securityView = securityViewState();
   const [result, security] = await Promise.all([
@@ -205,11 +222,21 @@ async function load() {
   const netBanner = networkBannerState({ purchaseAccess: result.purchaseAccess, active, zone: result.zone });
   const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="Network status"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
   stopConnectivity();
-  $("#dashboard").innerHTML = `${netBannerMarkup}${purchaseNotice}<div class="dashboard-grid"><div class="dashboard-grid full" data-portal-view="home">${wifiConnect}${active ? '<div class="full" id="installApp" hidden></div>' : ""}
-    <section class="surface" id="dataBalance">${activeBundleContent(result.bundleStatus)}</section>
+  const lang = currentLanguage();
+  // Redesign: network notices sit in the page head (the Home hero on phones).
+  $("#portalNotices").innerHTML = `${netBannerMarkup}${purchaseNotice}`;
+  const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices">${h(t("homeDevices", lang))}</a></div>` : "";
+  $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
+    <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}</section>
+    <section class="surface full home-pending" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
+    ${wifiConnect}
+    ${homeQuickActions()}
+    <div class="plan-actions full home-purchase" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div>
+    <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3">${h(t("portalShopTitle", lang))}</h2><a class="nd-section-head__link" href="/dashboard#shop">${h(t("uiTabShop", lang))}</a></div><div class="home-shop__items" id="homeShopItems"></div></section>
+    ${homeRecentActivity(result.payments)}
+    ${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
-    <section class="surface full" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
-    <div class="plan-actions full" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div></div>
+</div>
     <section class="surface full" data-portal-view="bundles" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${current.accessMode === "home" ? "All home devices share this allowance" : `${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}`}</p>${canPurchase && current.accessMode === "home" ? '<a class="button" href="/home-router.html">Manage / renew Home router access</a>' : canPurchase ? `<div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>`}` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${h(dailyNotice)}</p></section>
     ${active?.accessMode === "home" ? '<p><a href="/home-router.html">Home router bundles and renewal</a></p>' : bundleCatalogue(result)}
     <div class="account-layout full" data-portal-view="account">
@@ -246,6 +273,7 @@ async function load() {
   const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
   $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
   if (active) mountInstallCard($("#installApp"));
+  loadHomeShop();
   mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
     const actions = $("#bundlePurchaseActions");
     const markup = bundlePurchaseContent(snapshot);
