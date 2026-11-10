@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NDAHI Home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.mode{box-sizing:border-box;width:100%;display:flex;gap:12px;align-items:center;min-height:72px;padding:12px 14px;border-radius:14px;font-family:inherit;color:#10241c;text-align:left;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneAccount.dc.html" aria-label="Back to account"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">NDAHI Home</span>
+  </div>
+  <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+    <sc-if value="{{linked}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Router status" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff">
+        <div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Home router linked</p><span style="padding: 3px 9px; border-radius: 999px; background: rgba(185,238,46,.18); color: #b9ee2e; font-size: 12px; font-weight: 700">Online</span></div>
+        <p style="margin: 8px 0 2px; font-size: 20px; font-weight: 700">[ROUTER NAME]</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Linked 3 Nov · uses your [PLAN 3] bundle</p>
+      </section>
+      <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px; padding: 0">Who uses your bundle</legend>
+        <sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+          <button type="button" class="mode" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="{{m.style}}">
+            <span style="flex: 1"><strong style="display: block; font-size: 15px">{{m.label}}</strong><span style="font-size: 13px; color: #5c6963">{{m.hint}}</span></span>
+          </button>
+        </sc-for>
+      </fieldset>
+      <sc-if value="{{changing}}" hint-placeholder-val="{{ false }}">
+        <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Access mode is changing. This takes about a minute — keep the router on.</p>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{unlinked}}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">Share your bundle with the whole home</h1>
+      <ol style="margin: 0; padding: 14px 14px 14px 34px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; font-size: 14px; line-height: 1.7; color: #3d4a44">
+        <li>Plug your router into the NDAHI receiver</li>
+        <li>Join the router's Wi-Fi on this phone</li>
+        <li>Tap Link and confirm on the router's page</li>
+      </ol>
+    </sc-if>
+    <button type="button" class="btn" onClick="{{toggleLink}}" style="margin-top: auto">{{linkLabel}}</button>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { linked: true, mode: 'home', changing: false }; }
+  renderVals() {
+    const s = this.state;
+    const modes = [
+      ['home', 'Whole home, through my router', 'Every device on your router shares the bundle'],
+      ['direct', 'Only devices I add', 'Phones and laptops join NDAHI Wi-Fi directly']
+    ].map(([id, label, hint]) => ({
+      label, hint, pressed: id === s.mode ? 'true' : 'false',
+      style: id === s.mode ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #fffef9;',
+      pick: () => this.setState({ mode: id, changing: id !== s.mode })
+    }));
+    return {
+      linked: s.linked, unlinked: !s.linked, modes, changing: s.changing,
+      linkLabel: s.linked ? 'Unlink this router' : 'Link my router',
+      toggleLink: () => this.setState({ linked: !s.linked, changing: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

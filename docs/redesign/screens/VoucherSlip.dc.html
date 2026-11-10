@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Voucher slip</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 420px; height: 595px; box-sizing: border-box; padding: 18px; background: #ffffff; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c">
+  <div style="height: 100%; box-sizing: border-box; border: 2px dashed #9aa8a0; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: #003b2b; color: #ffffff">
+      <span style="width: 32px; height: 32px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NC</span>
+      <span style="flex: 1"><strong style="display: block; font-family: 'Playfair Display', serif; font-size: 18px">NDAHI Connect</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .26em; font-weight: 700">WI-FI VOUCHER</small></span>
+      <strong style="font-size: 16px">[PRICE] FCFA</strong>
+    </div>
+    <div style="padding: 16px 18px; display: flex; gap: 16px; align-items: center">
+      <div role="img" aria-label="QR code" style="width: 120px; height: 120px; flex-shrink: 0; border: 1px solid #dfe5dc; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 15px 15px"></div>
+      <div>
+        <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase">[PLAN 2]</p>
+        <p style="margin: 4px 0 0; font-size: 16px; font-weight: 700">5 GB · 7 days · 3 devices</p>
+        <p style="margin: 10px 0 2px; color: #5c6963; font-size: 12px">Voucher code</p>
+        <p style="margin: 0; font: 700 26px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .1em">QF83-ZK4M</p>
+      </div>
+    </div>
+    <ol style="margin: 0 18px; padding: 12px 12px 12px 30px; border-radius: 10px; background: #eef3e9; font-size: 13px; line-height: 1.7; color: #3d4a44">
+      <li>Join the Wi-Fi network <strong>NDAHI</strong></li>
+      <li>The sign-in page opens — tap <strong>I have a voucher</strong></li>
+      <li>Type the code above, or scan the QR code</li>
+    </ol>
+    <div style="margin-top: auto; padding: 12px 18px; display: flex; justify-content: space-between; border-top: 1px solid #dfe5dc; font-size: 11px; color: #5c6963">
+      <span>Use before 10 Feb 2027 · single use</span>
+      <span>Batch B-1105-02 · [RESELLER]</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":420,"height":595}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

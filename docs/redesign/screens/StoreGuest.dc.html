@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NDAHI Store public</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.nl{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:#dce8e2;text-decoration:none;font-weight:600;font-size:14px}
+.nl:hover{color:#ffffff;background:rgba(255,255,255,.08)}
+.card{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.go{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:9px;background:#b9ee2e;color:#15210c;font-weight:700;font-size:14px;text-decoration:none}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px">
+  <header style="background: #003b2b; color: #ffffff">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px">
+      <a href="StoreGuest.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #ffffff">
+        <span style="width: 40px; height: 40px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 13px">NS</span>
+        <span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 22px; letter-spacing: .03em">NDAHI</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">STORE</small></span>
+      </a>
+      <nav aria-label="Store" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+        <a class="nl" href="StoreGuest.dc.html" aria-current="page" style="color: #b9ee2e; background: rgba(185,238,46,.14)">Shop</a>
+        <a class="nl" href="PhoneGuestOrder.dc.html">Track an order</a>
+        <a class="nl" href="PhoneHotspot.dc.html">Internet packages</a>
+      </nav>
+      <a href="PhoneLogin.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid rgba(255,255,255,.3); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Sign in</a>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 36px 28px 64px; display: flex; flex-direction: column; gap: 26px">
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+      <div style="flex: 999 1 520px; min-width: 0">
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">store.ndahiconnect.net</p>
+        <h1 style="margin: 0 0 10px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 44px; letter-spacing: -.01em; line-height: 1.05">Equipment for better connections.</h1>
+        <p style="margin: 0; color: #5c6963; font-size: 17px; line-height: 1.55; max-width: 560px">Routers and extenders we've tested on our network. Buy without an account — pay with Mobile Money and collect locally.</p>
+      </div>
+      <ol style="flex: 1 1 300px; list-style: none; margin: 0; padding: 20px; border-radius: 16px; background: #003b2b; color: #ffffff; display: flex; flex-direction: column; gap: 12px; font-size: 14px">
+        <li style="display: flex; gap: 12px; align-items: center"><span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #b9ee2e; color: #15210c; display: grid; place-items: center; font-weight: 700">1</span>Pick a device</li>
+        <li style="display: flex; gap: 12px; align-items: center"><span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #b9ee2e; color: #15210c; display: grid; place-items: center; font-weight: 700">2</span>Pay as a guest or signed in</li>
+        <li style="display: flex; gap: 12px; align-items: center"><span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #b9ee2e; color: #15210c; display: grid; place-items: center; font-weight: 700">3</span>Collect at [PICKUP LOCATION] with your code</li>
+      </ol>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px">
+      <article class="card">
+        <div style="aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo</div>
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+          <p style="margin: 0; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase">Travel routers</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700">TP-Link AX1500 Travel Router</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px">
+            <div><p style="margin: 0; font-size: 18px; font-weight: 700">[PRICE] FCFA</p><p style="margin: 2px 0 0; color: #345000; font-size: 13px; font-weight: 600">10 in stock</p></div>
+            <a class="go" href="ProductDesktop.dc.html">View</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div style="aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo</div>
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+          <p style="margin: 0; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase">Outdoor networking</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700">TP-Link CPE210</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px">
+            <div><p style="margin: 0; font-size: 18px; font-weight: 700">[PRICE] FCFA</p><p style="margin: 2px 0 0; color: #345000; font-size: 13px; font-weight: 600">6 in stock</p></div>
+            <a class="go" href="ProductDesktop.dc.html">View</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div style="aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo</div>
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+          <p style="margin: 0; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase">Wi-Fi devices</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700">Wavlink AC1200</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px">
+            <div><p style="margin: 0; font-size: 18px; font-weight: 700">[PRICE] FCFA</p><p style="margin: 2px 0 0; color: #8a4a00; font-size: 13px; font-weight: 600">Only 2 left</p></div>
+            <a class="go" href="ProductDesktop.dc.html">View</a>
+          </div>
+        </div>
+      </article>
+      <article class="card">
+        <div style="aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo</div>
+        <div style="padding: 18px; display: flex; flex-direction: column; gap: 6px; flex: 1">
+          <p style="margin: 0; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase">Wi-Fi devices</p>
+          <h2 style="margin: 0; font-size: 18px; font-weight: 700">Wavlink Mini</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 12px">
+            <div><p style="margin: 0; font-size: 18px; font-weight: 700">[PRICE] FCFA</p><p style="margin: 2px 0 0; color: #345000; font-size: 13px; font-weight: 600">4 in stock</p></div>
+            <a class="go" href="ProductDesktop.dc.html">View</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <section aria-labelledby="custT" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 26px; border-radius: 14px; background: #eef3e9">
+      <div>
+        <h2 id="custT" style="margin: 0 0 4px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Already an NDAHI customer?</h2>
+        <p style="margin: 0; color: #3d4a44; font-size: 14px">Sign in to check out faster and keep orders next to your bundle payments.</p>
+      </div>
+      <a href="PhoneLogin.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 9px; background: #003b2b; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Sign in</a>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

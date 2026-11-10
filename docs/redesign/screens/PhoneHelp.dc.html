@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Help</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.faq{border-bottom:1px solid #dfe5dc}
+.faq summary{min-height:48px;display:flex;align-items:center;font-weight:600;font-size:15px;cursor:pointer}
+.faq p{margin:0 0 12px;color:#3d4a44;font-size:14px;line-height:1.5}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:48px;padding:0 14px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneAccount.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Help</span>
+  </div>
+  <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">Answers for your connection.</h1>
+
+    <section aria-labelledby="diag" style="padding: 16px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px">
+        <h2 id="diag" style="margin: 0; font-size: 15px; font-weight: 700">Check my connection</h2>
+        <button type="button" onClick="{{run}}" style="min-height: 44px; padding: 0 14px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">{{runLabel}}</button>
+      </div>
+      <sc-if value="{{ran}}" hint-placeholder-val="{{ false }}">
+        <ul style="list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+          <li style="display: flex; gap: 8px; align-items: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6f9500"></span>Joined NDAHI Wi-Fi</li>
+          <li style="display: flex; gap: 8px; align-items: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6f9500"></span>Bundle active — 3.2 GB left</li>
+          <li style="display: flex; gap: 8px; align-items: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #d6960f"></span>Private Wi-Fi address is on — turn it off for NDAHI</li>
+        </ul>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="faqT">
+      <h2 id="faqT" style="margin: 0 0 2px; font-size: 15px; font-weight: 700">Common questions</h2>
+      <details class="faq"><summary>My payment went through but I'm not online</summary><p>Open Activity and tap the waiting payment to check it. Most confirm within a minute.</p></details>
+      <details class="faq"><summary>Can I use my bundle on my laptop too?</summary><p>Yes, up to your plan's device limit. Go to Devices and tap Add another device.</p></details>
+      <details class="faq"><summary>Can I buy a new bundle before mine ends?</summary><p>Not yet — use it until it expires or the data runs out, then buy any bundle. <a href="PhoneBillingTerms.dc.html" style="font-weight: 700">Package rules</a></p></details>
+      <details class="faq"><summary>How do I collect a shop order?</summary><p>Bring your order code to [PICKUP LOCATION]. Staff check it before handing over the device.</p></details>
+    </section>
+
+    <section aria-labelledby="sup" style="margin-top: auto">
+      <h2 id="sup" style="margin: 0 0 8px; font-size: 15px; font-weight: 700">Still need help?</h2>
+      <div style="display: flex; gap: 10px"><a class="btn2" href="#call">Call [SUPPORT]</a><a class="btn2" href="#whatsapp">WhatsApp</a></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ran: false }; }
+  renderVals() {
+    return { ran: this.state.ran, runLabel: this.state.ran ? 'Run again' : 'Run check', run: () => this.setState({ ran: true }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin home routers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.go{min-height:44px;padding:0 16px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="homerouters" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network · NDAHI Home pilot</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Home router connections.</h1>
+      </div>
+      <div style="display: flex; gap: 10px"><button type="button" class="go2">Refresh</button><button type="button" class="go" onClick="{{check}}">Check gateway readiness</button></div>
+    </div>
+    <sc-if value="{{checked}}" hint-placeholder-val="{{ false }}">
+      <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Database and gateway are ready for Home access. Checked just now.</p>
+    </sc-if>
+
+    <section aria-label="Linked routers" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 18px">
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Customer</th><th scope="col">Router</th><th scope="col">Mode</th><th scope="col">Bundle</th><th scope="col">Status</th><th scope="col">Linked</th></tr></thead>
+          <tbody>
+            <tr><td><strong>J. Fon</strong></td><td>[ROUTER NAME]</td><td>Whole home</td><td>[PLAN 3]</td><td><span class="pill" style="background: #eaf6d5; color: #345000">Online</span></td><td>3 Nov</td></tr>
+            <tr><td><strong>Amina N.</strong></td><td>[ROUTER NAME]</td><td>Devices only</td><td>[PLAN 2]</td><td><span class="pill" style="background: #fff4e0; color: #6b3a00">Changing mode</span></td><td>6 Nov</td></tr>
+            <tr><td><strong>K. Nji</strong></td><td>[ROUTER NAME]</td><td>Whole home</td><td>None</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Usage review</span></td><td>28 Oct</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 10px 0 0; color: #5c6963; font-size: 13px">“Usage review” means payment and remaining allowance are kept while the team checks usage continuity — the customer must not pay again.</p>
+    </section>
+
+    <section aria-labelledby="pe" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
+      <h2 id="pe" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Pilot evidence</h2>
+      <label for="pr" style="font-size: 13px; font-weight: 600">Pilot report notes</label>
+      <textarea id="pr" rows="4" style="box-sizing: border-box; width: 100%; padding: 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif; resize: vertical">3 homes linked. 1 mode change took 70 s. 1 usage review opened and resolved.</textarea>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px"><button type="button" class="go2">Download empty template</button><button type="button" class="go" onClick="{{submit}}">{{submitLabel}}</button></div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { checked: false, sent: false }; }
+  renderVals() {
+    const s = this.state;
+    return { checked: s.checked, check: () => this.setState({ checked: true }), submitLabel: s.sent ? 'Sent for review' : 'Record pilot report for review', submit: () => this.setState({ sent: true }) };
+  }
+}
+</script>
+</body>
+</html>

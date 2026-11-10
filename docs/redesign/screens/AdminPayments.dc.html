@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin payments</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.go2{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.metric{background:#fffef9;border:1px solid #dfe5dc;border-radius:14px;padding:16px}
+.metric b{display:block;font-size:24px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="payments" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Payments and revenue.</h1>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Export CSV</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+      <div class="metric"><b>[XAF]</b><span>Today, bundles</span></div>
+      <div class="metric"><b>[XAF]</b><span>Today, store</span></div>
+      <div class="metric"><b>2</b><span>Waiting over 10 min</span></div>
+      <div class="metric"><b>1</b><span>Failed today</span></div>
+    </div>
+
+    <section aria-labelledby="pt" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px">
+        <h2 id="pt" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">All payments</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label for="ps" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search payments</label>
+          <input id="ps" placeholder="Search phone, order or reference" style="min-height: 40px; width: 240px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
+          <div role="group" aria-label="Status" style="display: flex; gap: 6px">
+            <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+              <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">When</th><th scope="col">Customer</th><th scope="col">For</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr>
+                <td>{{r.when}}</td><td>{{r.who}}</td><td>{{r.what}}</td><td>{{r.method}}</td><td>[XAF]</td>
+                <td><span style="{{r.pill}}">{{r.status}}</span></td>
+                <td><sc-if value="{{r.canCheck}}" hint-placeholder-val="{{ false }}"><button type="button" class="go2" onClick="{{r.check}}">Check with provider</button></sc-if></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all', confirmed: [] }; }
+  renderVals() {
+    const s = this.state;
+    const tone = { Waiting: 'background: #fff4e0; color: #6b3a00;', Paid: 'background: #eaf6d5; color: #345000;', Failed: 'background: #fbe4e4; color: #8a2a2a;', Recorded: 'background: #eef0ee; color: #3d4a44;' };
+    const data = [
+      { id: 1, when: '17:21', who: '6•• •• 12 45', what: 'Bundle · [PLAN 2]', method: 'MTN MoMo', status: 'Waiting' },
+      { id: 2, when: '17:08', who: '6•• •• 77 31', what: 'Bundle · [PLAN 1]', method: 'Orange Money', status: 'Waiting' },
+      { id: 3, when: '16:54', who: 'Guest · 6•• •• 88 02', what: 'Order NS-2611-0088', method: 'MTN MoMo', status: 'Paid' },
+      { id: 4, when: '16:40', who: '6•• •• 40 19', what: 'Bundle · [PLAN 3]', method: 'MTN MoMo', status: 'Paid' },
+      { id: 5, when: '15:12', who: '6•• •• 03 66', what: 'Bundle · [PLAN 2]', method: 'Orange Money', status: 'Failed' },
+      { id: 6, when: '14:30', who: 'Reseller · [NAME]', what: 'Voucher batch × 20', method: 'Cash', status: 'Recorded' }
+    ].map((r) => (s.confirmed.includes(r.id) ? { ...r, status: 'Paid' } : r));
+    const match = { all: () => true, waiting: (r) => r.status === 'Waiting', paid: (r) => r.status === 'Paid' || r.status === 'Recorded', failed: (r) => r.status === 'Failed' };
+    const rows = data.filter(match[s.f]).map((r) => ({
+      ...r, pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + tone[r.status],
+      canCheck: r.status === 'Waiting', check: () => this.setState({ confirmed: [...s.confirmed, r.id] })
+    }));
+    const base = 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const filters = [['all', 'All'], ['waiting', 'Waiting'], ['paid', 'Paid'], ['failed', 'Failed']].map(([id, label]) => ({
+      label, pressed: id === s.f ? 'true' : 'false',
+      style: base + (id === s.f ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+      pick: () => this.setState({ f: id })
+    }));
+    return { rows, filters };
+  }
+}
+</script>
+</body>
+</html>

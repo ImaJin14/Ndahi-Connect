@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signed-in devices</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #e3b4b4;border-radius:10px;background:#fffef9;color:#a73535;font:700 16px 'DM Sans',sans-serif;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.ses{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneAccount.dc.html" aria-label="Back to account"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Signed-in devices</span>
+  </div>
+  <main style="flex: 1; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+    <p style="margin: 0 0 4px; color: #5c6963; font-size: 14px; line-height: 1.5">Places where your NDAHI account is open. This isn't the same as devices using your bundle.</p>
+    <div class="ses" style="border: 2px solid #003b2b">
+      <span style="flex: 1"><strong style="display: block; font-size: 15px">Android phone · Chrome</strong><span style="font-size: 13px; color: #5c6963">This device · Bamenda</span></span>
+      <span style="padding: 4px 10px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">You</span>
+    </div>
+    <sc-for list="{{others}}" as="o" hint-placeholder-count="2">
+      <div class="ses">
+        <span style="flex: 1"><strong style="display: block; font-size: 15px">{{o.name}}</strong><span style="font-size: 13px; color: #5c6963">{{o.meta}}</span></span>
+        <button type="button" onClick="{{o.out}}" aria-label="{{o.outLabel}}" style="min-height: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid #dfe5dc; background: #ffffff; color: #a73535; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Sign out</button>
+      </div>
+    </sc-for>
+    <sc-if value="{{none}}" hint-placeholder-val="{{ false }}">
+      <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Signed out everywhere else.</p>
+    </sc-if>
+    <button type="button" class="btn2" onClick="{{outAll}}" style="margin-top: auto">Sign out all other devices</button>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { gone: [] }; }
+  renderVals() {
+    const s = this.state;
+    const others = [
+      { id: 'a', name: 'HP laptop · Firefox', meta: 'Last active 2 h ago · Bamenda' },
+      { id: 'b', name: 'iPhone · Safari', meta: 'Last active 4 days ago · Douala' }
+    ].filter((o) => !s.gone.includes(o.id)).map((o) => ({ ...o, outLabel: 'Sign out ' + o.name, out: () => this.setState({ gone: [...s.gone, o.id] }) }));
+    return { others, none: others.length === 0, outAll: () => this.setState({ gone: ['a', 'b'] }) };
+  }
+}
+</script>
+</body>
+</html>

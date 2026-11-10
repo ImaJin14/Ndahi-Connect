@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin side menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 240px; min-height: 860px; box-sizing: border-box; padding: 18px 12px 24px; background: #003b2b; color: #ffffff; font-family: 'DM Sans', system-ui, sans-serif">
+  <a href="Admin.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 8px; color: #ffffff; text-decoration: none">
+    <span style="width: 36px; height: 36px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 12px">NC</span>
+    <span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 19px">NDAHI</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700">ADMIN</small></span>
+  </a>
+  <nav aria-label="Admin" style="display: flex; flex-direction: column; gap: 2px; margin-top: 8px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+      <sc-if value="{{g.title}}" hint-placeholder-val="{{ true }}">
+        <p style="margin: 16px 12px 6px; color: #a9c2b7; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{g.title}}</p>
+      </sc-if>
+      <sc-for list="{{g.items}}" as="i" hint-placeholder-count="3">
+        <a href="{{i.href}}" aria-current="{{i.cur}}" style="{{i.style}}">{{i.label}}<sc-if value="{{i.badge}}" hint-placeholder-val="{{ false }}"><span style="margin-left: auto; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: #b9ee2e; color: #15210c; font-size: 12px; font-weight: 700; text-align: center">{{i.badge}}</span></sc-if></a>
+      </sc-for>
+    </sc-for>
+  </nav>
+  <a href="AdminLogin.dc.html" style="display: flex; align-items: center; min-height: 40px; margin-top: 18px; padding: 0 12px; border-radius: 8px; color: #dce8e2; text-decoration: none; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,.18)">Sign out</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["home","devices","connections","homerouters","setup","bundles","vouchers","payments","store","products","cash","customers","resellers","audit","profile"],"default":"home"},"$preview":{"width":240,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const current = this.props.current ?? 'home';
+    const base = 'display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600; ';
+    const item = (id, label, href, badge) => {
+      const on = id === current;
+      return { label, href, badge: badge || '', cur: on ? 'page' : 'false', style: base + (on ? 'background: rgba(185,238,46,.16); color: #b9ee2e;' : 'color: #dce8e2;') };
+    };
+    const groups = [
+      { title: '', items: [item('home', 'Home', 'Admin.dc.html')] },
+      { title: 'Network', items: [item('devices', 'Live devices', 'AdminDevices.dc.html'), item('connections', 'Connections', 'AdminConnections.dc.html'), item('homerouters', 'Home routers', 'AdminHomeRouters.dc.html'), item('setup', 'Network setup', 'AdminNetworkSetup.dc.html')] },
+      { title: 'Sales', items: [item('bundles', 'Bundles', 'AdminBundles.dc.html'), item('vouchers', 'Vouchers', 'AdminVouchers.dc.html'), item('payments', 'Payments', 'AdminPayments.dc.html', '2'), item('store', 'Store orders', 'AdminStore.dc.html', '3'), item('products', 'Products', 'AdminProducts.dc.html'), item('cash', 'Cash & settlements', 'AdminCash.dc.html')] },
+      { title: 'People', items: [item('customers', 'Customers', 'AdminCustomers.dc.html'), item('resellers', 'Resellers', 'AdminResellers.dc.html')] },
+      { title: 'System', items: [item('audit', 'Audit log', 'AdminAudit.dc.html'), item('profile', 'Profile & security', 'AdminProfile.dc.html')] }
+    ];
+    return { groups };
+  }
+}
+</script>
+</body>
+</html>

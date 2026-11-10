@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scan to connect</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.icon{width:80px;height:80px;border-radius:50%;display:grid;place-items:center}
+.body{flex:1;padding:28px 22px 22px;display:flex;flex-direction:column;gap:14px}
+.who{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 16px 20px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 34px; height: 34px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NC</span>
+    <strong style="font-family: 'Playfair Display', serif; font-size: 19px; flex: 1">NDAHI</strong>
+    <a href="PhoneHelp.dc.html" style="color: #dce8e2; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center">Help</a>
+  </header>
+
+  <sc-if value="{{isChecking}}" hint-placeholder-val="{{ true }}">
+    <main class="body" style="align-items: center; text-align: center; justify-content: center">
+      <div class="icon" style="background: #eef3e9"><svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4ZM14 4h6v6h-6ZM4 14h6v6H4ZM14 14h2v2h-2ZM18 18h2v2h-2ZM14 18h2M18 14h2"></path></svg></div>
+      <h1 class="h1" role="status">Checking your code…</h1>
+      <p style="margin: 0; color: #5c6963; font-size: 15px">Finding the account and its bundle.</p>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isNoBundle}}" hint-placeholder-val="{{ false }}">
+    <main class="body">
+      <div class="who"><span style="width: 44px; height: 44px; border-radius: 50%; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-weight: 700">A</span><span><strong style="display: block; font-size: 15px">Amina N.</strong><span style="font-size: 13px; color: #5c6963">+237 6•• •• 12 45</span></span></div>
+      <div class="icon" style="background: #fff4e0; align-self: center; margin-top: 10px"><svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01M3 3l18 18"></path></svg></div>
+      <h1 class="h1" style="text-align: center">No active bundle</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55; text-align: center">This account's last bundle ended on 5 Nov. Buy one and this device connects right after — you won't need to scan again.</p>
+      <a class="btn" href="PhoneBuyBundle.dc.html" style="margin-top: auto">Buy a bundle</a>
+      <a class="btn2" href="PhoneVoucher.dc.html">I have a voucher code</a>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isWifi}}" hint-placeholder-val="{{ false }}">
+    <main class="body">
+      <div class="icon" style="background: #e3f0ff; align-self: center; margin-top: 10px"><svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#1d4f86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01"></path></svg></div>
+      <h1 class="h1" style="text-align: center">Join NDAHI Wi-Fi first</h1>
+      <ol style="margin: 0; padding: 14px 14px 14px 34px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; font-size: 15px; line-height: 1.8; color: #3d4a44">
+        <li>Open Wi-Fi settings and join <strong>NDAHI</strong></li>
+        <li>Tap Open Wi-Fi sign-in below</li>
+        <li>Come back here and tap Check again</li>
+      </ol>
+      <a class="btn2" href="PhoneHotspot.dc.html" style="margin-top: auto">Open Wi-Fi sign-in</a>
+      <button type="button" class="btn" onClick="{{toReady}}">Check again</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isWrong}}" hint-placeholder-val="{{ false }}">
+    <main class="body">
+      <h1 class="h1">Someone else is signed in here</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">This device is signed in as <strong>Kofi T.</strong> The code you scanned belongs to <strong>Amina N.</strong></p>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px">Signing out keeps Kofi's bundle and devices safe. He can sign back in any time.</p>
+      <button type="button" class="btn" onClick="{{toReady}}" style="margin-top: auto">Sign out and continue as Amina</button>
+      <a class="btn2" href="PhoneHome.dc.html">Stay as Kofi</a>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isReady}}" hint-placeholder-val="{{ false }}">
+    <main class="body">
+      <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Connect this device</p>
+      <h1 class="h1">Hi Amina — confirm it's you</h1>
+      <div style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Active · [PLAN 2]</p>
+        <p style="margin: 6px 0 2px; font-size: 22px; font-weight: 700">3.2 GB left</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Ends 12 Nov · 2 of 3 devices in use</p>
+      </div>
+      <div>
+        <label for="sp" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">Your PIN</label>
+        <input id="sp" type="password" inputmode="numeric" value="2468" style="box-sizing: border-box; width: 100%; min-height: 52px; padding: 0 14px; border-radius: 10px; border: 1px solid #b8c7bd; background: #ffffff; font: 20px 'DM Sans', sans-serif; letter-spacing: .3em; color: #10241c">
+      </div>
+      <button type="button" class="btn" onClick="{{toDone}}">Connect</button>
+      <div style="display: flex; align-items: center; gap: 12px; color: #5c6963; font-size: 13px"><span style="flex: 1; height: 1px; background: #dfe5dc"></span>or<span style="flex: 1; height: 1px; background: #dfe5dc"></span></div>
+      <button type="button" class="btn2" onClick="{{toDone}}"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z"></path></svg>Use passkey</button>
+      <p style="margin: auto 0 0; color: #5c6963; font-size: 13px; text-align: center">Scanning alone never connects a device.</p>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main class="body" style="align-items: center; text-align: center">
+      <div class="icon" style="background: #eaf6d5; margin-top: 20px"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">You're online</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">This device now uses Amina's [PLAN 2] bundle. It shows up in her Devices list.</p>
+      <a class="btn" href="PhoneHome.dc.html" style="margin-top: auto">Done</a>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["active","noBundle","notOnWifi","wrongAccount"],"default":"active"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'checking' }; }
+  componentDidMount() { this.timer = setTimeout(() => this.setState({ step: this.firstStep() }), 1200); }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  firstStep() {
+    const sc = this.props.scenario ?? 'active';
+    return { active: 'ready', noBundle: 'nobundle', notOnWifi: 'wifi', wrongAccount: 'wrong' }[sc] || 'ready';
+  }
+  renderVals() {
+    const s = this.state.step;
+    const go = (step) => () => this.setState({ step });
+    return {
+      isChecking: s === 'checking', isNoBundle: s === 'nobundle', isWifi: s === 'wifi', isWrong: s === 'wrong', isReady: s === 'ready', isDone: s === 'done',
+      toReady: go('ready'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>

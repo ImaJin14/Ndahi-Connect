@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout on phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c;border:0;background:transparent;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <sc-if value="{{isReview}}" hint-placeholder-val="{{ true }}">
+      <a class="back" href="PhoneProduct.dc.html" aria-label="Back to product"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    </sc-if>
+    <span style="font-weight: 700; font-size: 15px; padding-left: 8px">{{title}}</span>
+  </div>
+
+  <sc-if value="{{isReview}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
+        <div style="width: 56px; height: 56px; border-radius: 9px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 10px">Photo</div>
+        <div style="flex: 1"><strong style="display: block; font-size: 15px">TP-Link CPE210</strong><span style="font-size: 13px; color: #5c6963">Quantity 1</span></div>
+        <strong style="font-size: 15px">[PRICE]</strong>
+      </div>
+      <section aria-labelledby="cContact">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 id="cContact" style="margin: 0 0 6px; font-size: 15px; font-weight: 700">Your details</h2>
+          <span style="padding: 3px 9px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">From your account</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: #3d4a44; line-height: 1.5">Amina N. · +237 6•• •• 12 45</p>
+      </section>
+      <section aria-labelledby="cPickup">
+        <h2 id="cPickup" style="margin: 0 0 8px; font-size: 15px; font-weight: 700">Collection</h2>
+        <div style="padding: 12px 14px; border-radius: 12px; border: 2px solid #003b2b; background: #fffef9; font-size: 14px"><strong style="display: block">[PICKUP LOCATION]</strong><span style="color: #5c6963">You'll get a code to show when you collect</span></div>
+      </section>
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px; padding: 0">Pay with</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <sc-for list="{{methods}}" as="m" hint-placeholder-count="2">
+            <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">{{m.label}}</button>
+          </sc-for>
+        </div>
+        <label for="payPhone" style="display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600">Mobile Money number</label>
+        <input class="in" id="payPhone" type="tel" value="6•• •• 12 45">
+      </fieldset>
+    </main>
+    <div class="foot">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px"><span style="color: #5c6963; font-size: 14px">Total</span><strong style="font-size: 20px">[PRICE] FCFA</strong></div>
+      <button type="button" class="btn" onClick="{{toWait}}">Pay [PRICE] FCFA</button>
+      <p style="margin: 8px 0 0; text-align: center; color: #5c6963; font-size: 12px">Approve the request on your phone. We never ask for your PIN.</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
+      <h1 class="h1">Approve on your phone</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>[PRICE] FCFA</strong> was sent. Your device is held for you while you approve.</p>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <button type="button" class="btn" onClick="{{toDone}}">Check status</button>
+      <button type="button" class="btn2" onClick="{{toReview}}">Change payment</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">Order placed</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">Order <strong>NS-2611-0088</strong> is paid. We'll message you when it's ready to collect.</p>
+      <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; text-align: left; font-size: 14px; line-height: 1.6">It's saved in <strong>Activity</strong> with your bundle payments.</div>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <a class="btn" href="PhoneOrder.dc.html">View order</a>
+      <a class="btn2" href="PhoneShop.dc.html">Back to shop</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'review', method: 'orange' }; }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const mBase = 'min-height: 52px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+    const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, pressed: id === s.method ? 'true' : 'false', style: mBase + (id === s.method ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
+    return {
+      isReview: s.step === 'review', isWait: s.step === 'wait', isDone: s.step === 'done',
+      title: { review: 'Checkout', wait: 'Waiting for payment', done: 'Order confirmed' }[s.step],
+      methods, methodName: s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money',
+      toReview: go('review'), toWait: go('wait'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>

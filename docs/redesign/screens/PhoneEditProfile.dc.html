@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit profile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.hint{margin:6px 0 0;color:#5c6963;font-size:13px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneAccount.dc.html" aria-label="Back to account"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Edit profile</span>
+  </div>
+  <main style="flex: 1; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+    <div><label class="lbl" for="en">Full name</label><input class="in" id="en" value="Amina Nfor" autocomplete="name"></div>
+    <div>
+      <label class="lbl" for="ee">Email</label><input class="in" id="ee" type="email" value="amina@example.com" autocomplete="email">
+      <p class="hint">Needed to reset your PIN and receive receipts. We send a link to confirm a new address.</p>
+    </div>
+    <div>
+      <label class="lbl" for="eph">Phone number</label><input class="in" id="eph" value="+237 6•• •• 12 45" readonly style="background: #eef0ee; color: #3d4a44">
+      <p class="hint">This is how you sign in. To change it, <a href="PhoneHelp.dc.html" style="font-weight: 700">contact support</a>.</p>
+    </div>
+    <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Saved. Check amina@example.com to confirm it.</div>
+    </sc-if>
+    <button type="button" class="btn" onClick="{{save}}" style="margin-top: auto">Save changes</button>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { saved: false }; }
+  renderVals() { return { saved: this.state.saved, save: () => this.setState({ saved: true }) }; }
+}
+</script>
+</body>
+</html>

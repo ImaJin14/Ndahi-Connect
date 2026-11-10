@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buy a bundle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c;border:0;background:transparent;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
+      <a class="back" href="PhoneInternet.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    </sc-if>
+    <sc-if value="{{isPay}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="back" aria-label="Back" onClick="{{toPlan}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button>
+    </sc-if>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Buy a bundle</span>
+    <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{stepLabel}}</span>
+  </div>
+
+  <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+      <h1 class="h1">Choose the plan that fits you</h1>
+      <p style="margin: 0 0 4px; color: #5c6963; font-size: 14px">You can buy once your current bundle has ended or run out of data.</p>
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="4">
+        <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="{{p.style}}">
+          <span style="flex: 1; text-align: left">
+            <span style="display: flex; align-items: center; gap: 8px"><strong style="font-size: 16px">{{p.name}}</strong><sc-if value="{{p.tag}}" hint-placeholder-val="{{ false }}"><span style="padding: 2px 8px; border-radius: 999px; background: #b9ee2e; color: #15210c; font-size: 11px; font-weight: 700">{{p.tag}}</span></sc-if></span>
+            <span style="display: block; margin-top: 3px; color: #5c6963; font-size: 13px">{{p.detail}}</span>
+          </span>
+          <strong style="font-size: 16px; white-space: nowrap">{{p.price}}</strong>
+        </button>
+      </sc-for>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toPay}}">Continue with {{planName}}</button></div>
+  </sc-if>
+
+  <sc-if value="{{isPay}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 16px">
+      <h1 class="h1">Review and pay</h1>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
+        <span><strong style="display: block; font-size: 15px">{{planName}}</strong><span style="font-size: 13px; color: #5c6963">{{planDetail}}</span></span>
+        <strong>{{planPrice}}</strong>
+      </div>
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px; padding: 0">Pay with</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <sc-for list="{{methods}}" as="m" hint-placeholder-count="2">
+            <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">{{m.label}}</button>
+          </sc-for>
+        </div>
+      </fieldset>
+      <div>
+        <label class="lbl" for="bp">Mobile Money number</label>
+        <input class="in" id="bp" type="tel" value="6•• •• 12 45">
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 13px">New here? We'll set up your NDAHI account with this number.</p>
+      </div>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn" onClick="{{toWait}}">Pay {{planPrice}}</button>
+      <p style="margin: 8px 0 0; text-align: center; color: #5c6963; font-size: 12px">You'll approve on your phone. We never ask for your PIN.</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
+      <h1 class="h1">Approve on your phone</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>{{planPrice}}</strong> was sent to 6•• •• 12 45. Approve it there — this screen updates by itself.</p>
+      <ol style="margin: 4px 0 0; padding: 14px 14px 14px 34px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; text-align: left; font-size: 14px; line-height: 1.7; color: #3d4a44; align-self: stretch">
+        <li>Open the payment prompt on your phone</li>
+        <li>Check the amount and enter your PIN there</li>
+        <li>Come back here — no need to refresh</li>
+      </ol>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <button type="button" class="btn" onClick="{{toDone}}">Check status</button>
+      <button type="button" class="btn2" onClick="{{toPay}}">Change payment</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">You're online</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55"><strong>{{planName}}</strong> is active on this device. Your receipt is in Activity.</p>
+      <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #003b2b; color: #ffffff; text-align: left">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Active bundle</p>
+        <p style="margin: 6px 0 0; font-size: 18px; font-weight: 700">{{planDetail}}</p>
+      </div>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <a class="btn" href="PhoneHome.dc.html">Go to my home</a>
+      <a class="btn2" href="PhoneReceipt.dc.html">View receipt</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'plan', plan: 'p2', method: 'mtn' }; }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const card = 'box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 14px; border-radius: 14px; background: #fffef9; font-family: inherit; color: #10241c; cursor: pointer; ';
+    const raw = [
+      { id: 'p1', name: '[PLAN 1]', detail: '1 GB · 1 day · 1 device', price: '[PRICE]', tag: '' },
+      { id: 'p2', name: '[PLAN 2]', detail: '5 GB · 7 days · 3 devices', price: '[PRICE]', tag: 'Popular' },
+      { id: 'p3', name: '[PLAN 3]', detail: '15 GB · 30 days · 3 devices', price: '[PRICE]', tag: '' },
+      { id: 'p4', name: '[PLAN 4]', detail: 'Unlimited · 30 days · fair use', price: '[PRICE]', tag: '' }
+    ];
+    const plans = raw.map((p) => ({ ...p, pressed: p.id === s.plan ? 'true' : 'false', style: card + (p.id === s.plan ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc;'), pick: () => this.setState({ plan: p.id }) }));
+    const plan = raw.find((p) => p.id === s.plan);
+    const mBase = 'min-height: 52px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+    const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, pressed: id === s.method ? 'true' : 'false', style: mBase + (id === s.method ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
+    const labels = { plan: 'Step 1 of 3', pay: 'Step 2 of 3', wait: 'Step 3 of 3', done: 'Done' };
+    return {
+      isPlan: s.step === 'plan', isPay: s.step === 'pay', isWait: s.step === 'wait', isDone: s.step === 'done',
+      stepLabel: labels[s.step], plans, methods,
+      planName: plan.name, planDetail: plan.detail, planPrice: plan.price + ' FCFA',
+      methodName: s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money',
+      toPlan: go('plan'), toPay: go('pay'), toWait: go('wait'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>

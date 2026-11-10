@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Guest checkout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c;border:0;background:transparent;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:46px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.choice{display:flex;gap:14px;align-items:center;width:100%;box-sizing:border-box;min-height:84px;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc;text-decoration:none;color:#10241c;font-family:inherit;text-align:left;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <sc-if value="{{isChoose}}" hint-placeholder-val="{{ true }}">
+      <a class="back" href="PhoneGuestProduct.dc.html" aria-label="Back to product"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    </sc-if>
+    <sc-if value="{{isDetails}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="back" aria-label="Back" onClick="{{toChoose}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button>
+    </sc-if>
+    <span style="font-weight: 700; font-size: 15px; padding-left: 8px">{{title}}</span>
+  </div>
+
+  <sc-if value="{{isChoose}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px">
+      <h1 class="h1">How would you like to check out?</h1>
+      <p style="margin: 0 0 6px; color: #5c6963; font-size: 14px">TP-Link CPE210 × 1 · [PRICE] FCFA</p>
+      <button type="button" class="choice" onClick="{{toDetails}}" style="border: 2px solid #003b2b">
+        <span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #b9ee2e; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#15210c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7"></path></svg></span>
+        <span style="flex: 1"><strong style="display: block; font-size: 16px">Continue as guest</strong><span style="font-size: 13px; color: #5c6963">Just a name and phone number. You get a private tracking link.</span></span>
+      </button>
+      <a class="choice" href="PhoneLogin.dc.html">
+        <span style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; background: #eef3e9; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 6 0 0 1 16 0v2"></path></svg></span>
+        <span style="flex: 1"><strong style="display: block; font-size: 16px">Sign in to NDAHI</strong><span style="font-size: 13px; color: #5c6963">Details filled in, order saved in Activity.</span></span>
+      </a>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isDetails}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px">
+      <div><label class="lbl" for="gn">Full name</label><input class="in" id="gn" value="Paul T." autocomplete="name"></div>
+      <div><label class="lbl" for="gp">Mobile Money number <span style="font-weight: 500; color: #5c6963">— the one that pays</span></label><input class="in" id="gp" type="tel" value="6•• •• 88 02"></div>
+      <div><label class="lbl" for="ge">Email <span style="font-weight: 500; color: #5c6963">— optional, for order updates</span></label><input class="in" id="ge" type="email" placeholder="you@example.com"></div>
+      <div style="padding: 10px 12px; border-radius: 12px; border: 2px solid #003b2b; background: #fffef9; font-size: 14px"><strong style="display: block">Collect at [PICKUP LOCATION]</strong><span style="color: #5c6963">Delivery comes later</span></div>
+      <fieldset style="border: 0; margin: 0; padding: 0">
+        <legend style="font-size: 13px; font-weight: 600; margin-bottom: 6px; padding: 0">Pay with</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <sc-for list="{{methods}}" as="m" hint-placeholder-count="2">
+            <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">{{m.label}}</button>
+          </sc-for>
+        </div>
+      </fieldset>
+    </main>
+    <div class="foot">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px"><span style="color: #5c6963; font-size: 14px">Total</span><strong style="font-size: 20px">[PRICE] FCFA</strong></div>
+      <button type="button" class="btn" onClick="{{toWait}}">Pay [PRICE] FCFA</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
+      <h1 class="h1">Approve on your phone</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>[PRICE] FCFA</strong> was sent to 6•• •• 88 02. If this page closes, reopen the store in the same browser to pick up where you left off.</p>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <button type="button" class="btn" onClick="{{toDone}}">Check status</button>
+      <button type="button" class="btn2" onClick="{{toDetails}}">Change payment</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 26px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px">
+      <div style="width: 76px; height: 76px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">Order placed</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.5">Order <strong>NS-2611-0088</strong> is paid. Your tracking link shows when it's ready to collect.</p>
+      <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #fff4e0; text-align: left">
+        <strong style="display: block; font-size: 14px; color: #6b3a00">Save your private tracking link</strong>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #6b3a00; line-height: 1.45">Copy or bookmark it — we also email it if you gave an address. Anyone with the link can see this order.</p>
+      </div>
+      <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #eef3e9; text-align: left">
+        <strong style="display: block; font-size: 14px">Want this in an account?</strong>
+        <p style="margin: 4px 0 10px; font-size: 13px; color: #3d4a44">Sign in or sign up with the same number and the order moves into Activity.</p>
+        <a class="btn2" href="PhoneLogin.dc.html" style="min-height: 44px; font-size: 14px">Save to an account</a>
+      </div>
+    </main>
+    <div class="foot"><a class="btn" href="PhoneGuestOrder.dc.html">Track my order</a></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'choose', method: 'mtn' }; }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const mBase = 'min-height: 48px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+    const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, pressed: id === s.method ? 'true' : 'false', style: mBase + (id === s.method ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
+    return {
+      isChoose: s.step === 'choose', isDetails: s.step === 'details', isWait: s.step === 'wait', isDone: s.step === 'done',
+      title: { choose: 'Checkout', details: 'Guest checkout', wait: 'Waiting for payment', done: 'Order confirmed' }[s.step],
+      methods, methodName: s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money',
+      toChoose: go('choose'), toDetails: go('details'), toWait: go('wait'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>

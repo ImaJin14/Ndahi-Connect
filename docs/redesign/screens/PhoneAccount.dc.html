@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.grp{background:#fffef9;border:1px solid #dfe5dc;border-radius:14px;padding:0 14px}
+.li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:50px;border-bottom:1px solid #dfe5dc;text-decoration:none;color:#10241c;font-size:15px;font-weight:600}
+.li:last-child{border-bottom:0}
+.h2{margin:6px 4px 0;color:#5c6963;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="padding: 20px 18px 6px; display: flex; align-items: center; gap: 14px">
+    <span style="width: 56px; height: 56px; border-radius: 50%; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-weight: 700; font-size: 20px">A</span>
+    <span style="flex: 1"><h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 24px">Your account</h1><span style="font-size: 14px; color: #5c6963">+237 6•• •• 12 45</span></span>
+    <a href="PhoneEditProfile.dc.html" style="font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center">Edit</a>
+  </header>
+
+  <main style="flex: 1; overflow: hidden; padding: 10px 18px; display: flex; flex-direction: column; gap: 8px">
+    <p class="h2">Security</p>
+    <div class="grp">
+      <a class="li" href="PhoneChangePin.dc.html">Change PIN<span aria-hidden="true" style="color: #4d6b00">›</span></a>
+      <a class="li" href="PhonePasskey.dc.html">Passkey sign-in<span style="font-size: 13px; color: #345000; font-weight: 700">On</span></a>
+      <a class="li" href="PhoneSessions.dc.html">Signed-in devices<span style="font-size: 13px; color: #5c6963; font-weight: 600">2 active</span></a>
+    </div>
+
+    <p class="h2">Notifications</p>
+    <div class="grp">
+      <sc-for list="{{toggles}}" as="t" hint-placeholder-count="3">
+        <label class="li" style="cursor: pointer">{{t.label}}
+          <button type="button" role="switch" aria-checked="{{t.checked}}" aria-label="{{t.label}}" onClick="{{t.flip}}" style="{{t.track}}"><span style="{{t.knob}}"></span></button>
+        </label>
+      </sc-for>
+    </div>
+
+    <p class="h2">Language</p>
+    <div role="group" aria-label="Language" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #eef3e9">
+      <sc-for list="{{langs}}" as="l" hint-placeholder-count="2">
+        <button type="button" aria-pressed="{{l.pressed}}" onClick="{{l.pick}}" style="{{l.style}}">{{l.label}}</button>
+      </sc-for>
+    </div>
+
+    <div class="grp" style="margin-top: 8px">
+      <a class="li" href="PhoneHomeRouter.dc.html">NDAHI Home router<span style="font-size: 13px; color: #5c6963; font-weight: 600">Linked</span></a>
+      <a class="li" href="PhoneHelp.dc.html">Help &amp; support<span aria-hidden="true" style="color: #4d6b00">›</span></a>
+      <a class="li" href="PhoneLogin.dc.html" style="color: #a73535">Sign out</a>
+    </div>
+  </main>
+
+  <dc-import name="TabBar" current="account" hint-size="390px,74px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { on: { low: true, ending: true, orders: false }, lang: 'en' }; }
+  renderVals() {
+    const s = this.state;
+    const toggles = [['low', 'Low data alerts'], ['ending', 'Bundle ending soon'], ['orders', 'Shop order updates']].map(([id, label]) => {
+      const on = s.on[id];
+      return {
+        label, checked: on ? 'true' : 'false',
+        track: 'position: relative; width: 50px; height: 30px; flex-shrink: 0; border: 0; border-radius: 999px; cursor: pointer; padding: 0; ' + (on ? 'background: #003b2b;' : 'background: #c9d3cd;'),
+        knob: 'position: absolute; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: ' + (on ? '#b9ee2e; left: 23px;' : '#ffffff; left: 3px;'),
+        flip: () => this.setState({ on: { ...s.on, [id]: !on } })
+      };
+    });
+    const base = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const langs = [['en', 'English'], ['fr', 'Français']].map(([id, label]) => ({ label, pressed: id === s.lang ? 'true' : 'false', style: base + (id === s.lang ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ lang: id }) }));
+    return { toggles, langs };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin resellers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="resellers" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">People</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Resellers, stock and cash.</h1>
+      </div>
+      <span style="font-size: 14px; color: #3d4a44">Commission split: <strong>[RATE]%</strong> · <a href="#rate" style="font-weight: 700">Change</a></span>
+    </div>
+
+    <section aria-label="Reseller ledger" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 18px">
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Reseller</th><th scope="col">Assigned stock</th><th scope="col">Redeemed sales</th><th scope="col">Cash collected</th><th scope="col">Commission</th><th scope="col">Remitted</th><th scope="col">Net owed</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+              <tr><td><strong>{{r.name}}</strong><span style="display: block; font-size: 12px; color: #5c6963">{{r.where}}</span></td><td>{{r.stock}} codes</td><td>{{r.sold}}</td><td>{{r.cash}} FCFA</td><td>{{r.comm}} FCFA</td><td>{{r.paid}} FCFA</td><td><strong style="{{r.oweStyle}}">{{r.owed}} FCFA</strong></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 10px 0 0; color: #5c6963; font-size: 13px">Sample figures. Net owed = cash collected − commission − remitted.</p>
+    </section>
+
+    <section aria-labelledby="rr" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+      <h2 id="rr" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Record a cash handoff</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end">
+        <div><label class="lbl" for="rs">Reseller</label><select class="in" id="rs"><option>Market kiosk</option><option>School canteen</option></select></div>
+        <div><label class="lbl" for="ra">Amount received (FCFA)</label><input class="in" id="ra" type="number" value="20000"></div>
+        <button type="button" onClick="{{record}}" style="min-height: 44px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Record remittance</button>
+      </div>
+      <sc-if value="{{recorded}}" hint-placeholder-val="{{ false }}">
+        <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Recorded 20 000 FCFA from Market kiosk · by Owner · 10 Nov 17:40</p>
+      </sc-if>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { recorded: false }; }
+  renderVals() {
+    const extra = this.state.recorded ? 20000 : 0;
+    const fmt = (n) => n.toLocaleString('fr-FR');
+    const base = [
+      { name: 'Market kiosk', where: '[LOCATION]', stock: 40, sold: 26, cash: 52000, comm: 5200, paid: 20000 },
+      { name: 'School canteen', where: '[LOCATION]', stock: 20, sold: 9, cash: 18000, comm: 1800, paid: 16200 },
+      { name: 'Church shop', where: '[LOCATION]', stock: 20, sold: 0, cash: 0, comm: 0, paid: 0 }
+    ];
+    const rows = base.map((r, i) => {
+      const paid = r.paid + (i === 0 ? extra : 0);
+      const owed = r.cash - r.comm - paid;
+      return { ...r, cash: fmt(r.cash), comm: fmt(r.comm), paid: fmt(paid), owed: fmt(owed), oweStyle: owed > 0 ? 'color: #8a4a00;' : 'color: #345000;' };
+    });
+    return { rows, recorded: this.state.recorded, record: () => this.setState({ recorded: true }) };
+  }
+}
+</script>
+</body>
+</html>

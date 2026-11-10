@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Finish Wi-Fi sign-in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:30px;line-height:1.15}
+.dr{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 16px 20px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 34px; height: 34px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 19px">NDAHI</strong>
+  </header>
+
+  <sc-if value="{{pending}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 26px 22px; display: flex; flex-direction: column; gap: 16px">
+      <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Signed in · one last step</p>
+      <h1 class="h1">Finish Wi-Fi sign-in.</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">Your account is ready. Let this device use your bundle so the internet opens up.</p>
+      <dl style="margin: 0">
+        <div class="dr"><dt style="color: #5c6963">This device</dt><dd style="margin: 0; font-weight: 600">Android phone</dd></div>
+        <div class="dr"><dt style="color: #5c6963">Bundle</dt><dd style="margin: 0; font-weight: 600">[PLAN 2] · 3.2 GB left</dd></div>
+        <div class="dr"><dt style="color: #5c6963">Devices in use</dt><dd style="margin: 0; font-weight: 600">1 of 3</dd></div>
+      </dl>
+      <button type="button" class="btn" onClick="{{connect}}" style="margin-top: auto">Connect this device</button>
+      <a class="btn2" href="PhoneHome.dc.html">Not now — just view my account</a>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 34px 22px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">You're online</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">This phone now uses your bundle. You can close this page — the internet works in every app.</p>
+      <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; text-align: left; line-height: 1.45">If you're asked to sign in again tomorrow, turn off "Private Wi-Fi address" for NDAHI in your Wi-Fi settings.</div>
+      <a class="btn" href="PhoneHome.dc.html" style="margin-top: auto">Go to my home</a>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { done: false }; }
+  renderVals() { return { pending: !this.state.done, done: this.state.done, connect: () => this.setState({ done: true }) }; }
+}
+</script>
+</body>
+</html>

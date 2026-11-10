@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product for guests</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.qb{width:44px;height:48px;border:0;background:transparent;font-size:20px;color:#003b2b;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a href="PhoneGuestShop.dc.html" aria-label="Back to store" style="width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">NDAHI Store</span>
+    <a href="PhoneLogin.dc.html" style="min-height: 44px; display: flex; align-items: center; padding: 0 8px; font-size: 14px; font-weight: 700">Sign in</a>
+  </div>
+
+  <main style="flex: 1; overflow: hidden; display: flex; flex-direction: column">
+    <div style="height: 240px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo</div>
+    <div style="padding: 18px 18px 0; display: flex; flex-direction: column; gap: 10px">
+      <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase">Outdoor networking</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">TP-Link CPE210</h1>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <p style="margin: 0; font-size: 22px; font-weight: 700">[PRICE] FCFA</p>
+        <span style="padding: 4px 10px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">6 in stock</span>
+      </div>
+      <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.55">Outdoor 2.4 GHz wireless CPE with a 9 dBi directional antenna, for point-to-point links. Up to 300 Mbps; passive PoE.</p>
+      <dl style="margin: 4px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <div style="padding: 10px 12px; border-radius: 10px; background: #fffef9; border: 1px solid #dfe5dc"><dt style="font-size: 12px; color: #5c6963">Needs</dt><dd style="margin: 2px 0 0; font-size: 13px; font-weight: 600">Installation + alignment</dd></div>
+        <div style="padding: 10px 12px; border-radius: 10px; background: #fffef9; border: 1px solid #dfe5dc"><dt style="font-size: 12px; color: #5c6963">Internet</dt><dd style="margin: 2px 0 0; font-size: 13px; font-weight: 600">Sold separately</dd></div>
+      </dl>
+      <details style="border-top: 1px solid #dfe5dc; padding-top: 6px">
+        <summary style="min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; cursor: pointer">Specifications, box contents, warranty</summary>
+      </details>
+    </div>
+  </main>
+
+  <div style="padding: 12px 16px 18px; background: #fffef9; border-top: 1px solid #dfe5dc; display: flex; gap: 12px; align-items: center">
+    <div role="group" aria-label="Quantity" style="display: flex; align-items: center; border: 1px solid #b8c7bd; border-radius: 10px">
+      <button type="button" class="qb" aria-label="Decrease quantity" onClick="{{dec}}">−</button>
+      <span aria-live="polite" style="min-width: 22px; text-align: center; font-weight: 700">{{qty}}</span>
+      <button type="button" class="qb" aria-label="Increase quantity" onClick="{{inc}}">+</button>
+    </div>
+    <a href="PhoneGuestCheckout.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 10px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 16px; text-decoration: none">Buy now</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { qty: 1 }; }
+  renderVals() {
+    const q = this.state.qty;
+    return { qty: q, dec: () => this.setState({ qty: Math.max(1, q - 1) }), inc: () => this.setState({ qty: Math.min(6, q + 1) }) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin voucher print</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="vouchers" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <a href="AdminVouchers.dc.html" style="font-size: 14px; font-weight: 700">← Vouchers</a>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 34px">Print batch B-1110-03</h1>
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">20 slips · [PLAN 2] · for [RESELLER] · 4 per A4 page</p>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center">
+        <label for="sp" style="font-size: 13px; font-weight: 600">Slips per page</label>
+        <select id="sp" style="min-height: 44px; padding: 0 10px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif"><option>4 (A6)</option><option>8 (small)</option></select>
+        <button type="button" onClick="{{print}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">{{printLabel}}</button>
+      </div>
+    </div>
+    <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Codes become active once printed. Hand them only to the named reseller — every print is logged.</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; border-radius: 16px; background: #e7ece5">
+      <dc-import name="VoucherSlip" hint-size="420px,595px"></dc-import>
+      <dc-import name="VoucherSlip" hint-size="420px,595px"></dc-import>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { printed: false }; }
+  renderVals() { return { printLabel: this.state.printed ? 'Sent to printer' : 'Print 20 slips', print: () => this.setState({ printed: true }) }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Activity on phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.row{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid #dfe5dc;text-decoration:none;color:#10241c}
+.ico{width:40px;height:40px;flex-shrink:0;border-radius:10px;background:#eef3e9;display:grid;place-items:center}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="padding: 20px 18px 8px">
+    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px">Activity</h1>
+    <p style="margin: 4px 0 0; color: #5c6963; font-size: 14px">Bundle payments and shop orders, together.</p>
+  </header>
+
+  <div role="group" aria-label="Show" style="display: flex; gap: 6px; margin: 8px 18px 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+    <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+      <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+    </sc-for>
+  </div>
+
+  <main style="flex: 1; overflow: hidden; padding: 0 18px">
+    <sc-if value="{{showWaiting}}" hint-placeholder-val="{{ true }}">
+      <a href="PhoneBuyBundle.dc.html" style="display: block; margin: 12px 0 4px; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.45; text-decoration: none"><strong>1 payment waiting.</strong> Approve it on your phone, then tap here to check.</a>
+    </sc-if>
+    <sc-for list="{{items}}" as="i" hint-placeholder-count="5">
+      <a class="row" href="{{i.href}}">
+        <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.icon}}"></path></svg></span>
+        <span style="flex: 1; min-width: 0"><strong style="display: block; font-size: 15px">{{i.title}}</strong><span style="font-size: 13px; color: #5c6963">{{i.meta}}</span></span>
+        <span style="{{i.pillStyle}}">{{i.status}}</span>
+      </a>
+    </sc-for>
+  </main>
+
+  <dc-import name="TabBar" current="activity" hint-size="390px,74px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all' }; }
+  renderVals() {
+    const f = this.state.f;
+    const wifi = 'M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01';
+    const shop = 'M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7';
+    const tick = 'M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4Zm12 0v14';
+    const pill = 'padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; ';
+    const tone = { wait: 'background: #fff4e0; color: #6b3a00;', ok: 'background: #eaf6d5; color: #345000;', info: 'background: #e3f0ff; color: #1d4f86;', done: 'background: #eef0ee; color: #3d4a44;' };
+    const all = [
+      { kind: 'internet', title: 'Bundle · [PLAN 2]', meta: 'Today · MTN MoMo', status: 'Waiting', tone: 'wait', icon: wifi, href: 'PhoneBuyBundle.dc.html' },
+      { kind: 'orders', title: 'Order · TP-Link CPE210', meta: '8 Nov · Orange Money', status: 'Ready to collect', tone: 'info', icon: shop, href: 'PhoneOrder.dc.html' },
+      { kind: 'internet', title: 'Bundle · [PLAN 2]', meta: '5 Nov · MTN MoMo · Receipt', status: 'Paid', tone: 'ok', icon: wifi, href: 'PhoneReceipt.dc.html' },
+      { kind: 'internet', title: 'Voucher redeemed', meta: '29 Oct · K7PM-42XQ', status: 'Used', tone: 'done', icon: tick, href: 'PhoneInternet.dc.html' },
+      { kind: 'orders', title: 'Order · Wavlink Mini', meta: '21 Oct · MTN MoMo', status: 'Collected', tone: 'done', icon: shop, href: 'PhoneOrder.dc.html' }
+    ];
+    const items = all.filter((i) => f === 'all' || i.kind === f).map((i) => ({ ...i, pillStyle: pill + tone[i.tone] }));
+    const base = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const filters = [['all', 'All'], ['internet', 'Internet'], ['orders', 'Orders']].map(([id, label]) => ({ label, pressed: id === f ? 'true' : 'false', style: base + (id === f ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ f: id }) }));
+    return { items, filters, showWaiting: f !== 'orders' };
+  }
+}
+</script>
+</body>
+</html>

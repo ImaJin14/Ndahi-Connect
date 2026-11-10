@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Internet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #dfe5dc}
+.pill{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.code{font:700 16px ui-monospace,'SFMono-Regular',Menlo,monospace;letter-spacing:.08em}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="padding: 20px 18px 8px">
+    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px">Internet</h1>
+    <p style="margin: 4px 0 0; color: #5c6963; font-size: 14px">Your bundles and voucher codes.</p>
+  </header>
+
+  <div role="tablist" aria-label="Internet" style="display: flex; gap: 6px; margin: 8px 18px 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+      <button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{isBundles}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 12px 18px; display: flex; flex-direction: column; gap: 14px">
+      <section aria-label="Active bundle" style="padding: 18px; border-radius: 16px; background: #003b2b; color: #ffffff">
+        <div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Active · [PLAN 2]</p><span style="font-size: 13px; color: #c8d8d0">Ends 12 Nov</span></div>
+        <p style="margin: 10px 0 0; font-size: 30px; font-weight: 700">3.2 GB <span style="font-size: 14px; font-weight: 500; color: #c8d8d0">of 5 GB left</span></p>
+        <div style="height: 8px; border-radius: 999px; background: rgba(255,255,255,.16); margin: 12px 0 0; overflow: hidden"><div style="width: 64%; height: 100%; background: #b9ee2e"></div></div>
+      </section>
+      <div style="padding: 12px 14px; border-radius: 12px; background: #eef3e9; font-size: 14px; color: #3d4a44; line-height: 1.45">You can buy your next bundle once this one ends or its data runs out. <a href="PhoneBillingTerms.dc.html" style="font-weight: 700">Why?</a></div>
+      <a class="btn" href="PhoneBuyBundle.dc.html">See bundles and prices</a>
+      <section aria-labelledby="hist">
+        <h2 id="hist" style="margin: 4px 0 0; font-size: 15px; font-weight: 700">Earlier bundles</h2>
+        <div class="row"><span style="flex: 1"><strong style="display: block; font-size: 15px">[PLAN 2]</strong><span style="font-size: 13px; color: #5c6963">29 Oct – 5 Nov · 5 GB used</span></span><span class="pill" style="background: #eef0ee; color: #3d4a44">Finished</span></div>
+        <div class="row"><span style="flex: 1"><strong style="display: block; font-size: 15px">[PLAN 1]</strong><span style="font-size: 13px; color: #5c6963">28 Oct · 0.6 GB used</span></span><span class="pill" style="background: #eef0ee; color: #3d4a44">Expired</span></div>
+      </section>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isVouchers}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 12px 18px; display: flex; flex-direction: column; gap: 14px">
+      <a class="btn" href="PhoneVoucher.dc.html">Enter a voucher code</a>
+      <section aria-labelledby="saved" style="padding: 16px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
+        <div style="display: flex; justify-content: space-between; align-items: center"><h2 id="saved" style="margin: 0; font-size: 15px; font-weight: 700">Active voucher</h2><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></div>
+        <p class="code" style="margin: 10px 0 4px; font-size: 24px">K7PM-42XQ</p>
+        <p style="margin: 0; color: #5c6963; font-size: 13px">5 GB · 7 days · 1 device</p>
+        <sc-if value="{{qr}}" hint-placeholder-val="{{ false }}">
+          <div role="img" aria-label="QR code for voucher K7PM-42XQ" style="margin: 14px auto 0; width: 150px; height: 150px; border-radius: 10px; border: 1px solid #dfe5dc; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 18px 18px"></div>
+          <p style="margin: 8px 0 0; text-align: center; color: #5c6963; font-size: 13px">Scan on another device to connect it.</p>
+        </sc-if>
+        <div style="display: flex; gap: 8px; margin-top: 14px">
+          <button type="button" class="btn2" style="flex: 1" onClick="{{toggleQr}}" aria-pressed="{{qrPressed}}">{{qrLabel}}</button>
+          <a class="btn2" style="flex: 1" href="VoucherSlip.dc.html">Print slip</a>
+        </div>
+      </section>
+      <section aria-labelledby="used">
+        <a href="PhoneVoucherReady.dc.html" style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; font-size: 14px; font-weight: 700">1 saved voucher not used yet<span aria-hidden="true">›</span></a>
+        <h2 id="used" style="margin: 4px 0 0; font-size: 15px; font-weight: 700">Used vouchers</h2>
+        <div class="row"><span style="flex: 1"><span class="code" style="display: block">B2RT-9WNA</span><span style="font-size: 13px; color: #5c6963">Redeemed 29 Oct</span></span><span class="pill" style="background: #eef0ee; color: #3d4a44">Used</span></div>
+      </section>
+    </main>
+  </sc-if>
+
+  <dc-import name="TabBar" current="internet" hint-size="390px,74px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'bundles', qr: false }; }
+  renderVals() {
+    const s = this.state;
+    const base = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const tabs = [['bundles', 'Bundles'], ['vouchers', 'Vouchers']].map(([id, label]) => ({ label, sel: id === s.tab ? 'true' : 'false', style: base + (id === s.tab ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ tab: id }) }));
+    return {
+      tabs, isBundles: s.tab === 'bundles', isVouchers: s.tab === 'vouchers',
+      qr: s.qr, qrLabel: s.qr ? 'Hide QR' : 'Show QR', qrPressed: s.qr ? 'true' : 'false',
+      toggleQr: () => this.setState({ qr: !s.qr })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.side a{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border-radius:8px;color:#dce8e2;text-decoration:none;font-size:14px;font-weight:600}
+.side a:hover{background:rgba(255,255,255,.08);color:#ffffff}
+.side p{margin:18px 12px 6px;color:#9fb8ad;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.metric{background:#fffef9;border:1px solid #dfe5dc;border-radius:14px;padding:18px}
+.metric b{display:block;font-size:26px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="home" hint-size="240px,780px"></dc-import>
+  </aside>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Owner · Tuesday 10 November</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 38px">Your operations.</h1>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px">
+        <a href="AdminVouchers.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; font-weight: 700; font-size: 14px; text-decoration: none">Print vouchers</a>
+        <a href="AdminProducts.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 14px; text-decoration: none">Add product</a>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+      <div class="metric"><b>48</b><span>Devices online now</span></div>
+      <div class="metric"><b>23</b><span>Bundles sold today</span></div>
+      <div class="metric"><b>[XAF]</b><span>Revenue today</span></div>
+      <div class="metric"><b>3</b><span>Store orders to prepare</span></div>
+      <div class="metric"><b>99.6%</b><span>Router uptime, 7 days</span></div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px">
+      <section aria-labelledby="attTitle" style="flex: 1 1 320px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+        <h2 id="attTitle" style="margin: 0 0 10px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Needs attention</h2>
+        <a href="AdminPayments.dc.html" style="display: flex; justify-content: space-between; gap: 10px; align-items: center; min-height: 52px; padding: 0 14px; margin-bottom: 8px; border-radius: 10px; background: #fff4e0; color: #6b3a00; text-decoration: none; font-weight: 600; font-size: 14px">2 payments waiting over 10 min<span aria-hidden="true">→</span></a>
+        <a href="AdminStore.dc.html" style="display: flex; justify-content: space-between; gap: 10px; align-items: center; min-height: 52px; padding: 0 14px; margin-bottom: 8px; border-radius: 10px; background: #e3f0ff; color: #1d4f86; text-decoration: none; font-weight: 600; font-size: 14px">3 orders paid, not yet prepared<span aria-hidden="true">→</span></a>
+        <a href="AdminStore.dc.html" style="display: flex; justify-content: space-between; gap: 10px; align-items: center; min-height: 52px; padding: 0 14px; border-radius: 10px; background: #eef3e9; color: #10241c; text-decoration: none; font-weight: 600; font-size: 14px">Wavlink AC1200: 2 left in stock<span aria-hidden="true">→</span></a>
+      </section>
+
+      <section aria-labelledby="payTitle" style="flex: 999 1 460px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px">
+          <h2 id="payTitle" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Latest payments</h2>
+          <a href="AdminPayments.dc.html" style="font-weight: 700; font-size: 14px">All payments</a>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse">
+            <thead><tr><th scope="col">Customer</th><th scope="col">For</th><th scope="col">Method</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><td>6•• •• 12 45</td><td>Bundle · [PLAN]</td><td>MTN MoMo</td><td><span style="padding: 3px 9px; border-radius: 999px; background: #fff4e0; color: #6b3a00; font-size: 12px; font-weight: 700">Waiting</span></td></tr>
+              <tr><td>6•• •• 88 02</td><td>Order · TP-Link CPE210</td><td>Orange Money</td><td><span style="padding: 3px 9px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">Paid</span></td></tr>
+              <tr><td>6•• •• 40 19</td><td>Bundle · [PLAN]</td><td>MTN MoMo</td><td><span style="padding: 3px 9px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">Paid</span></td></tr>
+              <tr><td>Reseller · [NAME]</td><td>Voucher batch</td><td>Cash</td><td><span style="padding: 3px 9px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700">Recorded</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

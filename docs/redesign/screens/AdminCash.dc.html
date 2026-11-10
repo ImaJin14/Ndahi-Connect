@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin cash and settlements</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.metric{background:#fffef9;border:1px solid #dfe5dc;border-radius:14px;padding:18px}
+.metric b{display:block;font-size:24px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="cash" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Cash and settlements.</h1>
+      </div>
+      <div role="group" aria-label="Period" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="3">
+          <button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px">
+      <div class="metric"><b>[XAF]</b><span>Internet payments, {{period}}</span></div>
+      <div class="metric"><b>[XAF]</b><span>Store purchases, {{period}}</span></div>
+      <div class="metric"><b>[XAF]</b><span>Completed refunds, {{period}}</span></div>
+      <div class="metric"><b>[XAF]</b><span>Reseller cash received, {{period}}</span></div>
+    </div>
+
+    <section aria-labelledby="st" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+      <h2 id="st" style="margin: 0 0 6px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Net provider settlements</h2>
+      <p style="margin: 0 0 8px; color: #5c6963; font-size: 14px">What each provider should pay into the bank after fees, {{period}}.</p>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Provider</th><th scope="col">Confirmed collections</th><th scope="col">Cash before fees</th><th scope="col">Fees</th><th scope="col">Refunds</th><th scope="col">Net to settle</th></tr></thead>
+          <tbody>
+            <tr><td><strong>MTN MoMo</strong></td><td>{{mtnCount}}</td><td>[XAF]</td><td>[XAF]</td><td>[XAF]</td><td><strong>[XAF]</strong></td></tr>
+            <tr><td><strong>Orange Money</strong></td><td>{{orCount}}</td><td>[XAF]</td><td>[XAF]</td><td>—</td><td><strong>[XAF]</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px">
+        <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Export for accountant (CSV)</button>
+        <a href="AdminPayments.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; font-weight: 700; font-size: 14px">See individual payments →</a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { p: 'week' }; }
+  renderVals() {
+    const p = this.state.p;
+    const words = { today: 'today', week: 'last 7 days', month: 'this month' };
+    const counts = { today: [23, 11], week: [148, 71], month: [512, 260] };
+    const base = 'min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const periods = [['today', 'Today'], ['week', '7 days'], ['month', 'Month']].map(([id, label]) => ({ label, pressed: id === p ? 'true' : 'false', style: base + (id === p ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ p: id }) }));
+    return { periods, period: words[p], mtnCount: counts[p][0], orCount: counts[p][1] };
+  }
+}
+</script>
+</body>
+</html>

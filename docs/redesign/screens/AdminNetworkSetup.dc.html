@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin network setup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.go{min-height:46px;padding:0 18px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:46px;padding:0 18px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.ch{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="setup" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network · owner only</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Connect and configure your equipment.</h1>
+    </div>
+
+    <ol aria-label="Setup steps" style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+        <li><button type="button" onClick="{{s.pick}}" aria-current="{{s.cur}}" style="{{s.style}}"><span style="{{s.numStyle}}">{{s.n}}</span>{{s.label}}</button></li>
+      </sc-for>
+    </ol>
+
+    <section aria-label="Step details" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 760px">
+      <sc-if value="{{isRouter}}" hint-placeholder-val="{{ true }}">
+        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">MikroTik router</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+          <div><label class="lbl" for="ra">Router address</label><input class="in" id="ra" value="192.168.88.1"></div>
+          <div><label class="lbl" for="rm">Connection mode</label><select class="in" id="rm"><option>RouterOS API over TLS</option></select></div>
+          <div><label class="lbl" for="ru">Internet uplink</label><select class="in" id="ru"><option>ether1 · Starlink</option></select></div>
+          <div><label class="lbl" for="rd">Hotspot DNS name</label><input class="in" id="rd" value="wifi.ndahiconnect.net"></div>
+        </div>
+        <div style="display: flex; gap: 10px"><button type="button" class="go2">Discover router</button><button type="button" class="go" onClick="{{next}}">Next: access points</button></div>
+      </sc-if>
+      <sc-if value="{{isAps}}" hint-placeholder-val="{{ false }}">
+        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Omada access points</h2>
+        <p style="margin: 0; color: #5c6963; font-size: 14px">Access points run standalone, so set them up on each device.</p>
+        <div class="ch"><span><strong>AP-Market</strong> · EAP225-Outdoor</span><span style="color: #345000; font-weight: 700">Adopted</span></div>
+        <div class="ch"><span><strong>AP-Church</strong> · EAP225-Outdoor</span><span style="color: #345000; font-weight: 700">Adopted</span></div>
+        <div class="ch"><span><strong>New device</strong> · 50:C7:BF:••:••:21</span><button type="button" class="go2" style="min-height: 36px">Adopt</button></div>
+        <div style="display: flex; gap: 10px"><button type="button" class="go2">Discover access points</button><button type="button" class="go" onClick="{{next}}">Next: Wi-Fi</button></div>
+      </sc-if>
+      <sc-if value="{{isWifi}}" hint-placeholder-val="{{ false }}">
+        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Wi-Fi network</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+          <div><label class="lbl" for="ws">Network name (SSID)</label><input class="in" id="ws" value="NDAHI"></div>
+          <div><label class="lbl" for="wv">VLAN</label><input class="in" id="wv" value="20"></div>
+          <div><label class="lbl" for="wi">Client isolation</label><select class="in" id="wi"><option>On — devices can't see each other</option></select></div>
+        </div>
+        <div style="display: flex; gap: 10px"><button type="button" class="go" onClick="{{next}}">Preview Wi-Fi changes</button></div>
+      </sc-if>
+      <sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+        <h2 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Review before applying</h2>
+        <div class="ch"><span>Hotspot DNS name</span><span>wifi.ndahiconnect.net</span></div>
+        <div class="ch"><span>Adopt access point</span><span>50:C7:BF:••:••:21</span></div>
+        <div class="ch"><span>SSID “NDAHI” on VLAN 20</span><span>Client isolation on</span></div>
+        <sc-if value="{{applied}}" hint-placeholder-val="{{ false }}">
+          <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Applied. A backup of the previous settings was saved.</p>
+        </sc-if>
+        <div style="display: flex; gap: 10px"><button type="button" class="go2">Run simulation</button><button type="button" class="go" onClick="{{apply}}">Apply reviewed changes</button></div>
+      </sc-if>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { i: 0, applied: false }; }
+  renderVals() {
+    const s = this.state;
+    const labels = ['Router', 'Access points', 'Wi-Fi', 'Review'];
+    const steps = labels.map((label, i) => {
+      const on = i === s.i, done = i < s.i;
+      return {
+        n: done ? '✓' : String(i + 1), label, cur: on ? 'step' : 'false',
+        style: 'display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px 0 8px; border-radius: 999px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ' + (on ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #dfe5dc; background: #fffef9; color: #10241c;'),
+        numStyle: 'width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; ' + (on ? 'background: #b9ee2e; color: #15210c;' : done ? 'background: #eaf6d5; color: #345000;' : 'background: #eef0ee; color: #3d4a44;'),
+        pick: () => this.setState({ i })
+      };
+    });
+    return {
+      steps, isRouter: s.i === 0, isAps: s.i === 1, isWifi: s.i === 2, isReview: s.i === 3, applied: s.applied,
+      next: () => this.setState({ i: Math.min(3, s.i + 1) }), apply: () => this.setState({ applied: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

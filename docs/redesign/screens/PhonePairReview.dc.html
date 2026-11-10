@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review Wi-Fi access</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:52px;padding:0 16px;border:1px solid #e3b4b4;border-radius:10px;background:#fffef9;color:#a73535;font:700 16px 'DM Sans',sans-serif;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.dr{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneDevices.dc.html" aria-label="Back to devices"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Device request</span>
+  </div>
+
+  <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px; line-height: 1.15">A device wants to use your bundle</h1>
+      <div style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; text-align: center">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Reference</p>
+        <p style="margin: 6px 0 4px; font: 700 32px ui-monospace, Menlo, monospace; letter-spacing: .14em">PR-7Q4</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Only approve if the other screen shows the same reference.</p>
+      </div>
+      <dl style="margin: 0">
+        <div class="dr"><dt style="color: #5c6963">Device</dt><dd style="margin: 0; font-weight: 600">Laptop · Windows</dd></div>
+        <div class="dr"><dt style="color: #5c6963">Asked</dt><dd style="margin: 0; font-weight: 600">2 minutes ago</dd></div>
+        <div class="dr"><dt style="color: #5c6963">After approving</dt><dd style="margin: 0; font-weight: 600">3 of 3 devices used</dd></div>
+      </dl>
+      <div style="display: flex; gap: 10px; margin-top: auto">
+        <button type="button" class="btn2" onClick="{{deny}}">Deny</button>
+        <button type="button" class="btn" onClick="{{approve}}">Approve</button>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{decided}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 34px 22px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="{{iconStyle}}"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{iconPath}}"></path></svg></div>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px">{{resultTitle}}</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">{{resultBody}}</p>
+      <a href="PhoneDevices.dc.html" style="margin-top: auto; align-self: stretch; display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 10px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 16px; text-decoration: none">Back to devices</a>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { result: '' }; }
+  renderVals() {
+    const r = this.state.result;
+    const ok = r === 'approved';
+    return {
+      open: !r, decided: !!r,
+      approve: () => this.setState({ result: 'approved' }), deny: () => this.setState({ result: 'denied' }),
+      resultTitle: ok ? 'Laptop approved' : 'Request denied',
+      resultBody: ok ? 'It can use your bundle now. Remove it any time from Devices.' : 'The laptop was told no. If you didn’t expect this request, change your PIN.',
+      iconPath: ok ? 'm5 12 5 5 9-10' : 'M6 6l12 12M18 6 6 18',
+      iconStyle: 'width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; ' + (ok ? 'background: #eaf6d5; color: #345000;' : 'background: #fbe4e4; color: #8a2a2a;')
+    };
+  }
+}
+</script>
+</body>
+</html>

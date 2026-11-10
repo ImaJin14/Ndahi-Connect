@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin connections</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="connections" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Connections and security.</h1>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">Everything NDAHI Connect depends on, checked every minute.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px">
+      <sc-for list="{{svcs}}" as="c" hint-placeholder-count="6">
+        <article style="padding: 18px; border-radius: 16px; background: #fffef9; border: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+            <strong style="font-size: 16px">{{c.name}}</strong>
+            <span style="{{c.pill}}">{{c.state}}</span>
+          </div>
+          <p style="margin: 0; color: #3d4a44; font-size: 14px">{{c.detail}}</p>
+          <p style="margin: 0; color: #5c6963; font-size: 13px">{{c.checked}}</p>
+          <button type="button" onClick="{{c.test}}" style="margin-top: 4px; min-height: 40px; border-radius: 8px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Test connection</button>
+        </article>
+      </sc-for>
+    </div>
+
+    <section aria-labelledby="sec" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-wrap: wrap; gap: 18px 40px">
+      <h2 id="sec" style="flex: 1 1 100%; margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Admin security</h2>
+      <div><p style="margin: 0; font-size: 13px; color: #5c6963">Staff sign-in</p><p style="margin: 2px 0 0; font-weight: 700; color: #345000">PIN + passkey, required</p></div>
+      <div><p style="margin: 0; font-size: 13px; color: #5c6963">Staff accounts</p><p style="margin: 2px 0 0; font-weight: 700">1 owner · 2 operators</p></div>
+      <div><p style="margin: 0; font-size: 13px; color: #5c6963">Router commands waiting</p><p style="margin: 2px 0 0; font-weight: 700">0 stuck</p></div>
+      <a href="AdminAudit.dc.html" style="align-self: center; margin-left: auto; font-weight: 700; font-size: 14px">Open audit log →</a>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tested: [] }; }
+  renderVals() {
+    const s = this.state;
+    const tone = { OK: 'background: #eaf6d5; color: #345000;', Slow: 'background: #fff4e0; color: #6b3a00;', Down: 'background: #fbe4e4; color: #8a2a2a;' };
+    const svcs = [
+      { id: 'sl', name: 'Starlink uplink', detail: '182 Mbps down · 24 ms', state: 'OK', checked: 'Checked 40 s ago' },
+      { id: 'mt', name: 'MikroTik gateway', detail: 'RouterOS hotspot · 48 sessions', state: 'OK', checked: 'Checked 40 s ago' },
+      { id: 'om', name: 'Omada controller', detail: '3 access points online', state: 'OK', checked: 'Checked 1 min ago' },
+      { id: 'mm', name: 'MTN MoMo', detail: 'Confirmations taking ~90 s', state: 'Slow', checked: 'Checked 1 min ago' },
+      { id: 'or', name: 'Orange Money', detail: 'Payments confirming normally', state: 'OK', checked: 'Checked 1 min ago' },
+      { id: 'sm', name: 'Email', detail: 'Receipts and PIN-reset links delivering', state: 'OK', checked: 'Checked 2 min ago' }
+    ].map((c) => ({
+      ...c,
+      checked: s.tested.includes(c.id) ? 'Tested just now — responded' : c.checked,
+      pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + tone[c.state],
+      test: () => this.setState({ tested: [...s.tested, c.id] })
+    }));
+    return { svcs };
+  }
+}
+</script>
+</body>
+</html>

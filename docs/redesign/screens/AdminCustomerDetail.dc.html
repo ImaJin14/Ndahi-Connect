@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin customer detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="customers" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <a href="AdminCustomers.dc.html" style="font-size: 14px; font-weight: 700">← Customers</a>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+      <span style="width: 60px; height: 60px; border-radius: 50%; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-weight: 700; font-size: 22px">A</span>
+      <div style="flex: 1">
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 32px">Amina N.</h1>
+        <p style="margin: 2px 0 0; color: #5c6963; font-size: 14px">+237 6•• •• 12 45 · amina@example.com · customer since 12 Sep</p>
+      </div>
+      <span class="pill" style="background: #eaf6d5; color: #345000; font-size: 13px">Active</span>
+    </div>
+
+    <div role="tablist" aria-label="Customer" style="display: flex; gap: 6px; border-bottom: 1px solid #dfe5dc">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{isOverview}}" hint-placeholder-val="{{ true }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start">
+        <section aria-label="Bundle" class="panel">
+          <div class="row"><span style="color: #5c6963">Active bundle</span><strong>[PLAN 2]</strong></div>
+          <div class="row"><span style="color: #5c6963">Data left</span><strong>3.2 of 5 GB</strong></div>
+          <div class="row"><span style="color: #5c6963">Ends</span><strong>12 Nov</strong></div>
+          <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Home router</span><strong>Not linked</strong></div>
+        </section>
+        <section aria-label="Support actions" class="panel" style="display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0 0 4px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 20px">Support actions</h2>
+          <button type="button" class="go2">Send PIN reset email</button>
+          <button type="button" class="go2">Remove lost passkeys</button>
+          <button type="button" class="go2">Replace bundle (needs confirmation)</button>
+          <button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4">Suspend customer</button>
+          <p style="margin: 0; color: #5c6963; font-size: 13px">Each action asks you to confirm and is written to the audit log.</p>
+        </section>
+      </div>
+    </sc-if>
+    <sc-if value="{{isMoney}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Payments and orders" class="panel">
+        <div class="row"><span><strong>Bundle · [PLAN 2]</strong> · 10 Nov · MTN MoMo</span><span class="pill" style="background: #fff4e0; color: #6b3a00">Waiting</span></div>
+        <div class="row"><span><strong>Order NS-2611-0091 · TP-Link AX1500</strong> · 10 Nov</span><span class="pill" style="background: #fff4e0; color: #6b3a00">To prepare</span></div>
+        <div class="row"><span><strong>Bundle · [PLAN 2]</strong> · 5 Nov · MTN MoMo</span><span class="pill" style="background: #eaf6d5; color: #345000">Paid</span></div>
+        <div class="row" style="border-bottom: 0"><span><strong>Order NS-2610-0061 · Wavlink Mini</strong> · 21 Oct</span><span class="pill" style="background: #eef0ee; color: #3d4a44">Collected</span></div>
+      </section>
+    </sc-if>
+    <sc-if value="{{isDevices}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Devices" class="panel">
+        <div class="row"><span><strong>Android phone</strong> · AP-Market · online since 08:12</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Disconnect</button></div>
+        <div class="row" style="border-bottom: 0"><span><strong>HP laptop</strong> · AP-Market · online since 09:40</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Disconnect</button></div>
+      </section>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'overview' }; }
+  renderVals() {
+    const t = this.state.tab;
+    const base = 'min-height: 44px; padding: 0 14px; border: 0; background: transparent; font: 700 14px "DM Sans", sans-serif; cursor: pointer; margin-bottom: -1px; ';
+    const tabs = [['overview', 'Overview'], ['money', 'Payments & orders'], ['devices', 'Devices']].map(([id, label]) => ({ label, sel: id === t ? 'true' : 'false', style: base + (id === t ? 'color: #003b2b; border-bottom: 3px solid #003b2b;' : 'color: #5c6963; border-bottom: 3px solid transparent;'), pick: () => this.setState({ tab: id }) }));
+    return { tabs, isOverview: t === 'overview', isMoney: t === 'money', isDevices: t === 'devices' };
+  }
+}
+</script>
+</body>
+</html>

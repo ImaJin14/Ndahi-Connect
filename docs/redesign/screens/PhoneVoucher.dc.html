@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Use a voucher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:30px;line-height:1.15}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneHotspot.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Voucher</span>
+  </div>
+
+  <sc-if value="{{entering}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+      <div>
+        <h1 class="h1">Enter your voucher code</h1>
+        <p style="margin: 8px 0 0; color: #5c6963; font-size: 15px; line-height: 1.5">It's on your printed slip. Capitals and dashes don't matter.</p>
+      </div>
+      <div style="padding: 18px; border-radius: 14px; border: 2px dashed #b8c7bd; background: #fffef9">
+        <label for="vc" style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600">Voucher code</label>
+        <input id="vc" value="K7PM-42XQ" autocapitalize="characters" style="box-sizing: border-box; width: 100%; min-height: 60px; padding: 0 14px; border-radius: 10px; border: 1px solid #b8c7bd; background: #ffffff; font: 700 26px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .12em; text-align: center; color: #10241c">
+      </div>
+      <button type="button" class="btn" onClick="{{activate}}">Activate and connect</button>
+      <p style="margin: 0; color: #5c6963; font-size: 14px; line-height: 1.5">Each code works once. The bundle starts on this device right away.</p>
+      <a href="PhoneLogin.dc.html" style="margin-top: auto; text-align: center; font-size: 15px; font-weight: 700">Have an account? Sign in instead</a>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 34px 22px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">You're connected</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">Voucher <strong>K7PM-42XQ</strong> is active: 5 GB for 7 days on 1 device.</p>
+      <div style="align-self: stretch; margin-top: 8px; padding: 16px; border-radius: 14px; background: #eef3e9; text-align: left">
+        <strong style="display: block; font-size: 15px">Keep track of your data</strong>
+        <p style="margin: 4px 0 12px; color: #3d4a44; font-size: 14px; line-height: 1.5">Save this voucher to an account to see usage, add devices and top up.</p>
+        <a class="btn2" href="PhoneLogin.dc.html">Save to my account</a>
+      </div>
+      <a class="btn" href="PhoneHome.dc.html" style="margin-top: auto">Start browsing</a>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { done: false }; }
+  renderVals() {
+    return { entering: !this.state.done, done: this.state.done, activate: () => this.setState({ done: true }) };
+  }
+}
+</script>
+</body>
+</html>
