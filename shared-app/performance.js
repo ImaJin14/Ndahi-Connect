@@ -11,6 +11,8 @@ const pages = {
   "/billing-terms.html": "billing-terms",
 };
 const page = pages[location.pathname];
+// v2 pages mark the root element so v1 and v2 can be compared; see docs/operations/ui-rollout.md.
+const variant = document.documentElement.dataset.uiVariant === "v2" ? "v2" : "v1";
 
 function networkClass() {
   const type = navigator.connection?.effectiveType;
@@ -28,6 +30,7 @@ function send({ name, value }) {
     page,
     device: matchMedia("(max-width: 800px)").matches ? "mobile" : "desktop",
     network: networkClass(),
+    variant,
   };
   void fetch(`${apiUrl.replace(/\/$/, "")}/api/telemetry/vitals`, {
     method: "POST",

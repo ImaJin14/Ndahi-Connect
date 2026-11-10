@@ -122,6 +122,27 @@ test("frontends require an exact API origin", () => {
   }
 });
 
+test("UI rollout controls can change in Render but must be valid", () => {
+  for (const name of ["ndahi-customer", "ndahi-admin"]) {
+    const drift = (env) => environmentDrift(name, bootstrapBlueprint, frontendEnv(env));
+    assert.deepEqual(drift({ UI_V2_PERCENT: "0", UI_V2_OFF: "false" }), { errors: [], warnings: [], bootstrap: false });
+    const rolledBack = drift({ UI_V2_OFF: "true" });
+    assert.deepEqual(rolledBack.errors, [], "the kill switch never blocks a deploy");
+    assert.ok(has(rolledBack.warnings, /^UI_V2_OFF differs from the render\.yaml default "false"/));
+    assert.deepEqual(drift({ UI_V2_PERCENT: "10" }).errors, []);
+    assert.ok(has(drift({ UI_V2_PERCENT: "10" }).warnings, name === "ndahi-admin" ? /^UI_V2_PERCENT has no effect on the admin app/ : /^UI_V2_PERCENT differs/));
+    const invalid = drift({ UI_V2_PERCENT: "101", UI_V2_OFF: "yes" });
+    assert.ok(has(invalid.errors, /^UI_V2_PERCENT must be a whole number from 0 to 100/));
+    assert.ok(has(invalid.errors, /^UI_V2_OFF must be exactly "true" or "false"/));
+    assert.deepEqual(invalid.warnings, []);
+  }
+  for (const name of ["ndahi-customer", "ndahi-admin"]) {
+    const declared = bootstrapBlueprint.get(name).env;
+    assert.deepEqual([declared.get("UI_V2_PERCENT"), declared.get("UI_V2_OFF")], [{ source: "value", value: "0" }, { source: "value", value: "false" }]);
+  }
+  assert.equal(bootstrapBlueprint.get("ndahi-store").env.has("UI_V2_PERCENT"), false);
+});
+
 test("unknown services and malformed Blueprints fail closed", () => {
   assert.ok(has(environmentDrift("ndahi-missing", bootstrapBlueprint, {}).errors, /does not declare/));
   assert.throws(() => blueprintServices("services:\n  - name: a\n    envVars:\n      - key: X\n        value: one\n      - key: X\n        value: two\n"), /declares X more than once/);

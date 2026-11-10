@@ -285,9 +285,10 @@ test("the installed portal publishes a fresh release marker matching its no-stor
   t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); }));
   const base = `http://127.0.0.1:${server.address().port}`;
   const version = await fetch(base + "/version.json"), release = await version.json();
-  assert.equal(version.headers.get("cache-control"), "no-store");
+  // Releases differ by UI variant, so only the browser may keep them.
+  assert.equal(version.headers.get("cache-control"), "private, no-store");
   const response = await fetch(base + "/dashboard"), html = await response.text();
-  assert.equal(response.headers.get("cache-control"), "no-cache");
+  assert.equal(response.headers.get("cache-control"), "private, no-cache");
   assert.ok(html.includes(`name="ndahi-release" content="${release.revision}"`));
 });
 
