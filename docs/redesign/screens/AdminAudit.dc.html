@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin audit log</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="audit" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">System</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Audit log.</h1>
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">Every staff action, kept and never editable.</p>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Export</button>
+    </div>
+    <div role="group" aria-label="Type" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5">
+        <button type="button" aria-pressed="{{k.pressed}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button>
+      </sc-for>
+    </div>
+    <section aria-label="Log entries" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 10px 22px 18px">
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">On</th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+              <tr><td>{{r.when}}</td><td>{{r.who}}</td><td><strong>{{r.what}}</strong></td><td>{{r.on}}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { k: 'all' }; }
+  renderVals() {
+    const k = this.state.k;
+    const all = [
+      { kind: 'store', when: '10 Nov 17:25', who: 'Operator · Brenda', what: 'Handed over order after code check', on: 'NS-2611-0088' },
+      { kind: 'money', when: '10 Nov 17:22', who: 'Owner', what: 'Checked payment with provider', on: 'Bundle · 6•• •• 12 45' },
+      { kind: 'vouchers', when: '10 Nov 16:10', who: 'Owner', what: 'Created voucher batch × 20', on: 'B-1110-03' },
+      { kind: 'people', when: '10 Nov 15:48', who: 'Owner', what: 'Suspended customer', on: 'K. Nji' },
+      { kind: 'money', when: '10 Nov 14:30', who: 'Operator · Brenda', what: 'Recorded reseller remittance', on: 'Market kiosk' },
+      { kind: 'store', when: '10 Nov 11:02', who: 'Owner', what: 'Changed stock 3 → 2', on: 'Wavlink AC1200' },
+      { kind: 'security', when: '10 Nov 08:15', who: 'Owner', what: 'Signed in with PIN + passkey', on: 'Admin' }
+    ];
+    const rows = all.filter((r) => k === 'all' || r.kind === k);
+    const base = 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const kinds = [['all', 'Everything'], ['money', 'Money'], ['store', 'Store'], ['vouchers', 'Vouchers'], ['people', 'Customers'], ['security', 'Sign-ins']].map(([id, label]) => ({
+      label, pressed: id === k ? 'true' : 'false',
+      style: base + (id === k ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+      pick: () => this.setState({ k: id })
+    }));
+    return { rows, kinds };
+  }
+}
+</script>
+</body>
+</html>

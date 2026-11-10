@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:15px 'DM Sans',sans-serif;color:#10241c}
+.go{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:50px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.link{min-height:44px;border:0;background:transparent;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-direction: column">
+  <header style="background: #003b2b; color: #ffffff; padding: 16px 28px; display: flex; align-items: center; gap: 12px">
+    <span style="width: 38px; height: 38px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 12px">NC</span>
+    <span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 21px">NDAHI</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700">ADMIN</small></span>
+  </header>
+  <main style="flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 72px 16px">
+    <div style="width: 100%; max-width: 460px; box-sizing: border-box; padding: 36px; border-radius: 18px; background: #fffef9; border: 1px solid #dfe5dc; box-shadow: 0 20px 55px rgba(0,40,29,.12)">
+      <sc-if value="{{isCreds}}" hint-placeholder-val="{{ true }}">
+        <p style="margin: 0 0 8px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Step 1 of 2</p>
+        <h1 style="margin: 0 0 8px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 34px">Administrator access.</h1>
+        <p style="margin: 0 0 24px; color: #5c6963; font-size: 15px">For NDAHI staff only. Every sign-in is logged.</p>
+        <form style="display: flex; flex-direction: column; gap: 16px">
+          <div><label class="lbl" for="ae">Email</label><input class="in" id="ae" type="email" value="owner@ndahiconnect.net" autocomplete="username"></div>
+          <div><label class="lbl" for="apin">PIN</label><input class="in" id="apin" type="password" inputmode="numeric" value="••••••" autocomplete="current-password"></div>
+          <button type="button" class="go" onClick="{{toKey}}">Continue</button>
+        </form>
+      </sc-if>
+      <sc-if value="{{isKey}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0 0 8px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Step 2 of 2</p>
+        <h1 style="margin: 0 0 8px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 34px">Confirm with your passkey.</h1>
+        <p style="margin: 0 0 24px; color: #5c6963; font-size: 15px">Use your fingerprint, face or screen lock on this device or your phone.</p>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 18px">
+          <div style="width: 96px; height: 96px; border-radius: 50%; background: #eef3e9; display: grid; place-items: center"><svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z"></path></svg></div>
+          <a class="go" href="Admin.dc.html">Use passkey</a>
+          <button type="button" class="link" onClick="{{toCreds}}">Use a different account</button>
+        </div>
+        <p style="margin: 18px 0 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.5">Lost your passkey device? The owner can remove it and you add a new one after signing in on another device.</p>
+      </sc-if>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'creds' }; }
+  renderVals() {
+    const s = this.state.step;
+    return { isCreds: s === 'creds', isKey: s === 'key', toKey: () => this.setState({ step: 'key' }), toCreds: () => this.setState({ step: 'creds' }) };
+  }
+}
+</script>
+</body>
+</html>

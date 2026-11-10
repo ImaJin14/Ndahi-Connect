@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Product desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.nl{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:8px;color:#dce8e2;text-decoration:none;font-weight:600;font-size:14px}
+.nl:hover{color:#ffffff;background:rgba(255,255,255,.08)}
+.qb{width:48px;height:52px;border:0;background:transparent;font-size:22px;color:#003b2b;cursor:pointer}
+.sp{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.sp dt{color:#5c6963}.sp dd{margin:0;font-weight:600;text-align:right}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px">
+  <header style="background: #003b2b; color: #ffffff">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px">
+      <a href="StoreGuest.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #ffffff"><span style="width: 40px; height: 40px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 13px">NS</span><span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 22px">NDAHI</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">STORE</small></span></a>
+      <nav aria-label="Store" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+        <a class="nl" href="StoreGuest.dc.html" style="color: #b9ee2e; background: rgba(185,238,46,.14)">Shop</a>
+        <a class="nl" href="PhoneGuestOrder.dc.html">Track an order</a>
+        <a class="nl" href="PhoneHotspot.dc.html">Internet packages</a>
+      </nav>
+      <a href="PhoneLogin.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid rgba(255,255,255,.3); color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Sign in</a>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 28px 64px; display: flex; flex-direction: column; gap: 22px">
+    <nav aria-label="Breadcrumb" style="font-size: 14px; color: #5c6963"><a href="StoreGuest.dc.html" style="font-weight: 600">Shop</a> / Outdoor networking / TP-Link CPE210</nav>
+    <div style="display: flex; flex-wrap: wrap; gap: 36px">
+      <div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+        <div style="aspect-ratio: 4 / 3; border-radius: 18px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 14px">{{photoLabel}}</div>
+        <div role="group" aria-label="Photos" style="display: flex; gap: 10px">
+          <sc-for list="{{thumbs}}" as="t" hint-placeholder-count="3">
+            <button type="button" aria-label="{{t.label}}" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="{{t.style}}"></button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <p style="margin: 0; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Outdoor networking</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 40px">TP-Link CPE210</h1>
+        <div style="display: flex; align-items: center; gap: 14px"><p style="margin: 0; font-size: 28px; font-weight: 700">[PRICE] FCFA</p><span style="padding: 4px 10px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 13px; font-weight: 700">6 in stock</span></div>
+        <p style="margin: 0; color: #3d4a44; font-size: 16px; line-height: 1.6">Outdoor 2.4 GHz wireless CPE with a 9 dBi directional antenna, made for point-to-point links. Wireless rates up to 300 Mbps on passive PoE. Installation and alignment are required; internet is bought separately.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+          <div role="group" aria-label="Quantity" style="display: flex; align-items: center; border: 1px solid #b8c7bd; border-radius: 10px; background: #fffef9">
+            <button type="button" class="qb" aria-label="Decrease quantity" onClick="{{dec}}">−</button>
+            <span aria-live="polite" style="min-width: 28px; text-align: center; font-weight: 700; font-size: 17px">{{qty}}</span>
+            <button type="button" class="qb" aria-label="Increase quantity" onClick="{{inc}}">+</button>
+          </div>
+          <a href="PhoneGuestCheckout.dc.html" style="flex: 1 1 220px; display: flex; align-items: center; justify-content: center; min-height: 54px; border-radius: 10px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 17px; text-decoration: none">Buy now</a>
+        </div>
+        <p style="margin: 0; padding: 14px 16px; border-radius: 12px; background: #eef3e9; font-size: 14px; color: #3d4a44; line-height: 1.5">Pay with MTN MoMo or Orange Money. Collect at [PICKUP LOCATION] with your order code. No account needed.</p>
+        <dl style="margin: 0">
+          <div class="sp"><dt>Band</dt><dd>2.4 GHz</dd></div>
+          <div class="sp"><dt>Antenna</dt><dd>9 dBi directional</dd></div>
+          <div class="sp"><dt>Wireless rate</dt><dd>Up to 300 Mbps</dd></div>
+          <div class="sp"><dt>Power</dt><dd>Passive PoE</dd></div>
+          <div class="sp"><dt>In the box, warranty</dt><dd>[CONFIRM BEFORE LAUNCH]</dd></div>
+        </dl>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { qty: 1, photo: 0 }; }
+  renderVals() {
+    const s = this.state;
+    const names = ['Front view', 'Mounted on a pole', 'Ports and power'];
+    const thumbs = names.map((label, i) => ({
+      label: 'Show photo: ' + label, pressed: i === s.photo ? 'true' : 'false',
+      style: 'width: 96px; height: 72px; border-radius: 10px; background: #eef3e9; cursor: pointer; ' + (i === s.photo ? 'border: 2px solid #003b2b;' : 'border: 1px solid #dfe5dc;'),
+      pick: () => this.setState({ photo: i })
+    }));
+    return {
+      thumbs, photoLabel: 'Product photo — ' + names[s.photo], qty: s.qty,
+      dec: () => this.setState({ qty: Math.max(1, s.qty - 1) }), inc: () => this.setState({ qty: Math.min(6, s.qty + 1) })
+    };
+  }
+}
+</script>
+</body>
+</html>

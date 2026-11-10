@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Request Wi-Fi access</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:30px;line-height:1.15}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneHotspot.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Add this device</span>
+  </div>
+
+  <sc-if value="{{isEnter}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+      <div>
+        <h1 class="h1">Use a bundle from another phone</h1>
+        <p style="margin: 8px 0 0; color: #5c6963; font-size: 15px; line-height: 1.5">On the phone with the account, open <strong>Devices → Add another device</strong>. Type the code it shows.</p>
+      </div>
+      <div>
+        <label for="pc" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">Pairing code</label>
+        <input id="pc" inputmode="numeric" value="482 913" style="box-sizing: border-box; width: 100%; min-height: 64px; padding: 0 14px; border-radius: 12px; border: 1px solid #b8c7bd; background: #ffffff; font: 700 30px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .2em; text-align: center; color: #10241c">
+      </div>
+      <button type="button" class="btn" onClick="{{toWait}}">Send request</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #e3f0ff; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#1d4f86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2h10v20H7ZM11 18h2M12 7v4l2 2"></path></svg></div>
+      <h1 class="h1">Waiting for approval</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">Reference <strong>PR-7Q4</strong>. Check that the owner's phone shows the same reference, then they tap Approve.</p>
+      <button type="button" class="btn" onClick="{{toDone}}" style="margin-top: auto">Check again</button>
+      <button type="button" class="btn2" onClick="{{toEnter}}">Cancel request</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">Approved — you're online</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">This device shares Amina's [PLAN 2] bundle. She can remove it any time from Devices.</p>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'enter' }; }
+  renderVals() {
+    const s = this.state.step;
+    const go = (step) => () => this.setState({ step });
+    return { isEnter: s === 'enter', isWait: s === 'wait', isDone: s === 'done', toEnter: go('enter'), toWait: go('wait'), toDone: go('done') };
+  }
+}
+</script>
+</body>
+</html>

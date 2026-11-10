@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px">
+    <a class="back" href="PhoneHotspot.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+  </div>
+  <main style="flex: 1; padding: 6px 22px 22px; display: flex; flex-direction: column; gap: 18px">
+    <div>
+      <p style="margin: 0 0 8px; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">NDAHI Connect</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 32px">Welcome back</h1>
+      <p style="margin: 8px 0 0; color: #5c6963; font-size: 15px">Sign in to see your bundle, devices and orders.</p>
+    </div>
+    <form style="display: flex; flex-direction: column; gap: 14px">
+      <div>
+        <label class="lbl" for="lp">Phone number</label>
+        <div style="display: flex; gap: 8px">
+          <span style="display: flex; align-items: center; padding: 0 12px; border-radius: 10px; border: 1px solid #b8c7bd; background: #eef3e9; font-weight: 600">+237</span>
+          <input class="in" id="lp" type="tel" inputmode="tel" placeholder="6XX XX XX XX">
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><label class="lbl" for="lpin">PIN</label><a href="PhoneForgotPin.dc.html" style="font-size: 13px; font-weight: 700">Forgot PIN?</a></div>
+        <div style="position: relative">
+          <input class="in" id="lpin" type="{{pinType}}" inputmode="numeric" value="2468" style="padding-right: 76px">
+          <button type="button" aria-pressed="{{shown}}" aria-controls="lpin" onClick="{{toggle}}" style="position: absolute; right: 4px; top: 2px; min-height: 44px; padding: 0 12px; border: 0; background: transparent; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">{{toggleLabel}}</button>
+        </div>
+      </div>
+      <a class="btn" href="PhoneWifiConnected.dc.html">Sign in</a>
+    </form>
+    <div style="display: flex; align-items: center; gap: 12px; color: #5c6963; font-size: 13px"><span style="flex: 1; height: 1px; background: #dfe5dc"></span>or<span style="flex: 1; height: 1px; background: #dfe5dc"></span></div>
+    <a class="btn2" href="PhoneWifiConnected.dc.html" style="gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z"></path></svg>Sign in with a passkey</a>
+    <a class="btn2" href="PhoneVoucher.dc.html">Use a voucher code</a>
+    <p style="margin: auto 0 0; text-align: center; font-size: 15px; color: #5c6963">New to NDAHI? <a href="PhoneBuyBundle.dc.html" style="font-weight: 700">Buy your first bundle</a></p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { shown: false }; }
+  renderVals() {
+    const shown = this.state.shown;
+    return {
+      shown: shown ? 'true' : 'false',
+      pinType: shown ? 'text' : 'password',
+      toggleLabel: shown ? 'Hide' : 'Show',
+      toggle: () => this.setState({ shown: !shown })
+    };
+  }
+}
+</script>
+</body>
+</html>

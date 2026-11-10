@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forgot PIN</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:30px;line-height:1.15}
+.icon{width:76px;height:76px;border-radius:50%;display:grid;place-items:center}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px">
+    <a class="back" href="PhoneLogin.dc.html" aria-label="Back to sign in"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+  </div>
+
+  <sc-if value="{{isAsk}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 6px 22px 22px; display: flex; flex-direction: column; gap: 18px">
+      <div>
+        <h1 class="h1">Forgot your PIN?</h1>
+        <p style="margin: 8px 0 0; color: #5c6963; font-size: 15px; line-height: 1.5">We'll email a reset link to the address saved on your account.</p>
+      </div>
+      <div><label class="lbl" for="fp">Phone number</label><input class="in" id="fp" type="tel" value="6•• •• 12 45"></div>
+      <button type="button" class="btn" onClick="{{toSent}}">Send reset link</button>
+      <div style="padding: 14px; border-radius: 12px; background: #eef3e9; font-size: 14px; color: #3d4a44; line-height: 1.5"><strong style="color: #10241c">No email on your account?</strong> Visit [PICKUP LOCATION] with your ID, or <a href="PhoneHelp.dc.html" style="font-weight: 700">contact support</a>.</div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isSent}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 20px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div class="icon" style="background: #e3f0ff"><svg width="34" height="34" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#1d4f86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3ZM3 6l9 7 9-7"></path></svg></div>
+      <h1 class="h1">Check your email</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">If this number has an email saved, a reset link is on its way. It works once and expires in 15 minutes.</p>
+      <button type="button" class="btn" onClick="{{toReset}}" style="margin-top: 10px">I opened the link</button>
+      <button type="button" class="btn2" onClick="{{toAsk}}">Send again</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isReset}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 6px 22px 22px; display: flex; flex-direction: column; gap: 16px">
+      <h1 class="h1">Reset your PIN</h1>
+      <div><label class="lbl" for="np">New PIN</label><input class="in" id="np" type="password" inputmode="numeric" value="135790"></div>
+      <div><label class="lbl" for="np2">Type it again</label><input class="in" id="np2" type="password" inputmode="numeric" value="135790"></div>
+      <p style="margin: 0; color: #5c6963; font-size: 14px">4 to 6 digits. Avoid your birth year or 1234.</p>
+      <button type="button" class="btn" onClick="{{toDone}}">Save new PIN</button>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 20px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div class="icon" style="background: #eaf6d5"><svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">PIN changed</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">For safety, we signed you out on every other device.</p>
+      <a class="btn" href="PhoneLogin.dc.html" style="margin-top: 10px">Sign in</a>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'ask' }; }
+  renderVals() {
+    const s = this.state.step;
+    const go = (step) => () => this.setState({ step });
+    return { isAsk: s === 'ask', isSent: s === 'sent', isReset: s === 'reset', isDone: s === 'done', toAsk: go('ask'), toSent: go('sent'), toReset: go('reset'), toDone: go('done') };
+  }
+}
+</script>
+</body>
+</html>

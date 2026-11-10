@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin products</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap;vertical-align:middle}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.sb{width:36px;height:36px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;cursor:pointer}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="products" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Store</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Products and stock.</h1>
+      </div>
+      <a href="AdminProductEdit.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 14px; text-decoration: none">Add product</a>
+    </div>
+
+    <section aria-label="Checkout status" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 22px; border-radius: 16px; background: {{bannerBg}}; border: 1px solid #dfe5dc">
+      <div>
+        <strong style="display: block; font-size: 16px">Store checkout is {{openWord}}</strong>
+        <span style="font-size: 14px; color: #3d4a44">{{openHint}}</span>
+      </div>
+      <button type="button" role="switch" aria-checked="{{openChecked}}" aria-label="Store checkout open" onClick="{{flipOpen}}" style="{{track}}"><span style="{{knob}}"></span></button>
+    </section>
+
+    <section aria-labelledby="pl" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+      <h2 id="pl" style="margin: 0 0 8px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Catalogue</h2>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Price</th><th scope="col">In stock</th><th scope="col">Shown in store</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Edit</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+              <tr>
+                <td><span style="display: flex; align-items: center; gap: 10px"><span style="width: 40px; height: 40px; border-radius: 8px; background: #eef3e9"></span><span><strong style="display: block">{{r.name}}</strong><span style="font-size: 12px; color: #5c6963">{{r.cat}}</span></span></span></td>
+                <td style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">{{r.sku}}</td>
+                <td>[XAF]</td>
+                <td><span style="display: flex; align-items: center; gap: 8px"><button type="button" class="sb" aria-label="{{r.decLabel}}" onClick="{{r.dec}}">−</button><strong style="{{r.qtyStyle}}">{{r.qty}}</strong><button type="button" class="sb" aria-label="{{r.incLabel}}" onClick="{{r.inc}}">+</button></span></td>
+                <td><button type="button" aria-pressed="{{r.shown}}" onClick="{{r.flip}}" style="{{r.showStyle}}">{{r.showLabel}}</button></td>
+                <td><a href="AdminProductEdit.dc.html" style="font-weight: 700; font-size: 14px">Edit</a></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 12px 0 0; color: #5c6963; font-size: 13px">Every stock change is recorded in the inventory ledger with who made it.</p>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: true, qty: { a: 10, b: 6, c: 2, d: 4 }, hidden: [] }; }
+  renderVals() {
+    const s = this.state;
+    const base = [
+      { id: 'a', name: 'TP-Link AX1500 Travel Router', cat: 'Travel routers', sku: 'ND-TPLINK-AX1500' },
+      { id: 'b', name: 'TP-Link CPE210', cat: 'Outdoor networking', sku: 'ND-TPLINK-CPE210' },
+      { id: 'c', name: 'Wavlink AC1200', cat: 'Wi-Fi devices', sku: 'ND-WAVLINK-AC1200' },
+      { id: 'd', name: 'Wavlink Mini', cat: 'Wi-Fi devices', sku: 'ND-WAVLINK-MINI' }
+    ];
+    const rows = base.map((p) => {
+      const q = s.qty[p.id];
+      const shown = !s.hidden.includes(p.id);
+      return {
+        ...p, qty: q,
+        qtyStyle: 'min-width: 24px; text-align: center; ' + (q <= 2 ? 'color: #8a4a00;' : ''),
+        decLabel: 'Remove one ' + p.name, incLabel: 'Add one ' + p.name,
+        dec: () => this.setState({ qty: { ...s.qty, [p.id]: Math.max(0, q - 1) } }),
+        inc: () => this.setState({ qty: { ...s.qty, [p.id]: q + 1 } }),
+        shown: shown ? 'true' : 'false', showLabel: shown ? 'Shown' : 'Hidden',
+        showStyle: 'min-height: 36px; padding: 0 12px; border-radius: 999px; font: 700 12px "DM Sans", sans-serif; cursor: pointer; ' + (shown ? 'border: 1px solid #b7d98a; background: #eaf6d5; color: #345000;' : 'border: 1px solid #c9d3cd; background: #eef0ee; color: #3d4a44;'),
+        flip: () => this.setState({ hidden: shown ? [...s.hidden, p.id] : s.hidden.filter((x) => x !== p.id) })
+      };
+    });
+    const on = s.open;
+    return {
+      rows,
+      openWord: on ? 'open' : 'closed',
+      openHint: on ? 'Customers and guests can pay. Turn off to pause new orders.' : 'Products stay visible but nobody can pay until you reopen.',
+      bannerBg: on ? '#f3f9e8' : '#fff4e0',
+      openChecked: on ? 'true' : 'false',
+      track: 'position: relative; width: 54px; height: 32px; flex-shrink: 0; border: 0; border-radius: 999px; padding: 0; cursor: pointer; ' + (on ? 'background: #003b2b;' : 'background: #c9d3cd;'),
+      knob: 'position: absolute; top: 4px; width: 24px; height: 24px; border-radius: 50%; ' + (on ? 'left: 26px; background: #b9ee2e;' : 'left: 4px; background: #ffffff;'),
+      flipOpen: () => this.setState({ open: !on })
+    };
+  }
+}
+</script>
+</body>
+</html>

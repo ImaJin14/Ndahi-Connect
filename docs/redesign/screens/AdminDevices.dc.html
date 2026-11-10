@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin live devices</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="devices" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Live Wi-Fi devices.</h1>
+      </div>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3d4a44"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6f9500"></span>{{count}} online · updated 20 s ago</span>
+    </div>
+
+    <div role="group" aria-label="Access point" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <sc-for list="{{aps}}" as="a" hint-placeholder-count="4">
+        <button type="button" aria-pressed="{{a.pressed}}" onClick="{{a.pick}}" style="{{a.style}}">{{a.label}}</button>
+      </sc-for>
+    </div>
+
+    <section aria-label="Devices" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 22px">
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Device</th><th scope="col">Customer</th><th scope="col">Access point</th><th scope="col">Signal</th><th scope="col">Today</th><th scope="col">Online since</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr>
+                <td><strong>{{r.dev}}</strong></td><td>{{r.who}}</td><td>{{r.ap}}</td>
+                <td><span style="{{r.sigStyle}}">{{r.sig}}</span></td>
+                <td>{{r.today}}</td><td>{{r.since}}</td>
+                <td><button type="button" onClick="{{r.kick}}" aria-label="{{r.kickLabel}}" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #dfe5dc; background: #ffffff; color: #a73535; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Disconnect</button></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ap: 'all', gone: [] }; }
+  renderVals() {
+    const s = this.state;
+    const all = [
+      { id: 1, dev: 'Android phone', who: 'Amina N.', ap: 'AP-Market', sig: 'Good', today: '420 MB', since: '08:12' },
+      { id: 2, dev: 'HP laptop', who: 'Amina N.', ap: 'AP-Market', sig: 'Fair', today: '1.1 GB', since: '09:40' },
+      { id: 3, dev: 'iPhone', who: 'J. Fon', ap: 'AP-Church', sig: 'Good', today: '760 MB', since: '07:55' },
+      { id: 4, dev: 'Android phone', who: 'Voucher K7PM-42XQ', ap: 'AP-School', sig: 'Weak', today: '95 MB', since: '16:48' },
+      { id: 5, dev: 'Tablet', who: 'J. Fon', ap: 'AP-Church', sig: 'Good', today: '2.3 GB', since: '06:30' },
+      { id: 6, dev: 'Android phone', who: 'Grace T.', ap: 'AP-School', sig: 'Fair', today: '310 MB', since: '13:05' }
+    ].filter((r) => !s.gone.includes(r.id));
+    const tone = { Good: 'color: #345000;', Fair: 'color: #6b3a00;', Weak: 'color: #8a2a2a;' };
+    const rows = all.filter((r) => s.ap === 'all' || r.ap === s.ap).map((r) => ({ ...r, sigStyle: 'font-weight: 700; ' + tone[r.sig], kickLabel: 'Disconnect ' + r.dev + ' of ' + r.who, kick: () => this.setState({ gone: [...s.gone, r.id] }) }));
+    const base = 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const aps = [['all', 'All access points'], ['AP-Market', 'AP-Market'], ['AP-Church', 'AP-Church'], ['AP-School', 'AP-School']].map(([id, label]) => ({
+      label, pressed: id === s.ap ? 'true' : 'false',
+      style: base + (id === s.ap ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+      pick: () => this.setState({ ap: id })
+    }));
+    return { rows, aps, count: all.length };
+  }
+}
+</script>
+</body>
+</html>

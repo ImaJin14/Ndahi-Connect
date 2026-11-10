@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin edit bundle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="bundles" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <a href="AdminBundles.dc.html" style="font-size: 14px; font-weight: 700">← Bundles</a>
+    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 34px">Edit [PLAN 2]</h1>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-label="Bundle settings" class="panel" style="flex: 999 1 420px; min-width: 0">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
+          <div><label class="lbl" for="bn">Name</label><input class="in" id="bn" value="[PLAN 2]"></div>
+          <div><label class="lbl" for="bp">Price (FCFA)</label><input class="in" id="bp" placeholder="[PRICE]"></div>
+          <div><label class="lbl" for="bv">Validity (hours)</label><input class="in" id="bv" type="number" value="168"></div>
+          <div><label class="lbl" for="bdl">Device limit</label><input class="in" id="bdl" type="number" value="3"></div>
+        </div>
+        <label style="display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{unlimited}}" onChange="{{flipUnl}}" style="width: 20px; height: 20px; accent-color: #003b2b">Unlimited data (fair use applies)</label>
+        <sc-if value="{{limited}}" hint-placeholder-val="{{ true }}">
+          <div style="max-width: 240px"><label class="lbl" for="bd">Data (GB)</label><input class="in" id="bd" type="number" value="5"></div>
+        </sc-if>
+        <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Changes apply to new purchases only. Customers with this bundle keep what they paid for.</p>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <button type="button" onClick="{{save}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save bundle</button>
+          <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><span role="status" style="color: #345000; font-weight: 700; font-size: 14px">Saved — logged in the audit trail</span></sc-if>
+        </div>
+      </section>
+      <section aria-labelledby="pv" style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="pv" style="margin: 0; font-size: 14px; font-weight: 700; color: #5c6963">What customers see</h2>
+        <div style="padding: 16px; border-radius: 14px; border: 2px solid #003b2b; background: #f3f9e8; display: flex; justify-content: space-between; gap: 12px; align-items: center">
+          <span><strong style="display: block; font-size: 16px">[PLAN 2]</strong><span style="font-size: 13px; color: #5c6963">{{preview}}</span></span>
+          <strong>[PRICE]</strong>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { unl: false, saved: false }; }
+  renderVals() {
+    const s = this.state;
+    return {
+      unlimited: s.unl, limited: !s.unl,
+      preview: (s.unl ? 'Unlimited · fair use' : '5 GB') + ' · 7 days · 3 devices',
+      flipUnl: () => this.setState({ unl: !s.unl }),
+      saved: s.saved, save: () => this.setState({ saved: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

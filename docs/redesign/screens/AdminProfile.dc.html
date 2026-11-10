@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin profile and security</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:22px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.go{min-height:44px;padding:0 16px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="profile" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">System</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Profile and security.</h1>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start">
+      <section aria-labelledby="me" class="panel">
+        <h2 id="me" class="h2">You</h2>
+        <div><label class="lbl" for="an">Name</label><input class="in" id="an" value="[OWNER NAME]"></div>
+        <div><label class="lbl" for="aem">Email</label><input class="in" id="aem" type="email" value="owner@ndahiconnect.net"></div>
+        <div style="display: flex; gap: 10px"><button type="button" class="go">Save</button><button type="button" class="go2">Change PIN</button></div>
+      </section>
+      <section aria-labelledby="mfa" class="panel">
+        <h2 id="mfa" class="h2">Passkeys</h2>
+        <p style="margin: 0; color: #5c6963; font-size: 14px">Staff sign in with their PIN, then confirm with a passkey. Keep at least two in case one device is lost.</p>
+        <sc-for list="{{keys}}" as="k" hint-placeholder-count="2">
+          <div class="row"><span><strong>{{k.name}}</strong> · {{k.meta}}</span><button type="button" class="go2" style="min-height: 36px; color: #a73535" onClick="{{k.remove}}" aria-label="{{k.removeLabel}}">Remove</button></div>
+        </sc-for>
+        <sc-if value="{{onlyOne}}" hint-placeholder-val="{{ false }}">
+          <p role="status" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px">Only one passkey left. Add another before you lose this device.</p>
+        </sc-if>
+        <button type="button" class="go" style="align-self: flex-start" onClick="{{add}}">Add a passkey on this device</button>
+      </section>
+      <section aria-labelledby="staff" class="panel">
+        <h2 id="staff" class="h2">Staff (owner only)</h2>
+        <div class="row"><span><strong>[OWNER NAME]</strong> · owner</span><span style="color: #5c6963">You</span></div>
+        <div class="row"><span><strong>Brenda</strong> · operator</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Remove</button></div>
+        <div class="row"><span><strong>Eric</strong> · operator</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Remove</button></div>
+        <button type="button" class="go" style="align-self: flex-start">Invite an operator</button>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { keys: [{ id: 1, name: 'Office laptop', meta: 'added 19 Aug · used today' }, { id: 2, name: 'Android phone', meta: 'added 20 Aug' }] }; }
+  renderVals() {
+    const ks = this.state.keys;
+    const keys = ks.map((k) => ({ ...k, removeLabel: 'Remove passkey ' + k.name, remove: () => this.setState({ keys: ks.filter((x) => x.id !== k.id) }) }));
+    return { keys, onlyOne: ks.length === 1, add: () => this.setState({ keys: [...ks, { id: Date.now(), name: 'This device', meta: 'added just now' }] }) };
+  }
+}
+</script>
+</body>
+</html>

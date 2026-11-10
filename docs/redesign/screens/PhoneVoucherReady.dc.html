@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your saved voucher</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:48px;padding:0 12px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneInternet.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Your saved voucher</span>
+  </div>
+  <main style="flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+    <section aria-label="Voucher" style="padding: 20px; border-radius: 18px; background: #003b2b; color: #ffffff; text-align: center">
+      <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">[PLAN 2] · 5 GB · 7 days</p>
+      <p style="margin: 12px 0; font: 700 34px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .12em">QF83-ZK4M</p>
+      <div role="img" aria-label="QR code for voucher QF83-ZK4M" style="margin: 0 auto; width: 156px; height: 156px; border-radius: 12px; border: 8px solid #ffffff; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 18px 18px"></div>
+      <p style="margin: 12px 0 0; color: #c8d8d0; font-size: 13px">Not used yet · valid until 10 Feb 2027</p>
+      <a href="PhoneScanConnect.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: #b9ee2e; font-size: 14px; font-weight: 700">See what scanning opens →</a>
+    </section>
+    <div style="display: flex; gap: 10px">
+      <button type="button" class="btn2" onClick="{{copy}}">{{copyLabel}}</button>
+      <a class="btn2" href="VoucherSlip.dc.html">Print slip</a>
+    </div>
+    <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; line-height: 1.5">Give the code or slip to anyone — it starts the bundle on the device where it's entered. Each code works once.</p>
+    <a class="btn" href="PhoneWifiConnected.dc.html" style="margin-top: auto">Use it on this device now</a>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { copied: false }; }
+  renderVals() { return { copyLabel: this.state.copied ? 'Copied' : 'Copy code', copy: () => this.setState({ copied: true }) }; }
+}
+</script>
+</body>
+</html>

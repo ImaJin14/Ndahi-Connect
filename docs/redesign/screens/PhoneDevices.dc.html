@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Devices</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.dev{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
+.ic{width:42px;height:42px;flex-shrink:0;border-radius:10px;background:#eef3e9;display:grid;place-items:center}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneHome.dc.html" aria-label="Back to home"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Devices</span>
+    <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{countLabel}}</span>
+  </div>
+
+  <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+    <p style="margin: 0 0 4px; color: #5c6963; font-size: 14px">Your bundle can be used on up to 3 devices at once.</p>
+    <sc-for list="{{devices}}" as="d" hint-placeholder-count="2">
+      <div class="dev">
+        <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.icon}}"></path></svg></span>
+        <span style="flex: 1; min-width: 0"><strong style="display: block; font-size: 15px">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.meta}}</span></span>
+        <button type="button" onClick="{{d.remove}}" aria-label="{{d.removeLabel}}" style="min-height: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid #dfe5dc; background: #ffffff; color: #a73535; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Disconnect</button>
+      </div>
+    </sc-for>
+
+    <div style="padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45"><strong>Tip:</strong> turn off “Private Wi-Fi address” for NDAHI on your phone so it stays recognised after a restart.</div>
+
+    <sc-if value="{{pairing}}" hint-placeholder-val="{{ false }}">
+      <section aria-labelledby="pairT" style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; text-align: center">
+        <h2 id="pairT" style="margin: 0; font-size: 15px; font-weight: 700">On the new device, open the portal and enter</h2>
+        <p style="margin: 10px 0 6px; font: 700 36px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .14em; color: #b9ee2e">482 913</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Code expires in 10 minutes. You'll approve the device here.</p>
+        <a href="PhonePairReview.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; padding: 0 14px; border-radius: 9px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 14px; text-decoration: none">A request came in — review it</a>
+      </section>
+    </sc-if>
+  </main>
+  <div style="padding: 12px 16px 18px; background: #fffef9; border-top: 1px solid #dfe5dc">
+    <button type="button" class="btn" onClick="{{togglePair}}">{{pairLabel}}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { removed: [], pairing: false }; }
+  renderVals() {
+    const s = this.state;
+    const all = [
+      { id: 'a', name: 'This phone', meta: 'Connected now · 1.2 GB this week', icon: 'M7 2h10v20H7ZM11 18h2' },
+      { id: 'b', name: 'HP laptop', meta: 'Last seen 2 h ago · 0.6 GB this week', icon: 'M4 5h16v11H4ZM2 19h20' }
+    ];
+    const devices = all.filter((d) => !s.removed.includes(d.id)).map((d) => ({ ...d, removeLabel: 'Disconnect ' + d.name, remove: () => this.setState({ removed: [...s.removed, d.id] }) }));
+    return {
+      devices, countLabel: devices.length + ' of 3 in use', pairing: s.pairing,
+      pairLabel: s.pairing ? 'Done' : 'Add another device',
+      togglePair: () => this.setState({ pairing: !s.pairing })
+    };
+  }
+}
+</script>
+</body>
+</html>

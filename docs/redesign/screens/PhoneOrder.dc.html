@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order tracking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:48px;padding:0 12px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.step{display:flex;gap:12px;align-items:flex-start}
+.dot{width:22px;height:22px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="{{backHref}}" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Order NS-2611-0088</span>
+  </div>
+  <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; gap: 12px; align-items: center">
+      <div style="width: 56px; height: 56px; border-radius: 9px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 10px">Photo</div>
+      <div style="flex: 1"><strong style="display: block; font-size: 16px">TP-Link CPE210 × 1</strong><span style="font-size: 13px; color: #5c6963">[PRICE] FCFA · Orange Money</span></div>
+      <span style="padding: 4px 10px; border-radius: 999px; background: #e3f0ff; color: #1d4f86; font-size: 12px; font-weight: 700; white-space: nowrap">Ready to collect</span>
+    </div>
+
+    <section aria-labelledby="codeT" style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; text-align: center">
+      <h2 id="codeT" style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Collection code</h2>
+      <p style="margin: 8px 0 4px; font: 700 34px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .16em">739 204</p>
+      <p style="margin: 0; color: #c8d8d0; font-size: 13px">Show this at [PICKUP LOCATION]. Staff check it before handing over.</p>
+    </section>
+
+    <ol aria-label="Order progress" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
+      <li class="step"><span class="dot" style="background: #6f9500"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span><span><strong style="display: block; font-size: 14px">Paid</strong><span style="font-size: 13px; color: #5c6963">8 Nov, 10:14</span></span></li>
+      <li class="step"><span class="dot" style="background: #6f9500"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span><span><strong style="display: block; font-size: 14px">Prepared and tested</strong><span style="font-size: 13px; color: #5c6963">9 Nov, 16:02</span></span></li>
+      <li class="step"><span class="dot" style="background: #1d4f86"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ffffff"></span></span><span><strong style="display: block; font-size: 14px">Ready to collect</strong><span style="font-size: 13px; color: #5c6963">Held for you until 23 Nov</span></span></li>
+      <li class="step"><span class="dot" style="border: 2px solid #b8c7bd; box-sizing: border-box"></span><span><strong style="display: block; font-size: 14px; color: #5c6963">Collected</strong></span></li>
+    </ol>
+
+    <sc-if value="{{guest}}" hint-placeholder-val="{{ false }}">
+      <section aria-labelledby="linkT" style="padding: 14px; border-radius: 12px; background: #fff4e0">
+        <h2 id="linkT" style="margin: 0 0 6px; font-size: 14px; font-weight: 700; color: #6b3a00">Keep this private link</h2>
+        <p style="margin: 0 0 10px; color: #6b3a00; font-size: 13px; line-height: 1.45">You bought as a guest. This link is the only way back to this order — copy or bookmark it.</p>
+        <div style="display: flex; gap: 8px"><input readonly aria-label="Private tracking link" value="store.ndahiconnect.net/o/7Hq…" style="flex: 1; min-width: 0; min-height: 44px; padding: 0 10px; border-radius: 9px; border: 1px solid #e3c9a0; background: #ffffff; font: 13px 'DM Sans', sans-serif; color: #10241c"><button type="button" onClick="{{copy}}" style="min-height: 44px; padding: 0 12px; border: 0; border-radius: 9px; background: #003b2b; color: #ffffff; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">{{copyLabel}}</button></div>
+      </section>
+    </sc-if>
+
+    <div style="display: flex; gap: 10px; margin-top: auto">
+      <a class="btn2" href="PhoneReceipt.dc.html">Receipt</a>
+      <sc-if value="{{guest}}" hint-placeholder-val="{{ false }}"><a class="btn2" href="PhoneLogin.dc.html">Save to an account</a></sc-if>
+      <sc-if value="{{member}}" hint-placeholder-val="{{ true }}"><a class="btn2" href="PhoneHelp.dc.html">Get help</a></sc-if>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"guest":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { copied: false }; }
+  renderVals() {
+    const guest = this.props.guest ?? false;
+    return {
+      guest, member: !guest,
+      backHref: guest ? 'PhoneGuestShop.dc.html' : 'PhoneActivity.dc.html',
+      copyLabel: this.state.copied ? 'Copied' : 'Copy',
+      copy: () => this.setState({ copied: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

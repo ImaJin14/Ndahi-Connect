@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notifications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.ico{width:40px;height:40px;flex-shrink:0;border-radius:10px;display:grid;place-items:center}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneHome.dc.html" aria-label="Back to home"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Notifications</span>
+    <button type="button" onClick="{{readAll}}" style="min-height: 44px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Mark all read</button>
+  </div>
+  <main style="flex: 1; overflow: hidden; padding: 4px 18px">
+    <sc-for list="{{items}}" as="n" hint-placeholder-count="5">
+      <a href="{{n.href}}" style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid #dfe5dc; text-decoration: none; color: #10241c">
+        <span class="ico" style="{{n.icoStyle}}"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{n.icon}}"></path></svg></span>
+        <span style="flex: 1; min-width: 0"><strong style="{{n.titleStyle}}">{{n.title}}</strong><span style="display: block; margin-top: 2px; font-size: 14px; color: #3d4a44; line-height: 1.4">{{n.body}}</span><span style="display: block; margin-top: 4px; font-size: 12px; color: #5c6963">{{n.when}}</span></span>
+        <sc-if value="{{n.unread}}" hint-placeholder-val="{{ false }}"><span aria-label="Unread" style="width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: #6f9500"></span></sc-if>
+      </a>
+    </sc-for>
+  </main>
+  <a href="PhoneAccount.dc.html" style="padding: 14px 18px 22px; text-align: center; font-size: 14px; font-weight: 700; border-top: 1px solid #dfe5dc">Choose which notifications you get</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { allRead: false }; }
+  renderVals() {
+    const tone = { warn: 'background: #fff4e0; color: #6b3a00;', info: 'background: #e3f0ff; color: #1d4f86;', ok: 'background: #eaf6d5; color: #345000;', neutral: 'background: #eef3e9; color: #003b2b;' };
+    const items = [
+      { title: 'Data running low', body: '1 GB left on [PLAN 2]. Once it runs out you can buy your next bundle.', when: '12 min ago', tone: 'warn', icon: 'M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', href: 'PhoneInternet.dc.html', unread: true },
+      { title: 'Order ready to collect', body: 'TP-Link CPE210 is waiting at [PICKUP LOCATION].', when: 'Yesterday', tone: 'info', icon: 'M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7', href: 'PhoneOrder.dc.html', unread: true },
+      { title: 'New device request', body: 'A laptop asked to use your bundle. Reference PR-7Q4.', when: 'Yesterday', tone: 'neutral', icon: 'M4 5h16v11H4ZM2 19h20', href: 'PhonePairReview.dc.html', unread: false },
+      { title: 'Payment received', body: '[PLAN 2] paid with MTN MoMo. Receipt ready.', when: '5 Nov', tone: 'ok', icon: 'm5 12 5 5 9-10', href: 'PhoneReceipt.dc.html', unread: false },
+      { title: 'Planned maintenance', body: 'Short outage on Sunday 02:00–03:00 while we upgrade the router.', when: '3 Nov', tone: 'neutral', icon: 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', href: 'PhoneHelp.dc.html', unread: false }
+    ].map((n) => {
+      const unread = n.unread && !this.state.allRead;
+      return { ...n, unread, icoStyle: tone[n.tone], titleStyle: 'display: block; font-size: 15px; ' + (unread ? 'font-weight: 700;' : 'font-weight: 600;') };
+    });
+    return { items, readAll: () => this.setState({ allRead: true }) };
+  }
+}
+</script>
+</body>
+</html>

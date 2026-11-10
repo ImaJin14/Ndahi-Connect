@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin vouchers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+td,th{text-align:left;padding:11px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.code{font:700 14px ui-monospace,Menlo,monospace;letter-spacing:.06em}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="vouchers" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Your vouchers.</h1>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="cv" style="flex: 1 1 300px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="cv" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Create a batch</h2>
+        <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · 1 GB · 1 day</option><option selected>[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div><label class="lbl" for="vq">How many</label><input class="in" id="vq" type="number" value="20"></div>
+          <div><label class="lbl" for="vr">For reseller</label><select class="in" id="vr"><option>None</option><option selected>[RESELLER]</option></select></div>
+        </div>
+        <button type="button" onClick="{{create}}" style="min-height: 46px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Create 20 vouchers</button>
+        <sc-if value="{{made}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 14px; border-radius: 12px; background: #eaf6d5; display: flex; flex-direction: column; gap: 10px">
+            <strong style="font-size: 14px; color: #345000">Batch B-1110-03 ready · 20 codes</strong>
+            <a href="AdminVoucherPrint.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 9px; background: #003b2b; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Print slips</a>
+          </div>
+        </sc-if>
+      </section>
+
+      <section aria-labelledby="rv" style="flex: 999 1 420px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px">
+          <h2 id="rv" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Recent vouchers</h2>
+          <label for="vs" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a code</label>
+          <input id="vs" placeholder="Find a code" style="min-height: 40px; width: 200px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse">
+            <thead><tr><th scope="col">Code</th><th scope="col">Bundle</th><th scope="col">Batch</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><td class="code">K7PM-42XQ</td><td>[PLAN 2]</td><td>B-1029-01</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
+              <tr><td class="code">B2RT-9WNA</td><td>[PLAN 1]</td><td>B-1029-01</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Used up</span></td></tr>
+              <tr><td class="code">QF83-ZK4M</td><td>[PLAN 2]</td><td>B-1105-02</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
+              <tr><td class="code">W9LD-6PRC</td><td>[PLAN 2]</td><td>B-1105-02</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
+              <tr><td class="code">H4XN-TT2B</td><td>[PLAN 3]</td><td>B-1105-02</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Disabled</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { made: false }; }
+  renderVals() { return { made: this.state.made, create: () => this.setState({ made: true }) }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NDAHI Store</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.prod{display:flex;gap:12px;align-items:center;padding:10px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc;text-decoration:none;color:#10241c}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 14px 16px 22px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="display: flex; align-items: center; gap: 10px"><span style="width: 34px; height: 34px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NS</span><span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 18px">NDAHI</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .26em; font-weight: 700">STORE</small></span></span>
+      <nav aria-label="Store" style="display: flex; gap: 4px">
+        <a href="PhoneGuestOrder.dc.html" style="min-height: 44px; display: flex; align-items: center; padding: 0 8px; color: #dce8e2; font-size: 14px; font-weight: 600; text-decoration: none">Track order</a>
+        <a href="PhoneLogin.dc.html" style="min-height: 44px; display: flex; align-items: center; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,.3); color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none">Sign in</a>
+      </nav>
+    </div>
+    <h1 style="margin: 18px 0 6px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px; line-height: 1.15">Equipment for better connections.</h1>
+    <p style="margin: 0; color: #c8d8d0; font-size: 14px">No account needed. Pay with Mobile Money, collect locally.</p>
+  </header>
+
+  <div role="group" aria-label="Category" style="display: flex; gap: 8px; padding: 14px 16px 10px; overflow: hidden">
+    <sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+      <button type="button" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+    </sc-for>
+  </div>
+
+  <main style="flex: 1; overflow: hidden; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{products}}" as="p" hint-placeholder-count="4">
+      <a class="prod" href="PhoneGuestProduct.dc.html">
+        <div style="width: 80px; height: 80px; flex-shrink: 0; border-radius: 10px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 10px">Photo</div>
+        <div style="flex: 1; min-width: 0">
+          <p style="margin: 0; color: #4d6b00; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase">{{p.cat}}</p>
+          <strong style="display: block; font-size: 15px; margin-top: 2px">{{p.name}}</strong>
+          <span style="display: block; margin-top: 4px; font-size: 14px; font-weight: 700">[PRICE] FCFA</span>
+          <span style="{{p.stockStyle}}">{{p.stock}}</span>
+        </div>
+        <span aria-hidden="true" style="color: #4d6b00; font-size: 20px">›</span>
+      </a>
+    </sc-for>
+    <a href="PhoneHotspot.dc.html" style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; min-height: 48px; font-size: 14px; font-weight: 700; text-decoration: none; border-top: 1px solid #dfe5dc">Looking for internet packages?<span aria-hidden="true">→</span></a>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { cat: 'all' }; }
+  renderVals() {
+    const cat = this.state.cat;
+    const all = [
+      { name: 'TP-Link AX1500 Travel Router', cat: 'Travel routers', n: 10 },
+      { name: 'TP-Link CPE210', cat: 'Outdoor networking', n: 6 },
+      { name: 'Wavlink AC1200', cat: 'Wi-Fi devices', n: 2 },
+      { name: 'Wavlink Mini', cat: 'Wi-Fi devices', n: 4 }
+    ];
+    const products = all.filter((p) => cat === 'all' || p.cat === cat).map((p) => ({
+      ...p,
+      stock: p.n <= 2 ? 'Only ' + p.n + ' left' : p.n + ' in stock',
+      stockStyle: 'display: block; font-size: 12px; font-weight: 600; ' + (p.n <= 2 ? 'color: #8a4a00;' : 'color: #345000;')
+    }));
+    const base = 'flex-shrink: 0; min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; white-space: nowrap; ';
+    const cats = [['all', 'All'], ['Travel routers', 'Travel'], ['Outdoor networking', 'Outdoor'], ['Wi-Fi devices', 'Wi-Fi']].map(([id, label]) => ({
+      label, pressed: id === cat ? 'true' : 'false',
+      style: base + (id === cat ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+      pick: () => this.setState({ cat: id })
+    }));
+    return { products, cats };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin bundles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="bundles" hint-size="240px,780px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Your bundles.</h1>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">What customers see on the plan picker, in this order.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px">
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="4">
+        <article style="{{p.card}}">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+            <strong style="font-size: 17px">{{p.name}}</strong>
+            <span style="{{p.pill}}">{{p.state}}</span>
+          </div>
+          <p style="margin: 0; font-size: 20px; font-weight: 700; color: #003b2b">[XAF]</p>
+          <p style="margin: 0; color: #3d4a44; font-size: 14px">{{p.detail}}</p>
+          <p style="margin: 0; color: #5c6963; font-size: 13px">{{p.sold}}</p>
+          <div style="display: flex; gap: 8px; margin-top: auto">
+            <a href="AdminBundleEdit.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: 8px; border: 1px solid #b8c7bd; font-weight: 700; font-size: 13px; text-decoration: none">Edit</a>
+            <button type="button" onClick="{{p.flip}}" style="flex: 1; min-height: 40px; border-radius: 8px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">{{p.action}}</button>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+
+    <section aria-labelledby="nb" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
+      <h2 id="nb" style="margin: 0 0 14px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">New bundle</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end">
+        <div><label class="lbl" for="bn">Name</label><input class="in" id="bn" placeholder="e.g. Weekend"></div>
+        <div><label class="lbl" for="bpz">Price (FCFA)</label><input class="in" id="bpz" type="number"></div>
+        <div><label class="lbl" for="bd">Data (GB)</label><input class="in" id="bd" placeholder="Blank = unlimited"></div>
+        <div><label class="lbl" for="bv">Validity (hours)</label><input class="in" id="bv" type="number"></div>
+        <div><label class="lbl" for="bdl">Device limit</label><input class="in" id="bdl" type="number" value="1"></div>
+        <button type="button" style="min-height: 44px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save as draft</button>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { off: ['p4'] }; }
+  renderVals() {
+    const s = this.state;
+    const base = [
+      { id: 'p1', name: '[PLAN 1]', detail: '1 GB · 1 day · 1 device', sold: '41 sold this week' },
+      { id: 'p2', name: '[PLAN 2]', detail: '5 GB · 7 days · 3 devices', sold: '58 sold this week' },
+      { id: 'p3', name: '[PLAN 3]', detail: '15 GB · 30 days · 3 devices', sold: '17 sold this week' },
+      { id: 'p4', name: '[PLAN 4]', detail: 'Unlimited · 30 days · fair use', sold: 'Paused since 1 Nov' }
+    ];
+    const plans = base.map((p) => {
+      const off = s.off.includes(p.id);
+      return {
+        ...p,
+        state: off ? 'Paused' : 'On sale', action: off ? 'Put on sale' : 'Pause',
+        pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (off ? 'background: #eef0ee; color: #3d4a44;' : 'background: #eaf6d5; color: #345000;'),
+        card: 'box-sizing: border-box; min-height: 210px; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; ' + (off ? 'background: #f4f5f2; border: 1px dashed #b8c7bd;' : 'background: #fffef9; border: 1px solid #dfe5dc;'),
+        flip: () => this.setState({ off: off ? s.off.filter((x) => x !== p.id) : [...s.off, p.id] })
+      };
+    });
+    return { plans };
+  }
+}
+</script>
+</body>
+</html>

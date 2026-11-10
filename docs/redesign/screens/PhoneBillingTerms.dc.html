@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment and package rules</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.rule{border-bottom:1px solid #dfe5dc}
+.rule summary{min-height:52px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px;cursor:pointer}
+.rule ul{margin:0 0 14px;padding-left:20px;color:#3d4a44;font-size:14px;line-height:1.55}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneHelp.dc.html" aria-label="Back to help"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">Payment rules</span>
+  </div>
+  <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column">
+    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">Payments and package rules</h1>
+    <p style="margin: 6px 0 10px; color: #5c6963; font-size: 13px">In force from 3 November 2026</p>
+    <details class="rule" open>
+      <summary>Buying and renewing</summary>
+      <ul>
+        <li>Bundles are prepaid. You pay the full price each time; any provider fee shows in the Mobile Money prompt.</li>
+        <li>Validity starts when the payment is confirmed, not when you connect.</li>
+        <li>No automatic renewal or recurring debit, ever.</li>
+      </ul>
+    </details>
+    <details class="rule">
+      <summary>While a bundle is active</summary>
+      <ul>
+        <li>Use it until it expires or its data runs out. You can't buy or switch packages before then.</li>
+        <li>After that, buy any package at its full price — there's no partial credit.</li>
+      </ul>
+    </details>
+    <details class="rule">
+      <summary>Interrupted or pending payments</summary>
+      <ul>
+        <li>Closing the page doesn't cancel a payment you already sent. Approve the prompt that's on your phone.</li>
+        <li>Don't pay again while a request is open (usually five minutes).</li>
+        <li>Late confirmations are checked for 24 hours.</li>
+      </ul>
+    </details>
+    <details class="rule">
+      <summary>Cancellation and refunds</summary>
+      <ul>
+        <li>Any refund needs a review and confirmation from the payment provider.</li>
+      </ul>
+    </details>
+    <details class="rule">
+      <summary>Receipts and help</summary>
+      <ul>
+        <li>Every confirmed payment has a receipt in Activity.</li>
+      </ul>
+    </details>
+    <p style="margin: auto 0 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; font-weight: 600">NDAHI will never ask for your Mobile Money PIN.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

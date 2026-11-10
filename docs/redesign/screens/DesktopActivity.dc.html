@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Activity desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.nl{display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;border-radius:8px;color:#dce8e2;text-decoration:none;font-weight:600;font-size:14px}
+.nl:hover{color:#ffffff;background:rgba(255,255,255,.08)}
+td,th{text-align:left;padding:14px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px">
+  <header style="background: #003b2b; color: #ffffff">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #ffffff"><span style="width: 40px; height: 40px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 13px">NC</span><span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 22px">NDAHI</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">CONNECT</small></span></a>
+      <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+        <a class="nl" href="Main.dc.html">Home</a>
+        <a class="nl" href="DesktopInternet.dc.html">Internet</a>
+        <a class="nl" href="Shop.dc.html">Shop</a>
+        <a class="nl" href="DesktopActivity.dc.html" aria-current="page" style="background: rgba(185,238,46,.14); color: #b9ee2e">Activity</a>
+        <a class="nl" href="DesktopAccount.dc.html">Account</a>
+      </nav>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #dce8e2"><span style="width: 8px; height: 8px; border-radius: 50%; background: #b9ee2e"></span>Network online</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 36px 28px 64px; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 14px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Activity</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 40px">Payments and orders.</h1>
+      </div>
+      <div role="group" aria-label="Show" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+          <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+    <a href="PhoneBuyBundle.dc.html" style="display: block; padding: 14px 18px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 15px; text-decoration: none"><strong>1 payment waiting for approval.</strong> Approve the prompt on your phone, then check it here.</a>
+    <section aria-label="Activity" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 18px; padding: 10px 22px 18px">
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Date</th><th scope="col">What</th><th scope="col">Paid with</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Open</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <tr><td>{{r.date}}</td><td><strong>{{r.title}}</strong></td><td>{{r.method}}</td><td>{{r.amount}}</td><td><span style="{{r.pill}}">{{r.status}}</span></td><td><a href="{{r.href}}" style="font-weight: 700">{{r.link}}</a></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'all' }; }
+  renderVals() {
+    const f = this.state.f;
+    const tone = { wait: 'background: #fff4e0; color: #6b3a00;', ok: 'background: #eaf6d5; color: #345000;', info: 'background: #e3f0ff; color: #1d4f86;', done: 'background: #eef0ee; color: #3d4a44;' };
+    const rows = [
+      { kind: 'internet', date: '10 Nov', title: 'Bundle · [PLAN 2]', method: 'MTN MoMo', amount: '[PRICE] FCFA', status: 'Waiting', tone: 'wait', href: 'PhoneBuyBundle.dc.html', link: 'Check' },
+      { kind: 'orders', date: '8 Nov', title: 'Order NS-2611-0088 · TP-Link CPE210', method: 'Orange Money', amount: '[PRICE] FCFA', status: 'Ready to collect', tone: 'info', href: 'PhoneOrder.dc.html', link: 'Track' },
+      { kind: 'internet', date: '5 Nov', title: 'Bundle · [PLAN 2]', method: 'MTN MoMo', amount: '[PRICE] FCFA', status: 'Paid', tone: 'ok', href: 'PhoneReceipt.dc.html', link: 'Receipt' },
+      { kind: 'internet', date: '29 Oct', title: 'Voucher K7PM-42XQ redeemed', method: '—', amount: '—', status: 'Used', tone: 'done', href: 'DesktopInternet.dc.html', link: 'View' },
+      { kind: 'orders', date: '21 Oct', title: 'Order NS-2610-0061 · Wavlink Mini', method: 'MTN MoMo', amount: '[PRICE] FCFA', status: 'Collected', tone: 'done', href: 'PhoneOrder.dc.html', link: 'View' }
+    ].filter((r) => f === 'all' || r.kind === f).map((r) => ({ ...r, pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + tone[r.tone] }));
+    const base = 'min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const filters = [['all', 'All'], ['internet', 'Internet'], ['orders', 'Orders']].map(([id, label]) => ({ label, pressed: id === f ? 'true' : 'false', style: base + (id === f ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ f: id }) }));
+    return { rows, filters };
+  }
+}
+</script>
+</body>
+</html>

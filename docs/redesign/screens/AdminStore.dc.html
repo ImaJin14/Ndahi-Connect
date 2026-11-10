@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin store orders</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.go{display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:46px;padding:0 16px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.dl{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.dl dt{color:#5c6963}.dl dd{margin:0;font-weight:600;text-align:right}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="store" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Store</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Orders to prepare and hand over.</h1>
+      </div>
+      <a href="AdminProducts.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; font-weight: 700; font-size: 14px; text-decoration: none">Products &amp; stock</a>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="ol" style="flex: 999 1 380px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 10px">
+        <h2 id="ol" style="margin: 8px 10px 6px; font-size: 15px; font-weight: 700">Open orders</h2>
+        <sc-for list="{{orders}}" as="o" hint-placeholder-count="4">
+          <button type="button" onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">
+            <span style="flex: 1; min-width: 0; text-align: left"><strong style="display: block; font-size: 15px">{{o.ref}} · {{o.item}}</strong><span style="font-size: 13px; color: #5c6963">{{o.who}} · {{o.when}}</span></span>
+            <span style="{{o.pill}}">{{o.status}}</span>
+          </button>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="od" style="flex: 1 1 320px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+          <h2 id="od" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">{{sel.ref}}</h2>
+          <span style="{{sel.pill}}">{{sel.status}}</span>
+        </div>
+        <dl style="margin: 0">
+          <div class="dl"><dt>Item</dt><dd>{{sel.item}} × 1</dd></div>
+          <div class="dl"><dt>Customer</dt><dd>{{sel.who}}</dd></div>
+          <div class="dl"><dt>Paid</dt><dd>[XAF] · {{sel.method}}</dd></div>
+          <div class="dl"><dt>Collect at</dt><dd>[PICKUP LOCATION]</dd></div>
+        </dl>
+
+        <sc-if value="{{sel.isPaid}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 14px; color: #3d4a44">Test the device, pack it, then mark it ready. The customer sees it on their order page and by email if they gave one.</p>
+          <button type="button" class="go" onClick="{{sel.ready}}">Mark ready to collect</button>
+        </sc-if>
+        <sc-if value="{{sel.isReady}}" hint-placeholder-val="{{ true }}">
+          <div>
+            <label for="cc" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">Customer's collection code</label>
+            <input id="cc" inputmode="numeric" value="739 204" style="box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 700 22px ui-monospace, Menlo, monospace; letter-spacing: .18em; text-align: center; color: #10241c">
+          </div>
+          <button type="button" class="go" onClick="{{sel.collect}}">Verify code and hand over</button>
+        </sc-if>
+        <sc-if value="{{sel.isDone}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Code verified. Handed over 10 Nov, 17:25 — logged to the audit trail.</div>
+        </sc-if>
+        <sc-if value="{{sel.isRefunded}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 12px 14px; border-radius: 12px; background: #eef0ee; color: #3d4a44; font-size: 14px; font-weight: 600">Refund sent to {{sel.method}}. Waiting for the provider to confirm; the device went back into stock.</div>
+        </sc-if>
+        <sc-if value="{{canRefund}}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="go2" style="color: #a73535" onClick="{{askRefund}}">Refund (owner only)</button>
+        </sc-if>
+        <sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}">
+          <div role="alertdialog" aria-labelledby="rfT" style="padding: 14px; border-radius: 12px; border: 1px solid #e3b4b4; background: #fdf3f3; display: flex; flex-direction: column; gap: 10px">
+            <strong id="rfT" style="font-size: 15px; color: #8a2a2a">Refund the full amount to {{sel.method}}?</strong>
+            <span style="font-size: 13px; color: #3d4a44">The order is cancelled and the device returns to stock. This can't be undone.</span>
+            <div style="display: flex; gap: 8px"><button type="button" class="go2" onClick="{{cancelRefund}}">Keep order</button><button type="button" class="go2" style="background: #a73535; border-color: #a73535; color: #ffffff" onClick="{{doRefund}}">Confirm refund</button></div>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 'o1', st: { o1: 'Ready to collect', o2: 'Paid', o3: 'Paid', o4: 'Paid' } }; }
+  renderVals() {
+    const s = this.state;
+    const tone = { 'Paid': 'background: #fff4e0; color: #6b3a00;', 'Ready to collect': 'background: #e3f0ff; color: #1d4f86;', 'Collected': 'background: #eaf6d5; color: #345000;', 'Refunded': 'background: #eef0ee; color: #3d4a44;' };
+    const pill = (st) => 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; ' + tone[st];
+    const base = [
+      { id: 'o1', ref: 'NS-2611-0088', item: 'TP-Link CPE210', who: 'Guest · 6•• •• 88 02', when: '8 Nov', method: 'MTN MoMo' },
+      { id: 'o2', ref: 'NS-2611-0091', item: 'TP-Link AX1500', who: 'Amina N.', when: 'Today 09:12', method: 'Orange Money' },
+      { id: 'o3', ref: 'NS-2611-0092', item: 'Wavlink Mini', who: 'Guest · 6•• •• 51 08', when: 'Today 11:40', method: 'MTN MoMo' },
+      { id: 'o4', ref: 'NS-2611-0094', item: 'Wavlink AC1200', who: 'J. Fon', when: 'Today 16:02', method: 'MTN MoMo' }
+    ];
+    const row = 'box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 10px 12px; border-radius: 12px; font-family: inherit; color: #10241c; cursor: pointer; ';
+    const orders = base.map((o) => {
+      const st = s.st[o.id];
+      const on = o.id === s.sel;
+      return { ...o, status: st, pill: pill(st), pressed: on ? 'true' : 'false', style: row + (on ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid transparent; background: transparent;'), pick: () => this.setState({ sel: o.id, confirm: false }) };
+    });
+    const cur = orders.find((o) => o.id === s.sel);
+    const set = (val) => () => this.setState({ st: { ...s.st, [cur.id]: val } });
+    const sel = { ...cur, isPaid: cur.status === 'Paid', isReady: cur.status === 'Ready to collect', isDone: cur.status === 'Collected', isRefunded: cur.status === 'Refunded', ready: set('Ready to collect'), collect: set('Collected') };
+    const open = cur.status === 'Paid' || cur.status === 'Ready to collect';
+    return {
+      orders, sel,
+      canRefund: open && !s.confirm, confirming: open && !!s.confirm,
+      askRefund: () => this.setState({ confirm: true }),
+      cancelRefund: () => this.setState({ confirm: false }),
+      doRefund: () => this.setState({ confirm: false, st: { ...s.st, [cur.id]: 'Refunded' } })
+    };
+  }
+}
+</script>
+</body>
+</html>
