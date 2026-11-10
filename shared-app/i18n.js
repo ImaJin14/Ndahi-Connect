@@ -52,6 +52,54 @@ export const TRANSLATIONS = {
 
     mtnMoMo: "MTN Mobile Money",
     orangeMoney: "Orange Money",
+
+    // Design kit (shared-app/ui). {name} placeholders are filled by format().
+    uiNavMain: "Main",
+    uiTabHome: "Home",
+    uiTabInternet: "Internet",
+    uiTabShop: "Shop",
+    uiTabActivity: "Activity",
+    uiTabAccount: "Account",
+    uiNotifications: "Notifications",
+    uiNotificationsNew: "Notifications, {count} new",
+    uiBack: "Back",
+    uiPinShow: "Show",
+    uiPinHide: "Hide",
+    uiPinShowLabel: "Show PIN",
+    uiPinHideLabel: "Hide PIN",
+    uiPinShown: "Your PIN is visible.",
+    uiPinHidden: "Your PIN is hidden.",
+    uiOr: "or",
+    uiLoading: "Loading…",
+    uiStepCount: "Step {current} of {total}",
+    uiStepDone: "done",
+    uiStepCurrent: "current step",
+    uiStepTodo: "not started",
+    uiLanguage: "Language",
+    uiLanguageEnglish: "English",
+    uiLanguageFrench: "Français",
+    uiAttention: "{count} need attention",
+    uiSignOut: "Sign out",
+    uiAdminNav: "Admin",
+    uiAdminHome: "Home",
+    uiAdminGroupNetwork: "Network",
+    uiAdminGroupSales: "Sales",
+    uiAdminGroupPeople: "People",
+    uiAdminGroupSystem: "System",
+    uiAdminDevices: "Live devices",
+    uiAdminConnections: "Connections",
+    uiAdminHomeRouters: "Home routers",
+    uiAdminNetworkSetup: "Network setup",
+    uiAdminBundles: "Bundles",
+    uiAdminVouchers: "Vouchers",
+    uiAdminPayments: "Payments",
+    uiAdminStore: "Store orders",
+    uiAdminProducts: "Products",
+    uiAdminCash: "Cash & settlements",
+    uiAdminCustomers: "Customers",
+    uiAdminResellers: "Resellers",
+    uiAdminAudit: "Audit log",
+    uiAdminProfile: "Profile & security",
   },
   fr: {
     brandSmall: "CONNEXION",
@@ -106,6 +154,54 @@ export const TRANSLATIONS = {
 
     mtnMoMo: "MTN Mobile Money",
     orangeMoney: "Orange Money",
+
+    // Design kit (shared-app/ui).
+    uiNavMain: "Navigation principale",
+    uiTabHome: "Accueil",
+    uiTabInternet: "Internet",
+    uiTabShop: "Boutique",
+    uiTabActivity: "Activité",
+    uiTabAccount: "Compte",
+    uiNotifications: "Notifications",
+    uiNotificationsNew: "Notifications, {count} nouvelles",
+    uiBack: "Retour",
+    uiPinShow: "Afficher",
+    uiPinHide: "Masquer",
+    uiPinShowLabel: "Afficher le code PIN",
+    uiPinHideLabel: "Masquer le code PIN",
+    uiPinShown: "Votre code PIN est visible.",
+    uiPinHidden: "Votre code PIN est masqué.",
+    uiOr: "ou",
+    uiLoading: "Chargement…",
+    uiStepCount: "Étape {current} sur {total}",
+    uiStepDone: "terminée",
+    uiStepCurrent: "étape en cours",
+    uiStepTodo: "pas encore commencée",
+    uiLanguage: "Langue",
+    uiLanguageEnglish: "English",
+    uiLanguageFrench: "Français",
+    uiAttention: "{count} à traiter",
+    uiSignOut: "Se déconnecter",
+    uiAdminNav: "Administration",
+    uiAdminHome: "Accueil",
+    uiAdminGroupNetwork: "Réseau",
+    uiAdminGroupSales: "Ventes",
+    uiAdminGroupPeople: "Personnes",
+    uiAdminGroupSystem: "Système",
+    uiAdminDevices: "Appareils connectés",
+    uiAdminConnections: "Connexions",
+    uiAdminHomeRouters: "Routeurs Home",
+    uiAdminNetworkSetup: "Configuration réseau",
+    uiAdminBundles: "Forfaits",
+    uiAdminVouchers: "Tickets",
+    uiAdminPayments: "Paiements",
+    uiAdminStore: "Commandes boutique",
+    uiAdminProducts: "Produits",
+    uiAdminCash: "Espèces et règlements",
+    uiAdminCustomers: "Clients",
+    uiAdminResellers: "Revendeurs",
+    uiAdminAudit: "Journal d'audit",
+    uiAdminProfile: "Profil et sécurité",
   }
 };
 
@@ -134,4 +230,12 @@ export function t(key, lang) {
   const currentLang = lang || getPreferredLanguage();
   const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   return dict[key] || TRANSLATIONS.en[key] || key;
+}
+
+// t() with {name} placeholders filled from `values`, for example
+// format("uiStepCount", { current: 1, total: 3 }) -> "Step 1 of 3".
+export function format(key, values = {}, lang) {
+  return t(key, lang).replace(/\{(\w+)\}/g, (match, name) => (
+    Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match
+  ));
 }

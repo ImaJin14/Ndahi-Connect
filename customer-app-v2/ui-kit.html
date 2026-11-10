@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en" data-ui-variant="v2">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#003b2b">
+<title>Design kit — NDAHI Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+<link rel="stylesheet" href="/shared/ui/tokens.css">
+<link rel="stylesheet" href="/shared/ui/components.css">
+<link rel="stylesheet" href="/ui-kit.css">
+</head>
+<!-- Design-kit reference (redesign Phase 1). Staging aid: not linked from any
+     page. Sample content only; it calls no API. -->
+<body class="nd-page">
+<a class="nd-skip-link" href="#kit-main" data-i18n="kitSkip">Skip to the components</a>
+
+<header class="kit-head">
+  <div class="kit-head__inner">
+    <div>
+      <p class="nd-eyebrow nd-eyebrow--lg kit-head__eyebrow" data-i18n="kitEyebrow">Redesign · Phase 1</p>
+      <h1 class="nd-h1 nd-h1--lg kit-head__title" data-i18n="kitTitle">NDAHI design kit</h1>
+      <p class="nd-meta" data-i18n="kitIntro">Tokens and components from shared-app/ui. Sample content only.</p>
+    </div>
+    <div class="nd-segmented" role="group" aria-label="Language" data-i18n-aria-label="uiLanguage" id="kit-language">
+      <button type="button" class="nd-segmented__option" aria-pressed="true" value="en">English</button>
+      <button type="button" class="nd-segmented__option" aria-pressed="false" value="fr">Français</button>
+    </div>
+  </div>
+</header>
+
+<main id="kit-main" class="kit-main" tabindex="-1">
+
+  <!-- Tokens -->
+  <section class="kit-section" aria-labelledby="kit-tokens">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-tokens" data-i18n="kitTokens">Tokens</h2>
+      <p class="nd-meta"><code class="kit-code">shared-app/ui/tokens.css</code> · <code class="kit-code">var(--nd-…)</code></p>
+    </div>
+    <div class="kit-swatches" id="kit-colours"></div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Type</p>
+        <p class="nd-eyebrow" data-i18n="kitSampleEyebrow">NDAHI Connect</p>
+        <p class="nd-h1 nd-h1--xl" data-i18n="kitSampleH1xl">Payments and revenue.</p>
+        <p class="nd-h1 nd-h1--lg" data-i18n="kitSampleH1lg">Welcome back</p>
+        <p class="nd-h1" data-i18n="kitSampleH1">Choose the plan that fits you</p>
+        <p class="nd-h2" data-i18n="kitSampleH2">All payments</p>
+        <p class="nd-h3" data-i18n="kitSampleH3">Better signal at home</p>
+        <p class="nd-subhead" data-i18n="kitSampleSubhead">Earlier bundles</p>
+        <p class="nd-lede" data-i18n="kitSampleLede">Sign in to see your bundle, devices and orders.</p>
+        <p class="nd-text" data-i18n="kitSampleText">A payment request was sent to your phone. Approve it there — this screen updates by itself.</p>
+        <p class="nd-meta" data-i18n="kitSampleMeta">29 Oct – 5 Nov · 5 GB used</p>
+        <p class="nd-figure"><span data-i18n="kitFigure">3.2 GB</span> <span class="nd-figure__unit" data-i18n="kitOfLeft">of 5 GB left</span></p>
+        <p class="nd-code nd-code--lg">K7PM-42XQ</p>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Spacing · --nd-space-*</p>
+        <div class="kit-scale" id="kit-space"></div>
+        <p class="kit-demo__label">Radii · --nd-radius-*</p>
+        <div class="kit-scale" id="kit-radii"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Buttons -->
+  <section class="kit-section" aria-labelledby="kit-buttons">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-buttons" data-i18n="kitButtons">Buttons</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-btn</code> <code class="kit-code">--secondary</code> <code class="kit-code">--danger</code> <code class="kit-code">--danger-solid</code> <code class="kit-code">--dark</code> <code class="kit-code">--quiet</code> <code class="kit-code">--block</code> <code class="kit-code">--sm</code> <code class="kit-code">--compact</code> · <code class="kit-code">.nd-icon-btn</code> · <code class="kit-code">setBusy()</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Primary · secondary · danger</p>
+        <button type="button" class="nd-btn nd-btn--block" data-i18n="kitSignIn">Sign in</button>
+        <a class="nd-btn nd-btn--secondary nd-btn--block" href="#kit-buttons"><span class="nd-icon" data-nd-icon="passkey" data-nd-size="20"></span><span data-i18n="kitPasskey">Sign in with a passkey</span></a>
+        <button type="button" class="nd-btn nd-btn--danger nd-btn--block" data-i18n="kitSignOutOthers">Sign out all other devices</button>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Small, compact and states</p>
+        <div class="nd-cluster">
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-i18n="kitShowQr">Show QR</button>
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--danger" data-i18n="kitDisconnect">Disconnect</button>
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--danger-solid" data-i18n="kitConfirmRefund">Confirm refund</button>
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--dark" data-i18n="kitCopy">Copy</button>
+          <button type="button" class="nd-btn nd-btn--sm nd-btn--quiet" data-i18n="kitChangePayment">Change payment</button>
+          <button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-i18n="kitCheckProvider">Check with provider</button>
+          <button type="button" class="nd-btn nd-btn--sm" disabled data-i18n="kitPay">Pay</button>
+          <button type="button" class="nd-btn nd-btn--sm" id="kit-busy" data-i18n="kitCheckStatus">Check status</button>
+        </div>
+        <div class="nd-cluster">
+          <a class="nd-icon-btn" href="#kit-buttons" aria-label="Back" data-i18n-aria-label="uiBack"><span class="nd-icon" data-nd-icon="back" data-nd-stroke="2"></span></a>
+          <a class="nd-icon-btn" href="#kit-buttons" aria-label="Notifications" data-i18n-aria-label="uiNotifications"><span class="nd-icon" data-nd-icon="bell" data-nd-size="20"></span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pills and status -->
+  <section class="kit-section" aria-labelledby="kit-pills">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-pills" data-i18n="kitPills">Status pills, badges and network status</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-pill--success|warning|danger|info|lime</code> · <code class="kit-code">.nd-badge</code> · <code class="kit-code">renderNetworkStatus()</code></p>
+    </div>
+    <div class="nd-cluster">
+      <span class="nd-pill nd-pill--success" data-i18n="kitConnected">Connected</span>
+      <span class="nd-pill nd-pill--warning" data-i18n="kitWaiting">Waiting</span>
+      <span class="nd-pill nd-pill--danger" data-i18n="kitFailed">Failed</span>
+      <span class="nd-pill nd-pill--info" data-i18n="kitReady">Ready to collect</span>
+      <span class="nd-pill" data-i18n="kitFinished">Finished</span>
+      <span class="nd-pill nd-pill--lime" data-i18n="kitPopular">Popular</span>
+      <span class="nd-badge">3</span>
+    </div>
+    <div class="kit-on-forest" id="kit-status"></div>
+  </section>
+
+  <!-- Cards -->
+  <section class="kit-section" aria-labelledby="kit-cards">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-cards" data-i18n="kitCards">Cards, notes and callouts</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-card</code> <code class="kit-code">--raised</code> <code class="kit-code">--forest</code> · <code class="kit-code">.nd-note</code> · <code class="kit-code">.nd-callout--success|warning|danger|info</code> · <code class="kit-code">.nd-tile</code> · <code class="kit-code">.nd-media-row</code> · <code class="kit-code">renderMeter()</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">.nd-card--raised (Home)</p>
+        <section class="nd-card nd-card--raised nd-stack nd-stack--12" aria-labelledby="kit-bundle-plan">
+          <div class="nd-split"><p class="nd-eyebrow" id="kit-bundle-plan">[PLAN 2]</p><span class="nd-pill nd-pill--success" data-i18n="kitConnected">Connected</span></div>
+          <p class="nd-figure"><span data-i18n="kitFigure">3.2 GB</span> <span class="nd-figure__unit" data-i18n="kitOfLeft">of 5 GB left</span></p>
+          <div data-kit-meter="0.64"></div>
+          <div class="nd-meter-legend"><span data-i18n="kitEndsIn">Ends in 2 days</span><span data-i18n="kitDevicesUsed">2 of 3 devices</span></div>
+          <div class="nd-grid-2">
+            <a class="nd-btn nd-btn--block" href="#kit-cards" data-i18n="kitBundleDetails">Bundle details</a>
+            <a class="nd-btn nd-btn--secondary nd-btn--block" href="#kit-cards" data-i18n="kitDevices">Devices</a>
+          </div>
+        </section>
+        <div class="nd-grid-2">
+          <a class="nd-tile" href="#kit-cards"><span class="nd-icon" data-nd-icon="voucher"></span><span data-i18n="kitEnterVoucher">Enter voucher</span></a>
+          <a class="nd-tile" href="#kit-cards"><span class="nd-icon" data-nd-icon="internet"></span><span data-i18n="kitAddDevice">Add a device</span></a>
+        </div>
+        <a class="nd-media-row" href="#kit-cards">
+          <span class="nd-thumb" data-i18n="kitPhoto">Photo</span>
+          <span class="nd-media-row__body"><span class="nd-media-row__title">[PRODUCT]</span><span class="nd-meta" data-i18n="kitCollectLocally">[PRICE] FCFA · Collect locally</span></span>
+          <span class="nd-chevron" aria-hidden="true">›</span>
+        </a>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">.nd-card--forest (Internet)</p>
+        <section class="nd-card nd-card--forest nd-stack nd-stack--12" aria-labelledby="kit-active">
+          <div class="nd-split"><p class="nd-eyebrow" id="kit-active" data-i18n="kitActivePlan">Active · [PLAN 2]</p><span class="nd-meta" data-i18n="kitEnds">Ends 12 Nov</span></div>
+          <p class="nd-figure"><span data-i18n="kitFigure">3.2 GB</span> <span class="nd-figure__unit" data-i18n="kitOfLeft">of 5 GB left</span></p>
+          <div data-kit-meter="0.64"></div>
+        </section>
+        <p class="nd-note"><span data-i18n="kitBuyRule">You can buy your next bundle once this one ends or its data runs out.</span> <a href="#kit-cards" data-i18n="kitWhy">Why?</a></p>
+        <div class="nd-callout nd-callout--success" role="status" data-i18n="kitPinUpdated">PIN updated. Use it next time you sign in.</div>
+        <div class="nd-callout nd-callout--info" data-i18n="kitInfoCallout">Your order is ready to collect at [PICKUP LOCATION].</div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">.nd-callout--warning · --danger</p>
+        <section class="nd-callout nd-callout--warning nd-stack nd-stack--8" aria-labelledby="kit-link-title">
+          <h3 class="nd-callout__title" id="kit-link-title" data-i18n="kitKeepLink">Keep this private link</h3>
+          <p data-i18n="kitKeepLinkBody">You bought as a guest. This link is the only way back to this order — copy or bookmark it.</p>
+          <div class="nd-input-group">
+            <input class="nd-input nd-input--sm" readonly aria-label="Private tracking link" data-i18n-aria-label="kitTrackingLink" value="store.ndahiconnect.net/o/…">
+            <button type="button" class="nd-btn nd-btn--sm nd-btn--dark" data-i18n="kitCopy">Copy</button>
+          </div>
+        </section>
+        <section class="nd-callout nd-callout--danger nd-stack nd-stack--12" aria-labelledby="kit-refund-title">
+          <h3 class="nd-callout__title" id="kit-refund-title" data-i18n="kitRefundTitle">Refund the full amount to MTN MoMo?</h3>
+          <div class="nd-cluster">
+            <button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-i18n="kitKeepOrder">Keep order</button>
+            <button type="button" class="nd-btn nd-btn--sm nd-btn--danger-solid" data-i18n="kitConfirmRefund">Confirm refund</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lists, switches, segmented -->
+  <section class="kit-section" aria-labelledby="kit-lists">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-lists" data-i18n="kitLists">Lists, switches and segmented controls</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-list</code> · <code class="kit-code">.nd-switch</code> · <code class="kit-code">.nd-segmented</code> · <code class="kit-code">enhanceChoiceGroup()</code> · <code class="kit-code">enhanceTabs()</code> · <code class="kit-code">.nd-row</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Account</p>
+        <p class="nd-overline" data-i18n="kitSecurity">Security</p>
+        <div class="nd-list">
+          <a class="nd-list__item" href="#kit-lists"><span data-i18n="kitChangePin">Change PIN</span><span class="nd-chevron" aria-hidden="true">›</span></a>
+          <a class="nd-list__item" href="#kit-lists"><span data-i18n="kitPasskeySignIn">Passkey sign-in</span><span class="nd-list__value nd-list__value--on" data-i18n="kitOn">On</span></a>
+          <a class="nd-list__item" href="#kit-lists"><span data-i18n="kitSignedInDevices">Signed-in devices</span><span class="nd-list__value" data-i18n="kitTwoActive">2 active</span></a>
+        </div>
+        <p class="nd-overline" data-i18n="kitNotificationsHeading">Notifications</p>
+        <div class="nd-list">
+          <label class="nd-list__item"><span data-i18n="kitLowData">Low data alerts</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input" checked><span class="nd-switch__track" aria-hidden="true"></span></span></label>
+          <label class="nd-list__item"><span data-i18n="kitEndingSoon">Bundle ending soon</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input" checked><span class="nd-switch__track" aria-hidden="true"></span></span></label>
+          <label class="nd-list__item"><span data-i18n="kitOrderUpdates">Shop order updates</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input"><span class="nd-switch__track" aria-hidden="true"></span></span></label>
+        </div>
+        <p class="nd-overline" data-i18n="uiLanguage">Language</p>
+        <div class="nd-segmented" role="group" aria-label="Language" data-i18n-aria-label="uiLanguage" id="kit-language-2">
+          <button type="button" class="nd-segmented__option" aria-pressed="true" value="en">English</button>
+          <button type="button" class="nd-segmented__option" aria-pressed="false" value="fr">Français</button>
+        </div>
+        <div class="nd-list">
+          <a class="nd-list__item" href="#kit-lists"><span data-i18n="kitHomeRouter">NDAHI Home router</span><span class="nd-list__value" data-i18n="kitLinked">Linked</span></a>
+          <a class="nd-list__item" href="#kit-lists"><span data-i18n="kitHelp">Help &amp; support</span><span class="nd-chevron" aria-hidden="true">›</span></a>
+          <button type="button" class="nd-list__item nd-list__item--danger" data-i18n="uiSignOut">Sign out</button>
+        </div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Tabs (Internet)</p>
+        <div class="nd-segmented" role="tablist" aria-label="Internet" id="kit-tabs">
+          <button type="button" class="nd-segmented__option" role="tab" id="kit-tab-bundles" aria-selected="true" aria-controls="kit-panel-bundles" data-i18n="kitBundles">Bundles</button>
+          <button type="button" class="nd-segmented__option" role="tab" id="kit-tab-vouchers" aria-selected="false" aria-controls="kit-panel-vouchers" data-i18n="kitVouchers">Vouchers</button>
+        </div>
+        <section id="kit-panel-bundles" role="tabpanel" aria-labelledby="kit-tab-bundles" tabindex="0">
+          <h3 class="nd-subhead" data-i18n="kitSampleSubhead">Earlier bundles</h3>
+          <div class="nd-row"><span class="nd-row__main"><strong class="nd-row__title">[PLAN 2]</strong><span class="nd-meta" data-i18n="kitSampleMeta">29 Oct – 5 Nov · 5 GB used</span></span><span class="nd-pill" data-i18n="kitFinished">Finished</span></div>
+          <div class="nd-row"><span class="nd-row__main"><strong class="nd-row__title">[PLAN 1]</strong><span class="nd-meta" data-i18n="kitRowMeta2">28 Oct · 0.6 GB used</span></span><span class="nd-pill" data-i18n="kitExpired">Expired</span></div>
+        </section>
+        <section id="kit-panel-vouchers" role="tabpanel" aria-labelledby="kit-tab-vouchers" tabindex="0" hidden>
+          <h3 class="nd-subhead" data-i18n="kitUsedVouchers">Used vouchers</h3>
+          <div class="nd-row"><span class="nd-row__main"><span class="nd-code">B2RT-9WNA</span><span class="nd-meta" data-i18n="kitRedeemed">Redeemed 29 Oct</span></span><span class="nd-pill" data-i18n="kitUsed">Used</span></div>
+        </section>
+        <p class="kit-demo__label">Filter chips (admin)</p>
+        <div class="nd-chips" role="group" aria-label="Status" data-i18n-aria-label="kitStatus" id="kit-chips">
+          <button type="button" class="nd-chip" aria-pressed="true" value="all" data-i18n="kitAll">All</button>
+          <button type="button" class="nd-chip" aria-pressed="false" value="waiting" data-i18n="kitWaiting">Waiting</button>
+          <button type="button" class="nd-chip" aria-pressed="false" value="paid" data-i18n="kitPaid">Paid</button>
+          <button type="button" class="nd-chip" aria-pressed="false" value="failed" data-i18n="kitFailed">Failed</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Forms -->
+  <section class="kit-section" aria-labelledby="kit-forms">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-forms" data-i18n="kitForms">Forms</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-field</code> <code class="kit-code">.nd-label</code> <code class="kit-code">.nd-input</code> <code class="kit-code">.nd-hint</code> <code class="kit-code">.nd-input-group</code> <code class="kit-code">.nd-pin</code> · <code class="kit-code">setFieldError()</code> <code class="kit-code">enhancePinToggles()</code> · <code class="kit-code">.nd-option</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Sign in (submit empty to see errors)</p>
+        <form class="nd-form" id="kit-form" novalidate>
+          <div class="nd-field">
+            <label class="nd-label" for="kit-phone" data-i18n="kitPhone">Phone number</label>
+            <div class="nd-input-group">
+              <span class="nd-input-group__addon">+237</span>
+              <input class="nd-input" id="kit-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" aria-describedby="kit-phone-hint">
+            </div>
+            <p class="nd-hint" id="kit-phone-hint" data-i18n="kitPhoneHint">The number you pay with by Mobile Money.</p>
+          </div>
+          <div class="nd-field">
+            <div class="nd-label-row"><label class="nd-label" for="kit-pin" data-i18n="kitPin">PIN</label><a href="#kit-forms" data-i18n="kitForgotPin">Forgot PIN?</a></div>
+            <div class="nd-pin">
+              <input class="nd-input" id="kit-pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" minlength="4" maxlength="6">
+              <button type="button" class="nd-pin__toggle" data-nd-pin-toggle aria-controls="kit-pin">Show</button>
+            </div>
+          </div>
+          <button type="submit" class="nd-btn nd-btn--block" data-i18n="kitSignIn">Sign in</button>
+        </form>
+        <p class="nd-divider" data-i18n="uiOr">or</p>
+        <a class="nd-btn nd-btn--secondary nd-btn--block" href="#kit-forms" data-i18n="kitUseVoucher">Use a voucher code</a>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">.nd-option (plans)</p>
+        <div class="nd-stack nd-stack--12" role="group" aria-label="Plans" data-i18n-aria-label="kitPlans" id="kit-plans">
+          <button type="button" class="nd-option" aria-pressed="false" value="p1"><span class="nd-option__body"><span class="nd-option__title">[PLAN 1]</span><span class="nd-option__meta" data-i18n="kitPlanMeta1">1 GB · 1 day · 1 device</span></span><span class="nd-option__price">[PRICE] FCFA</span></button>
+          <button type="button" class="nd-option" aria-pressed="true" value="p2"><span class="nd-option__body"><span class="nd-option__title">[PLAN 2] <span class="nd-pill nd-pill--lime" data-i18n="kitPopular">Popular</span></span><span class="nd-option__meta" data-i18n="kitPlanMeta2">5 GB · 7 days · 3 devices</span></span><span class="nd-option__price">[PRICE] FCFA</span></button>
+          <button type="button" class="nd-option" aria-pressed="false" value="p3"><span class="nd-option__body"><span class="nd-option__title">[PLAN 3]</span><span class="nd-option__meta" data-i18n="kitPlanMeta3">15 GB · 30 days · 3 devices</span></span><span class="nd-option__price">[PRICE] FCFA</span></button>
+        </div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Review and pay</p>
+        <fieldset class="nd-fieldset">
+          <legend class="nd-legend" data-i18n="kitPayWith">Pay with</legend>
+          <div class="nd-grid-2" role="group" aria-label="Pay with" data-i18n-aria-label="kitPayWith" id="kit-methods">
+            <button type="button" class="nd-option nd-option--compact" aria-pressed="true" value="mtn">MTN MoMo</button>
+            <button type="button" class="nd-option nd-option--compact" aria-pressed="false" value="orange">Orange Money</button>
+          </div>
+        </fieldset>
+        <div class="nd-field">
+          <label class="nd-label" for="kit-momo" data-i18n="kitMomoNumber">Mobile Money number</label>
+          <input class="nd-input" id="kit-momo" type="tel" inputmode="tel" autocomplete="tel-national" aria-describedby="kit-momo-hint">
+          <p class="nd-hint" id="kit-momo-hint" data-i18n="kitMomoHint">New here? We'll set up your NDAHI account with this number.</p>
+        </div>
+        <div class="nd-field">
+          <label class="nd-label" for="kit-pickup" data-i18n="kitPickup">Pickup</label>
+          <select class="nd-input" id="kit-pickup"><option>[PICKUP LOCATION]</option></select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progress -->
+  <section class="kit-section" aria-labelledby="kit-progress">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-progress" data-i18n="kitProgress">Progress</h2>
+      <p class="nd-meta"><code class="kit-code">renderSteps()</code> · <code class="kit-code">renderStepper()</code> · <code class="kit-code">stepCount()</code> · <code class="kit-code">.nd-topbar</code> · <code class="kit-code">.nd-actionbar</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Order progress</p>
+        <div id="kit-steps"></div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Stepper (admin network setup)</p>
+        <div id="kit-stepper"></div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Top bar + action bar</p>
+        <div class="kit-frame kit-frame--phone">
+          <div class="nd-topbar" id="kit-topbar"></div>
+          <div class="nd-screen__body"><p class="nd-h1" data-i18n="kitReviewPay">Review and pay</p></div>
+          <div class="nd-actionbar">
+            <button type="button" class="nd-btn nd-btn--block" data-i18n="kitPayPrice">Pay [PRICE] FCFA</button>
+            <p class="nd-actionbar__note" data-i18n="kitApproveNote">You'll approve on your phone. We never ask for your PIN.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Navigation -->
+  <section class="kit-section" aria-labelledby="kit-navigation">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-navigation" data-i18n="kitNavigation">Navigation</h2>
+      <p class="nd-meta"><code class="kit-code">renderTabBar()</code> · <code class="kit-code">renderPortalHeader()</code> · <code class="kit-code">renderAdminMenu()</code> · <code class="kit-code">.nd-hero</code></p>
+    </div>
+    <div class="kit-grid">
+      <div class="kit-demo">
+        <p class="kit-demo__label">Phone: hero + tab bar</p>
+        <div class="kit-frame kit-frame--phone">
+          <header class="nd-hero">
+            <div class="nd-hero__bar" id="kit-hero-bar"></div>
+            <h2 class="nd-hero__title" data-i18n="kitWelcome">Welcome back.</h2>
+            <div id="kit-hero-status"></div>
+          </header>
+          <div class="nd-overlap nd-container">
+            <div class="nd-card nd-card--raised"><p class="nd-eyebrow">[PLAN 2]</p><p class="nd-figure"><span data-i18n="kitFigure">3.2 GB</span> <span class="nd-figure__unit" data-i18n="kitOfLeft">of 5 GB left</span></p></div>
+          </div>
+          <div class="nd-screen__body"></div>
+          <div id="kit-tabbar"></div>
+        </div>
+      </div>
+      <div class="kit-demo">
+        <p class="kit-demo__label">Admin side menu</p>
+        <div class="kit-frame kit-frame--side" id="kit-sidemenu"></div>
+      </div>
+    </div>
+    <div class="kit-demo">
+      <p class="kit-demo__label">Desktop header (768 px and wider)</p>
+      <div class="kit-frame" id="kit-topnav"></div>
+    </div>
+  </section>
+
+  <!-- States -->
+  <section class="kit-section" aria-labelledby="kit-states">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-states" data-i18n="kitStates">Success, waiting, error and empty states</h2>
+      <p class="nd-meta"><code class="kit-code">renderState({ tone: "success" | "waiting" | "error" | "info" | "empty" })</code> · <code class="kit-code">.nd-spinner</code></p>
+    </div>
+    <div class="kit-grid" id="kit-state-grid"></div>
+  </section>
+
+  <!-- Admin data -->
+  <section class="kit-section" aria-labelledby="kit-admin">
+    <div class="kit-section__intro">
+      <h2 class="nd-h2" id="kit-admin" data-i18n="kitAdmin">Admin data</h2>
+      <p class="nd-meta"><code class="kit-code">.nd-pagehead</code> · <code class="kit-code">.nd-metrics</code> · <code class="kit-code">.nd-panel</code> · <code class="kit-code">.nd-table</code></p>
+    </div>
+    <div class="nd-pagehead">
+      <div><p class="nd-eyebrow nd-eyebrow--lg" data-i18n="uiAdminGroupSales">Sales</p><p class="nd-h1 nd-h1--xl" data-i18n="kitSampleH1xl">Payments and revenue.</p></div>
+      <button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-i18n="kitExport">Export CSV</button>
+    </div>
+    <div class="nd-metrics">
+      <div class="nd-metric"><b class="nd-metric__value">[XAF]</b><span class="nd-metric__label" data-i18n="kitTodayBundles">Today, bundles</span></div>
+      <div class="nd-metric"><b class="nd-metric__value">[XAF]</b><span class="nd-metric__label" data-i18n="kitTodayStore">Today, store</span></div>
+      <div class="nd-metric"><b class="nd-metric__value">2</b><span class="nd-metric__label" data-i18n="kitWaitingLong">Waiting over 10 min</span></div>
+      <div class="nd-metric"><b class="nd-metric__value">1</b><span class="nd-metric__label" data-i18n="kitFailedToday">Failed today</span></div>
+    </div>
+    <section class="nd-panel" aria-labelledby="kit-payments-title">
+      <div class="nd-panel__head">
+        <h3 class="nd-h2" id="kit-payments-title" data-i18n="kitSampleH2">All payments</h3>
+        <div class="nd-cluster">
+          <label class="nd-visually-hidden" for="kit-search" data-i18n="kitSearchLabel">Search payments</label>
+          <input class="nd-input nd-input--sm" id="kit-search" type="search" placeholder="Search phone, order or reference" data-i18n-placeholder="kitSearchPlaceholder">
+        </div>
+      </div>
+      <div class="nd-table-wrap">
+        <table class="nd-table">
+          <thead><tr><th scope="col" data-i18n="kitWhen">When</th><th scope="col" data-i18n="kitCustomer">Customer</th><th scope="col" data-i18n="kitMethod">Method</th><th scope="col" class="nd-table__num" data-i18n="kitAmount">Amount</th><th scope="col" data-i18n="kitStatus">Status</th><th scope="col"><span class="nd-visually-hidden" data-i18n="kitAction">Action</span></th></tr></thead>
+          <tbody>
+            <tr><td>10:14</td><td>+237 6•• •• 12 45</td><td>MTN MoMo</td><td class="nd-table__num">[XAF]</td><td><span class="nd-pill nd-pill--warning" data-i18n="kitWaiting">Waiting</span></td><td><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-i18n="kitCheckProvider">Check with provider</button></td></tr>
+            <tr><td>09:52</td><td>+237 6•• •• 88 10</td><td>Orange Money</td><td class="nd-table__num">[XAF]</td><td><span class="nd-pill nd-pill--success" data-i18n="kitPaid">Paid</span></td><td></td></tr>
+            <tr><td>09:31</td><td>+237 6•• •• 40 07</td><td>MTN MoMo</td><td class="nd-table__num">[XAF]</td><td><span class="nd-pill nd-pill--danger" data-i18n="kitFailed">Failed</span></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</main>
+<script type="module" src="/ui-kit.js"></script>
+</body>
+</html>
