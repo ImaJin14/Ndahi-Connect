@@ -51,6 +51,9 @@ function applyView(scroll = false) {
   // Page styles key off the current tab (the Home hero on phones). Not
   // data-portal-tab: journeys select the tab links by that attribute.
   document.body.setAttribute("data-current-tab", tab);
+  // #devices shows only the devices section, when this account has one (not on a Home router).
+  const devicesPage = hash === "devices" ? document.getElementById("manageDevices") : null;
+  if (devicesPage) document.body.setAttribute("data-portal-sub", "devices"); else document.body.removeAttribute("data-portal-sub");
   // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
   const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";
   document.body.setAttribute("data-internet-view", internetView);
@@ -69,7 +72,13 @@ function applyView(scroll = false) {
   const headAction = document.getElementById("portalHeadAction");
   if (headAction) headAction.hidden = tab !== "home";
   if (["sessions", "sessionActivity"].includes(hash) && openDetails("sessionActivity")) return;
-  if (hash === "devices" && openDetails("manageDevices")) return;
+  if (devicesPage) {
+    // Devices is its own page here (canvas: PhoneDevices): open it and start at its title.
+    devicesPage.open = true;
+    window.scrollTo(0, 0);
+    document.getElementById("devicesTitle")?.focus({ preventScroll: true });
+    return;
+  }
   if (hash === "redeem" && openDetails("differentCode")) return;
   const section = SECTIONS[hash] && document.getElementById(SECTIONS[hash]);
   if (section && scroll) { section.scrollIntoView({ block: "start" }); return; }

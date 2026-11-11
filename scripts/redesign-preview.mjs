@@ -106,6 +106,9 @@ async function startApi() {
     customer.emailVerifiedAt = new Date(now).toISOString();
     const active = s.vouchers.find((v) => v.status === "active");
     if (active && Number.isFinite(active.quotaBytes)) active.usedBytes = Math.round(active.quotaBytes * 0.36);
+    // One signed-in device for the Devices screen (the bundle allows one).
+    if (active) s.sessions.push({ id: "preview-session", voucherId: active.id, customerId: customer.id, deviceId: "preview-laptop-7f3a9c21b8e4", label: "HP laptop",
+      status: "online", connectedAt: new Date(now - 2 * 36e5).toISOString() });
     s.vouchers.push({ ...structuredClone(active), id: "preview-history", code: "NC-HIST-0001", status: "expired", paymentId: undefined,
       activatedAt: new Date(now - 12 * 864e5).toISOString(), expiresAt: new Date(now - 5 * 864e5).toISOString() });
     // Demo payments for the admin Payments and Cash screens: two waiting (one

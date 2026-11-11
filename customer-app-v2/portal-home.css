@@ -50,21 +50,21 @@
   /* Phones show one product. */
   .home-shop__item + .home-shop__item { display: none; }
   /* Home hero: the forest band continues from the slim header bar. */
-  body[data-current-tab="home"] .portal-head { margin: 0 calc(-1 * var(--nd-space-16)); padding: var(--nd-space-6) var(--nd-space-18) var(--nd-space-18); background: var(--nd-forest); color: var(--nd-on-forest); }
-  body[data-current-tab="home"] .portal-head__title { color: var(--nd-on-forest); }
-  body[data-current-tab="home"] .portal-head .nd-eyebrow { color: var(--nd-lime); }
-  body[data-current-tab="home"] .portal-head__notices > p { color: var(--nd-on-forest-soft); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head { margin: 0 calc(-1 * var(--nd-space-16)); padding: var(--nd-space-6) var(--nd-space-18) var(--nd-space-18); background: var(--nd-forest); color: var(--nd-on-forest); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__title { color: var(--nd-on-forest); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .nd-eyebrow { color: var(--nd-lime); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__notices > p { color: var(--nd-on-forest-soft); }
   /* The design shows a one-line network status in the hero; the banner keeps its
      wording (journeys and customers rely on it) as a compact chip. */
-  body[data-current-tab="home"] .portal-head .network-state-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px var(--nd-space-10); padding: var(--nd-space-10) var(--nd-space-12); border: 0; border-radius: var(--nd-radius-panel); background: rgba(255, 255, 255, 0.08); color: var(--nd-on-forest-soft); }
-  body[data-current-tab="home"] .portal-head .network-banner-indicator { margin-top: 5px; }
-  body[data-current-tab="home"] .portal-head .network-banner-text { display: block; }
-  body[data-current-tab="home"] .portal-head .network-banner-badge { display: block; padding: 0; border-radius: 0; background: transparent; color: var(--nd-white); }
-  body[data-current-tab="home"] .portal-head .network-banner-message { display: block; margin-top: 2px; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); }
-  body[data-current-tab="home"] .portal-head .network-banner-action { grid-column: 2; justify-self: start; color: var(--nd-lime); font-size: var(--nd-fs-meta); font-weight: 700; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-state-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px var(--nd-space-10); padding: var(--nd-space-10) var(--nd-space-12); border: 0; border-radius: var(--nd-radius-panel); background: rgba(255, 255, 255, 0.08); color: var(--nd-on-forest-soft); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-indicator { margin-top: 5px; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-text { display: block; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-badge { display: block; padding: 0; border-radius: 0; background: transparent; color: var(--nd-white); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-message { display: block; margin-top: 2px; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-action { grid-column: 2; justify-self: start; color: var(--nd-lime); font-size: var(--nd-fs-meta); font-weight: 700; }
   /* The bundle card overlaps the hero, but only when nothing (an error or the
      account-setup card) sits between them. */
-  body[data-current-tab="home"] #dashboardMessage:empty + #dashboard { margin: 0 calc(-1 * var(--nd-space-16)); padding: 0 var(--nd-space-16); background: linear-gradient(var(--nd-forest) 54px, transparent 54px); }
+  body[data-current-tab="home"]:not([data-portal-sub]) #dashboardMessage:empty + #dashboard { margin: 0 calc(-1 * var(--nd-space-16)); padding: 0 var(--nd-space-16); background: linear-gradient(var(--nd-forest) 54px, transparent 54px); }
 }
 
 @media (min-width: 768px) {

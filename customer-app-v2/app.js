@@ -5,7 +5,8 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { sessionStore, loadPasskeys, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
-import { wifiDeviceList } from "./wifi-devices.js";
+import { deviceIcon, wifiDeviceList } from "./wifi-devices.js";
+import { devicesAdd, devicesHead, devicesTip, updateDevicesCount } from "./portal-devices.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
@@ -173,7 +174,7 @@ function watchWifiDevices() {
     const target = $("#wifiDeviceList");
     if (!target || target.closest("[hidden]") || !$("#manageDevices")?.open) return;
     if (!document.hidden) {
-      try { target.innerHTML = wifiDeviceList(await call("/api/account/wifi-devices")); }
+      try { const list = await call("/api/account/wifi-devices"); target.innerHTML = wifiDeviceList(list); updateDevicesCount(list); }
       catch (_) {
         const stale = target.querySelector("[data-refresh-error]") || document.createElement("p");
         stale.dataset.refreshError = "true";
@@ -250,7 +251,7 @@ async function load() {
     <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3">${h(t("portalShopTitle", lang))}</h2><a class="nd-section-head__link" href="/dashboard#shop">${h(t("uiTabShop", lang))}</a></div><div class="home-shop__items" id="homeShopItems"></div></section>
     ${homeRecentActivity(result.payments)}
     ${active ? '<div class="full" id="installApp" hidden></div>' : ""}
-    <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
+    <details class="surface full portal-devices" id="manageDevices"><summary>Manage devices</summary><section aria-labelledby="devicesTitle">${devicesHead({ used: hotspot ? (active?.wifiDevices || []).length : active?.activeDevices, limit: active?.deviceLimit })}${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device portal-device">${deviceIcon}<div class="portal-device__main"><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><div class="device-actions"><button type="button" data-session="${h(session.id)}">Disconnect</button></div></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p class="portal-devices__slots">${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${devicesTip({ hotspot, active })}${hotspot ? '<div id="deviceManagement"></div>' : ""}${devicesAdd({ hotspot, active })}</section></details>
 </div>
     ${internetSwitch()}
     ${internetBundle({ result, active, current, canPurchase, dailyNotice })}
