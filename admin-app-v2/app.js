@@ -278,7 +278,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     const panel = document.createElement("section");
     panel.className = "tab-panel admin-store-panel";
     panel.dataset.tabPanel = "store";
-    panel.id = "panel-store";
+    // v2 id: v1's #panel-store rules in styles.css would override the kit look.
+    panel.id = "panel-store-v2";
     panel.setAttribute("aria-labelledby", "adminTitle");
     panel.hidden = !["store", "products", "product"].includes(activeAdminTab);
     $("#app").append(panel);

@@ -438,3 +438,9 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-photos__add input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .admin-store__danger { margin: 0; }
 @media (max-width: 767.98px) { .admin-store__catalogue .nd-input, .admin-store__listhead .nd-input { width: 100%; } }
+.admin-store__bannertext .store-state { padding: 0; background: none; font-size: var(--nd-fs-small); font-weight: 600; }
+.admin-store__bannertext .store-state.is-open { color: var(--nd-success-fg); }
+.admin-store__bannertext .store-setup-note { margin: var(--nd-space-6) 0 0; padding: var(--nd-space-8) var(--nd-space-10); border-radius: var(--nd-radius-sm); background: var(--nd-warning-bg); }
+.admin-store-panel .store-empty { padding: var(--nd-space-18); border: 1px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-sage-strong); }
+.admin-store__listhead .nd-input { flex: 0 1 190px; }
+.admin-store__detail .admin-form, .admin-store__panel .admin-form { margin: 0; }
