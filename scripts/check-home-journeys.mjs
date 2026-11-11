@@ -8,6 +8,7 @@ import {pairingFixture} from "../test/helpers/wifi-pairing-fixture.mjs";
 import {securityKey} from "../test/helpers/customer-security-key.mjs";
 import {hashSecret} from "../lib/security.mjs";
 import {homePilotTemplate} from "../lib/home-pilot.mjs";
+import {uiV2} from "./admin-nav.mjs";
 
 setDefaultResultOrder("ipv4first");
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||"playwright");
@@ -67,7 +68,7 @@ try{
    offline=false;f.advance(65);await f.handler.homeService.run();await page.locator("#refreshHome").click();await page.locator("#homeStatus").getByText(/Router authorization confirmed/).waitFor();checks++;
    await f.store.transaction(s=>{s.adminUsers.push({id:"home-owner",username:"owner",role:"owner",active:true});s.adminSessions.push({id:"home-admin",userId:"home-owner",role:"owner",tokenHash:hashSecret("home-admin","home-admin-fixture"),csrfToken:"admin-csrf",expiresAt:new Date(+f.now()+3600000).toISOString()});});
    await context.addCookies([{name:"admin_session",value:"home-admin",domain:"localhost",path:"/api/admin",httpOnly:true,sameSite:"Lax"}]);
-   await page.goto(admin+"/home-routers.html");await page.locator("#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
+   await page.goto(admin+"/home-routers.html");await page.locator(uiV2?"#homeAdminList tbody tr":"#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
    await page.locator("#homeQueueAge").waitFor();
    await page.route(api+"/api/admin/home/readiness",route=>route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic readiness failure"})}));
    await page.locator("#checkHomeReadiness").focus();await page.keyboard.press("Enter");

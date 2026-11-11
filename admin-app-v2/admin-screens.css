@@ -322,3 +322,19 @@
 .admin-setup #networkSetup > section { padding: var(--nd-space-18) var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
 .admin-setup #networkSetup > section > * + * { margin-top: var(--nd-space-10); }
 .admin-setup__steps > [hidden] { display: none; }
+
+/* ---------- Home routers (canvas: AdminHomeRouters) ---------- */
+.admin-homerouters { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-homerouters > #homeAdminMessage:empty, .admin-homerouters__readiness:empty, .admin-homerouters > #homeDiagnostics:empty { display: none; }
+.admin-homerouters > #homeAdminMessage { margin: 0; }
+.admin-homerouters__readiness h2 { margin: 0 0 var(--nd-space-6); font-size: var(--nd-fs-small); }
+.admin-homerouters__readiness p, .admin-homerouters__readiness ul { margin: 0 0 var(--nd-space-6); font-size: var(--nd-fs-small); }
+.admin-homerouters__list { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-18); }
+.admin-homerouters__manage td { padding-top: 0; }
+.admin-homerouters__note { margin: var(--nd-space-10) 0 0; }
+#homeDiagnostics dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--nd-space-8) var(--nd-space-16); margin: var(--nd-space-12) 0 0; font-size: var(--nd-fs-small); }
+#homeDiagnostics dt { color: var(--nd-muted); }
+#homeDiagnostics dd { margin: 0; font-weight: 700; text-align: right; }
+#homeDiagnostics > p { margin: var(--nd-space-6) 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.admin-homerouters__pilot { display: flex; flex-direction: column; gap: var(--nd-space-12); max-width: 760px; }
+.admin-homerouters__pilot .nd-h2, .admin-homerouters__pilot .nd-meta { margin: 0; }

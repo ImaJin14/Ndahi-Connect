@@ -150,6 +150,28 @@ export function showHomeRouters() {
   if (mounted) renderMenu(activeAdminView());
 }
 
+// Pages outside the dashboard (Home routers) show the same menu, with that
+// page as the current item. `sales` says whether this role sees Cash.
+export function mountStandaloneMenu({ role, current, sales }) {
+  currentRole = role;
+  homeRouters = true;
+  const host = document.getElementById("adminSideMenu");
+  if (!host) return;
+  clear(host).appendChild(renderAdminMenu({
+    current,
+    canAccess: (menu) => (menu === "cash" ? Boolean(sales) : menu === "resellers" ? true : canAccess(menu, role)),
+    hrefs: HREFS,
+    homeHref: "/dashboard#home",
+    badges: {},
+    signOut: false,
+    linkId: (id) => "admin-nav-" + id,
+    lang: currentLanguage(),
+  }));
+  host.querySelectorAll("[data-admin-nav]").forEach((link) => { if (link.dataset.adminNav === current) link.setAttribute("aria-current", "page"); });
+  const side = document.querySelector(".nd-admin-shell__side");
+  if (side) localize(side, currentLanguage());
+}
+
 export function mountAdminNavigation(role, onChanged) {
   currentRole = role;
   changed = onChanged;

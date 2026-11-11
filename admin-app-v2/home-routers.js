@@ -1,5 +1,22 @@
+// Home router connections (v2 canvas: AdminHomeRouters), inside the admin shell.
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+import { mountStandaloneMenu } from "/navigation.js";
 const api = window.NDAHI_CONFIG.apiUrl;
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
+let planNames = new Map();
+// Page text in the admin's language.
+[["#adminEyebrow", "adminHomeEyebrow"], ["#adminTitle", "adminTitleHomeRouters"], ["#refreshHomeAdmin", "adminRefresh"], ["#checkHomeReadiness", "adminCheckReadiness"],
+  ["#homePilotTitle", "adminPilotTitle"], ["#homePilotLede", "adminPilotLede"], ["#homePilotFileLabel", "adminPilotFile"], ["#homePilotReasonLabel", "adminAuditReason"],
+  ["#downloadHomePilotTemplate", "adminPilotTemplate"], ["#homePilotSubmit", "adminPilotSubmit"]].forEach(([selector, key]) => { const el = document.querySelector(selector); if (el) el.textContent = L(key); });
+document.querySelector("#homeAdminList").setAttribute("aria-label", L("adminLinkedRouters"));
+document.querySelector("#homeDiagnostics").setAttribute("aria-label", L("adminHomeOperations"));
+document.querySelector("#logout").onclick = async () => {
+  try { await fetch(api + "/api/admin/logout", { method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(csrf ? { "x-csrf-token": csrf } : {}) } }); }
+  finally { location.href = "/login"; }
+};
 const output = document.querySelector("#homeAdminMessage"), list = document.querySelector("#homeAdminList");
 let csrf;
 async function call(path, input) {
@@ -18,7 +35,7 @@ const pilotStatus = value => value === "reported_pass" ? "Reported pass; evidenc
 function diagnostics(info) {
   const d = info.diagnostics;
   if (!d) return;
-  document.querySelector("#homeDiagnostics").innerHTML = `<h2>Home operations</h2>
+  document.querySelector("#homeDiagnostics").innerHTML = `<h2 class="nd-h2">${h(L("adminHomeOperations"))}</h2>
     <p>Observed ${h(d.observedAt)}. Configuration checks and reported trials do not certify a router model or enable Home.</p>
     <dl class="profile-facts">
       <dt>Active households</dt><dd>${h(d.activeHouseholds)}</dd>
@@ -37,14 +54,21 @@ async function refresh() {
   const reasons = new Map(Array.from(list.querySelectorAll("[data-reason]"), el => [el.dataset.reason, el.value]));
   const info = await call("/api/admin/home");
   diagnostics(info);
-  list.innerHTML = info.households.map(row => `<section class="surface"><h2>${h(row.name)} · ${h(row.link?.name || "No current link")}</h2>
-    <p>Identifier …${h(row.link?.identifierSuffix || "—")} · ${h(row.accessMode)}</p>
-    <p>${h(row.bundle?.status || "No bundle")} · ${h(row.bundle?.authorization || "pending")}</p>
-    <p>Recorded usage: ${h(row.bundle?.usedBytes ?? "—")} bytes · updated ${h(row.bundle?.lastUpdatedAt || "unavailable")}</p>
-    ${row.operations.map(o => `<p>${h(o.kind)} · ${h(o.status)} · ${h(o.code || "")}</p>${["retry", "needs_review"].includes(o.status)
-      ? `<button data-customer="${h(row.customerId)}" data-retry="${h(o.id)}">Retry safely</button>` : ""}`).join("")}
-    <label>Audit reason<input data-reason="${h(row.customerId)}" maxlength="300" required></label>
-    <button data-customer="${h(row.customerId)}" data-revoke>Revoke household connection</button></section>`).join("") || "<p>No household links.</p>";
+  const status = (row) => {
+    if (row.operations.some((o) => o.code === "HOME_ACCOUNTING_REVIEW")) return ["adminHomeUsageReview", "danger"];
+    if (row.operations.some((o) => ["pending", "retry", "needs_review"].includes(o.status)) || row.bundle?.transition) return ["adminHomeChanging", "warning"];
+    if (["authorized", "synced", "active"].includes(row.bundle?.authorization)) return ["adminHomeAuthorized", "success"];
+    return [null, ""];
+  };
+  list.innerHTML = info.households.length ? `<div class="nd-table-wrap"><table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColRouter"))}</th><th scope="col">${h(L("adminColMode"))}</th><th scope="col">${h(L("adminFieldBundle"))}</th><th scope="col">${h(L("adminColStatus"))}</th><th scope="col">${h(L("adminColLinked"))}</th></tr></thead><tbody>${info.households.map((row) => {
+    const [label, tone] = status(row);
+    const linked = row.link?.verifiedAt ? new Date(row.link.verifiedAt).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: "Africa/Douala" }) : "—";
+    return `<tr><td><strong>${h(row.name)}</strong></td><td>${h(row.link?.name || L("adminNoCurrentLink"))}<span class="admin-cell__sub">…${h(row.link?.identifierSuffix || "—")}</span></td><td>${h(L(row.accessMode === "home" ? "adminModeHome" : "adminModeDirect"))}</td><td>${h(row.bundle ? planNames.get(row.bundle.planId) || row.bundle.planId : L("adminFieldNone"))}${row.bundle ? `<span class="admin-cell__sub">${h(row.bundle.status)} · ${h(L("adminUsedBytes", { bytes: row.bundle.usedBytes ?? "—" }))}</span>` : ""}</td><td><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(label ? L(label) : row.bundle?.authorization || "pending")}</span></td><td>${h(linked)}</td></tr>
+    <tr class="admin-homerouters__manage"><td colspan="6"><details class="admin-options"><summary>${h(L("adminManageHousehold", { name: row.name }))}</summary><div class="admin-options__body">
+    ${row.operations.map((o) => `<p class="nd-meta">${h(o.kind)} · ${h(o.status)}${o.message ? " · " + h(o.message) : ""}${o.code ? " · " + h(o.code) : ""}</p>${["retry", "needs_review"].includes(o.status) ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-customer="${h(row.customerId)}" data-retry="${h(o.id)}">${h(L("adminRetrySafely"))}</button>` : ""}`).join("")}
+    <label class="nd-field"><span class="nd-label">${h(L("adminAuditReason"))}</span><input class="nd-input" data-reason="${h(row.customerId)}" maxlength="300" required></label>
+    <button type="button" class="nd-btn nd-btn--compact nd-btn--secondary admin-btn--danger" data-customer="${h(row.customerId)}" data-revoke>${h(L("adminRevokeHousehold"))}</button></div></details></td></tr>`;
+  }).join("")}</tbody></table></div><p class="nd-meta admin-homerouters__note">${h(L("adminHomeReviewNote"))}</p>` : `<p class="nd-meta">${h(L("adminNoHouseholds"))}</p>`;
   for (const input of list.querySelectorAll("[data-reason]")) input.value = reasons.get(input.dataset.reason) || "";
   for (const button of list.querySelectorAll("button")) button.onclick = async () => {
     button.disabled = true;
@@ -70,7 +94,7 @@ document.querySelector("#checkHomeReadiness").onclick = async event => {
   event.currentTarget.disabled = true;
   try {
     const report = await call("/api/admin/home/readiness");
-    document.querySelector("#homeReadiness").innerHTML = `<h2>Readiness checks</h2><p>Home: ${report.enabled ? "enabled" : "disabled"} · Database indexes: ${h(report.database.status)} · Gateway configuration: ${h(report.gateway.status)}</p>
+    document.querySelector("#homeReadiness").innerHTML = `<h2 class="nd-callout__title">Readiness checks</h2><p>Home: ${report.enabled ? "enabled" : "disabled"} · Database indexes: ${h(report.database.status)} · Gateway configuration: ${h(report.gateway.status)}</p>
       <p>Native router, traffic, captive portal and provider acceptance: pending independent physical evidence. These checks make no router changes.</p>
       <ul>${(report.database.checks || []).map(check => `<li>${h(check.id)}: ${h(check.status)} ${h(check.reasons?.join(", ") || "")}</li>`).join("")}
       ${(report.gateway.checks || []).map(check => `<li>${h(check.id.replaceAll("_", " "))}: ${h(check.status)}</li>`).join("")}</ul>`;
@@ -99,4 +123,12 @@ document.querySelector("#homePilotImport").onsubmit = async event => {
   } catch (error) { output.textContent = error.message; }
   finally { button.disabled = false; }
 };
-(async () => { try { csrf = (await call("/api/admin/dashboard")).csrfToken; await refresh(); } catch (error) { output.textContent = error.message; } })();
+(async () => {
+  try {
+    const x = await call("/api/admin/dashboard");
+    csrf = x.csrfToken;
+    planNames = new Map((x.bundles || []).map((plan) => [plan.id, plan.name]));
+    mountStandaloneMenu({ role: x.profile?.role, current: "homerouters", sales: Boolean(x.sales) });
+    await refresh();
+  } catch (error) { output.textContent = error.message; }
+})();
