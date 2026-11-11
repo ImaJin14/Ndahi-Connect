@@ -56,3 +56,9 @@ test("device records name their customer", () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].customerName, "Amina");
 });
+
+test("audit entries filter by the area of their action", () => {
+  const auditLogs = [{ id: "a1", action: "voucher.revoked" }, { id: "a2", action: "payment.refund_requested" }, { id: "a3", action: "voucher.printed" }];
+  const { items } = queryRecords({ ...state(), auditLogs }, { collection: "audit", status: "voucher" });
+  assert.deepEqual(items.map((a) => a.id), ["a1", "a3"]);
+});

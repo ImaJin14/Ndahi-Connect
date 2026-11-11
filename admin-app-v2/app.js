@@ -4,6 +4,7 @@ import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
 import { bundleCards, showBundleEdit } from "/bundles.js";
 import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
+import { exportAudit, mountAuditRecords } from "/audit.js";
 import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
@@ -177,7 +178,8 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
   const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
-  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button><div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  $("#auditExport").onclick = () => runAction($("#auditExport"), L("adminExporting"), () => exportAudit(call));
   const paymentsExport = $("[data-payments-export]");
   if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
@@ -258,7 +260,7 @@ ${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTo
 <h3 class="nd-h3">${h(L("adminReconTitle"))}</h3><p class="nd-meta">${h(L(x.paymentReconciliation?.enabled ? "adminReconOn" : "adminReconOff"))}</p>${x.paymentReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColFindings"))}</th><th scope="col">${h(L("adminColChecked"))}</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminReconNone"))}</p>`}
 <h3 class="nd-h3">${h(L("adminWebhooksTitle"))}</h3><p class="nd-meta">${h(L("adminWebhooksCount", { pending: x.paymentWebhooks?.pending || 0, review: x.paymentWebhooks?.deadLetters || 0 }))}</p>${x.paymentWebhooks?.events?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColStatus"))}</th><th scope="col">${h(L("adminColAttempts"))}</th><th scope="col">${h(L("adminColReason"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminColAction"))}</span></th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-replay-webhook="${h(event.id)}">${h(L("adminReplay"))}</button>` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminWebhooksNone"))}</p>`}</section></section>
 ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelledby="adminTitle" data-tab-panel="cash" ${activeAdminTab === "cash" ? "" : "hidden"}><div id="cashCollectedReport"></div></section>` : ""}
-<section class="card tab-panel" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
+<section class="tab-panel admin-audit" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><section class="nd-panel admin-audit__list" aria-label="${h(L("adminAuditEntries"))}"><div id="auditRecords"></div></section><details class="admin-options admin-legacy"><summary>${h(L("adminSecurityEvents"))}</summary><p class="nd-meta">${h(L("adminSecurityEventsNote"))}</p><div id="securityRecords"></div></details></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
     if (table.closest(".table-scroll, .nd-table-wrap")) continue;
     const wrapper = document.createElement("div");
@@ -475,13 +477,7 @@ function mountRecordViews(canManagePayments, retired) {
   }
   voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
   void mountPaymentRecords($("#paymentRecords"), { call, canManagePayments });
-  void mountRecords($("#auditRecords"), {
-    call,
-    collection: "audit",
-    title: "Administrator actions",
-    headers: ["Time", "Action", "Actor", "IP"],
-    row: (a) => `<tr><td>${date(a.at)}</td><td>${h(a.action)}</td><td>${h(a.actor)}</td><td>${h(a.ip)}</td></tr>`,
-  });
+  void mountAuditRecords($("#auditRecords"), { call });
   void mountRecords($("#securityRecords"), {
     call,
     collection: "security",

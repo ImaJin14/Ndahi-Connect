@@ -257,3 +257,8 @@
 .admin-passkeys__list li { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); }
 .admin-passkeys__list li:last-child { border-bottom: 0; }
 .admin-passkeys__list:empty { display: none; }
+
+/* ---------- Audit log (canvas: AdminAudit) ---------- */
+.admin-audit { display: flex; flex-direction: column; gap: var(--nd-space-20); }
+.admin-audit__list { padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-18); }
+.admin-audit__list .records-toolbar--kit { flex-direction: row-reverse; justify-content: flex-end; }

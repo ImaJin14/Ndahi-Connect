@@ -275,6 +275,29 @@ try {
     await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
     await page.getByRole("button", { name: "Add passkey", exact: true }).waitFor();
   }, { width });
+  // Redesigned Audit log (v2 only; canvas: AdminAudit).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Audit log words actions and filters by area at ${width}px`, async (page) => {
+    await store.transaction((s) => {
+      s.auditLogs.unshift(
+        { id: "audit-1", action: "voucher.revoked", actor: "fixture-owner", ip: "127.0.0.1", meta: { voucherId: "v1" }, at: now.toISOString() },
+        { id: "audit-2", action: "payment.refund_requested", actor: "fixture-operator", ip: "127.0.0.1", meta: { paymentId: "p1" }, at: now.toISOString() },
+      );
+    });
+    await page.goto(`${admin}/dashboard#audit`);
+    await page.getByRole("heading", { name: "Audit log.", exact: true }).waitFor();
+    const rows = page.locator("#auditRecords tbody tr");
+    await rows.filter({ hasText: "Revoked a voucher" }).waitFor();
+    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /fixture-owner[\s\S]*Revoked a voucher[\s\S]*v1/);
+    await page.getByRole("button", { name: "Money", exact: true }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll("#auditRecords tbody tr")].every((row) => !row.textContent.includes("Revoked a voucher")));
+    await rows.filter({ hasText: "Approved a full refund" }).waitFor();
+    const csv = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    assert.match((await csv).suggestedFilename(), /^ndahi-audit-\d{4}-\d{2}-\d{2}\.csv$/);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/audit-${width}.png`, fullPage: true });
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;

@@ -29,7 +29,7 @@ const VIEWS = {
   // #customer/<id>; app.js puts the customer's name in the title.
   customer: { menu: "customers", panels: ["customer"], title: "adminTitleCustomer", back: { href: "/dashboard#customers", label: "adminTitleCustomersShort" } },
   resellers: { menu: "resellers", panels: ["resellers"], title: "adminTitleResellers", group: "uiAdminGroupPeople" },
-  audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem" },
+  audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem", lede: "adminAuditLede" },
   profile: { menu: "profile", panels: ["profile"], title: "adminTitleProfile", group: "uiAdminGroupSystem" },
 };
 const ALIASES = { more: "profile", "voucher-create": "vouchers", setup: "network-setup" };
