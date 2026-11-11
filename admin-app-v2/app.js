@@ -1,4 +1,5 @@
 import { mountCashCollectedReport } from "/cash-collected.js";
+import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -22,10 +23,6 @@ const api = window.NDAHI_CONFIG.apiUrl,
 let bundleIndex = new Map();
 const saleLabel = (v) => v.paymentId ? "Online" : v.saleType === "sold" ? "Sold" : v.saleType === "gift" ? "Gift" : v.generatedByAdmin ? "Unclassified" : "—";
 const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
-// Operational sale counts are separate from provider-reported net settlements.
-function revenueSummary(sales) {
-  return sales ? `<div id="cashCollectedReport"></div>` : "";
-}
 let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
@@ -92,20 +89,16 @@ async function runAction(button, text, task, message = "#actionMessage") {
   }
 }
 const L = (key, values) => format(key, values || {}, currentLanguage());
-const maskPhone = (phone) => { const digits = String(phone || "").replace(/\D/g, "").slice(-9); return digits.length === 9 ? `${digits[0]}•• •• ${digits.slice(5, 7)} ${digits.slice(7)}` : "—"; };
-const PAYMENT_TONES = { paid: ["adminStatusPaid", "success"], pending: ["adminStatusWaiting", "warning"], processing: ["adminStatusWaiting", "warning"], refunded: ["adminStatusRefunded", ""], "refund-pending": ["adminStatusRefunded", ""] };
-const METHODS = { mtn: "MTN MoMo", orange: "Orange Money" };
-const paymentMethod = (p) => p.methodLabel || METHODS[p.network] || METHODS[p.provider] || (p.provider === "mock" ? L("adminMethodTest") : "Mobile Money");
 
 // Needs attention: only real signals, each linking to where it is handled.
-async function loadHomeAttention(x, storeRole, contacts) {
+async function loadHomeAttention(x, storeSnapshot, contacts) {
   const host = $("#homeAttention");
   if (!host) return;
   // Tones follow the canvas: waiting money orange, orders blue, stock neutral, failures red.
   const items = [], item = (href, text, tone) => items.push(`<a class="admin-attention admin-attention--${tone}" href="${href}">${h(text)}<span aria-hidden="true">→</span></a>`);
   const [pending, store] = await Promise.all([
     contacts ? call("/api/admin/records?collection=payments&status=pending&pageSize=50").catch(() => null) : null,
-    storeRole ? call("/api/admin/store").catch(() => null) : null,
+    storeSnapshot,
   ]);
   const late = (pending?.items || []).filter((p) => Date.now() - Date.parse(p.createdAt) > 10 * 60000).length;
   if (late) item("/dashboard#payments", late === 1 ? L("adminAttentionPaymentsOne") : L("adminAttentionPayments", { count: late }), "warning");
@@ -133,10 +126,7 @@ async function loadHomePayments() {
   if (!host) return;
   const result = await call("/api/admin/records?collection=payments&pageSize=4").catch(() => null);
   if (!result) { host.closest("section").hidden = true; return; }
-  host.innerHTML = result.items.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColFor"))}</th><th scope="col">${h(L("adminColMethod"))}</th><th scope="col">${h(L("adminColStatus"))}</th></tr></thead><tbody>${result.items.map((p) => {
-    const [key, tone] = PAYMENT_TONES[p.status] || ["adminStatusFailed", "danger"], plan = p.planSnapshot?.name || p.plan?.name;
-    return `<tr><td>${h(maskPhone(p.payerPhone))}</td><td>${h(plan ? L("adminForBundle", { plan }) : L("adminForPayment"))}</td><td>${h(paymentMethod(p))}</td><td><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L(key))}</span></td></tr>`;
-  }).join("")}</tbody></table>` : `<p class="nd-meta">${h(L("adminNoPayments"))}</p>`;
+  host.innerHTML = result.items.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColFor"))}</th><th scope="col">${h(L("adminColMethod"))}</th><th scope="col">${h(L("adminColStatus"))}</th></tr></thead><tbody>${result.items.map((p) => `<tr><td>${h(maskPhone(p.payerPhone))}</td><td>${h(paymentFor(p))}</td><td>${h(paymentMethod(p))}</td><td>${paymentStatus(p)}</td></tr>`).join("")}</tbody></table>` : `<p class="nd-meta">${h(L("adminNoPayments"))}</p>`;
 }
 
 async function load() {
@@ -155,7 +145,9 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
   const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
-  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}`;
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  const paymentsExport = $("[data-payments-export]");
+  if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
 <section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">
@@ -203,10 +195,19 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
 <section class="card tab-panel" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
 <section class="card tab-panel" id="panel-vouchers" aria-labelledby="adminTitle" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
-<section class="card tab-panel" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
+<section class="tab-panel admin-payments" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}>${access.contacts ? `<div class="nd-metrics admin-payments__metrics">
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayBundles">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayBundles"))}</span></div>
+${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayStore">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayStore"))}</span></div>` : ""}
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsWaiting">—</b><span class="nd-metric__label">${h(L("adminPaymentsWaiting"))}</span></div>
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsFailedToday">—</b><span class="nd-metric__label">${h(L("adminPaymentsFailedToday"))}</span></div></div>` : ""}
+<section class="nd-panel" aria-labelledby="paymentRecordsTitle"><div id="paymentRecords"></div></section>
+<section class="nd-panel admin-payments__checks" aria-labelledby="paymentChecksTitle"><h2 class="nd-h2" id="paymentChecksTitle">${h(L("adminChecksTitle"))}</h2>
+<h3 class="nd-h3">${h(L("adminReconTitle"))}</h3><p class="nd-meta">${h(L(x.paymentReconciliation?.enabled ? "adminReconOn" : "adminReconOff"))}</p>${x.paymentReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColFindings"))}</th><th scope="col">${h(L("adminColChecked"))}</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminReconNone"))}</p>`}
+<h3 class="nd-h3">${h(L("adminWebhooksTitle"))}</h3><p class="nd-meta">${h(L("adminWebhooksCount", { pending: x.paymentWebhooks?.pending || 0, review: x.paymentWebhooks?.deadLetters || 0 }))}</p>${x.paymentWebhooks?.events?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColStatus"))}</th><th scope="col">${h(L("adminColAttempts"))}</th><th scope="col">${h(L("adminColReason"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminColAction"))}</span></th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-replay-webhook="${h(event.id)}">${h(L("adminReplay"))}</button>` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminWebhooksNone"))}</p>`}</section></section>
+${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelledby="adminTitle" data-tab-panel="cash" ${activeAdminTab === "cash" ? "" : "hidden"}><div id="cashCollectedReport"></div></section>` : ""}
 <section class="card tab-panel" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
-    if (table.closest(".table-scroll")) continue;
+    if (table.closest(".table-scroll, .nd-table-wrap")) continue;
     const wrapper = document.createElement("div");
     wrapper.className = "table-scroll";
     table.before(wrapper); wrapper.append(table);
@@ -222,11 +223,14 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     $("#app").append(panel);
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
   }
-  if (x.sales) mountCashCollectedReport(x.cashCollected);
+  if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
   mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
-  void loadHomeAttention(x, storeRole, access.contacts);
+  // Home and Payments both read the store's orders; fetch them once.
+  const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
+  void loadHomeAttention(x, storeSnapshot, access.contacts);
   void loadHomePayments();
+  if (access.contacts) void loadPaymentFigures({ call, storeRole, storeSnapshot });
   mountAdminInstall($("#adminInstall"));
   renderWifiSummary(x.wifi);
   $("#refreshWifi").onclick = async (event) => {
@@ -425,21 +429,7 @@ function mountRecordViews(canManagePayments, retired) {
       v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => ` <button class="secondary-action" data-classify="${h(v.id)}" data-sale-type="${type}">Mark ${type === "sold" ? "sold" : "gift"}</button>`).join("") : ""
     }</td></tr>`,
   });
-  void mountRecords($("#paymentRecords"), {
-    call,
-    collection: "payments",
-    title: "Payments",
-    headers: ["Amount", "Provider", "Reference", "Status", "Created", "Actions"],
-    row: (p) => `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${date(p.createdAt)}</td><td>${
-      p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments
-        ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
-        : ""
-    }${["paid", "refund-pending"].includes(p.status) && p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Check refund status</button>` : ""}${
-      canManagePayments && p.provider !== "mock" && !p.confirmedAt && !p.refund && ["pending", "processing", "failed", "expired", "cancelled"].includes(p.status)
-        ? ` <button class="secondary-action" data-verify-payment="${h(p.id)}">Check provider</button>`
-        : ""
-    }</td></tr>`,
-  });
+  void mountPaymentRecords($("#paymentRecords"), { call, canManagePayments });
   void mountRecords($("#auditRecords"), {
     call,
     collection: "audit",

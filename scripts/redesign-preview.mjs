@@ -26,6 +26,7 @@ import { createStaticServer } from "../static-server.mjs";
 import { MockEmailAdapter } from "../lib/email.mjs";
 import { publishInitialStoreCatalogue } from "../lib/initial-store-catalogue.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { plans as PLANS } from "../lib/api/state.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const screensDir = join(root, "docs/redesign/screens");
@@ -48,7 +49,7 @@ export const SCREENS = [
   // Admin artboards are desktop (1280px) only.
   ...[
     ["admin-login", "Sign in", "AdminLogin", "/login", "Restyle pending (today's sign-in method stays until Phase 6)"],
-    ["admin-home", "Home", "Admin", "/dashboard#home"],
+    ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned"],
     ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices"],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections"],
     ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html"],
@@ -57,11 +58,11 @@ export const SCREENS = [
     ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles"],
     ["admin-vouchers", "Vouchers", "AdminVouchers", "/dashboard#vouchers"],
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers"],
-    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments"],
+    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned"],
     ["admin-store", "Store orders", "AdminStore", "/dashboard#store"],
     ["admin-products", "Products", "AdminProducts", "/dashboard#products"],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products"],
-    ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash"],
+    ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)"],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers"],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers"],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers"],
@@ -107,6 +108,26 @@ async function startApi() {
     if (active && Number.isFinite(active.quotaBytes)) active.usedBytes = Math.round(active.quotaBytes * 0.36);
     s.vouchers.push({ ...structuredClone(active), id: "preview-history", code: "NC-HIST-0001", status: "expired", paymentId: undefined,
       activatedAt: new Date(now - 12 * 864e5).toISOString(), expiresAt: new Date(now - 5 * 864e5).toISOString() });
+    // Demo payments for the admin Payments and Cash screens: two waiting (one
+    // over 10 minutes), gateway-confirmed sales this month, one failed today
+    // and one expired yesterday. Gateway references are made up; no provider is called.
+    const base = s.payments[0], plans = [...PLANS, ...s.bundles].filter((plan) => plan.price > 0);
+    const demoPayment = (id, minutes, planIndex, phone, network, extra) => {
+      const plan = plans[planIndex % (plans.length || 1)];
+      const snapshot = plan ? { ...base.planSnapshot, id: plan.id, name: plan.name, price: plan.price } : base.planSnapshot;
+      return { ...structuredClone(base), id, planId: snapshot.id, planSnapshot: snapshot, amount: snapshot.price, payerPhone: phone, network, provider: "mesomb",
+        providerReference: `PREVIEW-${id.toUpperCase()}`, createdAt: new Date(now - minutes * 60000).toISOString(), confirmedAt: null, receipt: undefined, refund: undefined, ...extra };
+    };
+    const confirmed = (minutes) => ({ status: "paid", confirmedAt: new Date(now - (minutes - 1) * 60000).toISOString() });
+    s.payments.push(
+      demoPayment("wait-1", 4, 1, "237670121245", "mtn", { status: "pending" }),
+      demoPayment("wait-2", 17, 0, "237690337731", "orange", { status: "pending" }),
+      demoPayment("paid-1", 46, 2, "237670884019", "mtn", confirmed(46)),
+      demoPayment("paid-2", 130, 1, "237650220366", "orange", confirmed(130)),
+      demoPayment("failed-1", 190, 1, "237690550366", "orange", { status: "failed" }),
+      demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
+      demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
+    );
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) product.price = DEMO_PRICES[product.sku];
     s.storeSettings.open = true;
     // Demo staff with ready sessions (as the admin journeys do); the preview's

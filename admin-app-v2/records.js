@@ -3,10 +3,34 @@ import { mountVoucherDetails } from "/voucher-details.js";
 
 // Paginated, server-filtered record table (PERF-003). Rows are rendered by the
 // caller; action buttons keep using the dashboard's delegated click handler.
-export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0 }) {
-  const state = { page: 1, q: "", status: "", from: "", to: "" };
+// v1 wording, used unless a redesigned list passes its own (localized) text.
+const TEXT = {
+  loading: "Loading records…",
+  failed: "Records could not be loaded.",
+  retry: "Try again",
+  none: "No matching records",
+  summary: (page, pages, total) => `Page ${page} of ${pages} · ${total} total`,
+};
+
+// The redesigned list (admin-app-v2 screens built from the canvas): kit classes,
+// a heading for the screen's section, and status chips in place of the select.
+// kit = { titleId, searchLabel, placeholder, chips: [[status, label]], chipsLabel,
+//         previous, next, text }. A header given as { label } is visually hidden.
+function kitMarkup(title, headers, kit) {
+  const chips = (kit.chips || []).map(([value, label], index) => `<button type="button" class="nd-chip${index ? "" : " active"}" aria-pressed="${index ? "false" : "true"}" data-status-chip="${h(value)}">${h(label)}</button>`).join("");
+  const head = (name) => `<th scope="col">${typeof name === "string" ? h(name) : `<span class="nd-visually-hidden">${h(name.label)}</span>`}</th>`;
+  return `<div class="nd-panel__head records-toolbar records-toolbar--kit"><h2 class="nd-h2" id="${h(kit.titleId)}">${h(title)}</h2><form class="records-filter records-filter--kit" role="search">
+  <input class="nd-input nd-input--sm" type="search" name="q" aria-label="${h(kit.searchLabel)}" placeholder="${h(kit.placeholder)}" maxlength="100">
+  <select class="nd-input nd-input--sm" name="status" aria-label="${h(kit.chipsLabel)}" hidden><option value="">—</option></select>
+  ${chips ? `<div class="nd-chips" role="group" aria-label="${h(kit.chipsLabel)}">${chips}</div>` : ""}
+</form></div><div class="nd-table-wrap"><table class="nd-table"><thead><tr>${headers.map(head).join("")}</tr></thead><tbody></tbody></table></div>
+<nav class="records-pager" aria-label="${h(title)}"><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="prev">${h(kit.previous)}</button><span role="status" aria-live="polite"></span><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="next">${h(kit.next)}</button></nav>`;
+}
+
+export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null }) {
+  const state = { page: 1, q: "", status: "", from: "", to: "" }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
-  container.innerHTML = `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
+  container.innerHTML = kit ? kitMarkup(title, headers, kit) : `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
   <input type="search" name="q" aria-label="Search ${h(title.toLowerCase())}" placeholder="Search" maxlength="100">
   <select name="status" aria-label="Filter ${h(title.toLowerCase())} by status" hidden><option value="">All statuses</option></select>
   ${collection === "vouchers" ? '<div class="filter-chips" role="group" aria-label="Voucher status filter"><button type="button" class="filter-chip active" data-status-chip="">All</button><button type="button" class="filter-chip" data-status-chip="active">Active</button><button type="button" class="filter-chip" data-status-chip="expired">Expired</button><button type="button" class="filter-chip" data-status-chip="revoked">Revoked</button></div>' : ""}
@@ -24,9 +48,9 @@ export function mountRecords(container, { call, collection, title, headers, row,
   function showLoading() {
     container.setAttribute("aria-busy", "true");
     previous.disabled = next.disabled = true;
-    summary.textContent = "Loading records…";
+    summary.textContent = say.loading;
     details?.clear();
-    body.innerHTML = `<tr><td colspan="${headers.length}">Loading records…</td></tr>`;
+    body.innerHTML = `<tr><td colspan="${headers.length}">${h(say.loading)}</td></tr>`;
   }
   async function load(background = false) {
     const current = ++request,
@@ -37,27 +61,25 @@ export function mountRecords(container, { call, collection, title, headers, row,
       if (current !== request || !container.isConnected) return;
       if (status.options.length === 1 && result.statuses.length) {
         status.insertAdjacentHTML("beforeend", result.statuses.map((value) => `<option value="${h(value)}">${h(value.replaceAll("_", " "))}</option>`).join(""));
-        status.hidden = false;
+        status.hidden = Boolean(kit && kit.chips);
       }
       state.page = result.page;
       if (details) details.render(body, result.items, row, result.scopeKey);
       else body.innerHTML = result.items.length ? result.items.map(row).join("") : "";
       if (!result.items.length) body.innerHTML = `<tr><td colspan="${headers.length}">${h(empty)}</td></tr>`;
-      summary.textContent = result.total
-        ? `Page ${result.page} of ${result.pages} · ${result.total} total`
-        : "No matching records";
+      summary.textContent = result.total ? say.summary(result.page, result.pages, result.total) : say.none;
       previous.disabled = result.page <= 1;
       next.disabled = result.page >= result.pages;
       loaded = true;
     } catch (error) {
       if (current !== request || !container.isConnected) return;
       details?.clear();
-      if (!background || !loaded || details) body.innerHTML = `<tr><td colspan="${headers.length}">Records could not be loaded.</td></tr>`;
+      if (!background || !loaded || details) body.innerHTML = `<tr><td colspan="${headers.length}">${h(say.failed)}</td></tr>`;
       summary.textContent = error.message || "Please try again.";
       const retry = document.createElement("button");
       retry.type = "button";
-      retry.className = "secondary-action";
-      retry.textContent = "Try again";
+      retry.className = kit ? "nd-btn nd-btn--sm nd-btn--secondary" : "secondary-action";
+      retry.textContent = say.retry;
       retry.onclick = () => void load();
       summary.append(" ", retry);
     } finally {
@@ -81,7 +103,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
   chips.forEach((chip) => {
     chip.onclick = () => {
       clearTimeout(timer);
-      chips.forEach((c) => c.classList.toggle("active", c === chip));
+      chips.forEach((c) => { c.classList.toggle("active", c === chip); c.setAttribute("aria-pressed", String(c === chip)); });
       state.status = chip.dataset.statusChip || "";
       if (status) status.value = state.status;
       state.page = 1;
@@ -91,7 +113,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
   status.onchange = () => {
     clearTimeout(timer);
     state.status = status.value;
-    chips.forEach((c) => c.classList.toggle("active", (c.dataset.statusChip || "") === state.status));
+    chips.forEach((c) => { const on = (c.dataset.statusChip || "") === state.status; c.classList.toggle("active", on); c.setAttribute("aria-pressed", String(on)); });
     state.page = 1;
     void load();
   };

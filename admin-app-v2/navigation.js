@@ -20,7 +20,7 @@ const VIEWS = {
   payments: { menu: "payments", panels: ["payments"], title: "adminTitlePayments", group: "uiAdminGroupSales" },
   store: { menu: "store", panels: ["store"], title: "adminTitleStore", group: "adminGroupStore" },
   products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
-  cash: { menu: "cash", panels: ["payments"], section: "cashCollectedReport", title: "adminTitleCash", group: "uiAdminGroupSales" },
+  cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
   resellers: { menu: "resellers", panels: ["vouchers"], section: "resellerLedger", title: "adminTitleResellers", group: "uiAdminGroupPeople" },
   audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem" },

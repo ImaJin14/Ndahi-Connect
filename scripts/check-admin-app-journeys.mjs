@@ -65,6 +65,59 @@ try {
     await page.locator('[data-admin-nav="payments"][aria-current]').waitFor();
     assert.equal(await page.getByRole("link", { name: "Print vouchers", exact: true }).count(), 0, "head actions belong to Home");
   }, { width });
+  // Redesigned Payments and Cash (v2 only; canvas: AdminPayments, AdminCash).
+  // "Today" is read in the browser (Africa/Douala), so these payments are dated from the real clock.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Payments and Cash show today's figures, filters and exports at ${width}px`, async (page) => {
+    const real = Date.now(), today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
+    const recent = Math.max(today + 1000, real - 60000);
+    const payment = (id, status, createdAt, amount, extra = {}) => ({ id, status, createdAt: at(createdAt), amount, currency: "XAF", provider: "mesomb", network: "mtn",
+      payerPhone: "670042011", providerReference: `REF-${id.toUpperCase()}`, planId: "weekly", planSnapshot: { id: "weekly", name: "Weekly", price: amount }, ...extra });
+    await store.transaction((s) => {
+      s.payments.unshift(
+        payment("paid", "paid", recent, 3000, { confirmedAt: at(recent) }),
+        payment("failed", "failed", recent - 1, 1000),
+        payment("waitnew", "pending", recent - 2, 1000),
+        payment("waitold", "pending", real - 20 * 60000, 1000),
+        payment("paidold", "paid", today - 3 * 3600000, 250, { confirmedAt: at(today - 3 * 3600000) }),
+      );
+    });
+    await page.goto(`${admin}/dashboard#payments`);
+    await page.getByRole("heading", { name: "Payments and revenue.", exact: true }).waitFor();
+    await page.waitForFunction(() => document.getElementById("paymentsTodayBundles").textContent !== "—");
+    assert.deepEqual(await page.locator("#paymentsTodayBundles, #paymentsTodayStore, #paymentsWaiting, #paymentsFailedToday").allTextContents(), ["3,000 FCFA", "0 FCFA", "1", "1"]);
+    const rows = page.locator("#paymentRecords tbody tr");
+    await page.getByRole("heading", { name: "All payments", exact: true }).waitFor();
+    await rows.filter({ hasText: "REF-PAIDOLD" }).waitFor();
+    assert.equal(await rows.count(), 5);
+    await page.getByRole("button", { name: "Waiting", exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll("#paymentRecords tbody tr").length === 2);
+    assert.equal(await page.getByRole("button", { name: "Waiting", exact: true }).getAttribute("aria-pressed"), "true");
+    assert.equal(await rows.getByRole("button", { name: "Check with provider", exact: true }).count(), 2);
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Search payments", exact: true }).fill("REF-PAIDOLD");
+    await page.waitForFunction(() => document.querySelectorAll("#paymentRecords tbody tr").length === 1);
+    await rows.getByRole("button", { name: "Approve full refund", exact: true }).waitFor();
+    const csv = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    assert.equal((await csv).suggestedFilename(), "ndahi-report.csv");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/payments-${width}.png`, fullPage: true });
+
+    await page.locator("#admin-nav-cash").click();
+    await page.getByRole("heading", { name: "Cash and settlements.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Cash collected before fees", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Export CSV", exact: true }).count(), 0, "head actions belong to Payments");
+    assert.equal(await page.locator("#cashCollectedReport tbody tr").count(), 2);
+    assert.equal(await page.locator("#settlementReport").count(), 0, "no settlement figures until providers report them");
+    assert.match(await page.locator("#panel-cash").innerText(), /3,250 FCFA[\s\S]*Internet payments, since 1 Nov 2026/);
+    const cash = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export for accountant (CSV)", exact: true }).click();
+    assert.equal((await cash).suggestedFilename(), "ndahi-cash-before-fees.csv");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/cash-${width}.png`, fullPage: true });
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
