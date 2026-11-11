@@ -1,19 +1,24 @@
-/* Devices (canvas: PhoneDevices). On Home, "Manage devices" is a disclosure;
-   /dashboard#devices (body[data-portal-sub="devices"]) shows it as its own page. */
+/* Pages within a tab. /dashboard#devices (canvas: PhoneDevices) and
+   #editProfile (PhoneEditProfile) show one section on its own with a back
+   arrow; elsewhere the same sections stay disclosures on Home and Account. */
 
-/* ---------- The page ---------- */
+/* ---------- Pages within a tab (body[data-portal-sub]) ---------- */
+body[data-portal-sub] .portal-head__title,
+body[data-portal-sub] .portal-head__eyebrow,
+body[data-portal-sub] .portal-head__action { display: none !important; }
+body[data-portal-sub] .portal-head { padding-top: 0; }
+.portal-sub__back, .portal-devices__back { display: none; }
+body[data-portal-sub] .portal-sub__back,
+body[data-portal-sub] .portal-devices__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+body[data-portal-sub] .portal-sub__back:hover,
+body[data-portal-sub] .portal-devices__back:hover { background: var(--nd-sage); }
+
+/* ---------- Devices page ---------- */
 body[data-portal-sub="devices"] .home-view > :not(#manageDevices) { display: none !important; }
-body[data-portal-sub="devices"] .portal-head__title,
-body[data-portal-sub="devices"] .portal-head__eyebrow,
-body[data-portal-sub="devices"] .portal-head__action { display: none !important; }
-body[data-portal-sub="devices"] .portal-head { padding-top: 0; }
 body[data-portal-sub="devices"] #manageDevices { width: 100%; max-width: 720px; padding: 0; border: 0; background: none; box-shadow: none; }
 body[data-portal-sub="devices"] #manageDevices > summary { display: none; }
-.portal-devices__back { display: none; }
-body[data-portal-sub="devices"] .portal-devices__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
-body[data-portal-sub="devices"] .portal-devices__back:hover { background: var(--nd-sage); }
 
-/* ---------- Head: title and devices in use ---------- */
+/* ---------- Devices: title and devices in use ---------- */
 .portal-devices > section { display: flex; flex-direction: column; gap: var(--nd-space-12); }
 .portal-devices__head { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 44px; }
 .portal-devices__head h2 { flex: 1; margin: 0; font: 700 var(--nd-fs-title-sm) var(--nd-font-body); color: var(--nd-ink); }
@@ -58,3 +63,25 @@ body[data-portal-sub="devices"] .portal-devices__back:hover { background: var(--
 .portal-devices__add > summary { list-style: none; }
 .portal-devices__add > summary::-webkit-details-marker { display: none; }
 .portal-devices__add > p { margin: var(--nd-space-10) 0 0; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+
+/* ---------- Edit profile (canvas: PhoneEditProfile) ---------- */
+body[data-portal-sub="editProfile"] .account-layout { display: block; }
+body[data-portal-sub="editProfile"] .account-layout > :not(#emailAccount) { display: none !important; }
+body[data-portal-sub="editProfile"] #emailAccount { position: relative; display: flex; flex-direction: column; gap: var(--nd-space-14); width: 100%; max-width: 560px; padding: 0; border: 0; background: none; box-shadow: none; }
+body[data-portal-sub="editProfile"] #emailAccount > :not(.portal-sub__back):not(#editProfile):not(#confirmEmail) { display: none; }
+body[data-portal-sub="editProfile"] #emailAccount > .portal-sub__back { position: absolute; top: 0; left: 0; z-index: 1; }
+body[data-portal-sub="editProfile"] #editProfile { order: 1; margin: 0; padding: 0; border: 0; }
+body[data-portal-sub="editProfile"] #profileEdit { margin-top: 0; }
+body[data-portal-sub="editProfile"] #confirmEmail { order: 2; }
+body[data-portal-sub="editProfile"] #editProfile > summary { display: flex; align-items: center; min-height: 44px; margin: 0 0 var(--nd-space-12); padding: 0 0 0 44px; color: var(--nd-ink); font: 700 var(--nd-fs-title-sm) var(--nd-font-body); list-style: none; cursor: default; }
+body[data-portal-sub="editProfile"] #editProfile > summary::-webkit-details-marker { display: none; }
+body[data-portal-sub="editProfile"] #editProfile > summary::before,
+body[data-portal-sub="editProfile"] #editProfile > summary::after { content: none; display: none; }
+body[data-portal-sub="editProfile"] #editProfile > summary:focus { outline: none; }
+.portal-profile #profileEdit { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.portal-profile #profileEdit > label { display: block; margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+.portal-profile #profileEdit > label > input:not([type="checkbox"]) { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.portal-profile #profileEdit > label > input[type="checkbox"] { margin: 0 8px 0 0; vertical-align: -2px; }
+.portal-profile #profileEdit > p { margin: -6px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
+.portal-profile #profileEdit > p:empty { display: none; }
+.portal-profile #profileEdit > button { margin-top: var(--nd-space-4); }

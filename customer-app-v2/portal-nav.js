@@ -13,7 +13,14 @@ const HREFS = { home: "/dashboard#home", internet: "/dashboard#internet", shop: 
 const PANEL_TABS = { home: "home", bundles: "internet", vouchers: "internet", shop: "shop", payments: "activity", account: "account" };
 const aliases = {
   internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
-  accountSecurity: "account", notificationSettings: "account", sessionActivity: "account", sessions: "account",
+  accountSecurity: "account", notificationSettings: "account", editProfile: "account", sessionActivity: "account", sessions: "account",
+};
+// Pages within a tab (canvas: PhoneDevices, PhoneEditProfile): the address
+// shows one section on its own with a back arrow to its tab. Each names the
+// section, the disclosure it opens and where focus starts.
+const SUBPAGES = {
+  devices: { section: "manageDevices", open: "manageDevices", focus: "devicesTitle" },
+  editProfile: { section: "emailAccount", open: "editProfile", focus: "editProfileTitle" },
 };
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
 // Opening one of these routes scrolls to that part of its tab.
@@ -51,9 +58,9 @@ function applyView(scroll = false) {
   // Page styles key off the current tab (the Home hero on phones). Not
   // data-portal-tab: journeys select the tab links by that attribute.
   document.body.setAttribute("data-current-tab", tab);
-  // #devices shows only the devices section, when this account has one (not on a Home router).
-  const devicesPage = hash === "devices" ? document.getElementById("manageDevices") : null;
-  if (devicesPage) document.body.setAttribute("data-portal-sub", "devices"); else document.body.removeAttribute("data-portal-sub");
+  // A page within the tab, when this account has its section (no devices on a Home router).
+  const sub = SUBPAGES[hash] && document.getElementById(SUBPAGES[hash].section) ? SUBPAGES[hash] : null;
+  if (sub) document.body.setAttribute("data-portal-sub", hash); else document.body.removeAttribute("data-portal-sub");
   // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
   const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";
   document.body.setAttribute("data-internet-view", internetView);
@@ -72,11 +79,11 @@ function applyView(scroll = false) {
   const headAction = document.getElementById("portalHeadAction");
   if (headAction) headAction.hidden = tab !== "home";
   if (["sessions", "sessionActivity"].includes(hash) && openDetails("sessionActivity")) return;
-  if (devicesPage) {
-    // Devices is its own page here (canvas: PhoneDevices): open it and start at its title.
-    devicesPage.open = true;
+  if (sub) {
+    const details = document.getElementById(sub.open);
+    if (details) details.open = true;
     window.scrollTo(0, 0);
-    document.getElementById("devicesTitle")?.focus({ preventScroll: true });
+    document.getElementById(sub.focus)?.focus({ preventScroll: true });
     return;
   }
   if (hash === "redeem" && openDetails("differentCode")) return;
@@ -145,6 +152,11 @@ export function mountPortalNavigation(pending = 0, name) {
     // Once only: app.js changes the logout label while signing out.
     ["header", "#shopPanel", "#portalHead"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
     window.addEventListener("hashchange", () => applyView(true));
+    // On its own page a section stays open: its disclosure is the page, not a toggle.
+    document.addEventListener("click", (event) => {
+      const sub = SUBPAGES[document.body.getAttribute("data-portal-sub")], summary = event.target.closest && event.target.closest("summary");
+      if (sub && summary && summary.parentElement && summary.parentElement.id === sub.open) event.preventDefault();
+    });
     if (window.visualViewport) {
       const keyboard = () => document.body.classList.toggle("nd-keyboard-open", window.innerHeight - window.visualViewport.height > 150 &&
         Boolean(document.activeElement && document.activeElement.matches("input, textarea, select")));

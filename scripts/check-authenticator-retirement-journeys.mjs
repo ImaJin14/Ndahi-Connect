@@ -96,7 +96,8 @@ try {
     assert.doesNotMatch(await security.textContent(), /authenticator|recovery codes|2FA|MFA/i);
     assert.equal(await page.locator('#account [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"], #changePin [name="otp"]').count(), 0);
     await page.goto(portal + "/dashboard#devices");
-    const details = page.getByText("Manage devices", { exact: true }); await details.waitFor();
+    // v2 shows #devices as its own page (the disclosure is open, its summary hidden).
+    const details = page.getByText("Manage devices", { exact: true }); await details.waitFor({ state: "attached" });
     if (!await page.locator("#manageDevices").evaluate((node) => node.open)) await details.click();
     await page.locator("[data-select-main]").click();
     await page.locator('[data-main-proof] [name="mac"]').selectOption(mainMac);
