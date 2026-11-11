@@ -75,6 +75,8 @@ function renderMenu(view) {
     linkId: (id) => "admin-nav-" + id,
     lang: currentLanguage(),
   }));
+  // v1 links also carried data-tab with the view name; older pages and tests use it.
+  host.querySelectorAll("[data-admin-nav]").forEach((link) => { link.dataset.tab = link.dataset.adminNav === "setup" ? "network-setup" : link.dataset.adminNav; });
 }
 
 function apply(focus) {
