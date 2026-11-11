@@ -60,8 +60,6 @@ body[data-portal-sub="devices"] #manageDevices > summary { display: none; }
 .portal-devices #deviceManagement [data-pairing-controls] { display: flex; flex-direction: column; gap: var(--nd-space-8); }
 
 /* ---------- Add another device ---------- */
-.portal-devices__add > summary { list-style: none; }
-.portal-devices__add > summary::-webkit-details-marker { display: none; }
 .portal-devices__add > p { margin: var(--nd-space-10) 0 0; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
 
 /* ---------- Edit profile (canvas: PhoneEditProfile) ---------- */

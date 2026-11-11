@@ -6,7 +6,7 @@ import { sessionStore, loadPasskeys, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
 import { deviceIcon, wifiDeviceList } from "./wifi-devices.js";
-import { devicesAdd, devicesHead, devicesTip, updateDevicesCount } from "./portal-devices.js";
+import { devicesAdd, devicesHead, devicesTip, mountDevicesAdd, updateDevicesCount } from "./portal-devices.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
@@ -305,6 +305,7 @@ async function load() {
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   mountActivity({ call });
   mountAccountHub();
+  mountDevicesAdd();
   const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
   if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
   else if (openCatalogue) openCatalogue.hidden = true;

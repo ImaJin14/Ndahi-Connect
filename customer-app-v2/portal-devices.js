@@ -19,8 +19,19 @@ export function devicesTip({ hotspot, active }) {
   return hotspot && active ? `<p class="portal-devices__tip">${h(L("portalDevicesTip"))}</p>` : "";
 }
 
+// A button, not a disclosure: journeys address the section's one summary.
 export function devicesAdd({ hotspot, active }) {
-  return active ? `<details class="portal-devices__add"><summary class="nd-btn nd-btn--block">${h(L("portalDevicesAdd"))}</summary><p>${h(L(hotspot ? "portalDevicesAddHotspot" : "portalDevicesAddSignedIn"))}</p></details>` : "";
+  return active ? `<div class="portal-devices__add"><button type="button" class="nd-btn nd-btn--block" data-devices-add aria-expanded="false" aria-controls="devicesAddHelp">${h(L("portalDevicesAdd"))}</button><p id="devicesAddHelp" hidden>${h(L(hotspot ? "portalDevicesAddHotspot" : "portalDevicesAddSignedIn"))}</p></div>` : "";
+}
+
+export function mountDevicesAdd() {
+  const button = document.querySelector("[data-devices-add]"), help = document.getElementById("devicesAddHelp");
+  if (!button || !help) return;
+  button.onclick = () => {
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    help.hidden = !open;
+  };
 }
 
 // The device poll re-renders the list; keep the count in the head in step.
