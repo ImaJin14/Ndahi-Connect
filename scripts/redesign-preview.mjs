@@ -34,6 +34,8 @@ const portalPort = Number(process.env.PREVIEW_PORTAL_PORT || 8080);
 const adminPort = Number(process.env.PREVIEW_ADMIN_PORT || 8081);
 const apiPort = Number(process.env.PREVIEW_API_PORT || 8082);
 const designPort = Number(process.env.PREVIEW_DESIGN_PORT || 8090);
+// The public store on the API's default store origin (lib/api/middleware.mjs).
+const storePort = Number(process.env.PREVIEW_STORE_PORT || 8083);
 const portal = `http://localhost:${portalPort}`, admin = `http://localhost:${adminPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
 const captures = "/tmp/ndahi-redesign-preview";
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
@@ -164,18 +166,20 @@ function startApps() {
   const makers = {
     portal: () => createStaticServer("customer", { apiUrl: api, portalUrl: portal, supportEmail: "support@example.test", supportPhone: "+237 670 000 000", env: { UI_V2_PERCENT: "100" } }),
     admin: () => createStaticServer("admin", { apiUrl: api, portalUrl: portal }),
+    store: () => createStaticServer("store", { apiUrl: api, portalUrl: portal }),
   };
-  const current = { portal: makers.portal(), admin: makers.admin() };
+  const current = { portal: makers.portal(), admin: makers.admin(), store: makers.store() };
   let timer;
-  for (const folder of ["customer-app-v2", "admin-app-v2", "shared-app"]) {
+  for (const folder of ["customer-app-v2", "admin-app-v2", "shared-app", "store-app"]) {
     watch(join(root, folder), { recursive: true }, () => {
       clearTimeout(timer);
-      timer = setTimeout(() => { current.portal = makers.portal(); current.admin = makers.admin(); console.log(`[preview] ${new Date().toLocaleTimeString()} files changed; open tabs will offer Refresh app`); }, 300);
+      timer = setTimeout(() => { current.portal = makers.portal(); current.admin = makers.admin(); current.store = makers.store(); console.log(`[preview] ${new Date().toLocaleTimeString()} files changed; open tabs will offer Refresh app`); }, 300);
     });
   }
   return Promise.all([
     listen(http.createServer((req, res) => current.portal.emit("request", req, res)), portalPort),
     listen(http.createServer((req, res) => current.admin.emit("request", req, res)), adminPort),
+    listen(http.createServer((req, res) => current.store.emit("request", req, res)), storePort),
   ]);
 }
 
@@ -306,6 +310,7 @@ if (main) {
   console.log(`[preview] Portal  ${portal}/login  (phone ${DEMO.phone}, voucher code ${state.code}, then PIN ${DEMO.pin}; v2 by default)`);
   console.log(`[preview] Admin   ${admin}  (sign in as demo staff from ${design})`);
   console.log(`[preview] Design  ${design}  (canvas screens, design vs build, one-click sign-in)`);
+  console.log(`[preview] Store   http://localhost:${storePort}  (public store for guests)`);
   console.log(`[preview] API     ${api}  (in-memory, mock providers)`);
   if (process.argv.includes("--capture")) {
     await capture({ cookie: state.cookie, staff: state.staff });

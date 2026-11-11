@@ -14,10 +14,15 @@ const words = {
     shop: "Shop",
     orders: "My orders",
     account: "Sign in",
-    eyebrow: "THE NDAHI DEVICE STORE",
-    headline: "Make room for<br>better connections.",
+    eyebrow: "NDAHI Store",
+    headline: "Equipment for <br>better connections.",
     intro:
-      "The right equipment. A little more reach. Find networking essentials for home, work and wherever you go.",
+      "Routers and extenders we've tested on our network. Buy without an account — pay with Mobile Money and collect locally.",
+    how: "How buying works",
+    step1: "Pick a device",
+    step2: "Pay as a guest or signed in",
+    step3: "Collect with your code",
+    step3At: "Collect at {place} with your code",
     browse: "Explore devices",
     pickup: "Local pickup",
     money: "MTN & Orange Money",
@@ -51,10 +56,18 @@ const words = {
       "Internet service is purchased separately unless explicitly included in this product’s description.",
     checkout: "Checkout",
     guest: "Guest checkout — no account required.",
+    guestChoice: "Continue as a guest: just a name and phone number. You get a private tracking link.",
+    signInstead: "Sign in to NDAHI",
+    signInsteadHelp: "Details filled in, order saved in your account.",
+    progress: "Order progress",
+    stepPaid: "Paid",
+    stepPreparing: "Prepared and tested",
+    stepReady: "Ready to collect",
+    stepCollected: "Collected",
     signed: "You are signed in. This purchase will appear in your account.",
     name: "Full name",
     phone: "Contact phone",
-    email: "Email (optional)",
+    email: "Email (optional, for order updates)",
     payer: "Mobile Money number",
     network: "Payment network",
     quantity: "Quantity",
@@ -145,6 +158,19 @@ const words = {
       "Le service internet est vendu séparément sauf mention explicite dans la description du produit.",
     checkout: "Commande",
     guest: "Achat invité — aucun compte requis.",
+    guestChoice: "Continuez en invité : un nom et un numéro suffisent. Vous recevez un lien de suivi privé.",
+    signInstead: "Se connecter à NDAHI",
+    signInsteadHelp: "Coordonnées remplies, commande enregistrée dans votre compte.",
+    how: "Comment acheter",
+    step1: "Choisissez un appareil",
+    step2: "Payez en invité ou connecté",
+    step3: "Retirez avec votre code",
+    step3At: "Retirez à {place} avec votre code",
+    progress: "Suivi de la commande",
+    stepPaid: "Payée",
+    stepPreparing: "Préparée et testée",
+    stepReady: "Prête à retirer",
+    stepCollected: "Retirée",
     signed: "Vous êtes connecté. Cet achat apparaîtra dans votre compte.",
     name: "Nom complet",
     phone: "Téléphone de contact",
@@ -204,8 +230,6 @@ const t = (key) => words[lang][key] || key,
     typeof value === "object" ? value?.[lang] || value?.en || "" : value || "",
   money = (n) =>
     n == null ? (lang === "fr" ? "Prix à confirmer" : "Price to be confirmed") : `${Number(n).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
-const routerArt =
-  '<svg viewBox="0 0 460 290" fill="none" aria-hidden="true"><circle cx="240" cy="137" r="110" stroke="#c6d4b8"/><circle cx="240" cy="137" r="80" stroke="#c6d4b8"/><ellipse cx="242" cy="240" rx="135" ry="13" fill="#c4cfb6"/><path d="m144 176 162-13 53 42-161 18-54-47Z" fill="#fcfdf7" stroke="#bcc9ad"/><path d="m144 176 54 47v17l-54-45v-19Z" fill="#dbe3d2"/><path d="m198 223 161-18v17l-161 18v-17Z" fill="#e8eddf"/><path d="M164 180 150 73M318 175l12-110" stroke="#fdfef9" stroke-width="12" stroke-linecap="round"/><path d="m223 208 6-1m9 0 6-1m10 0 6-1" stroke="#759451" stroke-width="3" stroke-linecap="round"/><path d="M209 119c15-17 43-17 58 0m-46 10c9-10 23-10 33 0m-22 9c3-3 7-3 10 0" stroke="#739250" stroke-width="4" stroke-linecap="round"/></svg>';
 async function call(path, input) {
   const r = await fetch(api + path, {
     credentials: "include",
@@ -300,7 +324,7 @@ function renderShop() {
     )
     .sort((a, b) => Number(b.featured) - Number(a.featured));
   $("#view").innerHTML =
-    `<section class="hero"><div><span class="eyebrow">${h(t("eyebrow"))}</span><h1>${t("headline")}</h1><p>${h(l(data.settings.introduction) || t("intro"))}</p><a class="button" href="#devices">${h(t("browse"))} <span aria-hidden="true">↗</span></a></div><div class="hero-art">${routerArt}<span class="art-label">NDAHI / CONNECTED EVERYDAY</span></div></section><div class="strip"><span><b>↗</b>${h(t("pickup"))}</span><span><b>◈</b>${h(t("money"))}</span><span><b>◎</b>${h(t("support"))}</span></div>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${pendingCheckout() ? `<p class="notice"><button id="resumeCheckout" class="secondary">${lang === "fr" ? "Reprendre ma commande" : "Resume checkout"}</button></p>` : ""}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices"><div class="section-top"><div><h2>${h(t("devices"))}</h2><p>${h(t("devicesIntro"))}</p></div><input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}"></div><div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}">${h(l(c.name))}</button>`).join("")}</div><div class="products">${products.length ? products.map((p) => `<article class="product">${visual(p)}<h3>${h(l(p.name))}</h3><p>${h(p.available ? `${p.available} ${t("available")}` : t("unavailable"))}</p><div class="product-bottom"><span class="price">${h(money(p.price))}</span><button data-product="${h(p.id)}">${h(t("details"))} ↗</button></div></article>`).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><section class="help-block"><div><h2>${h(t("help"))}</h2><p>${h(t("helpText"))}</p></div><a class="button secondary" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internet"))}</a></section><details class="policy"><summary>${h(t("policies"))}</summary><h3>${h(t("warranty"))}</h3><p>${h(l(data.settings.warranty))}</p><h3>${h(t("returns"))}</h3><p>${h(l(data.settings.returns))}</p></details>`;
+    `<section class="hero"><div><span class="eyebrow">${h(t("eyebrow"))}</span><h1>${t("headline")}</h1><p>${h(l(data.settings.introduction) || t("intro"))}</p></div><ol class="steps" aria-label="${h(t("how"))}"><li><span aria-hidden="true">1</span>${h(t("step1"))}</li><li><span aria-hidden="true">2</span>${h(t("step2"))}</li><li><span aria-hidden="true">3</span>${h(place() ? t("step3At").replace("{place}", place()) : t("step3"))}</li></ol></section>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${pendingCheckout() ? `<p class="notice"><button id="resumeCheckout" class="secondary">${lang === "fr" ? "Reprendre ma commande" : "Resume checkout"}</button></p>` : ""}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices"><div class="section-top"><div><h2>${h(t("devices"))}</h2><p>${h(t("devicesIntro"))}</p></div><input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}"></div><div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}">${h(l(c.name))}</button>`).join("")}</div><div class="products">${products.length ? products.map((p) => `<article class="product">${visual(p)}<p class="product-category">${h(l(data.categories.find((c) => c.id === p.categoryId)?.name))}</p><h3>${h(l(p.name))}</h3><p>${h(p.available ? `${p.available} ${t("available")}` : t("unavailable"))}</p><div class="product-bottom"><span class="price">${h(money(p.price))}</span><button data-product="${h(p.id)}">${h(t("details"))} ↗</button></div></article>`).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><section class="help-block"><div><h2>${h(t("help"))}</h2><p>${h(t("helpText"))}</p></div><a class="button secondary" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internet"))}</a></section><details class="policy"><summary>${h(t("policies"))}</summary><h3>${h(t("warranty"))}</h3><p>${h(l(data.settings.warranty))}</p><h3>${h(t("returns"))}</h3><p>${h(l(data.settings.returns))}</p></details>`;
   if ($("#resumeCheckout"))
     $("#resumeCheckout").onclick = () => {
       selected = pendingCheckout().product;
@@ -352,7 +376,7 @@ function showCheckout() {
   } else checkoutKey = crypto.randomUUID();
   const c = pending ? pending.input : account.customer || {};
   $("#checkoutDetail").innerHTML =
-    `<h2 id="checkoutTitle">${h(t("checkout"))}</h2><p>${h(account.authenticated ? t("signed") : t("guest"))}</p><p class="form-help">${h(t("separate"))}</p><form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div><div><label for="quantity">${h(t("quantity"))}</label><input id="quantity" name="quantity" type="number" min="1" max="${Math.min(20, selected.available)}" value="${h(c.quantity || 1)}" required></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="network">${h(t("network"))}</label><select id="network" name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></div></div><div class="checkout-summary"><span>${h(l(selected.name))}</span><strong id="total">${h(money(selected.price))}</strong></div><p><strong>${h(t("pickup"))}</strong><br>${h(data.settings.pickup)}<br>${h(data.settings.hours)}</p><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
+    `<h2 id="checkoutTitle">${h(t("checkout"))}</h2>${account.authenticated ? `<p>${h(t("signed"))}</p>` : `<div class="checkout-choice"><p><strong>${h(t("guest"))}</strong> ${h(t("guestChoice"))}</p><a class="button secondary" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("signInstead"))}</a><p class="form-help">${h(t("signInsteadHelp"))}</p></div>`}<p class="form-help">${h(t("separate"))}</p><form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div><div><label for="quantity">${h(t("quantity"))}</label><input id="quantity" name="quantity" type="number" min="1" max="${Math.min(20, selected.available)}" value="${h(c.quantity || 1)}" required></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="network">${h(t("network"))}</label><select id="network" name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></div></div><div class="checkout-summary"><span>${h(l(selected.name))}</span><strong id="total">${h(money(selected.price))}</strong></div><p><strong>${h(t("pickup"))}</strong><br>${h(data.settings.pickup)}<br>${h(data.settings.hours)}</p><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
   if (pending) {
     $("#network").value = c.network;
     $("#checkoutForm")
@@ -410,8 +434,18 @@ function showCheckout() {
 async function refreshAccount() {
   account = await call("/api/account/store/context");
 }
+// Collection point without a trailing full stop, for sentences that add their own.
+function place() {
+  return l(data?.settings?.pickup).replace(/[\s.]+$/, "");
+}
+// Paid orders show where they are (canvas: PhoneGuestOrder).
+function progress(o) {
+  if (o.paymentStatus !== "paid" || ["review", "cancelled"].includes(o.status)) return "";
+  const at = o.status === "collected" ? 4 : o.status === "ready" ? 2 : 1;
+  return `<ol class="progress" aria-label="${h(t("progress"))}">${["stepPaid", "stepPreparing", "stepReady", "stepCollected"].map((key, i) => `<li class="${i < at ? "done" : i === at ? "current" : ""}"${i === at ? ' aria-current="step"' : ""}><span aria-hidden="true"></span>${h(t(key))}</li>`).join("")}</ol>`;
+}
 function orderCard(o) {
-  return `<article class="order-card"><span class="eyebrow">${h(o.reference)}</span><h3>${h(l(o.product.name))} × ${h(o.quantity)}</h3><p>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</p><span class="order-status">${h(t(o.status))}</span>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.collectionCode ? `<h4>${h(t("collection"))}</h4><p class="collection">${h(o.collectionCode)}</p><p class="form-help">${h(t("collectionHelp"))}</p>` : ""}<p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></article>`;
+  return `<article class="order-card"><span class="eyebrow">${h(o.reference)}</span><h3>${h(l(o.product.name))} × ${h(o.quantity)}</h3><p>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</p><span class="order-status">${h(t(o.status))}</span>${progress(o)}${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.collectionCode ? `<h4>${h(t("collection"))}</h4><p class="collection">${h(o.collectionCode)}</p><p class="form-help">${h(t("collectionHelp"))}</p>` : ""}<p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></article>`;
 }
 async function showOrders() {
   await refreshAccount();
