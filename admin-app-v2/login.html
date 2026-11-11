@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="en" data-ui-variant="v2"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Administrator login — NDAHI Connect</title><link rel="stylesheet" href="/styles.css"><meta name="theme-color" content="#003b2b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NDAHI Admin"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="/assets/icons/icon-192.png"></head><body>
-<header><div class="brand">NDAHI <small>CONNECT ADMIN</small></div></header>
-<main class="login-shell"><section class="card">
+<html lang="en" data-ui-variant="v2"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Administrator login — NDAHI Connect</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/shared/ui/tokens.css"><link rel="stylesheet" href="/shared/ui/components.css"><link rel="stylesheet" href="/admin-screens.css"><meta name="theme-color" content="#003b2b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NDAHI Admin"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"><link rel="icon" type="image/png" href="/assets/icons/icon-192.png"></head><body class="admin-login">
+<header class="admin-login__bar nd-on-forest"><span class="nd-brand"><span class="nd-brand__mark" aria-hidden="true">NC</span><span class="nd-brand__words"><span class="nd-brand__name">NDAHI</span><span class="nd-brand__tag">ADMIN</span></span></span></header>
+<main class="admin-login__main"><section class="admin-login__card" aria-labelledby="adminLoginTitle">
   <div id="credentialsStep">
-    <p class="section-kicker">Secure sign-in</p><h1>Administrator access.</h1><p>Use your administrator password or an enrolled passkey.</p>
-    <form id="login">
-      <label>Username<input name="username" autocomplete="username" placeholder="Username" required autofocus></label>
-      <label>Password<span class="password-field"><input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="Password" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show password" aria-pressed="false">Show</button></span></label>
-      <button>Continue</button><button type="button" class="secondary-action" id="passkeyLogin">Sign in with a passkey</button>
+    <p class="nd-eyebrow" data-i18n="adminLoginEyebrow">Staff sign-in</p><h1 class="nd-h1" id="adminLoginTitle" data-i18n="adminLoginTitle">Administrator access.</h1><p class="nd-lede admin-login__lede" data-i18n="adminLoginLede">For NDAHI staff only. Every sign-in is logged.</p>
+    <form id="login" class="admin-form">
+      <label class="nd-field"><span class="nd-label" data-i18n="adminUsername">Username</span><input class="nd-input" name="username" autocomplete="username" required autofocus></label>
+      <label class="nd-field"><span class="nd-label" data-i18n="adminPasswordLabel">Password</span><span class="password-field"><input class="nd-input" id="adminPassword" name="password" type="password" autocomplete="current-password" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show password" aria-pressed="false">Show</button></span></label>
+      <button class="nd-btn nd-btn--block" data-i18n="adminContinue">Continue</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="passkeyLogin" data-i18n="adminPasskeySignIn">Sign in with a passkey</button>
     </form>
+    <p class="admin-login__note" data-i18n="adminLoginLost">Lost your passkey device? Sign in with your password, then add a new passkey in Profile &amp; security.</p>
   </div>
   <p id="message" class="error" role="alert" aria-live="assertive"></p>
 </section></main>

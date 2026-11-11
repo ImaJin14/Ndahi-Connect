@@ -48,7 +48,7 @@ export const SCREENS = [
   { id: "account", app: "portal", title: "Account", status: NOT_YET, phone: "PhoneAccount", desktop: "DesktopAccount", path: "/dashboard#account" },
   // Admin artboards are desktop (1280px) only.
   ...[
-    ["admin-login", "Sign in", "AdminLogin", "/login", "Restyle pending (today's sign-in method stays until Phase 6)"],
+    ["admin-login", "Sign in", "AdminLogin", "/login", "Redesigned look; today's username + password or passkey stays until Phase 6 (no email + PIN two-step yet)"],
     ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned"],
     ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (no access point, signal or today's usage: the router doesn't report them)"],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections", "Redesigned (no uplink speed, per-network payment health or check times: none are recorded)"],

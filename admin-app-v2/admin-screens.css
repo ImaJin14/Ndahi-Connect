@@ -338,3 +338,19 @@
 #homeDiagnostics > p { margin: var(--nd-space-6) 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 .admin-homerouters__pilot { display: flex; flex-direction: column; gap: var(--nd-space-12); max-width: 760px; }
 .admin-homerouters__pilot .nd-h2, .admin-homerouters__pilot .nd-meta { margin: 0; }
+
+/* ---------- Sign in (canvas: AdminLogin) — restyle only until Phase 6 ---------- */
+body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--nd-ivory); }
+.admin-login__bar { display: flex; align-items: center; padding: var(--nd-space-16) 28px; background: var(--nd-forest); color: var(--nd-white); }
+.admin-login__main { display: flex; justify-content: center; padding: 72px var(--nd-space-16); }
+.admin-login__card { width: 100%; max-width: 460px; padding: 36px; border: 1px solid var(--nd-line); border-radius: 18px; background: var(--nd-paper); box-shadow: 0 20px 55px rgba(0, 40, 29, .12); box-sizing: border-box; }
+.admin-login__card .nd-eyebrow { margin: 0 0 var(--nd-space-8); }
+.admin-login__card .nd-h1 { margin: 0 0 var(--nd-space-8); font-size: 34px; }
+.admin-login__lede { margin: 0 0 var(--nd-space-24); color: var(--nd-muted); font-size: 15px; }
+.admin-login .admin-form { gap: var(--nd-space-16); }
+.admin-login .password-field .nd-input { padding-right: 72px; }
+.admin-login .password-toggle { color: var(--nd-forest); }
+.admin-login__note { margin: 18px 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: var(--nd-fs-meta); line-height: 1.5; }
+.admin-login #message:empty { display: none; }
+.admin-login #message { margin: var(--nd-space-14) 0 0; }
+@media (max-width: 480px) { .admin-login__main { padding-top: 32px; } .admin-login__card { padding: var(--nd-space-22); } }
