@@ -1,5 +1,6 @@
 import { mountCashCollectedReport } from "/cash-collected.js";
 import { mountVoucherRecords } from "/vouchers.js";
+import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
 import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
@@ -8,7 +9,7 @@ import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
-import { activeAdminView, mountAdminNavigation, setAdminBadges, setAdminHead } from "/navigation.js";
+import { activeAdminView, adminViewParam, mountAdminNavigation, setAdminBadges, setAdminHead } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
@@ -28,7 +29,7 @@ let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 let activePrintController = null;
 // The last generated batch, kept in memory only for its print screen.
-let lastBatch = null, voucherRecords;
+let lastBatch = null, voucherRecords, prefillAssignedVoucher = () => {};
 function clearPrintContainers() {
   activePrintController?.destroy();
   activePrintController = null;
@@ -173,7 +174,7 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
   const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
-  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
   const paymentsExport = $("[data-payments-export]");
   if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
@@ -230,7 +231,8 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
 </div></section>
 <section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNote"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
 <section class="tab-panel admin-resellers" id="panel-resellers" aria-labelledby="adminTitle" data-tab-panel="resellers" ${activeAdminTab === "resellers" ? "" : "hidden"}><div id="resellerLedger"></div></section>
-<section class="card tab-panel" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
+<section class="tab-panel admin-customers" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><section class="nd-panel admin-customers__list" aria-label="${h(L("adminCustomerList"))}"><div id="customerRecords"></div><p class="nd-meta admin-customers__note">${h(L("adminSuspendNote"))}</p></section><details class="admin-options admin-legacy"><summary>${h(L("adminLegacySessions"))}</summary><p class="nd-meta">${h(L("adminLegacySessionsNote"))}</p><div id="sessionRecords"></div></details></section>
+<section class="tab-panel admin-customer" id="panel-customer" aria-labelledby="adminTitle" data-tab-panel="customer" ${activeAdminTab === "customer" ? "" : "hidden"}><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerDetail"></div></section>
 <section class="tab-panel admin-payments" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}>${access.contacts ? `<div class="nd-metrics admin-payments__metrics">
 <div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayBundles">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayBundles"))}</span></div>
 ${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayStore">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayStore"))}</span></div>` : ""}
@@ -248,6 +250,11 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     wrapper.className = "table-scroll";
     table.before(wrapper); wrapper.append(table);
   }
+  // Customer detail (canvas: AdminCustomerDetail) for #customer/<id>.
+  const openCustomer = () => {
+    $("#customerVoucherPrint").replaceChildren();
+    return showCustomerDetail($("#customerDetail"), { call, id: adminViewParam(), role: adminRole, canManage: canManagePayments, storeRole, setHead: setAdminHead, statusHost: $("#customerStatusHost") });
+  };
   let storeManagement;
   if (["owner", "operator"].includes(adminRole)) {
     const panel = document.createElement("section");
@@ -260,7 +267,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
@@ -307,6 +314,18 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     }
   };
   $("#voucherPurpose").onchange = updateVoucherBuilder;
+  // "Replace bundle" on a customer: Vouchers with an assigned voucher for them,
+  // replacing their active bundle. The picker searches by their phone.
+  prefillAssignedVoucher = (phone) => {
+    $("#voucherOptions").open = true;
+    $("#voucherPurpose").value = "assigned";
+    $("#customerSearch").value = phone;
+    const picker = customerPicker;
+    updateVoucherBuilder({ target: $("#voucherPurpose") });
+    if (picker) $("#customerSearch").dispatchEvent(new Event("input"));
+    $("#voucherReplaceActive").checked = true;
+    location.hash = "vouchers";
+  };
   $("#generate").elements.quantity.oninput = updateVoucherBuilder;
   $("#voucherPlanMode").onchange = updateVoucherBuilder;
   updateVoucherBuilder();
@@ -422,13 +441,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
 }
 function mountRecordViews(canManagePayments, retired) {
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
-  void mountRecords($("#customerRecords"), {
-    call,
-    collection: "customers",
-    title: "Customers",
-    headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td>${c.status !== "suspended" ? `<button type="button" class="secondary-action" data-print-customer-voucher="${h(c.id)}">Print active voucher</button> ` : ""}<button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover PIN</button>` : ""}</td></tr>`,
-  });
+  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost") });
   wifiRecords = mountRecords($("#wifiRecords"), {
     call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
     headers: ["Device", "Bundle", "Status", "Last Wi-Fi check", "Actions"],
@@ -485,6 +498,10 @@ $("#app").onclick = async (e) => {
       })
     ) form.elements[name].value = value;
     form.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  if (button.dataset.replaceBundle) {
+    prefillAssignedVoucher(button.dataset.replacePhone || "");
     return;
   }
   if (button.hasAttribute("data-cancel-edit")) {

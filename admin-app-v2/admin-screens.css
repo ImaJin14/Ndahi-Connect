@@ -134,3 +134,45 @@
   .admin-vouchers__create, .admin-print__note, .admin-back, .admin-lede { display: none !important; }
   .admin-vouchers__list, .admin-print__tray { display: block !important; padding: 0 !important; border: 0 !important; background: none !important; }
 }
+
+/* ---------- Page head with a person (customer detail) ---------- */
+.admin-head-title { display: flex; align-items: center; gap: var(--nd-space-16); }
+.admin-head-title .nd-avatar--lg { width: 60px; height: 60px; font-size: 22px; }
+.admin-head-search .nd-input { width: 260px; min-height: 44px; }
+.admin-btn--danger, .admin-dashboard .admin-btn--danger:hover { color: var(--nd-danger); }
+.admin-support .admin-btn--danger { border-color: var(--nd-danger-line); }
+
+/* ---------- Customers (canvas: AdminCustomers) ---------- */
+.admin-customers { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-customers__list { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-22); }
+.admin-customers__note { margin: var(--nd-space-12) 0 0; }
+.admin-name { color: var(--nd-forest); font-weight: 700; }
+.admin-legacy .nd-meta { margin: 0 0 var(--nd-space-8); }
+
+/* ---------- Customer detail (canvas: AdminCustomerDetail) ---------- */
+.admin-customer, #customerDetail { display: flex; flex-direction: column; gap: var(--nd-space-20); }
+#customerVoucherPrint:empty { display: none; }
+.admin-tabs { display: flex; gap: var(--nd-space-6); border-bottom: 1px solid var(--nd-line); }
+.admin-dashboard .admin-tabs [role="tab"] { min-height: 44px; margin-bottom: -1px; padding: 0 var(--nd-space-14); border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--nd-muted); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-dashboard .admin-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--nd-forest); color: var(--nd-forest); }
+.admin-dashboard .admin-tabs [role="tab"]:hover { background: transparent; color: var(--nd-forest); }
+.admin-customer__overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--nd-space-20); align-items: start; }
+.admin-rows { padding-top: var(--nd-space-10); padding-bottom: var(--nd-space-10); }
+.admin-row { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); }
+.admin-row:last-child { border-bottom: 0; }
+.admin-row__label { color: var(--nd-muted); }
+.admin-support { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.admin-support .nd-h2 { margin: 0 0 var(--nd-space-4); font-size: 20px; }
+.admin-support .nd-meta { margin: 0; }
+
+@media (max-width: 767.98px) {
+  .admin-head-search, .admin-head-search .nd-input { width: 100%; }
+  .admin-customer__overview { grid-template-columns: minmax(0, 1fr); }
+  .admin-tabs { overflow-x: auto; }
+  .admin-row { flex-wrap: wrap; }
+}
+
+@media print {
+  /* A customer's slip prints alone. */
+  #customerDetail { display: none !important; }
+}

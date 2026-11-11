@@ -8,6 +8,7 @@ import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture, mainMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
 import { hashSecret, totpSecret } from "../lib/security.mjs";
+import { adminCustomerPath } from "./admin-nav.mjs";
 
 // A synthetic retired store is an isolated browser fixture, not rollout evidence.
 // The separate core/API tests verify that real cutover cannot bypass readiness.
@@ -177,7 +178,7 @@ try {
     assert.equal(retired.status, 410); assert.equal(retired.body.code, "AUTHENTICATOR_RETIRED");
   }, { adminUser: true, noSession: true });
   await scenario("audited owner support recovery uses a fresh password and resets PIN without retired factor fields", async ({ page }) => {
-    await page.goto(admin + "/dashboard#customers");
+    await page.goto(admin + "/dashboard#" + adminCustomerPath("c1"));
     await page.locator('[data-reset-authenticator="c1"]').click();
     const recovery = page.locator("[data-authenticator-recovery]");
     await recovery.getByLabel("Support case reference", { exact: true }).fill("CASE-82-BROWSER");

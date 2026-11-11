@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, closeGeneratedCodes, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
+import { adminGenerateName, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -306,6 +306,7 @@ try {
 
     // Now navigate to Customers tab and print directly from User One's customer row
     await page.getByRole("link", { name: "Customers", exact: true }).click();
+    await openAdminCustomer(page, "cust-pii-1");
     await page.locator('[data-print-customer-voucher="cust-pii-1"]').waitFor();
     await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
 

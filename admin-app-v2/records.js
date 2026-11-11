@@ -16,16 +16,23 @@ const TEXT = {
 // a heading for the screen's section, and status chips in place of the select.
 // kit = { titleId, searchLabel, placeholder, chips: [[status, label]], chipsLabel,
 //         statusLabel, allStatuses, dates: { from, through, apply }, previous, next,
-//         text }. Without chips the status select shows. A header given as
-//         { label } is visually hidden.
-function kitMarkup(title, headers, kit) {
+//         text, heading: false, statusFilter: false, searchHost }. Without chips the
+//         status select shows unless statusFilter is false. searchHost puts the
+//         search box elsewhere on the page (still part of this list's form). A
+//         header given as { label } is visually hidden.
+let forms = 0;
+function kitSearch(kit, formId) {
+  return `<input class="nd-input nd-input--sm" type="search" name="q" aria-label="${h(kit.searchLabel)}" placeholder="${h(kit.placeholder)}" maxlength="100"${kit.searchHost ? ` form="${formId}"` : ""}>`;
+}
+function kitMarkup(title, headers, kit, formId) {
   const chips = (kit.chips || []).map(([value, label], index) => `<button type="button" class="nd-chip${index ? "" : " active"}" aria-pressed="${index ? "false" : "true"}" data-status-chip="${h(value)}">${h(label)}</button>`).join("");
   const head = (name) => `<th scope="col">${typeof name === "string" ? h(name) : `<span class="nd-visually-hidden">${h(name.label)}</span>`}</th>`;
-  return `<div class="nd-panel__head records-toolbar records-toolbar--kit"><h2 class="nd-h2" id="${h(kit.titleId)}">${h(title)}</h2><form class="records-filter records-filter--kit" role="search">
-  <input class="nd-input nd-input--sm" type="search" name="q" aria-label="${h(kit.searchLabel)}" placeholder="${h(kit.placeholder)}" maxlength="100">
-  ${chips ? "" : '<div class="records-filters">'}<select class="nd-input nd-input--sm" name="status" aria-label="${h(kit.statusLabel || kit.chipsLabel)}" hidden><option value="">${h(kit.allStatuses || "—")}</option></select>
+  const filters = !chips && kit.statusFilter !== false;
+  return `<div class="nd-panel__head records-toolbar records-toolbar--kit"${kit.heading === false && kit.searchHost && !chips && !filters && !kit.dates ? " hidden" : ""}>${kit.heading === false ? "" : `<h2 class="nd-h2" id="${h(kit.titleId)}">${h(title)}</h2>`}<form class="records-filter records-filter--kit" role="search" id="${formId}">
+  ${kit.searchHost ? "" : kitSearch(kit, formId)}
+  ${filters || kit.dates ? '<div class="records-filters">' : ""}<select class="nd-input nd-input--sm" name="status" aria-label="${h(kit.statusLabel || kit.chipsLabel)}" hidden><option value="">${h(kit.allStatuses || "—")}</option></select>
   ${chips ? `<div class="nd-chips" role="group" aria-label="${h(kit.chipsLabel)}">${chips}</div>` : ""}
-  ${kit.dates ? `<label class="records-date"><span>${h(kit.dates.fromText)}</span><input class="nd-input nd-input--sm" type="date" name="from" aria-label="${h(kit.dates.from)}"></label><label class="records-date"><span>${h(kit.dates.throughText)}</span><input class="nd-input nd-input--sm" type="date" name="to" aria-label="${h(kit.dates.through)}"></label><button type="submit" class="nd-btn nd-btn--sm nd-btn--secondary">${h(kit.dates.apply)}</button>` : ""}${chips ? "" : "</div>"}
+  ${kit.dates ? `<label class="records-date"><span>${h(kit.dates.fromText)}</span><input class="nd-input nd-input--sm" type="date" name="from" aria-label="${h(kit.dates.from)}"></label><label class="records-date"><span>${h(kit.dates.throughText)}</span><input class="nd-input nd-input--sm" type="date" name="to" aria-label="${h(kit.dates.through)}"></label><button type="submit" class="nd-btn nd-btn--sm nd-btn--secondary">${h(kit.dates.apply)}</button>` : ""}${filters || kit.dates ? "</div>" : ""}
 </form></div><div class="nd-table-wrap"><table class="nd-table"><thead><tr>${headers.map(head).join("")}</tr></thead><tbody></tbody></table></div>
 <nav class="records-pager" aria-label="${h(title)}"><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="prev">${h(kit.previous)}</button><span role="status" aria-live="polite"></span><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="next">${h(kit.next)}</button></nav>`;
 }
@@ -33,7 +40,9 @@ function kitMarkup(title, headers, kit) {
 export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null }) {
   const state = { page: 1, q: "", status: "", from: "", to: "" }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
-  container.innerHTML = kit ? kitMarkup(title, headers, kit) : `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
+  const formId = `records-form-${++forms}`;
+  if (kit && kit.searchHost) kit.searchHost.innerHTML = kitSearch(kit, formId);
+  container.innerHTML = kit ? kitMarkup(title, headers, kit, formId) : `<div class="records-toolbar"><h3>${h(title)}</h3><form class="records-filter" role="search">
   <input type="search" name="q" aria-label="Search ${h(title.toLowerCase())}" placeholder="Search" maxlength="100">
   <select name="status" aria-label="Filter ${h(title.toLowerCase())} by status" hidden><option value="">All statuses</option></select>
   ${collection === "vouchers" ? '<div class="filter-chips" role="group" aria-label="Voucher status filter"><button type="button" class="filter-chip active" data-status-chip="">All</button><button type="button" class="filter-chip" data-status-chip="active">Active</button><button type="button" class="filter-chip" data-status-chip="expired">Expired</button><button type="button" class="filter-chip" data-status-chip="revoked">Revoked</button></div>' : ""}
@@ -64,7 +73,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
       if (current !== request || !container.isConnected) return;
       if (status.options.length === 1 && result.statuses.length) {
         status.insertAdjacentHTML("beforeend", result.statuses.map((value) => `<option value="${h(value)}">${h(value.replaceAll("_", " "))}</option>`).join(""));
-        status.hidden = Boolean(kit && kit.chips);
+        status.hidden = Boolean(kit && (kit.chips || kit.statusFilter === false));
       }
       state.page = result.page;
       if (details) details.render(body, result.items, row, result.scopeKey);

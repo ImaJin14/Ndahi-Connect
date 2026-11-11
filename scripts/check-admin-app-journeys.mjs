@@ -156,6 +156,46 @@ try {
     await page.waitForFunction(() => location.hash === "#vouchers");
     await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
   }, { width });
+  // Redesigned Customers and customer detail (v2 only; canvas: AdminCustomers, AdminCustomerDetail).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Customers lists bundles and opens a customer's detail at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#customers`);
+    await page.getByRole("heading", { name: "Your customers.", exact: true }).waitFor();
+    const row = page.locator("#customerRecords tbody tr").filter({ hasText: "Fixture customer" });
+    await row.waitFor();
+    // Name, masked phone, bundle, devices, store orders, status, action.
+    assert.deepEqual((await row.locator("td").allInnerTexts()).map((text) => text.trim()), ["Fixture customer", "6•• •• 20 01", "Weekly · unlimited", "2 / 2", "0", "Active", "Suspend"]);
+    await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");
+    await page.getByText("No matching customers.", { exact: true }).waitFor();
+    await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("670042001");
+    await row.waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/customers-${width}.png`, fullPage: true });
+
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
+    await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminAvatar").textContent(), "F");
+    assert.match(await page.locator("#adminLede").textContent(), /670042001/);
+    await page.getByRole("link", { name: "Back to Customers", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Support actions", exact: true }).waitFor();
+    for (const name of ["Print active voucher", "Recover PIN with a support code", "Replace bundle", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    await page.screenshot({ path: `${screenshots}/customer-${width}.png`, fullPage: true });
+    await page.getByRole("tab", { name: "Devices", exact: true }).click();
+    await page.getByRole("tabpanel", { name: "Devices" }).getByText("AA:BB:CC:DD:EE:01", { exact: false }).waitFor();
+    await page.getByRole("tab", { name: "Devices", exact: true }).press("ArrowRight");
+    assert.equal(await page.getByRole("tab", { name: "Overview", exact: true }).getAttribute("aria-selected"), "true", "arrow keys move between tabs");
+    await page.getByRole("tab", { name: "Payments & orders", exact: true }).click();
+    await page.getByText("No payments or store orders yet.", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    // Replace bundle opens Vouchers with an assigned voucher for this customer.
+    await page.getByRole("tab", { name: "Overview", exact: true }).click();
+    await page.getByRole("button", { name: "Replace bundle", exact: true }).click();
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    assert.equal(await page.locator("#voucherPurpose").inputValue(), "assigned");
+    await page.waitForFunction(() => document.querySelector("#customerSelect").value === "c1");
+    assert.equal(await page.locator("#voucherReplaceActive").isChecked(), true);
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;

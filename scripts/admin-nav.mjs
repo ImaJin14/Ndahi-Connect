@@ -57,5 +57,12 @@ export async function closeGeneratedCodes(page) {
   if (uiV2 && (await page.locator("#adminBack:not([hidden])").count())) await page.getByRole("link", { name: "Back to Vouchers", exact: true }).click();
   await page.getByRole("button", { name: "Close codes", exact: true }).click();
 }
+// Customers (v2 canvas: AdminCustomers, AdminCustomerDetail): printing a
+// customer's voucher and PIN recovery are support actions on their detail page.
+export async function openAdminCustomer(page, id) {
+  if (uiV2) await page.locator(`a.admin-name[href$="#customer/${encodeURIComponent(id)}"]`).click();
+}
+export const adminCustomerPath = (id) => (uiV2 ? `customer/${encodeURIComponent(id)}` : "customers");
+
 // v2 moves the reseller ledger from Vouchers to its own Resellers screen.
 export const resellerLedgerView = uiV2 ? "resellers" : "vouchers";

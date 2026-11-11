@@ -24,6 +24,8 @@ const VIEWS = {
   products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
   cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
+  // #customer/<id>; app.js puts the customer's name in the title.
+  customer: { menu: "customers", panels: ["customer"], title: "adminTitleCustomer", back: { href: "/dashboard#customers", label: "adminTitleCustomersShort" } },
   resellers: { menu: "resellers", panels: ["resellers"], title: "adminTitleResellers", group: "uiAdminGroupPeople" },
   audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem" },
   profile: { menu: "profile", panels: ["profile"], title: "adminTitleProfile", group: "uiAdminGroupSystem" },
@@ -52,7 +54,7 @@ function canAccess(menu, role) {
 }
 
 export function activeAdminView(role) {
-  const hash = location.hash.slice(1), view = ALIASES[hash] || hash;
+  const name = location.hash.slice(1).split("/")[0], view = ALIASES[name] || name;
   return VIEWS[view] && canAccess(VIEWS[view].menu, role) ? view : "home";
 }
 
@@ -118,12 +120,20 @@ function apply(focus) {
   if (changed) changed(view);
 }
 
+// The part of the address after the view: the customer in #customer/<id>.
+export function adminViewParam() {
+  const hash = location.hash.slice(1), at = hash.indexOf("/");
+  if (at < 0) return "";
+  try { return decodeURIComponent(hash.slice(at + 1)); } catch { return ""; }
+}
+
 // A screen's own title and the line under it, when they depend on its data
 // (for example "Print 20 vouchers"). Cleared whenever the view changes.
-export function setAdminHead({ title, lede }) {
-  const heading = document.getElementById("adminTitle"), line = document.getElementById("adminLede");
+export function setAdminHead({ title, lede, avatar }) {
+  const heading = document.getElementById("adminTitle"), line = document.getElementById("adminLede"), badge = document.getElementById("adminAvatar");
   if (title && heading) heading.textContent = title;
   if (line) { line.textContent = lede || ""; line.hidden = !lede; }
+  if (badge) { badge.textContent = avatar || ""; badge.hidden = !avatar; }
 }
 
 // Counts shown on menu items (for example { payments: 2, store: 3 }).

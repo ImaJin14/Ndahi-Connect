@@ -63,12 +63,12 @@ export const SCREENS = [
     ["admin-products", "Products", "AdminProducts", "/dashboard#products"],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products"],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)"],
-    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers"],
-    ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers"],
+    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned"],
+    ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", "a.admin-name"],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers"],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit"],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile"],
-  ].map(([id, title, desktop, path, status]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path })),
+  ].map(([id, title, desktop, path, status, open]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(open ? { open } : {}) })),
 ];
 
 // Local demo prices for the initial catalogue (the owner's launch prices).
@@ -233,6 +233,8 @@ export async function capture({ cookie, staff, only } = {}) {
         const buildPage = await context.newPage();
         await buildPage.goto((screen.app === "admin" ? admin : portal) + screen.path);
         if (screen.app === "admin") await buildPage.waitForSelector("#adminSideMenu nav", { timeout: 15000 }).catch(() => {});
+        // Screens reached from a list (for example a customer's detail page) open its first link.
+        if (screen.open) await buildPage.locator(screen.open).first().click({ timeout: 15000 }).catch(() => {});
         else await buildPage.waitForSelector(`[data-portal-tab="${screen.id}"][aria-current="page"]`).catch(() => {});
         await buildPage.evaluate(() => document.fonts.ready);
         await buildPage.waitForTimeout(800);
