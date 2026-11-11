@@ -5,7 +5,7 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
-import { portalNavDesktopWidth, portalTab, portalTabBadge, uiV2 } from './portal-tabs.mjs';
+import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2 } from './portal-tabs.mjs';
 import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
@@ -127,7 +127,7 @@ try {
       if (width < portalNavDesktopWidth) assert.ok(Math.abs(layout.nav.y + layout.nav.height - layout.height) < 2);
       else if (uiV2) assert.ok(layout.nav.y + layout.nav.height <= layout.mainY, 'the redesigned nav sits in the header above the content');
       else assert.ok(layout.nav.x + layout.nav.width <= layout.mainX);
-      await page.locator(portalTab("vouchers")).click();
+      await openPortalView(page, "vouchers");
       await page.locator('[data-portal-view="vouchers"]').first().waitFor({ state: 'visible' });
       await page.reload();
       await page.locator(portalTab("vouchers") + '[aria-current="page"]').waitFor();

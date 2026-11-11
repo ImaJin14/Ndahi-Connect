@@ -56,6 +56,8 @@ function applyView(scroll = false) {
   document.body.setAttribute("data-internet-view", internetView);
   document.querySelectorAll("[data-internet-switch]").forEach((link) => {
     if (link.dataset.internetSwitch === internetView) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+    // Switching within Internet replaces the address: Back leaves the tab, as for any tab.
+    link.onclick = (event) => { event.preventDefault(); location.replace(link.href); };
   });
   const title = document.getElementById("portalTitle");
   if (title) title.textContent = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang);

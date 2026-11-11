@@ -19,3 +19,16 @@ export function portalTabBadge(view) {
 
 // Viewport width from which the nav is no longer the bottom bar.
 export const portalNavDesktopWidth = uiV2 ? 768 : 1000;
+
+// Opens a v1 view by its tab. v2 phones show Internet's Bundles or Vouchers one
+// at a time (canvas: PhoneInternet), so Vouchers also needs its switch.
+export async function openPortalView(page, view) {
+  await page.locator(portalTab(view)).click();
+  if (!uiV2 || view !== "vouchers") return;
+  await page.locator(`${portalTab(view)}[aria-current="page"]`).waitFor();
+  const toggle = page.locator('[data-internet-switch="vouchers"]');
+  if (await toggle.isVisible()) {
+    await toggle.click();
+    await page.locator('[data-internet-switch="vouchers"][aria-current="page"]').waitFor();
+  }
+}
