@@ -13,15 +13,41 @@ const HREFS = { home: "/dashboard#home", internet: "/dashboard#internet", shop: 
 const PANEL_TABS = { home: "home", bundles: "internet", vouchers: "internet", shop: "shop", payments: "activity", account: "account" };
 const aliases = {
   internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
-  accountSecurity: "account", notificationSettings: "account", editProfile: "account", sessionActivity: "account", sessions: "account",
+  accountSecurity: "account", notificationSettings: "account", editProfile: "account", pin: "account", passkeys: "account", sessionActivity: "account", sessions: "account",
 };
 // Pages within a tab (canvas: PhoneDevices, PhoneEditProfile): the address
 // shows one section on its own with a back arrow to its tab. Each names the
 // section, the disclosure it opens and where focus starts.
 const SUBPAGES = {
-  devices: { section: "manageDevices", open: "manageDevices", focus: "devicesTitle" },
-  editProfile: { section: "emailAccount", open: "editProfile", focus: "editProfileTitle" },
+  devices: { section: "manageDevices", open: "manageDevices", focus: "devicesTitle", back: "/dashboard#home" },
+  editProfile: { section: "emailAccount", open: "editProfile", focus: "editProfileTitle", back: "/dashboard#account" },
+  // These share one page head (back arrow and title), added by subHead() below.
+  pin: { section: "accountSecurity", open: "securityManager", panel: "pin", title: "portalChangePin", back: "/dashboard#account" },
+  passkeys: { section: "accountSecurity", open: "securityManager", panel: "passkeys", title: "portalPasskeySignIn", back: "/dashboard#account" },
+  sessions: { section: "accountSessions", open: "sessionActivity", title: "portalSignedInDevices", back: "/dashboard#account" },
 };
+const BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"></path></svg>';
+
+// The shared head for pages that name a title; hidden on every other view.
+function subHead(sub, lang) {
+  let head = document.getElementById("portalSubHead");
+  if (!sub || !sub.title) { if (head) head.hidden = true; return null; }
+  if (!head) {
+    const before = document.getElementById("dashboardMessage");
+    if (!before) return null;
+    head = document.createElement("div");
+    head.className = "portal-sub-head";
+    head.id = "portalSubHead";
+    head.innerHTML = `<a class="portal-sub__back" href="/dashboard#account">${BACK}</a><h2 class="portal-sub-head__title" id="portalSubTitle" tabindex="-1"></h2>`;
+    before.parentNode.insertBefore(head, before);
+  }
+  const back = head.querySelector("a");
+  back.href = sub.back;
+  back.setAttribute("aria-label", t(sub.back.endsWith("#home") ? "portalBackHome" : "portalBackAccount", lang));
+  head.querySelector("h2").textContent = t(sub.title, lang);
+  head.hidden = false;
+  return head.querySelector("h2");
+}
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
 // Opening one of these routes scrolls to that part of its tab.
 const SECTIONS = { vouchers: "voucherHistory", payments: "billing", billing: "billing" };
@@ -61,6 +87,7 @@ function applyView(scroll = false) {
   // A page within the tab, when this account has its section (no devices on a Home router).
   const sub = SUBPAGES[hash] && document.getElementById(SUBPAGES[hash].section) ? SUBPAGES[hash] : null;
   if (sub) document.body.setAttribute("data-portal-sub", hash); else document.body.removeAttribute("data-portal-sub");
+  const subTitle = subHead(sub, lang);
   // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
   const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";
   document.body.setAttribute("data-internet-view", internetView);
@@ -78,12 +105,13 @@ function applyView(scroll = false) {
   }
   const headAction = document.getElementById("portalHeadAction");
   if (headAction) headAction.hidden = tab !== "home";
-  if (["sessions", "sessionActivity"].includes(hash) && openDetails("sessionActivity")) return;
+  if (hash === "sessionActivity" && openDetails("sessionActivity")) return;
   if (sub) {
     const details = document.getElementById(sub.open);
     if (details) details.open = true;
+    if (sub.panel) document.querySelector(`[data-security-panel="${sub.panel}"]`)?.click();
     window.scrollTo(0, 0);
-    document.getElementById(sub.focus)?.focus({ preventScroll: true });
+    (subTitle || document.getElementById(sub.focus))?.focus({ preventScroll: true });
     return;
   }
   if (hash === "redeem" && openDetails("differentCode")) return;
@@ -152,6 +180,11 @@ export function mountPortalNavigation(pending = 0, name) {
     // Once only: app.js changes the logout label while signing out.
     ["header", "#shopPanel", "#portalHead"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
     window.addEventListener("hashchange", () => applyView(true));
+    // Closing a page's section (Cancel, Escape, Close) returns to its tab.
+    document.addEventListener("toggle", (event) => {
+      const sub = SUBPAGES[document.body.getAttribute("data-portal-sub")];
+      if (sub && event.target.id === sub.open && !event.target.open) location.replace(sub.back);
+    }, true);
     // On its own page a section stays open: its disclosure is the page, not a toggle.
     document.addEventListener("click", (event) => {
       const sub = SUBPAGES[document.body.getAttribute("data-portal-sub")], summary = event.target.closest && event.target.closest("summary");
