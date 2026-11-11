@@ -154,12 +154,23 @@ test("the kit page is CSP-safe, v2-only sample content, translated and unlinked"
 });
 
 test("v1 pages do not load the kit, so production defaults are unchanged", async () => {
-  for (const folder of ["customer-app", "admin-app", "store-app"]) {
+  for (const folder of ["customer-app", "admin-app"]) {
     for (const name of await readdir(join(root, folder))) {
       if (!/\.(html|js|css)$/.test(name)) continue;
       assert.doesNotMatch(await read(`${folder}/${name}`), /\/shared\/ui\/|shared-app\/ui\//, `${folder}/${name}`);
     }
   }
+});
+
+// The public store has no v2; the owner chose to restyle it in place with the
+// kit's tokens (canvas: StoreGuest). It takes the tokens only, not the components.
+test("the public store uses the kit's tokens and nothing else from the kit", async () => {
+  for (const name of await readdir(join(root, "store-app"))) {
+    if (!/\.(html|js|css)$/.test(name)) continue;
+    const text = await read(`store-app/${name}`), uses = text.match(/\/shared\/ui\/[\w./-]+/g) || [];
+    assert.deepEqual(uses.filter((path) => path !== "/shared/ui/tokens.css"), [], `store-app/${name}`);
+  }
+  assert.match(await read("store-app/index.html"), /<link rel="stylesheet" href="\/shared\/ui\/tokens\.css"/);
 });
 
 test("the static server serves the kit to v2 only and versions its files", async (t) => {
