@@ -5,7 +5,7 @@
 // Panels keep their v1 names (data-tab-panel). Each menu item shows the panels
 // that hold its screen today, and v1 addresses still land: #more opens Profile
 // (the install prompt moved there), #voucher-create opens Vouchers.
-import { t } from "/shared/i18n.js";
+import { format, t } from "/shared/i18n.js";
 import { clear, currentLanguage, localize } from "/shared/ui/dom.js";
 import { ADMIN_MENU, renderAdminMenu } from "/shared/ui/navigation.js";
 
@@ -16,13 +16,15 @@ const VIEWS = {
   connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork" },
   "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
   bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales" },
-  vouchers: { menu: "vouchers", panels: ["vouchers", "voucher-create"], title: "adminTitleVouchers", group: "uiAdminGroupSales" },
+  vouchers: { menu: "vouchers", panels: ["vouchers"], title: "adminTitleVouchers", group: "uiAdminGroupSales" },
+  // A sub-screen: a back link instead of the eyebrow; app.js names the batch.
+  "voucher-print": { menu: "vouchers", panels: ["voucher-print"], title: "adminTitleVoucherPrint", back: { href: "/dashboard#vouchers", label: "adminTitleVouchersShort" } },
   payments: { menu: "payments", panels: ["payments"], title: "adminTitlePayments", group: "uiAdminGroupSales" },
   store: { menu: "store", panels: ["store"], title: "adminTitleStore", group: "adminGroupStore" },
   products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
   cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
-  resellers: { menu: "resellers", panels: ["vouchers"], section: "resellerLedger", title: "adminTitleResellers", group: "uiAdminGroupPeople" },
+  resellers: { menu: "resellers", panels: ["resellers"], title: "adminTitleResellers", group: "uiAdminGroupPeople" },
   audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem" },
   profile: { menu: "profile", panels: ["profile"], title: "adminTitleProfile", group: "uiAdminGroupSystem" },
 };
@@ -56,6 +58,7 @@ export function activeAdminView(role) {
 
 function eyebrow(view, lang) {
   const config = VIEWS[view];
+  if (config.back) return "";
   if (view === "home") {
     const date = new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
     return ROLES[currentRole] ? t(ROLES[currentRole], lang) + " · " + date : date;
@@ -94,12 +97,33 @@ function apply(focus) {
   // Each screen's own buttons beside the title (marked data-head-view in app.js).
   document.querySelectorAll("[data-head-view]").forEach((action) => { action.hidden = action.dataset.headView !== view; });
   const title = document.getElementById("adminTitle"), label = document.getElementById("adminEyebrow");
-  if (label) label.textContent = eyebrow(view, lang);
+  if (label) { label.textContent = eyebrow(view, lang); label.hidden = !label.textContent; }
   if (title) title.textContent = t(config.title, lang);
+  // Sub-screens (canvas: "← Vouchers" above the title) link back to their screen.
+  const back = document.getElementById("adminBack");
+  if (back) {
+    back.hidden = !config.back;
+    if (config.back) {
+      const name = t(config.back.label, lang);
+      back.href = config.back.href;
+      back.setAttribute("aria-label", format("adminBackTo", { page: name }, lang));
+      back.innerHTML = '<span aria-hidden="true">← </span>';
+      back.appendChild(document.createTextNode(name));
+    }
+  }
+  setAdminHead({});
   const section = config.section && document.getElementById(config.section);
   if (focus && section) section.scrollIntoView({ block: "start" });
   else if (focus && title) { window.scrollTo(0, 0); title.focus({ preventScroll: true }); }
   if (changed) changed(view);
+}
+
+// A screen's own title and the line under it, when they depend on its data
+// (for example "Print 20 vouchers"). Cleared whenever the view changes.
+export function setAdminHead({ title, lede }) {
+  const heading = document.getElementById("adminTitle"), line = document.getElementById("adminLede");
+  if (title && heading) heading.textContent = title;
+  if (line) { line.textContent = lede || ""; line.hidden = !lede; }
 }
 
 // Counts shown on menu items (for example { payments: 2, store: 3 }).

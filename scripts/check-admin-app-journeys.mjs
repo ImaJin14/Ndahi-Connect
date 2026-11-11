@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
+import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
 import { lowContrastText } from "./ui-checks.mjs";
 
 const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
@@ -117,6 +117,44 @@ try {
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/cash-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned Vouchers and batch printing (v2 only; canvas: AdminVouchers, AdminVoucherPrint).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Vouchers creates a batch and prints it on its own screen at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#vouchers`);
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Create a batch", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Recent vouchers", exact: true }).waitFor();
+    await page.locator('[data-voucher-record="v1"]').waitFor();
+    assert.equal(await page.locator('[data-voucher-record="v1"] .nd-pill').textContent(), "In use");
+    assert.equal(await page.locator("#voucherOptions").evaluate((details) => details.open), false, "purpose and sale type wait under More options");
+    await page.getByLabel("How many", { exact: true }).fill("3");
+    await page.getByRole("button", { name: "Create 3 vouchers", exact: true }).click();
+    await page.getByText("3 vouchers generated", { exact: true }).waitFor();
+    assert.equal(await page.locator("#generated .generated-codes code").count(), 3);
+    await page.locator('#voucherRecords tbody tr[data-voucher-record]').nth(3).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/vouchers-${width}.png`, fullPage: true });
+
+    await page.getByRole("link", { name: "Print slips", exact: true }).click();
+    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
+    assert.match(await page.locator("#adminLede").textContent(), /^3 slips · /);
+    assert.equal(await page.locator("#voucherPrintSurface .thermal-slip").count(), 3);
+    await page.getByRole("button", { name: "Print 3 slips", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminEyebrow").isVisible(), false, "the back link replaces the eyebrow");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/voucher-print-${width}.png`, fullPage: false });
+    await page.getByRole("link", { name: "Back to Vouchers", exact: true }).click();
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    assert.equal(await page.locator("#voucherPrintSurface").count(), 0, "slips leave the page with their screen");
+    assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
+    // A reload forgets the batch, so its print screen falls back to Vouchers.
+    await page.evaluate(() => { location.hash = "voucher-print"; });
+    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
+    await page.reload();
+    await page.waitForFunction(() => location.hash === "#vouchers");
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
   }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
@@ -277,7 +315,7 @@ try {
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "true"; document.querySelector("#bundle").reset(); });
     await page.clock.fastForward(61000); assert.equal(reloads, 0);
     await openAdminMore(page, "Generate voucher");
-    await page.getByRole("button", { name: "Generate resale vouchers" }).click();
+    await page.getByRole("button", { name: adminGenerateName("resale") }).click();
     await page.getByText("1 voucher generated").waitFor();
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "false"; });
     await page.clock.fastForward(61000); assert.equal(reloads, 0, "generated codes must not disappear on an automatic update");

@@ -62,3 +62,75 @@
   .admin-cash td[data-label] { display: flex !important; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--nd-space-12); white-space: normal; }
   .admin-cash td[data-label]::before { content: attr(data-label); color: var(--nd-muted); font-weight: 400; }
 }
+
+/* ---------- Page head of a sub-screen (back link, line under the title) ---------- */
+.admin-back { display: inline-block; margin-bottom: var(--nd-space-14); color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; }
+.admin-lede { margin: var(--nd-space-6) 0 0; color: var(--nd-muted); font-size: 15px; }
+
+/* ---------- Forms built from the kit ---------- */
+/* v1 styles every form as a wrapping row with a bottom margin. */
+.admin-form { display: flex; flex-direction: column; flex-wrap: nowrap; gap: var(--nd-space-14); margin: 0; }
+.admin-form .nd-field { display: block; margin: 0; }
+.admin-form .nd-input { min-width: 0; }
+.admin-form .nd-hint { margin: 0; }
+.admin-form .nd-hint:empty { display: none; }
+.admin-form__pair { display: flex; gap: var(--nd-space-10); }
+.admin-form__pair > * { flex: 1 1 0; }
+.admin-form__pair > [hidden] { display: none; }
+.admin-options > summary { display: flex; align-items: center; gap: var(--nd-space-8); min-height: 44px; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; list-style: none; cursor: pointer; }
+.admin-options > summary::-webkit-details-marker { display: none; }
+.admin-options > summary::after { content: ""; width: 7px; height: 7px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.admin-options[open] > summary::after { margin-top: 3px; transform: rotate(225deg); }
+.admin-options__body { display: flex; flex-direction: column; gap: var(--nd-space-14); padding-top: var(--nd-space-4); }
+.admin-options__body [hidden] { display: none; }
+.admin-options .customer-picker, .admin-options .custom-voucher-fields { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.admin-options .customer-picker[hidden], .admin-options .custom-voucher-fields[hidden] { display: none; }
+.admin-check { display: flex; align-items: center; gap: var(--nd-space-8); font-size: var(--nd-fs-small); }
+.admin-check input { width: auto; min-width: 0; }
+
+/* ---------- Vouchers (canvas: AdminVouchers) ---------- */
+.admin-vouchers__row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--nd-space-20); }
+.admin-vouchers__create { display: flex; flex: 1 1 300px; flex-direction: column; gap: var(--nd-space-14); min-width: 0; }
+.admin-vouchers__create .nd-h2 { margin: 0; }
+.admin-vouchers__list { flex: 999 1 420px; min-width: 0; }
+.admin-batch { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); }
+.admin-batch .generated-heading { display: block; margin: 0; padding: 0; border: 0; }
+.admin-batch .generated-heading strong { color: var(--nd-success-fg); font-size: var(--nd-fs-small); }
+/* Muted grey on the green box is 4.1:1; the box's own green reads at AA. */
+.admin-batch .generated-heading p { margin: 2px 0 0; color: var(--nd-success-fg); }
+.admin-batch .generated-codes { margin: 0; display: flex; flex-wrap: wrap; gap: var(--nd-space-6); max-height: 132px; overflow-y: auto; }
+.admin-batch .generated-codes code { padding: 2px 8px; border: 0; border-radius: var(--nd-radius-sm); background: var(--nd-paper); font: 700 13px ui-monospace, Menlo, monospace; letter-spacing: .06em; }
+.admin-batch__more { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--nd-space-6); }
+.admin-batch__more .nd-btn { width: auto; }
+.admin-code { font: 700 14px ui-monospace, Menlo, monospace; letter-spacing: .06em; }
+/* Status and date filters sit on their own row under the heading. */
+.records-toolbar--kit .records-filter--kit { display: contents; }
+.records-toolbar--kit > .nd-h2 { flex: 1 1 auto; }
+.records-filters { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: flex-end; gap: var(--nd-space-8); }
+.records-filter--kit .records-date { display: flex; flex-direction: column; gap: 2px; color: var(--nd-muted); font-size: 12px; font-weight: 600; }
+.records-filter--kit .records-date .nd-input { width: 150px; }
+.records-filter--kit select.nd-input { width: auto; }
+#activeVoucherPrint:not(:empty) { margin-bottom: var(--nd-space-16); }
+
+/* ---------- Print a batch (canvas: AdminVoucherPrint) ---------- */
+.admin-print { display: flex; flex-direction: column; gap: var(--nd-space-20); }
+.admin-print__note { margin: 0; }
+.admin-print__tray { display: flex; flex-wrap: wrap; gap: var(--nd-space-16); padding: var(--nd-space-16); border-radius: var(--nd-radius-card-lg); background: #e7ece5; }
+.admin-print__tray:empty { display: none; }
+/* v1 boxes its print toolbar; on the canvas the controls sit beside the title. */
+.admin-dashboard .admin-print__tools { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.admin-print__format { font-size: var(--nd-fs-meta); font-weight: 600; }
+.admin-print__tools select.nd-input { width: auto; min-height: 44px; }
+
+@media (max-width: 767.98px) {
+  .admin-form__pair { flex-wrap: wrap; }
+  /* v1 shows table rows as cards here with !important, which also showed collapsed (hidden) detail rows. */
+  .admin-dashboard tr[hidden] { display: none !important; }
+  .records-filter--kit .records-date, .records-filter--kit .records-date .nd-input, .records-filter--kit select.nd-input { width: 100%; }
+}
+
+@media print {
+  /* Only the slips: the create form, notes, tray and list chrome stay off paper. */
+  .admin-vouchers__create, .admin-print__note, .admin-back, .admin-lede { display: none !important; }
+  .admin-vouchers__list, .admin-print__tray { display: block !important; padding: 0 !important; border: 0 !important; background: none !important; }
+}

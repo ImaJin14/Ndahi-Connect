@@ -35,7 +35,7 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
       data.permissions.contacts && owner.state === "linked" ? field("Customer name", owner.name) + field("Account phone", owner.accountPhone) : owner.state === "linked" ? field("Customer contact", "Restricted for this staff role") : ""
     }${field("Bundle", data.plan?.name)}${field("Voucher status", data.voucher.status)}${field("Remaining data", bytes(data.remainingBytes))}${field("Activated", data.voucher.activatedAt)}${field("Expires", data.voucher.expiresAt)}${field("Device limit", data.voucher.deviceLimit)}${
       data.permissions.payment && data.payment ? field("Payment reference", data.payment.providerReference || data.payment.id) + field("Payment status", data.payment.status) + field("Payment amount", `${value(data.payment.amount)} ${value(data.payment.currency)}`) + field("Payer phone (may differ from account phone)", data.payment.payerPhone) : ""
-    }</dl>${printable ? `<div class="action-row"><button type="button" class="secondary-action" data-print-voucher="${h(data.voucher.id)}">Print voucher slip</button></div>` : ""}`;
+    }</dl>${printable ? `<div class="action-row"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-print-voucher="${h(data.voucher.id)}">Print voucher slip</button></div>` : ""}`;
   }
   async function load(entry) {
     invalidate(entry);
@@ -76,10 +76,10 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
     content.setAttribute("aria-live", "polite");
     section.id = id; section.setAttribute("role", "region"); section.setAttribute("aria-label", "Voucher ownership details");
     cell.colSpan = columns; cell.style.whiteSpace = "normal"; section.style.maxWidth = "36rem";
-    button.type = "button"; button.className = "secondary-action"; button.textContent = "Details";
+    button.type = "button"; button.className = "nd-btn nd-btn--compact nd-btn--secondary"; button.textContent = "Details";
     button.setAttribute("aria-controls", id); button.setAttribute("aria-expanded", "false");
     button.setAttribute("aria-label", `Details for voucher ${item.code || item.id}`);
-    refresh.type = "button"; refresh.className = "secondary-action"; refresh.textContent = "Refresh details";
+    refresh.type = "button"; refresh.className = "nd-btn nd-btn--compact nd-btn--quiet"; refresh.textContent = "Refresh details";
     section.append(refresh, content); cell.append(section); panel.append(cell); panel.hidden = true;
     const entry = { id: item.id, base, panel, button, content, version: 0, open: false };
     button.onclick = () => {
@@ -109,7 +109,7 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
         entry.base.replaceChildren(...template.content.querySelector("tr").childNodes);
         if (!item.permissions?.manage) entry.base.querySelectorAll("[data-voucher], [data-resend-email], [data-classify]").forEach((b) => b.remove());
         if (!item.permissions?.code) entry.base.querySelectorAll("[data-print-voucher]").forEach((b) => b.remove());
-        entry.base.lastElementChild.append(" ", entry.button); entry.html = html;
+        (entry.base.querySelector(".admin-actions") || entry.base.lastElementChild).append(" ", entry.button); entry.html = html;
         if (focused) entry.button.focus({ preventScroll: true });
       }
       for (const node of [entry.base, entry.panel]) {

@@ -37,3 +37,25 @@ export async function adminMoreCount(page, tab) {
   await page.locator("[data-admin-more]").waitFor();
   return page.getByRole("tab", { name: tab, exact: true }).count();
 }
+
+// Vouchers (v2 canvas: AdminVouchers, AdminVoucherPrint). The create button
+// counts its vouchers ("Create 20 vouchers"); purpose, sale type and custom
+// bundles sit under More options; a batch prints on its own screen, reached
+// with Print slips and left with the "← Vouchers" link.
+export function adminGenerateName(kind = "resale") {
+  if (!uiV2) return kind === "resale" ? "Generate resale vouchers" : "Generate assigned voucher";
+  return kind === "resale" ? /^Create \d+ vouchers?$/ : "Create and assign voucher";
+}
+export async function openVoucherOptions(page) {
+  if (uiV2 && !(await page.locator("#voucherOptions").evaluate((details) => details.open))) await page.locator("#voucherOptions > summary").click();
+}
+export async function openGeneratedPrint(page) {
+  if (uiV2) await page.getByRole("link", { name: "Print slips", exact: true }).click();
+}
+export const printVouchersName = (count) => (!uiV2 ? "Print vouchers" : count === 1 ? "Print 1 slip" : `Print ${count} slips`);
+export async function closeGeneratedCodes(page) {
+  if (uiV2 && (await page.locator("#adminBack:not([hidden])").count())) await page.getByRole("link", { name: "Back to Vouchers", exact: true }).click();
+  await page.getByRole("button", { name: "Close codes", exact: true }).click();
+}
+// v2 moves the reseller ledger from Vouchers to its own Resellers screen.
+export const resellerLedgerView = uiV2 ? "resellers" : "vouchers";

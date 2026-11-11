@@ -1,4 +1,5 @@
 import { mountCashCollectedReport } from "/cash-collected.js";
+import { mountVoucherRecords } from "/vouchers.js";
 import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
@@ -7,7 +8,7 @@ import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
-import { activeAdminView, mountAdminNavigation, setAdminBadges } from "/navigation.js";
+import { activeAdminView, mountAdminNavigation, setAdminBadges, setAdminHead } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
@@ -21,16 +22,17 @@ const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
   rows = (items, render) => items.map(render).join("");
 let bundleIndex = new Map();
-const saleLabel = (v) => v.paymentId ? "Online" : v.saleType === "sold" ? "Sold" : v.saleType === "gift" ? "Gift" : v.generatedByAdmin ? "Unclassified" : "—";
 const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
 let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 let activePrintController = null;
+// The last generated batch, kept in memory only for its print screen.
+let lastBatch = null, voucherRecords;
 function clearPrintContainers() {
   activePrintController?.destroy();
   activePrintController = null;
-  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint"]) {
+  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint", "#voucherPrintTray", "#voucherPrintActions"]) {
     $(selector)?.replaceChildren();
   }
 }
@@ -51,6 +53,32 @@ function openSingleVoucherPrintPreview(targetContainer, result) {
   };
   targetContainer.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
 }
+// Print screen (canvas: AdminVoucherPrint): the batch's slips, mounted while the
+// screen is open. Without a batch in memory (after a reload) it goes back to Vouchers.
+function showBatchPrint(view) {
+  const tray = $("#voucherPrintTray");
+  if (!tray) return;
+  if (view !== "voucher-print") {
+    if (tray.childElementCount) { activePrintController?.destroy(); activePrintController = null; tray.replaceChildren(); $("#voucherPrintActions")?.replaceChildren(); }
+    return;
+  }
+  if (!lastBatch) { location.replace("/dashboard#vouchers"); return; }
+  const { vouchers, plan, reseller } = lastBatch, count = vouchers.length;
+  setAdminHead({
+    title: count === 1 ? L("adminPrintTitleOne", { code: vouchers[0].code }) : L("adminPrintTitle", { count }),
+    lede: [count === 1 ? L("adminSlipsOne") : L("adminSlips", { count }), plan?.name, reseller ? L("adminForName", { name: reseller }) : ""].filter(Boolean).join(" · "),
+  });
+  tray.innerHTML = '<div id="voucherPrintPreview"></div>';
+  activePrintController = mountGeneratedVoucherPrint({
+    container: $("#voucherPrintPreview"),
+    toolbar: $("#voucherPrintActions"),
+    vouchers,
+    plan,
+    layout: "thermal-58",
+    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere") },
+  });
+}
+
 window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
   const message = document.querySelector("#actionMessage") || document.querySelector("#app");
@@ -145,7 +173,7 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
   const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
-  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
   const paymentsExport = $("[data-payments-export]");
   if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
@@ -175,26 +203,34 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         b.custom ? ` <button data-delete-bundle="${h(b.id)}">Delete</button>` : ""
       }</td></tr>`)
   }</tbody></table></section>
-<section class="card tab-panel" id="panel-voucher-create" aria-labelledby="adminTitle" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
-  <label>Purpose<select name="purpose" id="voucherPurpose"><option value="resale">Resale inventory</option><option value="assigned">Assign to customer</option></select></label>
-  <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="checkbox"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> Replace customer's existing active bundle</label></div>
-  <label>Sale type<select name="saleType" id="voucherSaleType" required><option value="">Choose…</option><option value="sold" selected>Sold — counts as revenue</option>${["owner", "operator"].includes(x.profile.role) ? '<option value="gift">Gift — complimentary, no revenue</option>' : ""}</select></label>
-  <label>Bundle type<select name="planMode" id="voucherPlanMode"><option value="existing">Existing bundle</option><option value="custom">Custom voucher</option></select></label>
-  <label id="voucherExistingPlan">Bundle<select name="planId">${bundleOptions}</select></label>
-  <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
-    <label>Voucher name<input name="name" maxlength="80" placeholder="Weekend resale"></label>
-    <label>Resale price (FCFA)<input name="price" type="number" min="0" placeholder="1000"></label>
-    <label>Data allowance (GB)<input name="quotaGb" type="number" min="0.1" step="0.1" placeholder="Blank = unlimited"></label>
-    <label>Validity after activation (hours)<input name="validityHours" type="number" min="1" placeholder="168"></label>
-    <label>Device limit<input name="deviceLimit" type="number" min="1" value="1"></label>
+<section class="tab-panel admin-vouchers" id="panel-vouchers" aria-labelledby="adminTitle" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><div class="admin-vouchers__row">
+<section class="nd-panel admin-vouchers__create" aria-labelledby="voucherCreateTitle"><h2 class="nd-h2" id="voucherCreateTitle">${h(L("adminVoucherCreateTitle"))}</h2><form id="generate" class="admin-form">
+  <label class="nd-field" id="voucherExistingPlan"><span class="nd-label">${h(L("adminFieldBundle"))}</span><select class="nd-input" name="planId">${bundleOptions}</select></label>
+  <div class="admin-form__pair">
+    <label class="nd-field" id="voucherQuantity"><span class="nd-label">${h(L("adminFieldHowMany"))}</span><input class="nd-input" name="quantity" type="number" min="1" max="100" value="1"></label>
+    <label class="nd-field" id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}><span class="nd-label">${h(L("adminFieldForReseller"))}</span><select class="nd-input" name="assignedResellerId" id="voucherResellerSelect"><option value="">${h(L("adminFieldNone"))}</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
   </div>
-  <label id="voucherQuantity">Quantity<input name="quantity" type="number" min="1" max="100" value="1"></label>
-  <label id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}>Assign to reseller (optional)<select name="assignedResellerId" id="voucherResellerSelect"><option value="">Unassigned stock</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
-  <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
-  <button>Generate resale vouchers</button>
+  <details class="admin-options" id="voucherOptions"><summary>${h(L("adminMoreOptions"))}</summary><div class="admin-options__body">
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldPurpose"))}</span><select class="nd-input" name="purpose" id="voucherPurpose"><option value="resale">${h(L("adminPurposeResale"))}</option><option value="assigned">${h(L("adminPurposeAssigned"))}</option></select></label>
+    <div id="voucherCustomer" class="customer-picker" hidden><label class="nd-field"><span class="nd-label">${h(L("adminFindCustomer"))}</span><input class="nd-input" type="search" id="customerSearch" maxlength="100" placeholder="${h(L("adminFindCustomerHint"))}"></label><label class="nd-field"><span class="nd-label">${h(L("adminColCustomer"))}</span><select class="nd-input" name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="admin-check"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> ${h(L("adminReplaceActive"))}</label></div>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldSaleType"))}</span><select class="nd-input" name="saleType" id="voucherSaleType" required><option value="">${h(L("adminChoose"))}</option><option value="sold" selected>${h(L("adminSaleSold"))}</option>${["owner", "operator"].includes(x.profile.role) ? `<option value="gift">${h(L("adminSaleGift"))}</option>` : ""}</select></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldBundleType"))}</span><select class="nd-input" name="planMode" id="voucherPlanMode"><option value="existing">${h(L("adminBundleExisting"))}</option><option value="custom">${h(L("adminBundleCustom"))}</option></select></label>
+    <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldVoucherName"))}</span><input class="nd-input" name="name" maxlength="80" placeholder="Weekend resale"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldResalePrice"))}</span><input class="nd-input" name="price" type="number" min="0" placeholder="1000"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1" placeholder="${h(L("adminFieldDataGbHint"))}"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityHours"))}</span><input class="nd-input" name="validityHours" type="number" min="1" placeholder="168"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" value="1"></label>
+    </div>
+  </div></details>
+  <p class="nd-hint" id="voucherHelp"></p>
+  <button type="submit" class="nd-btn nd-btn--block"></button>
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
+<section class="nd-panel admin-vouchers__list" aria-labelledby="voucherRecordsTitle"><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="voucherRecords"></div></section>
+</div></section>
+<section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNote"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
+<section class="tab-panel admin-resellers" id="panel-resellers" aria-labelledby="adminTitle" data-tab-panel="resellers" ${activeAdminTab === "resellers" ? "" : "hidden"}><div id="resellerLedger"></div></section>
 <section class="card tab-panel" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
-<section class="card tab-panel" id="panel-vouchers" aria-labelledby="adminTitle" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
 <section class="tab-panel admin-payments" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}>${access.contacts ? `<div class="nd-metrics admin-payments__metrics">
 <div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayBundles">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayBundles"))}</span></div>
 ${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayStore">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayStore"))}</span></div>` : ""}
@@ -224,7 +260,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
@@ -260,17 +296,18 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     }
     $("#voucherExistingPlan").hidden = custom;
     $("#voucherCustomFields").hidden = !custom;
-    $("#voucherHelp").textContent = resale
-      ? "Codes remain inactive and unassigned until the buyer first redeems them."
-      : "The voucher activates immediately and is linked to the selected customer.";
-    form.querySelector('button[type="submit"], button:not([type])').textContent = resale
-      ? "Generate resale vouchers"
-      : "Generate assigned voucher";
+    $("#voucherHelp").textContent = L(resale ? "adminVoucherHelpResale" : "adminVoucherHelpAssigned");
+    // Canvas: "Create 20 vouchers", following How many.
+    const count = Math.max(1, Math.floor(Number(form.elements.quantity.value) || 1));
+    form.querySelector('button[type="submit"]').textContent = resale
+      ? (count === 1 ? L("adminCreateVoucherOne") : L("adminCreateVouchers", { count }))
+      : L("adminCreateAssigned");
     for (const input of $("#voucherCustomFields").querySelectorAll("input")) {
       input.required = custom && input.name !== "quotaGb";
     }
   };
   $("#voucherPurpose").onchange = updateVoucherBuilder;
+  $("#generate").elements.quantity.oninput = updateVoucherBuilder;
   $("#voucherPlanMode").onchange = updateVoucherBuilder;
   updateVoucherBuilder();
   $("#bundle").onsubmit = async (e) => {
@@ -311,14 +348,11 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
       });
       const vouchers = result.vouchers || [result.voucher];
       clearPrintContainers();
-      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div class="action-row"><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><div id="voucherPrintPreview"></div>`;
-      activePrintController = mountGeneratedVoucherPrint({
-        container: $("#voucherPrintPreview"),
-        vouchers,
-        plan: result.plan,
-        layout: "thermal-58",
-      });
-      $("#closeGenerated").onclick = () => { clearPrintContainers(); $("#generate").reset(); updateVoucherBuilder(); };
+      // Canvas: a ready box with Print slips, which opens the print screen.
+      const resellerName = $("#voucherResellerSelect")?.selectedOptions[0]?.value ? $("#voucherResellerSelect").selectedOptions[0].textContent : "";
+      lastBatch = { vouchers, plan: result.plan, reseller: resellerName };
+      $("#generated").innerHTML = `<div class="admin-batch"><div class="generated-heading"><strong>${h(vouchers.length === 1 ? L("adminGeneratedOne") : L("adminGeneratedMany", { count: vouchers.length }))}</strong><p class="nd-meta">${h(L(result.voucher.status === "available" ? "adminGeneratedResale" : result.replacedVoucher ? "adminGeneratedReplaced" : "adminGeneratedAssigned"))}</p></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><a class="nd-btn nd-btn--dark nd-btn--block" href="/dashboard#voucher-print">${h(L("adminPrintSlips"))}</a><div class="admin-batch__more"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="downloadVouchers">${h(L("adminDownloadCsv"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="closeGenerated">${h(L("adminCloseCodes"))}</button></div></div>`;
+      $("#closeGenerated").onclick = () => { clearPrintContainers(); lastBatch = null; $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
           link = document.createElement("a");
@@ -327,6 +361,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
         link.click();
         URL.revokeObjectURL(link.href);
       };
+      void voucherRecords?.refresh();
       await resellerLedgerView.refresh();
     });
   };
@@ -414,21 +449,7 @@ function mountRecordViews(canManagePayments, retired) {
   });
   if (!retired) {
   }
-  void mountRecords($("#voucherRecords"), {
-    call,
-    collection: "vouchers",
-    title: "Vouchers",
-    headers: ["Code", "Bundle", "Status", "Sale", "Email", "Devices", "Actions"],
-    row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(saleLabel(v))}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
-      ["active", "available"].includes(v.status) && v.permissions?.code !== false && v.code && v.code !== "Restricted"
-        ? `<button type="button" class="secondary-action" data-print-voucher="${h(v.id)}">Print voucher</button> `
-        : ""
-    }${
-      v.status === "active" ? `<button data-voucher="${h(v.id)}">Revoke</button>` : ""
-    }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}${
-      v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => ` <button class="secondary-action" data-classify="${h(v.id)}" data-sale-type="${type}">Mark ${type === "sold" ? "sold" : "gift"}</button>`).join("") : ""
-    }</td></tr>`,
-  });
+  voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
   void mountPaymentRecords($("#paymentRecords"), { call, canManagePayments });
   void mountRecords($("#auditRecords"), {
     call,

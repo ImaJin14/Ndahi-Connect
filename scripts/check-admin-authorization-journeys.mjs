@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { openAdminMore } from "./admin-nav.mjs";
+import { adminGenerateName, openAdminMore } from "./admin-nav.mjs";
 
 const apiPort = Number(process.env.ADMIN_AUTH_API_PORT || 8398);
 const adminPort = Number(process.env.ADMIN_AUTH_PORT || 8399);
@@ -94,7 +94,7 @@ try {
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForURL("**/dashboard");
     await openAdminMore(page, "Generate voucher");
-    const generateButton = page.getByRole("button", { name: "Generate resale vouchers" });
+    const generateButton = page.getByRole("button", { name: adminGenerateName("resale") });
     await generateButton.waitFor();
     await generateButton.click();
     if (role === "auditor") {

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { resellerLedgerView } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -185,7 +186,7 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
 
-    await page.goto(`${adminOrigin}/dashboard#vouchers`);
+    await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     await page.locator("[data-reseller-ledger]").waitFor();
 
     const row = page.locator('[data-reseller-row="staff-reseller-1"]');
@@ -242,7 +243,7 @@ try {
     await page.locator('#generate button[type="submit"], #generate button:not([type])').click();
     await page.locator("#generated .generated-codes code").first().waitFor();
 
-    await page.goto(`${adminOrigin}/dashboard#vouchers`);
+    await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     assert.match(await row.locator('[data-cell="stock"]').textContent(), /3 unsold \/ 2 sold \/ 5 total/);
     const adjustment = page.locator("[data-reseller-adjustment-form]");
     await adjustment.locator('[name="resellerId"]').selectOption("staff-reseller-1");
@@ -270,7 +271,7 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
 
-    await page.goto(`${adminOrigin}/dashboard#vouchers`);
+    await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     await page.locator("[data-reseller-ledger]").waitFor();
     const ledgerText = await page.locator("[data-reseller-ledger]").textContent();
     assert.match(ledgerText, /My inventory, sales & cash remittance/);

@@ -15,14 +15,17 @@ const TEXT = {
 // The redesigned list (admin-app-v2 screens built from the canvas): kit classes,
 // a heading for the screen's section, and status chips in place of the select.
 // kit = { titleId, searchLabel, placeholder, chips: [[status, label]], chipsLabel,
-//         previous, next, text }. A header given as { label } is visually hidden.
+//         statusLabel, allStatuses, dates: { from, through, apply }, previous, next,
+//         text }. Without chips the status select shows. A header given as
+//         { label } is visually hidden.
 function kitMarkup(title, headers, kit) {
   const chips = (kit.chips || []).map(([value, label], index) => `<button type="button" class="nd-chip${index ? "" : " active"}" aria-pressed="${index ? "false" : "true"}" data-status-chip="${h(value)}">${h(label)}</button>`).join("");
   const head = (name) => `<th scope="col">${typeof name === "string" ? h(name) : `<span class="nd-visually-hidden">${h(name.label)}</span>`}</th>`;
   return `<div class="nd-panel__head records-toolbar records-toolbar--kit"><h2 class="nd-h2" id="${h(kit.titleId)}">${h(title)}</h2><form class="records-filter records-filter--kit" role="search">
   <input class="nd-input nd-input--sm" type="search" name="q" aria-label="${h(kit.searchLabel)}" placeholder="${h(kit.placeholder)}" maxlength="100">
-  <select class="nd-input nd-input--sm" name="status" aria-label="${h(kit.chipsLabel)}" hidden><option value="">—</option></select>
+  ${chips ? "" : '<div class="records-filters">'}<select class="nd-input nd-input--sm" name="status" aria-label="${h(kit.statusLabel || kit.chipsLabel)}" hidden><option value="">${h(kit.allStatuses || "—")}</option></select>
   ${chips ? `<div class="nd-chips" role="group" aria-label="${h(kit.chipsLabel)}">${chips}</div>` : ""}
+  ${kit.dates ? `<label class="records-date"><span>${h(kit.dates.fromText)}</span><input class="nd-input nd-input--sm" type="date" name="from" aria-label="${h(kit.dates.from)}"></label><label class="records-date"><span>${h(kit.dates.throughText)}</span><input class="nd-input nd-input--sm" type="date" name="to" aria-label="${h(kit.dates.through)}"></label><button type="submit" class="nd-btn nd-btn--sm nd-btn--secondary">${h(kit.dates.apply)}</button>` : ""}${chips ? "" : "</div>"}
 </form></div><div class="nd-table-wrap"><table class="nd-table"><thead><tr>${headers.map(head).join("")}</tr></thead><tbody></tbody></table></div>
 <nav class="records-pager" aria-label="${h(title)}"><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="prev">${h(kit.previous)}</button><span role="status" aria-live="polite"></span><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="next">${h(kit.next)}</button></nav>`;
 }
