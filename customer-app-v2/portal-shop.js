@@ -66,8 +66,8 @@ function productView(data, p) {
     <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span></p>
     ${text(p.description) ? `<p class="portal-shop__desc">${h(text(p.description))}</p>` : ""}
     ${facts.length ? `<details class="portal-rule"><summary><span>${h(L("shopDetails"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary>${facts.map(([k, v]) => `<p><strong>${h(k)}:</strong> ${h(v)}</p>`).join("")}</details>` : ""}
-  </div>
-  <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}">+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>`;
+  <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}">+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>
+  </div>`;
 }
 
 function checkoutView(data, p, quantity, who) {

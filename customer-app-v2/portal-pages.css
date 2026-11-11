@@ -252,3 +252,16 @@ body[data-portal-sub] .portal-shop__bar .portal-sub__back { display: grid; }
 .portal-shop__actions .portal-shop__help { align-self: center; }
 .portal-shop__status { align-self: flex-start; margin-top: var(--nd-space-6); }
 #shopPanel .portal-shop__checkout h3, #shopPanel .portal-shop__waiting h3, #shopPanel .portal-shop__code h3 { font-family: var(--nd-font-body); }
+/* Desktop (canvas: Shop): products as a grid of cards; a product beside its photo. */
+@media (min-width: 768px) {
+  body[data-current-tab="shop"] #shopPanel { max-width: 1040px; }
+  .portal-shop__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--nd-space-14); }
+  .portal-shop__item { flex-direction: column; align-items: stretch; padding: 0; overflow: hidden; }
+  .portal-shop__item .portal-shop__thumb { width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: 0; }
+  .portal-shop__item-body { padding: 0 var(--nd-space-14) var(--nd-space-14); }
+  .portal-shop__item .portal-shop__chevron { display: none; }
+  .portal-shop__product { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--nd-space-32); align-items: start; }
+  .portal-shop__product > .portal-shop__photo { grid-column: 1; grid-row: 1 / span 7; margin: 0; }
+  .portal-shop__product > :not(.portal-shop__photo) { grid-column: 2; }
+  .portal-shop__checkout, .portal-shop__line, .portal-shop__waiting, .portal-shop__code, .portal-shop__steps, .portal-shop__actions { max-width: 560px; }
+}
