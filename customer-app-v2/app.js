@@ -21,6 +21,7 @@ import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { internetBundle, internetSwitch } from "./portal-internet.js";
+import { activityDay, activityFilters, activityIcon, mountActivity, paymentPill, waitingBanner } from "./portal-activity.js";
 import { mountCurrentWifi } from "./current-wifi.js";
 import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
 
@@ -59,7 +60,10 @@ function paymentActions(payment, emailLinked) {
 
 
 function paymentRow(payment, customer) {
-  return `<tr data-payment-row="${h(payment.id)}"><td>${h(new Date(payment.createdAt).toLocaleDateString())}<br>${h(payment.plan?.name || payment.planId)}</td><td>${h(payment.amount.toLocaleString())} ${h(payment.currency)}<br>${h(payment.methodLabel || "Mobile Money")}<br><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small><br><small>${h(payment.providerReference || "Awaiting provider reference")}</small></td><td>${h(payment.status)}${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</td><td>${paymentActions(payment, customer.emailLinked)}</td></tr>`;
+  // Activity row (canvas: PhoneActivity): icon, "Bundle · plan", date and method,
+  // status pill, then v1's details, messages and actions.
+  const lang = currentLanguage();
+  return `<tr data-payment-row="${h(payment.id)}" data-activity-kind="internet"><td class="portal-activity__cell">${activityIcon("wifi")}<span class="portal-activity__main"><strong>${h(t("adminForBundle", lang).replace("{plan}", payment.plan?.name || payment.planId))}</strong><span class="nd-meta">${h([activityDay(payment.createdAt), payment.methodLabel || "Mobile Money"].join(" · "))}</span><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</span></td><td class="portal-activity__status">${paymentPill(payment.status)}</td><td class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</td></tr>`;
 }
 
 function receiptPreview(receipt) {
@@ -249,7 +253,7 @@ async function load() {
       ${accountSessionsCard(security)}
     </div>
     ${vouchersCard(result.vouchers)}
-    <section class="surface full" data-portal-view="payments" id="billing"><h2>Payment history</h2><p><a href="/billing-terms.html">Payment, renewal, switching and cancellation rules</a></p><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table><thead><tr><th scope="col">Date / package</th><th scope="col">Amount / reference</th><th scope="col">Payment / refund status</th><th scope="col">Actions</th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : "<p>Your confirmed and pending payments will appear here.</p>"}</section>
+    ${activityFilters()}${waitingBanner(result.payments)}<section class="portal-activity full" data-portal-view="payments" data-activity-kind="internet" id="billing" aria-labelledby="billingTitle"><h2 class="portal-activity__h" id="billingTitle">${h(t("portalActivityPayments", currentLanguage()))}</h2><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table class="portal-activity__table"><thead><tr><th scope="col">${h(t("adminColPayment", currentLanguage()))}</th><th scope="col">${h(t("adminColStatus", currentLanguage()))}</th><th scope="col"><span class="nd-visually-hidden">${h(t("adminColAction", currentLanguage()))}</span></th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : `<p class="nd-meta">${h(t("portalNoPayments", currentLanguage()))}</p>`}<p class="portal-activity__rules"><a href="/billing-terms.html">${h(t("portalPaymentRules", currentLanguage()))}</a></p></section><section class="portal-activity full" data-portal-view="payments" data-activity-kind="orders" id="activityOrders" aria-live="polite"></section>
   </div>`;
   if (active?.accessMode === "home" || active?.accessTransitionId) {
     const controls = document.getElementById("manageDevices");
@@ -288,6 +292,7 @@ async function load() {
     }
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
+  mountActivity({ call });
   const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
   if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
   else if (openCatalogue) openCatalogue.hidden = true;

@@ -1,0 +1,27 @@
+/* Redesigned Activity tab (canvas: PhoneActivity, DesktopActivity). Payment rows
+   keep v1's table (journeys select #billing tbody tr); here each row is a list row. */
+.portal-activity { padding: var(--nd-space-16) var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+.portal-activity:empty { display: none; }
+.portal-activity__h { margin: 0 0 var(--nd-space-6); font-size: 15px; font-weight: 700; }
+.portal-activity__filters { margin: var(--nd-space-4) 0; }
+.portal-activity__filters .nd-segmented__option { flex: 1; }
+.portal-activity__waiting { display: block; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); line-height: 1.45; text-decoration: none; }
+.portal-activity__table, .portal-activity__table tbody { display: block; width: 100%; min-width: 0; }
+.portal-activity__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.portal-activity__table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--nd-space-6) var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-activity__table td { display: block; padding: 0; border: 0; }
+.portal-activity__cell { display: flex !important; gap: var(--nd-space-12); align-items: flex-start; }
+.portal-activity__main { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.portal-activity__main strong { font-size: 15px; }
+.portal-activity__main small, .portal-activity__main p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.portal-activity__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: var(--nd-radius-card); background: var(--nd-sage); color: var(--nd-forest); }
+.portal-activity__status { align-self: start; }
+.portal-activity__pill { text-transform: capitalize; }
+.portal-activity__actions { grid-column: 1 / -1; padding-left: 52px !important; }
+.portal-activity__actions:empty { display: none !important; }
+.portal-activity__actions .plan-actions, .portal-activity__actions > * { margin: 0; }
+.portal-activity__order { display: flex; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-activity__order .portal-activity__main { flex: 1; }
+.portal-activity__rules { margin: var(--nd-space-10) 0 0; font-size: var(--nd-fs-meta); }
+.portal-activity__empty { margin: 0; }
+body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-activity-filter="orders"] [data-activity-kind="internet"] { display: none !important; }
