@@ -275,11 +275,11 @@ try {
   for (const role of ["owner", "operator"]) if (uiV2) await scenario(`redesigned Profile & security shows you, your passkeys and (owners) staff as ${role}`, async (page) => {
     await page.goto(`${admin}/dashboard#profile`);
     await page.getByRole("heading", { name: "Profile and security.", exact: true }).waitFor();
-    assert.match(await page.getByRole("region", { name: "You" }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
+    assert.match(await page.getByRole("region", { name: "You", exact: true }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
     await page.getByRole("button", { name: "Change password", exact: true }).waitFor();
     await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
     await page.getByRole("button", { name: "Add a passkey on this device", exact: true }).waitFor();
-    const staff = page.getByRole("region", { name: "Staff (owner only)" });
+    const staff = page.getByRole("region", { name: "Staff (owner only)", exact: true });
     if (role === "owner") {
       assert.match(await staff.innerText(), /fixture-owner · owner\s*You/);
       assert.equal(await staff.getByRole("button", { name: "Deactivate", exact: true }).count(), 3);

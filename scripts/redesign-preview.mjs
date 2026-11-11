@@ -66,7 +66,7 @@ export const SCREENS = [
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned"],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", "a.admin-name"],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers"],
-    ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned (no Store filter: store changes are kept in stock movements, not the audit log)"],
+    ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned"],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)"],
   ].map(([id, title, desktop, path, status, open]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(open ? { open } : {}) })),
 ];

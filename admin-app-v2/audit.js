@@ -32,7 +32,7 @@ export function auditTarget(meta) {
   return id ? (String(id).length > 14 ? String(id).slice(0, 8) + "…" : String(id)) : "—";
 }
 
-export const AUDIT_AREAS = [["", "adminAuditAll"], ["payment", "adminAuditMoney"], ["voucher", "adminAuditVouchersArea"], ["customer", "adminAuditCustomers"], ["admin", "adminAuditStaff"], ["network", "adminAuditNetwork"]];
+export const AUDIT_AREAS = [["", "adminAuditAll"], ["payment", "adminAuditMoney"], ["store", "adminAuditStore"], ["voucher", "adminAuditVouchersArea"], ["customer", "adminAuditCustomers"], ["admin", "adminAuditStaff"], ["network", "adminAuditNetwork"]];
 
 export function mountAuditRecords(container, { call }) {
   return mountRecords(container, {

@@ -225,6 +225,9 @@
 .admin-devices__list { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-22); }
 .admin-devices__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--nd-space-12); }
 .admin-live { display: flex; align-items: center; gap: var(--nd-space-8); color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); }
+/* v1 greys #wifiSummary to its lighter --muted (4.46:1 here). */
+.admin-live #wifiSummary { color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); line-height: 1.4; }
+.admin-live #wifiSummary button { margin: 0 0 0 var(--nd-space-8); }
 .admin-live__dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: #6f9500; }
 .admin-live[data-state="stale"] .admin-live__dot, .admin-live[data-state="refreshing"] .admin-live__dot, .admin-live[data-state="retrying"] .admin-live__dot { background: #b26a00; }
 .admin-live[data-state="failed"] .admin-live__dot { background: var(--nd-danger); }
@@ -267,3 +270,5 @@
 .admin-profile__card .nd-h2 { margin: 0; }
 .admin-passkeys__list li > span { font-size: var(--nd-fs-small); }
 @media (max-width: 767.98px) { .admin-profile__grid { grid-template-columns: minmax(0, 1fr); } }
+/* The install prompt keeps v1's markup; v1's --muted is 4.46:1 on this background. */
+.admin-profile #adminInstall p { color: var(--nd-muted); }
