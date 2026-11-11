@@ -25,6 +25,8 @@ const SUBPAGES = {
   pin: { section: "accountSecurity", open: "securityManager", panel: "pin", title: "portalChangePin", back: "/dashboard#account" },
   passkeys: { section: "accountSecurity", open: "securityManager", panel: "passkeys", title: "portalPasskeySignIn", back: "/dashboard#account" },
   sessions: { section: "accountSessions", open: "sessionActivity", title: "portalSignedInDevices", back: "/dashboard#account" },
+  // Voucher code entry (canvas: PhoneVoucher), reached from Home and Internet.
+  redeem: { section: "activateDevice", open: "differentCode", title: "portalEnterVoucher", back: "/dashboard#vouchers", backLabel: "portalBackInternet" },
 };
 const BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"></path></svg>';
 
@@ -43,7 +45,7 @@ function subHead(sub, lang) {
   }
   const back = head.querySelector("a");
   back.href = sub.back;
-  back.setAttribute("aria-label", t(sub.back.endsWith("#home") ? "portalBackHome" : "portalBackAccount", lang));
+  back.setAttribute("aria-label", t(sub.backLabel || (sub.back.endsWith("#home") ? "portalBackHome" : "portalBackAccount"), lang));
   head.querySelector("h2").textContent = t(sub.title, lang);
   head.hidden = false;
   return head.querySelector("h2");
@@ -114,7 +116,6 @@ function applyView(scroll = false) {
     (subTitle || document.getElementById(sub.focus))?.focus({ preventScroll: true });
     return;
   }
-  if (hash === "redeem" && openDetails("differentCode")) return;
   const section = SECTIONS[hash] && document.getElementById(SECTIONS[hash]);
   if (section && scroll) { section.scrollIntoView({ block: "start" }); return; }
   if (scroll) {

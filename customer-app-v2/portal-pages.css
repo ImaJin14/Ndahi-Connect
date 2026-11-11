@@ -162,3 +162,16 @@ body[data-portal-sub="sessions"] #accountSessions > p { margin: 0; color: var(--
 #sessionActivity #logoutEverywhere { width: 100%; min-height: 50px; margin-top: var(--nd-space-14); border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-danger); font: 700 var(--nd-fs-body) var(--nd-font-body); }
 body[data-portal-sub="sessions"] #accountSessions { display: flex; flex-direction: column; gap: var(--nd-space-12); }
 body[data-portal-sub="sessions"] [data-open-security-history] { order: 3; align-self: flex-start; }
+
+/* ---------- Voucher code (canvas: PhoneVoucher) ---------- */
+body[data-portal-sub="redeem"] main.dashboard-shell > :not(#activateDevice):not(#portalSubHead):not(#portalHead):not(#dashboardMessage) { display: none !important; }
+body[data-portal-sub="redeem"] #activateDevice { width: 100%; max-width: 560px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+body[data-portal-sub="redeem"] #differentCode { margin: 0; padding: 0; border: 0; }
+body[data-portal-sub="redeem"] #differentCode > summary { display: none; }
+body[data-portal-sub="redeem"] #activateDevice form { padding: 0; border: 0; background: none; }
+#redeem .form-row { display: block; }
+#redeem label { display: block; margin: 0 0 var(--nd-space-14); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+#redeem label > input { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+#redeem input[name="code"] { font-family: var(--nd-font-mono); letter-spacing: .04em; text-transform: uppercase; }
+#redeem > button { width: 100%; min-height: 52px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+#redeemMessage:empty { display: none; }
