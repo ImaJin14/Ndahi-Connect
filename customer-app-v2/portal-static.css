@@ -1,0 +1,27 @@
+/* Standalone portal pages in the kit look: Package rules (canvas:
+   PhoneBillingTerms). A bar with a back arrow and the page name, then one
+   readable column. */
+body { background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+.portal-static { box-sizing: border-box; width: 100%; max-width: 680px; margin: 0 auto; padding: 0 var(--nd-space-16) var(--nd-space-48); }
+.portal-static__bar { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 56px; margin: 0 0 var(--nd-space-8); color: var(--nd-ink); font-size: 15px; font-weight: 700; }
+.portal-static__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+.portal-static__back:hover { background: var(--nd-sage); }
+.portal-static__back:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-static__main { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.portal-static__main h1 { margin: 0 0 var(--nd-space-6); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
+.portal-static__meta { margin: 0 0 var(--nd-space-16); color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+
+/* ---------- Package rules: one disclosure per topic ---------- */
+.portal-rule { border-bottom: 1px solid var(--nd-line); }
+.portal-rule > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 52px; cursor: pointer; list-style: none; }
+.portal-rule > summary::-webkit-details-marker { display: none; }
+.portal-rule > summary::before, .portal-rule > summary::after { content: none; display: none; }
+.portal-rule > summary:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-rule > summary h2 { margin: 0; color: var(--nd-ink); font: 700 15px/1.3 var(--nd-font-body); }
+.portal-rule__chevron { flex-shrink: 0; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--nd-muted); border-bottom: 2px solid var(--nd-muted); transform: rotate(45deg); transition: transform .15s; }
+.portal-rule[open] .portal-rule__chevron { transform: rotate(-135deg); }
+.portal-rule__body { padding: 0 0 var(--nd-space-14); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.55; }
+.portal-rule__body p { margin: 0 0 var(--nd-space-10); }
+.portal-rule__body p:last-child { margin-bottom: 0; }
+.portal-rules__pin { margin: var(--nd-space-18) 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .portal-rule__chevron { transition: none; } }
