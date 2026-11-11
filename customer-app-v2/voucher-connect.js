@@ -77,7 +77,9 @@ function buttons(enabled) {
 function noBundle(error) {
   const none = document.querySelector("#qrNoBundle"), hint = wifiHint();
   if (!none) return false;
-  message.textContent = "";
+  // The status line keeps the message (announced, and journeys read it); the
+  // panel shows the same words visually beside its choices.
+  message.textContent = error.message;
   document.querySelector("#qrNoBundleText").textContent = error.message;
   const buy = new URL("/onboarding.html", location.origin);
   if (hint) { buy.searchParams.set("mac", hint.mac); buy.searchParams.set("address", hint.address); }
