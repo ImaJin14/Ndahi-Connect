@@ -1,6 +1,7 @@
 import { mountCashCollectedReport } from "/cash-collected.js";
 import { mountVoucherRecords } from "/vouchers.js";
 import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
+import { bundleCards, showBundleEdit } from "/bundles.js";
 import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
@@ -194,16 +195,30 @@ ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelle
   <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Password &amp; passkeys</h3></div><p>Use your password or a passkey. Sensitive changes require fresh verification.</p></div><form id="adminPasskeys"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button></form><ul>${(x.profile.passkeyList || []).map((key,index) => `<li>${h(key.label || `Passkey ${index+1}`)} <button type="button" data-remove-admin-passkey="${h(key.id)}">Remove passkey</button></li>`).join("")}</ul></article>
 </div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
 ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" aria-labelledby="adminTitle" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
-<section class="card tab-panel" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
-    rows(x.bundles, (b) =>
-      `<tr><td>${h(b.name)}</td><td>${h(b.price)} FCFA</td><td>${
-        h(b.quotaGb ?? "Unlimited")
-      } GB</td><td>${h(b.validityHours)} hours</td><td>${h(b.deviceLimit)}</td><td>${
-        b.custom ? "Custom" : "System"
-      }</td><td><button data-edit-bundle="${h(b.id)}">Edit</button>${
-        b.custom ? ` <button data-delete-bundle="${h(b.id)}">Delete</button>` : ""
-      }</td></tr>`)
-  }</tbody></table></section>
+<section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><div class="admin-bundles__grid">${bundleCards(x.bundles, x.usageByBundle)}</div><p id="bundleMessage" class="nd-meta" role="status" aria-live="polite"></p>
+<section class="nd-panel" aria-labelledby="bundleCreateTitle"><h2 class="nd-h2" id="bundleCreateTitle">${h(L("adminNewBundle"))}</h2><form id="bundle" class="admin-form admin-form--row">
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldName"))}</span><input class="nd-input" name="name" maxlength="80" placeholder="${h(L("adminBundleNameHint"))}" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldPrice"))}</span><input class="nd-input" name="price" type="number" min="0" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1" placeholder="${h(L("adminFieldDataGbHint"))}"></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" value="1" required></label>
+  <button type="submit" class="nd-btn">${h(L("adminCreateBundle"))}</button>
+</form></section></section>
+<section class="tab-panel admin-bundle-edit" id="panel-bundle-edit" aria-labelledby="adminTitle" data-tab-panel="bundle-edit" ${activeAdminTab === "bundle" ? "" : "hidden"}><div class="admin-bundle-edit__row">
+<section class="nd-panel admin-bundle-edit__form" aria-label="${h(L("adminBundleSettings"))}"><form id="bundleEdit" class="admin-form"><input name="bundleId" type="hidden">
+  <div class="admin-form__grid">
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldName"))}</span><input class="nd-input" name="name" maxlength="80" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldPrice"))}</span><input class="nd-input" name="price" type="number" min="0" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" required></label>
+  </div>
+  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedData"))}</label>
+  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <p class="nd-callout nd-callout--warning admin-callout">${h(L("adminBundleEditNote"))}</p>
+  <div class="admin-form__actions"><button type="submit" class="nd-btn">${h(L("adminSaveBundle"))}</button><span id="bundleEditMessage" class="admin-saved" role="status" aria-live="polite"></span></div>
+</form></section>
+<section class="admin-bundle-edit__preview" aria-labelledby="bundlePreviewTitle"><h2 id="bundlePreviewTitle" class="admin-preview-title">${h(L("adminWhatCustomersSee"))}</h2><div class="admin-plan-preview" id="bundlePreview"><span><strong data-preview-name></strong><span data-preview-detail></span></span><strong data-preview-price></strong></div></section>
+</div></section>
 <section class="tab-panel admin-vouchers" id="panel-vouchers" aria-labelledby="adminTitle" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><div class="admin-vouchers__row">
 <section class="nd-panel admin-vouchers__create" aria-labelledby="voucherCreateTitle"><h2 class="nd-h2" id="voucherCreateTitle">${h(L("adminVoucherCreateTitle"))}</h2><form id="generate" class="admin-form">
   <label class="nd-field" id="voucherExistingPlan"><span class="nd-label">${h(L("adminFieldBundle"))}</span><select class="nd-input" name="planId">${bundleOptions}</select></label>
@@ -267,7 +282,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
@@ -331,23 +346,29 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   updateVoucherBuilder();
   $("#bundle").onsubmit = async (e) => {
     e.preventDefault();
-    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
+    // Blank data means unlimited; the API reads an empty string as 0 GB.
+    const fields = Object.fromEntries(new FormData(e.target));
+    if (fields.quotaGb === "") fields.quotaGb = null;
+    await runAction(e.target.querySelector("button[type=submit]"), L("adminSaving"), async () => {
       await call("/api/admin/bundles", {
         method: "POST",
-        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+        body: JSON.stringify(fields),
       });
       await load();
     }, "#bundleMessage");
   };
   $("#bundleEdit").onsubmit = async (e) => {
     e.preventDefault();
-    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
-      await call("/api/admin/bundles/update", {
-        method: "POST",
-        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
-      });
+    const fields = Object.fromEntries(new FormData(e.target));
+    delete fields.unlimited;
+    if (e.target.elements.unlimited.checked) fields.quotaGb = "";
+    await runAction(e.target.querySelector("button[type=submit]"), L("adminSaving"), async () => {
+      await call("/api/admin/bundles/update", { method: "POST", body: JSON.stringify(fields) });
       await load();
-    }, "#bundleMessage");
+      // load() redraws the screen; say so on the fresh form.
+      const message = $("#bundleEditMessage");
+      if (message) { message.dataset.forBundle = fields.bundleId; message.textContent = L("adminBundleSaved"); }
+    }, "#bundleEditMessage");
   };
   const resellerLedgerView = mountResellerLedger($("#resellerLedger"), {
     initialLedger: x.resellerLedger,
@@ -482,31 +503,8 @@ function mountRecordViews(canManagePayments, retired) {
 $("#app").onclick = async (e) => {
   const button = e.target.closest("button");
   if (!button || button.disabled) return;
-  if (button.dataset.editBundle) {
-    const bundle = bundleIndex.get(button.dataset.editBundle),
-      form = $("#bundleEdit");
-    form.hidden = false;
-    $("#bundle").hidden = true;
-    for (
-      const [name, value] of Object.entries({
-        bundleId: bundle.id,
-        name: bundle.name,
-        price: bundle.price,
-        quotaGb: bundle.quotaGb ?? "",
-        validityHours: bundle.validityHours,
-        deviceLimit: bundle.deviceLimit,
-      })
-    ) form.elements[name].value = value;
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
-    return;
-  }
   if (button.dataset.replaceBundle) {
     prefillAssignedVoucher(button.dataset.replacePhone || "");
-    return;
-  }
-  if (button.hasAttribute("data-cancel-edit")) {
-    $("#bundleEdit").hidden = true;
-    $("#bundle").hidden = false;
     return;
   }
   if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;

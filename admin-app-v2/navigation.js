@@ -15,7 +15,9 @@ const VIEWS = {
   devices: { menu: "devices", panels: ["devices"], title: "adminTitleDevices", group: "uiAdminGroupNetwork" },
   connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork" },
   "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
-  bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales" },
+  bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede" },
+  // #bundle/<id>; app.js names the bundle in the title.
+  bundle: { menu: "bundles", panels: ["bundle-edit"], title: "adminTitleBundleEdit", back: { href: "/dashboard#bundles", label: "adminTitleBundlesShort" } },
   vouchers: { menu: "vouchers", panels: ["vouchers"], title: "adminTitleVouchers", group: "uiAdminGroupSales" },
   // A sub-screen: a back link instead of the eyebrow; app.js names the batch.
   "voucher-print": { menu: "vouchers", panels: ["voucher-print"], title: "adminTitleVoucherPrint", back: { href: "/dashboard#vouchers", label: "adminTitleVouchersShort" } },
@@ -113,7 +115,7 @@ function apply(focus) {
       back.appendChild(document.createTextNode(name));
     }
   }
-  setAdminHead({});
+  setAdminHead({ lede: config.lede ? t(config.lede, lang) : "" });
   const section = config.section && document.getElementById(config.section);
   if (focus && section) section.scrollIntoView({ block: "start" });
   else if (focus && title) { window.scrollTo(0, 0); title.focus({ preventScroll: true }); }

@@ -196,6 +196,48 @@ try {
     await page.waitForFunction(() => document.querySelector("#customerSelect").value === "c1");
     assert.equal(await page.locator("#voucherReplaceActive").isChecked(), true);
   }, { width });
+  // Redesigned Bundles and Edit bundle (v2 only; canvas: AdminBundles, AdminBundleEdit).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Bundles creates, edits and deletes a custom bundle at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#bundles`);
+    await page.getByRole("heading", { name: "Your bundles.", exact: true }).waitFor();
+    const weekly = page.locator('[data-bundle-card="weekly"]');
+    assert.match(await weekly.innerText(), /Weekly[\s\S]*On sale[\s\S]*1,000 FCFA[\s\S]*5 GB · 7 days · 1 device[\s\S]*1 voucher issued/);
+    const form = page.locator("#bundle");
+    await form.getByLabel("Name", { exact: true }).fill("Weekend");
+    await form.getByLabel("Price (FCFA)", { exact: true }).fill("500");
+    await form.getByLabel("Validity (hours)", { exact: true }).fill("48");
+    await form.getByRole("button", { name: "Create bundle", exact: true }).click();
+    const card = page.locator(".admin-bundle").filter({ hasText: "Weekend" });
+    await card.waitFor();
+    // A blank data allowance is unlimited, not 0 GB.
+    assert.match(await card.innerText(), /500 FCFA[\s\S]*Unlimited · 2 days · 1 device/);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/bundles-${width}.png`, fullPage: true });
+
+    await card.getByRole("link", { name: "Edit Weekend", exact: true }).click();
+    await page.getByRole("heading", { name: "Edit Weekend", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to Bundles", exact: true }).waitFor();
+    const edit = page.locator("#bundleEdit"), preview = page.locator("#bundlePreview");
+    assert.equal(await edit.getByLabel("Unlimited data").isChecked(), true);
+    assert.equal(await page.locator("#bundleQuotaField").isVisible(), false);
+    await edit.getByLabel("Unlimited data").uncheck();
+    await edit.getByLabel("Data allowance (GB)", { exact: true }).fill("2");
+    await edit.getByLabel("Device limit", { exact: true }).fill("3");
+    assert.equal(await preview.locator("[data-preview-detail]").textContent(), "2 GB · 2 days · 3 devices");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    await page.screenshot({ path: `${screenshots}/bundle-edit-${width}.png`, fullPage: true });
+    await edit.getByRole("button", { name: "Save bundle", exact: true }).click();
+    await page.getByText("Saved — logged in the audit trail", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Edit Weekend", exact: true }).count(), 1, "saving keeps the edit screen");
+    await page.getByRole("link", { name: "Back to Bundles", exact: true }).click();
+    assert.match(await card.innerText(), /2 GB · 2 days · 3 devices/);
+    await card.getByRole("button", { name: "Delete Weekend", exact: true }).click();
+    await card.waitFor({ state: "detached" });
+    // An unknown bundle address falls back to the list.
+    await page.evaluate(() => { location.hash = "bundle/missing"; });
+    await page.waitForFunction(() => location.hash === "#bundles");
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
