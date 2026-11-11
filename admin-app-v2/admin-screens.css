@@ -299,3 +299,26 @@
 .admin-resellers [data-reseller-ledger-message]:empty { display: none; }
 .admin-resellers .reseller-remittance-history > summary { min-height: 44px; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; cursor: pointer; }
 .admin-resellers .reseller-ledger-empty { padding: var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); color: var(--nd-muted); }
+
+/* ---------- Network setup (canvas: AdminNetworkSetup) ---------- */
+.admin-setup #networkSetup { display: flex; flex-direction: column; gap: var(--nd-space-18); }
+.admin-setup #networkSetup > p, .admin-setup #networkSetup section > p { margin: 0; color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); }
+.admin-steps { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin: 0; padding: 0; list-style: none; }
+.admin-dashboard .admin-steps button { display: inline-flex; align-items: center; gap: var(--nd-space-8); min-height: 44px; padding: 0 var(--nd-space-14) 0 var(--nd-space-6); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-pill); background: var(--nd-paper); color: var(--nd-ink); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-dashboard .admin-steps button:hover { background: var(--nd-sage); }
+.admin-dashboard .admin-steps button[aria-current="step"] { border-color: var(--nd-forest); background: var(--nd-forest); color: var(--nd-white); }
+.admin-steps__num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--nd-sage); color: var(--nd-forest); font-size: var(--nd-fs-meta); }
+.admin-steps button[aria-current="step"] .admin-steps__num { background: var(--nd-lime); color: var(--nd-lime-ink); }
+.admin-setup__step { display: flex; flex-direction: column; gap: var(--nd-space-16); max-width: 760px; padding: var(--nd-space-24); }
+.admin-setup__step[hidden] { display: none; }
+.admin-setup__step form { display: flex; flex-direction: column; flex-wrap: nowrap; gap: var(--nd-space-12); margin: 0; padding: 0; border: 0; background: none; }
+.admin-setup__step h3, .admin-setup #networkSetup section > h3 { margin: 0; font-family: var(--nd-font-display); font-size: 20px; font-weight: 600; }
+.admin-setup #networkSetup label { display: flex; flex-direction: column; gap: var(--nd-space-6); font-size: var(--nd-fs-meta); font-weight: 600; }
+.admin-setup #networkSetup label.network-checkbox { flex-direction: row; align-items: center; font-weight: 400; }
+.admin-setup #networkSetup input:not([type="checkbox"]), .admin-setup #networkSetup select { width: 100%; min-width: 0; min-height: 44px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 14px var(--nd-font-body); }
+.admin-setup #networkSetup button:not(.admin-steps button) { min-height: 44px; padding: 0 var(--nd-space-16); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 14px var(--nd-font-body); }
+.admin-setup #networkSetup form > button:not(.secondary-action):not([data-discover]), .admin-setup #networkActivate { border-color: var(--nd-lime); background: var(--nd-lime); color: var(--nd-lime-ink); }
+.admin-setup #networkSetup button:disabled { opacity: .55; }
+.admin-setup #networkSetup > section { padding: var(--nd-space-18) var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+.admin-setup #networkSetup > section > * + * { margin-top: var(--nd-space-10); }
+.admin-setup__steps > [hidden] { display: none; }

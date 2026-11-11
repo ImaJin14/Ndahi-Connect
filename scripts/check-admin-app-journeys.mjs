@@ -330,6 +330,24 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/resellers-${width}.png`, fullPage: true });
   }, { width });
+  // Redesigned Network setup (v2 only; canvas: AdminNetworkSetup).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Network setup walks four steps over the existing forms at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#network-setup`);
+    await page.getByRole("heading", { name: "Connect and configure your equipment.", exact: true }).waitFor();
+    const steps = page.getByRole("list", { name: "Setup steps" });
+    assert.deepEqual((await steps.getByRole("button").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()), ["1 Router", "2 Access points", "3 Wi-Fi", "4 Review"]);
+    assert.equal(await page.locator("#networkRouterConnection").isVisible(), true);
+    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), false);
+    await steps.getByRole("button", { name: "Access points" }).click();
+    assert.equal(await steps.getByRole("button", { name: "Access points" }).getAttribute("aria-current"), "step");
+    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), true);
+    await steps.getByRole("button", { name: "Review" }).click();
+    await page.getByText("Preview router, access point or Wi-Fi changes", { exact: false }).waitFor();
+    await page.locator("#networkPairingStatus").waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/network-setup-${width}.png`, fullPage: true });
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
