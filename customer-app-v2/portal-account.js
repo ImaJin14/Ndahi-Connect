@@ -19,7 +19,7 @@ export function accountHub(customer, security) {
   const name = customer.name || L("portalYourAccount");
   const passkeys = (security.passkeys || []).length, sessions = (security.sessions || []).filter((s) => !s.revokedAt && s.status !== "revoked").length;
   return `<section class="portal-account full" data-portal-view="account" aria-labelledby="accountHubTitle">
-  <header class="portal-account__head"><span class="nd-avatar nd-avatar--lg" aria-hidden="true">${h(name.trim().charAt(0).toUpperCase())}</span><span class="portal-account__who"><h2 class="portal-account__title" id="accountHubTitle">${h(name)}</h2><span class="nd-meta">${h(mask(customer.phoneE164 || customer.phone))}</span></span><a class="admin-link portal-account__edit" href="/dashboard#account" data-account-open="editProfile">${h(L("portalEdit"))}</a></header>
+  <div class="portal-account__head"><span class="nd-avatar nd-avatar--lg" aria-hidden="true">${h(name.trim().charAt(0).toUpperCase())}</span><span class="portal-account__who"><h2 class="portal-account__title" id="accountHubTitle">${h(name)}</h2><span class="nd-meta">${h(mask(customer.phoneE164 || customer.phone))}</span></span><a class="admin-link portal-account__edit" href="/dashboard#account" data-account-open="editProfile">${h(L("portalEdit"))}</a></div>
   <p class="portal-account__group">${h(L("portalSecurity"))}</p>
   <div class="portal-account__list">
     ${item("/dashboard#accountSecurity", L("portalChangePin"), "", 'data-account-open="accountSecurity"')}

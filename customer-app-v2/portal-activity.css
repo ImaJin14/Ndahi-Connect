@@ -42,3 +42,10 @@ body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-a
 .portal-account__chevron { color: var(--nd-lime-text); font-size: 18px; }
 .portal-account__signout { color: var(--nd-danger); }
 @media (min-width: 1024px) { .portal-account { max-width: 640px; } }
+/* v1's phone table rules make every cell a full-width block; keep the row layout. */
+#billing .portal-activity__table td.portal-activity__cell { grid-column: 1; grid-row: 1; width: auto !important; }
+#billing .portal-activity__table td.portal-activity__status { grid-column: 2; grid-row: 1; width: auto !important; }
+#billing .portal-activity__table td.portal-activity__actions { grid-column: 1 / -1; grid-row: 2; width: auto !important; }
+#billing .portal-activity__actions button, #billing .portal-activity__actions a.button { width: auto !important; min-height: 40px; }
+#billing .portal-activity__actions .plan-actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); }
+#billing .portal-activity__table tr { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; margin: 0; border-radius: 0; box-shadow: none; background: none; }
