@@ -238,6 +238,23 @@ try {
     await page.evaluate(() => { location.hash = "bundle/missing"; });
     await page.waitForFunction(() => location.hash === "#bundles");
   }, { width });
+  // Redesigned Live devices (v2 only; canvas: AdminDevices).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Live devices names customers and keeps the router summary at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#devices`);
+    await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
+    const row = page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac });
+    await row.waitFor();
+    assert.match(await page.locator("#wifiSummary").textContent(), /^2 confirmed connected · Router reading current · checked /);
+    assert.equal(await page.locator("#wifiLive").getAttribute("data-state"), "ready");
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).waitFor();
+    assert.match(await row.innerText(), /10\.20\.0\.2[\s\S]*Connected/);
+    await page.getByRole("button", { name: "Refresh devices", exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/live-devices-${width}.png`, fullPage: true });
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
+    await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
@@ -318,7 +335,7 @@ try {
     assert.equal(readCalls, 1); assert.equal((await store.snapshot()).vouchers[0].wifiDevices.length, 2);
     devices = []; release();
     await page.locator("#wifiSummary").filter({ hasText: "0 confirmed connected" }).waitFor();
-    await page.locator("#wifiRecords").getByText("No records found.").waitFor();
+    await page.locator("#wifiRecords tbody").getByText(uiV2 ? "No Wi-Fi devices right now." : "No records found.").waitFor();
   });
   await scenario("failed router readings preserve stale devices and expose a bounded retry action", async (page) => {
     now = new Date(+now + 180000); failRead = true;

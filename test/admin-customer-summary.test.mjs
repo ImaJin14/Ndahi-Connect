@@ -49,3 +49,10 @@ test("payments can be found by the customer they belong to", () => {
   const { items } = queryRecords(state(), { collection: "payments", q: "c3" });
   assert.deepEqual(items.map((p) => p.id), ["p1"]);
 });
+
+test("device records name their customer", () => {
+  const s = { ...state(), vouchers: [{ id: "v-live", customerId: "c1", status: "active", wifiDevices: [{ mac: "AA:BB:CC:DD:EE:01", sessionId: "*1", startedAt: "2030-01-01T07:00:00Z" }], wifiDevicesAt: "2030-01-01T08:00:00Z" }] };
+  const { items } = queryRecords(s, { collection: "wifiDevices" }, { now: new Date("2030-01-01T08:00:30Z") });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].customerName, "Amina");
+});

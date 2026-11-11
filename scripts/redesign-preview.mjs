@@ -50,7 +50,7 @@ export const SCREENS = [
   ...[
     ["admin-login", "Sign in", "AdminLogin", "/login", "Restyle pending (today's sign-in method stays until Phase 6)"],
     ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned"],
-    ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices"],
+    ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (no access point, signal or today's usage: the router doesn't report them)"],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections"],
     ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html"],
     ["admin-setup", "Network setup", "AdminNetworkSetup", "/dashboard#network-setup"],
