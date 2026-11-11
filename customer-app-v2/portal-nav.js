@@ -51,6 +51,12 @@ function applyView(scroll = false) {
   // Page styles key off the current tab (the Home hero on phones). Not
   // data-portal-tab: journeys select the tab links by that attribute.
   document.body.setAttribute("data-current-tab", tab);
+  // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
+  const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";
+  document.body.setAttribute("data-internet-view", internetView);
+  document.querySelectorAll("[data-internet-switch]").forEach((link) => {
+    if (link.dataset.internetSwitch === internetView) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+  });
   const title = document.getElementById("portalTitle");
   if (title) title.textContent = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang);
   const eyebrow = document.getElementById("portalEyebrow");

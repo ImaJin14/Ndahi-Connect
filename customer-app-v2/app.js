@@ -20,6 +20,7 @@ import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
 import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
+import { internetBundle, internetSwitch } from "./portal-internet.js";
 import { mountCurrentWifi } from "./current-wifi.js";
 import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
 
@@ -237,8 +238,9 @@ async function load() {
     ${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <details class="surface full" id="manageDevices"><summary>Manage devices</summary><section><h2>Wi-Fi devices</h2>${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device"><div><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><button type="button" data-session="${h(session.id)}">Disconnect</button></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p>${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${hotspot ? '<div id="deviceManagement"></div>' : ""}</section></details>
 </div>
-    <section class="surface full" data-portal-view="bundles" id="managePlan"><p class="eyebrow">Manage plan</p><h2>${current?.plan?.name ? h(current.plan.name) : "No current plan"}</h2>${current ? `<div class="stats"><div class="stat"><b>${h(current.plan.price.toLocaleString())} FCFA</b><small>Price</small></div><div class="stat"><b>${h(current.status)}</b><small>Status</small></div><div class="stat"><b>${h(remainingText)}</b><small>Remaining validity</small></div></div><p><strong>Started:</strong> ${h(new Date(current.activatedAt).toLocaleString())} · <strong>Expires:</strong> ${h(new Date(current.expiresAt).toLocaleString())}</p><p>${current.plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(current.plan.quotaGb)} GB data`} · ${h(duration)} · ${current.accessMode === "home" ? "All home devices share this allowance" : `${h(current.plan.deviceLimit)} device${current.plan.deviceLimit === 1 ? "" : "s"}`}</p>${canPurchase && current.accessMode === "home" ? '<a class="button" href="/home-router.html">Manage / renew Home router access</a>' : canPurchase ? `<div class="plan-actions">${current.plan.discontinued ? '<p class="error">This historical plan is discontinued and cannot be renewed.</p>' : `<a class="button" href="/onboarding.html?action=renew&amp;plan=${h(current.plan.id)}">Renew plan</a>`}<a class="button secondary-action" href="/onboarding.html?action=switch">Change / switch plan</a></div>` : `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>`}` : '<p>Choose a package to activate your connection.</p><div class="plan-actions"><a class="button" href="/onboarding.html">Browse packages</a></div>'}<p>${h(dailyNotice)}</p></section>
-    ${active?.accessMode === "home" ? '<p><a href="/home-router.html">Home router bundles and renewal</a></p>' : bundleCatalogue(result)}
+    ${internetSwitch()}
+    ${internetBundle({ result, active, current, canPurchase, dailyNotice })}
+    ${active?.accessMode === "home" ? "" : `<details class="portal-catalogue full" data-portal-view="bundles" data-internet-group="bundles" id="bundlesCatalogue"><summary>${h(t("portalBundlesAndPrices", currentLanguage()))}</summary>${bundleCatalogue(result)}</details>`}
     <div class="account-layout full" data-portal-view="account">
       <section class="account-overview" aria-label="Your account"><p class="eyebrow">Your account</p><h2>${h(result.customer.name || "Account settings")}</h2><p>Manage your profile, sign-in and recovery in one place.</p></section>
       ${profileCard(result.customer)}
@@ -286,6 +288,9 @@ async function load() {
     }
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
+  const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
+  if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
+  else if (openCatalogue) openCatalogue.hidden = true;
   $("#manageNotificationSettings").onclick = () => notifications.open({ category: "usage", settings: true });
   if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };
   if (hotspot && active) watchWifiDevices();

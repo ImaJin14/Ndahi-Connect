@@ -1,0 +1,52 @@
+/* Redesigned Internet tab (canvas: PhoneInternet, DesktopInternet). The plan card,
+   catalogue, code form and voucher history keep v1 behaviour; this is their look. */
+.portal-internet__switch { display: none; }
+.portal-internet__bundle { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.portal-bundle { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-18) var(--nd-space-18) var(--nd-space-20); border-radius: var(--nd-radius-card-lg); }
+.portal-bundle__head { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); }
+.portal-bundle__head .nd-eyebrow { margin: 0; }
+.portal-bundle__ends { color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); }
+.portal-bundle__amount { margin: 0; font-size: 30px; font-weight: 700; }
+.portal-bundle__amount span { color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); font-weight: 500; }
+.portal-bundle__empty, .portal-bundle__detail { margin: 0; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); }
+.portal-internet__note { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); line-height: 1.45; }
+.portal-internet__note a { font-weight: 700; }
+.portal-internet__actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin: 0; }
+.portal-internet__daily { margin: 0; }
+.portal-internet__h { margin: var(--nd-space-4) 0 0; font-size: 15px; font-weight: 700; }
+.portal-internet__row { padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-catalogue { padding: 0; border: 0; background: none; }
+.portal-catalogue > summary { min-height: 44px; color: var(--nd-forest); font-weight: 700; cursor: pointer; }
+.portal-catalogue > .surface { margin-top: var(--nd-space-10); }
+/* The voucher code form: its summary is the canvas's primary button. */
+#activateDevice { padding: 0; border: 0; background: none; box-shadow: none; }
+#activateDevice > details > summary { display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 var(--nd-space-16); border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-weight: 700; list-style: none; cursor: pointer; }
+#activateDevice > details > summary::-webkit-details-marker { display: none; }
+#activateDevice > details[open] > summary { margin-bottom: var(--nd-space-12); background: var(--nd-sage); color: var(--nd-forest); }
+#activateDevice form { padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+/* Voucher history cards in the kit look. */
+#voucherHistory .voucher-card { padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); box-shadow: none; }
+#voucherHistory .voucher-card .voucher-code { font: 700 22px ui-monospace, Menlo, monospace; letter-spacing: .08em; }
+#voucherHistory .voucher-status { padding: 4px 10px; border-radius: var(--nd-radius-pill); background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); font-size: 12px; font-weight: 700; }
+
+@media (max-width: 767.98px) {
+  body[data-current-tab="internet"] .portal-internet__switch { display: flex; margin: var(--nd-space-8) 0 var(--nd-space-4); }
+  .portal-internet__switch .nd-segmented__option { flex: 1; justify-content: center; text-decoration: none; }
+  .portal-internet__switch .nd-segmented__option[aria-current="page"] { background: var(--nd-white); color: var(--nd-forest); box-shadow: var(--nd-shadow-soft); }
+  body[data-internet-view="vouchers"] [data-internet-group="bundles"], body[data-internet-view="bundles"] [data-internet-group="vouchers"] { display: none !important; }
+}
+@media (min-width: 1024px) {
+  /* Desktop canvas: the bundle (with earlier bundles) beside the vouchers; the
+     catalogue below. The code form stays under the grid: it is static markup
+     that the dashboard does not redraw. */
+  body[data-current-tab="internet"] #managePlan { grid-column: 1; grid-row: 1; }
+  body[data-current-tab="internet"] #voucherHistory { grid-column: 2; grid-row: 1; align-self: start; }
+  body[data-current-tab="internet"] #bundlesCatalogue { grid-column: 1 / -1; }
+  .portal-bundle { padding: var(--nd-space-28); }
+  .portal-bundle__amount { font-size: 42px; }
+}
+/* Switch labels centred; the code form leads the Vouchers view (canvas order). */
+.portal-internet__switch .nd-segmented__option { display: flex; align-items: center; min-height: 40px; }
+body[data-current-tab="internet"] #activateDevice { order: -1; }
+/* v1's lime eyebrow is for forest panels; on paper it needs the olive kit eyebrow. */
+#voucherHistory .eyebrow { color: var(--nd-lime-text); }
