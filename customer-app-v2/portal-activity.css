@@ -76,3 +76,8 @@ body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-a
   .portal-receipt.receipt-dialog { top: 0 !important; bottom: 0 !important; height: 100dvh; max-height: 100dvh !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
   .portal-receipt.receipt-dialog::before { content: none; display: none; }
 }
+
+/* Shop orders open their order page (canvas: PhoneOrder). */
+a.portal-activity__order { color: inherit; text-decoration: none; }
+a.portal-activity__order:hover strong { text-decoration: underline; }
+a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }

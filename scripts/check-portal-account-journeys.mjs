@@ -86,8 +86,9 @@ try {
       assert.equal(await shop.locator('.home-shop__item:visible').count(), phone ? 1 : 2);
       const first = shop.locator('.home-shop__item').first();
       assert.match(await first.innerText(), phone ? /Travel router[\s\S]*100,000 FCFA · Collect locally/ : /Travel router[\s\S]*100,000 FCFA · 3 in stock/);
-      assert.equal(await first.getAttribute('href'), 'https://store.ndahiconnect.net/');
-      assert.equal(await first.getAttribute('target'), '_blank');
+      // Suggestions open the product in the portal's Shop tab.
+      assert.equal(await first.getAttribute('href'), '/dashboard#product/router');
+      assert.equal(await first.getAttribute('target'), null);
       assert.match(await shop.locator('.home-shop__item').nth(1).innerText(), phone ? /Price to be confirmed · Collect locally/ : /Price to be confirmed · Only 1 left/);
       if (!phone) await page.getByRole('link', { name: 'Bundles & vouchers', exact: true }).waitFor();
       assert.equal(await page.locator('#bundlePurchaseActions').isVisible(), false, 'no purchase links while a bundle is active');
@@ -111,6 +112,36 @@ try {
     await page.locator('#dataBalance [data-remaining-data]').waitFor();
     await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
     assert.equal(await page.locator('#homeShop').isVisible(), false);
+  });
+  if (uiV2) await scenario('Shop tab lists the catalogue, opens a product and checks out with the account details', async (page) => {
+    const cors = { 'access-control-allow-origin': portal, 'access-control-allow-credentials': 'true' };
+    const catalogue = { ...storeCatalogue(true), settings: { open: true, pickup: 'NDAHI office.' }, categories: [{ id: 'routers', name: 'Routers', position: 1 }] };
+    catalogue.products = catalogue.products.map((product) => ({ ...product, categoryId: 'routers' }));
+    const order = (status, paymentStatus, extra = {}) => ({ id: 'order-1', reference: 'NS-TEST1', product: { name: { en: 'Travel router' }, images: [] }, quantity: 2, amount: 200000, status, paymentStatus, receiptAvailable: false, pickup: 'NDAHI office.', ...extra });
+    let checkout;
+    await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: catalogue }));
+    await page.route('**/api/account/store/checkout', (route) => { checkout = route.request().postDataJSON(); return route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }); });
+    await page.route('**/api/account/store/order', (route) => route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }));
+    await page.route('**/api/account/store/verify', (route) => route.fulfill({ headers: cors, json: { order: order('ready', 'paid', { collectionCode: 'ABC123' }) } }));
+    await page.goto(`${portal}/dashboard#shop`);
+    await page.locator(`${portalTab('shop')}[aria-current="page"]`).waitFor();
+    await page.locator('.portal-shop__item').first().waitFor();
+    assert.equal(await page.locator('.portal-shop__item').count(), 3, 'every published product is listed, in stock or not');
+    assert.match(await page.locator('.portal-shop__note').last().textContent(), /collect at NDAHI office\. Your details/);
+    await page.getByRole('link', { name: /Travel router/ }).click();
+    await page.waitForURL('**/dashboard#product/router');
+    await page.getByRole('button', { name: 'Increase quantity', exact: true }).click();
+    await page.getByRole('link', { name: 'Buy now', exact: true }).click();
+    await page.waitForURL('**/dashboard#checkout/router/2');
+    await page.getByRole('button', { name: 'Pay 200,000 FCFA', exact: true }).click();
+    await page.waitForURL('**/dashboard#order/order-1');
+    assert.deepEqual([checkout.productId, checkout.quantity, checkout.expectedPrice, checkout.network], ['router', 2, 100000, 'mtn']);
+    assert.ok(checkout.name && checkout.phone && checkout.payerPhone, 'details come from the account');
+    await page.getByRole('heading', { name: 'Approve on your phone', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Check status', exact: true }).click();
+    await page.getByText('ABC123', { exact: true }).waitFor();
+    assert.equal(await page.locator('.portal-shop__steps [aria-current="step"]').textContent(), 'Ready to collect');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   });
   for (const width of [320, 390, 768, 1280]) {
     await scenario(`portal navigation supports dedicated views, Back and refresh at ${width}px`, async (page) => {

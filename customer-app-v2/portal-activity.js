@@ -50,7 +50,7 @@ export function mountActivity({ call }) {
     host.innerHTML = `<h2 class="portal-activity__h">${h(L("portalActivityOrders"))}</h2>` + orders.map((o) => {
       const product = o.product && (typeof o.product.name === "object" ? o.product.name[lang] || o.product.name.en : o.product.name);
       const tone = { ready: "info", collected: "", preparing: "warning", awaiting_payment: "warning", review: "danger" }[o.status];
-      return `<div class="portal-activity__order">${activityIcon("shop")}<span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt), o.reference].filter(Boolean).join(" · "))}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></div>`;
+      return `<a class="portal-activity__order" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt), o.reference].filter(Boolean).join(" · "))}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></a>`;
     }).join("");
   }).catch(() => { host.innerHTML = `<p class="nd-meta portal-activity__empty">${h(L("portalOrdersUnavailable"))}</p>`; });
 }

@@ -7,6 +7,7 @@ import { runButton } from "/shared/pending.js";
 import { hotspotPath } from "./hotspot-path.js";
 import { deviceIcon, wifiDeviceList } from "./wifi-devices.js";
 import { devicesAdd, devicesHead, devicesTip, mountDevicesAdd, updateDevicesCount } from "./portal-devices.js";
+import { mountShop } from "./portal-shop.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
@@ -196,12 +197,12 @@ window.addEventListener("hashchange", () => {
 // closed, empty or unreachable; the request is made once per page.
 let shopRequest;
 function loadHomeShop() {
-  const section = $("#homeShop"), list = $("#homeShopItems"), store = $("#shopPanel a[href]");
-  if (!section || !list || !store) return;
+  const section = $("#homeShop"), list = $("#homeShopItems");
+  if (!section || !list) return;
   shopRequest = shopRequest || fetch(api + "/api/store/catalogue", { cache: "no-store" }).then((response) => (response.ok ? response.json() : null)).catch(() => null);
   shopRequest.then((catalogue) => {
     if (!catalogue || (catalogue.settings && catalogue.settings.open === false) || !section.isConnected) return;
-    const markup = homeShopItems(catalogue, store.href);
+    const markup = homeShopItems(catalogue);
     if (!markup) return;
     list.innerHTML = markup;
     section.hidden = false;
@@ -306,6 +307,7 @@ async function load() {
   mountActivity({ call });
   mountAccountHub();
   mountDevicesAdd();
+  mountShop({ call, api });
   const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
   if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
   else if (openCatalogue) openCatalogue.hidden = true;

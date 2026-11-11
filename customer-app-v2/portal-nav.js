@@ -13,7 +13,8 @@ const HREFS = { home: "/dashboard#home", internet: "/dashboard#internet", shop: 
 const PANEL_TABS = { home: "home", bundles: "internet", vouchers: "internet", shop: "shop", payments: "activity", account: "account" };
 const aliases = {
   internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
-  accountSecurity: "account", notificationSettings: "account", editProfile: "account", pin: "account", passkeys: "account", sessionActivity: "account", sessions: "account",
+  accountSecurity: "account", notificationSettings: "account", editProfile: "account", pin: "account", passkeys: "account",
+  product: "shop", checkout: "shop", order: "shop", sessionActivity: "account", sessions: "account",
 };
 // Pages within a tab (canvas: PhoneDevices, PhoneEditProfile): the address
 // shows one section on its own with a back arrow to its tab. Each names the
@@ -25,6 +26,10 @@ const SUBPAGES = {
   pin: { section: "accountSecurity", open: "securityManager", panel: "pin", title: "portalChangePin", back: "/dashboard#account" },
   passkeys: { section: "accountSecurity", open: "securityManager", panel: "passkeys", title: "portalPasskeySignIn", back: "/dashboard#account" },
   sessions: { section: "accountSessions", open: "sessionActivity", title: "portalSignedInDevices", back: "/dashboard#account" },
+  // Shop pages (canvas: PhoneProduct, PhoneCheckout, PhoneOrder) draw their own bar.
+  product: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
+  checkout: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
+  order: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#activity" },
   // Voucher code entry (canvas: PhoneVoucher), reached from Home and Internet.
   redeem: { section: "activateDevice", open: "differentCode", title: "portalEnterVoucher", back: "/dashboard#vouchers", backLabel: "portalBackInternet" },
 };
@@ -58,7 +63,8 @@ let mounted = false;
 // The v1 view for the current address (home, bundles, vouchers, shop, payments
 // or account). app.js still reasons in these names.
 export function activePortalView() {
-  const hash = location.hash.slice(1), view = aliases[hash] || hash;
+  // Shop routes carry an id (#product/<id>, #checkout/<id>/<n>, #order/<id>).
+  const hash = location.hash.slice(1).split("/")[0], view = aliases[hash] || hash;
   return PANEL_TABS[view] ? view : new URLSearchParams(location.search).get("setup") === "passkey" ? "account" : "home";
 }
 
@@ -87,8 +93,8 @@ function applyView(scroll = false) {
   // data-portal-tab: journeys select the tab links by that attribute.
   document.body.setAttribute("data-current-tab", tab);
   // A page within the tab, when this account has its section (no devices on a Home router).
-  const sub = SUBPAGES[hash] && document.getElementById(SUBPAGES[hash].section) ? SUBPAGES[hash] : null;
-  if (sub) document.body.setAttribute("data-portal-sub", hash); else document.body.removeAttribute("data-portal-sub");
+  const page = hash.split("/")[0], sub = SUBPAGES[page] && document.getElementById(SUBPAGES[page].section) ? SUBPAGES[page] : null;
+  if (sub) document.body.setAttribute("data-portal-sub", page); else document.body.removeAttribute("data-portal-sub");
   const subTitle = subHead(sub, lang);
   // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
   const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";

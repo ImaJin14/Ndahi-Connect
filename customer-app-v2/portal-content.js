@@ -35,13 +35,13 @@ export function homeRecentActivity(payments) {
 
 // Up to three products in stock from the store catalogue (phones show the first).
 // Prices and names come from the catalogue; nothing is hard-coded.
-export function homeShopItems(catalogue, storeUrl) {
+export function homeShopItems(catalogue) {
   const lang = currentLanguage();
   const name = (value) => (value && typeof value === "object" ? value[lang] || value.en || "" : value || "");
   return (catalogue.products || []).filter((product) => product.available > 0).slice(0, 3).map((product) => {
     const price = product.price == null ? L("homePriceTbc") : `${Number(product.price).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
     const image = product.images && product.images[0] && /^data:image\//.test(product.images[0].data) ? `<img src="${h(product.images[0].data)}" alt="" loading="lazy">` : svg("shop");
-    return `<a class="nd-media-row home-shop__item" href="${h(storeUrl)}" target="_blank" rel="noopener"><span class="nd-thumb">${image}</span><span class="nd-media-row__body"><span class="nd-media-row__title">${h(name(product.name))}</span><span class="nd-meta nd-narrow-only">${h(L("homeShopMeta", { price }))}</span><span class="nd-meta nd-wide-only${product.available <= 2 ? " home-shop__few" : ""}">${h(L(product.available <= 2 ? "homeShopFew" : "homeShopStock", { price, count: product.available }))}</span></span><span class="nd-chevron" aria-hidden="true">›</span></a>`;
+    return `<a class="nd-media-row home-shop__item" href="/dashboard#product/${encodeURIComponent(product.id)}"><span class="nd-thumb">${image}</span><span class="nd-media-row__body"><span class="nd-media-row__title">${h(name(product.name))}</span><span class="nd-meta nd-narrow-only">${h(L("homeShopMeta", { price }))}</span><span class="nd-meta nd-wide-only${product.available <= 2 ? " home-shop__few" : ""}">${h(L(product.available <= 2 ? "homeShopFew" : "homeShopStock", { price, count: product.available }))}</span></span><span class="nd-chevron" aria-hidden="true">›</span></a>`;
   }).join("");
 }
 
