@@ -24,13 +24,18 @@ const orderStatus = (status) => {
   const [key, tone] = ORDER[status] || [null, ""];
   return `<span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(key ? L(key) : String(status || "—").replace(/_/g, " "))}</span>`;
 };
+// "+237 670 12 34 56" for a Cameroon number; anything else as stored.
+const formatPhone = (phone) => {
+  const digits = String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, "");
+  return digits.length === 9 ? `+237 ${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 7)} ${digits.slice(7)}` : phone || "";
+};
 const customerHref = (id) => `/dashboard#customer/${encodeURIComponent(id)}`;
 const statusPill = (c) => c.status === "suspended"
   ? `<span class="nd-pill nd-pill--danger">${h(L("adminCustomerSuspended"))}</span>`
   : `<span class="nd-pill nd-pill--success">${h(L("adminCustomerActive"))}</span>`;
 const suspendButton = (c, block) => {
   const suspended = c.status === "suspended";
-  return `<button type="button" class="nd-btn nd-btn--compact ${suspended ? "nd-btn--secondary" : "nd-btn--secondary admin-btn--danger"}${block ? " nd-btn--block" : ""}" data-customer="${h(c.id)}" data-suspended="${suspended}">${h(L(suspended ? (block ? "adminRestoreCustomer" : "adminRestore") : (block ? "adminSuspendCustomer" : "adminSuspend")))}</button>`;
+  return `<button type="button" class="nd-btn ${block ? "nd-btn--block" : "nd-btn--compact"} nd-btn--secondary${suspended ? "" : " admin-btn--danger"}" data-customer="${h(c.id)}" data-suspended="${suspended}">${h(L(suspended ? (block ? "adminRestoreCustomer" : "adminRestore") : (block ? "adminSuspendCustomer" : "adminSuspend")))}</button>`;
 };
 
 // "[PLAN 2] · 3.2 GB left", "Payment waiting", "[PLAN 1] · expired" or "None".
@@ -87,7 +92,7 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
   const name = c.name || L("adminUnnamedCustomer");
   setHead({
     title: name,
-    lede: [c.phone, c.email, c.createdAt ? L("adminCustomerSince", { date: day(c.createdAt) }) : ""].filter(Boolean).join(" · "),
+    lede: [formatPhone(c.phone), c.email, c.createdAt ? L("adminCustomerSince", { date: day(c.createdAt) }) : ""].filter(Boolean).join(" · "),
     avatar: name.trim().charAt(0).toUpperCase(),
   });
   if (statusHost) statusHost.innerHTML = statusPill(c);
@@ -98,7 +103,6 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
     active ? row(L("adminDataLeftLabel"), bundle.remainingBytes == null ? L("adminUnlimited") : L("adminDataOf", { left: gb(bundle.remainingBytes), total: gb(bundle.quotaBytes) })) : "",
     active && bundle.expiresAt ? row(L("adminEnds"), day(bundle.expiresAt)) : "",
     active ? row(L("adminColDevices"), devicesText(c.summary)) : "",
-    `<div class="admin-row" data-home-router hidden><span class="admin-row__label">${h(L("adminHomeRouter"))}</span><strong></strong></div>`,
   ].join("");
   const actions = [
     c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-print-customer-voucher="${h(c.id)}">${h(L("adminPrintActiveVoucher"))}</button>` : "",
@@ -106,7 +110,7 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
     canManage && c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-replace-bundle="${h(c.id)}" data-replace-phone="${h(c.phone || "")}">${h(L("adminReplaceBundle"))}</button>` : "",
     suspendButton(c, true),
   ].join("");
-  host.innerHTML = `<div class="admin-tabs" role="tablist" aria-label="${h(L("adminColCustomer"))}">
+  host.innerHTML = `<div class="admin-subtabs" role="tablist" aria-label="${h(L("adminColCustomer"))}">
   ${[["overview", "adminTabOverview"], ["money", "adminTabMoney"], ["devices", "adminTabDevices"]].map(([tab, key], index) => `<button type="button" role="tab" id="customer-tab-${tab}" aria-controls="customer-panel-${tab}" aria-selected="${index ? "false" : "true"}" tabindex="${index ? "-1" : "0"}" data-customer-tab="${tab}">${h(L(key))}</button>`).join("")}
 </div>
 <div role="tabpanel" id="customer-panel-overview" aria-labelledby="customer-tab-overview" class="admin-customer__overview">
@@ -143,10 +147,9 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
 
   // Home router: shown when NDAHI Home answers for this role.
   if (storeRole) call("/api/admin/home").then((home) => {
-    const line = host.querySelector("[data-home-router]");
-    if (!line || !home || !home.enabled) return;
-    line.querySelector("strong").textContent = L((home.households || []).some((x) => x.customerId === c.id) ? "adminLinked" : "adminNotLinked");
-    line.hidden = false;
+    const rowsHost = host.querySelector(".admin-customer__overview .admin-rows");
+    if (!rowsHost || !home || !home.enabled) return;
+    rowsHost.insertAdjacentHTML("beforeend", row(L("adminHomeRouter"), L((home.households || []).some((x) => x.customerId === c.id) ? "adminLinked" : "adminNotLinked")));
   }).catch(() => {});
   return true;
 }

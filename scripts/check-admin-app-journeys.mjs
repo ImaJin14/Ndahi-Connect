@@ -165,7 +165,7 @@ try {
     // Name, masked phone, bundle, devices, store orders, status, action.
     assert.deepEqual((await row.locator("td").allInnerTexts()).map((text) => text.trim()), ["Fixture customer", "6•• •• 20 01", "Weekly · unlimited", "2 / 2", "0", "Active", "Suspend"]);
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");
-    await page.getByText("No matching customers.", { exact: true }).waitFor();
+    await page.locator("#customerRecords tbody").getByText("No matching customers.", { exact: true }).waitFor();
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("670042001");
     await row.waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
@@ -175,7 +175,7 @@ try {
     await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
     await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
     assert.equal(await page.locator("#adminAvatar").textContent(), "F");
-    assert.match(await page.locator("#adminLede").textContent(), /670042001/);
+    assert.match(await page.locator("#adminLede").textContent(), /^\+237 670 04 20 01/);
     await page.getByRole("link", { name: "Back to Customers", exact: true }).waitFor();
     await page.getByRole("heading", { name: "Support actions", exact: true }).waitFor();
     for (const name of ["Print active voucher", "Recover PIN with a support code", "Replace bundle", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();

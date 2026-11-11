@@ -37,6 +37,17 @@ function kitMarkup(title, headers, kit, formId) {
 <nav class="records-pager" aria-label="${h(title)}"><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="prev">${h(kit.previous)}</button><span role="status" aria-live="polite"></span><button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-page="next">${h(kit.next)}</button></nav>`;
 }
 
+// Phones show kit rows as cards (v1's table rule), so each cell after the
+// first carries its column name; cells under a hidden heading stay unlabelled.
+function labelCells(body, headers) {
+  for (const row of body.querySelectorAll("tr")) {
+    [...row.children].forEach((cell, index) => {
+      const name = headers[index];
+      if (index && typeof name === "string" && cell.tagName === "TD" && cell.colSpan === 1) cell.dataset.label = name;
+    });
+  }
+}
+
 export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null }) {
   const state = { page: 1, q: "", status: "", from: "", to: "" }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
@@ -79,6 +90,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
       if (details) details.render(body, result.items, row, result.scopeKey);
       else body.innerHTML = result.items.length ? result.items.map(row).join("") : "";
       if (!result.items.length) body.innerHTML = `<tr><td colspan="${headers.length}">${h(empty)}</td></tr>`;
+      else if (kit) labelCells(body, headers);
       summary.textContent = result.total ? say.summary(result.page, result.pages, result.total) : say.none;
       previous.disabled = result.page <= 1;
       next.disabled = result.page >= result.pages;

@@ -152,10 +152,10 @@
 /* ---------- Customer detail (canvas: AdminCustomerDetail) ---------- */
 .admin-customer, #customerDetail { display: flex; flex-direction: column; gap: var(--nd-space-20); }
 #customerVoucherPrint:empty { display: none; }
-.admin-tabs { display: flex; gap: var(--nd-space-6); border-bottom: 1px solid var(--nd-line); }
-.admin-dashboard .admin-tabs [role="tab"] { min-height: 44px; margin-bottom: -1px; padding: 0 var(--nd-space-14); border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--nd-muted); font: 700 14px var(--nd-font-body); cursor: pointer; }
-.admin-dashboard .admin-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--nd-forest); color: var(--nd-forest); }
-.admin-dashboard .admin-tabs [role="tab"]:hover { background: transparent; color: var(--nd-forest); }
+.admin-subtabs { display: flex; gap: var(--nd-space-6); border-bottom: 1px solid var(--nd-line); }
+.admin-dashboard .admin-subtabs [role="tab"] { min-height: 44px; margin-bottom: -1px; padding: 0 var(--nd-space-14); border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--nd-muted); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-dashboard .admin-subtabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--nd-forest); color: var(--nd-forest); }
+.admin-dashboard .admin-subtabs [role="tab"]:hover { background: transparent; color: var(--nd-forest); }
 .admin-customer__overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--nd-space-20); align-items: start; }
 .admin-rows { padding-top: var(--nd-space-10); padding-bottom: var(--nd-space-10); }
 .admin-row { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); }
@@ -168,11 +168,18 @@
 @media (max-width: 767.98px) {
   .admin-head-search, .admin-head-search .nd-input { width: 100%; }
   .admin-customer__overview { grid-template-columns: minmax(0, 1fr); }
-  .admin-tabs { overflow-x: auto; }
+  .admin-subtabs { overflow-x: auto; }
   .admin-row { flex-wrap: wrap; }
 }
 
 @media print {
   /* A customer's slip prints alone. */
   #customerDetail { display: none !important; }
+}
+.admin-recovery form { display: flex; flex-direction: column; flex-wrap: nowrap; gap: var(--nd-space-10); margin: 0; }
+.admin-recovery label { display: flex; flex-direction: column; gap: var(--nd-space-6); font-size: var(--nd-fs-meta); font-weight: 600; }
+
+@media (max-width: 767.98px) {
+  /* Kit lists as cards: each value under its column name (see labelCells in records.js). */
+  .admin-dashboard .nd-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; color: var(--nd-muted); font-size: 12px; font-weight: 600; }
 }
