@@ -1,0 +1,46 @@
+/* Buy a bundle (canvas: PhoneBuyBundle). Plans are a list of rows instead of
+   a sideways carousel: name and tag, price, the plan's facts, and the plan's
+   own button (its text says when buying isn't possible). The whole row opens
+   checkout. Review and pay keeps its fields in the kit look. */
+.packages-page { background: var(--nd-ivory); }
+.packages-page #packagesTitle, .packages-page #accountTitle { margin: 0 0 var(--nd-space-6); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
+.packages-page #packagesDescription { margin: 0; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); }
+.packages-page .section-head .trust { color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+
+/* ---------- Plan rows ---------- */
+/* !important only where v1's phone carousel (package-grid.css) uses it. */
+.packages-page #plans.grid { display: flex !important; flex-direction: column; gap: var(--nd-space-10) !important; max-width: 640px; margin: var(--nd-space-12) 0 0 !important; padding: 0 !important; overflow: visible !important; scroll-snap-type: none !important; }
+.packages-page #plans .plan, .packages-page #plans .plan:nth-child(n) { position: relative; display: flex; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px var(--nd-space-8); flex: none !important; width: auto; min-width: 0 !important; max-width: none !important; min-height: 0; margin: 0; padding: var(--nd-space-14) var(--nd-space-16); border: 1px solid var(--nd-line) !important; border-radius: var(--nd-radius-card) !important; background: var(--nd-paper); box-shadow: none; transform: none; scroll-snap-align: none !important; }
+.packages-page #plans .plan:hover { border-color: var(--nd-line-strong); }
+.packages-page #plans .plan:focus-within { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.packages-page #plans .plan > * { flex-basis: 100%; order: 6; margin: 0; }
+.packages-page #plans .plan h3 { flex: 0 1 auto; order: 1; color: var(--nd-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+.packages-page #plans .plan .plan-badge { position: static; flex: 0 0 auto; order: 2; margin: 0; padding: 2px var(--nd-space-8); border-radius: var(--nd-radius-pill); background: var(--nd-lime); color: var(--nd-lime-ink); font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; transform: none; }
+.packages-page #plans .plan .plan-price { flex: 0 0 auto; order: 3; margin-left: auto; color: var(--nd-forest); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+.packages-page #plans .plan .plan-unit-rate { order: 4; color: var(--nd-muted); font-size: var(--nd-fs-meta); text-align: right; }
+.packages-page #plans .plan .plan-details { order: 5; flex: 1 1 170px; display: block; padding: 0; list-style: none; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.packages-page #plans .plan .plan-details li { display: inline; margin: 0; padding: 0; border: 0; }
+.packages-page #plans .plan .plan-details li + li::before { content: " · "; }
+.packages-page #plans .plan .plan-details li::marker { content: none; }
+.packages-page #plans .plan p { color: var(--nd-ink-soft); font-size: var(--nd-fs-meta); line-height: 1.45; }
+.packages-page #plans .plan .eligibility { color: var(--nd-warning-fg); }
+/* The plan's button: a small pill at the row's end; its overlay makes the whole row tappable. */
+.packages-page #plans .plan > button[data-plan] { position: static; flex: 0 0 auto; order: 9; width: auto; min-height: 36px; margin: var(--nd-space-4) 0 0 auto; padding: 0 var(--nd-space-14); align-self: center; border: 0; border-radius: var(--nd-radius-pill); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-meta) var(--nd-font-body); }
+/* No hover lift: a transform would make the button, not the row, hold the overlay. */
+.packages-page #plans .plan > button[data-plan], .packages-page #plans .plan > button[data-plan]:hover { transform: none; box-shadow: none; transition: background .18s; }
+.packages-page #plans .plan > button[data-plan]:hover:not(:disabled) { background: var(--nd-lime-hover); }
+.packages-page #plans .plan > button[data-plan]::after { content: ""; position: absolute; inset: 0; border-radius: var(--nd-radius-card); }
+.packages-page #plans .plan > button[data-plan]:focus-visible { outline: none; }
+.packages-page #plans .plan > button[data-plan]:disabled { background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); cursor: not-allowed; }
+
+/* ---------- Review and pay ---------- */
+.packages-page #checkout .card { background: var(--nd-ivory); color: var(--nd-ink); }
+.packages-page #checkout #selected { margin: var(--nd-space-4) 0 var(--nd-space-10); color: var(--nd-ink); font: 700 var(--nd-fs-title-sm) var(--nd-font-body); }
+.packages-page #checkoutSummary { margin: 0 0 var(--nd-space-10); padding: var(--nd-space-12) var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+.packages-page #checkoutSummary p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.packages-page #checkoutSummary p strong { color: var(--nd-forest); font-size: var(--nd-fs-body); }
+.packages-page #checkoutPolicy, .packages-page #checkout .card > p { color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
+.packages-page #purchase label { color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+.packages-page #purchase input:not([type="checkbox"]), .packages-page #purchase select { min-height: 48px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.packages-page #purchase small, .packages-page #purchase .trust { color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 400; }
+.packages-page #requestPayment { width: 100%; min-height: 52px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
