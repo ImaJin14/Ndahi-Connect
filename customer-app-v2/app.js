@@ -67,18 +67,27 @@ function paymentRow(payment, customer) {
   return `<tr data-payment-row="${h(payment.id)}" data-activity-kind="internet"><td class="portal-activity__cell">${activityIcon("wifi")}<span class="portal-activity__main"><strong>${h(t("adminForBundle", lang).replace("{plan}", payment.plan?.name || payment.planId))}</strong><span class="nd-meta">${h([activityDay(payment.createdAt), payment.methodLabel || "Mobile Money"].join(" · "))}</span><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</span></td><td class="portal-activity__status">${paymentPill(payment.status)}</td><td class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</td></tr>`;
 }
 
+// Receipt (canvas: PhoneReceipt): brand card, number and paid date, total,
+// then the details; each value stays its own element for support and tests.
 function receiptPreview(receipt) {
+  const lang = currentLanguage(), L = (key) => t(key, lang);
   const details = [
-    ["Package", receipt.plan?.name || "Not recorded"],
-    ["Payment method", receipt.methodLabel || "Mobile Money"],
-    ["Payment number", receipt.payerPhone || "Not recorded"],
-    ["Payment reference", receipt.providerReference || "Not recorded for this historical payment"],
-    ["Data allowance", receipt.dataLabel || "Not recorded"],
-    ["Validity", receipt.validityLabel || "Not recorded"],
-    ["Device limit", receipt.deviceLabel || "Not recorded"],
+    ["portalReceiptBilledTo", receipt.customerName || L("portalReceiptCustomer")],
+    ["portalReceiptBundle", receipt.plan?.name || L("portalNotRecorded")],
+    ["portalReceiptData", receipt.dataLabel || L("portalNotRecorded")],
+    ["portalReceiptValidity", receipt.validityLabel || L("portalNotRecorded")],
+    ["portalReceiptDevices", receipt.deviceLabel || L("portalNotRecorded")],
+    ["portalReceiptPaidWith", receipt.methodLabel || "Mobile Money"],
+    ["portalReceiptNumber", receipt.payerPhone || L("portalNotRecorded")],
+    ["portalReceiptReference", receipt.providerReference || L("portalReceiptNoReference")],
   ];
-  if (receipt.refundStatus) details.push(["Refund status", receipt.refundStatus]);
-  return `<div class="receipt-brand"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></div><p class="receipt-number">Receipt ${h(receipt.number)}</p><div class="receipt-total"><span>Amount paid</span><strong>${h(receipt.amountLabel)}</strong></div><p class="receipt-paid-at">Paid ${h(receipt.paidAtLabel)}</p><p class="receipt-customer"><strong>Customer</strong><br>${h(receipt.customerName || "Customer")}</p><dl class="receipt-details">${details.map(([name, value]) => `<div><dt>${h(name)}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>${receipt.refundMessage ? `<p class="receipt-note">${h(receipt.refundMessage)}</p>` : ""}<p class="receipt-note">Keep this receipt as proof of payment.</p>`;
+  if (receipt.refundStatus) details.push(["portalReceiptRefund", receipt.refundStatus]);
+  return `<div class="portal-receipt__brand nd-on-forest"><span class="nd-brand__mark" aria-hidden="true">NC</span><span><strong>NDAHI Connect</strong><small>${h(L("portalReceiptWord"))}</small></span></div>
+<p class="portal-receipt__meta">${h(L("portalReceiptLine").replace("{number}", receipt.number).replace("{date}", receipt.paidAtLabel || L("portalNotRecorded")))}</p>
+<div class="portal-receipt__total"><span>${h(L("portalReceiptTotal"))}</span><strong>${h(receipt.amountLabel)}</strong></div>
+<dl class="portal-receipt__details">${details.map(([key, value]) => `<div><dt>${h(L(key))}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>
+${receipt.refundMessage ? `<p class="portal-receipt__help">${h(receipt.refundMessage)}</p>` : ""}
+<p class="portal-receipt__help">${h(L("portalReceiptHelp"))} <a href="/help.html">${h(L("portalContactSupport"))}</a>.</p>`;
 }
 
 async function openReceipt(button) {
