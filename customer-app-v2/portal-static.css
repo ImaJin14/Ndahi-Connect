@@ -1,11 +1,14 @@
 /* Standalone portal pages in the kit look: Package rules (canvas:
-   PhoneBillingTerms) and Help (PhoneHelp). A bar with a back arrow and the
+   PhoneBillingTerms), Help (PhoneHelp) and NDAHI Home (PhoneHomeRouter). A bar with a back arrow and the
    page name, then one readable column. */
 body { background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
 .portal-static { box-sizing: border-box; width: 100%; max-width: 680px; margin: 0 auto; padding: 0 var(--nd-space-16) var(--nd-space-48); }
 .portal-static__bar { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 56px; margin: 0 0 var(--nd-space-8); color: var(--nd-ink); font-size: 15px; font-weight: 700; }
 .portal-static__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
 .portal-static__back:hover { background: var(--nd-sage); }
+.portal-static__title { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.portal-static__langs { display: flex; gap: 4px; margin-left: auto; }
+.portal-static__langs button { min-width: 44px; min-height: 36px; padding: 0 var(--nd-space-8); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-pill); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-meta) var(--nd-font-body); cursor: pointer; }
 .portal-static__bar-link { margin-left: auto; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; }
 .portal-static__back:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
 .portal-static__main { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
@@ -53,3 +56,30 @@ body { background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-
 #supportContacts a:hover { background: var(--nd-sage); }
 .portal-help > p:last-child { color: var(--nd-muted); font-size: var(--nd-fs-small); }
 .portal-help > p:last-child a { color: var(--nd-forest); font-weight: 700; }
+
+/* ---------- NDAHI Home (canvas: PhoneHomeRouter) ---------- */
+.portal-home-router { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.portal-home-router > .portal-static__bar { margin-bottom: 0; }
+.portal-home-router > #homeMessage:empty { display: none; }
+.portal-home-router > .surface { margin: 0; padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); box-shadow: none; }
+.portal-home-router .surface h2 { margin: 0 0 var(--nd-space-6); color: var(--nd-ink); font: 700 17px/1.3 var(--nd-font-body); }
+.portal-home-router .surface h3 { margin: var(--nd-space-10) 0 var(--nd-space-4); color: var(--nd-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+.portal-home-router .surface p, .portal-home-router .surface li { margin: 0 0 var(--nd-space-8); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+.portal-home-router .surface ul, .portal-home-router .surface ol { margin: 0 0 var(--nd-space-8); padding-left: 20px; }
+/* Status card: the router's name stands out, then its bundle as receipt-style rows. */
+#homeStatus h3 { margin-top: var(--nd-space-12); color: var(--nd-forest); font: 700 22px/1.2 var(--nd-font-display); }
+#homeStatus dl { margin: var(--nd-space-8) 0 var(--nd-space-12); }
+#homeStatus dl { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+#homeStatus dt, #homeStatus dd { margin: 0; padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); }
+#homeStatus dt { color: var(--nd-muted); }
+#homeStatus dd { font-weight: 600; text-align: right; }
+/* Actions: one main action, options as wide choices, removal in red. */
+.portal-home-router .surface label { display: block; margin: 0 0 var(--nd-space-12); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+.portal-home-router .surface label > input:not([type="checkbox"]), .portal-home-router .surface label > select { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.portal-home-router .surface label > input[type="checkbox"] { margin: 0 8px 0 0; vertical-align: -2px; }
+.portal-home-router .surface button { box-sizing: border-box; display: block; width: 100%; min-height: 48px; margin: 0 0 var(--nd-space-10); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; }
+.portal-home-router .surface button:disabled { opacity: .55; cursor: not-allowed; }
+.portal-home-router #enrollHome, .portal-home-router #confirmHome > button:not([data-home-passkey]), .portal-home-router #homePurchase > button { min-height: 50px; border-color: transparent; background: var(--nd-lime); color: var(--nd-lime-ink); font-size: var(--nd-fs-body); }
+.portal-home-router #modeHome, .portal-home-router #modeDirect { min-height: 56px; text-align: left; border-radius: var(--nd-radius-card); }
+.portal-home-router #refreshHome { width: auto; min-height: 40px; }
+.portal-home-router #revokeHome, .portal-home-router #revokeHomePasskey { border-color: var(--nd-danger-line); color: var(--nd-danger); }
