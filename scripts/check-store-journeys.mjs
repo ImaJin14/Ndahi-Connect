@@ -6,7 +6,7 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { storeState } from "../lib/device-store.mjs";
-import { adminLinkName } from "./admin-nav.mjs";
+import { adminLinkName, uiV2 } from "./admin-nav.mjs";
 const store = createStore({ persistent: false }),
   secret = randomUUID(),
   token = randomUUID(),
@@ -227,6 +227,8 @@ try {
         .count(),
       0,
     );
+    // v2 (canvas: AdminProducts): the checkout control sits on Products.
+    if (uiV2) await panel.goto("http://127.0.0.1:9191/dashboard#products");
     await panel
       .getByRole("button", { name: "Close checkout", exact: true })
       .click();
@@ -244,37 +246,65 @@ try {
     checks++;
     await panel.getByRole("link", { name: "Home", exact: true }).click();
     await panel.getByRole("link", { name: adminLinkName("Store"), exact: true }).click();
-    await panel
-      .getByRole("heading", { name: "Store overview", exact: true })
-      .waitFor();
-    await panel.locator('[data-order-filter="preparing"]').click();
-    assert.equal(
-      await panel.locator("#storeOrderStatus").inputValue(),
-      "preparing",
-    );
-    assert.equal(
-      await panel.locator("#storeOrderRows tbody tr").count(),
-      (await store.snapshot()).storeOrders.filter(
-        (o) => o.status === "preparing",
-      ).length,
-    );
-    await panel.locator("#storeOrderStatus").selectOption("collected");
-    await panel
-      .getByText("No orders match this view.", { exact: true })
-      .waitFor();
-    await panel.locator("#storeOrderStatus").selectOption("all");
-    assert.equal(
-      await panel.locator("#storeOrderRows tbody tr").count(),
-      (await store.snapshot()).storeOrders.length,
-    );
-    await panel.getByRole("button", { name: "Overview", exact: true }).click();
-    await panel
-      .getByRole("button", { name: "Update stock", exact: true })
-      .click();
-    await panel
-      .getByRole("heading", { name: "Inventory", exact: true })
-      .waitFor();
-    await panel.getByRole("button", { name: "Overview", exact: true }).click();
+    if (uiV2) {
+      // v2 (canvas: AdminStore): open orders beside the chosen order; the status select filters them.
+      await panel
+        .getByRole("heading", { name: "Orders to prepare and hand over.", exact: true })
+        .waitFor();
+      await panel.locator("#storeOrderStatus").selectOption("preparing");
+      assert.equal(
+        await panel.locator("#storeOrderRows [data-order-pick]").count(),
+        (await store.snapshot()).storeOrders.filter(
+          (o) => o.status === "preparing",
+        ).length,
+      );
+      await panel.locator("#storeOrderStatus").selectOption("collected");
+      await panel
+        .getByText("No orders match this view.", { exact: true })
+        .waitFor();
+      await panel.locator("#storeOrderStatus").selectOption("all");
+      assert.equal(
+        await panel.locator("#storeOrderRows [data-order-pick]").count(),
+        (await store.snapshot()).storeOrders.length,
+      );
+      await panel.getByRole("link", { name: "Products & stock", exact: true }).click();
+      await panel.locator("#storeInventory > summary").click();
+      await panel
+        .getByRole("heading", { name: "Inventory", exact: true })
+        .waitFor();
+    } else {
+      await panel
+        .getByRole("heading", { name: "Store overview", exact: true })
+        .waitFor();
+      await panel.locator('[data-order-filter="preparing"]').click();
+      assert.equal(
+        await panel.locator("#storeOrderStatus").inputValue(),
+        "preparing",
+      );
+      assert.equal(
+        await panel.locator("#storeOrderRows tbody tr").count(),
+        (await store.snapshot()).storeOrders.filter(
+          (o) => o.status === "preparing",
+        ).length,
+      );
+      await panel.locator("#storeOrderStatus").selectOption("collected");
+      await panel
+        .getByText("No orders match this view.", { exact: true })
+        .waitFor();
+      await panel.locator("#storeOrderStatus").selectOption("all");
+      assert.equal(
+        await panel.locator("#storeOrderRows tbody tr").count(),
+        (await store.snapshot()).storeOrders.length,
+      );
+      await panel.getByRole("button", { name: "Overview", exact: true }).click();
+      await panel
+        .getByRole("button", { name: "Update stock", exact: true })
+        .click();
+      await panel
+        .getByRole("heading", { name: "Inventory", exact: true })
+        .waitFor();
+      await panel.getByRole("button", { name: "Overview", exact: true }).click();
+    }
     await panel.screenshot({
       path: `/tmp/ndahi-store-overview-${width}.png`,
       fullPage: true,
@@ -287,17 +317,24 @@ try {
     );
     checks++;
 
-    await panel
-      .getByRole("button", { name: "Add product", exact: true })
-      .waitFor();
-    await panel
-      .getByRole("button", { name: "Add product", exact: true })
-      .click();
+    if (uiV2) {
+      await panel.getByRole("link", { name: "Add product", exact: true }).click();
+    } else {
+      await panel
+        .getByRole("button", { name: "Add product", exact: true })
+        .waitFor();
+      await panel
+        .getByRole("button", { name: "Add product", exact: true })
+        .click();
+    }
     const form = panel.locator("#storeProductForm");
     await form.locator('[name="name.en"]').fill("Browser draft " + width);
+    // v2 (canvas: AdminProductEdit): one language tab at a time.
+    if (uiV2) await panel.getByRole("tab", { name: "FR", exact: true }).click();
     await form
       .locator('[name="name.fr"]')
       .fill("Brouillon navigateur " + width);
+    if (uiV2) await panel.getByRole("tab", { name: "EN", exact: true }).click();
     await form.locator('[name="sku"]').fill("BROWSER-" + width);
     await form.locator('[name="price"]').fill("5000");
     const imageData = await panel.evaluate(() => {
@@ -321,25 +358,37 @@ try {
     await panel
       .getByRole("button", { name: "Save product", exact: true })
       .click();
+    if (uiV2) {
+      await panel.getByText("Saved · hidden from the store", { exact: true }).waitFor();
+      await panel.getByRole("link", { name: "Back to Products", exact: true }).click();
+    }
     await panel
       .getByRole("row")
       .filter({ hasText: "BROWSER-" + width })
       .waitFor();
     checks++;
     const row = panel.getByRole("row").filter({ hasText: "BROWSER-" + width });
-    await row.getByRole("button", { name: "Edit", exact: true }).click();
+    if (uiV2) await row.getByRole("link", { name: "Edit Browser draft " + width, exact: true }).click();
+    else await row.getByRole("button", { name: "Edit", exact: true }).click();
     await panel.locator('#storeProductForm [name="price"]').fill("5500");
     await panel
       .getByRole("button", { name: "Save product", exact: true })
       .click();
+    if (uiV2) {
+      await panel.getByText("Saved · hidden from the store", { exact: true }).waitFor();
+      await panel.getByRole("link", { name: "Back to Products", exact: true }).click();
+    }
     await row.getByText("5,500 FCFA", { exact: true }).waitFor();
     checks++;
     await row.getByRole("button", { name: "Delete", exact: true }).click();
     await row.waitFor({ state: "detached" });
     checks++;
-    await panel
-      .getByRole("button", { name: "Categories", exact: true })
-      .click();
+    // v2: categories, the stock ledger and settings are disclosures under the catalogue.
+    if (uiV2) await panel.locator("#storeCategories > summary").click();
+    else
+      await panel
+        .getByRole("button", { name: "Categories", exact: true })
+        .click();
     await panel
       .getByRole("button", { name: "Add category", exact: true })
       .click();
@@ -352,7 +401,10 @@ try {
     await panel.getByRole("button", { name: "Save category" }).click();
     await panel.getByText(new RegExp("Test accessories " + width)).waitFor();
     checks++;
-    await panel.getByRole("button", { name: "Stock", exact: true }).click();
+    if (uiV2) {
+      if (!(await panel.locator("#storeInventory").evaluate((d) => d.open)))
+        await panel.locator("#storeInventory > summary").click();
+    } else await panel.getByRole("button", { name: "Stock", exact: true }).click();
     await panel.locator('#stockForm [name="delta"]').fill("2");
     await panel
       .locator('#stockForm [name="reason"]')
@@ -364,7 +416,8 @@ try {
       })
       .waitFor();
     checks++;
-    await panel.getByRole("button", { name: "Settings", exact: true }).click();
+    if (uiV2) await panel.locator("#storeSettings > summary").click();
+    else await panel.getByRole("button", { name: "Settings", exact: true }).click();
     await panel
       .locator('#storeSettingsForm [name="banner.en"]')
       .fill("Browser store update " + width);

@@ -179,7 +179,7 @@ async function load() {
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
   // Redesigned Home (canvas: Admin). Contacts decide whether payments can be listed.
   const storeRole = ["owner", "operator"].includes(adminRole), access = { contacts: x.recordTotals?.payments !== undefined && adminRole !== "reseller" };
-  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#products">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button><div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  $("#adminHeadActions").innerHTML = `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div><button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button><div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
   $("#auditExport").onclick = () => runAction($("#auditExport"), L("adminExporting"), () => exportAudit(call));
   const paymentsExport = $("[data-payments-export]");
   if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
@@ -276,16 +276,17 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   let storeManagement;
   if (["owner", "operator"].includes(adminRole)) {
     const panel = document.createElement("section");
-    panel.className = "card tab-panel";
+    panel.className = "tab-panel admin-store-panel";
     panel.dataset.tabPanel = "store";
     panel.id = "panel-store";
     panel.setAttribute("aria-labelledby", "adminTitle");
-    panel.hidden = activeAdminTab !== "store";
+    panel.hidden = !["store", "products", "product"].includes(activeAdminTab);
     $("#app").append(panel);
-    storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
+    storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken, setHead: setAdminHead,
+      heads: { store: $("#storeHeadOrders"), products: $("#storeHeadProducts"), product: $("#storeHeadProduct") } });
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (view === "store" || view === "products") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);

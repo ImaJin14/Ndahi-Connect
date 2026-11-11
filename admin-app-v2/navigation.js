@@ -24,6 +24,8 @@ const VIEWS = {
   payments: { menu: "payments", panels: ["payments"], title: "adminTitlePayments", group: "uiAdminGroupSales" },
   store: { menu: "store", panels: ["store"], title: "adminTitleStore", group: "adminGroupStore" },
   products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
+  // #product/<id> or #product/new; the store module names the product in the title.
+  product: { menu: "products", panels: ["store"], title: "adminTitleProductEdit", back: { href: "/dashboard#products", label: "adminTitleProductsShort" } },
   cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
   // #customer/<id>; app.js puts the customer's name in the title.

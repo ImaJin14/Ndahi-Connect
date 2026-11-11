@@ -59,9 +59,9 @@ export const SCREENS = [
     ["admin-vouchers", "Vouchers", "AdminVouchers", "/dashboard#vouchers", "Redesigned (no Batch column: vouchers carry no batch number)"],
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)"],
     ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned"],
-    ["admin-store", "Store orders", "AdminStore", "/dashboard#store"],
-    ["admin-products", "Products", "AdminProducts", "/dashboard#products"],
-    ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products"],
+    ["admin-store", "Store orders", "AdminStore", "/dashboard#store", "Redesigned"],
+    ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)"],
+    ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", "a[href*=\"#product/\"]:not([href$=\"/new\"])"],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)"],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned"],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", "a.admin-name"],
@@ -128,7 +128,7 @@ async function startApi() {
       demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
       demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
     );
-    for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) product.price = DEMO_PRICES[product.sku];
+    for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
     // Demo staff with ready sessions (as the admin journeys do); the preview's
     // sign-in links hand these to the browser.
@@ -138,6 +138,18 @@ async function startApi() {
       s.adminSessions.push({ userId: `preview-${role}`, tokenHash: hashSecret(token, adminSecret), role, csrfToken: randomUUID(), expiresAt });
     }
   });
+  // Demo store orders for the admin Store screens (mock payments): three paid
+  // orders, one of them ready to collect. Skipped if checkout is unavailable.
+  try {
+    const products = (await store.snapshot()).storeProducts.filter((p) => p.status === "published" && p.price).slice(0, 3);
+    for (const [index, product] of products.entries()) {
+      const order = await post("/api/store/checkout", { productId: product.id, quantity: 1, expectedPrice: product.price,
+        name: ["Amina Nfor", "Jean Fon", "Grace Tabi"][index], phone: `67000010${index + 2}`, payerPhone: `69000010${index + 2}`,
+        network: index % 2 ? "orange" : "mtn", checkoutKey: randomUUID() });
+      await post("/api/store/verify", { orderId: order.body.order.id, token: order.body.token });
+    }
+    await store.transaction((s) => { const oldest = s.storeOrders[s.storeOrders.length - 1]; if (oldest && oldest.status === "preparing") oldest.status = "ready"; });
+  } catch (error) { console.warn("[preview] demo store orders skipped:", error.message); }
   return { server, cookie, code: paid.body.access.code, staff };
 }
 
