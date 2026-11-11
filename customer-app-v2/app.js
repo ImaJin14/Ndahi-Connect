@@ -62,11 +62,15 @@ function paymentActions(payment, emailLinked) {
 }
 
 
+// Activity row (canvas: PhoneActivity, DesktopActivity): collapsed, the
+// canvas row — icon, "Bundle · plan", date and method, status (desktop adds
+// amount). Expanded, v1's amount, reference, messages and actions. Rows keep
+// their open state across redraws.
+const openPayments = new Set();
 function paymentRow(payment, customer) {
-  // Activity row (canvas: PhoneActivity): icon, "Bundle · plan", date and method,
-  // status pill, then v1's details, messages and actions.
   const lang = currentLanguage();
-  return `<tr data-payment-row="${h(payment.id)}" data-activity-kind="internet"><td class="portal-activity__cell">${activityIcon("wifi")}<span class="portal-activity__main"><strong>${h(t("adminForBundle", lang).replace("{plan}", payment.plan?.name || payment.planId))}</strong><span class="nd-meta">${h([activityDay(payment.createdAt), payment.methodLabel || "Mobile Money"].join(" · "))}</span><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}</span></td><td class="portal-activity__status">${paymentPill(payment.status)}</td><td class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</td></tr>`;
+  const title = t("adminForBundle", lang).replace("{plan}", payment.plan?.name || payment.planId);
+  return `<details class="portal-activity__item" data-payment-row="${h(payment.id)}" data-activity-kind="internet"${["pending", "processing"].includes(payment.status) ? " data-waiting" : ""}${openPayments.has(payment.id) ? " open" : ""}><summary class="portal-activity__summary">${activityIcon("wifi")}<span class="portal-activity__date nd-wide-only">${h(activityDay(payment.createdAt))}</span><span class="portal-activity__main"><strong>${h(title)}</strong><span class="nd-meta nd-narrow-only">${h([activityDay(payment.createdAt), payment.methodLabel || "Mobile Money"].join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">${h(payment.methodLabel || "Mobile Money")}</span><span class="portal-activity__amount nd-wide-only">${h(payment.amount.toLocaleString())} FCFA</span><span class="portal-activity__status">${paymentPill(payment.status)}</span></summary><div class="portal-activity__body"><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}<div class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</div></div></details>`;
 }
 
 // Receipt (canvas: PhoneReceipt): brand card, number and paid date, total,
@@ -265,7 +269,7 @@ async function load() {
       ${accountSessionsCard(security)}
     </div>
     ${vouchersCard(result.vouchers)}
-    ${activityFilters()}${waitingBanner(result.payments)}<section class="portal-activity full" data-portal-view="payments" data-activity-kind="internet" id="billing" aria-labelledby="billingTitle"><h2 class="portal-activity__h" id="billingTitle">${h(t("portalActivityPayments", currentLanguage()))}</h2><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="table-scroll"><table class="portal-activity__table"><thead><tr><th scope="col">${h(t("adminColPayment", currentLanguage()))}</th><th scope="col">${h(t("adminColStatus", currentLanguage()))}</th><th scope="col"><span class="nd-visually-hidden">${h(t("adminColAction", currentLanguage()))}</span></th></tr></thead><tbody>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</tbody></table></div>` : `<p class="nd-meta">${h(t("portalNoPayments", currentLanguage()))}</p>`}<p class="portal-activity__rules"><a href="/billing-terms.html">${h(t("portalPaymentRules", currentLanguage()))}</a></p></section><section class="portal-activity full" data-portal-view="payments" data-activity-kind="orders" id="activityOrders" aria-live="polite"></section>
+    ${activityFilters()}${waitingBanner(result.payments)}<section class="portal-activity full" data-portal-view="payments" data-activity-kind="internet" id="billing" aria-labelledby="billingTitle"><h2 class="portal-activity__h" id="billingTitle">${h(t("portalActivityPayments", currentLanguage()))}</h2><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="portal-activity__list"><div class="portal-activity__columns nd-wide-only" aria-hidden="true"><span>${h(t("portalColDate", currentLanguage()))}</span><span>${h(t("portalColWhat", currentLanguage()))}</span><span>${h(t("portalColPaidWith", currentLanguage()))}</span><span>${h(t("portalColAmount", currentLanguage()))}</span><span>${h(t("adminColStatus", currentLanguage()))}</span></div>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</div>` : `<p class="nd-meta">${h(t("portalNoPayments", currentLanguage()))}</p>`}<p class="portal-activity__rules"><a href="/billing-terms.html">${h(t("portalPaymentRules", currentLanguage()))}</a></p></section><section class="portal-activity full" data-portal-view="payments" data-activity-kind="orders" id="activityOrders" aria-live="polite"></section>
   </div>`;
   if (active?.accessMode === "home" || active?.accessTransitionId) {
     const controls = document.getElementById("manageDevices");
@@ -283,6 +287,9 @@ async function load() {
     await load();
     openSecurityManager(view);
   } });
+  // The PIN and passkey pages open the manager on their panel once its buttons work.
+  const securityPage = { pin: "pin", passkeys: "passkeys" }[document.body.getAttribute("data-portal-sub")];
+  if (securityPage) document.querySelector(`[data-security-panel="${securityPage}"]`)?.click();
   mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
     await load();
     if (confirmed) {$("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';$("#editProfile summary")?.focus();}
@@ -305,6 +312,7 @@ async function load() {
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   mountActivity({ call });
+  document.querySelectorAll("details[data-payment-row]").forEach((row) => { row.ontoggle = () => { if (row.open) openPayments.add(row.dataset.paymentRow); else openPayments.delete(row.dataset.paymentRow); }; });
   mountAccountHub(call);
   mountDevicesAdd();
   mountShop({ call, api });

@@ -294,3 +294,40 @@ body[data-portal-sub="accountSecurity"] #securityManager > summary,
 body[data-portal-sub="notificationSettings"] #notificationSettings > .eyebrow,
 body[data-portal-sub="notificationSettings"] #notificationSettings > h2 { display: none; }
 body[data-portal-sub="accountSecurity"] #securityManager { margin: 0; padding: 0; border: 0; }
+
+/* ---------- Pages: the canvas's sticky bottom action on phones ---------- */
+@media (max-width: 767.98px) {
+  body[data-portal-sub="devices"] .portal-devices__add,
+  body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"],
+  body[data-portal-sub="pin"] #changePin .security-actions,
+  body[data-portal-sub="passkeys"] #addCustomerPasskey,
+  body[data-portal-sub="sessions"] #logoutEverywhere {
+    position: fixed; right: 0; bottom: 0; left: 0; z-index: 15; width: auto; margin: 0;
+    padding: var(--nd-space-12) var(--nd-space-16) calc(var(--nd-space-12) + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--nd-line); border-radius: 0; background: var(--nd-ivory);
+  }
+  body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"],
+  body[data-portal-sub="passkeys"] #addCustomerPasskey,
+  body[data-portal-sub="sessions"] #logoutEverywhere { min-height: 0; height: auto; box-shadow: 0 -1px 0 var(--nd-line); }
+  /* A button can't carry a padded bar, so these fill the bar's width with a border inset. */
+  body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"],
+  body[data-portal-sub="passkeys"] #addCustomerPasskey { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-weight: 700; }
+  body[data-portal-sub="sessions"] #logoutEverywhere { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+}
+/* Devices: count as plain text, Disconnect in red (canvas). */
+.portal-devices__count { padding: 0; background: none; color: var(--nd-muted); font-size: 13px; font-weight: 600; }
+.portal-devices .portal-device [data-wifi-device], .portal-devices .portal-device [data-session], .portal-devices .portal-device [data-main-disconnect] { border-color: var(--nd-danger-line) !important; color: var(--nd-danger) !important; }
+.portal-devices__tip { background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+/* Sessions: this device shows You instead of its own Sign out (canvas). */
+#sessionActivity .device[data-current] [data-revoke-session] { display: none; }
+#sessionActivity .device .account-you { margin-left: auto; }
+#sessionActivity .device:not([data-current]) [data-revoke-session] { border-color: var(--nd-danger-line); color: var(--nd-danger); }
+/* Passkeys: the forest intro card and the list label (canvas: PhonePasskey). */
+.account-passkey-intro { display: flex; flex-direction: column; gap: var(--nd-space-6); padding: var(--nd-space-18); border-radius: var(--nd-radius-card-lg); background: var(--nd-forest); color: var(--nd-on-forest-soft); font-size: 14px; }
+.account-passkey-intro strong { color: var(--nd-white); font: 600 22px/1.2 var(--nd-font-display); }
+.account-passkeys__label { margin: var(--nd-space-6) 0 0; color: var(--nd-ink); font-size: 15px; font-weight: 700; }
+.account-passkeys .device .danger-action { border-color: var(--nd-danger-line); color: var(--nd-danger); }
+body:not([data-portal-sub="passkeys"]) .account-passkey-intro { display: none; }
+@media (max-width: 767.98px) {
+  body[data-portal-sub="passkeys"] #security-passkeys > #addCustomerPasskey { width: auto; }
+}

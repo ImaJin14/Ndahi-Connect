@@ -1,31 +1,48 @@
-/* Redesigned Activity tab (canvas: PhoneActivity, DesktopActivity). Payment rows
-   keep v1's table (journeys select #billing tbody tr); here each row is a list row. */
-.portal-activity { padding: var(--nd-space-16) var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+/* Activity tab (canvas: PhoneActivity, DesktopActivity). Phones: the filter, a
+   waiting banner and plain rows (icon, title, date and method, status). From
+   768px the same rows read as a table in a card. A row expands to show v1's
+   amount, reference, messages and actions. */
+.portal-activity { padding: 0; border: 0; border-radius: 0; background: none; }
 .portal-activity:empty { display: none; }
-.portal-activity__h { margin: 0 0 var(--nd-space-6); font-size: 15px; font-weight: 700; }
+.portal-activity__h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#activityOrders .portal-activity__h { position: static; width: auto; height: auto; overflow: visible; clip-path: none; margin: var(--nd-space-8) 0 var(--nd-space-4); color: var(--nd-muted); font: 700 12px var(--nd-font-body); letter-spacing: .1em; text-transform: uppercase; }
 .portal-activity__filters { margin: var(--nd-space-4) 0; }
 .portal-activity__filters .nd-segmented__option { flex: 1; }
-.portal-activity__waiting { display: block; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); line-height: 1.45; text-decoration: none; }
-.portal-activity__table, .portal-activity__table tbody { display: block; width: 100%; min-width: 0; }
-.portal-activity__table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.portal-activity__table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--nd-space-6) var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
-.portal-activity__table td { display: block; padding: 0; border: 0; }
-.portal-activity__cell { display: flex !important; gap: var(--nd-space-12); align-items: flex-start; }
-.portal-activity__main { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
-.portal-activity__main strong { font-size: 15px; }
-.portal-activity__main small, .portal-activity__main p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
-.portal-activity__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: var(--nd-radius-card); background: var(--nd-sage); color: var(--nd-forest); }
-.portal-activity__status { align-self: start; }
+.portal-activity__waiting { display: block; padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; text-decoration: none; }
+.portal-activity__list { display: flex; flex-direction: column; }
+.portal-activity__columns { display: none; }
+.portal-activity__item { border-bottom: 1px solid var(--nd-line); }
+.portal-activity__summary { display: flex; align-items: center; gap: var(--nd-space-12); min-height: 64px; padding: var(--nd-space-10) 0; cursor: pointer; list-style: none; }
+.portal-activity__summary::-webkit-details-marker { display: none; }
+.portal-activity__summary:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-activity__main { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 2px; }
+.portal-activity__main strong { color: var(--nd-ink); font-size: 15px; }
+.portal-activity__main .nd-meta { font-size: 13px; }
+.portal-activity__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-forest); }
+.portal-activity__status { flex-shrink: 0; }
 .portal-activity__pill { text-transform: capitalize; }
-.portal-activity__actions { grid-column: 1 / -1; padding-left: 52px !important; }
-.portal-activity__actions:empty { display: none !important; }
-.portal-activity__actions .plan-actions, .portal-activity__actions > * { margin: 0; }
-.portal-activity__order { display: flex; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-activity__body { display: flex; flex-direction: column; gap: 4px; padding: 0 0 var(--nd-space-12) 52px; color: var(--nd-muted); font-size: 13px; }
+.portal-activity__body p, .portal-activity__body small { margin: 0; }
+.portal-activity__actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin-top: var(--nd-space-6); }
+.portal-activity__actions:empty { display: none; }
+.portal-activity__actions > * { margin: 0; }
+.portal-activity__actions .plan-actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin: 0; }
+.portal-activity__actions button, .portal-activity__actions a.button { min-height: 40px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 13px var(--nd-font-body); }
+.portal-activity__order { display: flex; align-items: center; gap: var(--nd-space-12); min-height: 64px; padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); }
 .portal-activity__order .portal-activity__main { flex: 1; }
 .portal-activity__rules { margin: var(--nd-space-10) 0 0; font-size: var(--nd-fs-meta); }
 .portal-activity__empty { margin: 0; }
 body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-activity-filter="orders"] [data-activity-kind="internet"] { display: none !important; }
-
+@media (min-width: 768px) {
+  #billing .portal-activity__list { padding: var(--nd-space-6) var(--nd-space-16) var(--nd-space-10); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  .portal-activity__columns, .portal-activity__summary { display: grid; grid-template-columns: 90px minmax(0, 1fr) 150px 130px 140px; align-items: center; gap: var(--nd-space-12); }
+  .portal-activity__columns { padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); color: var(--nd-muted); font-size: 12px; font-weight: 700; }
+  .portal-activity__summary { min-height: 46px; padding: var(--nd-space-6) 0; font-size: 14px; }
+  .portal-activity__summary .portal-activity__icon { display: none; }
+  .portal-activity__main strong { font-size: 14px; }
+  .portal-activity__body { padding-left: 102px; }
+  .portal-activity__method, .portal-activity__date, .portal-activity__amount { color: var(--nd-ink); }
+}
 /* ---------- Account hub (canvas: PhoneAccount, DesktopAccount) ---------- */
 /* Account (canvas: PhoneAccount, DesktopAccount). */
 .portal-account { display: flex; flex-direction: column; gap: var(--nd-space-8); }
@@ -67,14 +84,6 @@ body[data-current-tab="account"]:not([data-portal-sub]) .account-layout > :not(.
   .portal-account__list { padding: 0; border: 0; border-radius: 0; background: none; }
   .portal-account__signout--button { align-self: flex-start; width: auto; min-height: 40px; margin-top: var(--nd-space-20); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); font-size: 14px; }
 }
-/* v1's phone table rules make every cell a full-width block; keep the row layout. */
-#billing .portal-activity__table td.portal-activity__cell { grid-column: 1; grid-row: 1; width: auto !important; }
-#billing .portal-activity__table td.portal-activity__status { grid-column: 2; grid-row: 1; width: auto !important; }
-#billing .portal-activity__table td.portal-activity__actions { grid-column: 1 / -1; grid-row: 2; width: auto !important; }
-#billing .portal-activity__actions button, #billing .portal-activity__actions a.button { width: auto !important; min-height: 40px; }
-#billing .portal-activity__actions .plan-actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); }
-#billing .portal-activity__table tr { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; margin: 0; border-radius: 0; box-shadow: none; background: none; }
-
 /* ---------- Receipt dialog (canvas: PhoneReceipt) ---------- */
 .portal-receipt { width: min(440px, calc(100vw - 24px)); padding: 0; border: 0; border-radius: var(--nd-radius-card-lg); background: var(--nd-ivory); color: var(--nd-ink); }
 .portal-receipt__bar { display: flex; align-items: center; justify-content: flex-start; gap: var(--nd-space-8); margin: 0; padding: var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }

@@ -26,6 +26,12 @@ export function activityFilters() {
 }
 
 // "1 payment waiting." banner above the list, linking to the waiting payment.
+// Tapping the banner opens the first waiting payment (canvas: "tap here to check").
+document.addEventListener("click", (event) => {
+  const banner = event.target.closest && event.target.closest(".portal-activity__waiting");
+  const row = banner && document.querySelector('details[data-payment-row][data-waiting]');
+  if (row) row.open = true;
+});
 export function waitingBanner(payments) {
   const waiting = payments.filter((p) => ["pending", "processing"].includes(p.status));
   if (!waiting.length) return "";
