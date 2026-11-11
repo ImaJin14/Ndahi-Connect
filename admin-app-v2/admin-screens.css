@@ -230,3 +230,30 @@
 .admin-live[data-state="failed"] .admin-live__dot { background: var(--nd-danger); }
 .admin-live[data-state="off"] .admin-live__dot, .admin-live[data-state="idle"] .admin-live__dot { background: var(--nd-line-strong); }
 @media (max-width: 767.98px) { .admin-devices__head { justify-content: flex-start; } }
+
+/* ---------- Connections (canvas: AdminConnections) ---------- */
+.admin-connections { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-connections > #integrationMessage:empty { display: none; }
+.admin-connections > #integrationMessage { margin: 0; }
+.admin-connections__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--nd-space-14); }
+.admin-service { display: flex; flex-direction: column; gap: var(--nd-space-8); padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+.admin-service__head { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-8); }
+.admin-service__head strong { font-size: 16px; }
+.admin-service__detail { margin: 0; color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); }
+.admin-service .nd-btn { margin-top: auto; }
+.admin-security { display: flex; flex-wrap: wrap; gap: var(--nd-space-18) 40px; }
+.admin-security .nd-h2 { flex: 1 1 100%; margin: 0; }
+.admin-security .nd-meta { margin: 0; }
+.admin-security__value { margin: 2px 0 0; font-weight: 700; }
+.admin-security__value--good { color: var(--nd-success-fg); }
+.admin-security__value--bad { color: var(--nd-danger-fg); }
+.admin-security__link { align-self: center; margin-left: auto; }
+
+/* ---------- Profile & security: passkeys (canvas: AdminProfile) ---------- */
+.admin-profile { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-passkeys { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.admin-passkeys .nd-h2, .admin-passkeys .nd-meta, .admin-passkeys form { margin: 0; }
+.admin-passkeys__list { margin: 0; padding: 0; list-style: none; }
+.admin-passkeys__list li { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); }
+.admin-passkeys__list li:last-child { border-bottom: 0; }
+.admin-passkeys__list:empty { display: none; }

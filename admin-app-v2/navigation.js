@@ -13,7 +13,7 @@ import { ADMIN_MENU, renderAdminMenu } from "/shared/ui/navigation.js";
 const VIEWS = {
   home: { menu: "home", panels: ["home"], title: "adminTitleHome" },
   devices: { menu: "devices", panels: ["devices"], title: "adminTitleDevices", group: "uiAdminGroupNetwork" },
-  connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork" },
+  connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork", lede: "adminConnectionsLede" },
   "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
   bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede" },
   // #bundle/<id>; app.js names the bundle in the title.

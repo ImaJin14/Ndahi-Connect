@@ -255,6 +255,26 @@ try {
     await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
     await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
   }, { width });
+  // Redesigned Connections (v2 only; canvas: AdminConnections).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Connections shows services, admin security and router checks at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#connections`);
+    await page.getByRole("heading", { name: "Connections and security.", exact: true }).waitFor();
+    const router = page.locator(".admin-service").filter({ hasText: "MikroTik gateway" });
+    assert.match(await router.innerText(), /Connected[\s\S]*2 devices confirmed connected/);
+    await router.getByRole("button", { name: "Sync usage", exact: true }).waitFor();
+    assert.match(await page.locator(".admin-service").filter({ hasText: "Omada controller" }).innerText(), /Not connected/);
+    const security = page.getByRole("region", { name: "Admin security" });
+    assert.match(await security.innerText(), /Password or passkey[\s\S]*1 owner · 1 operator · 1 auditor · 1 reseller[\s\S]*1 stuck/);
+    await security.getByRole("link", { name: "Open audit log" }).waitFor();
+    await page.getByRole("row").filter({ hasText: "legacy-uuid" }).getByRole("button", { name: "Mark obsolete" }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/connections-${width}.png`, fullPage: true });
+    // Passkeys moved to Profile & security.
+    await page.goto(`${admin}/dashboard#profile`);
+    await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Add passkey", exact: true }).waitFor();
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
