@@ -1,6 +1,7 @@
-/* Sign in (canvas: PhoneLogin). Look only: today's phone, voucher code and
-   PIN steps stay until the sign-in cutover. Flat on the page instead of a
-   card, a +237 prefix on the number, and the passkey as an outlined button. */
+/* Sign in (canvas: PhoneLogin) and Forgot PIN (PhoneForgotPin). Look only:
+   today's phone, voucher code and PIN steps stay until the sign-in cutover.
+   Flat on the page instead of a card, a +237 prefix on the number, and the
+   passkey as an outlined button. */
 .login-page .login-panel { padding: 0; border: 0; background: none; box-shadow: none; }
 .login-page .login-heading .eyebrow { color: var(--nd-lime-text); }
 .login-phone { display: flex; align-items: stretch; margin-top: 6px; }
@@ -11,3 +12,20 @@
 .login-page #customerPasskeyLogin:hover { background: var(--nd-sage); }
 .login-page #customerPasskeyLogin::before { content: ""; flex-shrink: 0; width: 20px; height: 20px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z'/%3E%3C/svg%3E") center / 20px 20px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z'/%3E%3C/svg%3E") center / 20px 20px no-repeat; }
 .login-page #customerPasskeyLogin[hidden] { display: none; }
+
+/* ---------- Forgot PIN ---------- */
+.login-page .portal-login__back { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 0 var(--nd-space-8) -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); text-decoration: none; }
+.login-page .portal-login__back:hover { background: var(--nd-sage); }
+.recovery-panel h1 { margin: 0 0 var(--nd-space-8); }
+.recovery-panel h1 + p { margin: 0 0 var(--nd-space-16); color: var(--nd-ink-soft); }
+#otherRecovery { margin-top: var(--nd-space-20); }
+#otherRecovery details { border-bottom: 1px solid var(--nd-line); }
+#otherRecovery details:first-child { border-top: 1px solid var(--nd-line); }
+#otherRecovery summary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; color: var(--nd-ink); font-weight: 700; font-size: 15px; cursor: pointer; list-style: none; }
+#otherRecovery summary::-webkit-details-marker { display: none; }
+#otherRecovery summary::after { content: ""; flex-shrink: 0; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--nd-muted); border-bottom: 2px solid var(--nd-muted); transform: rotate(45deg); }
+#otherRecovery details[open] > summary::after { transform: rotate(-135deg); }
+#otherRecovery details > p, #otherRecovery > p { color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+#otherRecovery > p { margin: var(--nd-space-16) 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-sage); color: var(--nd-ink); }
+#otherRecovery details form { padding-bottom: var(--nd-space-14); }
+.recovery-panel #message .success { padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); }
