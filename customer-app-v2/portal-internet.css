@@ -1,33 +1,68 @@
-/* Redesigned Internet tab (canvas: PhoneInternet, DesktopInternet). The plan card,
-   catalogue, code form and voucher history keep v1 behaviour; this is their look. */
+/* Internet tab (canvas: PhoneInternet, DesktopInternet). Phones switch between
+   Bundles and Vouchers; from 768px the bundle and its history sit beside the
+   voucher card and saved vouchers. v1's catalogue, code form and voucher
+   history keep their behaviour; this is their look. */
 .portal-internet__switch { display: none; }
 .portal-internet__bundle { display: flex; flex-direction: column; gap: var(--nd-space-14); }
-.portal-bundle { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-18) var(--nd-space-18) var(--nd-space-20); border-radius: var(--nd-radius-card-lg); }
+.portal-bundle { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-18); border-radius: 18px; }
 .portal-bundle__head { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); }
-.portal-bundle__head .nd-eyebrow { margin: 0; }
-.portal-bundle__ends { color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); }
-.portal-bundle__amount { margin: 0; font-size: 30px; font-weight: 700; }
-.portal-bundle__amount span { color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); font-weight: 500; }
-.portal-bundle__empty, .portal-bundle__detail { margin: 0; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); }
-.portal-internet__note { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: var(--nd-fs-small); line-height: 1.45; }
-.portal-internet__note a { font-weight: 700; }
+.portal-bundle__head .nd-eyebrow { margin: 0; color: var(--nd-lime); font-size: 11px; letter-spacing: .14em; }
+.portal-bundle__ends { color: var(--nd-on-forest-soft); font-size: 13px; }
+.portal-bundle__plan { margin: 0; color: var(--nd-white); font: 600 28px/1.15 var(--nd-font-display); }
+.portal-bundle__amount { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -.02em; }
+.portal-bundle__amount span { color: var(--nd-on-forest-soft); font-size: 14px; font-weight: 500; letter-spacing: 0; }
+.portal-bundle__empty { margin: 0; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); }
+.portal-bundle__note { margin: var(--nd-space-4) 0 0; color: var(--nd-on-forest-soft); font-size: 14px; }
+.portal-bundle__note a { color: var(--nd-lime); font-weight: 700; }
+.portal-internet__note { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink); font-size: 14px; line-height: 1.45; }
+.portal-internet__note a { color: var(--nd-forest); font-weight: 700; }
 .portal-internet__actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin: 0; }
-.portal-internet__daily { margin: 0; }
 .portal-internet__h { margin: var(--nd-space-4) 0 0; font-size: 15px; font-weight: 700; }
 .portal-internet__row { padding: var(--nd-space-12) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-internet__table[hidden], .portal-internet__table:empty { display: none; }
+.portal-internet__card-h { margin: 0 0 var(--nd-space-10); color: var(--nd-ink); font: 600 20px var(--nd-font-display); }
+.portal-internet__table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.portal-internet__table th { padding: var(--nd-space-8) var(--nd-space-6); border-bottom: 1px solid var(--nd-line); color: var(--nd-muted); font-size: 12px; font-weight: 700; text-align: left; }
+.portal-internet__table td { padding: var(--nd-space-10) var(--nd-space-6); border-bottom: 1px solid var(--nd-line); color: var(--nd-ink); }
 .portal-catalogue { padding: 0; border: 0; background: none; }
-.portal-catalogue > summary { min-height: 44px; color: var(--nd-forest); font-weight: 700; cursor: pointer; }
+/* "See bundles and prices" opens the catalogue (canvas); it has no header row of its own. */
+.portal-catalogue > summary { display: none; }
 .portal-catalogue > .surface { margin-top: var(--nd-space-10); }
-/* The voucher code form: its summary is the canvas's primary button. */
-#activateDevice { padding: 0; border: 0; background: none; box-shadow: none; }
-#activateDevice > details > summary { display: flex; align-items: center; justify-content: center; min-height: 50px; padding: 0 var(--nd-space-16); border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-weight: 700; list-style: none; cursor: pointer; }
-#activateDevice > details > summary::-webkit-details-marker { display: none; }
-#activateDevice > details[open] > summary { margin-bottom: var(--nd-space-12); background: var(--nd-sage); color: var(--nd-forest); }
-#activateDevice form { padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
-/* Voucher history cards in the kit look. */
-#voucherHistory .voucher-card { padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); box-shadow: none; }
-#voucherHistory .voucher-card .voucher-code { font: 700 22px ui-monospace, Menlo, monospace; letter-spacing: .08em; }
-#voucherHistory .voucher-status { padding: 4px 10px; border-radius: var(--nd-radius-pill); background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); font-size: 12px; font-weight: 700; }
+
+/* ---------- Vouchers ---------- */
+#voucherHistory { display: flex; flex-direction: column; gap: var(--nd-space-14); padding: 0; border: 0; background: none; box-shadow: none; }
+#voucherHistory .portal-vouchers__saved { display: flex; flex-direction: column; gap: var(--nd-space-12); }
+#voucherHistory .portal-vouchers__saved > .eyebrow, #voucherHistory .portal-vouchers__h + p { display: none; }
+#voucherHistory .portal-vouchers__h { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+#voucherHistory .voucher-history-tools { display: flex; flex-wrap: wrap; align-items: end; gap: var(--nd-space-8); }
+#voucherHistory .voucher-history-tools label { color: var(--nd-muted); font-size: 12px; font-weight: 700; }
+#voucherHistory .voucher-history-tools select { min-height: 40px; }
+#voucherHistory .voucher-history-tools button { min-height: 40px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font-size: 13px; }
+#voucherHistory .voucher-grid { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+#voucherHistory .voucher-card { padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); box-shadow: none; }
+#voucherHistory .voucher-card .section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-8); }
+#voucherHistory .voucher-card h3 { margin: 0; font: 700 15px var(--nd-font-body); }
+#voucherHistory .voucher-card label { display: block; margin-top: var(--nd-space-8); color: var(--nd-muted); font-size: 12px; font-weight: 700; }
+#voucherHistory .voucher-card .voucher-code { display: block; width: 100%; min-height: 0; margin: 4px 0 0; padding: 0; border: 0; background: none; color: var(--nd-forest); font: 700 26px var(--nd-font-mono); letter-spacing: .08em; }
+#voucherHistory .voucher-card p { margin: var(--nd-space-6) 0 0; color: var(--nd-muted); font-size: 13px; }
+#voucherHistory .voucher-card .plan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-8); margin-top: var(--nd-space-12); }
+#voucherHistory .voucher-card .plan-actions button { min-height: 44px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 14px var(--nd-font-body); }
+#voucherHistory .voucher-status { padding: 4px 10px; border-radius: var(--nd-radius-pill); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: 12px; font-weight: 700; }
+#voucherHistory nav.voucher-history-tools { justify-content: space-between; }
+#voucherHistory .portal-vouchers__saved > p:last-child a { color: var(--nd-forest); font-size: 14px; font-weight: 700; }
+.portal-vouchers__got { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+.portal-vouchers__got h2 { margin: 0; color: var(--nd-ink); font: 600 20px var(--nd-font-display); }
+.portal-vouchers__got label { color: var(--nd-ink); font-size: 13px; font-weight: 600; }
+.portal-vouchers__got input { display: block; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); font: 400 16px var(--nd-font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.portal-vouchers__got [data-quick-redeem-message]:empty { display: none; }
+
+/* ---------- The code form: its own page (#redeem), canvas PhoneVoucher ---------- */
+body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
+#redeem .portal-redeem__phone, #redeem .portal-redeem__label { display: none; }
+.portal-redeem__intro { display: flex; flex-direction: column; gap: 4px; margin: 0 0 var(--nd-space-14); }
+.portal-redeem__intro strong { color: var(--nd-forest); font: 600 26px/1.2 var(--nd-font-display); }
+.portal-redeem__intro span { color: var(--nd-muted); font-size: 14px; }
+#redeem .portal-redeem__code input { min-height: 56px; font: 700 22px var(--nd-font-mono); letter-spacing: .12em; text-align: center; text-transform: uppercase; }
 
 @media (max-width: 767.98px) {
   body[data-current-tab="internet"] .portal-internet__switch { display: flex; margin: var(--nd-space-8) 0 var(--nd-space-4); }
@@ -35,18 +70,20 @@
   .portal-internet__switch .nd-segmented__option[aria-current="page"] { background: var(--nd-white); color: var(--nd-forest); box-shadow: var(--nd-shadow-soft); }
   body[data-internet-view="vouchers"] [data-internet-group="bundles"], body[data-internet-view="bundles"] [data-internet-group="vouchers"] { display: none !important; }
 }
-@media (min-width: 1024px) {
-  /* Desktop canvas: the bundle (with earlier bundles) beside the vouchers; the
-     catalogue below. The code form stays under the grid: it is static markup
-     that the dashboard does not redraw. */
+@media (min-width: 768px) {
   body[data-current-tab="internet"] #managePlan { grid-column: 1; grid-row: 1; }
   body[data-current-tab="internet"] #voucherHistory { grid-column: 2; grid-row: 1; align-self: start; }
   body[data-current-tab="internet"] #bundlesCatalogue { grid-column: 1 / -1; }
-  .portal-bundle { padding: var(--nd-space-28); }
-  .portal-bundle__amount { font-size: 42px; }
+  .portal-bundle { padding: var(--nd-space-20) var(--nd-space-24) var(--nd-space-24); }
+  .portal-bundle__amount { font-size: 40px; }
+  .portal-internet__table { padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  #voucherHistory .portal-vouchers__saved { padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  #voucherHistory .portal-vouchers__h { font: 600 20px var(--nd-font-display); }
+  .portal-internet__see { display: none; }
 }
-/* Switch labels centred; the code form leads the Vouchers view (canvas order). */
 .portal-internet__switch .nd-segmented__option { display: flex; align-items: center; min-height: 40px; }
-body[data-current-tab="internet"] #activateDevice { order: -1; }
-/* v1's lime eyebrow is for forest panels; on paper it needs the olive kit eyebrow. */
-#voucherHistory .eyebrow { color: var(--nd-lime-text); }
+#voucherHistory nav.voucher-history-tools[hidden] { display: none; }
+#voucherHistory .voucher-card .section-head { flex-direction: row; text-align: left; }
+@media (max-width: 767.98px) {
+  #voucherHistory .portal-vouchers__h { display: none; }
+}

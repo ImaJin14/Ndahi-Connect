@@ -16,9 +16,10 @@ test("every preview screen pairs real canvas artboards with a page of the app", 
       await access(join(root, "docs/redesign/screens", `${board}.dc.html`));
       assert.ok(canvas.boards[`${board}.dc.html`], `${board} is on the canvas`);
     }
-    if (screen.app === "portal") {
-      assert.match(screen.path, /^\/dashboard#(home|internet|shop|activity|account)$/);
-      assert.equal(screen.path.slice("/dashboard#".length), screen.id, "captures wait for this tab");
+    if (screen.app === "portal" || screen.app === "store") {
+      assert.match(screen.path, /^\/[\w.#/?=&%-]*$/, "a page of the app");
+      if (screen.tab) assert.match(screen.tab, /^(home|internet|shop|activity|account)$/, "captures wait for this tab");
+      for (const selector of [].concat(screen.open || [])) assert.equal(typeof selector, "string", "selectors the capture clicks in turn");
     } else {
       assert.equal(screen.app, "admin");
       assert.match(screen.path, /^\/(dashboard#[a-z-]+|login|home-routers\.html)$/);
@@ -28,6 +29,9 @@ test("every preview screen pairs real canvas artboards with a page of the app", 
   // Every admin artboard except the shared side menu has a preview entry.
   const adminBoards = Object.keys(canvas.boards).filter((name) => name.startsWith("Admin") && name !== "AdminSide.dc.html");
   assert.deepEqual(SCREENS.filter((s) => s.app === "admin").map((s) => `${s.desktop}.dc.html`).sort(), adminBoards.sort());
+  // Every customer and store artboard except the shared tab bar has one too.
+  const customerBoards = Object.keys(canvas.boards).filter((name) => !name.startsWith("Admin") && name !== "TabBar.dc.html");
+  assert.deepEqual([...new Set(SCREENS.filter((s) => s.app !== "admin").flatMap((s) => [s.phone, s.desktop]).filter(Boolean).map((b) => `${b}.dc.html`))].sort(), customerBoards.sort());
   assert.match(DEMO.pin, /^\d{4}$/);
 });
 

@@ -28,9 +28,15 @@
 .home-card__facts dd { margin: 2px 0 0; font-size: var(--nd-fs-meta); font-weight: 600; overflow-wrap: anywhere; }
 .home-bundle__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-10); }
 
-.home-pending { border-color: var(--nd-warning-line); background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
-.home-pending h2 { margin: 0 0 var(--nd-space-8); font-size: 18px; }
-.home-pending a { color: var(--nd-forest); }
+/* A waiting payment is a short banner (canvas: Activity's waiting banner), its prompt help folded away. */
+.home-pending { padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; }
+.home-pending[hidden] { display: none; }
+.home-pending p { margin: 0; }
+.home-pending .payment-clock { margin: 4px 0 0; font-weight: 700; }
+.home-pending__help { margin-top: var(--nd-space-6); }
+.home-pending__help > summary { cursor: pointer; font-weight: 700; }
+.home-pending__links { margin-top: var(--nd-space-6) !important; }
+.home-pending a { color: var(--nd-forest); font-weight: 700; }
 
 .home-quick__list { margin: 0; padding: 0; list-style: none; }
 .home-quick__link { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 52px; border-bottom: 1px solid var(--nd-line); color: var(--nd-ink); font-size: var(--nd-fs-body); font-weight: 600; text-decoration: none; }
@@ -108,4 +114,28 @@
   .home-shop__item { flex-direction: column; align-items: stretch; }
   .home-shop__item .nd-thumb { width: 100%; height: 110px; }
   .home-shop__item .nd-chevron { display: none; }
+}
+
+/* ---------- Canvas fit (PhoneHome, Main) ----------
+   Phones: the plan's name is the card's eyebrow and the card shows data left,
+   time left and devices; consumed / allowance / expiry are desktop tiles.
+   Manage devices opens as its own page from the card's Devices button. */
+body[data-current-tab="home"]:not([data-portal-sub]) #manageDevices { display: none; }
+@media (max-width: 767.98px) {
+  .home-bundle .nd-eyebrow { display: none; }
+  .home-bundle .home-card__plan { margin: 0; color: var(--nd-lime-text); font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+  .home-bundle .home-card__facts, .home-bundle .home-card__recorded { display: none; }
+  .home-bundle .home-card__message { font-size: 12px; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-state-banner { display: block; padding: 0; border: 0; background: none; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-indicator { display: inline-block; margin: 0 6px 0 0; vertical-align: 1px; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-text { display: inline; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-badge { display: inline; color: var(--nd-on-forest-soft); font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-message { display: block; margin-top: 2px; font-size: 12px; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-banner-action { display: inline; margin-left: 4px; font-size: 12px; }
+}
+/* Phone brand bar (canvas: PhoneHome): the word NDAHI and a bell with an unread dot. */
+@media (max-width: 767.98px) {
+  .nd-topnav--phone-bar .nd-brand__tag { display: none; }
+  .nd-topnav--phone-bar .notification-bell { margin: 0; border: 0; background: none; color: var(--nd-white); }
+  .nd-topnav--phone-bar .notification-bell [data-notification-count] { top: 8px; right: 8px; min-width: 0; width: 8px; height: 8px; padding: 0; overflow: hidden; border-radius: 50%; background: var(--nd-lime); color: transparent; font-size: 0; }
 }

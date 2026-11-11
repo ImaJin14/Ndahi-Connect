@@ -37,17 +37,54 @@ const designPort = Number(process.env.PREVIEW_DESIGN_PORT || 8090);
 // The public store on the API's default store origin (lib/api/middleware.mjs).
 const storePort = Number(process.env.PREVIEW_STORE_PORT || 8083);
 const portal = `http://localhost:${portalPort}`, admin = `http://localhost:${adminPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
+const storeSite = `http://localhost:${storePort}`;
 const captures = "/tmp/ndahi-redesign-preview";
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
-const NOT_YET = "Navigation only — screen not rebuilt yet", SHELL = "Admin shell — screen not rebuilt yet";
+const SHELL = "Admin shell — screen not rebuilt yet";
 export const SCREENS = [
-  { id: "home", app: "portal", title: "Home", status: "Redesigned", phone: "PhoneHome", desktop: "Main", path: "/dashboard#home" },
-  { id: "internet", app: "portal", title: "Internet", status: NOT_YET, phone: "PhoneInternet", desktop: "DesktopInternet", path: "/dashboard#internet" },
-  { id: "shop", app: "portal", title: "Shop", status: "Navigation only — store panel until Phase 4", phone: "PhoneShop", desktop: "Shop", path: "/dashboard#shop" },
-  { id: "activity", app: "portal", title: "Activity", status: NOT_YET, phone: "PhoneActivity", desktop: "DesktopActivity", path: "/dashboard#activity" },
-  { id: "account", app: "portal", title: "Account", status: NOT_YET, phone: "PhoneAccount", desktop: "DesktopAccount", path: "/dashboard#account" },
+  // Customer portal (v2) and the public store. Options: tab (the portal tab the
+  // capture waits for), open (selectors clicked in turn), signedOut, hotspot
+  // (the page needs a Wi-Fi sign-in URL in its config).
+  ...[
+    ["home", "Home", "PhoneHome", "Main", "/dashboard#home", "Redesigned", { tab: "home" }],
+    ["internet", "Internet", "PhoneInternet", "DesktopInternet", "/dashboard#internet", "Redesigned", { tab: "internet" }],
+    ["activity", "Activity", "PhoneActivity", "DesktopActivity", "/dashboard#activity", "Redesigned", { tab: "activity" }],
+    ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["[data-view-receipt]"] }],
+    ["account", "Account", "PhoneAccount", "DesktopAccount", "/dashboard#account", "Redesigned", { tab: "account" }],
+    ["devices", "Devices", "PhoneDevices", null, "/dashboard#devices", "Redesigned"],
+    ["edit-profile", "Edit profile", "PhoneEditProfile", null, "/dashboard#editProfile", "Redesigned"],
+    ["change-pin", "Change PIN", "PhoneChangePin", null, "/dashboard#pin", "Redesigned look; four-digit PIN until Phase 6"],
+    ["notifications", "Notifications", "PhoneNotifications", null, "/dashboard#home", "Redesigned", { open: [".notification-bell"] }],
+    ["sessions", "Signed-in devices", "PhoneSessions", null, "/dashboard#sessions", "Redesigned"],
+    ["passkeys", "Passkey sign-in", "PhonePasskey", null, "/dashboard#passkeys", "Redesigned"],
+    ["billing-terms", "Package rules", "PhoneBillingTerms", null, "/billing-terms.html", "Redesigned"],
+    ["help", "Help", "PhoneHelp", null, "/help.html", "Redesigned"],
+    ["home-router", "Home router", "PhoneHomeRouter", null, "/home-router.html", "Redesigned"],
+    ["login", "Sign in", "PhoneLogin", null, "/login", "Redesigned look; phone + voucher code + PIN until Phase 6", { signedOut: true }],
+    ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true }],
+    ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true }],
+    ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true }],
+    ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned"],
+    ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html", "Redesigned"],
+    ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html", "Not rebuilt yet"],
+    ["scan-connect", "Scan to connect", "PhoneScanConnect", null, "/voucher-connect.html#legacy=NC-TEST-1234", "Redesigned", { signedOut: true }],
+    ["scan-no-bundle", "Scan, no bundle", "PhoneScanNoBundle", null, "/voucher-connect.html#legacy=NC-HIST-0001", "Redesigned"],
+    ["pair-request", "Pair request", "PhonePairRequest", null, "/pair?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.31", "Redesigned", { signedOut: true }],
+    ["pair-review", "Pair review", "PhonePairReview", null, "/pair-review.html", "Redesigned"],
+    ["wifi-connected", "Wi-Fi connected", "PhoneWifiConnected", null, "/wifi-connected.html", "Redesigned"],
+    ["shop", "Shop", "PhoneShop", "Shop", "/dashboard#shop", "Redesigned", { tab: "shop" }],
+    ["product", "Product", "PhoneProduct", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item"] }],
+    ["checkout", "Checkout", "PhoneCheckout", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item", "#shopBuy"] }],
+    ["order", "Order", "PhoneOrder", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["a.portal-activity__order"] }],
+  ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "portal", title, status, phone, ...(desktop ? { desktop } : {}), path, ...(options || {}) })),
+  ...[
+    ["guest-shop", "Guest shop", "PhoneGuestShop", "StoreGuest", "/", "Redesigned"],
+    ["guest-product", "Guest product", "PhoneGuestProduct", "ProductDesktop", "/", "Redesigned", { open: ["[data-product]"] }],
+    ["guest-checkout", "Guest checkout", "PhoneGuestCheckout", null, "/", "Redesigned", { open: ["[data-product]", "#buy"] }],
+    ["guest-order", "Guest order", "PhoneGuestOrder", null, "/", "Redesigned", { guestOrder: true }],
+  ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "store", title, status, phone, ...(desktop ? { desktop } : {}), path, signedOut: true, ...(options || {}) })),
   // Admin artboards are desktop (1280px) only.
   ...[
     ["admin-login", "Sign in", "AdminLogin", "/login", "Redesigned look; today's username + password or passkey stays until Phase 6 (no email + PIN two-step yet)"],
@@ -146,6 +183,7 @@ async function startApi() {
       s.adminSessions.push({ userId: `preview-${role}`, tokenHash: hashSecret(token, adminSecret), role, csrfToken: randomUUID(), expiresAt });
     }
   });
+  let guestOrder = "";
   // Demo store orders for the admin Store screens (mock payments): three paid
   // orders, one of them ready to collect. Skipped if checkout is unavailable.
   try {
@@ -155,10 +193,11 @@ async function startApi() {
         name: ["Amina Nfor", "Jean Fon", "Grace Tabi"][index], phone: `67000010${index + 2}`, payerPhone: `69000010${index + 2}`,
         network: index % 2 ? "orange" : "mtn", checkoutKey: randomUUID() });
       await post("/api/store/verify", { orderId: order.body.order.id, token: order.body.token });
+      if (!guestOrder) guestOrder = `#order/${encodeURIComponent(order.body.order.id)}/${encodeURIComponent(order.body.token)}`;
     }
     await store.transaction((s) => { const oldest = s.storeOrders[s.storeOrders.length - 1]; if (oldest && oldest.status === "preparing") oldest.status = "ready"; });
   } catch (error) { console.warn("[preview] demo store orders skipped:", error.message); }
-  return { server, cookie, code: paid.body.access.code, staff };
+  return { server, cookie, code: paid.body.access.code, staff, guestOrder };
 }
 
 // The static servers cache their files, so a change swaps in fresh ones.
@@ -207,13 +246,15 @@ function page(title, body) {
 async function indexPage(state) {
   const groups = await boards();
   const card = (s) => s.app === "admin"
-    ? `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span>
+    ? `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>
     <p class="meta">Design: <a href="/design/${s.desktop}.dc.html">${escape(s.desktop)}</a><br>Build: <a href="${admin}${s.path}">${escape(admin + s.path)}</a></p></div>`
     : null;
-  const built = SCREENS.filter((s) => s.app === "portal").map((s) => `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span>
-    <p class="meta">Design: <a href="/design/${s.phone}.dc.html">phone</a> · <a href="/design/${s.desktop}.dc.html">desktop</a><br>Build: <a href="${portal}${s.path}">${escape(portal + s.path)}</a></p></div>`).join("");
+  const base = (s) => (s.app === "store" ? storeSite : s.app === "admin" ? admin : portal);
+  const boardsOf = (s) => [s.phone && `<a href="/design/${s.phone}.dc.html">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html">desktop</a>`].filter(Boolean).join(" · ");
+  const built = SCREENS.filter((s) => s.app !== "admin").map((s) => `<div class="card"><strong>${escape(s.title)}</strong> <span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>
+    <p class="meta">Design: ${boardsOf(s)}<br>Build: <a href="${base(s)}${s.guestOrder ? "/" + escape(state.guestOrder) : s.path}">${escape(base(s) + (s.guestOrder ? "/#order/…" : s.path))}</a>${s.signedOut ? " (signed out)" : ""}</p></div>`).join("");
   const design = groups.map((g) => `<section><h2>${escape(g.title)}</h2><div class="cards">${g.items.map((i) => `<div class="card"><a href="/design/${escape(i.file)}"><strong>${escape(i.title)}</strong></a><p class="meta">${escape(i.file)} · ${i.width} × ${i.height}</p></div>`).join("")}</div></section>`).join("");
-  return page("Screens", `<section><h1>Customer portal — built so far</h1>
+  return page("Screens", `<section><h1>Customer portal and public store</h1>
     <p>Sign in at <a href="${portal}/login">${portal}/login</a>: phone <code>${DEMO.phone}</code>, voucher code <code>${escape(state.code)}</code>, then PIN <code>${DEMO.pin}</code> (today's sign-in still asks for the code; the PIN-only sign-in is a later phase). In-memory demo data; payments use the mock provider (look for <em>Simulate payment approval</em>). Add <code>?ui=old</code> to any portal address to see v1, <code>?ui=new</code> to come back.</p>
     <p><a href="/sign-in/portal"><strong>Open the portal signed in as ${escape(DEMO.name)}</strong></a> (skips the sign-in form).</p>
     <div class="cards">${built}</div><p class="meta">Design kit reference: <a href="${portal}/ui-kit.html">${portal}/ui-kit.html</a></p></section>
@@ -222,21 +263,23 @@ async function indexPage(state) {
     <section><h1>The design canvas</h1><p class="meta">Rendered locally from <code>docs/redesign/screens/</code>. Links between screens work as on the canvas; props go in the address, for example <a href="/design/PhoneOrder.dc.html?guest=true">PhoneOrder.dc.html?guest=true</a>.</p></section>${design}`);
 }
 
+// Phone artboards are captured at 390px and desktop ones at 1280px.
+const widths = (s) => [s.phone && 390, s.desktop && 1280].filter(Boolean);
 async function comparePage() {
   const stamp = Date.now();
-  const rows = SCREENS.map((s) => `<section><h2>${s.app === "admin" ? "Admin · " : ""}${escape(s.title)} <span class="pill${s.status === "Redesigned" ? " done" : ""}">${escape(s.status)}</span></h2>
-    ${(s.app === "admin" ? [1280] : [390, 1280]).map((width) => `<div class="pair"><figure><figcaption>Design · ${width}px (${width < 768 ? s.phone : s.desktop})</figcaption><img loading="lazy" src="/captures/${s.id}-design-${width}.png?${stamp}" alt="Design ${escape(s.title)} at ${width}px"></figure><figure><figcaption>Build · ${width}px</figcaption><img loading="lazy" src="/captures/${s.id}-build-${width}.png?${stamp}" alt="Build ${escape(s.title)} at ${width}px"></figure></div>`).join("")}</section>`).join("");
+  const rows = SCREENS.map((s) => `<section><h2>${s.app === "admin" ? "Admin · " : s.app === "store" ? "Store · " : ""}${escape(s.title)} <span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span></h2>
+    ${widths(s).map((width) => `<div class="pair"><figure><figcaption>Design · ${width}px (${width < 768 ? s.phone : s.desktop})</figcaption><img loading="lazy" src="/captures/${s.id}-design-${width}.png?${stamp}" alt="Design ${escape(s.title)} at ${width}px"></figure><figure><figcaption>Build · ${width}px</figcaption><img loading="lazy" src="/captures/${s.id}-build-${width}.png?${stamp}" alt="Build ${escape(s.title)} at ${width}px"></figure></div>`).join("")}</section>`).join("");
   return page("Design vs build", `<section><h1>Design vs build</h1><p>Captures of each canvas artboard beside the running v2 portal (signed in as the demo customer). Phone captures are one 390 × 844 screen; desktop captures are the whole page.</p>
     <form method="post" action="/captures"><button>Capture again</button></form><p class="meta">Captures are saved in <code>${captures}</code>.</p></section>${rows}`);
 }
 
-export async function capture({ cookie, staff, only } = {}) {
+export async function capture({ cookie, staff, guestOrder, only } = {}) {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   await mkdir(captures, { recursive: true });
   const browser = await chromium.launch();
   try {
     for (const screen of SCREENS.filter((s) => !only || only.includes(s.id))) {
-      for (const width of screen.app === "admin" ? [1280] : [390, 1280]) {
+      for (const width of widths(screen)) {
         const phone = width < 768, height = phone ? 844 : 900;
         const designPage = await browser.newPage({ viewport: { width, height } });
         await designPage.goto(`${design}/design/${phone ? screen.phone : screen.desktop}.dc.html`);
@@ -248,16 +291,22 @@ export async function capture({ cookie, staff, only } = {}) {
         const context = await browser.newContext({ viewport: { width, height } });
         await context.addCookies([
           { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
-          screen.app === "admin"
+          ...(screen.signedOut ? [] : [screen.app === "admin"
             ? { name: "admin_session", value: staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
-            : { name: "customer_session", value: cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" },
+            : { name: "customer_session", value: cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
         ]);
+        // The hotspot landing needs a Wi-Fi sign-in URL, which the preview portal has none of.
+        if (screen.hotspot) await context.route("**/config.js", async (route) => { const r = await route.fetch(); await route.fulfill({ response: r, body: `${await r.text()}\nwindow.NDAHI_CONFIG.hotspotLoginUrl="https://hotspot.ndahi.test/login";` }); });
         const buildPage = await context.newPage();
-        await buildPage.goto((screen.app === "admin" ? admin : portal) + screen.path);
+        const origin = screen.app === "admin" ? admin : screen.app === "store" ? storeSite : portal;
+        await buildPage.goto(origin + (screen.guestOrder && guestOrder ? `/${guestOrder}` : screen.path));
         if (screen.app === "admin") await buildPage.waitForSelector("#adminSideMenu nav", { timeout: 15000 }).catch(() => {});
-        // Screens reached from a list (for example a customer's detail page) open its first link.
-        if (screen.open) await buildPage.locator(screen.open).first().click({ timeout: 15000 }).catch(() => {});
-        else await buildPage.waitForSelector(`[data-portal-tab="${screen.id}"][aria-current="page"]`).catch(() => {});
+        if (screen.tab) await buildPage.waitForSelector(`[data-portal-tab="${screen.tab}"][aria-current="page"]`).catch(() => {});
+        // Screens reached from a list (a customer's detail page, a product, a receipt) open its first link in turn.
+        for (const selector of [].concat(screen.open || [])) {
+          await buildPage.waitForTimeout(600);
+          await buildPage.locator(selector).first().click({ timeout: 15000 }).catch(() => {});
+        }
         await buildPage.evaluate(() => document.fonts.ready);
         await buildPage.waitForTimeout(800);
         await buildPage.screenshot({ path: `${captures}/${screen.id}-build-${width}.png`, fullPage: !phone });
@@ -276,7 +325,7 @@ function startDesign(state) {
       if (url.pathname === "/") return send(200, TYPES[".html"], await indexPage(state));
       if (url.pathname === "/compare") return send(200, TYPES[".html"], await comparePage());
       if (url.pathname === "/captures" && req.method === "POST") {
-        await capture({ cookie: state.cookie, staff: state.staff });
+        await capture({ cookie: state.cookie, staff: state.staff, guestOrder: state.guestOrder });
         res.writeHead(303, { location: "/compare" }); return res.end();
       }
       // One-click sign-in: hand the demo session to this browser (cookies ignore ports).
@@ -313,7 +362,7 @@ if (main) {
   console.log(`[preview] Store   http://localhost:${storePort}  (public store for guests)`);
   console.log(`[preview] API     ${api}  (in-memory, mock providers)`);
   if (process.argv.includes("--capture")) {
-    await capture({ cookie: state.cookie, staff: state.staff });
+    await capture({ cookie: state.cookie, staff: state.staff, guestOrder: state.guestOrder });
     console.log(`[preview] Captures written to ${captures}`);
   }
 }

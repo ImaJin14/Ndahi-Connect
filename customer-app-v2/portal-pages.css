@@ -2,6 +2,25 @@
    #editProfile (PhoneEditProfile) show one section on its own with a back
    arrow; elsewhere the same sections stay disclosures on Home and Account. */
 
+/* ---------- App chrome (canvas) ----------
+   Signing out lives in Account; the header has no Logout button (the button
+   stays in the page for Account's Sign out to use). The Wi-Fi evidence banner
+   shows on Home only, and the store and help links live in Shop and Account.
+   Phones: tab heads are the tab's name and a lede; pages within a tab are
+   full screens with no tab bar. */
+#logout { display: none !important; }
+body:not([data-current-tab="home"]) #portalNotices, body[data-portal-sub] #portalNotices { display: none; }
+.dashboard-shell > .help-link { display: none; }
+body[data-current-tab="account"] .portal-head__title { display: none; }
+.portal-head__lede { margin: 4px 0 0; color: var(--nd-muted); font-size: 14px; }
+.portal-head__lede[hidden] { display: none; }
+@media (max-width: 767.98px) {
+  body:not([data-current-tab="home"]) .portal-head { padding: var(--nd-space-20) 2px var(--nd-space-8); }
+  body:not([data-current-tab="home"]) .portal-head__title { font-size: 28px; }
+  body[data-portal-sub] #portalNav { display: none; }
+  body[data-portal-sub] .dashboard-shell { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* ---------- Pages within a tab (body[data-portal-sub]) ---------- */
 body[data-portal-sub] .portal-head__title,
 body[data-portal-sub] .portal-head__eyebrow,
@@ -265,3 +284,13 @@ body[data-portal-sub] .portal-shop__bar .portal-sub__back { display: grid; }
   .portal-shop__product > :not(.portal-shop__photo) { grid-column: 2; }
   .portal-shop__checkout, .portal-shop__line, .portal-shop__waiting, .portal-shop__code, .portal-shop__steps, .portal-shop__actions { max-width: 560px; }
 }
+
+/* ---------- Any Account page: only its section, without the card ---------- */
+body[data-portal-sub] .account-layout { display: block; }
+body[data-portal-sub] .account-layout > :not([data-sub-active]) { display: none !important; }
+body[data-portal-sub] .account-layout > [data-sub-active] { width: 100%; max-width: 560px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+body[data-portal-sub="accountSecurity"] #accountSecurity > :not(#securityManager):not(.success),
+body[data-portal-sub="accountSecurity"] #securityManager > summary,
+body[data-portal-sub="notificationSettings"] #notificationSettings > .eyebrow,
+body[data-portal-sub="notificationSettings"] #notificationSettings > h2 { display: none; }
+body[data-portal-sub="accountSecurity"] #securityManager { margin: 0; padding: 0; border: 0; }

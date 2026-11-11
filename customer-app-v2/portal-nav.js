@@ -13,7 +13,7 @@ const HREFS = { home: "/dashboard#home", internet: "/dashboard#internet", shop: 
 const PANEL_TABS = { home: "home", bundles: "internet", vouchers: "internet", shop: "shop", payments: "activity", account: "account" };
 const aliases = {
   internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
-  accountSecurity: "account", notificationSettings: "account", editProfile: "account", pin: "account", passkeys: "account",
+  accountSecurity: "account", notificationSettings: "account", editProfile: "account", sessionActivity: "account", pin: "account", passkeys: "account",
   product: "shop", checkout: "shop", order: "shop", sessionActivity: "account", sessions: "account",
 };
 // Pages within a tab (canvas: PhoneDevices, PhoneEditProfile): the address
@@ -26,6 +26,10 @@ const SUBPAGES = {
   pin: { section: "accountSecurity", open: "securityManager", panel: "pin", title: "portalChangePin", back: "/dashboard#account" },
   passkeys: { section: "accountSecurity", open: "securityManager", panel: "passkeys", title: "portalPasskeySignIn", back: "/dashboard#account" },
   sessions: { section: "accountSessions", open: "sessionActivity", title: "portalSignedInDevices", back: "/dashboard#account" },
+  sessionActivity: { section: "accountSessions", open: "sessionActivity", title: "portalSignedInDevices", back: "/dashboard#account" },
+  // The whole security manager (PIN, passkeys and recovery) and notification settings.
+  accountSecurity: { section: "accountSecurity", open: "securityManager", title: "portalPinPasskeys", back: "/dashboard#account" },
+  notificationSettings: { section: "notificationSettings", title: "portalNotificationSettings", back: "/dashboard#account" },
   // Shop pages (canvas: PhoneProduct, PhoneCheckout, PhoneOrder) draw their own bar.
   product: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
   checkout: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
@@ -55,7 +59,11 @@ function subHead(sub, lang) {
   head.hidden = false;
   return head.querySelector("h2");
 }
+// Tab heads (canvas): phones show the tab's name and a lede; from 768px an
+// eyebrow and a headline. Account starts with the profile instead.
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
+const PHONE_TITLES = { internet: ["uiTabInternet", "portalLedeInternet"], shop: ["uiTabShop", "portalLedeShop"], activity: ["uiTabActivity", "portalLedeActivity"] };
+const EYEBROWS = { internet: "uiTabInternet", shop: "portalEyebrowShop", activity: "uiTabActivity" };
 // Opening one of these routes scrolls to that part of its tab.
 const SECTIONS = { vouchers: "voucherHistory", payments: "billing", billing: "billing" };
 let mounted = false;
@@ -95,6 +103,8 @@ function applyView(scroll = false) {
   // A page within the tab, when this account has its section (no devices on a Home router).
   const page = hash.split("/")[0], sub = SUBPAGES[page] && document.getElementById(SUBPAGES[page].section) ? SUBPAGES[page] : null;
   if (sub) document.body.setAttribute("data-portal-sub", page); else document.body.removeAttribute("data-portal-sub");
+  document.querySelectorAll("[data-sub-active]").forEach((node) => node.removeAttribute("data-sub-active"));
+  if (sub) document.getElementById(sub.section)?.setAttribute("data-sub-active", "");
   const subTitle = subHead(sub, lang);
   // Internet on phones shows Bundles or Vouchers (canvas: PhoneInternet).
   const internetView = activePortalView() === "vouchers" ? "vouchers" : "bundles";
@@ -105,15 +115,28 @@ function applyView(scroll = false) {
     link.onclick = (event) => { event.preventDefault(); location.replace(link.href); };
   });
   const title = document.getElementById("portalTitle");
-  if (title) title.textContent = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang);
+  if (title) {
+    const wide = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang), phone = PHONE_TITLES[tab];
+    clear(title);
+    if (phone) {
+      for (const [text, cls] of [[t(phone[0], lang), "nd-narrow-only"], [wide, "nd-wide-only"]]) {
+        const span = document.createElement("span"); span.className = cls; span.textContent = text; title.appendChild(span);
+      }
+    } else title.textContent = wide;
+    let lede = document.getElementById("portalLede");
+    if (!lede) { lede = document.createElement("p"); lede.id = "portalLede"; lede.className = "portal-head__lede nd-narrow-only"; title.after(lede); }
+    lede.textContent = phone ? t(phone[1], lang) : "";
+    lede.hidden = !phone;
+  }
+  // Brand bar on phones: Home only (canvas: PhoneHome); other tabs start with their title.
+  document.querySelector("header.nd-topnav")?.classList.toggle("nd-topnav--phone-bar", tab === "home" && !SUBPAGES[hash.split("/")[0]]);
   const eyebrow = document.getElementById("portalEyebrow");
   if (eyebrow) {
-    eyebrow.textContent = tab === "home" ? new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" }) : "";
-    eyebrow.hidden = tab !== "home";
+    eyebrow.textContent = tab === "home" ? new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" }) : EYEBROWS[tab] ? t(EYEBROWS[tab], lang) : "";
+    eyebrow.hidden = !eyebrow.textContent;
   }
   const headAction = document.getElementById("portalHeadAction");
   if (headAction) headAction.hidden = tab !== "home";
-  if (hash === "sessionActivity" && openDetails("sessionActivity")) return;
   if (sub) {
     const details = document.getElementById(sub.open);
     if (details) details.open = true;

@@ -242,23 +242,23 @@ async function load() {
   const lang = currentLanguage();
   // Redesign: network notices sit in the page head (the Home hero on phones).
   $("#portalNotices").innerHTML = `${netBannerMarkup}${purchaseNotice}`;
-  const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices">${h(t("homeDevices", lang))}</a></div>` : "";
+  const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
     <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}</section>
-    <section class="surface full home-pending" id="pendingPayment" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pendingPayment)}${ussdInstructions(pendingPayment.payerPhone)}<p><a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a></p>` : ""}</section>
+    <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<p class="home-pending__line"><strong id="pendingPaymentTitle">${h(t("homePaymentWaiting", lang))}</strong> ${h(t("homePaymentApprove", lang))}</p>${paymentClock(pendingPayment)}<details class="home-pending__help"><summary>${h(t("homePaymentNoPrompt", lang))}</summary>${ussdInstructions(pendingPayment.payerPhone)}</details><p class="home-pending__links"><a href="#payments">${h(t("homePaymentView", lang))}</a> · <a href="/help#payment">${h(t("homePaymentHelp", lang))}</a></p>` : ""}</section>
     ${wifiConnect}
     ${homeQuickActions()}
     <div class="plan-actions full home-purchase" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div>
-    <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3">${h(t("portalShopTitle", lang))}</h2><a class="nd-section-head__link" href="/dashboard#shop">${h(t("uiTabShop", lang))}</a></div><div class="home-shop__items" id="homeShopItems"></div></section>
+    <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3"><span class="nd-narrow-only">${h(t("portalShopTitle", lang))}</span><span class="nd-wide-only">${h(t("homeShopTitleWide", lang))}</span></h2><a class="nd-section-head__link" href="/dashboard#shop"><span class="nd-narrow-only">${h(t("uiTabShop", lang))}</span><span class="nd-wide-only">${h(t("homeOpenShop", lang))}</span></a></div><div class="home-shop__items" id="homeShopItems"></div></section>
     ${homeRecentActivity(result.payments)}
     ${active ? '<div class="full" id="installApp" hidden></div>' : ""}
     <details class="surface full portal-devices" id="manageDevices"><summary>Manage devices</summary><section aria-labelledby="devicesTitle">${devicesHead({ used: hotspot ? (active?.wifiDevices || []).length : active?.activeDevices, limit: active?.deviceLimit })}${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device portal-device">${deviceIcon}<div class="portal-device__main"><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><div class="device-actions"><button type="button" data-session="${h(session.id)}">Disconnect</button></div></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p class="portal-devices__slots">${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${devicesTip({ hotspot, active })}${hotspot ? '<div id="deviceManagement"></div>' : ""}${devicesAdd({ hotspot, active })}</section></details>
 </div>
     ${internetSwitch()}
-    ${internetBundle({ result, active, current, canPurchase, dailyNotice })}
+    ${internetBundle({ result, active, current, canPurchase })}
     ${active?.accessMode === "home" ? "" : `<details class="portal-catalogue full" data-portal-view="bundles" data-internet-group="bundles" id="bundlesCatalogue"><summary>${h(t("portalBundlesAndPrices", currentLanguage()))}</summary>${bundleCatalogue(result)}</details>`}
     <div class="account-layout full" data-portal-view="account">
-      ${accountHub(result.customer, security)}
+      ${accountHub(result.customer, security, { homeLinked: active?.accessMode === "home" })}
       ${profileCard(result.customer)}
       <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
       ${accountSecurityCard(result.customer, security, securitySetup)}
@@ -305,10 +305,13 @@ async function load() {
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   mountActivity({ call });
-  mountAccountHub();
+  mountAccountHub(call);
   mountDevicesAdd();
   mountShop({ call, api });
-  const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
+  const quickRedeem = $("[data-quick-redeem]");
+  if (quickRedeem) quickRedeem.onsubmit = (event) => { event.preventDefault(); void redeemCode(quickRedeem, quickRedeem.querySelector("[data-quick-redeem-message]")); };
+  const redeemPhone = $("#redeem [name=phone]");
+  if (redeemPhone && !redeemPhone.value) redeemPhone.value = result.customer.phone || "";  const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
   if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
   else if (openCatalogue) openCatalogue.hidden = true;
   $("#manageNotificationSettings").onclick = () => notifications.open({ category: "usage", settings: true });
@@ -331,19 +334,23 @@ async function load() {
   }
 }
 
-$("#redeem").onsubmit = async (event) => {
-  event.preventDefault();
-  const button = event.submitter || event.target.querySelector("button");
-  $("#redeemMessage").textContent = "";
+// A voucher code connects this device. The code page and the desktop "Got a
+// voucher?" card ask only for the code (canvas), so the account's number goes with it.
+async function redeemCode(form, message) {
+  const button = form.querySelector('[type="submit"], button');
+  message.textContent = "";
   try {
     await runButton(button, "Connecting…", async () => {
-      const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(event.target)), deviceId }) });
-      $("#redeemMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      const input = { phone: latestDashboard?.customer?.phone || "", ...Object.fromEntries(new FormData(form)), deviceId };
+      if (!input.phone) input.phone = latestDashboard?.customer?.phone || "";
+      const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify(input) });
+      message.innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
       await load();
       if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
     });
-  } catch (error) { showError($("#redeemMessage"), error); }
-};
+  } catch (error) { showError(message, error); }
+}
+$("#redeem").onsubmit = (event) => { event.preventDefault(); void redeemCode(event.target, $("#redeemMessage")); };
 
 $("#dashboard").onclick = async (event) => {
   const quickRenew = event.target.closest("[data-quick-renew]");

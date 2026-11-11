@@ -27,21 +27,46 @@
 body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-activity-filter="orders"] [data-activity-kind="internet"] { display: none !important; }
 
 /* ---------- Account hub (canvas: PhoneAccount, DesktopAccount) ---------- */
+/* Account (canvas: PhoneAccount, DesktopAccount). */
 .portal-account { display: flex; flex-direction: column; gap: var(--nd-space-8); }
-.portal-account__head { display: flex; align-items: center; gap: var(--nd-space-14); margin-bottom: var(--nd-space-6); }
+.portal-account__head { display: flex; align-items: center; gap: var(--nd-space-14); padding: var(--nd-space-20) 2px 6px; }
+.portal-account__head .nd-avatar { width: 56px; height: 56px; background: var(--nd-forest); color: var(--nd-lime); font-size: 20px; }
 .portal-account__who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.portal-account__title { margin: 0; font-family: var(--nd-font-display); font-size: 22px; font-weight: 600; }
-.portal-account__edit { display: flex; align-items: center; min-height: 44px; }
-.portal-account__group { margin: var(--nd-space-8) 0 0; font-size: 15px; font-weight: 700; }
-.portal-account__list { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
-.portal-account__item { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); min-height: 52px; padding: 0 var(--nd-space-16); border: 0; border-bottom: 1px solid var(--nd-line); background: none; color: var(--nd-ink); font: 600 15px var(--nd-font-body); text-align: left; text-decoration: none; cursor: pointer; }
-.portal-account__item:last-child { border-bottom: 0; }
-.portal-account__item:hover { background: var(--nd-sage-strong); }
-.portal-account__value { color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 600; }
+.portal-account .portal-account__title { margin: 0; color: var(--nd-ink); font: 600 24px/1.2 var(--nd-font-display); }
+.portal-account__contact { color: var(--nd-muted); font-size: 14px; overflow-wrap: anywhere; }
+.portal-account__edit { display: flex; align-items: center; min-height: 44px; color: var(--nd-forest); font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.portal-account__panels { display: flex; flex-direction: column; gap: var(--nd-space-8); padding-top: 10px; }
+.portal-account__panel { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+.portal-account .portal-account__group { margin: 6px 4px 0; color: var(--nd-muted); font: 700 12px var(--nd-font-body); letter-spacing: .1em; text-transform: uppercase; }
+.portal-account__list { display: flex; flex-direction: column; padding: 0 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+.portal-account__list > .nd-wide-only { display: contents; }
+.portal-account__item { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); min-height: 50px; padding: 0; border: 0; border-bottom: 1px solid var(--nd-line); background: none; color: var(--nd-ink); font: 600 15px var(--nd-font-body); text-align: left; text-decoration: none; cursor: pointer; }
+.portal-account__list > :last-child, .portal-account__list > .nd-wide-only:last-child .portal-account__item { border-bottom: 0; }
+.portal-account__item:hover { background: none; color: var(--nd-forest); }
+.portal-account__value { color: var(--nd-muted); font-size: 13px; font-weight: 600; }
 .portal-account__value .is-on { color: var(--nd-success-fg); font-weight: 700; }
 .portal-account__chevron { color: var(--nd-lime-text); font-size: 18px; }
-.portal-account__signout { color: var(--nd-danger); }
-@media (min-width: 1024px) { .portal-account { max-width: 640px; } }
+.portal-account__toggle { cursor: default; }
+.portal-account__signout { width: 100%; color: var(--nd-danger); }
+.portal-account__signout:hover { color: var(--nd-danger); }
+/* The hub is the Account tab (no page head); each detailed section opens as its own page. */
+body[data-current-tab="account"]:not([data-portal-sub]) .portal-head { display: none; }
+body[data-current-tab="account"]:not([data-portal-sub]) .account-layout > :not(.portal-account) { display: none !important; }
+@media (max-width: 767.98px) {
+  .portal-account__list > .nd-narrow-only:last-child { border-bottom: 0; }
+}
+@media (min-width: 768px) {
+  .portal-account__head { gap: var(--nd-space-18); padding: var(--nd-space-28) 0 var(--nd-space-18); }
+  .portal-account__head .nd-avatar { width: 64px; height: 64px; font-size: 24px; }
+  .portal-account .portal-account__title { font-size: 36px; }
+  .portal-account__contact { font-size: 15px; }
+  .portal-account__edit { min-height: 40px; text-decoration: none; padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+  .portal-account__panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--nd-space-16); align-items: start; padding-top: 0; }
+  .portal-account__panel { gap: var(--nd-space-6); padding: var(--nd-space-16) var(--nd-space-18) var(--nd-space-8); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  .portal-account .portal-account__group { margin: 0 0 var(--nd-space-4); color: var(--nd-ink); font: 600 20px var(--nd-font-display); letter-spacing: 0; text-transform: none; }
+  .portal-account__list { padding: 0; border: 0; border-radius: 0; background: none; }
+  .portal-account__signout--button { align-self: flex-start; width: auto; min-height: 40px; margin-top: var(--nd-space-20); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); font-size: 14px; }
+}
 /* v1's phone table rules make every cell a full-width block; keep the row layout. */
 #billing .portal-activity__table td.portal-activity__cell { grid-column: 1; grid-row: 1; width: auto !important; }
 #billing .portal-activity__table td.portal-activity__status { grid-column: 2; grid-row: 1; width: auto !important; }
