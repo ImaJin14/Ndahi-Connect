@@ -22,6 +22,7 @@ import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { internetBundle, internetSwitch } from "./portal-internet.js";
 import { activityDay, activityFilters, activityIcon, mountActivity, paymentPill, waitingBanner } from "./portal-activity.js";
+import { accountHub, mountAccountHub } from "./portal-account.js";
 import { mountCurrentWifi } from "./current-wifi.js";
 import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
 
@@ -246,7 +247,7 @@ async function load() {
     ${internetBundle({ result, active, current, canPurchase, dailyNotice })}
     ${active?.accessMode === "home" ? "" : `<details class="portal-catalogue full" data-portal-view="bundles" data-internet-group="bundles" id="bundlesCatalogue"><summary>${h(t("portalBundlesAndPrices", currentLanguage()))}</summary>${bundleCatalogue(result)}</details>`}
     <div class="account-layout full" data-portal-view="account">
-      <section class="account-overview" aria-label="Your account"><p class="eyebrow">Your account</p><h2>${h(result.customer.name || "Account settings")}</h2><p>Manage your profile, sign-in and recovery in one place.</p></section>
+      ${accountHub(result.customer, security)}
       ${profileCard(result.customer)}
       <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
       ${accountSecurityCard(result.customer, security, securitySetup)}
@@ -293,6 +294,7 @@ async function load() {
   } });
   mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
   mountActivity({ call });
+  mountAccountHub();
   const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
   if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
   else if (openCatalogue) openCatalogue.hidden = true;
