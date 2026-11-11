@@ -262,3 +262,8 @@
 .admin-audit { display: flex; flex-direction: column; gap: var(--nd-space-20); }
 .admin-audit__list { padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-18); }
 .admin-audit__list .records-toolbar--kit { flex-direction: row-reverse; justify-content: flex-end; }
+.admin-profile__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--nd-space-20); align-items: start; }
+.admin-profile__card { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.admin-profile__card .nd-h2 { margin: 0; }
+.admin-passkeys__list li > span { font-size: var(--nd-fs-small); }
+@media (max-width: 767.98px) { .admin-profile__grid { grid-template-columns: minmax(0, 1fr); } }

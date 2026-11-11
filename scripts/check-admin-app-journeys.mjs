@@ -270,11 +270,32 @@ try {
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/connections-${width}.png`, fullPage: true });
-    // Passkeys moved to Profile & security.
-    await page.goto(`${admin}/dashboard#profile`);
-    await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Add passkey", exact: true }).waitFor();
   }, { width });
+  // Redesigned Profile & security (v2 only; canvas: AdminProfile).
+  for (const role of ["owner", "operator"]) if (uiV2) await scenario(`redesigned Profile & security shows you, your passkeys and (owners) staff as ${role}`, async (page) => {
+    await page.goto(`${admin}/dashboard#profile`);
+    await page.getByRole("heading", { name: "Profile and security.", exact: true }).waitFor();
+    assert.match(await page.getByRole("region", { name: "You" }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
+    await page.getByRole("button", { name: "Change password", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Add a passkey on this device", exact: true }).waitFor();
+    const staff = page.getByRole("region", { name: "Staff (owner only)" });
+    if (role === "owner") {
+      assert.match(await staff.innerText(), /fixture-owner · owner\s*You/);
+      assert.equal(await staff.getByRole("button", { name: "Deactivate", exact: true }).count(), 3);
+      await staff.getByText("Add a staff account", { exact: true }).click();
+      await staff.getByLabel("Temporary password", { exact: true }).waitFor();
+    } else assert.equal(await staff.count(), 0, "only owners manage staff");
+    // Mismatched passwords never reach the verification step.
+    await page.getByLabel("New password", { exact: true }).fill("first-password");
+    await page.getByLabel("Confirm new password", { exact: true }).fill("other-password");
+    await page.getByRole("button", { name: "Change password", exact: true }).click();
+    await page.getByText("The two passwords don't match.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/profile-${role}.png`, fullPage: true });
+  }, { role, width: role === "owner" ? 1280 : 390 });
   // Redesigned Audit log (v2 only; canvas: AdminAudit).
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Audit log words actions and filters by area at ${width}px`, async (page) => {
     await store.transaction((s) => {
