@@ -354,3 +354,9 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-login #message:empty { display: none; }
 .admin-login #message { margin: var(--nd-space-14) 0 0; }
 @media (max-width: 480px) { .admin-login__main { padding-top: 32px; } .admin-login__card { padding: var(--nd-space-22); } }
+.admin-resellers .section-heading .section-kicker { color: var(--nd-muted); }
+/* Network setup steps: fields in a grid as on the canvas; headings, notes and buttons span it. */
+.admin-setup__step form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; }
+.admin-setup__step form > :not(label) { grid-column: 1 / -1; }
+.admin-setup__step form > button { justify-self: start; }
+.admin-setup__step form > button + button { margin-top: calc(var(--nd-space-4) * -1); }
