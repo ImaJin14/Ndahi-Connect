@@ -65,7 +65,7 @@ export const SCREENS = [
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)"],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned"],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", "a.admin-name"],
-    ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers"],
+    ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)"],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned"],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)"],
   ].map(([id, title, desktop, path, status, open]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(open ? { open } : {}) })),

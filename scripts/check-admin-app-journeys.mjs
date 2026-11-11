@@ -319,6 +319,17 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/audit-${width}.png`, fullPage: true });
   }, { width });
+  // Redesigned Resellers (v2 only; canvas: AdminResellers).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Resellers shows the ledger and cash handoff at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#resellers`);
+    await page.getByRole("heading", { name: "Resellers, stock and cash.", exact: true }).waitFor();
+    await page.locator('[data-reseller-row="staff-reseller"]').waitFor();
+    await page.getByRole("heading", { name: "Record a cash handoff", exact: true }).waitFor();
+    await page.getByLabel("Amount received (FCFA)").waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/resellers-${width}.png`, fullPage: true });
+  }, { width });
 
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
