@@ -38,3 +38,10 @@ main > .help-link a { color: var(--nd-forest); }
 #voucherDetails p { margin: var(--nd-space-10) 0 0; color: var(--nd-on-forest-soft); }
 /* One main action: continuing; downloading a copy is secondary. */
 main > .card.narrow #downloadVoucher { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+
+/* ---------- Scan, no bundle (canvas: PhoneScanNoBundle) ---------- */
+.portal-scan__none { margin: 0 0 var(--nd-space-14); }
+.portal-scan__none h2 { margin: 0 0 var(--nd-space-8); color: var(--nd-forest); font: 700 24px/1.2 var(--nd-font-display); }
+.portal-scan__none a.button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0 0 var(--nd-space-10); border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); text-decoration: none; }
+.portal-scan__none a.portal-scan__secondary { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+.surface[data-no-bundle] > #bundleName, .surface[data-no-bundle] > #bundleName + p { display: none; }

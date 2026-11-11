@@ -71,7 +71,24 @@ function buttons(enabled) {
   pinButton.disabled = !enabled;
   passkeyButton.disabled = !enabled;
 }
+// No active bundle on the scanned account (canvas: PhoneScanNoBundle): offer
+// buying one or entering a voucher code instead of the PIN form. The scan
+// stays saved, so Check again picks it up after a purchase.
+function noBundle(error) {
+  const none = document.querySelector("#qrNoBundle"), hint = wifiHint();
+  if (!none) return false;
+  message.textContent = "";
+  document.querySelector("#qrNoBundleText").textContent = error.message;
+  const buy = new URL("/onboarding.html", location.origin);
+  if (hint) { buy.searchParams.set("mac", hint.mac); buy.searchParams.set("address", hint.address); }
+  document.querySelector("#qrBuyBundle").href = buy.pathname + buy.search;
+  document.querySelector("#qrConnectForm").hidden = true;
+  none.closest("section.surface")?.setAttribute("data-no-bundle", "");
+  none.hidden = false;
+  return true;
+}
 function show(error) {
+  if (error.code === "BUNDLE_INACTIVE" && noBundle(error)) return;
   message.textContent = error.message;
   document.querySelector("#switchAccount").hidden =
     error.code !== "DIFFERENT_ACCOUNT";
@@ -136,6 +153,9 @@ async function begin() {
   buttons(false);
   context = null;
   document.querySelector("#switchAccount").hidden = true;
+  document.querySelector("#qrNoBundle").hidden = true;
+  document.querySelector("#qrNoBundle").closest("section.surface")?.removeAttribute("data-no-bundle");
+  document.querySelector("#qrConnectForm").hidden = false;
   const hint = wifiHint();
   attempt = voucherScanAttempt(selection, hint);
   try {
