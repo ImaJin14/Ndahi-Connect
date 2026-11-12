@@ -296,7 +296,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
   void loadHomeAttention(x, storeSnapshot, access.contacts);
   if (access.contacts) void loadHomePayments();
-  void updateHomeRouterMenu(adminRole, call);
+  void updateHomeRouterMenu(adminRole, api);
   if (access.contacts) void loadPaymentFigures({ call, storeRole, storeSnapshot });
   mountAdminInstall($("#adminInstall"));
   mountProfile({ call, runAction, reload: load });

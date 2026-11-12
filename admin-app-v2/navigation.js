@@ -60,6 +60,8 @@ function canAccess(menu, role) {
 
 export function activeAdminView(role) {
   const name = location.hash.slice(1).split("/")[0], view = ALIASES[name] || name;
+  const who = role === undefined ? currentRole : role;
+  if (view === "voucher-print" && STORE_ROLES.indexOf(who) < 0 && who !== "reseller") return "home";
   return VIEWS[view] && canAccess(VIEWS[view].menu, role) ? view : "home";
 }
 
