@@ -187,7 +187,9 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
               }
               if (role === "auditor") {
                 assert.equal(await page.locator("[data-head-view=\"home\"][href$=\"#vouchers\"]").isVisible(), false);
-                assert.equal(await page.locator("[data-admin-nav=\"voucher-print\"]").count(), 0);
+                await page.goto(`${admin}/dashboard?${variant.query}#voucher-print`);
+                await page.locator("#panel-home:not([hidden])").waitFor({ state: "visible" });
+                assert.equal(await page.locator('[data-admin-nav="home"]').getAttribute("aria-current"), "page");
                 await page.goto(`${admin}/dashboard?${variant.query}#vouchers`);
                 await page.locator("#panel-vouchers:not([hidden])").waitFor({ state: "visible" });
                 assert.equal(await page.locator("#panel-vouchers:not([hidden]) #generate").isVisible(), false);
