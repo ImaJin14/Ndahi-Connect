@@ -51,7 +51,7 @@ const designPort = Number(process.env.PREVIEW_DESIGN_PORT || 8090);
 const storePort = Number(process.env.PREVIEW_STORE_PORT || 8083);
 const portal = `http://localhost:${portalPort}`, admin = `http://localhost:${adminPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
 const storeSite = `http://localhost:${storePort}`;
-export const CAPTURE_DIR = "/tmp/ndahi-redesign-preview";
+export const CAPTURE_DIR = process.env.PREVIEW_CAPTURE_DIR || "/tmp/ndahi-redesign-preview";
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
 export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken"];
