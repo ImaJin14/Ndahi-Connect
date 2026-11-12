@@ -13,7 +13,9 @@ const h = (value) =>
 
 export { h as escapeVoucherHtml };
 
+// a6: the redesign's voucher card, four to an A4 page (canvas: VoucherSlip).
 export const VOUCHER_PRINT_LAYOUTS = Object.freeze([
+  "a6",
   "thermal-58",
   "thermal-80",
 ]);

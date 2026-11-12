@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap");
+/* The printed voucher card (canvas: VoucherSlip): A6, 105 × 148 mm, four to an
+   A4 page. Every size is the canvas's pixels times --u: a quarter millimetre in
+   print (420 × 592 px = 105 × 148 mm), smaller on narrow screens.
+   Colours are the brand's own rather than kit tokens, so the card prints the
+   same from the admin, the portal and the PDF. */
+.voucher-print-a6 { --u: min(.25mm, calc((100vw - 96px) / 420)); display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding: 16px; border-radius: 16px; background: #e7ece5; }
+.voucher-a4-sheet { display: contents; }
+.voucher-card { box-sizing: border-box; width: calc(420 * var(--u)); height: calc(592 * var(--u)); padding: calc(18 * var(--u)); background: #fff; color: #10241c; font-family: "DM Sans", system-ui, sans-serif; text-align: left; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.voucher-card *, .voucher-card *::before { box-sizing: border-box; }
+.voucher-card__frame { display: flex; flex-direction: column; height: 100%; overflow: hidden; border: calc(2 * var(--u)) dashed #9aa8a0; border-radius: calc(14 * var(--u)); }
+.voucher-card__head { display: flex; align-items: center; gap: calc(10 * var(--u)); padding: calc(14 * var(--u)) calc(18 * var(--u)); background: #003b2b; color: #fff; }
+.voucher-card__mark { display: grid; flex-shrink: 0; place-items: center; width: calc(32 * var(--u)); height: calc(32 * var(--u)); border: calc(2 * var(--u)) solid #b9ee2e; border-radius: 50%; color: #b9ee2e; font-size: calc(11 * var(--u)); font-weight: 700; }
+.voucher-card__brand { flex: 1; min-width: 0; }
+.voucher-card__brand strong { display: block; font: 700 calc(18 * var(--u))/1.2 "Playfair Display", Georgia, serif; }
+.voucher-card__brand small { display: block; color: #b9ee2e; font-size: calc(9 * var(--u)); font-weight: 700; letter-spacing: .26em; }
+.voucher-card__price { flex-shrink: 0; font-size: calc(16 * var(--u)); font-weight: 700; }
+.voucher-card__body { display: flex; align-items: center; gap: calc(16 * var(--u)); padding: calc(16 * var(--u)) calc(18 * var(--u)); }
+.voucher-card__qr { flex-shrink: 0; width: calc(120 * var(--u)); height: calc(120 * var(--u)); border: 1px solid #dfe5dc; image-rendering: pixelated; }
+.voucher-card__qr--none { display: grid; place-items: center; margin: 0; padding: calc(8 * var(--u)); color: #5c6963; font-size: calc(11 * var(--u)); text-align: center; }
+.voucher-card__info { min-width: 0; }
+.voucher-card__info p { margin: 0; }
+.voucher-card__info .voucher-card__plan { color: #4d6b00; font-size: calc(11 * var(--u)); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.voucher-card__info .voucher-card__facts { margin-top: calc(4 * var(--u)); font-size: calc(16 * var(--u)); font-weight: 700; line-height: 1.3; }
+.voucher-card__info .voucher-card__label { margin: calc(10 * var(--u)) 0 calc(2 * var(--u)); color: #5c6963; font-size: calc(12 * var(--u)); }
+.voucher-card__info .voucher-card__code { font: 700 calc(24 * var(--u))/1.15 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: .06em; overflow-wrap: anywhere; }
+.voucher-card__info .voucher-card__status { margin-top: calc(6 * var(--u)); color: #8a2a1c; font-size: calc(12 * var(--u)); font-weight: 700; }
+.voucher-card__steps { margin: 0 calc(18 * var(--u)); padding: calc(12 * var(--u)) calc(12 * var(--u)) calc(12 * var(--u)) calc(30 * var(--u)); border-radius: calc(10 * var(--u)); background: #eef3e9; color: #3d4a44; font-size: calc(13 * var(--u)); line-height: 1.7; }
+.voucher-card__foot { display: flex; justify-content: space-between; gap: calc(10 * var(--u)); margin-top: auto; padding: calc(12 * var(--u)) calc(18 * var(--u)); border-top: 1px solid #dfe5dc; color: #5c6963; font-size: calc(11 * var(--u)); }
+
+/* Print: A4 pages of four cards, edge to edge (cut along the dashed frames). */
+@page voucher-a6 { size: A4; margin: 0; }
+body[data-voucher-print-layout="a6"] { page: voucher-a6; }
+@media print {
+  .voucher-print-a6 { --u: .25mm; display: block; gap: 0; padding: 0; border-radius: 0; background: none; }
+  .voucher-a4-sheet { display: grid; grid-template-columns: 105mm 105mm; grid-template-rows: 148mm 148mm; width: 210mm; height: 296mm; overflow: hidden; break-after: page; }
+  .voucher-a4-sheet:last-child { break-after: auto; }
+}

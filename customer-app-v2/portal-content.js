@@ -109,7 +109,7 @@ export async function voucherAction(event) {
   if (!button) return false;
   const card = button.closest(".voucher-card"), message = card.querySelector("[data-voucher-message]");
   if (button.hasAttribute("data-print-voucher")) {
-    const { url } = openVoucherPrintPreview({ voucherIds: [button.dataset.printVoucher] });
+    const { url } = openVoucherPrintPreview({ voucherIds: [button.dataset.printVoucher], layout: "a6" });
     message.replaceChildren(); const link = document.createElement("a"); link.href = url; link.textContent = "Open print preview in this tab"; message.appendChild(link); return true;
   }
   try {

@@ -139,7 +139,7 @@ try {
     await page.getByRole("link", { name: "Print slips", exact: true }).click();
     await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
     assert.match(await page.locator("#adminLede").textContent(), /^3 slips · /);
-    assert.equal(await page.locator("#voucherPrintSurface .thermal-slip").count(), 3);
+    assert.equal(await page.locator(`#voucherPrintSurface ${uiV2 ? ".voucher-card" : ".thermal-slip"}`).count(), 3, "v2 prints A6 voucher cards by default");
     await page.getByRole("button", { name: "Print 3 slips", exact: true }).waitFor();
     assert.equal(await page.locator("#adminEyebrow").isVisible(), false, "the back link replaces the eyebrow");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");

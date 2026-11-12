@@ -1,8 +1,10 @@
 import { openVoucherPrintPreview } from "../shared-app/voucher-print-preview.js";
-import { escapeVoucherHtml as h, VOUCHER_PRINT_LAYOUTS, renderThermalSlipsHtml } from "./voucher-slip.js";
+import { escapeVoucherHtml as h, VOUCHER_PRINT_LAYOUTS, renderThermalSlipsHtml, sanitizePrintableVoucher } from "./voucher-slip.js";
+import { renderVoucherCardsHtml } from "../shared-app/voucher-card.js";
 export { VOUCHER_PRINT_LAYOUTS, formatValidityLabel, formatAllowanceLabel, formatPriceFcfa, formatDeviceLabel, sanitizePrintableVoucher, renderQrBlockMarkup, renderThermalSlipsHtml } from "./voucher-slip.js";
 
 export function renderVoucherPrintLayout(vouchers = [], plan = {}, layout = "thermal-58") {
+  if (layout === "a6") return `<div class="voucher-print-sheet voucher-print-a6" data-print-surface="a6">${renderVoucherCardsHtml(vouchers.map((v) => sanitizePrintableVoucher(v, plan)))}</div>`;
   if (layout === "thermal-80") return renderThermalSlipsHtml(vouchers, plan, 80);
   return renderThermalSlipsHtml(vouchers, plan, 58);
 }
@@ -42,7 +44,8 @@ export function mountGeneratedVoucherPrint({
     }
   };
 
-  const options = () => `<option value="thermal-58"${currentLayout === "thermal-58" ? " selected" : ""}>${h(labels ? labels.thermal58 : "Thermal POS slip (58mm)")}</option>
+  const options = () => `<option value="a6"${currentLayout === "a6" ? " selected" : ""}>${h(labels?.a6 || "A6 cards, 4 per A4 page")}</option>
+            <option value="thermal-58"${currentLayout === "thermal-58" ? " selected" : ""}>${h(labels ? labels.thermal58 : "Thermal POS slip (58mm)")}</option>
             <option value="thermal-80"${currentLayout === "thermal-80" ? " selected" : ""}>${h(labels ? labels.thermal80 : "Thermal POS slip (80mm)")}</option>`;
   const render = () => {
     applyBodyPrintLayout(currentLayout);
@@ -59,6 +62,7 @@ export function mountGeneratedVoucherPrint({
       <div class="voucher-print-controls">
         <label class="voucher-print-format-label">Print format
           <select id="voucherPrintLayout" aria-label="Print layout">
+            <option value="a6"${currentLayout === "a6" ? " selected" : ""}>A6 cards, 4 per A4 page</option>
             <option value="thermal-58"${currentLayout === "thermal-58" ? " selected" : ""}>Thermal POS slip (58mm)</option>
             <option value="thermal-80"${currentLayout === "thermal-80" ? " selected" : ""}>Thermal POS slip (80mm)</option>
           </select>
@@ -84,7 +88,7 @@ export function mountGeneratedVoucherPrint({
       printButton.onclick = () => {
         applyBodyPrintLayout(currentLayout);
         if (printWindow && typeof printWindow.open === "function") {
-          const { url } = openVoucherPrintPreview({ voucherIds: vouchers.map(v => v.id), widthMm: currentLayout === "thermal-80" ? 80 : 58, target: printWindow });
+          const { url } = openVoucherPrintPreview({ voucherIds: vouchers.map(v => v.id), widthMm: currentLayout === "thermal-80" ? 80 : 58, layout: currentLayout === "a6" ? "a6" : undefined, target: printWindow });
           let fallback = controls.querySelector("[data-open-print-preview]");
           if (!fallback) { fallback = document.createElement("a"); fallback.dataset.openPrintPreview = "true"; fallback.textContent = labels ? labels.openHere : "Open print preview in this tab"; (controls.querySelector(".voucher-print-controls") || controls.querySelector(".voucher-print-toolbar")).appendChild(fallback); }
           fallback.href = url;
