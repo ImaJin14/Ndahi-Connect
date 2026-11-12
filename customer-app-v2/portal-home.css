@@ -116,6 +116,16 @@
   .home-shop__item .nd-chevron { display: none; }
 }
 
+/* Main uses a wider bundle column and larger balance type on desktop. Keep
+   the compact two-column layout above for tablets and the phone layout below. */
+@media (min-width: 1024px) {
+  .home-view { grid-template-columns: minmax(0, 2.35fr) minmax(0, 1fr); }
+  .home-view > .home-quick, .home-view > .home-activity { align-self: stretch; }
+  .home-card__plan { font-size: 30px; }
+  .home-card__figure { font-size: 44px; }
+  .home-shop__item .nd-thumb { height: 188px; }
+}
+
 /* ---------- Canvas fit (PhoneHome, Main) ----------
    Phones: the plan's name is the card's eyebrow and the card shows data left,
    time left and devices; consumed / allowance / expiry are desktop tiles.

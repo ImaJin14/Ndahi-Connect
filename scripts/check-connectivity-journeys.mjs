@@ -18,6 +18,9 @@ try{
  }
  for(const width of [320,1280])await scenario('unpaid captive presence offers sign-in without a join-Wi-Fi instruction at '+width+'px',async(page,probes)=>{
   await page.goto(portal+'/login');const banner=page.locator('#entryConnectivity');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();assert.equal(await banner.getByRole('link',{name:'Sign in',exact:true}).getAttribute('href'),'/login');assert.doesNotMatch(await banner.textContent(),/Join Wi-Fi|Starlink Active|Connected & Active/);assert.equal(probes(),0);
+  // A font fallback or larger text must not let a phone input set the grid's
+  // minimum width. This reproduced the narrow-screen CI overflow before the fix.
+  if (uiV2 && width === 320) await page.evaluate(() => { const input = document.querySelector('input[name="phone"]'); input.style.fontFamily = 'monospace'; input.style.fontSize = '20px'; });
  },{signedIn:false,width});
  await scenario('an active bundle alone cannot invent Connected or working internet',async(page,probes)=>{await page.goto(portal+'/dashboard');const banner=page.locator('.network-state-banner');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();assert.match(await banner.textContent(),/authorization is still being checked/);assert.equal(probes(),0);});
  for(const internet of [true,false])await scenario('exact HotSpot authorization with browser internet '+(internet?'available':'unavailable')+' stays distinct',async(page,probes)=>{
