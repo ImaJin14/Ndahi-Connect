@@ -109,10 +109,10 @@ export const SCREENS = [
       { blocked: `${NO_PAIRING}, so there is no request to review; the page shows its invalid-link message`, expect: ["text=This device request link is invalid"] }],
     ["wifi-connected", "Wi-Fi connected", "PhoneWifiConnected", null, "/wifi-connected.html", "Redesigned", { expect: ["h1"] }],
     ["shop", "Shop", "PhoneShop", "Shop", "/dashboard#shop", "Redesigned", { tab: "shop", hash: "^#shop$", expect: [".portal-shop__item"], reject: [SHOP_ERROR] }],
-    ["product", "Product", "PhoneProduct", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item"], hash: "^#product/[^/]+$", expect: [".portal-shop__name", "#shopBuy"], reject: [SHOP_ERROR] }],
-    ["checkout", "Checkout", "PhoneCheckout", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item", "#shopBuy"], hash: "^#checkout/[^/]+/\\d+$", expect: ["#shopCheckout"], reject: [SHOP_ERROR] }],
+    ["product", "Product", "PhoneProduct", null, "/dashboard#shop", "Redesigned", { open: [".portal-shop__item"], hash: "^#product/[^/]+$", expect: [".portal-shop__name", "#shopBuy"], reject: [SHOP_ERROR] }],
+    ["checkout", "Checkout", "PhoneCheckout", null, "/dashboard#shop", "Redesigned", { open: [".portal-shop__item", "#shopBuy"], hash: "^#checkout/[^/]+/\\d+$", expect: ["#shopCheckout"], reject: [SHOP_ERROR] }],
     // The demo customer's own paid order, ready to collect.
-    ["order", "Order", "PhoneOrder", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["a.portal-activity__order"], hash: "^#order/[^/]+$", expect: [".portal-shop__steps", ".portal-shop__code"], reject: [SHOP_ERROR] }],
+    ["order", "Order", "PhoneOrder", null, "/dashboard#activity", "Redesigned", { open: ["a.portal-activity__order"], hash: "^#order/[^/]+$", expect: [".portal-shop__steps", ".portal-shop__code"], reject: [SHOP_ERROR] }],
   ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "portal", title, status, phone, ...(desktop ? { desktop } : {}), path, ...(options || {}) })),
   // The store (store-app/app.js) routes by hash and marks the view on <body
   // data-view>: the product is its own page at #product/<id> (no dialog since
@@ -135,7 +135,7 @@ export const SCREENS = [
     ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (no access point, signal or today's usage: the router doesn't report them)", { panel: "devices", menu: "devices" }],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections", "Redesigned (no uplink speed, per-network payment health or check times: none are recorded)", { panel: "connections", menu: "connections" }],
     ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html", "Redesigned (pilot evidence is a JSON report with an audit reason, not free notes)",
-      { menu: "homerouters", expect: ["#homeReadiness"], blocked: "NDAHI Home is off in the preview, so no household connections are listed; the page and readiness checks are real" }],
+      { menu: "homerouters", open: ["#checkHomeReadiness"], expect: ["#homeReadiness > h2", "#homeAdminList"], blocked: "NDAHI Home is off in the preview, so no household connections are listed; the page and readiness checks are real" }],
     ["admin-setup", "Network setup", "AdminNetworkSetup", "/dashboard#network-setup", "Redesigned (four steps over the existing forms; status, enforcement and history stay below)", { panel: "network-setup", menu: "setup" }],
     ["admin-bundles", "Bundles", "AdminBundles", "/dashboard#bundles", "Redesigned (no Pause / Put on sale or drafts: the API has neither; sold this week shown as vouchers issued)", { panel: "bundles", menu: "bundles" }],
     ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles", "Redesigned", { open: ["a[href*=\"#bundle/\"]"], panel: "bundle-edit", menu: "bundles", hash: "^#bundle/" }],
