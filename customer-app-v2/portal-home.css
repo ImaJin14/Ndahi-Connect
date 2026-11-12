@@ -137,5 +137,5 @@ body[data-current-tab="home"]:not([data-portal-sub]) #manageDevices { display: n
 @media (max-width: 767.98px) {
   .nd-topnav--phone-bar .nd-brand__tag { display: none; }
   .nd-topnav--phone-bar .notification-bell { margin: 0; border: 0; background: none; color: var(--nd-white); }
-  .nd-topnav--phone-bar .notification-bell [data-notification-count] { top: 8px; right: 8px; min-width: 0; width: 8px; height: 8px; padding: 0; overflow: hidden; border-radius: 50%; background: var(--nd-lime); color: transparent; font-size: 0; }
+  .nd-topnav--phone-bar .notification-bell [data-notification-count] { top: 8px; right: 8px; min-width: 0; width: 8px; height: 8px; padding: 0; overflow: hidden; border-radius: 50%; background: var(--nd-lime); color: var(--nd-forest); font-size: 0; }
 }

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openSecurityManager, waitForAccount, uiV2, openManageDevices } from "./portal-tabs.mjs";
 import http from "node:http";
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { setDefaultResultOrder } from "node:dns";
@@ -79,26 +80,26 @@ try {
   for (const width of [320,390,768,1280]) await scenario(`Account groups profile, security, recovery and sessions with theme/language disabled at ${width}px`,async ({page})=>{
     await page.setViewportSize({width,height:900});await page.emulateMedia({colorScheme:"dark"});
     await page.addInitScript(()=>{localStorage.setItem("ndahi-theme","dark");localStorage.setItem("ndahi-lang","fr");});
-    await page.goto(portal+"/dashboard#account");await page.getByRole("heading",{name:"PIN & passkeys",exact:true}).waitFor();
+    await page.goto(portal+"/dashboard#account");await waitForAccount(page);
     assert.equal(await page.locator("#themeToggle, .lang-switcher").count(),0);
     assert.equal(await page.locator("html").getAttribute("data-theme"),null);
     assert.equal(await page.locator("html").getAttribute("lang"),"en");
     const text=await page.locator(".account-layout").textContent();assert.doesNotMatch(text,/authenticator|2FA|MFA|Prepare PIN|sign-in readiness/i);
-    for(const name of ["Your profile","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
+    // v2 Account is a hub (canvas: PhoneAccount) linking to the profile and sessions pages.
+    if(uiV2)for(const hash of ["editProfile","sessions"])await page.locator(`.portal-account a[href="/dashboard#${hash}"]:visible`).first().waitFor();
+    else for(const name of ["Your profile","Sessions & security notices"])await page.getByRole("heading",{name,exact:true}).waitFor();
     assert.equal(await page.locator('#accountSecurity [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"]').count(),0);
     const color=await page.evaluate(()=>getComputedStyle(document.body).backgroundColor);assert.notEqual(color,"rgb(11, 19, 16)");
     await page.screenshot({path:`${screenshots}/account-cleanup-${width}.png`,fullPage:true});
   });
   await scenario("retired customer security and main-device controls show PIN/passkey only while retaining collapsed Manage devices", async ({ page }) => {
     await page.goto(portal + "/dashboard#account");
-    await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
+    await waitForAccount(page);
     const security = page.locator("#accountSecurity");
     assert.doesNotMatch(await security.textContent(), /authenticator|recovery codes|2FA|MFA/i);
     assert.equal(await page.locator('#account [name="otp"], #changePhone [name="otp"], #linkEmail [name="otp"], #changePin [name="otp"]').count(), 0);
     await page.goto(portal + "/dashboard#devices");
-    // v2 shows #devices as its own page (the disclosure is open, its summary hidden).
-    const details = page.getByText("Manage devices", { exact: true }); await details.waitFor({ state: "attached" });
-    if (!await page.locator("#manageDevices").evaluate((node) => node.open)) await details.click();
+    await openManageDevices(page);
     await page.locator("[data-select-main]").click();
     await page.locator('[data-main-proof] [name="mac"]').selectOption(mainMac);
     await page.locator('[data-main-proof] [name="confirm"]').check();
@@ -109,7 +110,7 @@ try {
   });
   await scenario("customer registers and removes a real user-verified passkey with fresh PIN authorization", async ({ page, context }) => {
     await virtualKey(page, context); await page.goto(portal + "/dashboard#account");
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     const proof = page.locator("[data-passkey-owner-proof]");
     await proof.getByLabel("Current PIN", { exact: true }).fill("2468");
     await proof.getByRole("button", { name: "Confirm with PIN", exact: true }).click();
@@ -121,7 +122,7 @@ try {
   });
   await scenario("last usable passkey cannot be removed without a verified replacement", async ({ page, context }) => {
     await virtualKey(page, context, { seeded: true, noPin: true }); await page.goto(portal + "/dashboard#account");
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click();
     await page.locator("[data-remove-passkey]").click();
     await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with passkey", exact: true }).click();
     await page.locator("#securityOwnerProof").getByText(/last|another|usable|replacement/i).first().waitFor();
@@ -129,7 +130,7 @@ try {
   });
   await scenario("cancelled passkey proof keeps the fresh PIN fallback usable for registration", async ({ page, context }) => {
     const { cdp, authenticatorId } = await virtualKey(page, context, { seeded: true }); await page.goto(portal + "/dashboard#account");
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     const proof = page.locator("[data-passkey-owner-proof]");
     // The library is loaded by the proof action; replace only its assertion
     // prompt, leaving the subsequent real registration ceremony intact.
@@ -151,7 +152,7 @@ try {
     assert.equal(await page.locator("#authenticatorLogin").isVisible().catch(() => false), false);
     await page.locator('#login [name="phone"]').fill("670050001"); await page.locator('#login [name="code"]').fill("NC-AAAA-1111"); await page.locator("#loginSubmit").click();
     await page.locator("#customerPin").fill("2468"); await page.locator("#loginSubmit").click();
-    await page.waitForURL(/\/dashboard#account$/); await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
+    await page.waitForURL(/\/dashboard#account$/); await waitForAccount(page);
   }, { noSession: true, unsupported: true, storageDenied: true });
   await scenario("forgetting a saved main device accepts a real passkey despite invalid leftover PIN text",async({page,context})=>{
     await virtualKey(page,context,{seeded:true});await f.store.transaction(s=>approveDevice(s,"c1",{mac:mainMac},f.now(),"fixture"));

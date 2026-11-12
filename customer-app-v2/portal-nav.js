@@ -213,7 +213,7 @@ export function mountPortalNavigation(pending = 0, name) {
     // Closing a page's section (Cancel, Escape, Close) returns to its tab.
     document.addEventListener("toggle", (event) => {
       const sub = SUBPAGES[document.body.getAttribute("data-portal-sub")];
-      if (sub && event.target.id === sub.open && !event.target.open) location.replace(sub.back);
+      if (sub && event.target.id === sub.open && !event.target.open) location.replace(sub.back.slice(sub.back.indexOf("#"))); // hash only: keeps any query, no reload
     }, true);
     // On its own page a section stays open: its disclosure is the page, not a toggle.
     document.addEventListener("click", (event) => {

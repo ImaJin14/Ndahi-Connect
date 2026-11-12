@@ -31,6 +31,8 @@ export async function mountDeviceControls({ container, call, onChanged }) {
       container.prepend(prompt);
       const manage = container.closest("details");
       if (manage) manage.open = true;
+      // Manage devices is its own page (canvas: PhoneDevices); show the prompt there.
+      if (manage && location.hash !== "#devices") location.replace(location.pathname + location.search + "#devices");
       const clear = () => { const url = new URL(location.href); url.searchParams.delete("main-device"); history.replaceState(null, "", url.href); prompt.remove(); };
       prompt.querySelector("[data-main-yes]").onclick = async () => { await showProof(candidate.toUpperCase(), false); clear(); };
       prompt.querySelector("[data-main-no]").onclick = clear;

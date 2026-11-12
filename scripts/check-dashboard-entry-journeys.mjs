@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createStaticServer } from '../static-server.mjs';
 import { pairingFixture, mainMac } from '../test/helpers/wifi-pairing-fixture.mjs';
-import { portalTab } from './portal-tabs.mjs';
+import { portalTab, openSecurityManager, waitForAccount } from "./portal-tabs.mjs";
 let browser, checks = 0;
 const website = http.createServer();
 await new Promise(r => website.listen(0, '127.0.0.1', r));
@@ -51,7 +51,7 @@ try {
   }
   await scenario('explicit account-settings intent is retained without Wi-Fi activation', async page => {
     await pin(page, '/login?account=1'); await page.waitForURL(portal + '/dashboard#account');
-    await page.getByRole('heading', { name: 'PIN & passkeys', exact: true }).waitFor();
+    await waitForAccount(page);
   });
   await scenario('evidence failure after a committed PIN sign-in still opens Dashboard', async (page, context) => {
     await context.route('**/api/account/connectivity', route => route.fulfill({ status: 503, json: { error: 'Connection read unavailable' } }));
@@ -70,7 +70,7 @@ try {
     assert.equal((await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } })).status(), 200);
     const cdp = await context.newCDPSession(page); await cdp.send('WebAuthn.enable');
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
-    await page.goto(portal + '/dashboard#account'); await page.locator('#securityManager>summary').click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
+    await page.goto(portal + '/dashboard#account'); await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468'); await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     await page.goto('about:blank'); await context.clearCookies({ name: 'customer_session' });

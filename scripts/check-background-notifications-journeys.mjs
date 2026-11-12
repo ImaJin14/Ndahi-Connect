@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createStaticServer } from '../static-server.mjs';
+import { manageNotificationSettings } from './portal-tabs.mjs';
 import { pairingFixture } from '../test/helpers/wifi-pairing-fixture.mjs';
 import { deliverActivityPush } from '../lib/notifications.mjs';
 const website = createStaticServer('customer', { apiUrl: 'http://api.background.test' });
@@ -21,7 +22,7 @@ try {
       return url.origin === portal ? route.continue() : route.abort();
     });
     const page = await context.newPage(); page.setDefaultTimeout(15000);
-    await page.goto(portal + '/dashboard#account'); await page.getByRole('button', { name: 'Manage notification settings', exact: true }).click();
+    await page.goto(portal + '/dashboard#account'); await manageNotificationSettings(page);
     const panel = page.getByRole('dialog', { name: 'Notifications', exact: true });
     await panel.getByLabel('Email data and expiry alerts when browser push is unavailable', { exact: true }).check();
     await panel.getByRole('button', { name: 'Save notification settings', exact: true }).click();
@@ -43,7 +44,7 @@ try {
     await f.store.transaction(s => { s.securityAlerts.push({ id: 'closed-' + width, customerId: 'c1', subject: 'Synthetic security event', lines: [], at: f.now().toISOString() }); });
     const sent = []; await deliverActivityPush({ store: f.store, now: f.now, config: { enabled: true, publicKey: 'fixture', privateKey: 'fixture', subject: 'mailto:fixture@example.test' }, send: async (_s, text) => sent.push(JSON.parse(text)) });
     assert.ok(sent.some(n => n.url === '/dashboard#account'), 'server delivery works with no dashboard page');
-    const reopened = await context.newPage(); await reopened.goto(portal + '/dashboard#account'); await reopened.evaluate(mockBrowserSubscription); await reopened.getByRole('button', { name: 'Manage notification settings', exact: true }).click();
+    const reopened = await context.newPage(); await reopened.goto(portal + '/dashboard#account'); await reopened.evaluate(mockBrowserSubscription); await manageNotificationSettings(reopened);
     await reopened.getByRole('dialog', { name: 'Notifications', exact: true }).getByRole('button', { name: 'Disable on this device', exact: true }).click();
     await reopened.getByText('Browser notifications disabled on this device.', { exact: true }).waitFor();
     assert.equal((await f.store.snapshot()).customers.find(c => c.id === 'c1').pushSubscriptions.length, 0);

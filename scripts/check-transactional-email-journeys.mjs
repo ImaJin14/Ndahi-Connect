@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openEditProfile, manageNotificationSettings, uiV2 } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createHandler, plans } from "../server.mjs";
@@ -117,12 +118,7 @@ try {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(portal + "/dashboard#account");
-    await page
-      .getByRole("button", {
-        name: "Manage notification settings",
-        exact: true,
-      })
-      .click();
+    await manageNotificationSettings(page);
     const panel = page.getByRole("dialog", {
       name: "Notifications",
       exact: true,
@@ -139,7 +135,7 @@ try {
       .getByText("Notification settings saved.", { exact: true })
       .waitFor();
     await page.keyboard.press("Escape");
-    await page.locator("#emailAccount summary").click();
+    await openEditProfile(page);
     await page
       .locator('#profileEdit [name="email"]')
       .fill("replacement@example.test");
@@ -192,7 +188,8 @@ try {
     await page
       .locator("#emailAccount")
       .getByText("replacement@example.test (confirmed)", { exact: true })
-      .waitFor();
+      // v2's Edit profile page shows the form only (canvas), so the facts stay rendered but hidden.
+      .waitFor(uiV2 ? { state: "attached" } : {});
     await handler.transactionalEmails.run();
     assert.equal(
       messages.length,
@@ -206,12 +203,7 @@ try {
       false,
     );
     assert.equal(s.payments[0].email, "payer@example.test");
-    await page
-      .getByRole("button", {
-        name: "Manage notification settings",
-        exact: true,
-      })
-      .click();
+    await manageNotificationSettings(page);
     await panel
       .getByLabel("Email welcome, receipts, vouchers and activation notices", {
         exact: true,
@@ -242,12 +234,7 @@ try {
       ),
     );
     await page.reload();
-    await page
-      .getByRole("button", {
-        name: "Manage notification settings",
-        exact: true,
-      })
-      .click();
+    await manageNotificationSettings(page);
     assert.equal(
       await panel
         .getByLabel(

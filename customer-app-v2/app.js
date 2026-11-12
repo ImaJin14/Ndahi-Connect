@@ -350,7 +350,11 @@ async function load() {
     sessionStore.remove("ndahi-plan-notice");
   }
   if (securitySetup) {
-    $("#accountSecurity").scrollIntoView({ behavior: "smooth", block: "center" });
+    // Passkey setup opens the Passkey sign-in page (Account is a hub, canvas).
+    if (location.hash !== "#passkeys") {
+      history.replaceState(null, "", location.pathname + location.search + "#passkeys");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
     $("#addCustomerPasskey").focus({ preventScroll: true });
   }
 }
