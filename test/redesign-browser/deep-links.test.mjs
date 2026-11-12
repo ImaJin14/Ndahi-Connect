@@ -71,6 +71,7 @@ test("customer security deep links mount in fresh authenticated contexts and sur
     apiServer.listen(apiPort, "127.0.0.1", resolve);
   });
   const apiUrl = `http://127.0.0.1:${apiPort}`;
+  const localOnly = (route) => [apiUrl, portal].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient");
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({
     headless: true,
@@ -84,6 +85,7 @@ test("customer security deep links mount in fresh authenticated contexts and sur
   ];
   for (const route of routes) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await context.route("**/*", localOnly);
     const page = await context.newPage();
     const errors = [];
     const failures = [];
@@ -120,6 +122,7 @@ test("customer security deep links mount in fresh authenticated contexts and sur
   }
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await context.route("**/*", localOnly);
   const page = await context.newPage();
   const errors = [];
   const failures = [];

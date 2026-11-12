@@ -107,6 +107,7 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
       for (const width of [390, 1280]) {
         console.info(`Checking ${variant.name}/${role}/${width}`);
         const context = await browser.newContext({ viewport: { width, height: 900 } });
+        await context.route("**/*", (route) => [api, admin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
         const page = await context.newPage();
         page.setDefaultTimeout(10000);
         const failures = [];
@@ -187,6 +188,8 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
               }
               if (role === "auditor") {
                 assert.equal(await page.locator("[data-head-view=\"home\"][href$=\"#vouchers\"]").isVisible(), false);
+                await page.goto(`${admin}/dashboard?${variant.query}#vouchers`);
+                await page.locator("#panel-vouchers:not([hidden])").waitFor({ state: "visible" });
                 await page.goto(`${admin}/dashboard?${variant.query}#voucher-print`);
                 await page.locator("#panel-home:not([hidden])").waitFor({ state: "visible" });
                 assert.equal(await page.locator('[data-admin-nav="home"]').getAttribute("aria-current"), "page");
