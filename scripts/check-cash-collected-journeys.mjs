@@ -101,7 +101,13 @@ try {
       await page.goto(admin + "/dashboard");
       // v2 gives the cash report its own screen (Cash and settlements).
       const cashView = uiV2 && role === "owner";
-      await page.locator(cashView ? "#admin-nav-cash" : "#admin-nav-payments").click();
+      if (uiV2 && role === "reseller") {
+        await page.locator('#admin-nav-home[aria-current="page"]').waitFor();
+        assert.equal(await page.locator("#admin-nav-payments").count(), 0);
+        assert.equal(await page.locator("#admin-nav-cash").count(), 0);
+      } else {
+        await page.locator(cashView ? "#admin-nav-cash" : "#admin-nav-payments").click();
+      }
       if (role === "owner") {
         await page.waitForFunction(() =>
           document

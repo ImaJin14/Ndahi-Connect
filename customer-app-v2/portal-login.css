@@ -3,6 +3,7 @@
    Flat on the page instead of a card, a +237 prefix on the number, and the
    passkey as an outlined button. */
 .login-page .login-panel { padding: 0; border: 0; background: none; box-shadow: none; }
+.login-page .login-form > label { min-width: 0; }
 .login-page .login-heading .eyebrow { color: var(--nd-lime-text); }
 .login-phone { display: flex; align-items: stretch; margin-top: 6px; }
 .login-phone__code { display: flex; flex-shrink: 0; align-items: center; padding: 0 12px; border: 1px solid var(--nd-line-strong); border-right: 0; border-radius: var(--nd-radius-control) 0 0 var(--nd-radius-control); background: var(--nd-sage); color: var(--nd-ink); font: 600 16px var(--nd-font-body); }
