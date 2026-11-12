@@ -38,7 +38,7 @@ test("every kit module loads and exports its documented API", async () => {
     "icons.js": ["ICONS", "icon", "renderIcons"],
     "field.js": ["setFieldError", "clearFieldError", "focusFirstError", "enhancePinToggles", "setBusy"],
     "choice.js": ["enhanceChoiceGroup", "enhanceTabs"],
-    "navigation.js": ["renderBrand", "renderTabBar", "renderPortalHeader", "renderNetworkStatus", "notificationsLabel", "renderAdminMenu", "renderBackButton", "PORTAL_TABS", "ADMIN_MENU"],
+    "navigation.js": ["renderBrand", "renderPortalTabs", "renderPortalHeader", "renderNetworkStatus", "notificationsLabel", "renderAdminMenu", "renderBackButton", "PORTAL_TABS", "ADMIN_MENU"],
     "progress.js": ["renderSteps", "renderStepper", "stepCount", "renderMeter", "setMeter"],
     "states.js": ["renderState", "focusState"],
   };
@@ -108,8 +108,9 @@ test("text colour pairs used by the components meet 4.5:1", async () => {
 });
 
 test("kit strings exist in English and French, and format() fills placeholders", async () => {
-  const uiKeys = (lang) => Object.keys(TRANSLATIONS[lang]).filter((key) => /^ui[A-Z]/.test(key)).sort();
-  assert.deepEqual(uiKeys("fr"), uiKeys("en"));
+  // The whole dictionary stays in step, not only the kit's keys.
+  assert.deepEqual(Object.keys(TRANSLATIONS.fr).sort(), Object.keys(TRANSLATIONS.en).sort());
+  const uiKeys = (lang) => Object.keys(TRANSLATIONS[lang]).filter((key) => /^(ui|portal)[A-Z]/.test(key)).sort();
   for (const key of uiKeys("en")) {
     assert.ok(TRANSLATIONS.en[key].trim() && TRANSLATIONS.fr[key].trim(), key);
     const slots = (text) => [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort().join();

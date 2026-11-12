@@ -100,6 +100,19 @@ export const TRANSLATIONS = {
     uiAdminResellers: "Resellers",
     uiAdminAudit: "Audit log",
     uiAdminProfile: "Profile & security",
+
+    // Redesigned portal shell (customer-app-v2).
+    portalWelcome: "Welcome back",
+    portalWelcomeName: "Welcome back, {name}",
+    portalTitleInternet: "Your bundles and vouchers.",
+    portalTitleShop: "Shop.",
+    portalTitleActivity: "Your activity.",
+    portalTitleAccount: "Your account.",
+    portalPendingOne: "{count} payment awaiting confirmation",
+    portalPendingOther: "{count} payments awaiting confirmation",
+    portalShopTitle: "Better signal at home",
+    portalShopBody: "Routers and Wi-Fi devices are coming to your account. Until then, buy them from the NDAHI store and collect them locally.",
+    portalShopLink: "Open the NDAHI store",
   },
   fr: {
     brandSmall: "CONNEXION",
@@ -202,6 +215,19 @@ export const TRANSLATIONS = {
     uiAdminResellers: "Revendeurs",
     uiAdminAudit: "Journal d'audit",
     uiAdminProfile: "Profil et sécurité",
+
+    // Portail repensé (customer-app-v2).
+    portalWelcome: "Bon retour",
+    portalWelcomeName: "Bon retour, {name}",
+    portalTitleInternet: "Vos forfaits et tickets.",
+    portalTitleShop: "Boutique.",
+    portalTitleActivity: "Votre activité.",
+    portalTitleAccount: "Votre compte.",
+    portalPendingOne: "{count} paiement en attente de confirmation",
+    portalPendingOther: "{count} paiements en attente de confirmation",
+    portalShopTitle: "Un meilleur signal chez vous",
+    portalShopBody: "Les routeurs et appareils Wi-Fi arrivent dans votre compte. En attendant, achetez-les sur la boutique NDAHI et retirez-les sur place.",
+    portalShopLink: "Ouvrir la boutique NDAHI",
   }
 };
 

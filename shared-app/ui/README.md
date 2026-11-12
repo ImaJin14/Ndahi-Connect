@@ -86,14 +86,18 @@ cookie). `node scripts/check-ui-kit-journeys.mjs` checks it in a browser.
 | Switch | `<label class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input"><span class="nd-switch__track" aria-hidden="true"></span></label>` — works without JavaScript | |
 | Progress | `.nd-steps`, `.nd-stepper`, `.nd-step-count` | `renderSteps()`, `renderStepper()`, `stepCount(1, 3)` |
 | Screen frame | `.nd-screen` > `.nd-topbar` + `.nd-screen__body` + `.nd-actionbar` (sticky, safe-area aware) | `renderBackButton({ href })` |
-| Navigation | phone `.nd-tabbar` (add `nd-has-tabbar` to `<body>`), desktop `.nd-topnav` (≥ 768 px), Home `.nd-hero` + `.nd-overlap` | `renderTabBar({ current, hrefs })`, `renderPortalHeader({ current, network, notifications })` |
+| Portal navigation | `header.nd-topnav` > `.nd-topnav__inner` > brand + `nav.nd-topnav__links` + `.nd-topnav__aside`. The one nav is the bottom tab bar below 768 px and header links from 768 px; add `--phone-bar` to keep a slim bar on phones, `nd-has-tabbar` to `<body>`, `nd-keyboard-open` while the keyboard is up; `.nd-wide-only`. Home hero: `.nd-hero` + `.nd-overlap` | `renderPortalTabs({ current, hrefs, badges })` fills a nav written in HTML; `renderPortalHeader({ current, network, notifications, badges, actions, phoneBar })` builds the whole header |
 | Admin | `.nd-admin-shell` > `__side` + `__main`; `.nd-pagehead`, `.nd-metrics` > `.nd-metric`, `.nd-table-wrap` > `.nd-table` | `renderAdminMenu({ current, canAccess, badges, onSignOut })` |
 | States | `.nd-state--success|waiting|error|info|empty`, `--compact`; `.nd-spinner` | `renderState({ tone, title, body, list, actions })`, `focusState()` |
 | Helpers | `.nd-visually-hidden`, `.nd-skip-link`, `.nd-stack(--8|12|22)`, `.nd-cluster`, `.nd-split`, `.nd-grid-2`, `.nd-container` | `h()`, `localize(root, lang)`, `announce(msg)` |
 
 ### Notes
 
-- **Routing stays with the page.** `renderTabBar` and `renderPortalHeader` default to
+- **One nav per page.** The tab bar and the header links are the same five links
+  (`data-portal-tab="home|internet|shop|activity|account"`), so screen readers meet one
+  "Main" landmark and tests find one element per tab. `customer-app-v2/index.html` shows
+  the HTML version.
+- **Routing stays with the page.** `renderPortalTabs` and `renderPortalHeader` default to
   `#home`, `#internet`… Pass `hrefs` with the real routes. Admin role rules stay in
   `admin-app*/navigation.js`; pass them to `renderAdminMenu` as `canAccess(id)`.
 - **Static text:** write the English in the HTML with `data-i18n="key"` (and

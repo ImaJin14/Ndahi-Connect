@@ -3,6 +3,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { portalTab } from './portal-tabs.mjs';
 
 // Synthetic local accounts and mock adapters only. Never load production .env.
 const apiPort = Number(process.env.SUBSCRIPTION_API_PORT || 9078), portalPort = Number(process.env.SUBSCRIPTION_PORT || 9077);
@@ -50,7 +51,7 @@ try {
       await page.goto(portal + "/dashboard"); await page.locator("#dataBalance").waitFor();
       assert.equal(await page.locator("[data-quick-renew]").count(), 0);
       assert.equal(await page.locator('a[href^="/onboarding.html"]').count(), 0);
-      await page.locator('[data-portal-tab="bundles"]').click();
+      await page.locator(portalTab("bundles")).click();
       await page.locator("#managePlan").getByText(/cannot be stacked, renewed or switched/).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await page.screenshot({ path: `${screenshots}/active-bundles-${width}.png`, fullPage: true });

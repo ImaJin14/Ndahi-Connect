@@ -5,6 +5,9 @@
 // marker. Loaded with NODE_OPTIONS="--import ./scripts/ui-v2-journeys.mjs".
 import { chromium } from "playwright";
 
+// Journeys that differ between versions read this (see scripts/portal-tabs.mjs).
+process.env.NDAHI_UI_VARIANT = "v2";
+
 const cookies = ["127.0.0.1", "localhost"].map((domain) => ({ name: "ndahi_ui", value: "v2", domain, path: "/", httpOnly: true, sameSite: "Lax" }));
 const prepared = new WeakSet(), wrong = new Set();
 let launched = false, pages = 0;

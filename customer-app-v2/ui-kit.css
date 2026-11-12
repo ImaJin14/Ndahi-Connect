@@ -15,8 +15,7 @@
 .kit-frame--phone { max-width: 390px; }
 .kit-frame--side { max-width: 240px; }
 .kit-frame--pad { padding: var(--nd-space-16); }
-.kit-frame .nd-tabbar { position: static; display: flex; }
-.kit-frame .nd-topnav { display: block; }
+.kit-frame .nd-topnav__links { position: static; }
 .kit-frame .nd-actionbar { position: static; }
 .kit-on-forest { display: flex; flex-wrap: wrap; gap: var(--nd-space-12) var(--nd-space-20); padding: var(--nd-space-16); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-on-forest-soft); }
 .kit-code { padding: 1px 5px; border-radius: 6px; background: var(--nd-sage); color: var(--nd-ink-soft); font: 600 var(--nd-fs-caption)/1.6 var(--nd-font-mono); }

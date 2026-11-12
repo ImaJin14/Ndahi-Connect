@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createStaticServer } from '../static-server.mjs';
 import { pairingFixture, mainMac } from '../test/helpers/wifi-pairing-fixture.mjs';
+import { portalTab } from './portal-tabs.mjs';
 let browser, checks = 0;
 const website = http.createServer();
 await new Promise(r => website.listen(0, '127.0.0.1', r));
@@ -110,8 +111,8 @@ try {
   await scenario('an authenticated app restores Dashboard with blocked optional browser storage', async (page, context) => {
     assert.equal((await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } })).status(), 200);
     await context.addInitScript(() => { for (const store of ['localStorage', 'sessionStorage']) Object.defineProperty(window, store, { get() { throw new DOMException('denied', 'SecurityError'); } }); });
-    await page.goto(portal + '/dashboard#vouchers'); await page.locator('[data-portal-tab="vouchers"][aria-current="page"]').waitFor();
-    await page.reload(); await page.locator('[data-portal-tab="vouchers"][aria-current="page"]').waitFor();
+    await page.goto(portal + '/dashboard#vouchers'); await page.locator(portalTab("vouchers") + '[aria-current="page"]').waitFor();
+    await page.reload(); await page.locator(portalTab("vouchers") + '[aria-current="page"]').waitFor();
   });
   console.log(`PASS ${checks} dashboard entry browser journeys`);
 } finally { if (browser) await browser.close(); await f.close(); await new Promise(r => { website.close(r); website.closeAllConnections(); }); }

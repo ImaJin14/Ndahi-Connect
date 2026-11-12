@@ -29,7 +29,7 @@ async function scenario(name, work, { width = 390, lang = "en", mobile = false }
   await page.addInitScript(() => document.addEventListener("securitypolicyviolation", (event) => console.error(`CSP ${event.violatedDirective} ${event.blockedURI}`)));
   try {
     await page.goto(portal + "/ui-kit.html");
-    await page.locator("#kit-tabbar .nd-tabbar").waitFor();
+    await page.locator("#kit-portalnav .nd-topnav__links").waitFor();
     await work(page);
     assert.deepEqual(errors, [], "no console errors or CSP violations");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "no sideways scrolling");
@@ -96,10 +96,14 @@ try {
       assert.equal(await page.getAttribute("html", "lang"), lang);
       assert.equal(await page.getAttribute("html", "data-ui-variant"), "v2");
       await page.getByRole("heading", { level: 1, name: french ? "Kit de design NDAHI" : "NDAHI design kit" }).waitFor();
-      const tabs = page.locator("#kit-tabbar").getByRole("navigation", { name: french ? "Navigation principale" : "Main" });
-      for (const label of french ? ["Accueil", "Internet", "Boutique", "Activité", "Compte"] : ["Home", "Internet", "Shop", "Activity", "Account"]) {
+      const tabs = page.locator("#kit-portalnav").getByRole("navigation", { name: french ? "Navigation principale" : "Main" });
+      for (const label of french ? ["Accueil", "Internet", "Boutique", "Activité, 1 paiement en attente de confirmation", "Compte"] : ["Home", "Internet", "Shop", "Activity, 1 payment awaiting confirmation", "Account"]) {
         await tabs.getByRole("link", { name: label, exact: true }).waitFor();
       }
+      assert.equal(await tabs.locator('[data-portal-tab="activity"] .nd-topnav__badge').textContent(), "1", "badge count on the Activity tab");
+      const current = tabs.locator('[aria-current="page"]');
+      await current.hover();
+      assert.equal(await current.evaluate((link) => getComputedStyle(link).color), width >= 768 ? "rgb(185, 238, 46)" : "rgb(0, 59, 43)", "the current tab keeps its colour under the pointer");
       assert.equal(await tabs.getByRole("link", { name: french ? "Accueil" : "Home" }).getAttribute("aria-current"), "page");
       await page.locator("#kit-sidemenu").getByRole("link", { name: french ? /Paiements, 2 à traiter/ : /Payments, 2 need attention/ }).waitFor();
       await page.getByRole("button", { name: french ? "Afficher le code PIN" : "Show PIN" }).waitFor();
@@ -194,10 +198,10 @@ try {
     assert.equal(await page.locator("#kit-language-2").getByRole("button", { name: "Français" }).getAttribute("aria-pressed"), "true", "both language controls agree");
     assert.equal((await page.locator("#kit-phone-error").textContent()).trim(), "Saisissez le numéro avec lequel vous payez.");
     await page.getByRole("button", { name: "Afficher le code PIN" }).waitFor();
-    await page.locator("#kit-tabbar").getByRole("link", { name: "Boutique" }).waitFor();
+    await page.locator("#kit-portalnav").getByRole("link", { name: "Boutique" }).waitFor();
     assert.equal(await page.evaluate(() => localStorage.getItem("ndahi-lang")), "fr");
     await page.reload();
-    await page.locator("#kit-tabbar .nd-tabbar").waitFor();
+    await page.locator("#kit-portalnav .nd-topnav__links").waitFor();
     assert.equal(await page.getAttribute("html", "lang"), "fr");
     await page.locator("#kit-language-2").getByRole("button", { name: "English" }).click();
     assert.equal(await page.getAttribute("html", "lang"), "en");
