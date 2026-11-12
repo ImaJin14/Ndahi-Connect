@@ -115,3 +115,7 @@ body[data-current-tab="account"]:not([data-portal-sub]) .account-layout > :not(.
 a.portal-activity__order { color: inherit; text-decoration: none; }
 a.portal-activity__order:hover strong { text-decoration: underline; }
 a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+/* Desktop: the filter sits beside the title (canvas: DesktopActivity). */
+@media (min-width: 768px) {
+  .portal-activity__filters { justify-self: end; width: 330px; margin-top: -60px; }
+}

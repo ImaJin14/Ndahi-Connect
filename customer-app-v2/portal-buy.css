@@ -44,3 +44,24 @@
 .packages-page #purchase input:not([type="checkbox"]), .packages-page #purchase select { min-height: 48px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
 .packages-page #purchase small, .packages-page #purchase .trust { color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 400; }
 .packages-page #requestPayment { width: 100%; min-height: 52px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+/* A light bar instead of v1's forest header (canvas: PhoneBuyBundle); Customer login stays. */
+.packages-page > header { min-height: 56px; padding: 0 var(--nd-space-16); border-bottom: 1px solid var(--nd-line); background: var(--nd-ivory); box-shadow: none; }
+.packages-page > header .brand strong { color: var(--nd-forest) !important; }
+.packages-page > header .brand small { color: var(--nd-muted) !important; }
+.packages-page > header .brand-mark { border-color: var(--nd-forest); background: var(--nd-forest); color: var(--nd-lime) !important; }
+.packages-page > header .network-state { color: var(--nd-muted) !important; }
+.packages-page > header .header-link { color: var(--nd-forest) !important; font-weight: 700; }
+/* The canvas bar: back, "Buy a bundle", the step; v1's brand and status give way. */
+.packages-page > header { display: flex; align-items: center; gap: var(--nd-space-6); }
+.packages-page > header .brand, .packages-page > header .network-state { display: none !important; }
+.buy-bar__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+.buy-bar__title { color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.buy-bar__step { margin-left: auto; color: var(--nd-muted); font-size: 13px; }
+.packages-page > header .header-actions { margin-left: var(--nd-space-12); }
+/* Rows as drawn: name, tag, facts and price; the plan's button shows only when it can't be used. */
+.packages-page #plans .plan .plan-unit-rate, .packages-page .section-head .trust { display: none; }
+.packages-page #plans .plan > button[data-plan]:not(:disabled) { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border-radius: var(--nd-radius-card); background: transparent; color: transparent; font-size: 0; }
+.packages-page #plans .plan > button[data-plan]:not(:disabled)::after { content: none; }
+.packages-page #plans .plan > button[data-plan]:not(:disabled):hover { background: rgba(0, 59, 43, .03); }
+.packages-page #plans .plan .plan-price { order: 3; }
+.packages-page #plans .plan .plan-details { flex-basis: 100%; }

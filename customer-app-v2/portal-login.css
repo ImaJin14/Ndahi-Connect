@@ -29,3 +29,9 @@
 #otherRecovery > p { margin: var(--nd-space-16) 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-sage); color: var(--nd-ink); }
 #otherRecovery details form { padding-bottom: var(--nd-space-14); }
 .recovery-panel #message .success { padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); }
+/* No brand bar on sign-in pages (canvas: PhoneLogin, PhoneForgotPin). */
+.login-page > header { display: none; }
+.login-page .login-main { justify-content: flex-start; padding-top: var(--nd-space-16); }
+/* The Wi-Fi evidence as one quiet line above the form. */
+.login-page #entryConnectivity { margin: var(--nd-space-8) var(--nd-space-16) 0; padding: 0; border: 0; background: none; font-size: 12px; }
+.login-page #entryConnectivity .network-banner-message { display: none; }
