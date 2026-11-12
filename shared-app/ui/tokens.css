@@ -1,0 +1,120 @@
+/*
+ * NDAHI design tokens (redesign, Phase 1).
+ * Values come from the design canvas in docs/redesign/screens/. Build screens
+ * from these variables instead of copying hex codes out of the canvas files.
+ * Only Claude Code changes this file after Phase 1 (see AGENTS.md); ask for a
+ * new token in an issue.
+ */
+:root {
+  /* Brand */
+  --nd-forest: #003b2b;          /* primary brand, links, selected text */
+  --nd-forest-deep: #062a20;     /* link hover */
+  --nd-lime: #b9ee2e;            /* primary buttons, accents on forest */
+  --nd-lime-hover: #c8f84b;
+  --nd-lime-ink: #15210c;        /* text on lime */
+  --nd-lime-text: #4d6b00;       /* eyebrows and chevrons on light surfaces */
+  --nd-meter: #6f9500;           /* data meter fill, finished steps */
+
+  /* Surfaces */
+  --nd-ivory: #fbfaf5;           /* page background */
+  --nd-paper: #fffef9;           /* cards, bars, sheets */
+  --nd-white: #ffffff;           /* inputs, selected segments */
+  --nd-sage: #eef3e9;            /* soft fills: notes, tiles, selected tab */
+  --nd-sage-strong: #f3f9e8;     /* selected option card */
+  --nd-track: #e7ece5;           /* meter track */
+
+  /* Text */
+  --nd-ink: #10241c;             /* body text */
+  --nd-ink-soft: #3d4a44;        /* long-form text, inactive segments */
+  --nd-muted: #5c6963;           /* secondary text, at least 5:1 on light surfaces */
+  --nd-on-forest: #ffffff;
+  --nd-on-forest-soft: #dce8e2;  /* secondary text on forest */
+  --nd-on-forest-muted: #c8d8d0;
+  --nd-on-forest-faint: #a9c2b7; /* admin menu group titles */
+
+  /* Lines */
+  --nd-line: #dfe5dc;            /* card borders, dividers */
+  --nd-line-strong: #b8c7bd;     /* input and secondary button borders */
+  --nd-line-on-forest: rgba(255, 255, 255, 0.18);
+
+  /* Status tints: background + foreground pairs, all at least 7:1 */
+  --nd-success-bg: #eaf6d5;
+  --nd-success-fg: #345000;
+  --nd-warning-bg: #fff4e0;
+  --nd-warning-fg: #6b3a00;
+  --nd-warning-line: #e3c9a0;
+  --nd-danger-bg: #fbe4e4;
+  --nd-danger-fg: #8a2a2a;
+  --nd-danger: #a73535;          /* destructive text and solid buttons */
+  --nd-danger-line: #e3b4b4;
+  --nd-danger-soft: #fdf3f3;
+  --nd-info-bg: #e3f0ff;
+  --nd-info-fg: #1d4f86;
+  --nd-neutral-bg: #eef0ee;
+  --nd-neutral-fg: #3d4a44;
+  --nd-switch-off: #c9d3cd;
+  /* Network status dots; always shown next to a text label */
+  --nd-status-online: var(--nd-lime);
+  --nd-status-degraded: #d6960f;
+  --nd-status-offline: var(--nd-danger);
+  --nd-status-maintenance: #5b7a94;
+  --nd-status-unknown: var(--nd-muted);
+
+  /* Type */
+  --nd-font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --nd-font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --nd-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --nd-fs-eyebrow: 11px;
+  --nd-fs-caption: 12px;
+  --nd-fs-meta: 13px;
+  --nd-fs-small: 14px;
+  --nd-fs-body: 15px;
+  --nd-fs-control: 16px;         /* inputs stay at 16px so phones do not zoom */
+  --nd-fs-title-sm: 19px;
+  --nd-fs-title: 22px;
+  --nd-fs-h1: 28px;
+  --nd-fs-h1-lg: 32px;
+  --nd-fs-h1-xl: 36px;
+  --nd-fs-figure: 34px;
+  --nd-lh-tight: 1.15;
+  --nd-lh-body: 1.5;
+  --nd-tracking-eyebrow: 0.14em;
+
+  /* Spacing (named after the pixel values used in the canvas) */
+  --nd-space-4: 4px;
+  --nd-space-6: 6px;
+  --nd-space-8: 8px;
+  --nd-space-10: 10px;
+  --nd-space-12: 12px;
+  --nd-space-14: 14px;
+  --nd-space-16: 16px;
+  --nd-space-18: 18px;
+  --nd-space-20: 20px;
+  --nd-space-22: 22px;
+  --nd-space-24: 24px;
+  --nd-space-28: 28px;
+  --nd-space-32: 32px;
+  --nd-space-48: 48px;
+
+  /* Radii */
+  --nd-radius-sm: 8px;           /* admin menu items, compact buttons */
+  --nd-radius-control: 10px;     /* buttons, inputs */
+  --nd-radius-panel: 12px;       /* notes, callouts, segmented track */
+  --nd-radius-card: 14px;
+  --nd-radius-card-lg: 16px;
+  --nd-radius-hero: 18px;
+  --nd-radius-pill: 999px;
+
+  /* Elevation */
+  --nd-shadow-raised: 0 16px 40px rgba(4, 42, 31, 0.12);
+  --nd-shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+  /* Sizing and focus */
+  --nd-touch: 44px;              /* minimum touch target */
+  --nd-control-height: 48px;
+  --nd-button-height: 50px;
+  --nd-focus-color: var(--nd-forest);
+  --nd-focus-width: 3px;
+  --nd-focus-offset: 2px;
+  --nd-breakpoint-desktop: 768px; /* documentation only: media queries cannot read variables */
+}
