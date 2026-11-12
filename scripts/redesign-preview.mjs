@@ -68,7 +68,7 @@ export const SCREENS = [
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned"],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html", "Redesigned"],
-    ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html", "Not rebuilt yet"],
+    ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html", "Redesigned page; the slip stays the thermal POS format shared with admin printing"],
     ["scan-connect", "Scan to connect", "PhoneScanConnect", null, "/voucher-connect.html#legacy=NC-TEST-1234", "Redesigned", { signedOut: true }],
     ["scan-no-bundle", "Scan, no bundle", "PhoneScanNoBundle", null, "/voucher-connect.html#legacy=NC-HIST-0001", "Redesigned"],
     ["pair-request", "Pair request", "PhonePairRequest", null, "/pair?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.31", "Redesigned", { signedOut: true }],
