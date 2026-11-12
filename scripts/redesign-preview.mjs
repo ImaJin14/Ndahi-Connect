@@ -18,9 +18,11 @@
 // can sign a browser in to the local apps.
 //
 // Captures: every design artboard and built screen is opened in Chromium. A
-// capture only counts when the page landed on the expected address and the
-// screen's expected UI is visible (and, for design artboards, the canvas
-// runtime reported ready rather than "error"). Each run writes
+// capture only counts when the page landed on the expected address, the
+// screen's expected UI is visible, no known error or loading UI is showing,
+// and all of that still holds once the page has stopped changing (for design
+// artboards: the canvas runtime reported ready rather than "error" and
+// rendered something). A failed capture leaves no gallery PNG. Each run writes
 // manifest.json beside the PNGs with the source commit, viewport, session,
 // outcome and error of every capture; /compare shows the same.
 import http from "node:http";
@@ -61,6 +63,7 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //   panel/menu admin panel that must be shown / side menu item that must be current
 //   open       steps run in turn: a selector to click, or { fill, value }
 //   expect     selectors that must be visible before the capture counts
+//   reject     selectors of error/loading UI that must not be visible (added to the app's own, see REJECT)
 //   hash       pattern the final address hash must match (shop and admin sub-screens)
 //   signedOut  no session cookie; hotspot adds a Wi-Fi sign-in URL to the config
 //   blocked    the preview can't put the build in the artboard's state; the text
@@ -68,6 +71,8 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //   state      what the build capture shows, for the manifest
 const SHELL = "Admin shell — screen not rebuilt yet";
 const NO_PAIRING = "Device approvals need live router coverage and the network queue, which the preview keeps off";
+// The portal shop's failure view (customer-app-v2/portal-shop.js render()).
+const SHOP_ERROR = ".error[role=\"alert\"]:not(:empty)";
 export const SCREENS = [
   ...[
     ["home", "Home", "PhoneHome", "Main", "/dashboard#home", "Redesigned", { tab: "home", expect: ["#portalTitle"] }],
@@ -103,18 +108,25 @@ export const SCREENS = [
     ["pair-review", "Pair review", "PhonePairReview", null, "/pair-review.html", "Redesigned",
       { blocked: `${NO_PAIRING}, so there is no request to review; the page shows its invalid-link message`, expect: ["text=This device request link is invalid"] }],
     ["wifi-connected", "Wi-Fi connected", "PhoneWifiConnected", null, "/wifi-connected.html", "Redesigned", { expect: ["h1"] }],
-    ["shop", "Shop", "PhoneShop", "Shop", "/dashboard#shop", "Redesigned", { tab: "shop", expect: [".portal-shop__item"] }],
-    ["product", "Product", "PhoneProduct", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item"], hash: "^#product/", expect: ["#shopBuy"] }],
-    ["checkout", "Checkout", "PhoneCheckout", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item", "#shopBuy"], hash: "^#checkout/", expect: ["#shopCheckout"] }],
+    ["shop", "Shop", "PhoneShop", "Shop", "/dashboard#shop", "Redesigned", { tab: "shop", hash: "^#shop$", expect: [".portal-shop__item"], reject: [SHOP_ERROR] }],
+    ["product", "Product", "PhoneProduct", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item"], hash: "^#product/[^/]+$", expect: [".portal-shop__name", "#shopBuy"], reject: [SHOP_ERROR] }],
+    ["checkout", "Checkout", "PhoneCheckout", null, "/dashboard#shop", "Redesigned", { tab: "shop", open: [".portal-shop__item", "#shopBuy"], hash: "^#checkout/[^/]+/\\d+$", expect: ["#shopCheckout"], reject: [SHOP_ERROR] }],
     // The demo customer's own paid order, ready to collect.
-    ["order", "Order", "PhoneOrder", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["a.portal-activity__order"], hash: "^#order/", expect: [".portal-shop__steps", ".portal-shop__code"] }],
+    ["order", "Order", "PhoneOrder", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["a.portal-activity__order"], hash: "^#order/[^/]+$", expect: [".portal-shop__steps", ".portal-shop__code"], reject: [SHOP_ERROR] }],
   ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "portal", title, status, phone, ...(desktop ? { desktop } : {}), path, ...(options || {}) })),
+  // The store (store-app/app.js) routes by hash and marks the view on <body
+  // data-view>: the product is its own page at #product/<id> (no dialog since
+  // bb1f908), checkout is the one remaining dialog, and a guest's order is a
+  // page with the collection code card and the private link.
   ...[
-    ["guest-shop", "Guest shop", "PhoneGuestShop", "StoreGuest", "/", "Redesigned", { expect: ["[data-product]"] }],
-    ["guest-product", "Guest product", "PhoneGuestProduct", "ProductDesktop", "/", "Redesigned", { open: ["[data-product]"], expect: ["#productDialog[open] #productTitle"] }],
-    ["guest-checkout", "Guest checkout", "PhoneGuestCheckout", null, "/", "Redesigned", { open: ["[data-product]", "#buy"], expect: ["#checkoutDialog[open] #checkoutForm"] }],
+    ["guest-shop", "Guest shop", "PhoneGuestShop", "StoreGuest", "/", "Redesigned", { hash: "^(#shop)?$", expect: ["body[data-view=\"shop\"] .products [data-product]"] }],
+    ["guest-product", "Guest product", "PhoneGuestProduct", "ProductDesktop", "/", "Redesigned",
+      { open: ["[data-product]"], hash: "^#product/[^/]+$", expect: ["body[data-view=\"product\"] .detail-info #productTitle", "#buy:not([disabled])"] }],
+    ["guest-checkout", "Guest checkout", "PhoneGuestCheckout", null, "/", "Redesigned",
+      { open: ["[data-product]", "#buy"], hash: "^#product/[^/]+$", expect: ["body[data-view=\"product\"] #productTitle", "#checkoutDialog[open] #checkoutForm"] }],
     // A guest's paid order, opened from its private tracking link.
-    ["guest-order", "Guest order", "PhoneGuestOrder", null, "/#order/{guestOrderId}/{guestOrderToken}", "Redesigned", { hash: "^#order/", expect: [".order-card", "#privateLink"] }],
+    ["guest-order", "Guest order", "PhoneGuestOrder", null, "/#order/{guestOrderId}/{guestOrderToken}", "Redesigned",
+      { hash: "^#order/[^/]+/[^/]+$", expect: ["body[data-view=\"order\"] .order-page", ".code-card__code", "#privateLink"] }],
   ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "store", title, status, phone, ...(desktop ? { desktop } : {}), path, signedOut: true, ...(options || {}) })),
   // Admin artboards are desktop (1280px) only.
   ...[
@@ -325,6 +337,35 @@ export function expectations(screen) {
   ];
 }
 
+// Error and loading UI each app shows in place of a screen. The store keeps
+// "Loading store…" as the only child of #view until its catalogue loads, puts
+// route failures in #message and checkout failures in #checkoutError.
+export const REJECT = {
+  store: ["#view > p:only-child", "#message:not(:empty)", "#checkoutError:not(:empty)"],
+};
+// Selectors that must not be visible when a build capture is taken.
+export function rejections(screen) {
+  return [...(REJECT[screen.app] || []), ...[].concat(screen.reject || [])];
+}
+
+const visible = (page, selector) => page.locator(selector).first().isVisible().catch(() => false);
+// Throws unless the page is still the screen's page, shows none of its error or
+// loading UI, and shows all of its expected UI. Checked again after settling,
+// so a late error, redirect or re-render is never captured.
+export async function confirmShown(page, screen, when = "") {
+  const route = routeProblem(screen, page.url());
+  if (route) throw new CaptureError(`${route}${when}`);
+  for (const selector of rejections(screen)) {
+    if (await visible(page, selector)) {
+      const text = await page.locator(selector).first().innerText().catch(() => "");
+      throw new CaptureError(`error or loading UI shown: ${selector}${text.trim() ? ` ("${text.trim().slice(0, 160)}")` : ""} (at ${page.url()})${when}`);
+    }
+  }
+  for (const selector of expectations(screen)) {
+    if (!(await visible(page, selector))) throw new CaptureError(`expected UI not visible: ${selector} (at ${page.url()})${when}`);
+  }
+}
+
 const stepOf = (step) => (typeof step === "string" ? { click: step } : step);
 const describeStep = (step) => (step.fill ? `fill ${step.fill} with "${step.value}"` : `click ${step.click}`);
 
@@ -366,6 +407,11 @@ export async function captureDesign(page, { url, files, phone, timeout = 15000 }
   catch { throw new CaptureError(`the canvas runtime did not finish within ${timeout} ms`); }
   const ready = await page.getAttribute("html", "data-dc-ready");
   if (ready !== "") throw new CaptureError(`the artboard did not render: ${(await page.getAttribute("html", "data-dc-error")) || ready}`);
+  const landed = new URL(page.url()), wanted = new URL(url);
+  if (landed.origin !== wanted.origin || landed.pathname !== wanted.pathname) throw new CaptureError(`expected ${wanted.pathname} but landed on ${landed.pathname}`);
+  // Ready with nothing drawn (an empty template or a wiped root) is not the artboard.
+  const drawn = await page.evaluate(() => { const host = document.getElementById("dc-root"); return Boolean(host && host.childElementCount && !/^Canvas render failed/.test(host.textContent || "")); });
+  if (!drawn) throw new CaptureError("the canvas runtime reported ready but drew nothing");
   const settled = (await page.getAttribute("html", "data-dc-settled")) !== "timeout";
   const full = await shoot(page, files, phone);
   return { url, settled, full };
@@ -394,9 +440,9 @@ export async function captureBuild(page, screen, { origin, fixtures, files, phon
       throw new CaptureError(`expected UI not visible: ${selector}${route ? `; ${route}` : ` (at ${page.url()})`}`);
     }
   }
-  const route = routeProblem(screen, page.url());
-  if (route) throw new CaptureError(route);
+  await confirmShown(page, screen);
   const settled = await settle(page);
+  await confirmShown(page, screen, " once the page settled");
   const full = await shoot(page, files, phone);
   return { url: page.url(), settled, full, steps };
 }
@@ -416,6 +462,8 @@ async function record(dir, base, entry, work) {
     return { ...entry, status: entry.blocked ? "blocked" : "captured", success: !entry.blocked, file: names.file, ...(outcome.full ? { fullFile: names.fullFile } : {}),
       url: outcome.url, settled: outcome.settled, ...(outcome.steps && outcome.steps.length ? { steps: outcome.steps } : {}), at: new Date().toISOString() };
   } catch (error) {
+    // A half-finished capture (say the whole-page shot failed) leaves nothing to compare.
+    await Promise.all([files.file, files.fullFile].map((file) => rm(file, { force: true })));
     return { ...entry, status: "failed", success: false, error: firstLine(error), ...(error.failedShot ? { failedFile: names.failedFile } : {}), at: new Date().toISOString() };
   }
 }

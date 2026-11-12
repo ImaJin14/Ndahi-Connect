@@ -13,7 +13,8 @@
 // <dc-import> has mounted and the short timers the screens start (for example
 // PhoneScanConnect's "checking" step) have fired. A failure anywhere sets
 // data-dc-ready="error" and data-dc-error, so captures never mistake a broken
-// render for the design. data-dc-settled="timeout" marks a screen that kept
+// render for the design; so do uncaught script errors and unhandled promise
+// rejections before ready, and a root that rendered no elements. data-dc-settled="timeout" marks a screen that kept
 // starting timers past the settle limit.
 //
 // The pure helpers are exposed as window.__ndahiCanvas for the unit tests,
@@ -108,11 +109,16 @@
   if (root) root.__ndahiCanvas = helpers;
   if (!root || typeof document === "undefined" || !document.head) return;
 
-  var files = {}, busy = 0, failures = [];
+  var files = {}, busy = 0, failures = [], finished = false;
   var nativeSetTimeout = root.setTimeout.bind(root), nativeClearTimeout = root.clearTimeout.bind(root);
   var timers = {}, timerCount = 0;
 
-  function fail(error) { failures.push(error instanceof Error ? error : new Error(String(error))); }
+  function fail(error) { if (!finished) failures.push(error instanceof Error ? error : new Error(String(error))); }
+  // Script errors and rejected promises outside the tracked render (for example
+  // in a screen's own async code) also keep the artboard from counting as ready.
+  // Resource errors (a missing image) don't bubble to window and are not counted.
+  root.addEventListener("error", function (event) { fail(event.error || event.message || "script error"); });
+  root.addEventListener("unhandledrejection", function (event) { fail(event.reason || "unhandled promise rejection"); });
 
   // Short timers started by screen code (state steps) are awaited before the
   // screen counts as ready; longer ones are left alone.
@@ -254,10 +260,13 @@
       .then(function () { return settled(Date.now()); })
       .then(function (quiet) {
         if (failures.length) throw failures[0];
+        if (!host.childElementCount) throw new Error(location.pathname + " rendered nothing");
+        finished = true;
         html.setAttribute("data-dc-settled", quiet ? "yes" : "timeout");
         html.setAttribute("data-dc-ready", "");
       })
       .catch(function (error) {
+        finished = true;
         var message = String((failures[0] || error) && (failures[0] || error).message || error);
         host.textContent = "Canvas render failed: " + message;
         html.setAttribute("data-dc-error", message.slice(0, 500));
