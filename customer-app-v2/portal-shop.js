@@ -50,22 +50,25 @@ function list(data) {
   const cats = (data.categories || []).filter((c) => (data.products || []).some((p) => p.categoryId === c.id));
   const products = (data.products || []).filter((p) => category === "all" || p.categoryId === category);
   const closed = data.settings && data.settings.open === false;
-  return `<div class="portal-shop__head"><p class="portal-shop__lede">${h(L("shopLede"))}</p><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
+  const place$ = place(data.settings && data.settings.pickup);
+  return `<div class="portal-shop__head"><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
+  <ul class="portal-shop__trust nd-wide-only"><li>${h(L("shopTrustPay"))}</li>${place$ ? `<li>${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${h(L("shopTrustSigned"))}</li></ul>
   ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", L("shopAll")], ...cats.map((c) => [c.id, text(c.name)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${h(label)}</button>`).join("")}</div>` : ""}
   ${closed ? `<p class="portal-shop__note" role="status">${h(L("shopClosed"))}</p>` : ""}
-  <div class="portal-shop__list">${products.length ? products.map((p) => `<a class="portal-shop__item" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body"><span class="nd-meta">${h(category$(data, p))}</span><strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span><span class="nd-meta${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
-  ${data.settings && data.settings.pickup ? `<p class="portal-shop__note">${h(L("shopPickupNote", { place: place(data.settings.pickup) }))}</p>` : ""}`;
+  <div class="portal-shop__list">${products.length ? products.map((p) => `<a class="portal-shop__item" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body"><span class="nd-meta">${h(category$(data, p))}</span><strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span><span class="nd-meta${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
+  ${place$ ? `<p class="portal-shop__note portal-shop__pickup nd-narrow-only">${h(L("shopPickupNote", { place: place$ }))}</p>` : ""}
+  <div class="portal-shop__friends nd-wide-only"><p><strong>${h(L("shopFriendsTitle"))}</strong> ${h(L("shopFriendsBody"))}</p><a class="nd-btn nd-btn--sm" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">${h(L("shopFriendsLink"))}</a></div>`;
 }
 
 function productView(data, p) {
   const max = Math.max(1, Math.min(20, p.available || 1)), closed = data.settings && data.settings.open === false;
-  const facts = [[L("shopWarranty"), text(p.warranty) || text(data.settings && data.settings.warranty)], [L("shopReturns"), text(data.settings && data.settings.returns)]].filter(([, v]) => v);
+  const facts = [[L("shopSpecifications"), text(p.specifications)], [L("shopContents"), text(p.contents)], [L("shopCompatibility"), text(p.compatibility)], [L("shopSetup"), text(p.setup)], [L("shopWarranty"), text(p.warranty) || text(data.settings && data.settings.warranty)], [L("shopReturns"), text(data.settings && data.settings.returns)]].filter(([, v]) => v);
   return `${bar("/dashboard#shop", L("shopBack"), L("uiTabShop"))}
   <div class="portal-shop__product">${photo(p, "portal-shop__photo")}
     <p class="nd-meta">${h(category$(data, p))}</p><h1 class="portal-shop__name">${h(text(p.name))}</h1>
     <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span></p>
     ${text(p.description) ? `<p class="portal-shop__desc">${h(text(p.description))}</p>` : ""}
-    ${facts.length ? `<details class="portal-rule"><summary><span>${h(L("shopDetails"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary>${facts.map(([k, v]) => `<p><strong>${h(k)}:</strong> ${h(v)}</p>`).join("")}</details>` : ""}
+    ${facts.length ? `<details class="portal-rule"><summary><span>${h(L("shopDetailsAll"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary>${facts.map(([k, v]) => `<p><strong>${h(k)}:</strong> ${h(v)}</p>`).join("")}</details>` : ""}
   <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}">+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>
   </div>`;
 }
@@ -77,7 +80,7 @@ function checkoutView(data, p, quantity, who) {
     <div class="portal-shop__line">${photo(p, "portal-shop__thumb")}<span><strong>${h(text(p.name))}</strong><span class="nd-meta">${h(L("shopQuantityN", { count: quantity }))}</span></span><strong>${h(money(total))}</strong></div>
     <section aria-labelledby="shopContact"><div class="portal-shop__section-head"><h3 id="shopContact">${h(L("shopYourDetails"))}</h3><span class="nd-meta">${h(L("shopFromAccount"))}</span></div><p>${h([who.name, who.phone].filter(Boolean).join(" · "))}</p></section>
     ${pickup ? `<section aria-labelledby="shopPickup"><h3 id="shopPickup">${h(L("shopCollection"))}</h3><p><strong>${h(pickup)}</strong><br><span class="nd-meta">${h(L("shopCodeNote"))}</span></p></section>` : ""}
-    <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="nd-segmented portal-shop__methods">${[["mtn", "MTN Mobile Money"], ["orange", "Orange Money"]].map(([value, label], i) => `<label class="nd-segmented__option"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
+    <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${[["mtn", "MTN Mobile Money"], ["orange", "Orange Money"]].map(([value, label], i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
       <label class="portal-shop__field">${h(L("shopPayNumber"))}<input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required></label></fieldset>
     <div class="portal-shop__total"><span>${h(L("shopTotal"))}</span><strong>${h(money(total))}</strong></div>
     <button type="submit" class="nd-btn nd-btn--block">${h(L("shopPay", { amount: money(total) }))}</button>

@@ -46,3 +46,40 @@ main > .card.narrow #downloadVoucher { border: 1px solid var(--nd-line-strong); 
 .portal-scan__none a.portal-scan__secondary { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
 .surface[data-no-bundle] > #bundleName, .surface[data-no-bundle] > #bundleName + p { display: none; }
 .surface[data-no-bundle] > #qrMessage { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- A page bar: back arrow and the page name (canvas bars) ---------- */
+.flow-bar { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 48px; margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-16); padding: 0 var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }
+main > .card.narrow .flow-bar h1 { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.flow-bar__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+.flow-bar__back:hover { background: var(--nd-sage); }
+body:has(.flow-bar) > header { display: none; }
+main > .card.narrow:has(.flow-bar) { margin-top: 0; }
+
+/* ---------- Voucher ready (canvas: PhoneVoucherReady) ---------- */
+#voucherDetails:not([hidden]) { text-align: center; }
+#voucherDetails label > input[readonly] { font-size: 30px; letter-spacing: .12em; text-align: center; }
+.voucher-ready__qr { display: block; width: 156px; height: 156px; margin: var(--nd-space-12) auto 0; padding: 8px; border-radius: 12px; background: var(--nd-white); }
+.voucher-ready__qr[hidden] { display: none; }
+.voucher-ready__actions { display: flex; gap: var(--nd-space-10); }
+.voucher-ready__actions > button { flex: 1; }
+main > .card.narrow .voucher-ready__actions > button { width: auto; border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+main > .card.narrow .voucher-ready__actions > button[hidden] { display: none; }
+#voucherDetails ~ p:last-of-type { padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink); }
+.nd-visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+.flow-bar__title { color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+/* Pair review (canvas: PhonePairReview): the matching code as the forest reference card. */
+#pairingReview h2 { margin: 0 0 var(--nd-space-10); color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+#pairingReview .pair-review-code { display: block; margin: 0 0 var(--nd-space-8); padding: var(--nd-space-16); border-radius: 14px; background: var(--nd-forest); color: var(--nd-white); font: 700 32px var(--nd-font-mono); letter-spacing: .14em; text-align: center; }
+#pairingReview .pair-actions { display: flex; flex-direction: row-reverse; gap: var(--nd-space-10); }
+main > .card.narrow #pairingReview .pair-actions button { flex: 1; width: auto; }
+/* ---------- Scan to connect (canvas: PhoneScanConnect): forest bar, plan card ---------- */
+body > header.scan-bar { display: flex; align-items: center; justify-content: space-between; min-height: 64px; border: 0; background: var(--nd-forest); }
+header.scan-bar .brand { display: flex; align-items: center; gap: var(--nd-space-10); }
+header.scan-bar .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--nd-lime); border-radius: 50%; background: none; color: var(--nd-lime) !important; font-size: 11px; font-weight: 700; }
+header.scan-bar .brand strong { color: var(--nd-white) !important; font: 700 19px var(--nd-font-display); }
+.scan-bar__help { color: var(--nd-lime); font-size: 14px; font-weight: 700; }
+main.login-shell > .surface #bundleName { margin: 0 0 var(--nd-space-12); padding: var(--nd-space-14); border-radius: 14px; background: var(--nd-forest); color: var(--nd-white); font-size: 15px; font-weight: 700; }
+main.login-shell > .surface .scan-note { order: 9; color: var(--nd-muted); font-size: 13px; }
+.surface[data-no-bundle] > .eyebrow { display: none; }
+.surface[data-no-bundle] > h1 { display: none; }
+.surface[data-no-bundle] .portal-scan__none h2 { font-size: 28px; }

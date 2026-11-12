@@ -331,3 +331,37 @@ body:not([data-portal-sub="passkeys"]) .account-passkey-intro { display: none; }
 @media (max-width: 767.98px) {
   body[data-portal-sub="passkeys"] #security-passkeys > #addCustomerPasskey { width: auto; }
 }
+
+/* ---------- Shop, closer to the canvas ---------- */
+body[data-portal-sub] .portal-head__lede { display: none; }
+body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: relative; }
+.portal-shop__head { display: flex; justify-content: flex-end; margin: -44px 0 var(--nd-space-14); min-height: 44px; align-items: center; }
+.portal-shop__item-body .nd-meta:first-child { color: var(--nd-lime-text); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.portal-shop__pickup { padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink); font-size: 14px; }
+.portal-shop__trust { display: flex; flex-wrap: wrap; gap: var(--nd-space-8) var(--nd-space-20); margin: 0 0 var(--nd-space-14); padding: var(--nd-space-10) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); list-style: none; color: var(--nd-ink); font-size: 13px; font-weight: 600; }
+.portal-shop__friends { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-16); margin-top: var(--nd-space-18); padding: var(--nd-space-16) var(--nd-space-18); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-on-forest-soft); }
+.portal-shop__friends p { margin: 0; font-size: 13px; }
+.portal-shop__friends strong { display: block; color: var(--nd-white); font: 600 17px var(--nd-font-display); }
+.portal-shop__desc-short { display: -webkit-box; overflow: hidden; color: var(--nd-muted); font-size: 12px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.portal-shop__view { align-self: flex-end; margin-top: var(--nd-space-6); padding: 4px 14px; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-size: 13px; font-weight: 700; }
+.portal-shop__product .nd-meta:first-of-type { color: var(--nd-lime-text); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+/* Checkout: collection as a chosen box, two payment options (canvas: PhoneCheckout). */
+.portal-shop__checkout section[aria-labelledby="shopPickup"] p { padding: var(--nd-space-12) var(--nd-space-14); border: 1.5px solid var(--nd-forest); border-radius: 12px; background: var(--nd-paper); }
+.portal-shop__methods { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-10); margin: 6px 0 var(--nd-space-12); }
+.portal-shop__method { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font-size: 15px; font-weight: 600; cursor: pointer; }
+.portal-shop__method input { position: absolute; opacity: 0; pointer-events: none; }
+.portal-shop__method:has(input:checked) { border: 2px solid var(--nd-forest); font-weight: 700; }
+.portal-shop__method:has(input:focus-visible) { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+/* Order: Receipt and Get help side by side (canvas: PhoneOrder). */
+.portal-shop__actions { flex-direction: row; flex-wrap: wrap; }
+.portal-shop__actions > button[data-shop-verify] { flex: 1 1 100%; }
+.portal-shop__actions > [data-shop-receipt], .portal-shop__actions > .portal-shop__help { flex: 1 1 0; display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font-weight: 700; text-decoration: none; }
+@media (max-width: 767.98px) {
+  /* Product: quantity and Buy now on a sticky bar; checkout: total and Pay. */
+  body[data-portal-sub="product"] .portal-shop__buy { position: fixed; right: 0; bottom: 0; left: 0; z-index: 15; margin: 0; padding: var(--nd-space-12) var(--nd-space-16) calc(var(--nd-space-12) + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--nd-line); background: var(--nd-ivory); }
+  body[data-portal-sub="checkout"] .portal-shop__total { margin-top: auto; }
+}
+@media (min-width: 768px) {
+  .portal-shop__head { margin-top: -56px; }
+  .portal-shop__item .portal-shop__item-body { gap: 4px; }
+}
