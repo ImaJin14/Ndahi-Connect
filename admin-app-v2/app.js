@@ -52,7 +52,7 @@ function openSingleVoucherPrintPreview(targetContainer, result) {
     container: targetContainer.querySelector("#voucherPrintPreview"),
     vouchers: [voucher],
     plan: result.plan,
-    layout: "a6",
+    layout: "thermal-58",
   });
   targetContainer.querySelector("[data-close-voucher-print]").onclick = () => {
     clearPrintContainers();
@@ -80,8 +80,8 @@ function showBatchPrint(view) {
     toolbar: $("#voucherPrintActions"),
     vouchers,
     plan,
-    layout: "a6",
-    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), a6: L("adminPrintA6"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere") },
+    layout: "thermal-58",
+    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere") },
   });
 }
 

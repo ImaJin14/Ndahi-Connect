@@ -16,12 +16,7 @@ try {
 } catch {
   ids = [];
 }
-// Pages that offer A6 cards list an "a6" option; others fall back to 58 mm.
-const chosen = params.get("width");
-width.value = [...width.options].some((option) => option.value === chosen) ? chosen : "58";
-const cards = () => width.value === "a6";
-const selection = () =>
-  cards() ? { voucherIds: ids, layout: "a6" } : { voucherIds: ids, widthMm: Number(width.value) };
+width.value = params.get("width") === "80" ? "80" : "58";
 history.replaceState(null, "", location.pathname);
 window.opener = null;
 async function call(path, input) {
@@ -50,20 +45,20 @@ async function render() {
   print.disabled = true;
   download.disabled = true;
   surface.replaceChildren();
-  message.textContent = cards() ? "Preparing voucher cards…" : "Preparing voucher slips…";
+  message.textContent = "Preparing voucher slips…";
   try {
     if (!csrf) csrf = (await (await call("/dashboard")).json()).csrfToken || "";
     const result = await (
-      await call("/vouchers/print-preview", selection())
+      await call("/vouchers/print-preview", {
+        voucherIds: ids,
+        widthMm: Number(width.value),
+      })
     ).json();
     if (current !== sequence) return;
-    surface.className = cards()
-      ? "voucher-print-sheet voucher-print-a6"
-      : "voucher-print-sheet voucher-print-thermal voucher-print-thermal-" +
-        width.value;
-    document.body.dataset.voucherPrintLayout = cards()
-      ? "a6"
-      : "thermal-" + width.value;
+    surface.className =
+      "voucher-print-sheet voucher-print-thermal voucher-print-thermal-" +
+      width.value;
+    document.body.dataset.voucherPrintLayout = "thermal-" + width.value;
     surface.innerHTML = result.html;
     await Promise.all(
       [...surface.querySelectorAll("img")].map((img) => img.decode()),
@@ -73,7 +68,7 @@ async function render() {
     ready = true;
     print.disabled = false;
     download.disabled = false;
-    message.textContent = `${result.count} voucher ${cards() ? "card" : "slip"}${result.count === 1 ? "" : "s"} ready. Choose Print to select your printer.`;
+    message.textContent = `${result.count} voucher slip${result.count === 1 ? "" : "s"} ready. Choose Print to select your printer.`;
   } catch (error) {
     if (current === sequence) message.textContent = error.message;
   }
@@ -90,7 +85,10 @@ download.onclick = async () => {
   if (!ready) return;
   download.disabled = true;
   try {
-    const response = await call("/vouchers/print-pdf", selection());
+    const response = await call("/vouchers/print-pdf", {
+      voucherIds: ids,
+      widthMm: Number(width.value),
+    });
     const blob = await response.blob();
     if (
       !(response.headers.get("content-type") || "").startsWith(

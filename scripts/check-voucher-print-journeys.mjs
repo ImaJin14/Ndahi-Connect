@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName, uiV2 } from "./admin-nav.mjs";
+import { adminGenerateName, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -60,14 +60,6 @@ function assertPaperWidth(pdf, expectedMm) {
   const box = pdf.toString("latin1").match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
   assert.ok(box, "PDF must declare its physical page dimensions");
   assert.ok(Math.abs(Number(box[1]) * 25.4 / 72 - expectedMm) < 0.3, `PDF paper width must be ${expectedMm}mm`);
-}
-// v2 prints the redesign's A6 voucher cards by default (canvas: VoucherSlip):
-// four to an A4 page. Its journeys check them, then switch to thermal slips.
-function assertA4Cards(pdf, pages) {
-  const box = pdf.toString("latin1").match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)\s*\]/);
-  assert.ok(box, "PDF must declare its physical page dimensions");
-  assert.ok(Math.abs(Number(box[1]) * 25.4 / 72 - 210) < 1 && Math.abs(Number(box[2]) * 25.4 / 72 - 297) < 1, "A6 cards print on A4");
-  assert.equal((pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, pages, "four cards to a page");
 }
 
 try {
@@ -126,19 +118,8 @@ try {
 
     // Bulk generation uses the same thermal slip design as individual vouchers.
     const layoutSelect = page.locator("#voucherPrintLayout");
-    if (uiV2) {
-      assert.equal(await layoutSelect.inputValue(), "a6");
-      assert.deepEqual(await layoutSelect.locator("option").evaluateAll(options => options.map(o => o.value)), ["a6", "thermal-58", "thermal-80"]);
-      assert.equal(await page.locator("#voucherPrintSurface .voucher-card").count(), 24);
-      assert.equal(await page.locator("#voucherPrintSurface .voucher-card img.voucher-card__qr").count(), 24);
-      assert.equal(await page.locator(".voucher-card__code").first().textContent(), await page.locator(".voucher-card").first().getAttribute("data-voucher-code"));
-      assertA4Cards(await page.pdf({ path: "/tmp/ndahi-voucher-print-a6.pdf", preferCSSPageSize: true }), 6);
-      checks++;
-      await layoutSelect.selectOption("thermal-58");
-    } else {
-      assert.equal(await layoutSelect.inputValue(), "thermal-58");
-      assert.deepEqual(await layoutSelect.locator("option").evaluateAll(options => options.map(o => o.value)), ["thermal-58", "thermal-80"]);
-    }
+    assert.equal(await layoutSelect.inputValue(), "thermal-58");
+    assert.deepEqual(await layoutSelect.locator("option").evaluateAll(options => options.map(o => o.value)), ["thermal-58", "thermal-80"]);
     assert.equal(await page.locator(".thermal-slip").count(), 24);
     assert.equal(await page.locator(".thermal-slip img").count(), 24);
 
@@ -189,18 +170,6 @@ try {
     const file = await fileEvent, data = await readFile(await file.path());
     assertPaperWidth(data, 80);
     assert.equal((data.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 24);
-    if (uiV2) {
-      // The print page offers the A6 cards too; they fit a phone screen and download as A4.
-      await popup.locator("#paperWidth").selectOption("a6");
-      await popup.locator(".voucher-card").nth(23).waitFor();
-      await popup.waitForFunction(() => !document.querySelector("#printNow").disabled);
-      assert.equal(await popup.locator(".thermal-slip").count(), 0);
-      assert.equal(await popup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-      const cardsEvent = popup.waitForEvent("download");
-      await popup.getByRole("button", { name: "Download PDF", exact: true }).click();
-      assertA4Cards(await readFile(await (await cardsEvent).path()), 6);
-      checks++;
-    }
     await popup.close();
 
     await page.emulateMedia({ media: "print" });
@@ -227,13 +196,6 @@ try {
 
     await page.getByText("1 voucher generated", { exact: true }).waitFor();
     await openGeneratedPrint(page);
-    if (uiV2) {
-      assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "a6");
-      assert.equal(await page.locator(".voucher-card").count(), 1);
-      const cardHtml = await page.locator("#voucherPrintSurface").innerHTML();
-      for (const forbidden of ["cust-pii-1", "Confidential Customer Name", "670998877", "confidential@example.com"]) assert.ok(!cardHtml.includes(forbidden), `Printed voucher card leaked customer PII: ${forbidden}`);
-      await page.locator("#voucherPrintLayout").selectOption("thermal-58");
-    }
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
     assert.equal(await page.locator(".thermal-slip").count(), 1);
 
@@ -301,11 +263,6 @@ try {
     await detailsPanel.getByRole("button", { name: "Print voucher slip", exact: true }).click();
 
     await page.locator("#activeVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
-    if (uiV2) {
-      assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "a6");
-      assert.match(await page.locator("#activeVoucherPrint .voucher-card").textContent(), /Expires 2030-01-08/);
-      await page.locator("#voucherPrintLayout").selectOption("thermal-58");
-    }
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
     assert.equal(await page.locator("#activeVoucherPrint .thermal-slip").count(), 1);
     assert.match(await page.locator("#activeVoucherPrint .thermal-slip").textContent(), /Expires 2030-01-08/);
@@ -354,10 +311,6 @@ try {
     await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
 
     await page.locator("#customerVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
-    if (uiV2) {
-      assertA4Cards(await page.pdf({ path: "/tmp/ndahi-voucher-print-customer-a6.pdf", preferCSSPageSize: true }), 1);
-      await page.locator("#customerVoucherPrint #voucherPrintLayout").selectOption("thermal-58");
-    }
     const customer58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-customer-58.pdf", preferCSSPageSize: true });
     assertPaperWidth(customer58Pdf, 58);
     assert.equal((customer58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 1);
