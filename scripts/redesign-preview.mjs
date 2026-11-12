@@ -57,7 +57,7 @@ export const SCREENS = [
     ["admin-bundles", "Bundles", "AdminBundles", "/dashboard#bundles", "Redesigned (no Pause / Put on sale or drafts: the API has neither; sold this week shown as vouchers issued)"],
     ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles", "Redesigned", "a[href*=\"#bundle/\"]"],
     ["admin-vouchers", "Vouchers", "AdminVouchers", "/dashboard#vouchers", "Redesigned (no Batch column: vouchers carry no batch number)"],
-    ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)"],
+    ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)", ['#generate [type="submit"]', 'a[href="/dashboard#voucher-print"]']],
     ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned"],
     ["admin-store", "Store orders", "AdminStore", "/dashboard#store", "Redesigned"],
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)"],
@@ -131,7 +131,7 @@ async function startApi() {
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
     // Demo store settings so checkout accepts the demo orders below.
-    Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo) — show your collection code.", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
+    Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo)", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
       warranty: { en: "Demo warranty text.", fr: "Texte de garantie (démo)." }, returns: { en: "Demo returns text.", fr: "Texte de retours (démo)." } });
     // Demo staff with ready sessions (as the admin journeys do); the preview's
     // sign-in links hand these to the browser.
