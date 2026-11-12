@@ -15,7 +15,7 @@ const words = {
     orders: "My orders",
     account: "Sign in",
     eyebrow: "NDAHI Store",
-    headline: "Equipment for <br>better connections.",
+    headline: "Equipment for better connections.",
     intro:
       "Routers and extenders we've tested on our network. Buy without an account — pay with Mobile Money and collect locally.",
     how: "How buying works",
@@ -30,7 +30,7 @@ const words = {
     devices: "Find your connection.",
     devicesIntro:
       "Networking essentials, with clear advice and local collection.",
-    all: "All devices",
+    all: "All",
     search: "Search devices",
     empty: "Good connections are on their way.",
     emptyText:
@@ -59,6 +59,30 @@ const words = {
     guestChoice: "Just a name and phone number. You get a private tracking link.",
     guestTitle: "Continue as guest",
     inStock: "in stock",
+    onlyLeft: "Only {n} left",
+    view: "View",
+    trackShort: "Track order",
+    trackLong: "Track an order",
+    internetNav: "Internet packages",
+    storeSub: "Store",
+    internetRow: "Looking for internet packages?",
+    customerTitle: "Already an NDAHI customer?",
+    customerText: "Sign in to check out faster and keep orders next to your bundle payments.",
+    backShop: "Back to the shop",
+    breadcrumb: "Breadcrumb",
+    fewer: "Fewer",
+    more: "More",
+    buyNote: "Pay with MTN MoMo or Orange Money. Collect at {place} with your order code. No account needed.",
+    checkoutHow: "How would you like to check out?",
+    payerHint: "The number that pays.",
+    collectAt: "Collect at {place}",
+    deliveryLater: "Delivery comes later.",
+    payWith: "Pay with",
+    keepLink: "Keep this private link",
+    keepLinkText: "You bought as a guest. This link is the only way back to this order — copy or bookmark it.",
+    copyShort: "Copy",
+    claimGuest: "Save to an account",
+    codeHelp: "Show this at {place}. Staff check it before handing over.",
     specsAll: "Specifications, box contents, warranty",
     signInstead: "Sign in to NDAHI",
     signInsteadHelp: "Details filled in, order saved in your account.",
@@ -98,7 +122,7 @@ const words = {
     refunded: "Refunded",
     "refund-pending": "Refund in progress",
     preparing: "Preparing your order",
-    ready: "Ready for pickup",
+    ready: "Ready to collect",
     collected: "Collected",
     cancelled: "Cancelled",
     review: "Payment received — support review required",
@@ -135,7 +159,7 @@ const words = {
     devices: "Trouvez votre connexion.",
     devicesIntro:
       "Des équipements réseau, des conseils clairs et un retrait local.",
-    all: "Tous les appareils",
+    all: "Tout",
     search: "Rechercher un appareil",
     empty: "De bonnes connexions arrivent.",
     emptyText:
@@ -164,6 +188,30 @@ const words = {
     guestChoice: "Un nom et un numéro suffisent. Vous recevez un lien de suivi privé.",
     guestTitle: "Continuer en invité",
     inStock: "en stock",
+    onlyLeft: "Plus que {n}",
+    view: "Voir",
+    trackShort: "Suivre",
+    trackLong: "Suivre une commande",
+    internetNav: "Forfaits Internet",
+    storeSub: "Boutique",
+    internetRow: "Vous cherchez un forfait Internet ?",
+    customerTitle: "Déjà client NDAHI ?",
+    customerText: "Connectez-vous pour payer plus vite et retrouver vos commandes avec vos paiements de forfaits.",
+    backShop: "Retour à la boutique",
+    breadcrumb: "Fil d’Ariane",
+    fewer: "Moins",
+    more: "Plus",
+    buyNote: "Payez avec MTN MoMo ou Orange Money. Retirez à {place} avec votre code de commande. Aucun compte requis.",
+    checkoutHow: "Comment souhaitez-vous payer ?",
+    payerHint: "Le numéro qui paie.",
+    collectAt: "Retrait à {place}",
+    deliveryLater: "La livraison viendra plus tard.",
+    payWith: "Payer avec",
+    keepLink: "Gardez ce lien privé",
+    keepLinkText: "Vous avez acheté en invité. Ce lien est le seul moyen de revenir à cette commande — copiez-le ou ajoutez-le aux favoris.",
+    copyShort: "Copier",
+    claimGuest: "Enregistrer dans un compte",
+    codeHelp: "Montrez-le à {place}. L’équipe le vérifie avant la remise.",
     specsAll: "Caractéristiques, contenu, garantie",
     signInstead: "Se connecter à NDAHI",
     signInsteadHelp: "Coordonnées remplies, commande enregistrée dans votre compte.",
@@ -308,17 +356,44 @@ function orderHash(id, token) {
 }
 function layout() {
   document.title = data.settings.name + " — NDAHI Connect";
-  $("#storeName").textContent = data.settings.name;
+  $("#storeName").textContent = t("storeSub");
   document.documentElement.lang = lang;
   document
     .querySelectorAll("[data-label]")
     .forEach((el) => (el.textContent = t(el.dataset.label)));
   $("#portal").href = data.portalUrl + "/login";
+  $("#internetNav").href = data.portalUrl + "/onboarding.html";
   $("#internet").href = data.portalUrl + "/onboarding.html";
   $("#internet").textContent = t("internet");
   $("#footerText").textContent = t("footer");
   $("#storeContact").textContent = data.settings.contact;
+  $("#footerPolicies").innerHTML = `<summary>${h(t("policies"))}</summary><h3>${h(t("warranty"))}</h3><p>${h(l(data.settings.warranty))}</p><h3>${h(t("returns"))}</h3><p>${h(l(data.settings.returns))}</p>`;
 }
+const ICON = {
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"/></svg>',
+  chevron: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>',
+  check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>',
+  store: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9h18l-1.5-5h-15L3 9Z"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>',
+  person: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+};
+const category_ = (p) => l(data.categories.find((c) => c.id === p.categoryId)?.name);
+// Stock as the canvas words it: "6 in stock", "Only 2 left" (amber), "Out of stock".
+function stock(p) {
+  if (!p.available) return { text: t("unavailable"), low: true };
+  if (p.available <= 2) return { text: t("onlyLeft").replace("{n}", p.available), low: true };
+  return { text: `${p.available} ${t("inStock")}`, low: false };
+}
+let shopScroll = 0;
+// A checkout interrupted after submitting can be resumed (same key, no double order).
+const resumeNotice = () => pendingCheckout() ? `<p class="notice"><button id="resumeCheckout" class="secondary">${lang === "fr" ? "Reprendre ma commande" : "Resume checkout"}</button></p>` : "";
+function bindResume() {
+  if ($("#resumeCheckout"))
+    $("#resumeCheckout").onclick = () => {
+      selected = pendingCheckout().product;
+      showCheckout();
+    };
+}
+// Shop (canvas: PhoneGuestShop rows, StoreGuest cards).
 function renderShop() {
   const products = data.products
     .filter(
@@ -329,20 +404,19 @@ function renderShop() {
           .includes(search.toLowerCase()),
     )
     .sort((a, b) => Number(b.featured) - Number(a.featured));
+  // The canvas has no search; it appears only once the catalogue outgrows the chips.
+  const searchable = data.products.length > 8;
   $("#view").innerHTML =
-    `<section class="hero"><div><span class="eyebrow">${h(t("eyebrow"))}</span><h1>${t("headline")}</h1><p>${h(l(data.settings.introduction) || t("intro"))}</p></div><ol class="steps" aria-label="${h(t("how"))}"><li><span aria-hidden="true">1</span>${h(t("step1"))}</li><li><span aria-hidden="true">2</span>${h(t("step2"))}</li><li><span aria-hidden="true">3</span>${h(place() ? t("step3At").replace("{place}", place()) : t("step3"))}</li></ol></section>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${pendingCheckout() ? `<p class="notice"><button id="resumeCheckout" class="secondary">${lang === "fr" ? "Reprendre ma commande" : "Resume checkout"}</button></p>` : ""}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices"><div class="section-top"><div><h2>${h(t("devices"))}</h2><p>${h(t("devicesIntro"))}</p></div><input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}"></div><div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}">${h(l(c.name))}</button>`).join("")}</div><div class="products">${products.length ? products.map((p) => `<article class="product">${visual(p)}<p class="product-category">${h(l(data.categories.find((c) => c.id === p.categoryId)?.name))}</p><h3>${h(l(p.name))}</h3><p>${h(p.available ? `${p.available} ${t("available")}` : t("unavailable"))}</p><div class="product-bottom"><span class="price">${h(money(p.price))}</span><button data-product="${h(p.id)}">${h(t("details"))} ↗</button></div></article>`).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><section class="help-block"><div><h2>${h(t("help"))}</h2><p>${h(t("helpText"))}</p></div><a class="button secondary" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internet"))}</a></section><details class="policy"><summary>${h(t("policies"))}</summary><h3>${h(t("warranty"))}</h3><p>${h(l(data.settings.warranty))}</p><h3>${h(t("returns"))}</h3><p>${h(l(data.settings.returns))}</p></details>`;
-  if ($("#resumeCheckout"))
-    $("#resumeCheckout").onclick = () => {
-      selected = pendingCheckout().product;
-      showCheckout();
+    `<section class="hero"><div><span class="eyebrow hero-domain">${h(location.hostname)}</span><h1>${t("headline")}</h1><p>${h(l(data.settings.introduction) || t("intro"))}</p></div><ol class="steps" aria-label="${h(t("how"))}"><li><span aria-hidden="true">1</span>${h(t("step1"))}</li><li><span aria-hidden="true">2</span>${h(t("step2"))}</li><li><span aria-hidden="true">3</span>${h(place() ? t("step3At").replace("{place}", place()) : t("step3"))}</li></ol></section>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${resumeNotice()}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices" aria-labelledby="devicesTitle"><h2 id="devicesTitle" class="visually-hidden">${h(t("devices"))}</h2>${searchable ? `<input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}">` : ""}<div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}">${h(l(c.name))}</button>`).join("")}</div><div class="products">${products.length ? products.map((p) => { const s = stock(p); return `<article class="product">${visual(p)}<div class="product-body"><p class="product-category">${h(category_(p))}</p><h3>${h(l(p.name))}</h3><div class="product-bottom"><p><span class="price">${h(money(p.price))}</span><span class="product-stock${s.low ? " is-low" : ""}">${h(s.text)}</span></p><button data-product="${h(p.id)}" aria-label="${h(t("details"))}: ${h(l(p.name))}"><span class="wide">${h(t("view"))}</span><span class="narrow">${ICON.chevron}</span></button></div></div></article>`; }).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><a class="internet-row narrow" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internetRow"))}<span aria-hidden="true">→</span></a>${account.authenticated ? "" : `<section class="customer-bar wide"><div><h2>${h(t("customerTitle"))}</h2><p>${h(t("customerText"))}</p></div><a class="button dark" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></section>`}`;
+  bindResume();
+  if ($("#search"))
+    $("#search").oninput = (e) => {
+      const pos = e.target.selectionStart;
+      search = e.target.value;
+      renderShop();
+      $("#search").focus();
+      $("#search").setSelectionRange(pos, pos);
     };
-  $("#search").oninput = (e) => {
-    const pos = e.target.selectionStart;
-    search = e.target.value;
-    renderShop();
-    $("#search").focus();
-    $("#search").setSelectionRange(pos, pos);
-  };
   document.querySelectorAll("[data-category]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -350,29 +424,54 @@ function renderShop() {
         renderShop();
       }),
   );
-  document
-    .querySelectorAll("[data-product]")
-    .forEach((b) => (b.onclick = () => showProduct(b.dataset.product)));
+  document.querySelectorAll("[data-product]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        shopScroll = scrollY;
+        location.hash = `#product/${encodeURIComponent(b.dataset.product)}`;
+      }),
+  );
 }
-function showProduct(id) {
+// Specification rows (canvas: ProductDesktop table). "Key: value" lines in the
+// specifications become their own rows; the other fields are one row each.
+function specRows(p) {
+  const rows = [];
+  for (const line of l(p.specifications).split(/\n+/).map((x) => x.trim()).filter(Boolean)) {
+    const m = /^([^:]{1,40}):\s*(.+)$/.exec(line);
+    rows.push(m ? [m[1], m[2]] : [t("specifications"), line]);
+  }
+  for (const k of ["compatibility", "contents", "warranty", "setup"]) if (l(p[k])) rows.push([t(k), l(p[k])]);
+  rows.push([lang === "fr" ? "Référence" : "SKU", p.sku]);
+  return `<dl class="spec-table">${rows.map(([k, v]) => `<div class="${v.length > 40 ? "is-long" : ""}"><dt>${h(k)}</dt><dd>${h(v)}</dd></div>`).join("")}</dl><p class="form-help">${h(t("separate"))}</p>`;
+}
+let qty = 1;
+// Product page (canvas: PhoneGuestProduct, ProductDesktop): its own address.
+function renderProduct(id) {
   selected = data.products.find((p) => p.id === id);
   const p = selected;
-  $("#productDetail").innerHTML =
-    `<div class="detail-grid"><div>${visual(p)}<div class="gallery">${p.images.map((im) => `<img src="${h(im.data)}" alt="${h(l(im.alt))}">`).join("")}</div></div><div><p class="eyebrow">${h(l(data.categories.find((c) => c.id === p.categoryId)?.name) || p.sku)}</p><h2 id="productTitle">${h(l(p.name))}</h2><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock">${h(p.available ? `${p.available} ${t("inStock")}` : t("unavailable"))}</span></p><p class="sku">${h(p.sku)}</p><p class="details">${h(l(p.description))}</p><p class="form-help">${h(t("separate"))}</p><button id="buy" ${p.price == null || !p.available || !data.settings.open || !data.paymentProviders.length ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div></div><details class="details specs"><summary>${h(t("specsAll"))}</summary>${[
-      "specifications",
-      "compatibility",
-      "contents",
-      "warranty",
-      "setup",
-    ]
-      .filter((k) => l(p[k]))
-      .map((k) => `<h3>${h(t(k))}</h3><p>${h(l(p[k]))}</p>`)
-      .join("")}</details>`;
-  $("#buy").onclick = () => {
-    $("#productDialog").close();
-    showCheckout();
-  };
-  $("#productDialog").showModal();
+  if (!p) return renderShop();
+  qty = 1;
+  const s = stock(p), cat = category_(p),
+    blocked = p.price == null || !p.available || !data.settings.open || !data.paymentProviders.length,
+    max = Math.max(1, Math.min(20, p.available || 1));
+  $("#view").innerHTML =
+    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${visual(p)}${(p.images || []).length > 1 ? `<div class="gallery">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-label="${h(t("gallery"))} ${i + 1}"><img src="${h(im.data)}" alt=""></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low ? " is-low" : ""}">${h(s.text)}</span></p><p class="details">${h(l(p.description))}</p><div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div><p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p)}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
+  document.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => {
+    qty = Math.min(max, Math.max(1, qty + Number(b.dataset.step)));
+    $("#qty").textContent = qty;
+    document.querySelector('[data-step="-1"]').disabled = qty <= 1;
+    document.querySelector('[data-step="1"]').disabled = qty >= max;
+  }));
+  if (!blocked) document.querySelector('[data-step="-1"]').disabled = true;
+  document.querySelectorAll("[data-image]").forEach((b) => (b.onclick = () => {
+    const image = p.images[Number(b.dataset.image)];
+    const main = document.querySelector(".detail-media .product-visual img");
+    if (main) { main.src = image.data; main.alt = l(image.alt); }
+    document.querySelectorAll("[data-image]").forEach((x) => x.classList.toggle("is-current", x === b));
+  }));
+  $("#buy").onclick = () => showCheckout();
+  bindResume();
+  scrollTo(0, 0);
 }
 function showCheckout() {
   const pending = pendingCheckout();
@@ -381,18 +480,13 @@ function showCheckout() {
     checkoutKey = pending.input.checkoutKey;
   } else checkoutKey = crypto.randomUUID();
   const c = pending ? pending.input : account.customer || {};
+  const count = Number(c.quantity) || qty || 1;
   $("#checkoutDetail").innerHTML =
-    `<h2 id="checkoutTitle">${h(t("checkout"))}</h2>${account.authenticated ? `<p>${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></a></div>`}<p class="form-help">${h(t("separate"))}</p><form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div><div><label for="quantity">${h(t("quantity"))}</label><input id="quantity" name="quantity" type="number" min="1" max="${Math.min(20, selected.available)}" value="${h(c.quantity || 1)}" required></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="network">${h(t("network"))}</label><select id="network" name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></div></div><div class="checkout-summary"><span>${h(l(selected.name))}</span><strong id="total">${h(money(selected.price))}</strong></div><p><strong>${h(t("pickup"))}</strong><br>${h(data.settings.pickup)}<br>${h(data.settings.hours)}</p><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
-  if (pending) {
-    $("#network").value = c.network;
+    `<h2 id="checkoutTitle">${h(t("checkoutHow"))}</h2><p class="checkout-line">${h(l(selected.name))} × ${h(count)} · ${h(money(selected.price * count))}</p>${account.authenticated ? `<p class="notice notice--quiet">${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><span class="choice__icon">${ICON.store}</span><span><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><span class="choice__icon">${ICON.person}</span><span><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></span></a></div>`}<form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required aria-describedby="payerHint" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"><p class="form-help" id="payerHint">${h(t("payerHint"))}</p></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(l(data.settings.hours))}</span><span>${h(t("deliveryLater"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><label class="method"><input type="radio" name="network" value="mtn" ${c.network === "orange" ? "" : "checked"}><span>MTN Mobile Money</span></label><label class="method"><input type="radio" name="network" value="orange" ${c.network === "orange" ? "checked" : ""}><span>Orange Money</span></label></fieldset><div class="checkout-summary"><span>${h(t("total"))}</span><strong id="total">${h(money(selected.price * count))}</strong></div><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><p class="form-help">${h(t("separate"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
+  if (pending)
     $("#checkoutForm")
       .querySelectorAll("input,select")
       .forEach((el) => (el.disabled = true));
-  }
-  $("#quantity").oninput = () =>
-    ($("#total").textContent = money(
-      selected.price * Number($("#quantity").value),
-    ));
   $("#checkoutForm").onsubmit = async (e) => {
     e.preventDefault();
     const button = e.submitter;
@@ -448,8 +542,9 @@ function place() {
 function progress(o) {
   if (o.paymentStatus !== "paid" || ["review", "cancelled"].includes(o.status)) return "";
   const at = o.status === "collected" ? 4 : o.status === "ready" ? 2 : 1;
-  return `<ol class="progress" aria-label="${h(t("progress"))}">${["stepPaid", "stepPreparing", "stepReady", "stepCollected"].map((key, i) => `<li class="${i < at ? "done" : i === at ? "current" : ""}"${i === at ? ' aria-current="step"' : ""}><span aria-hidden="true"></span>${h(t(key))}</li>`).join("")}</ol>`;
+  return `<ol class="progress" aria-label="${h(t("progress"))}">${["stepPaid", "stepPreparing", "stepReady", "stepCollected"].map((key, i) => `<li class="${i < at ? "done" : i === at ? "current" : ""}"${i === at ? ' aria-current="step"' : ""}><span aria-hidden="true">${i < at ? ICON.check : ""}</span>${h(t(key))}</li>`).join("")}</ol>`;
 }
+// A compact order for the My orders list.
 function orderCard(o) {
   return `<article class="order-card"><span class="eyebrow">${h(o.reference)}</span><h3>${h(l(o.product.name))} × ${h(o.quantity)}</h3><p>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</p><span class="order-status">${h(t(o.status))}</span>${progress(o)}${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.collectionCode ? `<h4>${h(t("collection"))}</h4><p class="collection">${h(o.collectionCode)}</p><p class="form-help">${h(t("collectionHelp"))}</p>` : ""}<p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></article>`;
 }
@@ -464,6 +559,9 @@ async function showOrders() {
       .join("")}`;
   $("#refreshAccount").onclick = (e) => action(e.currentTarget, showOrders);
 }
+const toneOf = (o) => o.paymentStatus === "paid" ? (["ready", "collected"].includes(o.status) ? "ready" : "info") : ["failed", "expired"].includes(o.paymentStatus) ? "danger" : "waiting";
+// One order (canvas: PhoneGuestOrder): its bar, the line, the collection code as
+// the forest card, progress, the private link for guests, then Receipt and Save.
 async function showOrder(id, token, verify = false) {
   const result = await call(
     account.authenticated
@@ -471,11 +569,12 @@ async function showOrder(id, token, verify = false) {
       : `/api/store/${verify ? "verify" : "order"}`,
     { orderId: id, token },
   );
-  const o = result.order;
+  const o = result.order, paid = o.paymentStatus === "paid", link = token ? location.origin + "/" + orderHash(id, token) : "";
   $("#view").innerHTML =
-    `<div class="section-top"><h1>${h(t("order"))}</h1><a href="#orders">${h(t("orders"))}</a></div>${orderCard(o)}<div class="actions"><button id="checkPayment">${h(t("check"))}</button>${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? `<button class="secondary" id="copyLink">${h(t("copy"))}</button>` : ""}${token && account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claim"))}</button>` : ""}</div><p class="form-help">${h(t("reserved"))}</p>${token ? `<label for="privateLink">${h(t("link"))}</label><input readonly id="privateLink" value="${h(location.origin + "/" + orderHash(id, token))}">` : ""}`;
-  $("#checkPayment").onclick = (e) =>
-    action(e.currentTarget, () => showOrder(id, token, true));
+    `<div class="order-page"><div class="bar"><a class="bar-back" href="#orders" aria-label="${h(t("orders"))}">${ICON.back}</a><h1 class="bar-title">${h(t("order"))} ${h(o.reference)}</h1></div><div class="order-line">${visual(o.product)}<div><strong>${h(l(o.product.name))} × ${h(o.quantity)}</strong><span>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</span></div><span class="order-status is-${toneOf(o)}">${h(t(o.status))}</span></div>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.collectionCode ? `<section class="code-card" aria-labelledby="codeTitle"><h2 class="eyebrow" id="codeTitle">${h(t("collection"))}</h2><p class="code-card__code">${h(o.collectionCode)}</p><p>${h(t("codeHelp").replace("{place}", (o.pickup || place()).replace(/[\s.]+$/, "")))}</p></section>` : ""}${progress(o)}${token && !account.authenticated ? `<section class="keep-link" aria-labelledby="keepTitle"><h2 id="keepTitle">${h(t("keepLink"))}</h2><p>${h(t("keepLinkText"))}</p><div class="keep-link__row"><input readonly id="privateLink" aria-label="${h(t("link"))}" value="${h(link)}"><button type="button" id="copyLink">${h(t("copyShort"))}</button></div></section>` : ""}<div class="order-facts"><p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></div>${paid ? "" : `<p class="form-help">${h(t("reserved"))}</p>`}<div class="order-actions">${paid ? "" : `<button id="checkPayment">${h(t("check"))}</button>`}${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claimGuest"))}</button>` : `<a class="button secondary" id="signToClaim" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("claimGuest"))}</a>` : ""}</div>${token && !account.authenticated ? `<p class="form-help">${h(t("signHelp"))}</p>` : ""}</div>`;
+  if ($("#checkPayment"))
+    $("#checkPayment").onclick = (e) =>
+      action(e.currentTarget, () => showOrder(id, token, true));
   if ($("#downloadStoreReceipt")) $("#downloadStoreReceipt").onclick = (e) => action(e.currentTarget, async () => {
     const response = await fetch(api + (account.authenticated ? "/api/account/store/receipt" : "/api/store/receipt"), {
       method: "POST", credentials: "include", headers: { "content-type": "application/json", ...(account.authenticated ? { "x-csrf-token": account.csrfToken } : {}) }, body: JSON.stringify({ orderId: id, token }),
@@ -487,9 +586,7 @@ async function showOrder(id, token, verify = false) {
   if ($("#copyLink"))
     $("#copyLink").onclick = (e) =>
       action(e.currentTarget, async () => {
-        await navigator.clipboard.writeText(
-          location.origin + "/" + orderHash(id, token),
-        );
+        await navigator.clipboard.writeText(link);
         $("#message").textContent = t("saved");
       });
   if ($("#claimOrder"))
@@ -503,15 +600,25 @@ async function route() {
   if (!data) return;
   $("#message").textContent = "";
   layout();
+  const parts = location.hash.slice(1).split("/");
+  const view = parts[0] === "order" && parts[1] ? "order" : parts[0] === "product" && parts[1] ? "product" : parts[0] === "orders" ? "orders" : "shop";
+  document.body.dataset.view = view;
+  document.querySelectorAll("[data-nav]").forEach((a) => {
+    if (a.dataset.nav === (view === "orders" || view === "order" ? "orders" : "shop")) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  });
   try {
-    const parts = location.hash.slice(1).split("/");
-    if (parts[0] === "order" && parts[1])
+    if (view === "order")
       await showOrder(
         decodeURIComponent(parts[1]),
         parts[2] ? decodeURIComponent(parts[2]) : undefined,
       );
-    else if (parts[0] === "orders") await showOrders();
-    else renderShop();
+    else if (view === "orders") await showOrders();
+    else if (view === "product") renderProduct(decodeURIComponent(parts[1]));
+    else {
+      renderShop();
+      if (shopScroll) { scrollTo(0, shopScroll); shopScroll = 0; }
+    }
   } catch (e) {
     $("#message").textContent = e.message;
   }
@@ -520,6 +627,15 @@ async function route() {
 document
   .querySelectorAll(".close")
   .forEach((b) => (b.onclick = () => b.closest("dialog").close()));
+// The product page closes like the sheet it replaces: Escape returns to the shop.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.body.dataset.view === "product" && !document.querySelector("dialog[open]")) location.hash = "#shop";
+});
+// A guest who signs in from an order (new tab) can save it here on return.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible" || account.authenticated || document.body.dataset.view !== "order") return;
+  try { await refreshAccount(); if (account.authenticated) await route(); } catch { /* stay as guest */ }
+});
 window.addEventListener("hashchange", route);
 try {
   [data] = await Promise.all([call("/api/store/catalogue"), refreshAccount()]);

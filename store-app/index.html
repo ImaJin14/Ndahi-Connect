@@ -25,17 +25,16 @@
         ><span class="brand-mark">NS</span
         ><span
           >NDAHI<span class="brand-sub" id="storeName"
-            >CONNECT / STORE</span
+            >STORE</span
           ></span
         ></a
       >
       <nav aria-label="Main">
-        <a href="#shop" data-label="shop">Shop</a
-        ><a href="#orders" data-label="orders">My orders</a
-        ><a id="portal" target="_blank" rel="noopener" data-label="account"
-          >Sign in</a
-        >
+        <a href="#shop" data-nav="shop" data-label="shop" class="wide">Shop</a
+        ><a href="#orders" data-nav="orders"><span class="narrow" data-label="trackShort">Track order</span><span class="wide" data-label="trackLong">Track an order</span></a
+        ><a id="internetNav" class="wide" target="_blank" rel="noopener" data-label="internetNav">Internet packages</a>
       </nav>
+      <a id="portal" class="header-signin" target="_blank" rel="noopener" data-label="account">Sign in</a>
     </header>
     <main id="main">
       <div id="message" role="status" aria-live="polite"></div>
@@ -46,13 +45,10 @@
       <p id="footerText">Equipment for your everyday connections.</p>
       <p id="storeContact"></p>
       <a id="internet" target="_blank" rel="noopener">Internet packages ↗</a>
+      <details class="policy footer-policies" id="footerPolicies"></details>
     </footer>
-    <dialog id="productDialog" aria-labelledby="productTitle">
-      <div class="sheet-bar"><button class="close" aria-label="Close"><span aria-hidden="true">‹</span></button><span class="sheet-bar__title">NDAHI Store</span></div>
-      <div id="productDetail"></div>
-    </dialog>
     <dialog id="checkoutDialog" aria-labelledby="checkoutTitle">
-      <div class="sheet-bar"><button class="close" aria-label="Close"><span aria-hidden="true">‹</span></button><span class="sheet-bar__title">Checkout</span></div>
+      <div class="sheet-bar"><button class="close" aria-label="Close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"/></svg></button><span class="sheet-bar__title">Checkout</span></div>
       <div id="checkoutDetail"></div>
     </dialog>
   </body>

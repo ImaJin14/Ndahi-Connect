@@ -12,5 +12,6 @@ body { margin: 0; background: var(--nd-ivory); color: var(--nd-ink); font-family
 .print-toolbar p { flex-basis: 100%; margin: 0; color: var(--nd-muted); font-size: 13px; line-height: 1.5; }
 .print-toolbar #printMessage:empty { display: none; }
 .print-toolbar a { color: var(--nd-forest); font-size: 14px; font-weight: 700; }
-#printSurface { display: flex; justify-content: center; padding: var(--nd-space-16); }
+#printSurface { box-sizing: border-box; padding: var(--nd-space-16); }
+#printSurface.voucher-print-thermal { justify-content: center; }
 @media print { .print-toolbar { display: none; } body { background: none; } #printSurface { padding: 0; } }
