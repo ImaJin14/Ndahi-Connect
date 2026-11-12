@@ -35,7 +35,7 @@ const SUBPAGES = {
   checkout: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
   order: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#activity" },
   // Voucher code entry (canvas: PhoneVoucher), reached from Home and Internet.
-  redeem: { section: "activateDevice", open: "differentCode", title: "portalEnterVoucher", back: "/dashboard#vouchers", backLabel: "portalBackInternet" },
+  redeem: { section: "activateDevice", open: "differentCode", title: "portalVoucherTitle", back: "/dashboard#vouchers", backLabel: "portalBackInternet" },
 };
 const BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"></path></svg>';
 

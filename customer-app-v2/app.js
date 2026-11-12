@@ -105,6 +105,8 @@ async function openReceipt(button) {
   receiptOpener = button;
   $("#receiptDownload").hidden = true;
   $("#receiptDownload").disabled = false;
+  $("#receiptShare").hidden = true;
+  $("#receiptShare").textContent = "Share";
   $("#receiptDownload").textContent = "Download PDF";
   $("#receiptMessage").replaceChildren();
   $("#receiptPreview").textContent = "Loading your receipt…";
@@ -117,6 +119,7 @@ async function openReceipt(button) {
     currentReceipt = receipt;
     $("#receiptPreview").innerHTML = receiptPreview(receipt);
     $("#receiptDownload").hidden = false;
+    $("#receiptShare").hidden = false;
   } catch (error) {
     if (request === receiptRequest && $("#receiptDialog").open) {
       $("#receiptPreview").replaceChildren();
@@ -136,6 +139,16 @@ $("#receiptDialog").addEventListener("close", () => {
   document.body.classList.remove("modal-open");
   if (receiptOpener?.isConnected) receiptOpener.focus();
 });
+// Share (canvas: PhoneReceipt): the receipt's summary through the phone's
+// share sheet, or copied where sharing isn't available. There is no public link.
+$("#receiptShare").onclick = async () => {
+  const r = currentReceipt; if (!r) return;
+  const text = [`NDAHI Connect receipt ${r.number}`, `${r.plan?.name || "Bundle"} · ${r.amountLabel}`, `Paid ${r.paidAtLabel || ""}`, `Paid with ${r.methodLabel || "Mobile Money"}${r.providerReference ? ` · ${r.providerReference}` : ""}`].join("\n");
+  try {
+    if (navigator.share) await navigator.share({ title: `Receipt ${r.number}`, text });
+    else { await navigator.clipboard.writeText(text); $("#receiptShare").textContent = "Copied"; }
+  } catch (_) { /* Sharing was cancelled or isn't allowed; Download PDF still works. */ }
+};
 $("#receiptDownload").onclick = async (event) => {
   const receipt = currentReceipt, request = receiptRequest, signal = receiptController?.signal, button = event.currentTarget;
   if (!receipt) return;

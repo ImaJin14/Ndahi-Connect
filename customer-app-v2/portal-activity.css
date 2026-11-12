@@ -119,3 +119,6 @@ a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid va
 @media (min-width: 768px) {
   .portal-activity__filters { justify-self: end; width: 330px; margin-top: -60px; }
 }
+.portal-receipt__actions { display: flex; gap: var(--nd-space-10); }
+.portal-receipt__actions > button { flex: 1; }
+.portal-receipt__actions > button[hidden] { display: none; }

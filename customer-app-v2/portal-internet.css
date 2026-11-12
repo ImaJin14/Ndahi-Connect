@@ -87,3 +87,4 @@ body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
 @media (max-width: 767.98px) {
   #voucherHistory .portal-vouchers__h { display: none; }
 }
+#redeem .portal-redeem__code { padding: var(--nd-space-14) var(--nd-space-16) var(--nd-space-16); border: 1.5px dashed var(--nd-line-strong); border-radius: 14px; }

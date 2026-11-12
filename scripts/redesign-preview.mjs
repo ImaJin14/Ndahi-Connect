@@ -51,7 +51,7 @@ export const SCREENS = [
     ["home", "Home", "PhoneHome", "Main", "/dashboard#home", "Redesigned", { tab: "home" }],
     ["internet", "Internet", "PhoneInternet", "DesktopInternet", "/dashboard#internet", "Redesigned", { tab: "internet" }],
     ["activity", "Activity", "PhoneActivity", "DesktopActivity", "/dashboard#activity", "Redesigned", { tab: "activity" }],
-    ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["[data-view-receipt]"] }],
+    ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["details[data-payment-row] > summary", "[data-view-receipt]"] }],
     ["account", "Account", "PhoneAccount", "DesktopAccount", "/dashboard#account", "Redesigned", { tab: "account" }],
     ["devices", "Devices", "PhoneDevices", null, "/dashboard#devices", "Redesigned"],
     ["edit-profile", "Edit profile", "PhoneEditProfile", null, "/dashboard#editProfile", "Redesigned"],
