@@ -34,7 +34,7 @@
 .admin-cell__sub { display: block; margin-top: 2px; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 /* Gateway references can be long; the full one is in the title and in search. */
 .admin-cell__ref { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
-.admin-actions { display: flex; gap: var(--nd-space-6); }
+.admin-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--nd-space-6); }
 .admin-actions:empty { display: none; }
 
 /* ---------- Payments (canvas: AdminPayments) ---------- */
