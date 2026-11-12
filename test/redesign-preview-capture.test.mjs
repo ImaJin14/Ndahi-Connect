@@ -91,7 +91,7 @@ test("expectations add the tab, panel and menu the screen needs", () => {
   assert.deepEqual(expectations(screen("shop")), ['[data-portal-tab="shop"][aria-current="page"]', ".portal-shop__item"]);
   assert.deepEqual(expectations(screen("admin-bundles")), ['[data-tab-panel="bundles"]:not([hidden])', '[data-admin-nav="bundles"][aria-current="page"]']);
   assert.ok(rejections(screen("product")).includes('.error[role="alert"]:not(:empty)'));
-  assert.deepEqual(rejections(screen("home")), [], "no app-wide rejections for the portal");
+  assert.ok(rejections(screen("home")).includes('.error-card[role="alert"]'), "portal service errors cannot count as a match");
 });
 
 test("the guest product page is captured once its route and UI are both there", async () => {

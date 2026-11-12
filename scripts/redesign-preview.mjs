@@ -176,7 +176,7 @@ async function startApi() {
   const fixtures = {}, warnings = [];
   const server = createServer({ store, email: new MockEmailAdapter(), env: {
     NODE_ENV: "test", PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock",
-    CUSTOMER_APP_URL: portal, SESSION_COOKIE_SECURE: "false", BILLING_WORKER_ENABLED: "false",
+    CUSTOMER_APP_URL: portal, STORE_APP_URL: storeSite, SESSION_COOKIE_SECURE: "false", BILLING_WORKER_ENABLED: "false",
     NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false",
     ADMIN_SESSION_SECRET: adminSecret, ADMIN_APP_URL: admin, ALLOWED_ADMIN_ORIGINS: admin,
   } });
@@ -341,6 +341,7 @@ export function expectations(screen) {
 // "Loading store…" as the only child of #view until its catalogue loads, puts
 // route failures in #message and checkout failures in #checkoutError.
 export const REJECT = {
+  portal: ['.error-card[role="alert"]'],
   store: ["#view > p:only-child", "#message:not(:empty)", "#checkoutError:not(:empty)"],
 };
 // Selectors that must not be visible when a build capture is taken.
@@ -651,7 +652,8 @@ if (main) {
   console.log(`[preview] API     ${api}  (in-memory, mock providers)`);
   if (process.argv.includes("--capture")) {
     state.capturing = true;
-    const manifest = await capture(state).finally(() => { state.capturing = false; });
+    const only = process.env.PREVIEW_CAPTURE_ONLY?.split(",").filter(Boolean);
+    const manifest = await capture(state, { only }).finally(() => { state.capturing = false; });
     const totals = summarize(manifest);
     for (const r of manifest.results.filter((r) => r.status !== "captured")) console.log(`[preview] ${r.status.padEnd(7)} ${r.id} ${r.kind} ${r.width}px: ${r.error || r.blocked}`);
     console.log(`[preview] Captures in ${CAPTURE_DIR}: ${totals.captured} captured, ${totals.blocked} blocked, ${totals.failed} failed (source ${manifest.source.sha}${manifest.source.dirty ? ", uncommitted changes" : ""})`);
