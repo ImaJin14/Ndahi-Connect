@@ -56,7 +56,10 @@ const words = {
       "Internet service is purchased separately unless explicitly included in this product’s description.",
     checkout: "Checkout",
     guest: "Guest checkout — no account required.",
-    guestChoice: "Continue as a guest: just a name and phone number. You get a private tracking link.",
+    guestChoice: "Just a name and phone number. You get a private tracking link.",
+    guestTitle: "Continue as guest",
+    inStock: "in stock",
+    specsAll: "Specifications, box contents, warranty",
     signInstead: "Sign in to NDAHI",
     signInsteadHelp: "Details filled in, order saved in your account.",
     progress: "Order progress",
@@ -158,7 +161,10 @@ const words = {
       "Le service internet est vendu séparément sauf mention explicite dans la description du produit.",
     checkout: "Commande",
     guest: "Achat invité — aucun compte requis.",
-    guestChoice: "Continuez en invité : un nom et un numéro suffisent. Vous recevez un lien de suivi privé.",
+    guestChoice: "Un nom et un numéro suffisent. Vous recevez un lien de suivi privé.",
+    guestTitle: "Continuer en invité",
+    inStock: "en stock",
+    specsAll: "Caractéristiques, contenu, garantie",
     signInstead: "Se connecter à NDAHI",
     signInsteadHelp: "Coordonnées remplies, commande enregistrée dans votre compte.",
     how: "Comment acheter",
@@ -352,7 +358,7 @@ function showProduct(id) {
   selected = data.products.find((p) => p.id === id);
   const p = selected;
   $("#productDetail").innerHTML =
-    `<div class="detail-grid"><div>${visual(p)}<div class="gallery">${p.images.map((im) => `<img src="${h(im.data)}" alt="${h(l(im.alt))}">`).join("")}</div></div><div><p class="eyebrow">${h(p.sku)}</p><h2 id="productTitle">${h(l(p.name))}</h2><p class="price">${h(money(p.price))}</p><p class="details">${h(l(p.description))}</p><p class="form-help">${h(t("separate"))}</p><button id="buy" ${p.price == null || !p.available || !data.settings.open || !data.paymentProviders.length ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div></div><div class="details">${[
+    `<div class="detail-grid"><div>${visual(p)}<div class="gallery">${p.images.map((im) => `<img src="${h(im.data)}" alt="${h(l(im.alt))}">`).join("")}</div></div><div><p class="eyebrow">${h(l(data.categories.find((c) => c.id === p.categoryId)?.name) || p.sku)}</p><h2 id="productTitle">${h(l(p.name))}</h2><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock">${h(p.available ? `${p.available} ${t("inStock")}` : t("unavailable"))}</span></p><p class="sku">${h(p.sku)}</p><p class="details">${h(l(p.description))}</p><p class="form-help">${h(t("separate"))}</p><button id="buy" ${p.price == null || !p.available || !data.settings.open || !data.paymentProviders.length ? "disabled" : ""}>${h(p.available ? t("buy") : t("unavailable"))}</button></div></div><details class="details specs"><summary>${h(t("specsAll"))}</summary>${[
       "specifications",
       "compatibility",
       "contents",
@@ -361,7 +367,7 @@ function showProduct(id) {
     ]
       .filter((k) => l(p[k]))
       .map((k) => `<h3>${h(t(k))}</h3><p>${h(l(p[k]))}</p>`)
-      .join("")}</div>`;
+      .join("")}</details>`;
   $("#buy").onclick = () => {
     $("#productDialog").close();
     showCheckout();
@@ -376,7 +382,7 @@ function showCheckout() {
   } else checkoutKey = crypto.randomUUID();
   const c = pending ? pending.input : account.customer || {};
   $("#checkoutDetail").innerHTML =
-    `<h2 id="checkoutTitle">${h(t("checkout"))}</h2>${account.authenticated ? `<p>${h(t("signed"))}</p>` : `<div class="checkout-choice"><p><strong>${h(t("guest"))}</strong> ${h(t("guestChoice"))}</p><a class="button secondary" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("signInstead"))}</a><p class="form-help">${h(t("signInsteadHelp"))}</p></div>`}<p class="form-help">${h(t("separate"))}</p><form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div><div><label for="quantity">${h(t("quantity"))}</label><input id="quantity" name="quantity" type="number" min="1" max="${Math.min(20, selected.available)}" value="${h(c.quantity || 1)}" required></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="network">${h(t("network"))}</label><select id="network" name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></div></div><div class="checkout-summary"><span>${h(l(selected.name))}</span><strong id="total">${h(money(selected.price))}</strong></div><p><strong>${h(t("pickup"))}</strong><br>${h(data.settings.pickup)}<br>${h(data.settings.hours)}</p><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
+    `<h2 id="checkoutTitle">${h(t("checkout"))}</h2>${account.authenticated ? `<p>${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></a></div>`}<p class="form-help">${h(t("separate"))}</p><form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div><div><label for="quantity">${h(t("quantity"))}</label><input id="quantity" name="quantity" type="number" min="1" max="${Math.min(20, selected.available)}" value="${h(c.quantity || 1)}" required></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="network">${h(t("network"))}</label><select id="network" name="network"><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select></div></div><div class="checkout-summary"><span>${h(l(selected.name))}</span><strong id="total">${h(money(selected.price))}</strong></div><p><strong>${h(t("pickup"))}</strong><br>${h(data.settings.pickup)}<br>${h(data.settings.hours)}</p><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
   if (pending) {
     $("#network").value = c.network;
     $("#checkoutForm")

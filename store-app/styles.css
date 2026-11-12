@@ -169,3 +169,46 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .form-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* ---------- Closer to the canvas ---------- */
+/* Phones: one header row (My orders is "Track order", the logo is the shop). */
+@media (max-width: 767.98px) {
+  header { flex-wrap: nowrap; }
+  nav a[data-label="shop"] { display: none; }
+  .product-bottom button { font-size: 0; }
+  .product-bottom button::before { content: "›"; color: var(--nd-lime-text); font-size: 22px; }
+}
+/* Product and checkout sheets: a bar with a back arrow and the sheet's name. */
+.sheet-bar { position: sticky; top: calc(-1 * var(--nd-space-16)); z-index: 2; display: flex; align-items: center; gap: var(--nd-space-6); margin: calc(-1 * var(--nd-space-16)) calc(-1 * var(--nd-space-16)) var(--nd-space-12); padding: var(--nd-space-6) var(--nd-space-10); border-bottom: 1px solid var(--nd-line); background: var(--nd-ivory); }
+.sheet-bar .close { position: static; float: none; width: 44px; height: 44px; border: 0; border-radius: var(--nd-radius-control); background: none; font-size: 26px; }
+.sheet-bar__title { color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.detail-grid { padding-top: 0; }
+.detail-grid .eyebrow { color: var(--nd-lime-text); }
+.price-row { display: flex; align-items: center; gap: var(--nd-space-10); margin: 0 0 var(--nd-space-10); }
+.detail-grid .price-row .price { margin: 0; }
+.stock { padding: 3px 10px; border-radius: var(--nd-radius-pill); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: 12px; font-weight: 700; }
+.sku { color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.specs { margin-top: var(--nd-space-14); border-top: 1px solid var(--nd-line); border-bottom: 1px solid var(--nd-line); }
+.specs > summary { display: flex; align-items: center; min-height: 52px; color: var(--nd-ink); font-weight: 700; cursor: pointer; }
+@media (max-width: 767.98px) {
+  #productDialog .detail-grid #buy { position: sticky; bottom: 0; }
+}
+/* Checkout: guest or sign-in as two choices (canvas: PhoneGuestCheckout). */
+.checkout-choice { gap: var(--nd-space-10); padding: 0; border: 0; background: none; }
+.choice { display: flex; flex-direction: column; gap: 2px; padding: var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); color: var(--nd-ink); text-decoration: none; }
+.choice.is-chosen { border: 2px solid var(--nd-forest); }
+.choice strong { font-size: 15px; }
+.choice span { color: var(--nd-muted); font-size: 13px; }
+/* Order (canvas: PhoneGuestOrder): the code as a forest card, the private link as a warm box. */
+.collection { padding: var(--nd-space-16); font-size: 32px; text-align: center; }
+#privateLink { background: var(--nd-paper); }
+label[for="privateLink"] { margin-top: var(--nd-space-14); padding: var(--nd-space-12) var(--nd-space-14) 0; border-radius: 12px 12px 0 0; background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+/* Desktop hero: copy on the page, the steps in a forest card (canvas: StoreGuest). */
+@media (min-width: 768px) {
+  .hero { background: none; color: var(--nd-ink); padding-left: 0; padding-right: 0; }
+  .hero h1 { color: var(--nd-forest); }
+  .hero p { color: var(--nd-ink-soft); }
+  .hero .eyebrow { color: var(--nd-lime-text); }
+  .steps { padding: var(--nd-space-20); border-radius: var(--nd-radius-card-lg); background: var(--nd-forest); }
+  .product-bottom button { border: 0; background: var(--nd-lime); color: var(--nd-lime-ink); }
+}
