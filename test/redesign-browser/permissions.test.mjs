@@ -105,8 +105,10 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
   for (const variant of variants) {
     for (const role of roles) {
       for (const width of [390, 1280]) {
+        t.diagnostic(`${variant.name}/${role}/${width}`);
         const context = await browser.newContext({ viewport: { width, height: 900 } });
         const page = await context.newPage();
+        page.setDefaultTimeout(10000);
         const failures = [];
         const pageErrors = [];
         const unauthorizedRequests = [];
@@ -140,7 +142,7 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
           if (variant.name === "v2") {
             await page.locator("#adminSideMenu [data-admin-nav]").first().waitFor({ state: "visible" });
             await page.locator("#panel-home:not([hidden])").waitFor({ state: "visible" });
-            await page.waitForFunction(() => Boolean(document.querySelector("#homeAttention")?.textContent.trim()));
+            await page.waitForFunction(() => Boolean(document.querySelector("#homeAttention")?.textContent.trim()), null, { timeout: 10000 });
           } else {
             await page.locator("#adminNav:not([hidden])").waitFor({ state: "visible" });
             await page.locator("#activeSessionsMetric").waitFor({ state: "visible" });
