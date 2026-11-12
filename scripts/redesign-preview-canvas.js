@@ -27,6 +27,12 @@
   var UNSAFE = ["__proto__", "prototype", "constructor"];
   var TIMER_LIMIT = 5000, SETTLE_LIMIT = 8000;
   var own = function (object, key) { return Object.prototype.hasOwnProperty.call(object, key); };
+  // Dictionaries keyed by names from the address, a template or data-props
+  // have no prototype, so no key (not even "__proto__") reaches a setter on
+  // Object.prototype; a write only ever makes an own data property. Screens
+  // read props as this.props.name, which works the same on these.
+  var dict = function () { return Object.create(null); };
+  var safeKey = function (key) { return typeof key === "string" && UNSAFE.indexOf(key) < 0; };
 
   // Closes void tags and gives bare attributes a value, so the markup is XML.
   function xmlify(html) {
@@ -75,32 +81,34 @@
     return value == null || value === false ? "" : String(value);
   }
 
-  // Top-level props from the address. "true"/"false" become booleans; keys
-  // that could reach a prototype, and canvas-only $ keys, are ignored.
+  // Top-level props from the address, as a prototype-free dictionary.
+  // "true"/"false" become booleans; keys that could reach a prototype, and
+  // canvas-only $ keys, are ignored.
   function queryProps(search) {
-    var props = {};
+    var props = dict();
     new URLSearchParams(search || "").forEach(function (value, key) {
-      if (UNSAFE.indexOf(key) >= 0 || key.charAt(0) === "$") return;
+      if (!safeKey(key) || key.charAt(0) === "$") return;
       props[key] = value === "true" ? true : value === "false" ? false : value;
     });
     return props;
   }
 
-  // Defaults overlaid with props, copying only safe own keys.
+  // Defaults overlaid with props, copying only safe own keys into a
+  // prototype-free dictionary (the props a screen's component receives).
   function mergeProps(defaults, props) {
-    var merged = {};
+    var merged = dict();
     [defaults, props].forEach(function (source) {
-      if (!source) return;
-      Object.keys(source).forEach(function (key) { if (UNSAFE.indexOf(key) < 0) merged[key] = source[key]; });
+      if (!source || typeof source !== "object") return;
+      Object.keys(source).forEach(function (key) { if (safeKey(key)) merged[key] = source[key]; });
     });
     return merged;
   }
 
   function propDefaults(json) {
-    var defaults = {};
+    var defaults = dict();
     var props = JSON.parse(json || "{}");
     Object.keys(props).forEach(function (key) {
-      if (key.charAt(0) !== "$" && UNSAFE.indexOf(key) < 0 && props[key] && typeof props[key] === "object" && own(props[key], "default")) defaults[key] = props[key].default;
+      if (key.charAt(0) !== "$" && safeKey(key) && props[key] && typeof props[key] === "object" && own(props[key], "default")) defaults[key] = props[key].default;
     });
     return defaults;
   }
@@ -109,9 +117,9 @@
   if (root) root.__ndahiCanvas = helpers;
   if (!root || typeof document === "undefined" || !document.head) return;
 
-  var files = {}, busy = 0, failures = [], finished = false;
+  var files = dict(), busy = 0, failures = [], finished = false;
   var nativeSetTimeout = root.setTimeout.bind(root), nativeClearTimeout = root.clearTimeout.bind(root);
-  var timers = {}, timerCount = 0;
+  var timers = dict(), timerCount = 0;
 
   function fail(error) { if (!finished) failures.push(error instanceof Error ? error : new Error(String(error))); }
   // Script errors and rejected promises outside the tracked render (for example
@@ -199,13 +207,18 @@
     if (tag === "sc-if") { if (evaluate(node.getAttribute("value") || "", scopes)) renderChildren(node, scopes, parent, file, svg, pending); return; }
     if (tag === "sc-for") {
       var list = evaluate(node.getAttribute("list") || "", scopes) || [], as = node.getAttribute("as") || "item";
-      [].forEach.call(list, function (item, index) { var scope = { index: index }; scope[as] = item; renderChildren(node, [scope].concat(scopes), parent, file, svg, pending); });
+      [].forEach.call(list, function (item, index) {
+        var scope = dict();
+        scope.index = index;
+        if (safeKey(as)) scope[as] = item;
+        renderChildren(node, [scope].concat(scopes), parent, file, svg, pending);
+      });
       return;
     }
     if (tag === "dc-import") {
-      var props = {}, host = document.createElement("div"), name = node.getAttribute("name");
+      var props = dict(), host = document.createElement("div"), name = node.getAttribute("name");
       [].forEach.call(node.attributes, function (attr) {
-        if (attr.name !== "name" && attr.name.indexOf("hint-") !== 0 && UNSAFE.indexOf(attr.name) < 0) props[attr.name] = evaluate(attr.value, scopes);
+        if (attr.name !== "name" && attr.name.indexOf("hint-") !== 0 && safeKey(attr.name)) props[attr.name] = evaluate(attr.value, scopes);
       });
       host.style.display = "contents";
       host.setAttribute("data-dc-import", name);

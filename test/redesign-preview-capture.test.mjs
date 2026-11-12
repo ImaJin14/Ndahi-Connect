@@ -5,12 +5,12 @@
 // servers, no network; only mock data.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile, access } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, access, lstat, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import {
-  SCREENS, CaptureError, captureBuild, captureDesign, capture, confirmShown, expectations, rejections,
-  resolvePath, routeProblem, summarize,
+  SCREENS, CaptureError, captureBuild, captureDesign, capture, captureDir, confirmShown, expectations, rejections,
+  readManifest, resolvePath, routeProblem, summarize, writeManifest,
 } from "../scripts/redesign-preview.mjs";
 
 const port = (name, fallback) => Number(process.env[name] || fallback);
@@ -273,6 +273,42 @@ test("a capture run records every outcome, leaves no stale gallery PNG for a fai
   assert.deepEqual(written.warnings, ["mock warning"]);
   assert.ok(written.finishedAt);
   assert.equal(written.results.length, 4);
+});
+
+test("the default capture folder is a new private mkdtemp folder, the same for the whole run", async () => {
+  const chosen = process.env.PREVIEW_CAPTURE_DIR;
+  const folder = await captureDir();
+  try {
+    assert.equal(await captureDir(), folder, "one folder per preview process");
+    assert.ok((await stat(folder)).isDirectory());
+    if (chosen) assert.equal(folder, resolve(chosen), "an explicitly chosen folder is used as given");
+    else {
+      assert.equal(dirname(folder), resolve(tmpdir()));
+      assert.match(basename(folder), /^ndahi-redesign-preview-.{6,}$/, "a unique name, not a fixed /tmp path");
+      assert.notEqual(folder, "/tmp/ndahi-redesign-preview");
+      if (process.platform !== "win32") assert.equal((await stat(folder)).mode & 0o777, 0o700, "readable only by this user");
+      assert.equal(await readManifest(), null, "a new folder has no manifest yet");
+    }
+  } finally {
+    if (!chosen) await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test("the manifest is written to a new file and renamed into place, never through a planted link", async () => {
+  const run = join(dir, "manifest-link");
+  await mkdir(run, { recursive: true });
+  const victim = join(dir, "victim.txt");
+  await writeFile(victim, "untouched");
+  let linked = true;
+  try { await symlink(victim, join(run, "manifest.json")); } catch { linked = false; /* No symlink permission (Windows): still check the write. */ }
+  await writeManifest(run, { results: [], source: { sha: "abc123" } });
+  assert.equal(await readFile(victim, "utf8"), "untouched", "the link target was not written");
+  const written = await lstat(join(run, "manifest.json"));
+  assert.ok(written.isFile() && !written.isSymbolicLink(), linked ? "the link was replaced by the manifest" : "a plain file");
+  if (process.platform !== "win32") assert.equal(written.mode & 0o777, 0o600);
+  assert.deepEqual(JSON.parse(await readFile(join(run, "manifest.json"), "utf8")).source, { sha: "abc123" });
+  assert.deepEqual(await readManifest(run), { results: [], source: { sha: "abc123" } });
+  assert.deepEqual((await readdir(run)).filter((name) => name.startsWith(".manifest-")), [], "no staging file is left");
 });
 
 test("confirmShown can be used on its own and checks route, rejections, then expectations", async () => {

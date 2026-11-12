@@ -69,13 +69,29 @@ function hooks(selector) {
     ...[...bare.matchAll(/\[(data-[\w-]+)/g)].map(([, name]) => ({ kind: "data", name })),
   ];
 }
+// A string matched literally inside a RegExp: every pattern character,
+// backslash included, is escaped (not just the hyphens hooks use today).
+const escapeRegExp = (text) => String(text).replace(/[\\^$.*+?()[\]{}|\/-]/g, "\\$&");
 function rendered(source, hook) {
-  const name = hook.name.replace(/[-]/g, "\\-");
+  const name = escapeRegExp(hook.name);
   if (hook.kind === "id") return new RegExp(`\\bid=\\\\?["']?${name}\\b`).test(source);
   if (hook.kind === "class") return new RegExp(`\\bclass=\\\\?["'][^"']*\\b${name}(?![\\w-])`).test(source);
   const camel = hook.name.slice(5).replace(/-(\w)/g, (all, c) => c.toUpperCase());
   return new RegExp(`\\b${name}=|\\bdataset\\.${camel}\\b`).test(source);
 }
+
+test("hook names are matched literally, backslashes and pattern characters included", () => {
+  for (const name of ["order-page", "a.b", "a\\b", "a\\", "x*y+z?", "(g)[h]{2}|^$", "p/q", "tail\\-"]) {
+    const pattern = new RegExp(`^${escapeRegExp(name)}$`);
+    assert.ok(pattern.test(name), `${JSON.stringify(name)} matches itself`);
+  }
+  assert.equal(escapeRegExp("a\\b"), "a\\\\b", "a backslash is escaped once, as \\\\");
+  assert.ok(!new RegExp(`^${escapeRegExp("a.b")}$`).test("axb"), "a dot is literal");
+  assert.ok(!new RegExp(`^${escapeRegExp("a\\b")}$`).test("a\b"), "\\b is not a word boundary or backspace");
+  assert.ok(!new RegExp(`^${escapeRegExp("a\\")}$`).test("a"), "a trailing backslash does not escape the anchor");
+  assert.ok(rendered('<p class="x a.b">', { kind: "class", name: "a.b" }));
+  assert.ok(!rendered('<p class="x aXb">', { kind: "class", name: "a.b" }));
+});
 
 test("the guest store selectors match the full-page store (product page, checkout dialog, order page)", async () => {
   const source = (await read("store-app/index.html")) + (await read("store-app/app.js"));
@@ -153,7 +169,42 @@ test("the canvas helpers fill holes safely and read props from the address", asy
   assert.equal({}.polluted, undefined);
   assert.deepEqual(JSON.parse(JSON.stringify(c.propDefaults('{"guest":{"default":true},"$meta":{"default":1},"plain":3}'))), { guest: true });
   assert.throws(() => c.propDefaults("{not json"));
+  // Props are prototype-free dictionaries; screens still read them by name.
+  for (const dict of [props, merged, safe, c.propDefaults('{"guest":{"default":true}}')]) assert.equal(Object.getPrototypeOf(dict), null);
+  assert.deepEqual(Object.keys(merged).sort(), ["guest", "name", "paid", "size"]);
+  assert.equal(merged.toString, undefined, "no inherited members to shadow or call");
   // Markup becomes XML: void tags closed, bare attributes given a value.
   assert.equal(c.xmlify('<input disabled><br><img src="a.png">'), '<input disabled=""/><br/><img src="a.png"/>');
   assert.equal(c.xmlify("<div hidden>x</div>"), '<div hidden="">x</div>');
+});
+
+test("address and default props never run a setter on Object.prototype", async () => {
+  // A realm whose Object.prototype has a setter for "trap" (and logs any
+  // __proto__ assignment): a plain {} dictionary would call it on props.trap = …
+  const hits = [];
+  const context = vm.createContext({ window: {}, URLSearchParams, hits });
+  vm.runInContext(`
+    Object.defineProperty(Object.prototype, "trap", { configurable: true, set(value) { hits.push(["trap", value]); }, get() { return "inherited"; } });
+    const proto = Object.getOwnPropertyDescriptor(Object.prototype, "__proto__");
+    Object.defineProperty(Object.prototype, "__proto__", { configurable: true, get: proto.get, set(value) { hits.push(["__proto__", value]); return proto.set.call(this, value); } });
+  `, context);
+  vm.runInContext(await read("scripts/redesign-preview-canvas.js"), context);
+  const c = context.window.__ndahiCanvas;
+
+  const fromQuery = c.queryProps("?trap=1&__proto__=x&ok=yes");
+  assert.equal(fromQuery.trap, "1", "an own value, not the inherited getter");
+  assert.equal(fromQuery.ok, "yes");
+  assert.equal(Object.prototype.hasOwnProperty.call(fromQuery, "__proto__"), false);
+
+  const defaults = c.propDefaults('{"trap":{"default":2},"__proto__":{"default":{"polluted":true}}}');
+  assert.equal(defaults.trap, 2);
+  assert.equal(Object.prototype.hasOwnProperty.call(defaults, "__proto__"), false);
+
+  const merged = c.mergeProps(defaults, fromQuery);
+  assert.equal(merged.trap, "1", "query props win over defaults");
+  assert.equal(merged.ok, "yes");
+  assert.equal(merged.polluted, undefined);
+
+  assert.deepEqual(hits, [], "no prototype setter was reached");
+  assert.equal(vm.runInContext("({}).polluted", context), undefined);
 });

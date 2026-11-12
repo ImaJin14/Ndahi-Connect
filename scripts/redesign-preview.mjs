@@ -26,11 +26,12 @@
 // manifest.json beside the PNGs with the source commit, viewport, session,
 // outcome and error of every capture; /compare shows the same.
 import http from "node:http";
-import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { watch } from "node:fs";
-import { join, normalize, extname } from "node:path";
+import { tmpdir } from "node:os";
+import { join, normalize, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setDefaultResultOrder } from "node:dns";
 import { createServer, createStore } from "../server.mjs";
@@ -51,7 +52,21 @@ const designPort = Number(process.env.PREVIEW_DESIGN_PORT || 8090);
 const storePort = Number(process.env.PREVIEW_STORE_PORT || 8083);
 const portal = `http://localhost:${portalPort}`, admin = `http://localhost:${adminPort}`, api = `http://localhost:${apiPort}`, design = `http://localhost:${designPort}`;
 const storeSite = `http://localhost:${storePort}`;
-export const CAPTURE_DIR = process.env.PREVIEW_CAPTURE_DIR || "/tmp/ndahi-redesign-preview";
+// Where captures and manifest.json go. PREVIEW_CAPTURE_DIR picks a local
+// folder (created if missing). Otherwise each preview process gets its own
+// new folder from mkdtemp: a unique name, created atomically and readable
+// only by this user, so no other local user can pre-create or link it.
+let captureDirPromise = null;
+export function captureDir() {
+  if (!captureDirPromise) {
+    const chosen = process.env.PREVIEW_CAPTURE_DIR;
+    captureDirPromise = (chosen
+      ? mkdir(resolve(chosen), { recursive: true, mode: 0o700 }).then(() => resolve(chosen))
+      : mkdtemp(join(tmpdir(), "ndahi-redesign-preview-"))
+    ).catch((error) => { captureDirPromise = null; throw error; });
+  }
+  return captureDirPromise;
+}
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
 export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken"];
@@ -480,8 +495,10 @@ async function withFailureShot(page, files, work) {
 
 // Captures every screen (or the ids in `only`) and writes manifest.json.
 // `launch` returns a Playwright-like browser (tests pass a fake).
-export async function capture(state, { only, dir = CAPTURE_DIR, launch, source = sourceInfo(), timeout = 15000 } = {}) {
-  await mkdir(dir, { recursive: true });
+// `dir` defaults to captureDir(); an explicit folder is created if missing.
+export async function capture(state, { only, dir, launch, source = sourceInfo(), timeout = 15000 } = {}) {
+  if (dir) await mkdir(dir, { recursive: true, mode: 0o700 });
+  else dir = await captureDir();
   const manifest = { source, startedAt: new Date().toISOString(), finishedAt: null, warnings: state.warnings || [], results: [] };
   const browser = await (launch ? launch() : import(process.env.PLAYWRIGHT_MODULE || "playwright").then(({ chromium }) => chromium.launch()));
   try {
@@ -516,9 +533,23 @@ export async function capture(state, { only, dir = CAPTURE_DIR, launch, source =
   } finally {
     await browser.close();
     manifest.finishedAt = new Date().toISOString();
-    await writeFile(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    await writeManifest(dir, manifest);
   }
   return manifest;
+}
+
+// Writes manifest.json through a new, uniquely named file ("wx": fails rather
+// than follow or reuse anything already there, mode 0600) and renames it into
+// place, so a link planted at manifest.json is replaced, never written through.
+export async function writeManifest(dir, manifest) {
+  const target = join(dir, "manifest.json"), staging = join(dir, `.manifest-${randomUUID()}.json`);
+  try {
+    await writeFile(staging, JSON.stringify(manifest, null, 2), { flag: "wx", mode: 0o600 });
+    await rename(staging, target);
+  } catch (error) {
+    await rm(staging, { force: true });
+    throw error;
+  }
 }
 
 export function summarize(manifest) {
@@ -572,8 +603,8 @@ async function indexPage(state) {
     <section><h1>The design canvas</h1><p class="meta">Rendered locally from <code>docs/redesign/screens/</code>. Links between screens work as on the canvas; props go in the address, for example <a href="/design/PhoneOrder.dc.html?guest=true">PhoneOrder.dc.html?guest=true</a>.</p></section>${design}`);
 }
 
-export async function readManifest(dir = CAPTURE_DIR) {
-  try { return JSON.parse(await readFile(join(dir, "manifest.json"), "utf8")); }
+export async function readManifest(dir) {
+  try { return JSON.parse(await readFile(join(dir || await captureDir(), "manifest.json"), "utf8")); }
   catch (error) { if (error.code === "ENOENT") return null; throw error; }
 }
 
@@ -588,7 +619,7 @@ function figure(entry, label, stamp) {
 }
 
 async function comparePage(state) {
-  const manifest = await readManifest(), stamp = Date.now();
+  const dir = await captureDir(), manifest = await readManifest(dir), stamp = Date.now();
   const find = (s, kind, width) => manifest && manifest.results.find((r) => r.id === s.id && r.kind === kind && r.width === width);
   const rows = SCREENS.map((s) => `<section><h2>${s.app === "admin" ? "Admin · " : s.app === "store" ? "Store · " : ""}${escape(s.title)} ${statusPill(s)}</h2>
     ${widths(s).map((width) => `<div class="pair">${figure(find(s, "design", width), `Design · ${width}px (${width < 768 ? s.phone : s.desktop})`, stamp)}${figure(find(s, "build", width), `Build · ${width}px`, stamp)}</div>`).join("")}</section>`).join("");
@@ -597,7 +628,7 @@ async function comparePage(state) {
     ? `<p>Last run ${escape(manifest.finishedAt || manifest.startedAt)} from <code>${escape(String(manifest.source.sha).slice(0, 12))}</code>${manifest.source.dirty ? " with uncommitted changes" : ""}: ${totals.captured} captured, ${totals.blocked} blocked, ${totals.failed} failed.</p>${(manifest.warnings || []).map((w) => `<p class="note">${escape(w)}</p>`).join("")}`
     : `<p class="note">No captures yet.</p>`;
   return page("Design vs build", `<section><h1>Design vs build</h1><p>Each canvas artboard beside the running v2 app. A build capture only counts when the page landed on the right address and showed the screen's expected UI; <em>Blocked</em> means the preview has no data to reach the artboard's state, so the picture shows what the page does instead. Phone captures are one 390 × 844 screen (with a whole-page link when the page scrolls); desktop captures are the whole page.</p>
-    ${run}<form method="post" action="/captures"><button>Capture again</button></form>${state.capturing ? `<p class="note">A capture run is in progress.</p>` : ""}<p class="meta">Captures and <code>manifest.json</code> are saved in <code>${CAPTURE_DIR}</code>.</p></section>${rows}`);
+    ${run}<form method="post" action="/captures"><button>Capture again</button></form>${state.capturing ? `<p class="note">A capture run is in progress.</p>` : ""}<p class="meta">Captures and <code>manifest.json</code> are saved in <code>${escape(dir)}</code>.</p></section>${rows}`);
 }
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".png": "image/png" };
@@ -626,8 +657,8 @@ function startDesign(state) {
       if (url.pathname === "/design/support.js") return send(200, TYPES[".js"], await readFile(join(root, "scripts/redesign-preview-canvas.js")));
       const [, area, name] = /^\/(design|captures)\/([\w.-]+)$/.exec(url.pathname) || [];
       if (area && name && !name.includes("..")) {
-        const folder = area === "design" ? screensDir : CAPTURE_DIR, file = join(folder, name);
-        if (normalize(file).startsWith(folder)) return send(200, TYPES[extname(name)] || "application/octet-stream", await readFile(file));
+        const folder = area === "design" ? screensDir : await captureDir(), file = join(folder, name);
+        if (normalize(file).startsWith(folder.endsWith(sep) ? folder : folder + sep)) return send(200, TYPES[extname(name)] || "application/octet-stream", await readFile(file));
       }
       send(404, "text/plain", "Not found");
     } catch (error) {
@@ -650,13 +681,15 @@ if (main) {
   console.log(`[preview] Design  ${design}  (canvas screens, design vs build, one-click sign-in)`);
   console.log(`[preview] Store   ${storeSite}  (public store for guests)`);
   console.log(`[preview] API     ${api}  (in-memory, mock providers)`);
+  const captures = await captureDir();
+  console.log(`[preview] Captures go to ${captures}`);
   if (process.argv.includes("--capture")) {
     state.capturing = true;
     const only = process.env.PREVIEW_CAPTURE_ONLY?.split(",").filter(Boolean);
     const manifest = await capture(state, { only }).finally(() => { state.capturing = false; });
     const totals = summarize(manifest);
     for (const r of manifest.results.filter((r) => r.status !== "captured")) console.log(`[preview] ${r.status.padEnd(7)} ${r.id} ${r.kind} ${r.width}px: ${r.error || r.blocked}`);
-    console.log(`[preview] Captures in ${CAPTURE_DIR}: ${totals.captured} captured, ${totals.blocked} blocked, ${totals.failed} failed (source ${manifest.source.sha}${manifest.source.dirty ? ", uncommitted changes" : ""})`);
+    console.log(`[preview] Captures in ${captures}:${totals.captured} captured, ${totals.blocked} blocked, ${totals.failed} failed (source ${manifest.source.sha}${manifest.source.dirty ? ", uncommitted changes" : ""})`);
     if (totals.failed) process.exitCode = 1;
   }
 }
