@@ -51,6 +51,7 @@ function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
   if (menu === "setup") return who === "owner";
   if (menu === "store" || menu === "products") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "payments" || menu === "customers" || menu === "audit") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
   if (menu === "homerouters") return homeRouters;

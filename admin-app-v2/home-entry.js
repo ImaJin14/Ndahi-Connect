@@ -1,8 +1,9 @@
-// Shows "Home routers" in the side menu when NDAHI Home is in use.
+// Discover Home only after the dashboard identifies an authorized role.
 import { showHomeRouters } from "./navigation.js";
-const api = window.NDAHI_CONFIG && window.NDAHI_CONFIG.apiUrl;
-if (api) fetch(api + "/api/admin/home", { credentials: "include" }).then(async (response) => {
-  if (!response.ok) return;
-  const info = await response.json();
-  if (info.enabled || info.households.length) showHomeRouters();
-}).catch(() => {});
+export async function updateHomeRouterMenu(role, call) {
+  if (role !== "owner" && role !== "operator") return;
+  try {
+    const info = await call("/api/admin/home");
+    if (info.enabled || info.households?.length) showHomeRouters();
+  } catch { /* Optional discovery does not block the dashboard. */ }
+}
