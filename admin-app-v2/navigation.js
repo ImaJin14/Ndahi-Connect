@@ -51,6 +51,7 @@ function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
   if (menu === "setup") return who === "owner";
   if (menu === "store" || menu === "products") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "payments" || menu === "customers" || menu === "audit") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
   if (menu === "homerouters") return homeRouters;
@@ -59,6 +60,8 @@ function canAccess(menu, role) {
 
 export function activeAdminView(role) {
   const name = location.hash.slice(1).split("/")[0], view = ALIASES[name] || name;
+  const who = role === undefined ? currentRole : role;
+  if (view === "voucher-print" && STORE_ROLES.indexOf(who) < 0 && who !== "reseller") return "home";
   return VIEWS[view] && canAccess(VIEWS[view].menu, role) ? view : "home";
 }
 
