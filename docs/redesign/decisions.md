@@ -19,6 +19,13 @@ Settled with the owner during design. Don't reopen these in a PR; if one looks w
 
 - **No buying while a bundle is active.** There is no top-up and no queued "next bundle". The UI states this rule (see `customer-app/billing-terms.html`) instead of offering the purchase.
 
+## Giving a voucher to a customer
+
+- Admin → Vouchers has two modes: **For one customer** and **Batch to print or sell**. Customer detail links to the first.
+- Find the customer by name or phone number. Only existing accounts can receive one (matches `POST /api/admin/vouchers/generate` with a `customerId`). A number with no account gets told to sign up first, or is handed an unassigned voucher from a batch of one.
+- Mark it **Sold** (revenue) or **Gift** (no revenue). Only owners and operators can do this.
+- It starts immediately. If the customer already has an active bundle, the admin must tick a confirmation; the old bundle ends and its devices are disconnected (existing replace behaviour, audited).
+
 ## Scan to connect
 
 Scanning a voucher QR never connects a device on its own. The flow:
