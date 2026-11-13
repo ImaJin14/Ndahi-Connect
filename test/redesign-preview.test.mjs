@@ -30,7 +30,7 @@ test("every preview screen pairs real canvas artboards with a page of the app", 
       if (screen.tab) assert.match(screen.tab, /^(home|internet|shop|activity|account)$/, "captures wait for this tab");
     } else {
       assert.equal(screen.app, "admin");
-      assert.match(screen.path, /^\/(dashboard#[a-z-]+|login|home-routers\.html)$/);
+      assert.match(screen.path, /^\/(dashboard#[a-z-]+(\/\{\w+\})?|login|home-routers\.html)$/);
     }
   }
   // Every admin artboard except the shared side menu has a preview entry.

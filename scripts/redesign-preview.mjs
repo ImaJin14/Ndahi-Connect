@@ -69,7 +69,7 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken"];
+export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken"];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -181,7 +181,7 @@ export const SCREENS = [
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
-    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#vouchers", NOT_BUILT(258), { panel: "vouchers", menu: "vouchers" }],
+    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
@@ -246,6 +246,7 @@ async function startApi() {
       // The bundle's current QR, the same one its account pages show.
       fixtures.qrToken = new URLSearchParams(new URL(voucherQrUrl(active, customer, portal)).hash.slice(1)).get("qr") || "";
       fixtures.voucherIds = JSON.stringify([active.id]);
+      fixtures.voucherId = active.id;
     } else warnings.push("The demo customer has no active bundle; voucher and scan captures will fail.");
     // Demo payments for the admin Payments and Cash screens: two waiting (one
     // over 10 minutes), gateway-confirmed sales this month, one failed today
