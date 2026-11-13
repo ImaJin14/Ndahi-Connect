@@ -29,6 +29,11 @@ with `data-ui-variant="v2"`, so testers can confirm which version they are on
    13 November 2026, and is never sampled. `ADMIN_UI_DEFAULT=v1` can explicitly
    retain the legacy admin default; unset or `v2` selects the new default.
 
+Only explicit admin `?ui=` choices save a preference. Computed admin defaults are
+not saved, so a later default change takes effect on the next navigation for
+staff without a deliberate choice. Use `UI_V2_OFF=true` to force v1 for everyone,
+including staff who explicitly chose v2.
+
 The cookies are host-only, `Path=/`, `SameSite=Lax`, `HttpOnly`, and last 30 days.
 They are not renewed on later visits. They are `Secure` under the same rule as API
 session cookies: `SESSION_COOKIE_SECURE` when set, otherwise in production. These
@@ -59,7 +64,8 @@ use new storage keys.
 
 Invalid values stop the service: `UI_V2_PERCENT` must be a whole number from 0 to
 100 and `UI_V2_OFF` must be exactly `true` or `false` (unset means 0 and `false`).
-`ADMIN_UI_DEFAULT` must be `v1` or `v2` when nonempty. The pre-deploy
+On admin, `ADMIN_UI_DEFAULT` must be `v1` or `v2` when nonempty; it is ignored by
+the customer service. The pre-deploy
 `npm run check:environment` reports invalid rollout values before a deploy.
 It only warns when a valid value differs from the Blueprint default, so a ramp or
 rollback made in Render never blocks a deploy.
@@ -83,8 +89,9 @@ locally with `ADMIN_UI_DEFAULT=v1 npm run test:browser` (and the same prefix for
 individual legacy admin journeys). `npm run test:browser:v2` explicitly opts into
 v2. The HTTP default-policy tests use an empty environment to verify the actual
 admin v2 default, legacy preference migration, deliberate old-view preference,
-kill switch and unchanged customer selection. Role-isolation browser tests select
-each variant explicitly with `?ui=old` / `?ui=new`.
+kill switch and unchanged customer selection. The role-isolation browser suite
+also verifies fresh/legacy-cookie admin defaults and explicit old/new choices at
+390 and 1280 px, then checks each role on explicitly selected v1 and v2.
 
 ## Ramp
 

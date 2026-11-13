@@ -4,6 +4,11 @@ Settled with the owner during design. Don't reopen these in a PR; if one looks w
 
 ## Structure
 
+Owner update, 13 November 2026: admin v2 is now the default. The customer portal
+keeps its existing v1 default and rollout percentage. Explicit old/new interface
+choices and the kill switch remain available. This supersedes the earlier admin
+opt-in-only policy, without authorizing a customer rollout or authentication retirement.
+
 - **Store merges into the customer portal.** Signed-in customers shop from a Shop tab. The portal has five tabs: Home · Internet · Shop · Activity · Account.
 - **The public store stays for guests.** `store-app` keeps serving store.ndahiconnect.net. Guests check out with a Mobile Money number plus an optional email and get a private tracking link to copy or bookmark. No SMS. A guest who later signs in with the same number sees the order in Activity.
 - **Admin stays a separate app** with its own domain and session, restyled to match.

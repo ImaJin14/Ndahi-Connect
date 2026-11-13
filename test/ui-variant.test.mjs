@@ -15,7 +15,7 @@ const site = (t, kind, env = {}, options = {}) =>
 const get = (base, path, cookie) => fetch(base + path, { redirect: "manual", headers: cookie ? { cookie } : {} });
 const isV2 = async (response) => /<html[^>]* data-ui-variant="v2"/.test(await response.text());
 const select = (kind, path, { cookie = "", env = {}, random = () => 0.5 } = {}) =>
-  selectUiVariant({ kind, url: new URL(path, "http://portal.test"), cookieHeader: cookie, config: uiRolloutConfig(env), random });
+  selectUiVariant({ kind, url: new URL(path, "http://portal.test"), cookieHeader: cookie, config: uiRolloutConfig(env, kind), random });
 
 test("the kill switch serves v1 over every query, cookie and percentage", async (t) => {
   const env = { UI_V2_OFF: "true", UI_V2_PERCENT: "100" };
@@ -74,8 +74,7 @@ test("admin defaults to v2 and migrates old default preferences without changing
   for (const cookie of [undefined, "ndahi_ui=v1; admin_session=unchanged", "ndahi_ui=v2", "ndahi_admin_ui=invalid; ndahi_ui=v1"]) {
     const response = await get(base, "/login", cookie);
     assert.equal(await isV2(response), true);
-    assert.equal(response.headers.get("set-cookie"), "ndahi_admin_ui=v2; Path=/; Max-Age=2592000; SameSite=Lax; HttpOnly; Secure");
-    assert.doesNotMatch(response.headers.get("set-cookie"), /admin_session|Domain=/);
+    assert.equal(response.headers.get("set-cookie"), null, "a computed default is not saved as a deliberate preference");
   }
   for (const percent of ["0", "100"]) {
     assert.equal(select("admin", "/login", { env: { UI_V2_PERCENT: percent } }).variant, "v2");
@@ -102,7 +101,12 @@ test("admin's explicit old-view preference survives navigation and the new defau
 test("admin's explicit default override supports the v1 journey lane and respects the kill switch", async (t) => {
   const env = { ADMIN_UI_DEFAULT: "v1", UI_V2_PERCENT: "100" };
   const base = await site(t, "admin", env);
-  assert.equal(await isV2(await get(base, "/login")), false);
+  const legacyDefault = await get(base, "/login");
+  assert.equal(await isV2(legacyDefault), false);
+  assert.equal(legacyDefault.headers.get("set-cookie"), null);
+  const newDefault = await get(await site(t, "admin", { ADMIN_UI_DEFAULT: "v2" }), "/login");
+  assert.equal(await isV2(newDefault), true);
+  assert.equal(newDefault.headers.get("set-cookie"), null);
   assert.equal(await isV2(await get(base, "/login", "ndahi_ui=v2")), true);
   assert.equal(await isV2(await get(base, "/login", "ndahi_admin_ui=v2")), true);
   const killed = await site(t, "admin", { UI_V2_OFF: "true" });
@@ -121,6 +125,8 @@ test("the cookie is host-only and follows the session cookie Secure rule", async
   assert.equal(await cookieFor({ production: true }), `${local}; Secure`);
   assert.equal(await cookieFor({ production: true }, { SESSION_COOKIE_SECURE: "false" }), local);
   assert.equal(await cookieFor({ production: false }, { SESSION_COOKIE_SECURE: "true" }), `${local}; Secure`);
+  const adminChoice = await get(await site(t, "admin", {}, { production: true }), "/login?ui=new");
+  assert.equal(adminChoice.headers.get("set-cookie"), "ndahi_admin_ui=v2; Path=/; Max-Age=2592000; SameSite=Lax; HttpOnly; Secure");
 });
 
 test("pages, the service worker and release checks come from the chosen folder", async (t) => {
@@ -190,6 +196,7 @@ test("invalid rollout settings stop the customer and admin servers at startup", 
   assert.deepEqual(uiRolloutConfig({ UI_V2_PERCENT: "", UI_V2_OFF: "" }), { percent: 0, off: false, adminDefault: "v2" });
   for (const ADMIN_UI_DEFAULT of ["V2", "new", "100"]) {
     assert.throws(() => createStaticServer("admin", { env: { ADMIN_UI_DEFAULT } }), /ADMIN_UI_DEFAULT must be exactly/);
+    assert.doesNotThrow(() => createStaticServer("customer", { env: { ADMIN_UI_DEFAULT } }), "admin-only setting does not affect the customer portal");
   }
   const started = await promisify(execFile)(process.execPath, ["static-server.mjs"], {
     env: { PATH: process.env.PATH, APP_KIND: "customer", PORT: "0", HOST: "127.0.0.1", UI_V2_PERCENT: "150" }, timeout: 10000,

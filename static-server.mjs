@@ -33,7 +33,7 @@ export function createStaticServer(
     hotspotOrigin = login.origin;
   }
   // Customer and admin pages can run the v2 redesign beside v1; the store has one version.
-  const rollout = kind === "customer" || kind === "admin" ? uiRolloutConfig(env) : null,
+  const rollout = kind === "customer" || kind === "admin" ? uiRolloutConfig(env, kind) : null,
     // The same Secure rule the API applies to its session cookies.
     secureCookie = env.SESSION_COOKIE_SECURE ? env.SESSION_COOKIE_SECURE !== "false" : production,
     folder = folders[kind] || folders.customer,
