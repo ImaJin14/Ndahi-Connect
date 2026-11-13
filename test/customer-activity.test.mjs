@@ -22,13 +22,16 @@ function state() {
   voucher("ve", "e", "active", { activatedAt: daysAgo(1), expiresAt: daysAgo(-6) });
   voucher("vg", "g", "available", { createdAt: daysAgo(3) });
   voucher("vh", "h", "revoked", { activatedAt: daysAgo(20), expiresAt: daysAgo(13) });
-  s.sessions.push({ id: "s1", customerId: "a", voucherId: "va", status: "online" });
+  s.sessions.push({ id: "s1", customerId: "a", voucherId: "va", status: "online" },
+    { id: "s2", customerId: "b", voucherId: "vb", status: "inactive", connectedAt: daysAgo(12), disconnectedAt: daysAgo(10) });
   return s;
 }
 
 test("activity is derived from voucher history", () => {
   const activity = customerActivity(state(), { now, staleDays: 30 }), get = (id) => activity.get(id);
-  assert.deepEqual(get("a"), { state: "active", online: true, hasBundle: true, neverBought: false, idleDays: null, lastEndedAt: null, joinedAt: daysAgo(90) });
+  assert.deepEqual(get("a"), { state: "active", online: true, hasBundle: true, neverBought: false, idleDays: null, lastEndedAt: null, lastSeenAt: now.toISOString(), joinedAt: daysAgo(90) });
+  assert.equal(get("b").lastSeenAt, daysAgo(10), "last seen is the device's latest connection");
+  assert.equal(get("d").lastSeenAt, null);
   assert.deepEqual([get("b").state, get("b").idleDays, get("b").lastEndedAt], ["active", 9, daysAgo(9)], "the latest ended bundle counts");
   assert.deepEqual([get("c").state, get("c").idleDays], ["stale", 42], "a quota cut-off ends a bundle when it happened");
   assert.deepEqual([get("d").state, get("d").neverBought, get("d").idleDays], ["stale", true, 41]);
@@ -50,6 +53,7 @@ test("the filter keeps a count per chip, applied after search", () => {
   assert.equal(stale.total, 4);
   assert.deepEqual(stale.counts, all.counts, "counts describe every chip, not just the chosen one");
   assert.equal(stale.items.find((c) => c.id === "c").activity.idleDays, 42);
+  assert.equal(all.items.find((c) => c.id === "a").summary.bundle.usedBytes, 0, "bundle summaries carry data used");
   assert.equal(query({ activity: "stale", staleDays: "7" }).total, 6);
   assert.deepEqual(query({ q: "fon" }).counts, { all: 1, active: 1, stale: 0, suspended: 0 });
   const parse = (params) => parseRecordQuery(new URLSearchParams(params));
