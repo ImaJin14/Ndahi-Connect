@@ -24,10 +24,10 @@ test("owners filter customers by activity and export the stale list", { timeout:
     customer("c-stale", "P. Mbah", "670006452", 80); customer("c-never", "Grace T.", "670000366", 41);
     customer("c-suspended", "K. Nji", "670005920", 70, { status: "suspended" });
     const voucher = (id, customerId, status, extra) => s.vouchers.push({ id, customerId, status, planId: "weekly", deviceLimit: 3, usedBytes: 0, ...extra });
-    voucher("v-online", "c-online", "active", { quotaBytes: null, usedBytes: 3.2e9, activatedAt: daysAgo(2), expiresAt: daysAgo(-5) });
+    voucher("v-online", "c-online", "active", { quotaBytes: null, usedBytes: 3.2e9, activatedAt: daysAgo(2), expiresAt: daysAgo(-5),
+      wifiDevicesAt: new Date().toISOString(), wifiDevices: [{ mac: "AA:BB:CC:DD:EE:01", sessionId: "r1", startedAt: daysAgo(0) }] });
     voucher("v-recent", "c-recent", "expired", { quotaBytes: 5e9, activatedAt: daysAgo(16), expiresAt: daysAgo(9) });
     voucher("v-stale", "c-stale", "expired", { quotaBytes: 5e9, activatedAt: daysAgo(49), expiresAt: daysAgo(42) });
-    s.sessions.push({ id: "s-online", customerId: "c-online", voucherId: "v-online", status: "online", connectedAt: daysAgo(0) });
     s.adminUsers.push({ id: "filters-owner", username: "owner", role: "owner", active: true, passkeys: [] });
     s.adminSessions.push({ userId: "filters-owner", role: "owner", tokenHash: hashSecret("filters-owner", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
   });
