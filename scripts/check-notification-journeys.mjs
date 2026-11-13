@@ -244,7 +244,8 @@ try {
   await owner.waitForURL(/#sessions$/);
   await owner.locator("#sessionActivity [data-revoke-session]:visible").first().waitFor(); // v2 marks this device "You" instead
   assert.equal(await owner.locator("#sessionActivity").evaluate((el) => el.open), true);
-  assert.equal(await owner.getByRole("dialog", { name: "Notifications", exact: true }).isHidden(), true);
+  // The panel closes as the page changes; wait for it rather than racing a slow runner.
+  await owner.getByRole("dialog", { name: "Notifications", exact: true }).waitFor({ state: "hidden" });
   assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   console.log("PASS security/sign-in history lives in the centre and Review sessions opens active session controls without duplicate Account history at 320px");
 
