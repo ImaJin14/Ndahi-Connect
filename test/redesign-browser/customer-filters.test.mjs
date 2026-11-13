@@ -58,7 +58,7 @@ test("owners filter customers by activity and export the stale list", { timeout:
       const row = (name) => page.locator("#customerRecords tr", { has: page.getByRole("link", { name, exact: true }) });
       assert.match(await row("Amina N.").textContent(), /Weekly · 3\.2 GB used.*Online now.*Active/, "unlimited bundles show data used");
       assert.match(await row("L. Ngwa").textContent(), /Ended .*Active/);
-      assert.match(await row("Grace T.").textContent(), /Joined .*Stale · never bought.*Give voucher/);
+      assert.match(await row("Grace T.").textContent(), /Never bought.*Joined .*Stale · never bought.*Give voucher/);
       assert.match(await row("K. Nji").textContent(), /Suspended.*Restore/);
       await chip("Stale").click();
       await page.getByText("2 customers", { exact: true }).waitFor();

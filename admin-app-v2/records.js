@@ -26,7 +26,8 @@ function kitSearch(kit, formId) {
 }
 function kitMarkup(title, headers, kit, formId) {
   const chips = (kit.chips || []).map(([value, label], index) => `<button type="button" class="nd-chip${index ? "" : " active"}" aria-pressed="${index ? "false" : "true"}" data-status-chip="${h(value)}">${h(label)}</button>`).join("");
-  const head = (name) => `<th scope="col">${typeof name === "string" ? h(name) : `<span class="nd-visually-hidden">${h(name.label)}</span>`}</th>`;
+  // A heading is text, a visually hidden { label }, or trusted markup from the caller ({ html }).
+  const head = (name) => `<th scope="col">${typeof name === "string" ? h(name) : name.html ? name.html : `<span class="nd-visually-hidden">${h(name.label)}</span>`}</th>`;
   const filters = !chips && kit.statusFilter !== false;
   return `<div class="nd-panel__head records-toolbar records-toolbar--kit"${kit.heading === false && kit.searchHost && !chips && !filters && !kit.dates ? " hidden" : ""}>${kit.heading === false ? "" : `<h2 class="nd-h2" id="${h(kit.titleId)}">${h(title)}</h2>`}<form class="records-filter records-filter--kit" role="search" id="${formId}">
   ${kit.searchHost ? "" : kitSearch(kit, formId)}

@@ -473,3 +473,28 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-store-panel .store-empty { padding: var(--nd-space-18); border: 1px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-sage-strong); }
 .admin-store__listhead .nd-input { flex: 0 1 190px; }
 .admin-store__detail .admin-form, .admin-store__panel .admin-form { margin: 0; }
+
+/* Bulk actions (canvas: AdminCustomers, #257): tick rows, then a sticky forest
+   bar to give a gift voucher or send a message. */
+.admin-customers__select, #panel-customers #customerRecords th:first-child { width: 32px; }
+.admin-customers__check { width: 18px; min-width: 0; height: 18px; margin: 0; accent-color: var(--nd-forest); }
+#panel-customers #customerRecords tr.admin-customers__row--on > td { background: var(--nd-sage-strong); }
+.admin-customers__bulk { position: sticky; top: var(--nd-space-12); z-index: 2; display: flex; flex-direction: column; gap: var(--nd-space-12); padding: var(--nd-space-14) var(--nd-space-16); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-on-forest); box-shadow: 0 12px 30px rgba(0, 59, 43, 0.25); }
+.admin-customers__bulk[hidden] { display: none; }
+.admin-customers__bulk-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); }
+.admin-customers__bulk-count { flex: 1 1 160px; font-size: var(--nd-fs-body); }
+.admin-customers__bulk-btn { min-height: 40px; padding: 0 var(--nd-space-14); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: var(--nd-radius-control); background: transparent; color: var(--nd-on-forest); font: 700 var(--nd-fs-meta) var(--nd-font-body); cursor: pointer; }
+.admin-customers__bulk-btn[aria-pressed="true"] { border-color: var(--nd-lime); background: var(--nd-lime); color: var(--nd-lime-ink); }
+.admin-customers__bulk-clear { min-height: 40px; padding: 0 var(--nd-space-12); border: 0; background: transparent; color: var(--nd-on-forest-soft); font: 700 var(--nd-fs-meta) var(--nd-font-body); cursor: pointer; }
+.admin-customers__bulk-panel { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); padding-top: var(--nd-space-12); border-top: 1px solid var(--nd-line-on-forest); font-size: var(--nd-fs-small); }
+.admin-customers__bulk-panel[hidden] { display: none; }
+.admin-customers__bulk-panel--message { flex-direction: column; align-items: stretch; }
+.admin-customers__bulk-panel select { width: auto; min-height: 40px; padding: 0 var(--nd-space-10); border: 0; border-radius: var(--nd-radius-control); color: var(--nd-ink); font: 600 var(--nd-fs-small) var(--nd-font-body); }
+.admin-customers__bulk-panel textarea { box-sizing: border-box; min-height: 70px; padding: var(--nd-space-10) var(--nd-space-12); border: 0; border-radius: var(--nd-radius-control); color: var(--nd-ink); font: var(--nd-fs-small)/1.5 var(--nd-font-body); }
+.admin-customers__bulk-note { flex: 1 1 200px; color: var(--nd-on-forest-muted); font-size: var(--nd-fs-meta); }
+.admin-customers__bulk-end { display: flex; justify-content: flex-end; }
+.admin-customers__bulk-send { min-height: 40px; padding: 0 var(--nd-space-16); border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; }
+.admin-customers__bulk-send:disabled { opacity: 0.7; cursor: progress; }
+.admin-customers__bulk-error { margin: 0; color: var(--nd-on-forest); font-size: var(--nd-fs-meta); }
+.admin-customers__bulk-error[hidden], .admin-customers__sent[hidden] { display: none; }
+.admin-customers__sent { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: var(--nd-fs-small); font-weight: 700; }
