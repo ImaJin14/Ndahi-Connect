@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { createHandler, createStore } from "../server.mjs";
-import { paymentFailure, paymentView, recordGatewayFailure } from "../lib/billing.mjs";
+import { checkoutOutcomeReadable, paymentFailure, paymentView, recordGatewayFailure } from "../lib/billing.mjs";
 import { MeSombPaymentAdapter, providerFailureCode } from "../lib/payments.mjs";
 
 const base = new Date("2030-01-01T12:00:00Z"), at = (seconds) => new Date(+base + seconds * 1000);
@@ -84,7 +84,15 @@ async function fixture(t) {
     return { status: r.status, body: await r.json() };
   };
   const view = async (id) => paymentView((await store.snapshot()).payments.find((p) => p.id === id), { now });
-  return { handler, purchase, view, charges: () => charges, advance: (n) => { now = at(n); },
+  const status = async (id, key) => {
+    const r = await fetch(`${url}/api/payments/${id}/status`, { headers: { origin: "http://customer.test", ...(key ? { "x-checkout-key": key } : {}) } });
+    return { status: r.status, body: await r.json() };
+  };
+  const recover = async (key) => {
+    const r = await fetch(url + "/api/purchase/recover", { method: "POST", headers: { origin: "http://customer.test", "content-type": "application/json" }, body: JSON.stringify({ requestKey: key }) });
+    return { status: r.status, body: await r.json() };
+  };
+  return { handler, purchase, view, status, recover, store, charges: () => charges, advance: (n) => { now = at(n); },
     provider: (id, status, message) => { states.get(id).status = status; if (message) messages.set(id, message); } };
 }
 
@@ -109,4 +117,32 @@ test("a request the provider never resolves is a timeout that blocks a second ch
   const view = await f.view(body.payment.id);
   assert.deepEqual([view.failureCode, view.moneyTaken], ["timeout", null]);
   assert.ok(view.lateCheckUntil, "late provider answers are still checked");
+});
+
+test("a guest's private key reads why its payment failed, for a day, without details or a code", async (t) => {
+  const f = await fixture(t), key = "k".repeat(40), { body } = await f.purchase(key);
+  f.advance(20); f.provider(body.payment.id, "FAILED", "Insufficient balance");
+  const read = await f.status(body.payment.id, key);
+  assert.equal(read.status, 200);
+  assert.deepEqual([read.body.payment.failureCode, read.body.payment.moneyTaken, read.body.access], ["low_balance", false, undefined]);
+  assert.deepEqual([read.body.payment.payerPhone, read.body.payment.payerPhoneMasked, read.body.payment.requestKey], [null, "6•• •• 00 99", undefined], "only the masked number");
+  assert.equal((await f.status(body.payment.id)).status, 404, "the payment ID alone reads nothing");
+  assert.equal((await f.status(body.payment.id, "x".repeat(40))).status, 404, "another key reads nothing");
+  const recovered = await f.recover(key);
+  assert.equal(recovered.status, 200);
+  assert.equal(recovered.body.payment.failureCode, "low_balance");
+  assert.deepEqual(recovered.body.details, { name: "", phone: "", email: "", network: "mtn" }, "a closed checkout's key does not return the guest's details");
+  f.advance(20 + 86401);
+  assert.equal((await f.status(body.payment.id, key)).status, 404, "the outcome stays readable for a day only");
+});
+
+test("an outcome read never covers a confirmed, refunded, revoked or account payment", () => {
+  const now = at(100), failed = { status: "failed", providerFailedAt: at(50).toISOString() };
+  assert.equal(checkoutOutcomeReadable(failed, now), true);
+  for (const extra of [{ confirmedAt: at(60).toISOString() }, { refund: { status: "pending" } }, { checkoutKeyRevokedAt: at(70).toISOString() }, { checkoutAudience: "account" }, { status: "paid" }])
+    assert.equal(checkoutOutcomeReadable({ ...failed, ...extra }, now), false, JSON.stringify(extra));
+  assert.equal(checkoutOutcomeReadable({ status: "expired", checkoutClosedAt: at(0).toISOString(), lateCheckUntil: at(0).toISOString() }, at(10)), false, "a saved late-check cutoff is final");
+  assert.equal(checkoutOutcomeReadable({ status: "failed", providerFailedAt: at(0).toISOString() }, at(86399)), true);
+  assert.equal(checkoutOutcomeReadable({ status: "failed", providerFailedAt: at(0).toISOString() }, at(86401)), false, "a day after the failure");
+  assert.equal(checkoutOutcomeReadable({ status: "pending" }, now), false, "an open checkout uses the active key rule");
 });
