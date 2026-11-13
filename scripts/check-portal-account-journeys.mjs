@@ -5,7 +5,8 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
-import { portalNavDesktopWidth, portalTab, portalTabBadge, uiV2 } from './portal-tabs.mjs';
+import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, waitForAccount } from "./portal-tabs.mjs";
+import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
 const apiPort = Number(process.env.PORTAL_TOOLS_API_PORT || 8798), portalPort = Number(process.env.PORTAL_TOOLS_PORT || 8797);
@@ -59,6 +60,90 @@ try {
     catch (error) { console.error(JSON.stringify({pageErrors:errors})); await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw error; }
     finally { await context.close(); }
   }
+  // Redesigned Home (v2 only): hero, bundle card, quick actions, shop suggestion, recent activity.
+  const storeCatalogue = (open) => ({ settings: { open }, categories: [], products: [
+    { id: 'router', name: { en: 'Travel router', fr: 'Routeur de voyage' }, price: 100000, available: 3, images: [] },
+    { id: 'cpe', name: 'Outdoor CPE', price: null, available: 1, images: [] },
+    { id: 'gone', name: 'Sold out', price: 5000, available: 0, images: [] },
+  ] });
+  if (uiV2) for (const width of [390, 1280]) {
+    await scenario(`redesigned Home shows the hero, bundle card, quick actions and catalogue suggestion at ${width}px`, async (page) => {
+      const phone = width < 768;
+      await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: storeCatalogue(true) }));
+      await page.goto(`${portal}/dashboard#home`);
+      await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
+      assert.equal(await page.getAttribute('body', 'data-current-tab'), 'home');
+      assert.equal(await page.locator('#portalEyebrow').isVisible(), !phone, 'the date shows on desktop Home only, as on the canvas');
+      assert.ok((await page.locator('#portalEyebrow').textContent()).trim(), 'the date is filled in');
+      const card = page.locator('.home-bundle');
+      await card.locator('#dataBalance [data-remaining-data]').waitFor();
+      assert.equal(await page.locator('#dataBalance a, #dataBalance button').count(), 0, 'the balance itself holds no controls');
+      assert.equal(await card.getByRole('link', { name: 'Bundle details', exact: true }).getAttribute('href'), '/dashboard#internet');
+      assert.equal(await card.getByRole('link', { name: phone ? 'Devices' : 'Manage devices', exact: true }).getAttribute('href'), '/dashboard#devices');
+      const shop = page.locator('#homeShop');
+      await shop.waitFor();
+      assert.equal(await shop.locator('.home-shop__item').count(), 2, 'only products in stock are suggested');
+      assert.equal(await shop.locator('.home-shop__item:visible').count(), phone ? 1 : 2);
+      const first = shop.locator('.home-shop__item').first();
+      assert.match(await first.innerText(), phone ? /Travel router[\s\S]*100,000 FCFA · Collect locally/ : /Travel router[\s\S]*100,000 FCFA · 3 in stock/);
+      // Suggestions open the product in the portal's Shop tab.
+      assert.equal(await first.getAttribute('href'), '/dashboard#product/router');
+      assert.equal(await first.getAttribute('target'), null);
+      assert.match(await shop.locator('.home-shop__item').nth(1).innerText(), phone ? /Price to be confirmed · Collect locally/ : /Price to be confirmed · Only 1 left/);
+      if (!phone) await page.getByRole('link', { name: 'Bundles & vouchers', exact: true }).waitFor();
+      assert.equal(await page.locator('#bundlePurchaseActions').isVisible(), false, 'no purchase links while a bundle is active');
+      const activity = page.getByRole('heading', { name: 'Recent activity', exact: true });
+      if (phone) assert.equal(await activity.isVisible(), false, 'recent activity is a desktop panel');
+      else { await activity.waitFor(); await page.locator('.home-activity .nd-row').first().getByText(/^Bundle · /).waitFor(); }
+      assert.deepEqual(await lowContrastText(page), [], 'rendered text contrast');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
+      await page.getByRole('link', { name: phone ? 'Enter voucher' : 'Enter a voucher code', exact: true }).click();
+      await page.waitForURL('**/dashboard#redeem');
+      // v2's Voucher page hides the tab bar (canvas: PhoneVoucher); its tab is still current.
+      await page.locator(`${portalTab('vouchers')}[aria-current="page"]`).first().waitFor(uiV2 ? { state: 'attached' } : {});
+      assert.equal(await page.locator('#differentCode').evaluate((details) => details.open), true, 'Enter voucher opens the code form');
+    }, width);
+  }
+  if (uiV2) await scenario('redesigned Home hides the shop suggestion while the store is closed', async (page) => {
+    await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: storeCatalogue(false) }));
+    const read = page.waitForResponse('**/api/store/catalogue');
+    await page.goto(`${portal}/dashboard#home`);
+    await read;
+    await page.locator('#dataBalance [data-remaining-data]').waitFor();
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
+    assert.equal(await page.locator('#homeShop').isVisible(), false);
+  });
+  if (uiV2) await scenario('Shop tab lists the catalogue, opens a product and checks out with the account details', async (page) => {
+    const cors = { 'access-control-allow-origin': portal, 'access-control-allow-credentials': 'true' };
+    const catalogue = { ...storeCatalogue(true), settings: { open: true, pickup: 'NDAHI office.' }, categories: [{ id: 'routers', name: 'Routers', position: 1 }] };
+    catalogue.products = catalogue.products.map((product) => ({ ...product, categoryId: 'routers' }));
+    const order = (status, paymentStatus, extra = {}) => ({ id: 'order-1', reference: 'NS-TEST1', product: { name: { en: 'Travel router' }, images: [] }, quantity: 2, amount: 200000, status, paymentStatus, receiptAvailable: false, pickup: 'NDAHI office.', ...extra });
+    let checkout;
+    await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: catalogue }));
+    await page.route('**/api/account/store/checkout', (route) => { checkout = route.request().postDataJSON(); return route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }); });
+    await page.route('**/api/account/store/order', (route) => route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }));
+    await page.route('**/api/account/store/verify', (route) => route.fulfill({ headers: cors, json: { order: order('ready', 'paid', { collectionCode: 'ABC123' }) } }));
+    await page.goto(`${portal}/dashboard#shop`);
+    await page.locator(`${portalTab('shop')}[aria-current="page"]`).waitFor();
+    await page.locator('.portal-shop__item').first().waitFor();
+    assert.equal(await page.locator('.portal-shop__item').count(), 3, 'every published product is listed, in stock or not');
+    assert.match(await page.locator('.portal-shop__note').last().textContent(), /collect at NDAHI office\. Your details/);
+    await page.getByRole('link', { name: /Travel router/ }).click();
+    await page.waitForURL('**/dashboard#product/router');
+    await page.getByRole('button', { name: 'Increase quantity', exact: true }).click();
+    await page.getByRole('link', { name: 'Buy now', exact: true }).click();
+    await page.waitForURL('**/dashboard#checkout/router/2');
+    await page.getByRole('button', { name: 'Pay 200,000 FCFA', exact: true }).click();
+    await page.waitForURL('**/dashboard#order/order-1');
+    assert.deepEqual([checkout.productId, checkout.quantity, checkout.expectedPrice, checkout.network], ['router', 2, 100000, 'mtn']);
+    assert.ok(checkout.name && checkout.phone && checkout.payerPhone, 'details come from the account');
+    await page.getByRole('heading', { name: 'Approve on your phone', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Check status', exact: true }).click();
+    await page.getByText('ABC123', { exact: true }).waitFor();
+    assert.equal(await page.locator('.portal-shop__steps [aria-current="step"]').textContent(), 'Ready to collect');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  });
   for (const width of [320, 390, 768, 1280]) {
     await scenario(`portal navigation supports dedicated views, Back and refresh at ${width}px`, async (page) => {
       await page.goto(`${portal}/dashboard#home`);
@@ -74,14 +159,14 @@ try {
       if (width < portalNavDesktopWidth) assert.ok(Math.abs(layout.nav.y + layout.nav.height - layout.height) < 2);
       else if (uiV2) assert.ok(layout.nav.y + layout.nav.height <= layout.mainY, 'the redesigned nav sits in the header above the content');
       else assert.ok(layout.nav.x + layout.nav.width <= layout.mainX);
-      await page.locator(portalTab("vouchers")).click();
+      await openPortalView(page, "vouchers");
       await page.locator('[data-portal-view="vouchers"]').first().waitFor({ state: 'visible' });
       await page.reload();
       await page.locator(portalTab("vouchers") + '[aria-current="page"]').waitFor();
       await page.goBack();
       await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
-      await page.locator('[data-portal-tab="account"]').click();
-      await page.getByRole('heading', { name: 'Your profile', exact: true }).waitFor();
+      await openPortalView(page, 'account');
+      if (uiV2) await waitForAccount(page); else await page.getByRole('heading', { name: 'Your profile', exact: true }).waitFor();
       await page.screenshot({ path: `${screenshots}/account-${width}.png`, fullPage: true });
     }, width);
   }
@@ -89,12 +174,12 @@ try {
     await page.goto(`${portal}/dashboard#home`);
     await page.getByRole('heading', { name: 'Welcome back, Portal', exact: true }).waitFor();
     const before = (await store.snapshot()).payments;
-    await page.locator('[data-portal-tab="account"]').click();
-    await page.getByText('Edit profile', { exact: true }).click();
+    await openPortalView(page, 'account');
+    await openEditProfile(page);
     await page.locator('#profileEdit [name="name"]').fill('Marie Ndongo');
     await page.locator('#profileEdit [type="submit"]').click();
     await page.getByText('Your profile was updated.', { exact: true }).waitFor();
-    await page.locator('[data-portal-tab="home"]').click();
+    await openPortalView(page, 'home');
     await page.getByRole('heading', { name: 'Welcome back, Marie', exact: true }).waitFor();
     assert.deepEqual((await store.snapshot()).payments, before);
     await store.transaction((s) => { s.customers[0].name = '<img src=x onerror=alert(1)>'; });
@@ -210,12 +295,12 @@ try {
     const other = await post('/api/account/login/pin', { phone: '670050101', pin: '2468' });
     const otherCookie = other.response.headers.get('set-cookie').split(';')[0];
     await page.goto(`${portal}/dashboard#account`);
-    await page.getByText('Edit profile', { exact: true }).click();
+    await openEditProfile(page);
     const form = page.locator('#profileEdit');
     await form.locator('[name="phone"]').fill('670050103'); await form.locator('[name="pin"]').fill('0000');
     await form.locator('[type="submit"]').click();
     await page.locator('#profileEditMessage .error-card').waitFor();
-    assert.equal(new URL(page.url()).hash, '#account');
+    assert.equal(new URL(page.url()).hash, uiV2 ? '#editProfile' : '#account', 'an error keeps the form open');
     now = new Date(+now + 2000);
     await form.locator('[name="pin"]').fill('2468'); await form.locator('[type="submit"]').click();
     await page.getByText('Your profile was updated.', { exact: true }).waitFor();
@@ -252,13 +337,13 @@ try {
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     const key = totpSecret();
     await store.transaction((s) => { s.customers[0].totpSecret = key; });
-    await page.reload(); await page.getByText('Edit profile', { exact: true }).click();
+    await page.reload(); await openEditProfile(page);
     await page.locator('#profileEdit [name="phone"]').fill('670050104');
     assert.equal(await page.locator('#profileEdit [name="otp"]').count(), 0);
     await page.locator('#profileEditPasskey').click();
@@ -272,7 +357,7 @@ try {
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
@@ -284,7 +369,7 @@ try {
     await page.locator('#login [name="phone"]').fill('670050101');
     await page.locator('#customerPasskeyLogin').click();
     await page.waitForURL(/\/dashboard#account$/);
-    await page.locator('#sessionActivity summary').click();
+    await openSessions(page);
     await page.getByRole('button', { name: 'View security history', exact: true }).click();
     const centre = page.getByRole('dialog', { name: 'Notifications', exact: true });
     await centre.getByRole('heading', { name: /Passkey sign-in/ }).waitFor();
@@ -305,7 +390,7 @@ try {
     await page.locator('#submitLabel').click(); await page.waitForURL(/\/voucher-ready\.html/);
     await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
     await page.getByRole('link', { name: 'Continue to Dashboard / Wi-Fi', exact: true }).click(); await page.waitForURL('**/dashboard');
-    await page.locator('[data-portal-tab="account"]').click(); await page.getByText('Edit profile', {exact:true}).click(); await page.locator('#profileEdit').waitFor();
+    await openPortalView(page, 'account'); await openEditProfile(page); await page.locator('#profileEdit').waitFor();
     const before = (await store.snapshot()).customers.find((c) => c.phone === '670050188');
     assert.equal(before.email, ''); assert.equal(before.emailVerificationRequired, true);
     await page.locator('#profileEdit [name="email"]').fill('linked@example.test');
@@ -320,7 +405,7 @@ try {
     const after = (await store.snapshot()).customers.find((c) => c.id === before.id);
     assert.equal(after.email, 'linked@example.test'); assert.ok(after.emailVerifiedAt);
     assert.equal(after.pendingEmail, undefined);
-    await page.locator(portalTab("payments")).click();
+    await openPortalView(page, "payments");
     await page.getByRole('button', { name: 'Email receipt', exact: true }).click();
     await page.getByText('Receipt sent to your account email.', { exact: true }).waitFor();
   }, 320);
@@ -329,11 +414,11 @@ try {
     await cdp.send('WebAuthn.enable');
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true,
       hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
-    await page.goto(`${portal}/dashboard#account`); await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
+    await page.goto(`${portal}/dashboard#account`); await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
-    await page.locator('#emailAccount summary').click();
+    await openEditProfile(page);
     await page.locator('#profileEdit [name="email"]').fill('passkey@example.test');
     await page.locator('#profileEditPasskey').click(); await page.locator('#confirmEmail').waitFor();
     let submissions = 0;
@@ -371,7 +456,7 @@ try {
     await page.goto(`${portal}/dashboard`);
     await page.locator(portalTabBadge("payments")).waitFor();
     assert.equal(await page.locator(portalTabBadge("payments")).innerText(), '1');
-    await page.locator(portalTab("payments")).click();
+    await openPortalView(page, "payments");
     await page.getByText('Payment number: 670050199', { exact: true }).waitFor();
   });
   for (const protection of ['payment', 'unsaved', 'offline']) {

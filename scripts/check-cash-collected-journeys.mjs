@@ -4,6 +4,7 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { chromium } from "playwright";
+import { uiV2 } from "./admin-nav.mjs";
 const store = createStore({ persistent: false }),
   secret = randomUUID();
 const now = new Date("2026-11-08T16:00:00Z"),
@@ -98,7 +99,15 @@ try {
         errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(admin + "/dashboard");
-      await page.locator("#admin-nav-payments").click();
+      // v2 gives the cash report its own screen (Cash and settlements).
+      const cashView = uiV2 && role === "owner";
+      if (uiV2 && role === "reseller") {
+        await page.locator('#admin-nav-home[aria-current="page"]').waitFor();
+        assert.equal(await page.locator("#admin-nav-payments").count(), 0);
+        assert.equal(await page.locator("#admin-nav-cash").count(), 0);
+      } else {
+        await page.locator(cashView ? "#admin-nav-cash" : "#admin-nav-payments").click();
+      }
       if (role === "owner") {
         await page.waitForFunction(() =>
           document
@@ -115,7 +124,7 @@ try {
         );
         assert.equal(await page.locator("#settlementReport").count(), 0);
         assert.doesNotMatch(
-          await page.locator("#panel-payments").innerText(),
+          await page.locator(cashView ? "#panel-cash" : "#panel-payments").innerText(),
           /Recorded offline voucher sales|99,999|88,888|77,777/,
         );
         await page.reload();

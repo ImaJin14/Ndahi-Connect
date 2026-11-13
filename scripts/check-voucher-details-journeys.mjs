@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { adminSignOutName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false }), secret = randomUUID(), token = randomUUID();
 const at = new Date("2030-01-01T12:00:00Z");
@@ -120,7 +121,7 @@ try {
       const response = await route.fetch(); started(); await gate; await route.fulfill({ response }).catch(() => {});
     });
     await expand(page).click(); await begun;
-    await page.getByRole("button", { name: "Logout", exact: true }).click();
+    await page.getByRole("button", { name: adminSignOutName, exact: true }).click();
     await page.waitForFunction(() => location.pathname === "/login"); release();
     assert.equal(await page.getByText("670000001", { exact: true }).count(), 0);
     const state = await store.snapshot(); assert.equal(state.adminSessions.length, 0);

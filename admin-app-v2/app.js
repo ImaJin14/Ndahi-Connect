@@ -1,4 +1,12 @@
 import { mountCashCollectedReport } from "/cash-collected.js";
+import { mountVoucherRecords } from "/vouchers.js";
+import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
+import { bundleCards, showBundleEdit } from "/bundles.js";
+import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
+import { adminSecurity, serviceCards } from "/connections.js";
+import { exportAudit, mountAuditRecords } from "/audit.js";
+import { mountProfile, profileMarkup } from "/profile.js";
+import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -6,32 +14,32 @@ import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
-import { activeAdminView, mountAdminNavigation } from "/navigation.js";
+import { activeAdminView, adminViewParam, mountAdminNavigation, setAdminBadges, setAdminHead } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 import { mountResellerLedger } from "/reseller-ledger.js";
+import { format, t } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+import { updateHomeRouterMenu } from "/home-entry.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
   rows = (items, render) => items.map(render).join("");
 let bundleIndex = new Map();
-const saleLabel = (v) => v.paymentId ? "Online" : v.saleType === "sold" ? "Sold" : v.saleType === "gift" ? "Gift" : v.generatedByAdmin ? "Unclassified" : "—";
 const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
-// Operational sale counts are separate from provider-reported net settlements.
-function revenueSummary(sales) {
-  return sales ? `<div id="cashCollectedReport"></div>` : "";
-}
 let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 let activePrintController = null;
+// The last generated batch, kept in memory only for its print screen.
+let lastBatch = null, voucherRecords, prefillAssignedVoucher = () => {};
 function clearPrintContainers() {
   activePrintController?.destroy();
   activePrintController = null;
-  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint"]) {
+  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint", "#voucherPrintTray", "#voucherPrintActions"]) {
     $(selector)?.replaceChildren();
   }
 }
@@ -52,6 +60,32 @@ function openSingleVoucherPrintPreview(targetContainer, result) {
   };
   targetContainer.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
 }
+// Print screen (canvas: AdminVoucherPrint): the batch's slips, mounted while the
+// screen is open. Without a batch in memory (after a reload) it goes back to Vouchers.
+function showBatchPrint(view) {
+  const tray = $("#voucherPrintTray");
+  if (!tray) return;
+  if (view !== "voucher-print") {
+    if (tray.childElementCount) { activePrintController?.destroy(); activePrintController = null; tray.replaceChildren(); $("#voucherPrintActions")?.replaceChildren(); }
+    return;
+  }
+  if (!lastBatch) { location.replace("/dashboard#vouchers"); return; }
+  const { vouchers, plan, reseller } = lastBatch, count = vouchers.length;
+  setAdminHead({
+    title: count === 1 ? L("adminPrintTitleOne", { code: vouchers[0].code }) : L("adminPrintTitle", { count }),
+    lede: [count === 1 ? L("adminSlipsOne") : L("adminSlips", { count }), plan?.name, reseller ? L("adminForName", { name: reseller }) : ""].filter(Boolean).join(" · "),
+  });
+  tray.innerHTML = '<div id="voucherPrintPreview"></div>';
+  activePrintController = mountGeneratedVoucherPrint({
+    container: $("#voucherPrintPreview"),
+    toolbar: $("#voucherPrintActions"),
+    vouchers,
+    plan,
+    layout: "thermal-58",
+    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere") },
+  });
+}
+
 window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
   const message = document.querySelector("#actionMessage") || document.querySelector("#app");
@@ -89,6 +123,47 @@ async function runAction(button, text, task, message = "#actionMessage") {
     ($(message) || $("#actionMessage") || $("#app")).textContent = error.message || "The action could not be completed.";
   }
 }
+const L = (key, values) => format(key, values || {}, currentLanguage());
+
+// Needs attention: only real signals, each linking to where it is handled.
+async function loadHomeAttention(x, storeSnapshot, contacts) {
+  const host = $("#homeAttention");
+  if (!host) return;
+  // Tones follow the canvas: waiting money orange, orders blue, stock neutral, failures red.
+  const items = [], item = (href, text, tone) => items.push(`<a class="admin-attention admin-attention--${tone}" href="${href}">${h(text)}<span aria-hidden="true">→</span></a>`);
+  const [pending, store] = await Promise.all([
+    contacts ? call("/api/admin/records?collection=payments&status=pending&pageSize=50").catch(() => null) : null,
+    storeSnapshot,
+  ]);
+  const late = (pending?.items || []).filter((p) => Date.now() - Date.parse(p.createdAt) > 10 * 60000).length;
+  if (late) item("/dashboard#payments", late === 1 ? L("adminAttentionPaymentsOne") : L("adminAttentionPayments", { count: late }), "warning");
+  const badges = { payments: late };
+  if (store) {
+    const preparing = store.orders.filter((o) => o.status === "preparing").length;
+    const orders = $("#homeOrdersMetric");
+    if (orders) orders.textContent = String(preparing);
+    badges.store = preparing;
+    if (preparing) item("/dashboard#store", preparing === 1 ? L("adminAttentionOrdersOne") : L("adminAttentionOrders", { count: preparing }), "info");
+    const lang = currentLanguage();
+    store.products.filter((p) => p.status === "published" && p.available <= 3).forEach((p) => item("/dashboard#products", L("adminAttentionStock", { name: typeof p.name === "object" ? p.name[lang] || p.name.en : p.name, count: p.available }), "neutral"));
+  }
+  if (x.paymentWebhooks?.deadLetters) item("/dashboard#payments", L("adminAttentionWebhooks", { count: x.paymentWebhooks.deadLetters }), "danger");
+  if (x.paymentReconciliation?.issues?.length) item("/dashboard#payments", L("adminAttentionPaymentChecks", { count: x.paymentReconciliation.issues.length }), "warning");
+  if (x.networkCommands?.deadLetters) item("/dashboard#connections", L("adminAttentionCommands", { count: x.networkCommands.deadLetters }), "danger");
+  if (x.networkReconciliation?.issues?.length) item("/dashboard#connections", L("adminAttentionNetworkChecks", { count: x.networkReconciliation.issues.length }), "warning");
+  // Side menu counts, as on the canvas: payments waiting, orders to prepare.
+  setAdminBadges(badges);
+  host.innerHTML = items.length ? items.join("") : `<p class="nd-meta">${h(L(contacts ? "adminAttentionNone" : "adminUnavailable"))}</p>`;
+}
+
+async function loadHomePayments() {
+  const host = $("#homePayments");
+  if (!host) return;
+  const result = await call("/api/admin/records?collection=payments&pageSize=4").catch(() => null);
+  if (!result) { host.closest("section").hidden = true; return; }
+  host.innerHTML = result.items.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColFor"))}</th><th scope="col">${h(L("adminColMethod"))}</th><th scope="col">${h(L("adminColStatus"))}</th></tr></thead><tbody>${result.items.map((p) => `<tr><td>${h(maskPhone(p.payerPhone))}</td><td>${h(paymentFor(p))}</td><td>${h(paymentMethod(p))}</td><td>${paymentStatus(p)}</td></tr>`).join("")}</tbody></table>` : `<p class="nd-meta">${h(L("adminNoPayments"))}</p>`;
+}
+
 async function load() {
   const x = await call("/api/admin/dashboard");
   adminRole = x.profile.role;
@@ -103,87 +178,134 @@ async function load() {
       (b) => `<option value="${h(b.id)}">${h(b.name)}</option>`,
     );
   bundleIndex = new Map(x.bundles.map((bundle) => [bundle.id, bundle]));
+  // Restricted dashboards include zero-valued record totals. Only the role's
+  // actual capabilities permit contact/payment views; counts are not grants.
+  const storeRole = canManagePayments, access = { contacts: canManagePayments, codes: canManagePayments || adminRole === "reseller" };
+  $("#adminHeadActions").innerHTML = `${access.codes ? `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>` : ""}${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button>` : ""}<div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}`;
+  const auditExport = $("#auditExport");
+  if (auditExport) auditExport.onclick = () => runAction(auditExport, L("adminExporting"), () => exportAudit(call));
+  const paymentsExport = $("[data-payments-export]");
+  if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
-<section class="card tab-panel" data-tab-panel="home" id="panel-home"><h2>Overview</h2><div class="metrics">${
-    Object.entries(x.metrics).map(([k, v]) =>
-      `<div class="metric"><b${k === "activeSessions" ? ' id="activeSessionsMetric"' : k === "revenue" ? ' id="cashCollectedMetric"' : ""}>${k === "revenue" ? (x.cashCollected?.amount == null ? "Unavailable" : fcfa(x.cashCollected.amount)) : h(v)}</b>${k === "activeSessions" ? '<a href="/dashboard#devices"><span class="live-pulse" aria-hidden="true"></span>Active Wi-Fi sessions</a>' : h(k === "revenue" ? "Cash collected before fees" : k.replace(/([A-Z])/g, " $1"))}</div>`
-    ).join("")
-  }</div><p>Manage live connections, vouchers and payments from the navigation.</p><div class="action-row"><a class="button-link" href="/dashboard#devices">View devices</a><a class="button-link secondary-link" href="/dashboard#connections">Network commands &amp; health</a></div></section>
-<section class="card tab-panel" data-tab-panel="devices" id="panel-devices"><h2>Live Wi-Fi devices</h2><div class="device-controls"><button type="button" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>Refresh devices</button><div id="wifiSummary" role="status" aria-live="polite"></div></div><div id="wifiMessage" role="status" aria-live="polite"></div><div id="wifiRecords"></div></section>
-<section class="card more-menu" data-admin-more><h2>More</h2><div class="admin-tabs" role="tablist" aria-label="Admin dashboard sections">
-  ${[
-    ...(x.profile.role === "owner" ? [["network-setup", "Network setup"]] : []),
-    ["voucher-create", "Generate voucher"],
-    ["audit", "Audit"],
-  ].map(([id, label]) => `<button role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="${activeAdminTab === id}" tabindex="${activeAdminTab === id ? "0" : "-1"}" data-tab="${id}">${label}</button>`).join("")}
-</div><div id="adminInstall"></div></section><div class="tab-panels">
-<section class="card integration-card tab-panel" id="panel-connections" role="tabpanel" aria-labelledby="admin-nav-connections" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">System health</p><h2>Connections & security</h2></div><span class="payment-chip">Payments: ${h(x.integrations.payments)}</span></div><div class="integration-grid">
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>MikroTik</h3><span class="status-chip ${x.integrations.mikrotik === "live" ? "status-good" : "status-warning"}">${h(x.integrations.mikrotik)}</span></div><p>Refresh hotspot usage and quota readings from the router.</p></div><button class="secondary-action" id="syncUsage">Sync usage</button></article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Omada</h3><span class="status-chip ${["live", "standalone"].includes(x.integrations.omada) ? "status-good" : "status-warning"}">${h(x.integrations.omada)}</span></div><p>${x.integrations.omada === "standalone" ? "Access points run standalone. No Omada controller is used." : "Check controller connectivity and access-point availability."}</p></div>${x.integrations.omada === "standalone" ? "" : '<button class="secondary-action" id="checkOmada">Check connection</button>'}</article>
-  <article class="integration-item"><div class="integration-copy"><div class="integration-title"><h3>Password &amp; passkeys</h3></div><p>Use your password or a passkey. Sensitive changes require fresh verification.</p></div><form id="adminPasskeys"><button type="button" class="secondary-action" id="enrollPasskey">Add passkey</button></form><ul>${(x.profile.passkeyList || []).map((key,index) => `<li>${h(key.label || `Passkey ${index+1}`)} <button type="button" data-remove-admin-passkey="${h(key.id)}">Remove passkey</button></li>`).join("")}</ul></article>
-</div><div id="integrationMessage" role="status" aria-live="polite"></div><h3>Network reconciliation</h3><p>Automatic checks are ${x.networkReconciliation?.enabled ? "enabled" : "disabled"}. Drift against the router is repaired automatically through the durable command queue.</p>${x.networkReconciliation?.issues?.length ? `<table><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No network reconciliation findings recorded.</p>"}<h3>Network commands</h3><p>${h(x.networkCommands?.pending || 0)} pending · ${h(x.networkCommands?.deadLetters || 0)} need review</p>${x.networkCommands?.commands?.length ? `<table><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button data-replay-command="${h(c.id)}">Replay</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : "<p>No network commands awaiting recovery.</p>"}</section>
-${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-network-setup" role="tabpanel" aria-labelledby="tab-network-setup" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
-<section class="card tab-panel" id="panel-bundles" role="tabpanel" aria-labelledby="admin-nav-bundles" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><h2>Bundle management</h2><h3>Create bundle</h3><form id="bundle"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" placeholder="FCFA" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="GB (blank = unlimited)"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" placeholder="Hours" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" placeholder="Devices" required><button>Create</button></form><form id="bundleEdit" hidden><input name="bundleId" type="hidden"><input name="name" aria-label="Bundle name" placeholder="Name" required><input name="price" aria-label="Price in FCFA" type="number" min="0" required><input name="quotaGb" aria-label="Quota in gigabytes" type="number" min="0" step="0.1" placeholder="Unlimited"><input name="validityHours" aria-label="Validity in hours" type="number" min="1" required><input name="deviceLimit" aria-label="Device limit" type="number" min="1" required><button>Save changes</button><button type="button" data-cancel-edit>Cancel</button></form><div id="bundleMessage" role="status" aria-live="polite"></div><table><thead><tr><th>Name</th><th>Price</th><th>Quota</th><th>Validity</th><th>Devices</th><th>Type</th><th>Actions</th></tr></thead><tbody>${
-    rows(x.bundles, (b) =>
-      `<tr><td>${h(b.name)}</td><td>${h(b.price)} FCFA</td><td>${
-        h(b.quotaGb ?? "Unlimited")
-      } GB</td><td>${h(b.validityHours)} hours</td><td>${h(b.deviceLimit)}</td><td>${
-        b.custom ? "Custom" : "System"
-      }</td><td><button data-edit-bundle="${h(b.id)}">Edit</button>${
-        b.custom ? ` <button data-delete-bundle="${h(b.id)}">Delete</button>` : ""
-      }</td></tr>`)
-  }</tbody></table></section>
-<section class="card tab-panel" id="panel-voucher-create" role="tabpanel" aria-labelledby="tab-voucher-create" data-tab-panel="voucher-create" ${activeAdminTab === "voucher-create" ? "" : "hidden"}><div class="section-heading"><div><p class="section-kicker">Voucher inventory</p><h2>Generate vouchers</h2></div></div><form id="generate" class="voucher-builder">
-  <label>Purpose<select name="purpose" id="voucherPurpose"><option value="resale">Resale inventory</option><option value="assigned">Assign to customer</option></select></label>
-  <div id="voucherCustomer" class="customer-picker" hidden><label>Find customer<input type="search" id="customerSearch" maxlength="100" placeholder="Name or phone"></label><label>Customer<select name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="checkbox"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> Replace customer's existing active bundle</label></div>
-  <label>Sale type<select name="saleType" id="voucherSaleType" required><option value="">Choose…</option><option value="sold" selected>Sold — counts as revenue</option>${["owner", "operator"].includes(x.profile.role) ? '<option value="gift">Gift — complimentary, no revenue</option>' : ""}</select></label>
-  <label>Bundle type<select name="planMode" id="voucherPlanMode"><option value="existing">Existing bundle</option><option value="custom">Custom voucher</option></select></label>
-  <label id="voucherExistingPlan">Bundle<select name="planId">${bundleOptions}</select></label>
-  <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
-    <label>Voucher name<input name="name" maxlength="80" placeholder="Weekend resale"></label>
-    <label>Resale price (FCFA)<input name="price" type="number" min="0" placeholder="1000"></label>
-    <label>Data allowance (GB)<input name="quotaGb" type="number" min="0.1" step="0.1" placeholder="Blank = unlimited"></label>
-    <label>Validity after activation (hours)<input name="validityHours" type="number" min="1" placeholder="168"></label>
-    <label>Device limit<input name="deviceLimit" type="number" min="1" value="1"></label>
+<section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">
+<div class="nd-metric"><b class="nd-metric__value" id="activeSessionsMetric">${h(x.metrics.activeSessions == null ? L("adminUnavailable") : x.metrics.activeSessions)}</b><a class="nd-metric__label" href="/dashboard#devices">${h(L("adminMetricDevicesOnline"))}</a></div>
+<div class="nd-metric"><b class="nd-metric__value">${h(access.contacts && x.metrics.bundlesSold != null ? x.metrics.bundlesSold : L("adminUnavailable"))}</b><span class="nd-metric__label">${h(L("adminMetricBundlesSold"))}</span></div>
+<div class="nd-metric"><b class="nd-metric__value" id="cashCollectedMetric">${x.cashCollected?.amount == null ? h(L("adminUnavailable")) : fcfa(x.cashCollected.amount)}</b><span class="nd-metric__label">${h(L("adminMetricCollected"))}</span></div>
+${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="homeOrdersMetric">…</b><a class="nd-metric__label" href="/dashboard#store">${h(L("adminMetricOrdersToPrepare"))}</a></div>` : ""}
+</div><div class="admin-home__row"><section class="nd-panel admin-home__attention" aria-labelledby="homeAttentionTitle"><h2 class="nd-h2" id="homeAttentionTitle">${h(L("adminAttentionTitle"))}</h2><div id="homeAttention" aria-live="polite"></div></section>
+${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
+<section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><section class="nd-panel admin-devices__list" aria-label="${h(L("adminDevicesList"))}"><div id="wifiRecords"></div></section></section>
+<section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
+<section class="tab-panel admin-connections" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="admin-connections__grid">${serviceCards(x)}</div><p id="integrationMessage" class="nd-meta" role="status" aria-live="polite"></p>
+<section class="nd-panel admin-security" aria-labelledby="adminSecurityTitle"><h2 class="nd-h2" id="adminSecurityTitle">${h(L("adminSecurityTitle"))}</h2>${adminSecurity(x)}</section>
+<section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></section>
+${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel-network-setup" aria-labelledby="adminTitle" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
+<section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><div class="admin-bundles__grid">${bundleCards(x.bundles, x.usageByBundle)}</div><p id="bundleMessage" class="nd-meta" role="status" aria-live="polite"></p>
+<section class="nd-panel" aria-labelledby="bundleCreateTitle"><h2 class="nd-h2" id="bundleCreateTitle">${h(L("adminNewBundle"))}</h2><form id="bundle" class="admin-form admin-form--row">
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldName"))}</span><input class="nd-input" name="name" maxlength="80" placeholder="${h(L("adminBundleNameHint"))}" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldPrice"))}</span><input class="nd-input" name="price" type="number" min="0" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1" placeholder="${h(L("adminFieldDataGbHint"))}"></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
+  <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" value="1" required></label>
+  <button type="submit" class="nd-btn">${h(L("adminCreateBundle"))}</button>
+</form></section></section>
+<section class="tab-panel admin-bundle-edit" id="panel-bundle-edit" aria-labelledby="adminTitle" data-tab-panel="bundle-edit" ${activeAdminTab === "bundle" ? "" : "hidden"}><div class="admin-bundle-edit__row">
+<section class="nd-panel admin-bundle-edit__form" aria-label="${h(L("adminBundleSettings"))}"><form id="bundleEdit" class="admin-form"><input name="bundleId" type="hidden">
+  <div class="admin-form__grid">
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldName"))}</span><input class="nd-input" name="name" maxlength="80" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldPrice"))}</span><input class="nd-input" name="price" type="number" min="0" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" required></label>
   </div>
-  <label id="voucherQuantity">Quantity<input name="quantity" type="number" min="1" max="100" value="1"></label>
-  <label id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}>Assign to reseller (optional)<select name="assignedResellerId" id="voucherResellerSelect"><option value="">Unassigned stock</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
-  <p class="form-help" id="voucherHelp">Codes remain inactive and unassigned until the buyer first redeems them.</p>
-  <button>Generate resale vouchers</button>
+  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedData"))}</label>
+  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <p class="nd-callout nd-callout--warning admin-callout">${h(L("adminBundleEditNote"))}</p>
+  <div class="admin-form__actions"><button type="submit" class="nd-btn">${h(L("adminSaveBundle"))}</button><span id="bundleEditMessage" class="admin-saved" role="status" aria-live="polite"></span></div>
+</form></section>
+<section class="admin-bundle-edit__preview" aria-labelledby="bundlePreviewTitle"><h2 id="bundlePreviewTitle" class="admin-preview-title">${h(L("adminWhatCustomersSee"))}</h2><div class="admin-plan-preview" id="bundlePreview"><span><strong data-preview-name></strong><span data-preview-detail></span></span><strong data-preview-price></strong></div></section>
+</div></section>
+<section class="tab-panel admin-vouchers" id="panel-vouchers" aria-labelledby="adminTitle" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><div class="admin-vouchers__row">
+<section class="nd-panel admin-vouchers__create" aria-labelledby="voucherCreateTitle"><h2 class="nd-h2" id="voucherCreateTitle">${h(L("adminVoucherCreateTitle"))}</h2><form id="generate" class="admin-form">
+  <label class="nd-field" id="voucherExistingPlan"><span class="nd-label">${h(L("adminFieldBundle"))}</span><select class="nd-input" name="planId">${bundleOptions}</select></label>
+  <div class="admin-form__pair">
+    <label class="nd-field" id="voucherQuantity"><span class="nd-label">${h(L("adminFieldHowMany"))}</span><input class="nd-input" name="quantity" type="number" min="1" max="100" value="1"></label>
+    <label class="nd-field" id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}><span class="nd-label">${h(L("adminFieldForReseller"))}</span><select class="nd-input" name="assignedResellerId" id="voucherResellerSelect"><option value="">${h(L("adminFieldNone"))}</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
+  </div>
+  <details class="admin-options" id="voucherOptions"><summary>${h(L("adminMoreOptions"))}</summary><div class="admin-options__body">
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldPurpose"))}</span><select class="nd-input" name="purpose" id="voucherPurpose"><option value="resale">${h(L("adminPurposeResale"))}</option>${access.contacts ? `<option value="assigned">${h(L("adminPurposeAssigned"))}</option>` : ""}</select></label>
+    <div id="voucherCustomer" class="customer-picker" hidden><label class="nd-field"><span class="nd-label">${h(L("adminFindCustomer"))}</span><input class="nd-input" type="search" id="customerSearch" maxlength="100" placeholder="${h(L("adminFindCustomerHint"))}"></label><label class="nd-field"><span class="nd-label">${h(L("adminColCustomer"))}</span><select class="nd-input" name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="admin-check"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> ${h(L("adminReplaceActive"))}</label></div>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldSaleType"))}</span><select class="nd-input" name="saleType" id="voucherSaleType" required><option value="">${h(L("adminChoose"))}</option><option value="sold" selected>${h(L("adminSaleSold"))}</option>${["owner", "operator"].includes(x.profile.role) ? `<option value="gift">${h(L("adminSaleGift"))}</option>` : ""}</select></label>
+    <label class="nd-field"><span class="nd-label">${h(L("adminFieldBundleType"))}</span><select class="nd-input" name="planMode" id="voucherPlanMode"><option value="existing">${h(L("adminBundleExisting"))}</option><option value="custom">${h(L("adminBundleCustom"))}</option></select></label>
+    <div id="voucherCustomFields" class="custom-voucher-fields" hidden>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldVoucherName"))}</span><input class="nd-input" name="name" maxlength="80" placeholder="Weekend resale"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldResalePrice"))}</span><input class="nd-input" name="price" type="number" min="0" placeholder="1000"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1" placeholder="${h(L("adminFieldDataGbHint"))}"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityHours"))}</span><input class="nd-input" name="validityHours" type="number" min="1" placeholder="168"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" value="1"></label>
+    </div>
+  </div></details>
+  <p class="nd-hint" id="voucherHelp"></p>
+  <button type="submit" class="nd-btn nd-btn--block"></button>
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></section>
-<section class="card tab-panel" id="panel-customers" role="tabpanel" aria-labelledby="admin-nav-customers" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><h2>Customers and session history</h2><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerRecords"></div><details><summary>Legacy application-session history</summary><p>These records do not establish which devices are connected to Wi-Fi now. Use Devices for live connections.</p><div id="sessionRecords"></div></details></section>
-<section class="card tab-panel" id="panel-vouchers" role="tabpanel" aria-labelledby="admin-nav-vouchers" data-tab-panel="vouchers" ${activeAdminTab === "vouchers" ? "" : "hidden"}><h2>Vouchers</h2><p><a class="button-link" href="/dashboard#voucher-create">Generate vouchers</a></p><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="resellerLedger"></div><div id="voucherRecords"></div></section>
-<section class="card tab-panel" id="panel-payments" role="tabpanel" aria-labelledby="admin-nav-payments" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}><h2>Payments and usage</h2>${revenueSummary(x.sales)}<h3>Payment reconciliation</h3><p>Automatic checks are ${x.paymentReconciliation?.enabled ? "enabled" : "disabled"}. Findings require review before changing payment or voucher status.</p>${x.paymentReconciliation?.issues?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Findings</th><th>Last checked</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : "<p>No reconciliation findings recorded.</p>"}<h3>Webhook recovery</h3><p>${h(x.paymentWebhooks?.pending || 0)} pending · ${h(x.paymentWebhooks?.deadLetters || 0)} need review</p>${x.paymentWebhooks?.events?.length ? `<table><thead><tr><th>Payment</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button data-replay-webhook="${h(event.id)}">Replay</button>` : ""}</td></tr>`)}</tbody></table>` : "<p>No failed webhooks awaiting recovery.</p>"}<div id="paymentRecords"></div></section>
-<section class="card tab-panel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><h2>Audit log</h2><div id="auditRecords"></div><div id="securityRecords"></div></section></div>`;
+<section class="nd-panel admin-vouchers__list" aria-labelledby="voucherRecordsTitle"><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="voucherRecords"></div></section>
+</div></section>
+<section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNote"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
+<section class="tab-panel admin-resellers" id="panel-resellers" aria-labelledby="adminTitle" data-tab-panel="resellers" ${activeAdminTab === "resellers" ? "" : "hidden"}><div id="resellerLedger"></div></section>
+<section class="tab-panel admin-customers" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><section class="nd-panel admin-customers__list" aria-label="${h(L("adminCustomerList"))}"><div id="customerRecords"></div><p class="nd-meta admin-customers__note">${h(L("adminSuspendNote"))}</p></section><details class="admin-options admin-legacy"><summary>${h(L("adminLegacySessions"))}</summary><p class="nd-meta">${h(L("adminLegacySessionsNote"))}</p><div id="sessionRecords"></div></details></section>
+<section class="tab-panel admin-customer" id="panel-customer" aria-labelledby="adminTitle" data-tab-panel="customer" ${activeAdminTab === "customer" ? "" : "hidden"}><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerDetail"></div></section>
+<section class="tab-panel admin-payments" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}>${access.contacts ? `<div class="nd-metrics admin-payments__metrics">
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayBundles">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayBundles"))}</span></div>
+${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayStore">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayStore"))}</span></div>` : ""}
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsWaiting">—</b><span class="nd-metric__label">${h(L("adminPaymentsWaiting"))}</span></div>
+<div class="nd-metric"><b class="nd-metric__value" id="paymentsFailedToday">—</b><span class="nd-metric__label">${h(L("adminPaymentsFailedToday"))}</span></div></div>` : ""}
+<section class="nd-panel" aria-labelledby="paymentRecordsTitle"><div id="paymentRecords"></div></section>
+<section class="nd-panel admin-payments__checks" aria-labelledby="paymentChecksTitle"><h2 class="nd-h2" id="paymentChecksTitle">${h(L("adminChecksTitle"))}</h2>
+<h3 class="nd-h3">${h(L("adminReconTitle"))}</h3><p class="nd-meta">${h(L(x.paymentReconciliation?.enabled ? "adminReconOn" : "adminReconOff"))}</p>${x.paymentReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColFindings"))}</th><th scope="col">${h(L("adminColChecked"))}</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminReconNone"))}</p>`}
+<h3 class="nd-h3">${h(L("adminWebhooksTitle"))}</h3><p class="nd-meta">${h(L("adminWebhooksCount", { pending: x.paymentWebhooks?.pending || 0, review: x.paymentWebhooks?.deadLetters || 0 }))}</p>${x.paymentWebhooks?.events?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColStatus"))}</th><th scope="col">${h(L("adminColAttempts"))}</th><th scope="col">${h(L("adminColReason"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminColAction"))}</span></th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-replay-webhook="${h(event.id)}">${h(L("adminReplay"))}</button>` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminWebhooksNone"))}</p>`}</section></section>
+${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelledby="adminTitle" data-tab-panel="cash" ${activeAdminTab === "cash" ? "" : "hidden"}><div id="cashCollectedReport"></div></section>` : ""}
+<section class="tab-panel admin-audit" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><section class="nd-panel admin-audit__list" aria-label="${h(L("adminAuditEntries"))}"><div id="auditRecords"></div></section><details class="admin-options admin-legacy"><summary>${h(L("adminSecurityEvents"))}</summary><p class="nd-meta">${h(L("adminSecurityEventsNote"))}</p><div id="securityRecords"></div></details></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
-    if (table.closest(".table-scroll")) continue;
+    if (table.closest(".table-scroll, .nd-table-wrap")) continue;
     const wrapper = document.createElement("div");
     wrapper.className = "table-scroll";
     table.before(wrapper); wrapper.append(table);
   }
+  // Customer detail (canvas: AdminCustomerDetail) for #customer/<id>.
+  const openCustomer = () => {
+    $("#customerVoucherPrint").replaceChildren();
+    return showCustomerDetail($("#customerDetail"), { call, id: adminViewParam(), role: adminRole, canManage: canManagePayments, storeRole, setHead: setAdminHead, statusHost: $("#customerStatusHost") });
+  };
   let storeManagement;
   if (["owner", "operator"].includes(adminRole)) {
     const panel = document.createElement("section");
-    panel.className = "card tab-panel";
+    panel.className = "tab-panel admin-store-panel";
     panel.dataset.tabPanel = "store";
-    panel.id = "panel-store";
-    panel.setAttribute("role", "tabpanel");
-    panel.setAttribute("aria-labelledby", "admin-nav-store");
-    panel.hidden = activeAdminTab !== "store";
+    // v2 id: v1's #panel-store rules in styles.css would override the kit look.
+    panel.id = "panel-store-v2";
+    panel.setAttribute("aria-labelledby", "adminTitle");
+    panel.hidden = !["store", "products", "product"].includes(activeAdminTab);
     $("#app").append(panel);
-    storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken });
+    storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken, setHead: setAdminHead,
+      heads: { store: $("#storeHeadOrders"), products: $("#storeHeadProducts"), product: $("#storeHeadProduct") } });
   }
-  if (x.sales) mountCashCollectedReport(x.cashCollected);
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "store") void storeManagement?.activate(); if (view === "devices") void refreshWifiSummary(); });
+  if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
+  // Home and Payments both read the store's orders; fetch them once.
+  const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
+  void loadHomeAttention(x, storeSnapshot, access.contacts);
+  if (access.contacts) void loadHomePayments();
+  void updateHomeRouterMenu(adminRole, api);
+  if (access.contacts) void loadPaymentFigures({ call, storeRole, storeSnapshot });
   mountAdminInstall($("#adminInstall"));
+  mountProfile({ call, runAction, reload: load });
   renderWifiSummary(x.wifi);
   $("#refreshWifi").onclick = async (event) => {
-    await runAction(event.currentTarget, "Requesting reading…", async () => {
+    await runAction(event.currentTarget, L("adminRequestingReading"), async () => {
       const result = await call("/api/admin/wifi-devices/refresh", { method: "POST", body: "{}" });
       renderWifiSummary(result);
-      $("#wifiMessage").textContent = result.state === "refreshing" || result.state === "retrying" ? "A router reading was requested. The list will update after it succeeds." : "Device reading is current.";
+      $("#wifiMessage").textContent = L(result.state === "refreshing" || result.state === "retrying" ? "adminWifiRequested" : "adminWifiCurrent");
     }, "#wifiMessage");
     await refreshWifiSummary();
   };
@@ -206,38 +328,58 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
     }
     $("#voucherExistingPlan").hidden = custom;
     $("#voucherCustomFields").hidden = !custom;
-    $("#voucherHelp").textContent = resale
-      ? "Codes remain inactive and unassigned until the buyer first redeems them."
-      : "The voucher activates immediately and is linked to the selected customer.";
-    form.querySelector('button[type="submit"], button:not([type])').textContent = resale
-      ? "Generate resale vouchers"
-      : "Generate assigned voucher";
+    $("#voucherHelp").textContent = L(resale ? "adminVoucherHelpResale" : "adminVoucherHelpAssigned");
+    // Canvas: "Create 20 vouchers", following How many.
+    const count = Math.max(1, Math.floor(Number(form.elements.quantity.value) || 1));
+    form.querySelector('button[type="submit"]').textContent = resale
+      ? (count === 1 ? L("adminCreateVoucherOne") : L("adminCreateVouchers", { count }))
+      : L("adminCreateAssigned");
     for (const input of $("#voucherCustomFields").querySelectorAll("input")) {
       input.required = custom && input.name !== "quotaGb";
     }
   };
+  $("#generate").hidden = !access.codes;
   $("#voucherPurpose").onchange = updateVoucherBuilder;
+  // "Replace bundle" on a customer: Vouchers with an assigned voucher for them,
+  // replacing their active bundle. The picker searches by their phone.
+  prefillAssignedVoucher = (phone) => {
+    $("#voucherOptions").open = true;
+    $("#voucherPurpose").value = "assigned";
+    $("#customerSearch").value = phone;
+    const picker = customerPicker;
+    updateVoucherBuilder({ target: $("#voucherPurpose") });
+    if (picker) $("#customerSearch").dispatchEvent(new Event("input"));
+    $("#voucherReplaceActive").checked = true;
+    location.hash = "vouchers";
+  };
+  $("#generate").elements.quantity.oninput = updateVoucherBuilder;
   $("#voucherPlanMode").onchange = updateVoucherBuilder;
   updateVoucherBuilder();
   $("#bundle").onsubmit = async (e) => {
     e.preventDefault();
-    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
+    // Blank data means unlimited; the API reads an empty string as 0 GB.
+    const fields = Object.fromEntries(new FormData(e.target));
+    if (fields.quotaGb === "") fields.quotaGb = null;
+    await runAction(e.target.querySelector("button[type=submit]"), L("adminSaving"), async () => {
       await call("/api/admin/bundles", {
         method: "POST",
-        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
+        body: JSON.stringify(fields),
       });
       await load();
     }, "#bundleMessage");
   };
   $("#bundleEdit").onsubmit = async (e) => {
     e.preventDefault();
-    await runAction(e.target.querySelector("button:not([type]), button[type=submit]"), "Saving…", async () => {
-      await call("/api/admin/bundles/update", {
-        method: "POST",
-        body: JSON.stringify(Object.fromEntries(new FormData(e.target))),
-      });
+    const fields = Object.fromEntries(new FormData(e.target));
+    delete fields.unlimited;
+    if (e.target.elements.unlimited.checked) fields.quotaGb = "";
+    await runAction(e.target.querySelector("button[type=submit]"), L("adminSaving"), async () => {
+      await call("/api/admin/bundles/update", { method: "POST", body: JSON.stringify(fields) });
       await load();
-    }, "#bundleMessage");
+      // load() redraws the screen; say so on the fresh form.
+      const message = $("#bundleEditMessage");
+      if (message) { message.dataset.forBundle = fields.bundleId; message.textContent = L("adminBundleSaved"); }
+    }, "#bundleEditMessage");
   };
   const resellerLedgerView = mountResellerLedger($("#resellerLedger"), {
     initialLedger: x.resellerLedger,
@@ -257,14 +399,11 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
       });
       const vouchers = result.vouchers || [result.voucher];
       clearPrintContainers();
-      $("#generated").innerHTML = `<div class="generated-heading"><div><strong>${h(vouchers.length)} voucher${vouchers.length === 1 ? "" : "s"} generated</strong><p>${result.voucher.status === "available" ? "Ready for resale. Validity starts on first redemption." : result.replacedVoucher ? "Assigned and active (replaced previous active bundle)." : "Assigned and active."}</p></div><div class="action-row"><button type="button" class="secondary-action" id="downloadVouchers">Download CSV</button><button type="button" class="secondary-action" id="closeGenerated">Close codes</button></div></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><div id="voucherPrintPreview"></div>`;
-      activePrintController = mountGeneratedVoucherPrint({
-        container: $("#voucherPrintPreview"),
-        vouchers,
-        plan: result.plan,
-        layout: "thermal-58",
-      });
-      $("#closeGenerated").onclick = () => { clearPrintContainers(); $("#generate").reset(); updateVoucherBuilder(); };
+      // Canvas: a ready box with Print slips, which opens the print screen.
+      const resellerName = $("#voucherResellerSelect")?.selectedOptions[0]?.value ? $("#voucherResellerSelect").selectedOptions[0].textContent : "";
+      lastBatch = { vouchers, plan: result.plan, reseller: resellerName };
+      $("#generated").innerHTML = `<div class="admin-batch"><div class="generated-heading"><strong>${h(vouchers.length === 1 ? L("adminGeneratedOne") : L("adminGeneratedMany", { count: vouchers.length }))}</strong><p class="nd-meta">${h(L(result.voucher.status === "available" ? "adminGeneratedResale" : result.replacedVoucher ? "adminGeneratedReplaced" : "adminGeneratedAssigned"))}</p></div><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div><a class="nd-btn nd-btn--dark nd-btn--block" href="/dashboard#voucher-print">${h(L("adminPrintSlips"))}</a><div class="admin-batch__more"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="downloadVouchers">${h(L("adminDownloadCsv"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="closeGenerated">${h(L("adminCloseCodes"))}</button></div></div>`;
+      $("#closeGenerated").onclick = () => { clearPrintContainers(); lastBatch = null; $("#generate").reset(); updateVoucherBuilder(); };
       $("#downloadVouchers").onclick = () => {
         const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
           link = document.createElement("a");
@@ -273,11 +412,12 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
         link.click();
         URL.revokeObjectURL(link.href);
       };
+      void voucherRecords?.refresh();
       await resellerLedgerView.refresh();
     });
   };
   void mountNetworkSetup($("#networkSetup"), call);
-  mountRecordViews(canManagePayments, x.profile.authenticatorRetired);
+  mountRecordViews(canManagePayments);
   $("#syncUsage").onclick = async () => {
     await runAction($("#syncUsage"), "Syncing…", async () => {
       const result = await call("/api/admin/integrations/sync-usage", {
@@ -331,26 +471,12 @@ ${x.profile.role === "owner" ? `<section class="card tab-panel" id="panel-networ
   };
 
 }
-function mountRecordViews(canManagePayments, retired) {
+function mountRecordViews(canManagePayments) {
+  wifiRecords = mountDeviceRecords($("#wifiRecords"), { call, canManage: canManagePayments });
+  voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
+  if (!canManagePayments) return;
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
-  void mountRecords($("#customerRecords"), {
-    call,
-    collection: "customers",
-    title: "Customers",
-    headers: ["Name", "Phone", "Status", "Actions"],
-    row: (c) => `<tr><td>${h(c.name)}</td><td>${h(c.phone)}</td><td>${h(c.status || "active")}</td><td>${c.status !== "suspended" ? `<button type="button" class="secondary-action" data-print-customer-voucher="${h(c.id)}">Print active voucher</button> ` : ""}<button data-customer="${h(c.id)}" data-suspended="${c.status === "suspended"}">${c.status === "suspended" ? "Restore account" : "Suspend"}</button>${adminRole === "owner" ? ` <button class="secondary-action" data-reset-authenticator="${h(c.id)}">Recover PIN</button>` : ""}</td></tr>`,
-  });
-  wifiRecords = mountRecords($("#wifiRecords"), {
-    call, collection: "wifiDevices", title: "Wi-Fi devices", refreshMs: 5000,
-    headers: ["Device", "Bundle", "Status", "Last Wi-Fi check", "Actions"],
-    row: (d) => {
-      const stale = !d.fresh;
-      const pending = d.disconnect && ["disconnecting", "retrying"].includes(d.disconnect.status);
-      const isLive = !stale && !pending && Boolean(d.sessionId);
-      const pulse = isLive ? '<span class="live-pulse" title="Live active session" aria-label="Active session"></span>' : '';
-      return `<tr><td>${h(d.name || "Unnamed device")}${d.main ? " · Main device" : ""}<br>${h(d.mac)}<br>${h(d.address || "")}</td><td>${h(d.voucherId)}</td><td>${pulse}${h(d.disconnect?.message || "Connected at last check")}${stale ? " · Waiting for a current Wi-Fi update" : ""}</td><td>${date(d.syncedAt)}</td><td>${canManagePayments ? `<button data-wifi-voucher="${h(d.voucherId)}" data-wifi-mac="${h(d.mac)}" data-wifi-session="${h(d.sessionId || "")}" data-wifi-started="${h(d.startedAt || "")}" ${stale || pending || !d.sessionId || !d.startedAt ? "disabled" : ""}>${pending ? "Disconnecting…" : "Disconnect"}</button>` : ""}</td></tr>`;
-    },
-  });
+  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost") });
   void mountRecords($("#sessionRecords"), {
     call,
     collection: "sessions",
@@ -358,45 +484,8 @@ function mountRecordViews(canManagePayments, retired) {
     headers: ["Device", "Device ID", "Status", "Last seen", "Actions"],
     row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
-  if (!retired) {
-  }
-  void mountRecords($("#voucherRecords"), {
-    call,
-    collection: "vouchers",
-    title: "Vouchers",
-    headers: ["Code", "Bundle", "Status", "Sale", "Email", "Devices", "Actions"],
-    row: (v) => `<tr><td><code>${h(v.code)}</code></td><td>${h(v.plan?.name)}</td><td>${h(v.status)}</td><td>${h(saleLabel(v))}</td><td>${h(v.emailStatus || "not sent")}</td><td>${h(v.activeDevices)}/${h(v.deviceLimit)}</td><td>${
-      ["active", "available"].includes(v.status) && v.permissions?.code !== false && v.code && v.code !== "Restricted"
-        ? `<button type="button" class="secondary-action" data-print-voucher="${h(v.id)}">Print voucher</button> `
-        : ""
-    }${
-      v.status === "active" ? `<button data-voucher="${h(v.id)}">Revoke</button>` : ""
-    }${v.paymentId && v.emailStatus !== "sent" ? ` <button class="secondary-action" data-resend-email="${h(v.id)}">Retry email</button>` : ""}${
-      v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => ` <button class="secondary-action" data-classify="${h(v.id)}" data-sale-type="${type}">Mark ${type === "sold" ? "sold" : "gift"}</button>`).join("") : ""
-    }</td></tr>`,
-  });
-  void mountRecords($("#paymentRecords"), {
-    call,
-    collection: "payments",
-    title: "Payments",
-    headers: ["Amount", "Provider", "Reference", "Status", "Created", "Actions"],
-    row: (p) => `<tr><td>${h(p.amount)} ${h(p.currency)}</td><td>${h(p.provider)}</td><td>${h(p.providerReference)}</td><td>${h(p.status)}${p.refund ? `<p>Refund: ${h(p.refund.status)}<br>${h(p.refund.message || "")}<br>${h(p.refund.reason || "")}<br>${h(p.refund.providerReference || "Awaiting provider reference")}</p>` : ""}</td><td>${date(p.createdAt)}</td><td>${
-      p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments
-        ? `<button data-refund="${h(p.id)}">Approve full refund</button>`
-        : ""
-    }${["paid", "refund-pending"].includes(p.status) && p.refund?.status === "pending" && canManagePayments ? `<button data-check-refund="${h(p.id)}">Check refund status</button>` : ""}${
-      canManagePayments && p.provider !== "mock" && !p.confirmedAt && !p.refund && ["pending", "processing", "failed", "expired", "cancelled"].includes(p.status)
-        ? ` <button class="secondary-action" data-verify-payment="${h(p.id)}">Check provider</button>`
-        : ""
-    }</td></tr>`,
-  });
-  void mountRecords($("#auditRecords"), {
-    call,
-    collection: "audit",
-    title: "Administrator actions",
-    headers: ["Time", "Action", "Actor", "IP"],
-    row: (a) => `<tr><td>${date(a.at)}</td><td>${h(a.action)}</td><td>${h(a.actor)}</td><td>${h(a.ip)}</td></tr>`,
-  });
+  void mountPaymentRecords($("#paymentRecords"), { call, canManagePayments });
+  void mountAuditRecords($("#auditRecords"), { call });
   void mountRecords($("#securityRecords"), {
     call,
     collection: "security",
@@ -408,30 +497,11 @@ function mountRecordViews(canManagePayments, retired) {
 $("#app").onclick = async (e) => {
   const button = e.target.closest("button");
   if (!button || button.disabled) return;
-  if (button.dataset.editBundle) {
-    const bundle = bundleIndex.get(button.dataset.editBundle),
-      form = $("#bundleEdit");
-    form.hidden = false;
-    $("#bundle").hidden = true;
-    for (
-      const [name, value] of Object.entries({
-        bundleId: bundle.id,
-        name: bundle.name,
-        price: bundle.price,
-        quotaGb: bundle.quotaGb ?? "",
-        validityHours: bundle.validityHours,
-        deviceLimit: bundle.deviceLimit,
-      })
-    ) form.elements[name].value = value;
-    form.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (button.dataset.replaceBundle) {
+    prefillAssignedVoucher(button.dataset.replacePhone || "");
     return;
   }
-  if (button.hasAttribute("data-cancel-edit")) {
-    $("#bundleEdit").hidden = true;
-    $("#bundle").hidden = false;
-    return;
-  }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -477,6 +547,8 @@ $("#app").onclick = async (e) => {
       });
     } else if (button.dataset.resetAuthenticator) {
       openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button, retired: adminAuthenticatorRetired }); return;
+    } else if (button.dataset.removeCustomerPasskeys) {
+      openAuthenticatorRecovery({ customerId: button.dataset.removeCustomerPasskeys, call, opener: button, purpose: "passkeys" }); return;
     } else if (button.dataset.customer) {
       const restoring = button.dataset.suspended === "true";
       if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;
@@ -541,18 +613,19 @@ load();
 function renderWifiSummary(summary) {
   const target = $("#wifiSummary");
   if (!target) return;
-  const states = { ready: "Router reading current", idle: "No active bundles", refreshing: "Router reading in progress", retrying: "Router unavailable; reading will retry", failed: "Router reading failed; review the connection", stale: "Waiting for a current router reading" };
-  target.textContent = `${summary.unreadVouchers && !summary.activeCount ? "Current connections unknown" : `${summary.activeCount} confirmed connected`}${summary.staleCount ? ` · ${summary.staleCount} last seen in an older reading` : ""}. ${states[summary.state] || "Reading unavailable"}.${summary.syncedAt ? ` Last successful check: ${new Date(summary.syncedAt).toLocaleString()}.` : ""}`;
-  if (!summary.live && summary.live !== undefined) target.textContent = "Connect a live router to see current Wi-Fi devices.";
+  target.textContent = deviceSummaryText(summary);
+  const live = $("#wifiLive");
+  if (live) live.dataset.state = summary.live === false ? "off" : summary.state || "";
   if (summary.refresh?.canReplay && ["owner", "operator"].includes(adminRole)) {
     const retry = document.createElement("button");
     retry.type = "button";
-    retry.textContent = "Retry router reading";
+    retry.className = "nd-btn nd-btn--compact nd-btn--secondary";
+    retry.textContent = L("adminRetryReading");
     retry.onclick = async () => { await runAction(retry, "Retrying…", async () => { await call("/api/admin/network/commands/replay", { method: "POST", body: JSON.stringify({ commandId: summary.refresh.id }) }); }, "#wifiMessage"); await refreshWifiSummary(); };
     target.append(" ", retry);
   }
   const metric = $("#activeSessionsMetric");
-  if (metric && wifiLive) metric.textContent = summary.unreadVouchers && !summary.activeCount ? "—" : String(summary.activeCount);
+  if (metric && wifiLive) metric.textContent = summary.activeCount == null || summary.unreadVouchers && !summary.activeCount ? L("adminUnavailable") : String(summary.activeCount);
 }
 async function refreshWifiSummary() {
   if (wifiLoading || document.hidden || !$("#wifiSummary")) return;

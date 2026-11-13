@@ -30,7 +30,14 @@ async function load() {
     if (!response.ok) throw Error('Your account could not load. Try again or open Dashboard. Do not pay again.');
     voucher = purchasedVoucher(body, requestedPayment);
     if (!voucher) throw Error('No confirmed voucher was found for this purchase in this account. Check Payments or Vouchers; do not pay again to recover it.');
-    $('#voucherDetails').innerHTML = `<h2>${h(voucher.plan?.name || voucher.planId)}</h2><label>Voucher code<input readonly value="${h(voucher.code)}"></label><p>Keep this code private. The voucher was saved before this page opened.</p>`;
+    // Canvas (PhoneVoucherReady): plan and its facts, the code, its QR and validity on a forest card.
+    const plan = voucher.plan || {}, facts = [plan.name || voucher.planId, plan.quotaGb === null ? 'Unlimited' : plan.quotaGb ? `${plan.quotaGb} GB` : '', plan.validityHours ? (plan.validityHours === 24 ? '1 day' : `${Math.round(plan.validityHours / 24)} days`) : ''].filter(Boolean).join(' · ');
+    $('#voucherDetails').innerHTML = `<h2>${h(facts)}</h2><label><span class="nd-visually-hidden">Voucher code</span><input readonly value="${h(voucher.code)}"></label><img class="voucher-ready__qr" data-voucher-qr alt="QR code for voucher ${h(voucher.code)}" hidden><p>${voucher.expiresAt ? `Valid until ${h(new Date(voucher.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}` : 'Saved in your account'}. Keep this code private.</p>`;
+    $('#copyVoucher').hidden = false;
+    $('#voucherStatus').classList.add('nd-visually-hidden');
+    requestJson(api + '/api/account/vouchers/' + encodeURIComponent(voucher.id) + '/qr', { credentials: 'include', cache: 'no-store' })
+      .then(({ response, body }) => { const img = $('[data-voucher-qr]'); if (response.ok && body.qrCode && img && /^data:image\//.test(body.qrCode)) { img.src = body.qrCode; img.hidden = false; } })
+      .catch(() => { /* The code itself is enough to use the voucher. */ });
     $('#voucherDetails').hidden = false; $('#downloadVoucher').hidden = false;
     $('#voucherStatus').textContent = 'Your payment is confirmed and your voucher is saved. Download a copy now, or retrieve it later in Dashboard → Vouchers.';
     mountInstallCard($('#installApp'));
@@ -46,6 +53,10 @@ async function load() {
   finally { if (ticket === generation) loading = false; }
 }
 $('#downloadVoucher').onclick = download;
+$('#copyVoucher').onclick = async () => {
+  try { await navigator.clipboard.writeText(voucher.code); $('#downloadStatus').textContent = 'Code copied. Keep it private.'; }
+  catch { $('#downloadStatus').textContent = 'Copy the code from the card above.'; }
+};
 $('#retryVoucher').onclick = load;
 $('#continueVoucher').onclick = async event => {
   event.preventDefault();

@@ -213,7 +213,13 @@ try {
       assert.equal(await page.locator("[data-plan]").isDisabled(), true);
       await page.getByRole("button", { name: "Check payment status" }).click();
       await post(`/api/payments/${id}/confirm`, {});
-      await page.getByRole("button", { name: "Check payment status" }).click();
+      await Promise.race([
+        page.waitForURL(/\/voucher-ready\.html/, { timeout: 5000 }),
+        page.getByRole("button", { name: "Check payment status" }).waitFor({ timeout: 5000 }),
+      ]);
+      if (!/\/voucher-ready\.html$/.test(new URL(page.url()).pathname)) {
+        await page.getByRole("button", { name: "Check payment status" }).click();
+      }
       await page.waitForURL(/\/voucher-ready\.html/);
       await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
       await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();

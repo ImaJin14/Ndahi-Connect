@@ -56,7 +56,7 @@ test("kit code stays inside the Chrome 73 / Safari 12.1 floor", async () => {
       assert.doesNotMatch(source, pattern, `${path} uses ${name}`);
     }
   }
-  for (const path of [`${kitDir}/tokens.css`, `${kitDir}/components.css`, "customer-app-v2/ui-kit.css"]) {
+  for (const path of [`${kitDir}/tokens.css`, `${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/portal-home.css"]) {
     const css = (await read(path)).replace(/\/\*[\s\S]*?\*\//g, "");
     // One unsupported selector or at-rule drops the whole rule on old browsers.
     for (const [pattern, name] of [[/@layer/, "@layer"], [/:is\(/, ":is()"], [/:where\(/, ":where()"], [/:has\(/, ":has()"], [/(^|[;{\s])inset\s*:/, "inset"], [/@container/, "@container"]]) {
@@ -73,7 +73,7 @@ test("kit code stays inside the Chrome 73 / Safari 12.1 floor", async () => {
 
 test("every --nd-* variable the kit uses is defined in tokens.css", async () => {
   const { values } = await tokens();
-  for (const path of [`${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/ui-kit.js"]) {
+  for (const path of [`${kitDir}/components.css`, "customer-app-v2/ui-kit.css", "customer-app-v2/ui-kit.js", "customer-app-v2/portal-home.css"]) {
     for (const [, name] of (await read(path)).matchAll(/var\((--nd-[\w-]+)/g)) {
       // The reference page builds some names from the lists checked below.
       if (!name.endsWith("-")) assert.ok(values.has(name), `${path} uses undefined ${name}`);
@@ -154,12 +154,23 @@ test("the kit page is CSP-safe, v2-only sample content, translated and unlinked"
 });
 
 test("v1 pages do not load the kit, so production defaults are unchanged", async () => {
-  for (const folder of ["customer-app", "admin-app", "store-app"]) {
+  for (const folder of ["customer-app", "admin-app"]) {
     for (const name of await readdir(join(root, folder))) {
       if (!/\.(html|js|css)$/.test(name)) continue;
       assert.doesNotMatch(await read(`${folder}/${name}`), /\/shared\/ui\/|shared-app\/ui\//, `${folder}/${name}`);
     }
   }
+});
+
+// The public store has no v2; the owner chose to restyle it in place with the
+// kit's tokens (canvas: StoreGuest). It takes the tokens only, not the components.
+test("the public store uses the kit's tokens and nothing else from the kit", async () => {
+  for (const name of await readdir(join(root, "store-app"))) {
+    if (!/\.(html|js|css)$/.test(name)) continue;
+    const text = await read(`store-app/${name}`), uses = text.match(/\/shared\/ui\/[\w./-]+/g) || [];
+    assert.deepEqual(uses.filter((path) => path !== "/shared/ui/tokens.css"), [], `store-app/${name}`);
+  }
+  assert.match(await read("store-app/index.html"), /<link rel="stylesheet" href="\/shared\/ui\/tokens\.css"/);
 });
 
 test("the static server serves the kit to v2 only and versions its files", async (t) => {

@@ -4,13 +4,65 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { showError, responseError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { durationLabel } from "./plan-presentation.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+import { ICONS } from "/shared/ui/icons.js";
+
+// ---------- Redesigned Home (kit markup; see docs/redesign/screens/PhoneHome and Main) ----------
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const svg = (name) => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"/></svg>`;
+
+// Phone: two tiles. Desktop: a card of four links.
+export function homeQuickActions() {
+  const links = [["/dashboard#redeem", "homeQuickVoucherLong"], ["/dashboard#devices", "connectDevice"], ["/dashboard#devices", "homeQuickAnotherDevice"], ["/help", "homeQuickHelp"]];
+  return `<section class="home-quick" aria-labelledby="homeQuickTitle"><h2 id="homeQuickTitle" class="nd-h3 nd-wide-only">${h(L("homeQuickTitle"))}</h2>`
+    + `<div class="nd-grid-2 nd-narrow-only"><a class="nd-tile" href="/dashboard#redeem">${svg("voucher")}${h(L("homeQuickVoucher"))}</a><a class="nd-tile" href="/dashboard#devices">${svg("internet")}${h(L("homeQuickAddDevice"))}</a></div>`
+    + `<ul class="home-quick__list nd-wide-only">${links.map(([href, key]) => `<li><a class="home-quick__link" href="${href}">${h(L(key))}<span aria-hidden="true">→</span></a></li>`).join("")}</ul></section>`;
+}
+
+const ACTIVITY = {
+  paid: ["homeActivityPaid", "success"],
+  pending: ["homeActivityWaiting", "warning"],
+  processing: ["homeActivityWaiting", "warning"],
+  failed: ["homeActivityFailed", "danger"],
+  expired: ["portalPay_expired", ""],
+  cancelled: ["portalPay_cancelled", ""],
+  canceled: ["portalPay_cancelled", ""],
+  refunded: ["homeActivityRefunded", ""],
+  "refund-pending": ["homeActivityRefundPending", ""],
+};
+
+// Desktop only: the three latest payments. Shop orders join in Phase 4.
+export function homeRecentActivity(payments) {
+  if (!payments || !payments.length) return "";
+  const rows = payments.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 3).map((payment) => {
+    const entry = Object.prototype.hasOwnProperty.call(ACTIVITY, payment.status) ? ACTIVITY[payment.status] : null;
+    const label = entry ? L(entry[0]) : (payment.status ? String(payment.status) : L("portalNotRecorded"));
+    const tone = entry ? entry[1] : "";
+    const date = new Date(payment.createdAt).toLocaleDateString(currentLanguage(), { day: "numeric", month: "short" });
+    return `<div class="nd-row"><span class="nd-row__main"><span class="nd-row__title">${h(L("homeActivityBundle", { plan: (payment.plan && payment.plan.name) || payment.planId }))}</span><span class="nd-meta">${h(date)} · ${h(payment.methodLabel || "Mobile Money")}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(label)}</span></div>`;
+  }).join("");
+  return `<section class="home-activity nd-card nd-wide-only" aria-labelledby="homeActivityTitle"><div class="nd-section-head"><h2 id="homeActivityTitle" class="nd-h3">${h(L("homeActivityTitle"))}</h2><a class="nd-section-head__link" href="/dashboard#activity">${h(L("homeActivitySeeAll"))}</a></div>${rows}</section>`;
+}
+
+// Up to three products in stock from the store catalogue (phones show the first).
+// Prices and names come from the catalogue; nothing is hard-coded.
+export function homeShopItems(catalogue) {
+  const lang = currentLanguage();
+  const name = (value) => (value && typeof value === "object" ? value[lang] || value.en || "" : value || "");
+  return (catalogue.products || []).filter((product) => product.available > 0).slice(0, 3).map((product) => {
+    const price = product.price == null ? L("homePriceTbc") : `${Number(product.price).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
+    const image = product.images && product.images[0] && /^data:image\//.test(product.images[0].data) ? `<img src="${h(product.images[0].data)}" alt="" loading="lazy">` : svg("shop");
+    return `<a class="nd-media-row home-shop__item" href="/dashboard#product/${encodeURIComponent(product.id)}"><span class="nd-thumb">${image}</span><span class="nd-media-row__body"><span class="nd-media-row__title">${h(name(product.name))}</span><span class="nd-meta nd-narrow-only">${h(L("homeShopMeta", { price }))}</span><span class="nd-meta nd-wide-only${product.available <= 2 ? " home-shop__few" : ""}">${h(L(product.available <= 2 ? "homeShopFew" : "homeShopStock", { price, count: product.available }))}</span></span><span class="nd-chevron" aria-hidden="true">›</span></a>`;
+  }).join("");
+}
 
 export function profileCard(customer) {
   const pending = customer.pendingEmail && Date.parse(customer.pendingEmail.expiresAt)>Date.now() ? customer.pendingEmail : null;
   const draft = customer.pendingProfile || customer;
-  return `<section class="surface full" data-portal-view="account" id="emailAccount"><p class="eyebrow">Profile</p><h2>Your profile</h2><dl class="profile-facts"><dt>Full name</dt><dd>${h(customer.name || "Not set")}</dd><dt>Account number</dt><dd>${h(customer.phoneE164 || customer.phone)}</dd><dt>Email</dt><dd>${h(customer.email || "Not provided")}${customer.email ? customer.emailLinked ? " (confirmed)" : " (not confirmed)" : ""}</dd></dl><p>Your account number is your sign-in number and default for new payments. Existing receipts retain their recorded details.</p>
+  return `<section class="surface full portal-profile" data-portal-view="account" id="emailAccount"><a class="portal-sub__back" href="/dashboard#account" aria-label="${h(L("portalBackAccount"))}">${svg("back")}</a><p class="eyebrow">Profile</p><h2>Your profile</h2><dl class="profile-facts"><dt>Full name</dt><dd>${h(customer.name || "Not set")}</dd><dt>Account number</dt><dd>${h(customer.phoneE164 || customer.phone)}</dd><dt>Email</dt><dd>${h(customer.email || "Not provided")}${customer.email ? customer.emailLinked ? " (confirmed)" : " (not confirmed)" : ""}</dd></dl><p>Your account number is your sign-in number and default for new payments. Existing receipts retain their recorded details.</p>
   ${pending ? `<form id="confirmEmail"><p>Enter the confirmation code for <strong>${h(pending.email)}</strong>. It expires ${h(new Date(pending.expiresAt).toLocaleTimeString())}.${customer.pendingProfile ? " Your staged profile changes are applied together after confirmation." : ""}${["pending","sending"].includes(pending.status) ? " Your confirmation email is queued. Delivery may take a moment." : pending.status === "unconfirmed" ? " Delivery is uncertain; use the code if it arrives or request another after one minute." : ""}</p><label>Email confirmation code<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label><button type="submit">Confirm email</button><button type="button" id="cancelProfileConfirmation" class="secondary-action">Cancel pending changes</button><div id="emailConfirmMessage" role="status" aria-live="polite"></div></form>` : ""}
-  <details id="editProfile"><summary>Edit profile</summary><form id="profileEdit"><label>Full name<input name="name" autocomplete="name" maxlength="100" value="${h(draft.name || "")}" required></label><label>Account number<input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" value="${h(draft.phone ? "+237" + String(draft.phone).replace(/^\+237/,"") : customer.phoneE164 || customer.phone)}" required aria-describedby="profilePhoneGuidance"></label><p id="profilePhoneProvider" role="status" aria-live="polite"></p><p id="profilePhoneGuidance">The likely payment provider appears as you type. You can choose a different provider at checkout.</p><label>Email (optional)<input name="email" type="email" autocomplete="email" maxlength="254" value="${h(draft.email || "")}"></label>${customer.email && !customer.emailLinked ? '<label><input name="verifyEmail" type="checkbox">Confirm this email for account updates and PIN recovery</label>' : ""}<label id="profileEmailRemoval" hidden><input name="removeEmail" type="checkbox">Remove my email and email PIN recovery</label><label ${customer.pinConfigured === false ? "hidden" : ""}>Current PIN (for number or email changes)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" ${customer.pinConfigured === false ? "disabled" : ""}></label><p>Your current email stays trusted until a replacement is confirmed. Confirming a change signs out your other portal sessions.</p><button type="submit">Save profile</button>${customer.passkeys ? '<button type="button" id="profileEditPasskey" class="secondary-action">Save with passkey</button>' : ""}<div id="profileEditMessage" role="status" aria-live="polite"></div></form></details></section>`;
+  <details id="editProfile"><summary id="editProfileTitle">Edit profile</summary><form id="profileEdit"><label>Full name<input name="name" autocomplete="name" maxlength="100" value="${h(draft.name || "")}" required></label><label>Account number<input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="16" value="${h(draft.phone ? "+237" + String(draft.phone).replace(/^\+237/,"") : customer.phoneE164 || customer.phone)}" required aria-describedby="profilePhoneGuidance"></label><p id="profilePhoneProvider" role="status" aria-live="polite"></p><p id="profilePhoneGuidance">The likely payment provider appears as you type. You can choose a different provider at checkout.</p><label>Email (optional)<input name="email" type="email" autocomplete="email" maxlength="254" value="${h(draft.email || "")}"></label>${customer.email && !customer.emailLinked ? '<label><input name="verifyEmail" type="checkbox">Confirm this email for account updates and PIN recovery</label>' : ""}<label id="profileEmailRemoval" hidden><input name="removeEmail" type="checkbox">Remove my email and email PIN recovery</label><label ${customer.pinConfigured === false ? "hidden" : ""}>Current PIN (for number or email changes)<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" ${customer.pinConfigured === false ? "disabled" : ""}></label><p>Your current email stays trusted until a replacement is confirmed. Confirming a change signs out your other portal sessions.</p><button type="submit" class="nd-btn nd-btn--block">Save profile</button>${customer.passkeys ? '<button type="button" id="profileEditPasskey" class="secondary-action nd-btn nd-btn--secondary nd-btn--block">Save with passkey</button>' : ""}<div id="profileEditMessage" role="status" aria-live="polite"></div></form></details></section>`;
 }
 export { vouchersCard } from "./voucher-history.js";
 export function bundleCatalogue(result) {

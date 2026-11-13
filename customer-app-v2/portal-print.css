@@ -1,0 +1,17 @@
+/* Print a voucher (canvas: VoucherSlip). The page around the slip in the kit
+   look; the slip itself is the thermal POS slip shared with admin printing
+   (58 or 80 mm), so its layout follows the printer, not the A6 card drawn. */
+body { margin: 0; background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+.print-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); max-width: 560px; margin: 0 auto; padding: var(--nd-space-16); }
+.print-toolbar h1 { flex-basis: 100%; margin: 0 0 4px; color: var(--nd-forest); font: 600 26px/1.2 var(--nd-font-display); }
+.print-toolbar label { display: flex; flex-direction: column; gap: 6px; color: var(--nd-ink); font-size: 13px; font-weight: 600; }
+.print-toolbar select { min-height: 44px; padding: 0 var(--nd-space-10); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); font: 400 15px var(--nd-font-body); }
+.print-toolbar button { min-height: 44px; padding: 0 var(--nd-space-16); border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.print-toolbar button#downloadPdf { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+.print-toolbar button:disabled { opacity: .55; cursor: not-allowed; }
+.print-toolbar p { flex-basis: 100%; margin: 0; color: var(--nd-muted); font-size: 13px; line-height: 1.5; }
+.print-toolbar #printMessage:empty { display: none; }
+.print-toolbar a { color: var(--nd-forest); font-size: 14px; font-weight: 700; }
+#printSurface { box-sizing: border-box; padding: var(--nd-space-16); }
+#printSurface.voucher-print-thermal { justify-content: center; }
+@media print { .print-toolbar { display: none; } body { background: none; } #printSurface { padding: 0; } }

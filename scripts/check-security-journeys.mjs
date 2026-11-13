@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openSecurityManager, openSessions } from "./portal-tabs.mjs";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -49,7 +50,7 @@ try {
     const second = await post("/api/account/login/pin", { phone: "670050001", pin: "2468" });
     const secondCookie = second.response.headers.get("set-cookie").split(";")[0];
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#sessionActivity summary").click();
+    await openSessions(page);
     assert.equal(await page.locator("#sessionActivity .device").count(), 2);
     page.on("dialog", (dialog) => dialog.accept());
     await page.locator("#sessionActivity .device").filter({ hasNotText: "This device" })
@@ -67,7 +68,7 @@ try {
       ];
     });
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click();
+    await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click();
     await page.locator('details.rename-passkey:has(form[data-rename-passkey="preview-key"]) summary').click();
     await page.locator('[data-rename-passkey="preview-key"] input[name="label"]').fill("Work laptop");
     await page.locator('[data-rename-passkey="preview-key"]').getByRole("button", { name: "Save name" }).click();
@@ -85,9 +86,9 @@ try {
   const dedicatedLogin = await post("/api/account/login/pin", { phone: "670050001", pin: "2468" });
   await scenario("logging out everywhere signs out the current browser too", async (page) => {
     await page.goto(`${portal}/dashboard#account`);
-    await page.locator("#sessionActivity summary").click();
+    await openSessions(page);
     page.on("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Log out everywhere" }).click();
+    await page.getByRole("button", { name: /^(Log|Sign) out everywhere$/ }).click();
     await page.waitForURL("**/login");
   }, { cookie: dedicatedLogin.response.headers.get("set-cookie").split(";")[0] });
   console.log(`${checks} security browser scenarios passed. Screenshots: ${screenshots}`);
