@@ -6,4 +6,4 @@ Admin now defaults to v2 without a percentage ramp or a Render environment chang
 
 The v1 CI browser lane explicitly requests its legacy default; the v2 lane and default-policy/role-isolation regressions continue to exercise the new UI and its guards. Customer sampling, public store settings, API authentication policy, Home enablement and printing policy are not changed.
 
-Verification and production deployment are pending. Record the exact PR/main commits, independent review, checks, deployment IDs and live fresh/legacy-cookie/opt-out behavior before marking this rollout complete.
+Exact review, CI and production deployment evidence are recorded in [issue #246](https://github.com/ImaJin14/Ndahi-Connect/issues/246) and its linked PR. Deployment acceptance requires fresh and legacy admin-cookie requests to select v2, explicit old/new choices to work and customer defaults to stay unchanged. Physical account/device acceptance remains separately tracked.
