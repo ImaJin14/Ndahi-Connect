@@ -71,19 +71,22 @@ test("retired admin pin/passkey login ignores stale TOTP flags and old challenge
   await f.store.transaction(s => s.adminLoginChallenges.push({ id: "unexpired-old-challenge", userId: "owner", ip: "127.0.0.1", attempts: 0, used: false,
     expiresAt: new Date(+f.now() + 300000).toISOString() }));
   assert.equal((await f.call("/api/admin/login", { username: "owner", pin: "wrong-pin" })).status, 401);
+  // Phase 6: the PIN leads to the passkey step; only the passkey opens the session.
   const login = await f.call("/api/admin/login", { username: "owner", pin: password });
-  assert.equal(login.status, 200); assert.equal(login.body.authenticated, true); assert.equal(login.body.mfaEnabled, false);
-  assert.match(login.headers.get("set-cookie"), /admin_session=/);
+  assert.equal(login.status, 200); assert.equal(login.body.authenticated, false); assert.equal(login.body.step, "passkey");
+  assert.equal(login.headers.get("set-cookie"), null);
+  const stepped = await f.call("/api/admin/login/passkey", { challengeId: login.body.challengeId, stepToken: login.body.stepToken, response: f.keys.owner.assertion(login.body.options) });
+  assert.equal(stepped.status, 200); assert.equal(stepped.body.authenticated, true); assert.equal(stepped.body.mfaEnabled, false);
+  assert.match(stepped.headers.get("set-cookie"), /admin_session=/);
   for (const path of ["/api/admin/login/mfa", profile + "/mfa", profile + "/mfa/enroll", profile + "/mfa/confirm"]) {
     const retired = await f.call(path, { challengeId: "unexpired-old-challenge", mfaCode: "123456", enabled: true, code: "123456" });
     assert.equal(retired.status, 410); assert.equal(retired.body.code, "AUTHENTICATOR_RETIRED");
   }
   assert.equal((await f.call(profile + "/proof/options", { purpose: "legacy_mfa", action: "enroll" })).status, 410);
-  const options = await f.call("/api/admin/passkey/options", { username: "owner" });
-  const response = f.keys.owner.assertion(options.body.options);
-  const verified = await f.call("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response });
-  assert.equal(verified.status, 200); assert.equal(verified.body.authenticated, true);
-  assert.equal((await f.call("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response })).status, 401);
+  // After the cutover a passkey confirms the PIN; it no longer signs in alone.
+  const alone = await f.call("/api/admin/passkey/options", { username: "owner" });
+  assert.equal(alone.status, 409); assert.equal(alone.body.code, "PIN_STEP_REQUIRED");
+  assert.equal((await f.call("/api/admin/login/passkey", { challengeId: login.body.challengeId, stepToken: login.body.stepToken, response: f.keys.owner.assertion(login.body.options) })).status, 401, "the step is single use");
   assert.equal((await f.store.snapshot()).adminLoginChallenges[0].used, false);
 });
 
@@ -287,13 +290,14 @@ test("sensitive admin actions reject another sign-in and an expired proof withou
 
 test("admin passkey login rejects changed roles and malformed expiry without issuing a session", async t => {
   for (const mode of ["role", "expiry"]) {
-    const f = await fixture(t), options = await f.call("/api/admin/passkey/options", { username: "owner" });
+    const f = await fixture(t), options = await f.call("/api/admin/login", { username: "owner", pin: password });
+    assert.equal(options.body.step, "passkey");
     const before = (await f.store.snapshot()).adminSessions.length;
     await f.store.transaction(s => {
       if (mode === "role") s.adminUsers[0].role = "operator";
       else s.adminPasskeyChallenges.find(ch => ch.id === options.body.challengeId).expiresAt = "invalid";
     });
-    const result = await f.call("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response: f.keys.owner.assertion(options.body.options) });
+    const result = await f.call("/api/admin/login/passkey", { challengeId: options.body.challengeId, stepToken: options.body.stepToken, response: f.keys.owner.assertion(options.body.options) });
     assert.equal(result.status, 401); assert.equal(result.headers.get("set-cookie"), null);
     assert.equal((await f.store.snapshot()).adminSessions.length, before);
   }

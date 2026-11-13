@@ -1424,3 +1424,9 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented: the public store (`store-app`) is restyled in place to the guest artboards with the kit's tokens only. It has no v2 opt-in, so it changes for every visitor on merge; the owner asked for this.
 - Tested: the full v2 browser suite (18 npm scripts, including voucher print, store and authentication journeys), v1 runs of every edited journey (12 scripts), `npm run check` and `npm test` (1,266 pass, 0 fail). Journeys reach v2 sub-pages through `scripts/portal-tabs.mjs` helpers.
 - Deployment: not deployed; draft PR #227, stacked on #226. Not yet tried on a real phone, including the new hotspot choice page on NDAHI Wi-Fi.
+
+### Sign-in cutover to PIN and passkey — redesign Phase 6 (13 November 2026)
+
+- Implemented: administrators sign in with email (or username) + PIN, then confirm with a passkey. The passkey step is single use, expires after five minutes and is bound to current credentials. Administrators without a passkey add one on the sign-in page; this is required after the retirement marker and offered before it. Passkey-only sign-in is refused after the cutover. Self-service sign-in email; owner removal of a staff member's lost passkeys; owner removal of a customer's lost passkeys through the audited support-recovery form. v2 customer sign-in leads with phone + PIN, with the voucher code as the second path. v1 admin sign-in handles the passkey step. See `docs/operations/phase6-sign-in.md`.
+- Tested: `test/phase6-sign-in.test.mjs`, updated retirement tests, `scripts/check-phase6-sign-in-journeys.mjs` (virtual authenticator), the full v2 browser suite, v1 runs of the edited journeys, `npm run check` and `npm test`.
+- Not deployed. The cutover (`scripts/authenticator-retirement.mjs --apply`) has not run on staging or production. Not tried with a real phone or security key.

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
@@ -91,7 +92,7 @@ try {
       await page.getByRole("button", { name: "Sign in to existing account", exact: true }).click();
       await page.waitForURL(/\/login\?account=1/);
       await page.locator('[name="phone"]').fill(phone);
-      await page.locator('[name="code"]').fill(paid.body.access.code);
+      await useVoucherSignIn(page); await page.locator('[name="code"]').fill(paid.body.access.code);
       await page.locator("#loginSubmit").click();
       await page.locator("#customerPin").fill("2468");
       await page.locator("#loginSubmit").click();

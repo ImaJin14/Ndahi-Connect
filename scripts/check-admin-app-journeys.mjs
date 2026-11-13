@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
+import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
 import { lowContrastText } from "./ui-checks.mjs";
 
 const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
@@ -276,21 +276,22 @@ try {
     await page.goto(`${admin}/dashboard#profile`);
     await page.getByRole("heading", { name: "Profile and security.", exact: true }).waitFor();
     assert.match(await page.getByRole("region", { name: "You", exact: true }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
-    await page.getByRole("button", { name: "Change password", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Change PIN", exact: true }).waitFor();
+    await page.getByRole("region", { name: "You", exact: true }).getByLabel("Email", { exact: true }).waitFor(); // Phase 6: staff sign in with their email
     await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
     await page.getByRole("button", { name: "Add a passkey on this device", exact: true }).waitFor();
     const staff = page.getByRole("region", { name: "Staff (owner only)", exact: true });
     if (role === "owner") {
-      assert.match(await staff.innerText(), /fixture-owner · owner\s*You/);
+      assert.match(await staff.innerText(), /fixture-owner · owner[^\n]*\s*You/);
       assert.equal(await staff.getByRole("button", { name: "Deactivate", exact: true }).count(), 3);
       await staff.getByText("Add a staff account", { exact: true }).click();
-      await staff.getByLabel("Temporary password", { exact: true }).waitFor();
+      await staff.getByLabel("Temporary PIN", { exact: true }).waitFor();
     } else assert.equal(await staff.count(), 0, "only owners manage staff");
-    // Mismatched passwords never reach the verification step.
-    await page.getByLabel("New password", { exact: true }).fill("first-password");
-    await page.getByLabel("Confirm new password", { exact: true }).fill("other-password");
-    await page.getByRole("button", { name: "Change password", exact: true }).click();
-    await page.getByText("The two passwords don't match.", { exact: true }).waitFor();
+    // Mismatched PINs never reach the verification step.
+    await page.getByLabel("New PIN", { exact: true }).fill("123456");
+    await page.getByLabel("Confirm new PIN", { exact: true }).fill("654321");
+    await page.getByRole("button", { name: "Change PIN", exact: true }).click();
+    await page.getByText("The two PINs don't match.", { exact: true }).waitFor();
     assert.equal(await page.getByRole("dialog").count(), 0);
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -348,15 +349,16 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/network-setup-${width}.png`, fullPage: true });
   }, { width });
-  // Redesigned sign-in look (v2 only; canvas: AdminLogin). Same method until Phase 6.
-  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned admin sign-in keeps username, password and passkey at ${width}px`, async (page, context) => {
+  // Redesigned sign-in (v2 only; canvas: AdminLogin), Phase 6: email + PIN, then the passkey step.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned admin sign-in asks for email and PIN first at ${width}px`, async (page, context) => {
     await context.clearCookies({ name: "admin_session" });
     await page.goto(`${admin}/login`);
     await page.getByRole("heading", { name: "Administrator access.", exact: true }).waitFor();
-    await page.getByLabel("Username").waitFor();
-    await page.locator("#adminPassword").waitFor();
+    await page.getByText("Step 1 of 2", { exact: true }).waitFor();
+    await page.getByLabel(adminIdentifierLabel, { exact: true }).waitFor();
+    await page.getByLabel("PIN", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Continue", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Sign in with a passkey", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Sign in with a passkey", exact: true }).count(), 0, "the passkey confirms the PIN; it does not sign in alone");
     await page.getByText("Every sign-in is logged.", { exact: false }).waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { portalTab, uiV2, openManageDevices } from "./portal-tabs.mjs";
+import { portalTab, uiV2, openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
 import { randomInt, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
@@ -82,7 +82,7 @@ try {
     assert.equal(await page.locator("#requestPayment").isDisabled(), true);
     await page.screenshot({ path: `${screenshots}/guest-sign-in-to-connect.png`, fullPage: true });
     await page.getByRole("button", { name: "Sign in to connect" }).click(); await page.waitForURL("**/login");
-    await page.locator('[name="phone"]').fill(phone); await page.locator('[name="code"]').fill(paid.body.access.code);
+    await useVoucherSignIn(page); await page.locator('[name="phone"]').fill(phone); await page.locator('[name="code"]').fill(paid.body.access.code);
     await page.locator("#loginSubmit").click(); await page.locator("#customerPin").fill(pin); await page.locator("#loginSubmit").click();
     await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Weekly", { exact: true }).waitFor();
     assert.equal((await store.snapshot()).payments.length, 1);
