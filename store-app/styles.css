@@ -291,3 +291,13 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .order-page .bar-title { color: var(--nd-forest); font: 700 28px/1.2 var(--nd-font-display); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* #233 (canvas: PhoneGuestShop, PhoneGuestProduct). Category names come from
+   the catalogue and can be long, so on phones the chips wrap to a second row
+   instead of running off the screen. The product photo is the canvas's 240px. */
+@media (max-width: 767.98px) {
+  .filters { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+  .filters button { max-width: 100%; white-space: normal; text-align: center; }
+  .detail-media .product-visual { height: 240px; }
+  .detail-media .product-visual svg { height: 45%; }
+}
