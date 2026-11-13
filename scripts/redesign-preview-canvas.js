@@ -44,7 +44,9 @@
     var meta = /data-props='([^']*)'/.exec(source), defaults = {};
     try {
       var props = JSON.parse(meta ? meta[1] : "{}");
-      Object.keys(props).forEach(function (key) { if (key.charAt(0) !== "$" && props[key] && "default" in props[key]) defaults[key] = props[key].default; });
+      // Own properties only (Object.fromEntries), so no key can reach a prototype.
+      defaults = Object.fromEntries(Object.keys(props).filter(function (key) { return key.charAt(0) !== "$" && props[key] && "default" in props[key]; })
+        .map(function (key) { return [key, props[key].default]; }));
     } catch (ignore) { /* No defaults. */ }
     // The class body is the canvas file's own code, run like the real runtime does.
     var Component = script ? new Function("DCLogic", script[1] + "\nreturn Component;")(DCLogic) : DCLogic;
@@ -140,8 +142,12 @@
   }
 
   function start() {
-    var props = {};
-    new URLSearchParams(location.search).forEach(function (value, key) { props[key] = value === "true" ? true : value === "false" ? false : value; });
+    // Props in the address (PhoneOrder.dc.html?guest=true) become own properties
+    // only: a "__proto__" or "constructor" key cannot reach a prototype.
+    var props = Object.fromEntries(Array.from(new URLSearchParams(location.search), function (pair) {
+      var value = pair[1];
+      return [pair[0], value === "true" ? true : value === "false" ? false : value];
+    }));
     var host = document.createElement("div");
     host.id = "dc-root";
     document.body.appendChild(host);
