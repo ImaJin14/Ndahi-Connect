@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createStaticServer } from '../static-server.mjs';
 import { pairingFixture, mainMac } from '../test/helpers/wifi-pairing-fixture.mjs';
-import { portalTab } from './portal-tabs.mjs';
+import { portalTab, openSecurityManager, waitForAccount, useVoucherSignIn } from "./portal-tabs.mjs";
 let browser, checks = 0;
 const website = http.createServer();
 await new Promise(r => website.listen(0, '127.0.0.1', r));
@@ -33,7 +33,7 @@ try {
   }
   async function pin(page, path = '/login') {
     await page.goto(portal + path);
-    await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill('NC-AAAA-1111');
+    await useVoucherSignIn(page); await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill('NC-AAAA-1111');
     await page.locator('#loginSubmit').click(); await page.locator('#customerPin').fill('2468'); await page.locator('#loginSubmit').click();
   }
   await scenario('ordinary PIN sign-in defaults to Home and survives reload/app restart/history without claiming Wi-Fi', async page => {
@@ -51,7 +51,7 @@ try {
   }
   await scenario('explicit account-settings intent is retained without Wi-Fi activation', async page => {
     await pin(page, '/login?account=1'); await page.waitForURL(portal + '/dashboard#account');
-    await page.getByRole('heading', { name: 'PIN & passkeys', exact: true }).waitFor();
+    await waitForAccount(page);
   });
   await scenario('evidence failure after a committed PIN sign-in still opens Dashboard', async (page, context) => {
     await context.route('**/api/account/connectivity', route => route.fulfill({ status: 503, json: { error: 'Connection read unavailable' } }));
@@ -70,7 +70,7 @@ try {
     assert.equal((await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } })).status(), 200);
     const cdp = await context.newCDPSession(page); await cdp.send('WebAuthn.enable');
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
-    await page.goto(portal + '/dashboard#account'); await page.locator('#securityManager>summary').click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
+    await page.goto(portal + '/dashboard#account'); await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468'); await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     await page.goto('about:blank'); await context.clearCookies({ name: 'customer_session' });
@@ -93,7 +93,7 @@ try {
   });
   await scenario('secondary voucher entry cannot skip main-device approval or create an account session', async (page, context) => {
     await page.goto(portal + '/login?next=%2Fdashboard&mac=' + encodeURIComponent('AA:BB:CC:DD:EE:03') + '&address=10.20.0.30');
-    await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill('NC-AAAA-1111'); await page.locator('#loginSubmit').click();
+    await useVoucherSignIn(page); await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill('NC-AAAA-1111'); await page.locator('#loginSubmit').click();
     await page.getByRole('heading', { name: 'Request access from your main device', exact: true }).waitFor();
     assert.equal((await context.cookies()).some(c => c.name === 'customer_session'), false); assert.equal(await page.locator('#customerPin').isHidden(), true);
     const before = f.calls.length; await page.getByRole('button', { name: 'Request access', exact: true }).click(); await page.waitForURL(/\/pair\?.*#key=/); assert.equal(f.calls.length, before);

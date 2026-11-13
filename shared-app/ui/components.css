@@ -582,6 +582,17 @@ a.nd-topnav__link[aria-current="page"]:hover, .nd-page a.nd-topnav__link[aria-cu
 @media (pointer: coarse) {
   .nd-sidemenu__item, .nd-sidemenu__signout { min-height: var(--nd-touch); }
 }
+/* Phones: the menu becomes one horizontally scrolling row of links (group
+   titles hidden), so every screen stays one tap away without a drawer. */
+@media (max-width: 767.98px) {
+  .nd-sidemenu { padding: var(--nd-space-10) var(--nd-space-12); }
+  .nd-sidemenu__brand { padding: 0; }
+  .nd-sidemenu__nav { flex-direction: row; gap: var(--nd-space-4); margin-top: var(--nd-space-8); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .nd-sidemenu__nav::-webkit-scrollbar { display: none; }
+  .nd-sidemenu__group { display: none; }
+  .nd-sidemenu__list { flex-direction: row; flex-shrink: 0; gap: var(--nd-space-4); }
+  .nd-sidemenu__item { white-space: nowrap; }
+}
 
 .nd-pagehead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: var(--nd-space-12); }
 .nd-pagehead .nd-eyebrow { margin-bottom: var(--nd-space-6); }

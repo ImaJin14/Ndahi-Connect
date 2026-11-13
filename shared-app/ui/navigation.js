@@ -112,7 +112,9 @@ const ADMIN_LABELS = {
 // renderAdminMenu({ current: "payments", canAccess: (id) => …, badges: { payments: 2 },
 //                   hrefs: { payments: "/dashboard#payments" }, onSignOut })
 // canAccess carries the role rules (they stay in admin-app navigation.js).
-// Without onSignOut, sign-out is a link to signOutHref.
+// Without onSignOut, sign-out is a link to signOutHref; signOut: false leaves
+// it out for pages that keep their own sign-out control. linkId(id) sets each
+// link's id (for example "admin-nav-" + id, which older pages and tests use).
 export function renderAdminMenu(options) {
   const settings = options || {};
   const lang = settings.lang || currentLanguage();
@@ -133,12 +135,13 @@ export function renderAdminMenu(options) {
             "aria-current": id === settings.current ? "page" : null,
             // "Payments, 2 need attention": keeps the visible label first.
             "aria-label": count > 0 ? label + ", " + format("uiAttention", { count }, lang) : null,
+            id: settings.linkId ? settings.linkId(id) : null,
             "data-admin-nav": id,
           }, label, count > 0 ? h("span", { class: "nd-badge", "aria-hidden": "true", text: String(count) }) : null));
         })),
     ];
   });
-  const signOut = settings.onSignOut
+  const signOut = settings.signOut === false ? null : settings.onSignOut
     ? h("button", { type: "button", class: "nd-sidemenu__signout", onClick: settings.onSignOut, text: t("uiSignOut", lang) })
     : h("a", { class: "nd-sidemenu__signout", href: settings.signOutHref || "/login", text: t("uiSignOut", lang) });
   return h("div", { class: "nd-sidemenu" },

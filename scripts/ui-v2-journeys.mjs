@@ -42,6 +42,13 @@ async function prepare(context) {
     wrap(prototype, "clearCookies", (self) => prepared.has(self) && self.addCookies(cookies));
   }
   await context.addCookies(cookies);
+  // v2 Activity rows are collapsed canvas rows that open to v1's payment actions.
+  // Journeys written for v1's table expect those actions on screen, so rows
+  // open as they appear (test-only; the portal itself starts them collapsed).
+  await context.addInitScript(() => {
+    const open = () => document.querySelectorAll("details[data-payment-row]:not([open])").forEach((row) => { row.open = true; });
+    new MutationObserver(open).observe(document, { childList: true, subtree: true });
+  });
   context.on("response", check);
 }
 

@@ -1,70 +1,196 @@
-const primary = [
-  ["home", "Home", "M3 10 12 3l9 7v11h-6v-7H9v7H3Z"],
-  ["store", "Store", "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7"],
-  ["devices", "Devices", "M3 4h18v12H3Zm5 16h8M12 16v4"],
-  ["vouchers", "Vouchers", "M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4Zm12 0v14"],
-  ["payments", "Payments", "M4 3h16v19l-4-2-4 2-4-2-4 2Zm4 5h8M8 12h8M8 16h5"],
-  ["customers", "Customers", "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M17 4a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-4"],
-  ["bundles", "Bundles", "M3 7l9-4 9 4-9 4Zm0 0v10l9 4 9-4V7M12 11v10"],
-  ["connections", "Connections", "M4 4h6v6H4ZM14 14h6v6h-6ZM7 10v7h7M14 7h6M17 4v6"],
-  ["more", "More", "M4 5h16M4 12h16M4 19h16"],
-];
-const secondary = ["network-setup", "voucher-create", "audit"];
-const canAccess = (id, role) => (id !== "network-setup" || role === "owner") && (id !== "store" || ["owner", "operator"].includes(role));
-let mounted = false, currentRole, changed;
-export function activeAdminView(role = currentRole) {
-  const view = location.hash.slice(1);
-  const allowed = [...primary.map(([id]) => id), ...secondary].filter((id) => canAccess(id, role));
-  return allowed.includes(view) ? view : "home";
+// Redesigned admin navigation (admin-app-v2): the grouped side menu from the
+// design kit (Network · Sales · People · System) and the page head (eyebrow and
+// title from each canvas screen).
+//
+// Panels keep their v1 names (data-tab-panel). Each menu item shows the panels
+// that hold its screen today, and v1 addresses still land: #more opens Profile
+// (the install prompt moved there), #voucher-create opens Vouchers.
+import { format, t } from "/shared/i18n.js";
+import { clear, currentLanguage, localize } from "/shared/ui/dom.js";
+import { ADMIN_MENU, renderAdminMenu } from "/shared/ui/navigation.js";
+
+// view -> menu item, panels shown, optional section to scroll to, title, eyebrow group.
+const VIEWS = {
+  home: { menu: "home", panels: ["home"], title: "adminTitleHome" },
+  devices: { menu: "devices", panels: ["devices"], title: "adminTitleDevices", group: "uiAdminGroupNetwork" },
+  connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork", lede: "adminConnectionsLede" },
+  "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
+  bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede" },
+  // #bundle/<id>; app.js names the bundle in the title.
+  bundle: { menu: "bundles", panels: ["bundle-edit"], title: "adminTitleBundleEdit", back: { href: "/dashboard#bundles", label: "adminTitleBundlesShort" } },
+  vouchers: { menu: "vouchers", panels: ["vouchers"], title: "adminTitleVouchers", group: "uiAdminGroupSales" },
+  // A sub-screen: a back link instead of the eyebrow; app.js names the batch.
+  "voucher-print": { menu: "vouchers", panels: ["voucher-print"], title: "adminTitleVoucherPrint", back: { href: "/dashboard#vouchers", label: "adminTitleVouchersShort" } },
+  payments: { menu: "payments", panels: ["payments"], title: "adminTitlePayments", group: "uiAdminGroupSales" },
+  store: { menu: "store", panels: ["store"], title: "adminTitleStore", group: "adminGroupStore" },
+  products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
+  // #product/<id> or #product/new; the store module names the product in the title.
+  product: { menu: "products", panels: ["store"], title: "adminTitleProductEdit", back: { href: "/dashboard#products", label: "adminTitleProductsShort" } },
+  cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
+  customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
+  // #customer/<id>; app.js puts the customer's name in the title.
+  customer: { menu: "customers", panels: ["customer"], title: "adminTitleCustomer", back: { href: "/dashboard#customers", label: "adminTitleCustomersShort" } },
+  resellers: { menu: "resellers", panels: ["resellers"], title: "adminTitleResellers", group: "uiAdminGroupPeople" },
+  audit: { menu: "audit", panels: ["audit"], title: "adminTitleAudit", group: "uiAdminGroupSystem", lede: "adminAuditLede" },
+  profile: { menu: "profile", panels: ["profile"], title: "adminTitleProfile", group: "uiAdminGroupSystem" },
+};
+const ALIASES = { more: "profile", "voucher-create": "vouchers", setup: "network-setup" };
+const HREFS = {};
+ADMIN_MENU.forEach((section) => section.items.forEach((id) => { HREFS[id] = "/dashboard#" + id; }));
+HREFS.setup = "/dashboard#network-setup";
+HREFS.homerouters = "/home-routers.html";
+const ROLES = { owner: "adminRoleOwner", operator: "adminRoleOperator", auditor: "adminRoleAuditor", reseller: "adminRoleReseller" };
+const STORE_ROLES = ["owner", "operator"];
+
+let mounted = false, currentRole, changed, homeRouters = false, badges = {};
+
+// Role rules (unchanged from v1): network setup for the owner, the store for
+// owners and operators. Cash and resellers follow the sections the dashboard
+// rendered for this role; Home routers follows NDAHI Home being in use.
+function canAccess(menu, role) {
+  const who = role === undefined ? currentRole : role;
+  if (menu === "setup") return who === "owner";
+  if (menu === "store" || menu === "products") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "payments" || menu === "customers" || menu === "audit") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
+  if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
+  if (menu === "homerouters") return homeRouters;
+  return true;
 }
-function apply(focus = false) {
-  const view = activeAdminView(), group = secondary.includes(view) ? "more" : view;
-  document.querySelectorAll("[data-tab-panel]").forEach((panel) => { panel.hidden = panel.dataset.tabPanel !== view; });
-  document.querySelectorAll("[data-admin-more]").forEach((menu) => { menu.hidden = group !== "more"; });
-  document.querySelectorAll("[data-admin-nav]").forEach((link) => {
-    if (link.dataset.adminNav === group) {
-      link.setAttribute("aria-current", "page");
-      const nav = link.parentElement;
-      nav.scrollLeft = Math.max(0, link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2);
-    }
-    else link.removeAttribute("aria-current");
-  });
-  document.querySelectorAll('[role="tab"][data-tab]').forEach((tab) => {
-    tab.setAttribute("aria-selected", String(tab.dataset.tab === view));
-    tab.tabIndex = tab.dataset.tab === view || view === "more" ? 0 : -1;
-  });
-  const title = document.getElementById("adminTitle");
-  if (title) {
-    title.textContent = { home: "Your operations.", devices: "Live Wi-Fi devices.", vouchers: "Your vouchers.", payments: "Payments and revenue.", store: "Your device store.", customers: "Your customers.", bundles: "Your bundles.", connections: "Connections and security." }[view] || "Administration.";
-    if (focus) { window.scrollTo(0, 0); title.focus({ preventScroll: true }); }
+
+export function activeAdminView(role) {
+  const name = location.hash.slice(1).split("/")[0], view = ALIASES[name] || name;
+  const who = role === undefined ? currentRole : role;
+  if (view === "voucher-print" && STORE_ROLES.indexOf(who) < 0 && who !== "reseller") return "home";
+  return VIEWS[view] && canAccess(VIEWS[view].menu, role) ? view : "home";
+}
+
+function eyebrow(view, lang) {
+  const config = VIEWS[view];
+  if (config.back) return "";
+  if (view === "home") {
+    const date = new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
+    return ROLES[currentRole] ? t(ROLES[currentRole], lang) + " · " + date : date;
   }
-  changed?.(view);
+  return t(config.group, lang) + (config.ownerOnly ? " · " + t("adminOwnerOnly", lang) : "");
 }
+
+function renderMenu(view) {
+  const host = document.getElementById("adminSideMenu");
+  if (!host) return;
+  clear(host).appendChild(renderAdminMenu({
+    current: VIEWS[view].menu,
+    canAccess: (menu) => canAccess(menu),
+    hrefs: HREFS,
+    homeHref: "/dashboard#home",
+    badges,
+    signOut: false,
+    linkId: (id) => "admin-nav-" + id,
+    lang: currentLanguage(),
+  }));
+  // v1 links also carried data-tab with the view name; older pages and tests use it.
+  host.querySelectorAll("[data-admin-nav]").forEach((link) => { link.dataset.tab = link.dataset.adminNav === "setup" ? "network-setup" : link.dataset.adminNav; });
+}
+
+function apply(focus) {
+  const view = activeAdminView(), config = VIEWS[view], lang = currentLanguage();
+  document.querySelectorAll("[data-tab-panel]").forEach((panel) => { panel.hidden = config.panels.indexOf(panel.dataset.tabPanel) < 0; });
+  document.querySelectorAll("[data-admin-nav]").forEach((link) => {
+    if (link.dataset.adminNav === config.menu) {
+      link.setAttribute("aria-current", "page");
+      // On phones the menu is one scrolling row; keep the current item in view.
+      const row = link.closest(".nd-sidemenu__nav");
+      if (row && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, link.offsetLeft - (row.clientWidth - link.offsetWidth) / 2);
+    } else link.removeAttribute("aria-current");
+  });
+  // Each screen's own buttons beside the title (marked data-head-view in app.js).
+  document.querySelectorAll("[data-head-view]").forEach((action) => { action.hidden = action.dataset.headView !== view; });
+  const title = document.getElementById("adminTitle"), label = document.getElementById("adminEyebrow");
+  if (label) { label.textContent = eyebrow(view, lang); label.hidden = !label.textContent; }
+  if (title) title.textContent = t(config.title, lang);
+  // Sub-screens (canvas: "← Vouchers" above the title) link back to their screen.
+  const back = document.getElementById("adminBack");
+  if (back) {
+    back.hidden = !config.back;
+    if (config.back) {
+      const name = t(config.back.label, lang);
+      back.href = config.back.href;
+      back.setAttribute("aria-label", format("adminBackTo", { page: name }, lang));
+      back.innerHTML = '<span aria-hidden="true">← </span>';
+      back.appendChild(document.createTextNode(name));
+    }
+  }
+  setAdminHead({ lede: config.lede ? t(config.lede, lang) : "" });
+  const section = config.section && document.getElementById(config.section);
+  if (focus && section) section.scrollIntoView({ block: "start" });
+  else if (focus && title) { window.scrollTo(0, 0); title.focus({ preventScroll: true }); }
+  if (changed) changed(view);
+}
+
+// The part of the address after the view: the customer in #customer/<id>.
+export function adminViewParam() {
+  const hash = location.hash.slice(1), at = hash.indexOf("/");
+  if (at < 0) return "";
+  try { return decodeURIComponent(hash.slice(at + 1)); } catch { return ""; }
+}
+
+// A screen's own title and the line under it, when they depend on its data
+// (for example "Print 20 vouchers"). Cleared whenever the view changes.
+export function setAdminHead({ title, lede, avatar }) {
+  const heading = document.getElementById("adminTitle"), line = document.getElementById("adminLede"), badge = document.getElementById("adminAvatar");
+  if (title && heading) heading.textContent = title;
+  if (line) { line.textContent = lede || ""; line.hidden = !lede; }
+  if (badge) { badge.textContent = avatar || ""; badge.hidden = !avatar; }
+}
+
+// Counts shown on menu items (for example { payments: 2, store: 3 }).
+export function setAdminBadges(next) {
+  badges = next || {};
+  if (mounted) renderMenu(activeAdminView());
+}
+
+// Shows the Home routers item once NDAHI Home is known to be in use.
+export function showHomeRouters() {
+  homeRouters = true;
+  if (mounted) renderMenu(activeAdminView());
+}
+
+// Pages outside the dashboard (Home routers) show the same menu, with that
+// page as the current item. `sales` says whether this role sees Cash.
+export function mountStandaloneMenu({ role, current, sales }) {
+  currentRole = role;
+  homeRouters = true;
+  const host = document.getElementById("adminSideMenu");
+  if (!host) return;
+  clear(host).appendChild(renderAdminMenu({
+    current,
+    canAccess: (menu) => (menu === "cash" ? Boolean(sales) : menu === "resellers" ? true : canAccess(menu, role)),
+    hrefs: HREFS,
+    homeHref: "/dashboard#home",
+    badges: {},
+    signOut: false,
+    linkId: (id) => "admin-nav-" + id,
+    lang: currentLanguage(),
+  }));
+  host.querySelectorAll("[data-admin-nav]").forEach((link) => { if (link.dataset.adminNav === current) link.setAttribute("aria-current", "page"); });
+  const side = document.querySelector(".nd-admin-shell__side");
+  if (side) localize(side, currentLanguage());
+}
+
 export function mountAdminNavigation(role, onChanged) {
   currentRole = role;
   changed = onChanged;
-  const nav = document.getElementById("adminNav");
-  nav.innerHTML = primary.filter(([id]) => canAccess(id, role)).map(([id, label, path]) => `<a id="admin-nav-${id}" href="/dashboard#${id}" data-admin-nav="${id}" data-tab="${id}"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="${path}"/></svg><span>${label}</span></a>`).join("");
-  nav.hidden = false;
-  const tabs = [...document.querySelectorAll('[role="tab"][data-tab]')];
-  tabs.forEach((tab, index) => {
-    tab.onclick = () => { location.hash = tab.dataset.tab; };
-    tab.onkeydown = (event) => {
-      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-      event.preventDefault();
-      const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-      location.hash = tabs[next].dataset.tab;
-      tabs[next].focus();
-    };
-  });
+  renderMenu(activeAdminView());
   if (!mounted) {
     mounted = true;
-    window.addEventListener("hashchange", () => apply(true));
+    const side = document.querySelector(".nd-admin-shell__side");
+    if (side) localize(side, currentLanguage());
+    window.addEventListener("hashchange", () => { renderMenu(activeAdminView()); apply(true); });
     if (window.visualViewport) {
-      const keyboard = () => document.body.classList.toggle("keyboard-open", innerHeight - window.visualViewport.height > 150 && Boolean(document.activeElement?.matches("input, textarea, select")));
+      const keyboard = () => document.body.classList.toggle("keyboard-open", innerHeight - window.visualViewport.height > 150 && Boolean(document.activeElement && document.activeElement.matches("input, textarea, select")));
       window.visualViewport.addEventListener("resize", keyboard);
       document.addEventListener("focusout", () => setTimeout(keyboard, 0));
     }
   }
-  apply();
+  apply(false);
 }

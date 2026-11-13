@@ -76,16 +76,16 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
     </div>
 
     <div class="table-scroll">
-      <table class="reseller-ledger-table" data-reseller-table>
+      <table class="reseller-ledger-table nd-table" data-reseller-table>
         <thead>
           <tr>
             <th>Reseller</th>
             <th>Stock (Unsold / Redeemed / Total)</th>
             <th>Cash collected</th>
             <th>Commission</th>
-            <th>Net owed</th>
+            <th>Owed to owner</th>
             <th>Remitted</th>
-            <th>Outstanding balance</th>
+            <th>Outstanding</th>
           </tr>
         </thead>
         <tbody>
@@ -113,40 +113,45 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
       canManage
         ? `<div class="reseller-ledger-actions">
             <form class="reseller-ledger-form" data-reseller-remittance-form>
-              <h4>Record cash remittance handoff</h4>
+              <h4>Record a cash handoff</h4>
               <label>Reseller
                 <select name="resellerId" required>${resellerOptions}</select>
               </label>
-              <label>Amount remitted (FCFA)
+              <label>Amount received (FCFA)
                 <input type="number" name="amount" min="1" step="1" placeholder="15000" required>
               </label>
               <label>Handoff note (optional)
                 <input type="text" name="note" maxlength="200" placeholder="Cash received at main office">
               </label>
-              <button type="submit">Record remittance</button>
+              <button type="submit" class="nd-btn">Record remittance</button>
             </form>
-            <form class="reseller-ledger-form" data-reseller-commission-form>
-              <h4>Configure reseller commission split</h4>
-              <label>Reseller
-                <select name="resellerId" required>${resellerOptions}</select>
-              </label>
-              <label>Commission percentage (%)
-                <input type="number" name="commissionPercent" min="0" max="100" step="0.5" value="${escapeHtml(resellers[0]?.commissionPercent ?? 10)}" required>
-              </label>
-              <label class="checkbox">
-                <input type="checkbox" name="applyToUnsoldStock" value="true">
-                Apply new rate to existing unsold stock (completed sales keep agreed rate)
-              </label>
-              <button type="submit" class="secondary-action">Save commission %</button>
-            </form>
-            <form class="reseller-ledger-form" data-reseller-adjustment-form>
-              <h4>Record a balance correction</h4>
-              <p>Positive amounts add to the amount due; negative amounts credit the reseller. Completed sales remain in history.</p>
-              <label>Reseller<select name="resellerId" required>${resellerOptions}</select></label>
-              <label>Correction (FCFA)<input type="number" name="amount" min="-100000000" max="100000000" step="1" required></label>
-              <label>Reason<input name="reason" maxlength="200" required></label>
-              <button type="submit" class="secondary-action">Record adjustment</button>
-            </form>
+            <details class="reseller-ledger-advanced admin-options" data-reseller-advanced>
+              <summary>Commission split &amp; balance corrections</summary>
+              <div class="reseller-ledger-advanced__grid">
+                <form class="reseller-ledger-form" data-reseller-commission-form>
+                  <h4>Commission split</h4>
+                  <label>Reseller
+                    <select name="resellerId" required>${resellerOptions}</select>
+                  </label>
+                  <label>Commission percentage (%)
+                    <input type="number" name="commissionPercent" min="0" max="100" step="0.5" value="${escapeHtml(resellers[0]?.commissionPercent ?? 10)}" required>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" name="applyToUnsoldStock" value="true">
+                    Apply new rate to existing unsold stock (completed sales keep agreed rate)
+                  </label>
+                  <button type="submit" class="nd-btn nd-btn--secondary">Save commission %</button>
+                </form>
+                <form class="reseller-ledger-form" data-reseller-adjustment-form>
+                  <h4>Record a balance correction</h4>
+                  <p>Positive amounts add to the amount due; negative amounts credit the reseller. Completed sales remain in history.</p>
+                  <label>Reseller<select name="resellerId" required>${resellerOptions}</select></label>
+                  <label>Correction (FCFA)<input type="number" name="amount" min="-100000000" max="100000000" step="1" required></label>
+                  <label>Reason<input name="reason" maxlength="200" required></label>
+                  <button type="submit" class="nd-btn nd-btn--secondary">Record adjustment</button>
+                </form>
+              </div>
+            </details>
           </div>`
         : ""
     }
@@ -157,7 +162,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
       ${
         remittances.length
           ? `<div class="table-scroll">
-              <table data-remittance-history-table>
+              <table class="nd-table" data-remittance-history-table>
                 <thead>
                   <tr>
                     <th>Date</th>
@@ -264,6 +269,10 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
 
     bindFinancialForm(container.querySelector("[data-reseller-remittance-form]"), "remittance", messageEl);
     bindFinancialForm(container.querySelector("[data-reseller-adjustment-form]"), "adjustment", messageEl);
+    if (operations.get("adjustment")?.pending) {
+      const advancedEl = container.querySelector("[data-reseller-advanced]");
+      if (advancedEl) advancedEl.open = true;
+    }
 
     const commissionForm = container.querySelector("[data-reseller-commission-form]");
     if (commissionForm && typeof call === "function") {

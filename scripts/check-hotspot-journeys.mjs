@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { useVoucherSignIn } from "./portal-tabs.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { uiV2 } from "./admin-nav.mjs";
 
 // Browser-only fixtures: all API/router requests are intercepted; no live credentials or networks.
 const api = "http://api.hotspot.test", login = "https://connect.hotspot.test/login",
@@ -93,7 +95,7 @@ try {
   await scenario("portal sign-in waits for provisioning then posts credentials to the fixed HTTPS router", async ({ page, posts, credentials }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("2468");
     await page.locator("#loginSubmit").click();
@@ -114,7 +116,7 @@ try {
   await scenario("sign-in outside NDAHI Wi-Fi opens the account without contacting the local router", async ({ page, posts, credentials }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("2468");
     await page.locator("#loginSubmit").click();
@@ -151,6 +153,12 @@ try {
   }, { exhausted: true });
   await scenario("expired customer sessions return to portal sign-in without sending credentials", async ({ page, posts }) => {
     await page.goto(`${portal}/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
+    // v2 shows the hotspot landing's choices first; sign-in keeps the device's Wi-Fi details.
+    if (uiV2) {
+      const signIn = page.getByRole("link", { name: /^I have an account or a voucher/ });
+      assert.match(await signIn.getAttribute("href"), /^\/login\?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10\.20\.0\.30$/);
+      await signIn.click();
+    }
     await page.waitForURL(url => url.pathname === "/login");
     assert.equal(posts.length, 0);
   }, { unauthorized: true });
@@ -162,7 +170,7 @@ try {
   await scenario("older browsers can sign in without storage, newer timeout APIs or the optional passkey download", async ({ page, posts }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("2468");
     await page.locator("#loginSubmit").click();
@@ -180,7 +188,7 @@ try {
   await scenario("a failed sign-in still shows a useful error without newer DOM APIs", async ({ page, posts }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("1111");
     await page.locator("#loginSubmit").click();
@@ -196,7 +204,7 @@ try {
   await scenario("a lost PIN completion response recovers the expected account without replaying its challenge", async ({ page, posts, completions }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("2468");
     await page.locator("#loginSubmit").click();
@@ -207,7 +215,7 @@ try {
   await scenario("a prior session for another account cannot recover an uncertain sign-in", async ({ page, posts, completions }) => {
     await page.goto(`${portal}/login?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     await page.locator('[name="phone"]').fill("670040001");
-    await page.locator('[name="code"]').fill("NC-TEST-1234");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-TEST-1234");
     await page.locator("#loginSubmit").click();
     await page.locator('[name="pin"]').fill("2468");
     await page.locator("#loginSubmit").click();

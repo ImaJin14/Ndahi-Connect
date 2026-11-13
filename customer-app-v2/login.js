@@ -38,6 +38,31 @@ function toggleSecret(inputSelector, buttonSelector) {
   input.focus();
 }
 $("#togglePin").onclick = () => toggleSecret("#customerPin", "#togglePin");
+// Phase 6 (canvas: PhoneLogin): phone + PIN, or a passkey. "Use a voucher code"
+// is the secondary path: phone + voucher, then the PIN (or a new one for a
+// first voucher), with the main-device approval gate as before.
+let loginMode = "pin";
+function setMode(mode) {
+  loginMode = mode;
+  document.body.dataset.loginMode = mode;
+  accessToken = ""; accessMode = "";
+  const form = $("#login");
+  form.phone.readOnly = false; form.code.readOnly = false;
+  form.code.required = mode === "voucher";
+  $("#credentialStep").hidden = mode === "voucher";
+  $("#customerPin").required = mode === "pin";
+  $("#pinLabel").textContent = "PIN";
+  $("#customerPin").autocomplete = "current-password";
+  $("#forgotPin").hidden = false;
+  $("#confirmPinLabel").hidden = true; $("#confirmPin").required = false;
+  $("#changeDetails").hidden = true;
+  $("#customerPin").value = ""; $("#confirmPin").value = "";
+  $("#loginSubmit").textContent = mode === "pin" ? "Sign in" : "Continue";
+  $("#message").textContent = "";
+}
+$("#useVoucherCode").onclick = () => { setMode("voucher"); $("#login").code.focus(); };
+$("#usePinSignIn").onclick = () => { setMode("pin"); $("#login").phone.focus(); };
+setMode(new URLSearchParams(location.search).get("voucher") === "1" ? "voucher" : "pin");
 $("#toggleConfirmPin").onclick = () => toggleSecret("#confirmPin", "#toggleConfirmPin");
 async function call(path, data) {
   const { response, body: result } = await requestJson(api + path, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
@@ -46,6 +71,7 @@ async function call(path, data) {
 }
 function showAccountCredentials() {
   $("#credentialStep").hidden = false;
+  $("#changeDetails").hidden = false;
   $("#customerPin").required = true;
   $("#pinLabel").textContent = accessMode === "setup" ? "Create a 4-digit PIN" : "4-digit PIN";
   $("#customerPin").autocomplete = accessMode === "setup" ? "new-password" : "current-password";
@@ -58,9 +84,14 @@ $("#login").onsubmit = async (event) => {
   event.preventDefault();
   const button = $("#loginSubmit");
   try {
-    await runLogin(button, accessToken ? "Signing in…" : "Checking…", async () => {
+    await runLogin(button, loginMode === "pin" || accessToken ? "Signing in…" : "Checking…", async () => {
       $("#message").textContent = "";
       const input = formValues(event.target);
+      if (loginMode === "pin") {
+        await completeSignIn(api, "/api/account/login/pin", { phone: input.phone, pin: input.pin }, input.phone);
+        location.replace(await afterSignInPath(accountOnly));
+        return;
+      }
       if (!accessToken) {
         const result = await call("/api/account/access/begin", {
           phone: input.phone, code: input.code,
@@ -113,24 +144,13 @@ $("#login").onsubmit = async (event) => {
   } catch (error) {
     showError($("#message"), error);
   } finally {
-    if (!button.disabled) button.textContent = accessToken
+    if (!button.disabled) button.textContent = loginMode === "pin" ? "Sign in" : accessToken
       ? accessMode === "setup" ? "Get Started" : "Sign in" : "Continue";
   }
 };
 $("#changeDetails").onclick = () => {
-  accessToken = "";
-  accessMode = "";
-  const form = $("#login");
-  form.phone.readOnly = false;
-  form.code.readOnly = false;
-  $("#credentialStep").hidden = true;
-  $("#customerPin").required = false;
-  $("#confirmPin").required = false;
-  $("#customerPin").value = "";
-  $("#confirmPin").value = "";
-  $("#loginSubmit").textContent = "Continue";
-  $("#message").textContent = "";
-  form.phone.focus();
+  setMode("voucher");
+  $("#login").phone.focus();
 };
 $("#customerPasskeyLogin").onclick = async () => {
   const button = $("#customerPasskeyLogin"),
@@ -156,7 +176,7 @@ $("#customerPasskeyLogin").onclick = async () => {
       context: "passkey",
       actions: [
         { label: "Try passkey again", run: () => $("#customerPasskeyLogin").click() },
-        { label: "Use voucher and PIN", run: () => document.querySelector('[name="code"]').focus() },
+        { label: "Use your PIN", run: () => { setMode("pin"); document.querySelector("#customerPin").focus(); } },
       ],
     });
   }

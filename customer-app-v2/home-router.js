@@ -32,7 +32,7 @@ function renderSetup(){
  $("#homeSetup").innerHTML=`<h2>${h(t("setup"))}</h2><p>${h(t("steps"))}</p><p>${h(t("setupNotice"))}</p><section id="homeCompatibility"><h3>${h(t("compatTitle"))}</h3><ul><li>${h(t("compatNetwork"))}</li><li>${h(t("compatWifi"))}</li><li>${h(t("compatIdentity"))}</li></ul></section><p><a href="/dashboard#payments">${h(t("receipt"))}</a></p>`;
 }
 function render(){
- document.documentElement.lang=language;$("#back").textContent=t("back");
+ document.documentElement.lang=language;$("#back").setAttribute("aria-label",t("back"));
  const v=info.bundle,link=info.link;
  renderStatus();
  renderSetup();

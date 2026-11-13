@@ -1,0 +1,41 @@
+/* Redesigned admin shell (admin-app-v2): side menu and page head on a page
+   whose screens are still partly styled by v1's styles.css. Layout only; the
+   components come from shared-app/ui. Canvas: AdminSide and every Admin* screen. */
+
+/* v1 reserved room for its bottom bar and its 190px desktop rail. */
+body.admin-dashboard { padding-left: 0; background: var(--nd-ivory); }
+.admin-dashboard main.nd-admin-shell__main { margin: 0; padding-bottom: var(--nd-space-48); }
+.admin-dashboard .nd-pagehead h1 { color: var(--nd-ink); }
+.admin-dashboard .nd-pagehead h1:focus { outline: none; }
+
+/* Side menu: the kit menu, then sign-out (with the notification bell beside it). */
+.nd-admin-shell__side { display: flex; flex-direction: column; }
+.nd-admin-shell__side .nd-sidemenu { padding-bottom: var(--nd-space-8); }
+.admin-side__foot { display: flex; align-items: center; gap: var(--nd-space-8); min-height: 0; margin: 0; padding: var(--nd-space-10) var(--nd-space-12) var(--nd-space-24); border: 0; background: transparent; color: var(--nd-on-forest-soft); }
+.admin-side__foot .nd-sidemenu__signout { flex: 1; margin-top: 0; }
+.admin-side__foot .notification-bell { flex-shrink: 0; margin: 0; border-color: var(--nd-line-on-forest); color: var(--nd-white); }
+
+@media (min-width: 768px) {
+  /* The menu stays in view while long screens scroll. */
+  .nd-admin-shell__side { position: -webkit-sticky; position: sticky; top: 0; align-self: flex-start; min-height: 100vh; max-height: 100vh; overflow-y: auto; }
+  .admin-dashboard .update-notice { left: 256px; }
+}
+
+@media (max-width: 767.98px) {
+  /* Phones: brand, bell and sign-out in one bar, the links in a scrolling row below. */
+  .nd-admin-shell__side { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .nd-admin-shell__side > #adminSideMenu, .nd-admin-shell__side .nd-sidemenu { display: contents; }
+  .nd-admin-shell__side .nd-sidemenu__brand { grid-column: 1; grid-row: 1; padding: var(--nd-space-10) var(--nd-space-12); }
+  .nd-admin-shell__side .nd-sidemenu__nav { grid-column: 1 / -1; grid-row: 2; margin: 0; padding: 0 var(--nd-space-12) var(--nd-space-10); }
+  .admin-side__foot { grid-column: 2; grid-row: 1; padding: var(--nd-space-10) var(--nd-space-12); }
+  .admin-side__foot .nd-sidemenu__signout { flex: 0 0 auto; width: auto; }
+  .admin-dashboard .nd-pagehead .nd-h1--xl { font-size: var(--nd-fs-h1); }
+}
+
+/* Printing (voucher slips, receipts): only the printed content, one page per
+   slip, as v1's print rules did for its header and tab strip. */
+@media print {
+  .nd-admin-shell__side, .admin-dashboard .nd-pagehead { display: none !important; }
+  .nd-admin-shell { display: block; min-height: 0; }
+  .admin-dashboard main.nd-admin-shell__main { display: block; max-width: none; margin: 0; padding: 0 !important; }
+}
