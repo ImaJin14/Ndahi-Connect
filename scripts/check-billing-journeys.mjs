@@ -127,11 +127,15 @@ try {
       await seedSavedCheckout(context, { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
       await page.goto(`${portal}/onboarding.html`);
       // No click needed: the visit itself checks the saved key and releases the packages.
-      await page.getByText(/This does not confirm whether money was deducted/).waitFor();
+      // The key reads why it failed (#251): v2 shows "Payment didn't go through"
+      // (canvas: PhonePaymentFailed), v1 the provider's reason.
+      if (uiV2) await page.getByRole("heading", { name: "Payment not approved", exact: true }).waitFor();
+      else await page.getByText("Synthetic provider failure", { exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: "Resume saved payment" }).count(), 0);
       assert.equal(await savedCookie(context), undefined);
       const opener = page.locator('[data-plan="weekly"]');
-      await opener.click();
+      if (uiV2) await page.getByRole("button", { name: "Try again", exact: true }).click();
+      else await opener.click();
       // The API supplied the contact details this device no longer keeps.
       assert.equal(await page.getByLabel("Your name", { exact: true }).inputValue(), "");
       assert.equal(await page.getByLabel("Payment phone number", { exact: true }).inputValue(), "");

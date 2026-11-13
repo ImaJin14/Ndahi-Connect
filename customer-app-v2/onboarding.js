@@ -586,7 +586,7 @@ function retryCheckout(payment, change) {
   hidePaymentFailed();
   failedPayment = undefined;
   if (!choose(payment.planId)) { $("#packages").scrollIntoView({ block: "start" }); return; }
-  openCheckout($("#plans"));
+  openCheckout($(`#plans button[data-plan="${CSS.escape(payment.planId)}"]`) || $("#plans"));
   const form = $("#purchase"), number = account ? form.elements.payerPhone : form.elements.phone;
   if (account && payment.payerPhone) number.value = String(payment.payerPhone).replace(/^\+?237(?=6)/, "");
   if (change === "network") {
