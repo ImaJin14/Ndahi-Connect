@@ -77,13 +77,13 @@ try {
     }
     return { cdp, authenticatorId };
   }
-  for (const width of [320,390,768,1280]) await scenario(`Account groups profile, security, recovery and sessions with theme/language disabled at ${width}px`,async ({page})=>{
+  for (const width of [320,390,768,1280]) await scenario(`Account groups profile, security, recovery and sessions with theme disabled and explicit language preference at ${width}px`,async ({page})=>{
     await page.setViewportSize({width,height:900});await page.emulateMedia({colorScheme:"dark"});
     await page.addInitScript(()=>{localStorage.setItem("ndahi-theme","dark");localStorage.setItem("ndahi-lang","fr");});
     await page.goto(portal+"/dashboard#account");await waitForAccount(page);
     assert.equal(await page.locator("#themeToggle, .lang-switcher").count(),0);
     assert.equal(await page.locator("html").getAttribute("data-theme"),null);
-    assert.equal(await page.locator("html").getAttribute("lang"),"en");
+    assert.equal(await page.locator("html").getAttribute("lang"),uiV2 ? "fr" : "en");
     const text=await page.locator(".account-layout").textContent();assert.doesNotMatch(text,/authenticator|2FA|MFA|Prepare PIN|sign-in readiness/i);
     // v2 Account is a hub (canvas: PhoneAccount) linking to the profile and sessions pages.
     if(uiV2)for(const hash of ["editProfile","sessions"])await page.locator(`.portal-account a[href="/dashboard#${hash}"]:visible`).first().waitFor();
