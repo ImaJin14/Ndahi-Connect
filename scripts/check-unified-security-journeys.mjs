@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openSecurityManager, uiV2 } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { setDefaultResultOrder } from "node:dns";
@@ -32,7 +33,7 @@ try {
     finally { await context.close(); }
   }
   async function open(page, panel = "pin") {
-    await page.goto(portal + "/dashboard#account"); await page.locator("#securityManager>summary").click();
+    await page.goto(portal + "/dashboard#account"); await openSecurityManager(page);
     await page.locator(`[data-security-panel="${panel}"]`).click();
   }
   async function virtualKey(page, context, { seed = false, noPin = false } = {}) {
@@ -51,10 +52,14 @@ try {
   }
   const success = (page, text) => page.locator("#securityMessage").getByText(text, { exact: true }).waitFor();
   for (const width of [320,390,768,1280]) await scenario(`one security entry and no duplicate recovery card at ${width}px`, async ({ page }) => {
-    await page.goto(portal + "/dashboard#account"); await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
-    assert.equal(await page.locator("#accountRecovery").count(), 0); assert.equal(await page.locator("#securityManager").evaluate(node => node.open), false);
-    assert.equal(await page.locator("#addCustomerPasskey").isVisible(), false);
-    await page.getByText("Manage PIN / Passkey", { exact: true }).click();
+    // v2: Account is a hub and PIN & passkeys opens as its own page, already expanded.
+    await page.goto(portal + (uiV2 ? "/dashboard#accountSecurity" : "/dashboard#account")); await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
+    assert.equal(await page.locator("#accountRecovery").count(), 0);
+    if (!uiV2) {
+      assert.equal(await page.locator("#securityManager").evaluate(node => node.open), false);
+      assert.equal(await page.locator("#addCustomerPasskey").isVisible(), false);
+      await page.getByText("Manage PIN / Passkey", { exact: true }).click();
+    }
     for (const panel of ["pin", "passkeys", "recovery"]) { await page.locator(`[data-security-panel="${panel}"]`).click(); assert.equal(await page.locator(`[data-security-content="${panel}"]`).isVisible(), true); }
     assert.equal(await page.getByRole("link", { name: "Recover a forgotten PIN", exact: true }).getAttribute("href"), "/forgot-pin");
     assert.doesNotMatch(await page.locator("#accountSecurity").textContent(), /TOTP|MFA|authenticator|Wi-Fi approval code/i);
@@ -89,7 +94,7 @@ try {
     assert.equal((await f.store.snapshot()).customers[0].pinFailedAttempts || 0, 0);
     await page.getByRole("button", { name: "Cancel", exact: true }).click(); assert.equal(await page.locator("#securityManager").evaluate(node => node.open), false);
     assert.equal(await page.locator('#changePin [name="newPin"]').inputValue(), "");
-    await page.locator("#securityManager>summary").click(); await pinChange(page); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+    await openSecurityManager(page); await pinChange(page); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
   });
   await scenario("last passkey remains usable and recovery is reachable after rejection", async ({ page, context }) => {
     await virtualKey(page, context, { seed: true, noPin: true }); await open(page, "passkeys"); await page.locator("[data-remove-passkey]").click();
@@ -132,7 +137,8 @@ try {
     await open(page, "recovery"); await page.locator("#backupCodeSettings>summary").click(); await page.locator('#accountBackup [name="currentPin"]').fill("2468"); await page.getByRole("button", { name: "Generate codes with PIN", exact: true }).click();
     await page.getByRole("heading", { name: "Save your account backup codes", exact: true }).waitFor(); assert.equal(await page.locator("#accountBackupOutput code").count(), 5);
     const download = page.waitForEvent("download"); await page.getByRole("button", { name: "Download codes", exact: true }).click(); assert.equal((await download).suggestedFilename(), "ndahi-account-backup-codes.txt");
-    await page.keyboard.press("Escape"); assert.equal(await page.locator("#accountBackupOutput code").count(), 0); assert.equal(await page.locator("#securityManager>summary").evaluate(node => node === document.activeElement), true);
+    await page.keyboard.press("Escape"); assert.equal(await page.locator("#accountBackupOutput code").count(), 0); // v1 returns focus to the summary; v2 closes the page back to Account.
+    if (uiV2) await page.waitForURL(/#account$/); else assert.equal(await page.locator("#securityManager>summary").evaluate(node => node === document.activeElement), true);
   });
   console.log(`PASS ${checks} unified security browser journeys`);
 } finally {

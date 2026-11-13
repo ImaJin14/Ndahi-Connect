@@ -1,0 +1,59 @@
+name: Redesign regressions
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-regressions:
+    name: Cold security routes and admin role isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Syntax-check browser regression modules
+        run: node --check test/redesign-browser/deep-links.test.mjs && node --check test/redesign-browser/permissions.test.mjs
+      - name: Syntax-check preview and customer screen modules
+        run: |
+          for module in scripts/redesign-preview.mjs scripts/redesign-preview-canvas.js customer-app-v2/portal-{account,activity,devices,internet,shop}.js; do
+            node --check "$module"
+          done
+      - name: Verify cold routes and role isolation on both UI variants
+        run: node --test --test-timeout=300000 test/redesign-browser/*.test.mjs
+
+  phase6-sign-in:
+    # Phase 6 (#245): email + PIN then passkey, passkey setup at sign-in,
+    # support passkey removal, and PIN-first customer sign-in, in Chromium
+    # with a virtual authenticator.
+    name: Phase 6 sign-in journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Syntax-check the Phase 6 journey
+        run: node --check scripts/check-phase6-sign-in-journeys.mjs
+      - name: Verify Phase 6 sign-in and passkey recovery at 390 and 1280
+        run: node scripts/check-phase6-sign-in-journeys.mjs
+      - name: Keep failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phase6-sign-in-screenshots
+          path: /tmp/ndahi-phase6-sign-in
+          if-no-files-found: ignore

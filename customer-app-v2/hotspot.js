@@ -237,6 +237,16 @@ devices.onclick = async (event) => {
   } catch (error) { showError(message, error); }
 };
 button.onclick = connect;
+// Hotspot landing: how to get online, each choice carrying this device's Wi-Fi details.
+function showLanding(evidence) {
+  const landing = document.getElementById("hotspotLanding");
+  if (!landing) return false;
+  landing.querySelectorAll("[data-hotspot-link]").forEach((link) => { link.href = withWifiHint(link.dataset.hotspotLink); });
+  if (evidence.network.state === "confirmed") document.getElementById("hotspotWifi").textContent = "You're on NDAHI Wi-Fi";
+  document.body.setAttribute("data-hotspot-landing", "");
+  landing.hidden = false;
+  return true;
+}
 window.addEventListener("pageshow", () => {
   form.elements.username.value = ""; form.elements.password.value = ""; submitted = false;
 });
@@ -254,6 +264,9 @@ else if (params.has("router-error")) {
     const evidence = await fetchConnectivity(config.apiUrl);
     if (evidence.account.state !== "authenticated") {
       saveReturnPath(destination.pathname + destination.search + destination.hash);
+      // A plain visit gets the landing's choices (canvas: PhoneHotspot); a
+      // requested destination keeps today's direct sign-in.
+      if (!params.has("next") && showLanding(evidence)) return;
       location.replace(withWifiHint("/login")); return;
     }
     if (evidence.network.state !== "confirmed" || evidence.hotspot.state === "authenticated" || !wifiHint()) { location.replace(destination.href); return; }

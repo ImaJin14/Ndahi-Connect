@@ -3,6 +3,7 @@ import http from "node:http";
 import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { emailConfirmationCode } from "../lib/transactional-email.mjs";
+import { uiV2 } from "./portal-tabs.mjs";
 const server = http.createServer();
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const portal = `http://127.0.0.1:${server.address().port}`;
@@ -66,17 +67,23 @@ try {
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
       await page.goto(portal + "/dashboard#account");
-      await page.getByText("Edit profile", { exact: true }).waitFor({ state: "visible" });
-      assert.equal(
-        await page.getByText("Edit profile", { exact: true }).count(),
-        1,
-      );
+      // v2 Account is a hub (canvas: PhoneAccount); its Edit link opens the profile page.
+      const edit = uiV2
+        ? page.locator('.portal-account a[href="/dashboard#editProfile"]:visible').first()
+        : page.getByText("Edit profile", { exact: true });
+      await edit.waitFor({ state: "visible" });
+      if (!uiV2)
+        assert.equal(
+          await page.getByText("Edit profile", { exact: true }).count(),
+          1,
+        );
       assert.equal(
         await page.locator("#changeName,#changePhone,#linkEmail").count(),
         0,
       );
-      await page.getByText("Edit profile", { exact: true }).focus();
+      await edit.focus();
       await page.keyboard.press("Enter");
+      if (uiV2) await page.locator("#editProfile[open]").waitFor();
       const form = page.locator("#profileEdit");
       assert.equal(
         await form.getByLabel("Full name", { exact: true }).inputValue(),
@@ -209,9 +216,15 @@ try {
         false,
       );
       await page.reload();
-      await page
-        .getByRole("heading", { name: "Your profile", exact: true })
-        .waitFor();
+      if (uiV2)
+        await page
+          .locator("#accountHubTitle:visible, #editProfileTitle:visible")
+          .first()
+          .waitFor();
+      else
+        await page
+          .getByRole("heading", { name: "Your profile", exact: true })
+          .waitFor();
       assert.deepEqual(errors, []);
       await context.close();
       console.log(

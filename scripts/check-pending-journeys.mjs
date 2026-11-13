@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { openSecurityManager, useVoucherSignIn } from "./portal-tabs.mjs";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { adminLinkName, openAdminMore } from "./admin-nav.mjs";
+import { adminLinkName, openAdminMore, uiV2 as adminV2 } from "./admin-nav.mjs";
 
 // Isolated fixtures with delayed responses; no .env, database or live providers.
 const apiPort = Number(process.env.PENDING_API_PORT || 8498), portalPort = Number(process.env.PENDING_PORT || 8497),
@@ -97,7 +98,7 @@ try {
     const begin = await hold(page, "/api/account/access/begin", { token: "fixture-access", mode: "login" }, 200);
     await page.goto(`${portal}/login`);
     await page.locator('[name="phone"]').fill("670080001");
-    await page.locator('[name="code"]').fill("NC-ABCD-EFGH");
+    await useVoucherSignIn(page); await page.locator('[name="code"]').fill("NC-ABCD-EFGH");
     await submitTwice(page, "#login"); await begin.started;
     assert.equal(await page.locator("#loginSubmit").textContent(), "Checking…");
     for (const selector of ["#loginSubmit", "#changeDetails", "#customerPasskeyLogin"]) assert.equal(await page.locator(selector).isDisabled(), true);
@@ -119,10 +120,10 @@ try {
   await scenario("admin login rejects duplicate submits and disables controls", async (page) => {
     const credentials = await hold(page, "/api/admin/login", { authenticated: true, user: { username: "fixture-owner", role: "owner" } }, 200);
     await page.goto(`${admin}/login`);
-    await page.locator('[name="username"]').fill("fixture-owner");
+    await page.locator(adminV2 ? '[name="email"]' : '[name="username"]').fill("fixture-owner");
     await page.locator("#adminPassword").fill("fixture-pin");
     await submitTwice(page, "#login"); await credentials.started;
-    assert.equal(await page.locator("#passkeyLogin").isDisabled(), true);
+    if (!adminV2) assert.equal(await page.locator("#passkeyLogin").isDisabled(), true);
     assert.equal(await page.locator("#togglePassword").textContent(), "Show");
     credentials.release(); await page.waitForURL("**/dashboard");
     assert.equal(credentials.count(), 1);
@@ -153,7 +154,7 @@ try {
   });
   await scenario("passkey enrollment keeps duplicate actions locked and restores retry",async page=>{
     const request=await hold(page,"/api/account/passkeys/options",{error:"Fixture passkey options failure"});
-    await page.goto(`${portal}/dashboard#account`);await page.locator("#securityManager>summary").click(); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
+    await page.goto(`${portal}/dashboard#account`);await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator("#addCustomerPasskey").click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
     await page.locator("[data-passkey-owner-proof]").getByRole("button",{name:"Confirm with PIN",exact:true}).click();await request.started;
     assert.equal(await page.locator("#addCustomerPasskey").isDisabled(),true);

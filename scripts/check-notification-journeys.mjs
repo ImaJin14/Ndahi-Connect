@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openManageDevices, openSessions, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
@@ -58,7 +59,7 @@ try {
   await guest.goto(portal + "/onboarding.html?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.40");
   await guest.waitForFunction(() => document.querySelector('a[href*="/login"]').href.includes("mac="));
   await guest.getByRole("link", { name: "Customer login", exact: true }).click();
-  await guest.locator('#login [name="phone"]').fill("670050001"); await guest.locator('#login [name="code"]').fill("NC-AAAA-1111");
+  await useVoucherSignIn(guest); await guest.locator('#login [name="phone"]').fill("670050001"); await guest.locator('#login [name="code"]').fill("NC-AAAA-1111");
   await guest.locator("#loginSubmit").click();
   await guest.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
   assert.equal(await guest.locator("#login").isHidden(), true);
@@ -78,7 +79,7 @@ try {
   missingHint.on("request", (r) => { if (r.url().endsWith("/api/account/device-management/connect")) accountConnections.push(r.url()); });
   await missingHint.goto(portal + "/login");
   await missingHint.locator('#login [name="phone"]').fill("670050001");
-  await missingHint.locator('#login [name="code"]').fill("NC-AAAA-1111");
+  await useVoucherSignIn(missingHint); await missingHint.locator('#login [name="code"]').fill("NC-AAAA-1111");
   await missingHint.locator("#loginSubmit").click();
   await missingHint.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
   assert.equal(await missingHint.locator("#customerPin").isHidden(), true);
@@ -90,13 +91,13 @@ try {
   await missingHint.locator("#customerPin").fill("2468");
   await missingHint.getByRole("button", { name: "Sign in", exact: true }).click();
   await missingHint.waitForURL(/\/dashboard#account$/);
-  await missingHint.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
+  await waitForAccount(missingHint);
   assert.equal(accountConnections.length, 0);
   assert.equal(f.calls.length, 1);
   assert.equal(await missingHint.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   console.log("PASS missing captive details never fall back to a PIN; explicit account sign-in opens settings without a Wi-Fi connection or blocked-storage dependency");
 
-  await owner.getByRole("button", { name: /^Notifications/ }).click();
+  await openNotifications(owner);
   const panel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await panel.getByRole("heading", { name: "Set your main device", exact: true }).waitFor();
   await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
@@ -112,13 +113,13 @@ try {
   await owner.screenshot({ path: screenshots + "/customer-notifications-320.png", fullPage: true });
   await owner.keyboard.press("Escape");
   assert.equal(await owner.getByRole("button", { name: /^Notifications/ }).evaluate((el) => el === document.activeElement), true);
-  await owner.reload(); await owner.getByRole("button", { name: /^Notifications/ }).click();
+  await owner.reload(); await openNotifications(owner);
   await panel.getByRole("button", { name: "Settings", exact: true }).click();
   assert.equal(await panel.getByLabel("Email security notices", { exact: true }).isChecked(), false);
   await owner.keyboard.press("Escape");
   console.log("PASS notification filters, durable read/preferences, pending actions, focus restoration and 320px layouts");
 
-  await owner.getByRole("button", { name: /^Notifications/ }).click();
+  await openNotifications(owner);
   await owner.evaluate(async () => {
     await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
     window.syntheticPush = { permission: "default", permissionCalls: 0, active: false, allowed: false, subscribed: false };
@@ -163,7 +164,7 @@ try {
   await owner.locator('[data-main-proof] [name="pin"]').fill("2468");
   await owner.getByRole("button", { name: "Verify and select", exact: true }).click();
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor({ state: "attached" });
-  if (!await owner.locator("#manageDevices").evaluate((element) => element.open)) await owner.locator("#manageDevices > summary").click();
+  await openManageDevices(owner);
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   assert.equal((await f.store.snapshot()).customers[0].wifiMainDevice.mac, guestMac);
   console.log("PASS choosing Yes links the selected browser only after PIN verification");
@@ -234,16 +235,17 @@ try {
   await owner.reload();
   assert.equal(await owner.getByRole("heading", { name: "Recent security notices", exact: true }).count(), 0);
   assert.equal(await owner.getByRole("heading", { name: "Recent sign-ins", exact: true }).count(), 0);
-  await owner.locator("#sessionActivity summary").click();
+  await openSessions(owner);
   await owner.getByRole("button", { name: "View security history", exact: true }).click();
   const securityPanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await securityPanel.getByRole("heading", { name: "Account security changed", exact: true }).waitFor();
   await securityPanel.getByRole("heading", { name: /PIN sign-in/ }).waitFor();
   await securityPanel.getByRole("link", { name: "Review sessions", exact: true }).first().click();
   await owner.waitForURL(/#sessions$/);
-  await owner.locator("#sessionActivity [data-revoke-session]").first().waitFor();
+  await owner.locator("#sessionActivity [data-revoke-session]:visible").first().waitFor(); // v2 marks this device "You" instead
   assert.equal(await owner.locator("#sessionActivity").evaluate((el) => el.open), true);
-  assert.equal(await owner.getByRole("dialog", { name: "Notifications", exact: true }).isHidden(), true);
+  // The panel closes as the page changes; wait for it rather than racing a slow runner.
+  await owner.getByRole("dialog", { name: "Notifications", exact: true }).waitFor({ state: "hidden" });
   assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   console.log("PASS security/sign-in history lives in the centre and Review sessions opens active session controls without duplicate Account history at 320px");
 
@@ -255,7 +257,7 @@ try {
   });
   for (const [page, origin] of [[owner, portal], [administrator, administration]]) {
     await page.goto(origin + "/dashboard");
-    await page.getByRole("button", { name: /^Notifications/ }).click();
+    await openNotifications(page);
     const centre = page.getByRole("dialog", { name: "Notifications", exact: true });
     await centre.getByLabel("Notification view", { exact: true }).selectOption("all");
     await centre.getByLabel("Notification category", { exact: true }).selectOption("security");
@@ -314,13 +316,13 @@ try {
   await owner.reload(); // The previous fixture was on a dashboard hash; fetch the newly active bundle.
   await owner.locator("[data-remaining-data]").filter({ hasText: "100 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: /over 90%/ }).waitFor();
-  await owner.locator('[data-portal-tab="account"]').click(); await owner.getByRole("button", { name: "Manage notification settings", exact: true }).click();
+  await owner.locator('[data-portal-tab="account"]').click(); await manageNotificationSettings(owner);
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByLabel("Data-usage push alerts", { exact: true }).waitFor();
   await owner.getByRole("dialog", { name: "Notifications", exact: true }).getByRole("button", { name: "Back to notifications", exact: true }).click();
   await owner.keyboard.press("Escape");
   await f.store.transaction((s) => { const v = s.vouchers[0]; v.usedBytes = 998000000; v.lastUsageSyncAt = f.now().toISOString(); recordUsageAlerts(v, f.now); });
   await owner.evaluate(() => window.dispatchEvent(new Event("online")));
-  await owner.locator('[data-portal-tab="home"]').click();
+  await openPortalView(owner, "home");
   await owner.locator("[data-remaining-data]").filter({ hasText: "2 MB" }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: "Low data: 2 MB left" }).waitFor();
   assert.equal((await f.store.snapshot()).vouchers[0].status, "active");
@@ -334,7 +336,7 @@ try {
   await owner.evaluate(() => window.dispatchEvent(new Event("online")));
   await owner.locator("[data-remaining-data]").filter({ hasText: /^0 MB$/ }).waitFor();
   await owner.locator("#dataBalanceMessage").filter({ hasText: "data is used up" }).waitFor();
-  await owner.getByRole("button", { name: /^Notifications/ }).click();
+  await openNotifications(owner);
   const usagePanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await usagePanel.getByLabel("Notification view", { exact: true }).selectOption("all");
   await usagePanel.getByLabel("Notification category", { exact: true }).selectOption("usage");

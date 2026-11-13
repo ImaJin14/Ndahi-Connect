@@ -1,0 +1,87 @@
+/* Get-connected flow pages in the kit look (canvas: PhoneScanConnect,
+   PhoneVoucherReady, PhoneWifiConnected, PhonePairRequest, PhonePairReview):
+   voucher-connect, voucher-ready, wifi-connected, pair, pair-review and
+   hotspot's connecting step. A light brand bar, then one flat column:
+   eyebrow, display title, body text, full-width kit buttons and inputs.
+   Markup and behaviour are v1's; only the look changes. */
+body { background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+body > header { min-height: 56px; padding: 0 var(--nd-space-16); border-bottom: 1px solid var(--nd-line); background: var(--nd-ivory); color: var(--nd-forest); box-shadow: none; }
+body > header .brand { color: var(--nd-forest); text-decoration: none; }
+/* v1 forces the header's wordmark light for its forest bar (with !important). */
+body > header .brand-mark { border-color: var(--nd-forest); background: var(--nd-forest); color: var(--nd-lime) !important; }
+body > header .brand strong { color: var(--nd-forest) !important; }
+body > header .brand small { color: var(--nd-muted) !important; }
+body > main { padding: 0 var(--nd-space-16) var(--nd-space-32); background: none; }
+main > .card.narrow, main.login-shell > .surface { box-sizing: border-box; width: 100%; max-width: 520px; margin: var(--nd-space-20) auto 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+main > .card.narrow > .eyebrow, main.login-shell > .surface > .eyebrow { margin: 0 0 var(--nd-space-6); color: var(--nd-lime-text); font-size: var(--nd-fs-eyebrow); font-weight: 700; letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
+main > .card.narrow h1, main.login-shell > .surface h1 { margin: 0 0 var(--nd-space-10); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
+main > .card.narrow p, main.login-shell > .surface p, main > .card.narrow li { color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+/* The rule above outranks pair.css, so restore white on the current pairing step's forest pill. */
+main > .card.narrow .pair-progress li[aria-current="step"] { color: var(--nd-white); }
+main > .card.narrow p:empty, main.login-shell > .surface p:empty { display: none; }
+main > .card.narrow a:not(.button), main.login-shell > .surface a:not(.button) { color: var(--nd-forest); font-weight: 700; }
+main > .card.narrow label, main.login-shell > .surface label { display: block; margin: 0 0 var(--nd-space-12); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+main > .card.narrow label > input:not([type="checkbox"]):not([type="radio"]), main.login-shell > .surface label > input:not([type="checkbox"]):not([type="radio"]) { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+/* Buttons: the main action in lime, secondary ones outlined, all full width. */
+main > .card.narrow button, main > .card.narrow a.button, main.login-shell > .surface button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0 0 var(--nd-space-10); padding: 0 var(--nd-space-16); border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); text-decoration: none; box-shadow: none; transform: none; }
+main > .card.narrow button.secondary-action, main.login-shell > .surface button.secondary-action { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+main > .card.narrow button.danger-action, main.login-shell > .surface button.danger-action { border: 1px solid var(--nd-danger-line); background: var(--nd-paper); color: var(--nd-danger); }
+main > .card.narrow button:disabled, main.login-shell > .surface button:disabled { opacity: .55; }
+main > .card.narrow button[hidden], main > .card.narrow a.button[hidden], main.login-shell > .surface button[hidden] { display: none; }
+/* Status lines read as a soft panel. */
+main > .card.narrow [role="status"]:not(:empty):not(li), main.login-shell > .surface [role="status"]:not(:empty) { padding: var(--nd-space-10) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-sage); color: var(--nd-ink); }
+main > .help-link a { color: var(--nd-forest); }
+
+/* ---------- Voucher ready (canvas: PhoneVoucherReady): the voucher as a forest card ---------- */
+#voucherDetails:not([hidden]) { margin: 0 0 var(--nd-space-14); padding: var(--nd-space-18); border-radius: var(--nd-radius-card-lg); background: var(--nd-forest); color: var(--nd-on-forest); }
+#voucherDetails h2 { margin: 0 0 var(--nd-space-10); color: var(--nd-lime); font: 700 var(--nd-fs-eyebrow) var(--nd-font-body); letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
+#voucherDetails label { margin: 0; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-meta); font-weight: 600; }
+#voucherDetails label > input[readonly] { min-height: 0; margin: 4px 0 0; padding: 0; border: 0; background: none; color: var(--nd-white); font: 700 26px/1.2 var(--nd-font-mono); letter-spacing: .06em; }
+#voucherDetails p { margin: var(--nd-space-10) 0 0; color: var(--nd-on-forest-soft); }
+/* One main action: continuing; downloading a copy is secondary. */
+main > .card.narrow #downloadVoucher { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+
+/* ---------- Scan, no bundle (canvas: PhoneScanNoBundle) ---------- */
+.portal-scan__none { margin: 0 0 var(--nd-space-14); }
+.portal-scan__none h2 { margin: 0 0 var(--nd-space-8); color: var(--nd-forest); font: 700 24px/1.2 var(--nd-font-display); }
+.portal-scan__none a.button { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0 0 var(--nd-space-10); border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); text-decoration: none; }
+.portal-scan__none a.portal-scan__secondary { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+.surface[data-no-bundle] > #bundleName, .surface[data-no-bundle] > #bundleName + p { display: none; }
+.surface[data-no-bundle] > #qrMessage { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- A page bar: back arrow and the page name (canvas bars) ---------- */
+.flow-bar { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 48px; margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-16); padding: 0 var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }
+main > .card.narrow .flow-bar h1 { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.flow-bar__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+.flow-bar__back:hover { background: var(--nd-sage); }
+body:has(.flow-bar) > header { display: none; }
+main > .card.narrow:has(.flow-bar) { margin-top: 0; }
+
+/* ---------- Voucher ready (canvas: PhoneVoucherReady) ---------- */
+#voucherDetails:not([hidden]) { text-align: center; }
+#voucherDetails label > input[readonly] { font-size: 30px; letter-spacing: .12em; text-align: center; }
+.voucher-ready__qr { display: block; width: 156px; height: 156px; margin: var(--nd-space-12) auto 0; padding: 8px; border-radius: 12px; background: var(--nd-white); }
+.voucher-ready__qr[hidden] { display: none; }
+.voucher-ready__actions { display: flex; gap: var(--nd-space-10); }
+.voucher-ready__actions > button { flex: 1; }
+main > .card.narrow .voucher-ready__actions > button { width: auto; border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+main > .card.narrow .voucher-ready__actions > button[hidden] { display: none; }
+#voucherDetails ~ p:last-of-type { padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink); }
+.nd-visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+.flow-bar__title { color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+/* Pair review (canvas: PhonePairReview): the matching code as the forest reference card. */
+#pairingReview h2 { margin: 0 0 var(--nd-space-10); color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+#pairingReview .pair-review-code { display: block; margin: 0 0 var(--nd-space-8); padding: var(--nd-space-16); border-radius: 14px; background: var(--nd-forest); color: var(--nd-white); font: 700 32px var(--nd-font-mono); letter-spacing: .14em; text-align: center; }
+#pairingReview .pair-actions { display: flex; flex-direction: row-reverse; gap: var(--nd-space-10); }
+main > .card.narrow #pairingReview .pair-actions button { flex: 1; width: auto; }
+/* ---------- Scan to connect (canvas: PhoneScanConnect): forest bar, plan card ---------- */
+body > header.scan-bar { display: flex; align-items: center; justify-content: space-between; min-height: 64px; border: 0; background: var(--nd-forest); }
+header.scan-bar .brand { display: flex; align-items: center; gap: var(--nd-space-10); }
+header.scan-bar .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid var(--nd-lime); border-radius: 50%; background: none; color: var(--nd-lime) !important; font-size: 11px; font-weight: 700; }
+header.scan-bar .brand strong { color: var(--nd-white) !important; font: 700 19px var(--nd-font-display); }
+.scan-bar__help { color: var(--nd-lime); font-size: 14px; font-weight: 700; }
+main.login-shell > .surface #bundleName { margin: 0 0 var(--nd-space-12); padding: var(--nd-space-14); border-radius: 14px; background: var(--nd-forest); color: var(--nd-white); font-size: 15px; font-weight: 700; }
+main.login-shell > .surface .scan-note { order: 9; color: var(--nd-muted); font-size: 13px; }
+.surface[data-no-bundle] > .eyebrow { display: none; }
+.surface[data-no-bundle] > h1 { display: none; }
+.surface[data-no-bundle] .portal-scan__none h2 { font-size: 28px; }
