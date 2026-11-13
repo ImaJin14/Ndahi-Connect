@@ -93,10 +93,11 @@ kill switch and unchanged customer selection. The role-isolation browser suite
 also verifies fresh/legacy-cookie admin defaults and explicit old/new choices at
 390 and 1280 px, then checks each role on explicitly selected v1 and v2.
 
-## Ramp
+## Customer ramp
 
-Suggested steps: staff-only opt-in on staging, then production, then
-`UI_V2_PERCENT` 10 → 50 → 100 on `ndahi-customer`.
+Test customer v2 by explicit opt-in on staging, then production, before raising
+`UI_V2_PERCENT` 10 → 50 → 100 on `ndahi-customer`. Admin already defaults to v2
+and does not participate in this sampling ramp.
 
 1. Check the comparisons below for the current step.
 2. In Render, open **ndahi-customer → Environment**, set `UI_V2_PERCENT`, and save.
@@ -121,9 +122,16 @@ visit.
    cookie says. Open tabs switch at their next release check.
 2. Commit `UI_V2_OFF: "true"` to `render.yaml` straight away. Until that PR merges,
    a Blueprint sync would set it back to `false`.
-3. Once v2 is fixed, set `UI_V2_OFF=false`. Visitors who had v2 get it again (their
-   cookies were left unchanged). To restart from v1 for everyone, lower
-   `UI_V2_PERCENT` as well; existing v2 cookies still last up to 30 days.
+3. Once v2 is fixed, set `UI_V2_OFF=false` on the affected service:
+   - On the customer portal, saved preferences apply again. Lowering
+     `UI_V2_PERCENT` changes only visitors without a saved choice; existing v2
+     preferences still last up to 30 days.
+   - On `ndahi-admin`, staff without a deliberate preference return to the v2
+     default. Set `ADMIN_UI_DEFAULT=v1` before lifting the kill switch if those
+     staff should stay on v1. Explicit `?ui=new` choices and legacy v2 opt-ins
+     still select v2. `UI_V2_PERCENT` has no effect on admin.
+   Keep `UI_V2_OFF=true` when everyone must be forced to v1, including explicit
+   v2 choices.
 
 To roll back a single person, send them a link with `?ui=old`.
 
