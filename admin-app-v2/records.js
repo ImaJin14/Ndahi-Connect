@@ -48,7 +48,9 @@ function labelCells(body, headers) {
   }
 }
 
-export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null }) {
+// `params` adds query parameters (the Customers filter) and `onResult` sees each
+// loaded page (its counts); `ready.reload()` reloads from the first page.
+export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null, params: extraParams = null, onResult = null }) {
   const state = { page: 1, q: "", status: "", from: "", to: "" }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
   const formId = `records-form-${++forms}`;
@@ -77,7 +79,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
   }
   async function load(background = false) {
     const current = ++request,
-      params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status, ...(collection === "vouchers" ? { from: state.from, to: state.to } : {}) });
+      params = new URLSearchParams({ collection, page: state.page, pageSize, q: state.q, status: state.status, ...(collection === "vouchers" ? { from: state.from, to: state.to } : {}), ...(extraParams ? extraParams() : {}) });
     if (!background || !loaded) showLoading();
     try {
       const result = await call(`/api/admin/records?${params}`);
@@ -87,6 +89,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
         status.hidden = Boolean(kit && (kit.chips || kit.statusFilter === false));
       }
       state.page = result.page;
+      onResult?.(result, { q: state.q });
       if (details) details.render(body, result.items, row, result.scopeKey);
       else body.innerHTML = result.items.length ? result.items.map(row).join("") : "";
       if (!result.items.length) body.innerHTML = `<tr><td colspan="${headers.length}">${h(empty)}</td></tr>`;
@@ -154,6 +157,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
   }
   const ready = load();
   ready.refresh = () => load(true);
+  ready.reload = () => { clearTimeout(timer); state.page = 1; return load(); };
   return ready;
 }
 

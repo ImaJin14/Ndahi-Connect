@@ -7,7 +7,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { mountRecords } from "/records.js";
-import { maskPhone, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
+import { maskPhone, paymentFor, paymentMethod, paymentStatus, saveFile } from "/payments.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
@@ -41,7 +41,8 @@ const suspendButton = (c, block) => {
 // "[PLAN 2] · 3.2 GB left", "Payment waiting", "[PLAN 1] · expired" or "None".
 function bundleText(summary) {
   const bundle = summary && summary.bundle;
-  if (bundle && bundle.status === "active") return `${bundle.name || "—"} · ${bundle.remainingBytes == null ? L("adminUnlimited") : L("adminDataLeft", { amount: gb(bundle.remainingBytes) })}`;
+  // Unlimited bundles show data used, never data left.
+  if (bundle && bundle.status === "active") return `${bundle.name || "—"} · ${bundle.quotaBytes == null ? L("adminDataUsed", { amount: gb(bundle.usedBytes) }) : L("adminDataLeft", { amount: gb(bundle.remainingBytes) })}`;
   if (summary && summary.paymentWaiting) return L("adminPaymentWaiting");
   if (bundle) return `${bundle.name || "—"} · ${L(VOUCHER_WORDS[bundle.status] || "adminVoucherExpired").toLowerCase()}`;
   return L("adminFieldNone");
@@ -51,12 +52,77 @@ const devicesText = (summary) => {
   return bundle && bundle.status === "active" ? `${bundle.activeDevices} / ${bundle.deviceLimit == null ? "—" : bundle.deviceLimit}` : "0";
 };
 
-export function mountCustomerRecords(container, { call, searchHost }) {
-  return mountRecords(container, {
+// Last active (canvas: AdminCustomers): "Online now", "Today", "Today · ended
+// 1 Nov", "Ended 4 Nov" or "Joined 3 Oct", from the customer's activity.
+const sameDay = (a, b) => new Date(a).toLocaleDateString("en-CA", { timeZone: ZONE }) === new Date(b).toLocaleDateString("en-CA", { timeZone: ZONE });
+const seenDay = (value) => {
+  const at = Date.parse(value);
+  if (!Number.isFinite(at)) return "—";
+  return sameDay(at, Date.now()) ? L("adminToday") : sameDay(at, Date.now() - 864e5) ? L("adminYesterday") : day(value);
+};
+function lastActive(a) {
+  if (!a) return "—";
+  if (a.online) return L("adminOnlineNow");
+  if (a.neverBought) return L("adminJoinedOn", { date: day(a.joinedAt) });
+  if (a.hasBundle) return seenDay(a.lastSeenAt);
+  const ended = day(a.lastEndedAt);
+  return a.lastSeenAt && sameDay(a.lastSeenAt, Date.now()) ? `${L("adminToday")} · ${L("adminEndedLower", { date: ended })}` : L("adminEndedOn", { date: ended });
+}
+function statePill(c) {
+  const a = c.activity || { state: c.status === "suspended" ? "suspended" : "active" };
+  if (a.state === "suspended") return `<span class="nd-pill nd-pill--danger">${h(L("adminCustomerSuspended"))}</span>`;
+  if (a.state === "stale") return `<span class="nd-pill nd-pill--warning">${h(a.neverBought ? L("adminStaleNever") : L("adminStaleDays", { days: a.idleDays }))}</span>`;
+  return `<span class="nd-pill nd-pill--success">${h(L("adminCustomerActive"))}</span>`;
+}
+const FILTERS = [["", "adminFilterAll", "all"], ["active", "adminFilterActive", "active"], ["stale", "adminFilterStale", "stale"], ["suspended", "adminFilterSuspended", "suspended"]];
+const STALE_DAYS = [7, 14, 30, 60, 90];
+
+// The list with its Active / Stale / Suspended chips, "Stale after" and, in the
+// stale view, the export (canvas: AdminCustomers).
+export function mountCustomerRecords(container, { call, searchHost, filtersHost = null, noteHost = null, api = "" }) {
+  const filter = { activity: "", staleDays: 30 };
+  let lastQ = "", list;
+  if (filtersHost) {
+    filtersHost.innerHTML = `<div class="admin-customers__filters"><div class="nd-chips admin-customers__chips" role="group" aria-label="${h(L("adminShowCustomers"))}">${FILTERS.map(([value, key, count]) =>
+      `<button type="button" class="nd-chip admin-customers__chip" aria-pressed="${value === filter.activity}" data-activity="${value}">${h(L(key))} <span class="admin-customers__count" data-count="${count}">0</span></button>`).join("")}</div>
+      <label class="admin-customers__stale">${h(L("adminStaleAfter"))}<select class="admin-customers__days">${STALE_DAYS.map((d) => `<option value="${d}"${d === filter.staleDays ? " selected" : ""}>${h(L("adminDays", { count: d }))}</option>`).join("")}</select></label></div>
+      <div class="admin-customers__banner" hidden><span class="admin-customers__banner-text"></span><button type="button" class="admin-customers__export">${h(L("adminExportList"))}</button></div>`;
+    filtersHost.querySelectorAll("[data-activity]").forEach((chip) => {
+      chip.onclick = () => {
+        filter.activity = chip.dataset.activity;
+        filtersHost.querySelectorAll("[data-activity]").forEach((other) => other.setAttribute("aria-pressed", String(other === chip)));
+        void list?.reload();
+      };
+    });
+    filtersHost.querySelector(".admin-customers__days").onchange = (event) => { filter.staleDays = Number(event.target.value); void list?.reload(); };
+    filtersHost.querySelector(".admin-customers__export").onclick = async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const params = new URLSearchParams({ collection: "customers", activity: filter.activity, staleDays: filter.staleDays, q: lastQ });
+        const response = await fetch(`${api}/api/admin/export?${params}`, { credentials: "include" });
+        if (!response.ok) throw Error(L("adminExportFailed"));
+        saveFile(`ndahi-customers-${filter.activity || "all"}.csv`, await response.blob());
+      } catch (error) { button.closest(".admin-customers__banner").querySelector(".admin-customers__banner-text").textContent = error.message; }
+      finally { button.disabled = false; }
+    };
+  }
+  const showCounts = (result, { q }) => {
+    lastQ = q || "";
+    if (noteHost) noteHost.textContent = L("adminCustomersFilterNote", { days: filter.staleDays });
+    if (!filtersHost || !result.counts) return;
+    for (const [, , key] of FILTERS) filtersHost.querySelector(`[data-count="${key}"]`).textContent = result.counts[key];
+    const banner = filtersHost.querySelector(".admin-customers__banner");
+    banner.hidden = filter.activity !== "stale";
+    if (!banner.hidden) filtersHost.querySelector(".admin-customers__banner-text").innerHTML = L("adminStaleBanner", { count: `<strong>${h(L("adminCustomersCount", { count: result.counts.stale }))}</strong>`, days: filter.staleDays });
+  };
+  list = mountRecords(container, {
     call,
     collection: "customers",
+    params: () => ({ activity: filter.activity, staleDays: filter.staleDays }),
+    onResult: showCounts,
     title: L("adminCustomerList"),
-    headers: [L("adminColCustomer"), L("adminColPhone"), L("adminFieldBundle"), L("adminColDevices"), L("adminColStoreOrders"), L("adminColStatus"), { label: L("adminColAction") }],
+    headers: [L("adminColCustomer"), L("adminColPhone"), L("adminFieldBundle"), L("adminColLastActive"), L("adminColDevices"), L("adminColState"), { label: L("adminColActions") }],
     empty: L("adminCustomersNone"),
     kit: {
       heading: false,
@@ -74,8 +140,9 @@ export function mountCustomerRecords(container, { call, searchHost }) {
         summary: (page, pages, total) => L("adminPageSummary", { page, pages, total }),
       },
     },
-    row: (c) => `<tr><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(bundleText(c.summary))}</td><td>${h(devicesText(c.summary))}</td><td>${h(c.summary ? c.summary.storeOrders : 0)}</td><td>${statusPill(c)}</td><td>${suspendButton(c)}</td></tr>`,
+    row: (c) => `<tr><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(bundleText(c.summary))}</td><td>${h(lastActive(c.activity))}</td><td>${h(devicesText(c.summary))}</td><td>${statePill(c)}</td><td class="admin-customers__actions">${c.activity && c.activity.state === "stale" ? `<a class="nd-btn nd-btn--compact nd-btn--secondary" href="${customerHref(c.id)}">${h(L("adminGiveVoucherShort"))}</a>` : ""}${suspendButton(c)}</td></tr>`,
   });
+  return list;
 }
 
 // Customer detail. Returns false when the customer can't be shown.
