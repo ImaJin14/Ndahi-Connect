@@ -139,7 +139,7 @@ test("customers opt devices in and out without exposing stored subscriptions", a
 });
 
 test("the sender's options produce a signed, encrypted Web Push request", async () => {
-  const { default: webPush } = await import("web-push"), { createECDH, randomBytes } = await import("node:crypto");
+  const webPushModule = await import("web-push"), webPush = webPushModule.default ?? webPushModule, { createECDH, randomBytes } = await import("node:crypto");
   const vapid = webPush.generateVAPIDKeys(), browser = createECDH("prime256v1");
   browser.generateKeys();
   const subscription = pushSubscription({ endpoint: "https://fcm.googleapis.com/fcm/send/device", keys: {
