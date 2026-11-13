@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import http from "node:http";
+import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../../server.mjs";
 import { createStaticServer } from "../../static-server.mjs";
 import { hashSecret } from "../../lib/security.mjs";
@@ -102,6 +103,40 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
     headless: true,
     ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}),
   });
+  // Verify the real default without a query or preference, including browsers
+  // that saved the previous automatically selected v1 interface.
+  const screenshots = "/tmp/ndahi-admin-default-policy";
+  await mkdir(screenshots, { recursive: true });
+  for (const width of [390, 1280]) {
+    for (const legacy of [false, true]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 } });
+      await context.route("**/*", (route) => [api, admin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+      if (legacy) await context.addCookies([{ name: "ndahi_ui", value: "v1", url: admin, httpOnly: true, sameSite: "Lax" }]);
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      try {
+        await page.goto(`${admin}/login`);
+        await page.getByLabel("Email", { exact: true }).waitFor();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), "v2");
+        assert.equal((await context.cookies()).some((cookie) => cookie.name === "ndahi_admin_ui"), false, "computed defaults are not saved as preferences");
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.screenshot({ path: `${screenshots}/${legacy ? "legacy" : "fresh"}-${width}.png`, fullPage: true });
+        await page.goto(`${admin}/login?ui=old`);
+        await page.getByLabel("Username", { exact: true }).waitFor();
+        assert.notEqual(await page.locator("html").getAttribute("data-ui-variant"), "v2");
+        await page.reload();
+        assert.notEqual(await page.locator("html").getAttribute("data-ui-variant"), "v2", "deliberate old view survives reload");
+        await page.goto(`${admin}/login?ui=new`);
+        await page.getByLabel("Email", { exact: true }).waitFor();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), "v2");
+        assert.deepEqual(errors, []);
+        console.info(`PASS default/legacy migration and old/new choices at ${width}px (${legacy ? "legacy" : "fresh"})`);
+      } finally {
+        await context.close();
+      }
+    }
+  }
   for (const variant of variants) {
     for (const role of roles) {
       for (const width of [390, 1280]) {

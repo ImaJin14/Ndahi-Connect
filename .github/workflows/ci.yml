@@ -57,6 +57,10 @@ jobs:
     name: Browser authorization journeys
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Keep the existing v1 journey lane explicit after admin defaults to v2.
+    # The v2 lane and default-policy tests exercise the production default.
+    env:
+      ADMIN_UI_DEFAULT: v1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -112,7 +116,7 @@ jobs:
       - run: npm ci
       - name: Install Chromium and system dependencies
         run: npx playwright install --with-deps chromium
-      # The same journeys with the ndahi_ui=v2 cookie that ?ui=new sets; every
+      # The same journeys with the legacy v2 opt-in supported by both apps; every
       # customer and admin page must be v2 (docs/operations/ui-rollout.md).
       - name: Run desktop browser journeys on v2
         run: STATUS_AUTH_WIDTH=1440 ADMIN_AUTH_WIDTH=1440 npm run test:browser:v2

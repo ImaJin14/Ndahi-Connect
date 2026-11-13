@@ -15,7 +15,7 @@ const site = (t, kind, env = {}, options = {}) =>
 const get = (base, path, cookie) => fetch(base + path, { redirect: "manual", headers: cookie ? { cookie } : {} });
 const isV2 = async (response) => /<html[^>]* data-ui-variant="v2"/.test(await response.text());
 const select = (kind, path, { cookie = "", env = {}, random = () => 0.5 } = {}) =>
-  selectUiVariant({ kind, url: new URL(path, "http://portal.test"), cookieHeader: cookie, config: uiRolloutConfig(env), random });
+  selectUiVariant({ kind, url: new URL(path, "http://portal.test"), cookieHeader: cookie, config: uiRolloutConfig(env, kind), random });
 
 test("the kill switch serves v1 over every query, cookie and percentage", async (t) => {
   const env = { UI_V2_OFF: "true", UI_V2_PERCENT: "100" };
@@ -69,16 +69,52 @@ test("new customer visitors are sampled at UI_V2_PERCENT and keep the result", a
   assert.equal(await isV2(response), true);
 });
 
-test("admin ignores UI_V2_PERCENT; staff opt in with ?ui=new", async (t) => {
-  assert.equal(select("admin", "/login", { env: { UI_V2_PERCENT: "100" }, random: () => 0 }).variant, "v1");
-  const base = await site(t, "admin", { UI_V2_PERCENT: "100" }, { random: () => 0 });
-  const response = await get(base, "/login");
-  assert.match(response.headers.get("set-cookie"), /^ndahi_ui=v1;/);
-  assert.equal(await isV2(response), false);
-  const opted = await get(base, "/login?ui=new");
-  assert.equal(opted.headers.get("location"), "/login");
-  assert.match(opted.headers.get("set-cookie"), /^ndahi_ui=v2;/);
+test("admin defaults to v2 and migrates old default preferences without changing customer choices", async (t) => {
+  const base = await site(t, "admin", {}, { production: true });
+  for (const cookie of [undefined, "ndahi_ui=v1; admin_session=unchanged", "ndahi_ui=v2", "ndahi_admin_ui=invalid; ndahi_ui=v1"]) {
+    const response = await get(base, "/login", cookie);
+    assert.equal(await isV2(response), true);
+    assert.equal(response.headers.get("set-cookie"), null, "a computed default is not saved as a deliberate preference");
+  }
+  for (const percent of ["0", "100"]) {
+    assert.equal(select("admin", "/login", { env: { UI_V2_PERCENT: percent } }).variant, "v2");
+  }
+  assert.deepEqual(select("customer", "/login", { cookie: "ndahi_ui=v1; ndahi_admin_ui=v2" }), { variant: "v1" });
+  assert.deepEqual(select("customer", "/login", { cookie: "ndahi_admin_ui=v2" }), { variant: "v1", persist: true });
+});
+
+test("admin's explicit old-view preference survives navigation and the new default", async (t) => {
+  const base = await site(t, "admin");
+  const optedOut = await get(base, "/login?return=1&ui=old", "ndahi_ui=v2; ndahi_admin_ui=v2");
+  assert.equal(optedOut.status, 302);
+  assert.equal(optedOut.headers.get("location"), "/login?return=1");
+  assert.match(optedOut.headers.get("set-cookie"), /^ndahi_admin_ui=v1;/);
+  const old = await get(base, "/login", "ndahi_admin_ui=v1; ndahi_ui=v2");
+  assert.equal(await isV2(old), false);
+  assert.equal(old.headers.get("set-cookie"), null);
+  const optedIn = await get(base, "/login?ui=new", "ndahi_admin_ui=v1");
+  assert.equal(optedIn.headers.get("location"), "/login");
+  assert.match(optedIn.headers.get("set-cookie"), /^ndahi_admin_ui=v2;/);
+  assert.equal(await isV2(await get(base, "/login", "ndahi_admin_ui=v2")), true);
+});
+
+test("admin's explicit default override supports the v1 journey lane and respects the kill switch", async (t) => {
+  const env = { ADMIN_UI_DEFAULT: "v1", UI_V2_PERCENT: "100" };
+  const base = await site(t, "admin", env);
+  const legacyDefault = await get(base, "/login");
+  assert.equal(await isV2(legacyDefault), false);
+  assert.equal(legacyDefault.headers.get("set-cookie"), null);
+  const newDefault = await get(await site(t, "admin", { ADMIN_UI_DEFAULT: "v2" }), "/login");
+  assert.equal(await isV2(newDefault), true);
+  assert.equal(newDefault.headers.get("set-cookie"), null);
   assert.equal(await isV2(await get(base, "/login", "ndahi_ui=v2")), true);
+  assert.equal(await isV2(await get(base, "/login", "ndahi_admin_ui=v2")), true);
+  const killed = await site(t, "admin", { UI_V2_OFF: "true" });
+  for (const [path,cookie] of [["/login?ui=new","ndahi_admin_ui=v2"],["/login","ndahi_ui=v1; ndahi_admin_ui=v2"]]) {
+    const response=await get(killed,path,cookie);
+    assert.equal(await isV2(response),false);
+    assert.equal(response.headers.get("set-cookie"),null);
+  }
 });
 
 test("the cookie is host-only and follows the session cookie Secure rule", async (t) => {
@@ -89,12 +125,15 @@ test("the cookie is host-only and follows the session cookie Secure rule", async
   assert.equal(await cookieFor({ production: true }), `${local}; Secure`);
   assert.equal(await cookieFor({ production: true }, { SESSION_COOKIE_SECURE: "false" }), local);
   assert.equal(await cookieFor({ production: false }, { SESSION_COOKIE_SECURE: "true" }), `${local}; Secure`);
+  const adminChoice = await get(await site(t, "admin", {}, { production: true }), "/login?ui=new");
+  assert.equal(adminChoice.headers.get("set-cookie"), "ndahi_admin_ui=v2; Path=/; Max-Age=2592000; SameSite=Lax; HttpOnly; Secure");
 });
 
 test("pages, the service worker and release checks come from the chosen folder", async (t) => {
   for (const [kind, cache] of [["customer", "ndahi-shell-v2"], ["admin", "ndahi-admin-shell-v2"]]) {
     const base = await site(t, kind);
-    const [v1, v2] = await Promise.all(["ndahi_ui=v1", "ndahi_ui=v2"].map(async (cookie) => {
+    const cookieName = kind === "admin" ? "ndahi_admin_ui" : "ndahi_ui";
+    const [v1, v2] = await Promise.all([`${cookieName}=v1`, `${cookieName}=v2`].map(async (cookie) => {
       const html = await (await get(base, "/login", cookie)).text();
       const worker = await (await get(base, "/sw.js", cookie)).text();
       const manifest = await get(base, "/manifest.webmanifest", cookie);
@@ -111,7 +150,7 @@ test("pages, the service worker and release checks come from the chosen folder",
     assert.match(v2.html, new RegExp(`content="${v2.revision}"`));
     assert.notEqual(v1.script, v2.script);
     // A tab still open on the other variant can load its versioned files.
-    const crossed = await get(base, v1.script, "ndahi_ui=v2");
+    const crossed = await get(base, v1.script, `${cookieName}=v2`);
     assert.equal(crossed.status, 200);
     assert.equal(crossed.headers.get("cache-control"), "public, max-age=31536000, immutable");
     assert.equal(crossed.headers.get("vary"), "Accept-Encoding");
@@ -154,7 +193,11 @@ test("invalid rollout settings stop the customer and admin servers at startup", 
     assert.throws(() => createStaticServer("customer", { env: { UI_V2_OFF } }), /UI_V2_OFF must be exactly "true" or "false"/);
   }
   assert.doesNotThrow(() => createStaticServer("store", { env: { UI_V2_PERCENT: "ten" } }));
-  assert.deepEqual(uiRolloutConfig({ UI_V2_PERCENT: "", UI_V2_OFF: "" }), { percent: 0, off: false });
+  assert.deepEqual(uiRolloutConfig({ UI_V2_PERCENT: "", UI_V2_OFF: "" }), { percent: 0, off: false, adminDefault: "v2" });
+  for (const ADMIN_UI_DEFAULT of ["V2", "new", "100"]) {
+    assert.throws(() => createStaticServer("admin", { env: { ADMIN_UI_DEFAULT } }), /ADMIN_UI_DEFAULT must be exactly/);
+    assert.doesNotThrow(() => createStaticServer("customer", { env: { ADMIN_UI_DEFAULT } }), "admin-only setting does not affect the customer portal");
+  }
   const started = await promisify(execFile)(process.execPath, ["static-server.mjs"], {
     env: { PATH: process.env.PATH, APP_KIND: "customer", PORT: "0", HOST: "127.0.0.1", UI_V2_PERCENT: "150" }, timeout: 10000,
   }).then(() => ({ code: 0, stderr: "" }), (error) => error);

@@ -132,6 +132,9 @@ test("UI rollout controls can change in Render but must be valid", () => {
     assert.deepEqual(drift({ UI_V2_PERCENT: "10" }).errors, []);
     assert.ok(has(drift({ UI_V2_PERCENT: "10" }).warnings, name === "ndahi-admin" ? /^UI_V2_PERCENT has no effect on the admin app/ : /^UI_V2_PERCENT differs/));
     const invalid = drift({ UI_V2_PERCENT: "101", UI_V2_OFF: "yes" });
+    const adminDefault = drift({ ADMIN_UI_DEFAULT: "invalid" });
+    if (name === "ndahi-admin") assert.ok(has(adminDefault.errors, /^ADMIN_UI_DEFAULT must be exactly/));
+    else assert.deepEqual(adminDefault.errors, [], "admin-only setting does not block the customer service");
     assert.ok(has(invalid.errors, /^UI_V2_PERCENT must be a whole number from 0 to 100/));
     assert.ok(has(invalid.errors, /^UI_V2_OFF must be exactly "true" or "false"/));
     assert.deepEqual(invalid.warnings, []);
