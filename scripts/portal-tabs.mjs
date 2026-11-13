@@ -100,3 +100,12 @@ export async function openNotifications(page) {
   if (uiV2 && !(await bell.isVisible())) await openPage(page, "home");
   await bell.click();
 }
+
+// v2 sign-in leads with phone + PIN (Phase 6, canvas: PhoneLogin); journeys
+// that sign in with a voucher code switch to that path first.
+export async function useVoucherSignIn(page) {
+  if (!uiV2) return;
+  const toggle = page.locator("#useVoucherCode");
+  await toggle.waitFor({ state: "attached" });
+  if (await toggle.isVisible()) await toggle.click();
+}

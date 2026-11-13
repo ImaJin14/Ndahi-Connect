@@ -36,3 +36,9 @@
 /* The Wi-Fi evidence as one quiet line above the form. */
 .login-page #entryConnectivity { margin: var(--nd-space-8) var(--nd-space-16) 0; padding: 0; border: 0; background: none; font-size: 12px; }
 .login-page #entryConnectivity .network-banner-message { display: none; }
+
+/* Phase 6 (canvas: PhoneLogin): phone + PIN first; the voucher code is the second path. */
+body[data-login-mode="pin"] .voucher-only,
+body[data-login-mode="voucher"] .pin-only { display: none !important; }
+/* The newcomer link keeps text contrast on the light page (it inherited a lime meant for dark grounds). */
+.login-page .new-customer a { color: var(--nd-forest); }

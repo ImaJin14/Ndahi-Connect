@@ -37,15 +37,47 @@ $("#login").onsubmit = async (event) => {
         }),
         result = await response.json();
       if (!response.ok) throw Error(result.error || "Unable to sign in");
-
+      // Phase 6: the PIN is step 1; the passkey confirms it (or is added now).
+      if (!result.authenticated && (result.step === "passkey" || result.step === "passkey_setup")) {
+        pendingStep = result;
+        $("#passkeyLogin").hidden = false;
+        $("#passkeyLogin").textContent = result.step === "passkey_setup" ? "Add a passkey to finish" : "Confirm with your passkey";
+        $("#message").textContent = result.step === "passkey_setup"
+          ? "Every administrator now confirms sign-in with a passkey. Add one on this device to finish."
+          : "PIN accepted. Confirm with your passkey to finish signing in.";
+        $("#passkeyLogin").focus();
+        return;
+      }
       location.href = "/dashboard";
     });
   } catch (error) {
     $("#message").textContent = error.message;
   }
 };
+let pendingStep = null;
+async function finishStep(button) {
+  const step = pendingStep;
+  try {
+    await runLogin(button, "Waiting for device…", async () => {
+      const setup = step.step === "passkey_setup";
+      const credential = setup
+        ? await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: step.options })
+        : await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: step.options });
+      const response = await fetch(api + (setup ? "/api/admin/login/passkey-setup" : "/api/admin/login/passkey"), {
+          method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ challengeId: step.challengeId, stepToken: step.stepToken, response: credential }),
+        }),
+        result = await response.json();
+      if (!response.ok) { pendingStep = null; button.textContent = "Sign in with a passkey"; throw Error(result.error || "Passkey verification failed"); }
+      location.href = "/dashboard";
+    });
+  } catch (error) {
+    $("#message").textContent = error.message;
+  }
+}
 
 $("#passkeyLogin").onclick = async () => {
+  if (pendingStep) return finishStep($("#passkeyLogin"));
   const button = $("#passkeyLogin"),
     username = document.querySelector('[name="username"]').value;
   if (!username.trim()) {

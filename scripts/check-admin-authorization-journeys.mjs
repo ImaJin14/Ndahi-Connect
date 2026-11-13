@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { adminGenerateName, openAdminMore, uiV2 } from "./admin-nav.mjs";
+import { adminGenerateName, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
 
 const apiPort = Number(process.env.ADMIN_AUTH_API_PORT || 8398);
 const adminPort = Number(process.env.ADMIN_AUTH_PORT || 8399);
@@ -89,7 +89,7 @@ try {
     await page.goto(`${admin}/dashboard`);
     await page.waitForURL("**/login");
     await page.goto(`${admin}/login`);
-    await page.getByLabel("Username").fill(`fixture-${role}`);
+    await page.getByLabel(adminIdentifierLabel, { exact: true }).fill(`fixture-${role}`);
     await page.locator("#adminPassword").fill(password);
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForURL("**/dashboard");
