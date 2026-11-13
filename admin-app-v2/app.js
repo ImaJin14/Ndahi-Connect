@@ -501,7 +501,7 @@ $("#app").onclick = async (e) => {
     prefillAssignedVoucher(button.dataset.replacePhone || "");
     return;
   }
-  if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["deleteBundle", "resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.deleteBundle) {
       if (!confirm("Delete this custom bundle? This cannot be undone.")) return;
@@ -547,6 +547,8 @@ $("#app").onclick = async (e) => {
       });
     } else if (button.dataset.resetAuthenticator) {
       openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button, retired: adminAuthenticatorRetired }); return;
+    } else if (button.dataset.removeCustomerPasskeys) {
+      openAuthenticatorRecovery({ customerId: button.dataset.removeCustomerPasskeys, call, opener: button, purpose: "passkeys" }); return;
     } else if (button.dataset.customer) {
       const restoring = button.dataset.suspended === "true";
       if (!confirm(restoring ? "Restore this customer account?" : "Suspend this customer and disconnect active vouchers?")) return;

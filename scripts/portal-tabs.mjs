@@ -100,3 +100,17 @@ export async function openNotifications(page) {
   if (uiV2 && !(await bell.isVisible())) await openPage(page, "home");
   await bell.click();
 }
+
+// v2 sign-in leads with phone + PIN (Phase 6, canvas: PhoneLogin); journeys
+// that sign in with a voucher code switch to that path first.
+export async function useVoucherSignIn(page) {
+  if (!uiV2) return;
+  // The mode attribute is set after login.js binds the mode buttons. A link
+  // navigation can expose the HTML before then; an initially hidden toggle
+  // does not mean the voucher path is already selected.
+  const body = page.locator("body[data-login-mode]");
+  await body.waitFor({ state: "attached" });
+  const toggle = page.locator("#useVoucherCode");
+  if (await body.getAttribute("data-login-mode") !== "voucher") await toggle.click();
+  await page.locator('#login [name="code"]').waitFor({ state: "visible" });
+}

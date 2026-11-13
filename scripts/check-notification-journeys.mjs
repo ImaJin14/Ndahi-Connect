@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, openSessions, waitForAccount, manageNotificationSettings, openNotifications, openPortalView } from "./portal-tabs.mjs";
+import { openManageDevices, openSessions, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
@@ -59,7 +59,7 @@ try {
   await guest.goto(portal + "/onboarding.html?mac=AA%3ABB%3ACC%3ADD%3AEE%3A04&address=10.20.0.40");
   await guest.waitForFunction(() => document.querySelector('a[href*="/login"]').href.includes("mac="));
   await guest.getByRole("link", { name: "Customer login", exact: true }).click();
-  await guest.locator('#login [name="phone"]').fill("670050001"); await guest.locator('#login [name="code"]').fill("NC-AAAA-1111");
+  await useVoucherSignIn(guest); await guest.locator('#login [name="phone"]').fill("670050001"); await guest.locator('#login [name="code"]').fill("NC-AAAA-1111");
   await guest.locator("#loginSubmit").click();
   await guest.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
   assert.equal(await guest.locator("#login").isHidden(), true);
@@ -79,7 +79,7 @@ try {
   missingHint.on("request", (r) => { if (r.url().endsWith("/api/account/device-management/connect")) accountConnections.push(r.url()); });
   await missingHint.goto(portal + "/login");
   await missingHint.locator('#login [name="phone"]').fill("670050001");
-  await missingHint.locator('#login [name="code"]').fill("NC-AAAA-1111");
+  await useVoucherSignIn(missingHint); await missingHint.locator('#login [name="code"]').fill("NC-AAAA-1111");
   await missingHint.locator("#loginSubmit").click();
   await missingHint.getByRole("heading", { name: "Request access from your main device", exact: true }).waitFor();
   assert.equal(await missingHint.locator("#customerPin").isHidden(), true);

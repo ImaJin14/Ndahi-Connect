@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices } from "./portal-tabs.mjs";
+import { openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createStaticServer } from "../static-server.mjs";
@@ -118,7 +118,7 @@ try {
   await guest.goto(portal + "/onboarding.html?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.82");
   await guest.getByRole("link", { name: "Customer login", exact: true }).click();
   await guest.locator('#login [name="phone"]').fill(phone);
-  await guest.locator('#login [name="code"]').fill(voucher.code);
+  await useVoucherSignIn(guest); await guest.locator('#login [name="code"]').fill(voucher.code);
   await guest.locator("#loginSubmit").click();
   const requested = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 201);
   await guest.getByRole("button", { name: "Request access", exact: true }).click();

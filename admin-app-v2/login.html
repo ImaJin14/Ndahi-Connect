@@ -3,14 +3,18 @@
 <header class="admin-login__bar nd-on-forest"><span class="nd-brand"><span class="nd-brand__mark" aria-hidden="true">NC</span><span class="nd-brand__words"><span class="nd-brand__name">NDAHI</span><span class="nd-brand__tag">ADMIN</span></span></span></header>
 <main class="admin-login__main"><section class="admin-login__card" aria-labelledby="adminLoginTitle">
   <div id="credentialsStep">
-    <p class="nd-eyebrow" data-i18n="adminLoginEyebrow">Staff sign-in</p><h1 class="nd-h1" id="adminLoginTitle" data-i18n="adminLoginTitle">Administrator access.</h1><p class="nd-lede admin-login__lede" data-i18n="adminLoginLede">For NDAHI staff only. Every sign-in is logged.</p>
+    <p class="nd-eyebrow" data-i18n="adminLoginStep1">Step 1 of 2</p><h1 class="nd-h1" id="adminLoginTitle" data-i18n="adminLoginTitle">Administrator access.</h1><p class="nd-lede admin-login__lede" data-i18n="adminLoginLede">For NDAHI staff only. Every sign-in is logged.</p>
     <form id="login" class="admin-form">
-      <label class="nd-field"><span class="nd-label" data-i18n="adminUsername">Username</span><input class="nd-input" name="username" autocomplete="username" required autofocus></label>
-      <label class="nd-field"><span class="nd-label" data-i18n="adminPasswordLabel">Password</span><span class="password-field"><input class="nd-input" id="adminPassword" name="password" type="password" autocomplete="current-password" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show password" aria-pressed="false">Show</button></span></label>
-      <button class="nd-btn nd-btn--block" data-i18n="adminContinue">Continue</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="passkeyLogin" data-i18n="adminPasskeySignIn">Sign in with a passkey</button>
+      <label class="nd-field"><span class="nd-label" data-i18n="adminEmailLabel">Email</span><input class="nd-input" id="adminEmail" name="email" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus></label>
+      <label class="nd-field"><span class="nd-label" id="adminPinLabel" data-i18n="adminPinLabel">PIN</span><span class="password-field"><input class="nd-input" id="adminPassword" name="pin" type="password" aria-labelledby="adminPinLabel" autocomplete="current-password" required><button type="button" id="togglePassword" class="password-toggle" aria-label="Show PIN" aria-pressed="false">Show</button></span></label>
+      <button class="nd-btn nd-btn--block" data-i18n="adminContinue">Continue</button>
     </form>
-    <p class="admin-login__note" data-i18n="adminLoginLost">Lost your passkey device? Sign in with your password, then add a new passkey in Profile &amp; security.</p>
   </div>
+  <div id="passkeyStep" hidden>
+    <p class="nd-eyebrow" data-i18n="adminLoginStep2">Step 2 of 2</p><h2 class="nd-h1" id="passkeyStepTitle" tabindex="-1" data-i18n="adminPasskeyStepTitle">Confirm with your passkey.</h2><p class="nd-lede admin-login__lede" id="passkeyStepLede" data-i18n="adminPasskeyStepLede">Use your fingerprint, face or screen lock on this device or your phone.</p>
+    <div class="admin-form"><button type="button" class="nd-btn nd-btn--block" id="usePasskey" data-i18n="adminUsePasskey">Use passkey</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="differentAccount" data-i18n="adminUseDifferentAccount">Use a different account</button></div>
+  </div>
+  <p class="admin-login__note" data-i18n="adminLoginLost">Lost your passkey device? The owner can remove it and you add a new one after signing in on another device.</p>
   <p id="message" class="error" role="alert" aria-live="assertive"></p>
 </section></main>
 <script src="/config.js"></script><script src="/vendor/webauthn.js"></script><script type="module" src="/install.js"></script><script type="module" src="/login.js"></script></body></html>

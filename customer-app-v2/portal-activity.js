@@ -50,14 +50,18 @@ export function mountActivity({ call }) {
   // Shop orders join the payments in one chronological stream (canvas:
   // PhoneActivity, DesktopActivity: "Order · TP-Link CPE210 · Ready to
   // collect" between bundle payments). Payment rows keep their markup,
-  // actions and hooks; #activityOrders only carries the orders' empty or
-  // unavailable note, so the Orders filter still says something.
+  // actions and hooks; #activityOrders only carries the orders' notes. "No
+  // orders yet" belongs to the Orders view; "orders could not be loaded" shows
+  // in All and Orders so a failed lookup never passes for a complete list.
   const host = document.getElementById("activityOrders"), list = document.querySelector("#billing .portal-activity__list");
   if (!host || !list) return;
   call("/api/account/store/context").then((context) => {
-    const orders = (context && context.orders) || [];
+    // A context without an order list (or that does not know this customer)
+    // cannot vouch for "no orders": report it as unavailable instead.
+    if (!context || context.authenticated === false || !Array.isArray(context.orders)) throw new Error("store context unavailable");
+    const orders = context.orders;
     list.querySelectorAll("[data-order-row]").forEach((row) => row.remove());
-    host.innerHTML = orders.length ? "" : `<p class="nd-meta portal-activity__empty">${h(L("portalNoOrders"))}</p>`;
+    host.innerHTML = orders.length ? "" : `<p class="nd-meta portal-activity__empty" data-orders-note="empty">${h(L("portalNoOrders"))}</p>`;
     if (!orders.length) return;
     if (!list.querySelector(".portal-activity__columns")) list.insertAdjacentHTML("afterbegin", `<div class="portal-activity__columns nd-wide-only" aria-hidden="true">${["portalColDate", "portalColWhat", "portalColPaidWith", "portalColAmount", "adminColStatus"].map((key) => `<span>${h(L(key))}</span>`).join("")}</div>`);
     const lang = currentLanguage();
@@ -69,7 +73,10 @@ export function mountActivity({ call }) {
       return `<a class="portal-activity__order" data-order-row="${h(o.id)}" data-activity-kind="orders" data-activity-at="${h(o.createdAt || "")}" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__date nd-wide-only">${h(activityDay(o.createdAt))}</span><span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt), o.reference].filter(Boolean).join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">—</span><span class="portal-activity__amount nd-wide-only">${h(amount)}</span><span class="portal-activity__status"><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></span></a>`;
     }).join(""));
     sortActivity(list);
-  }).catch(() => { host.innerHTML = `<p class="nd-meta portal-activity__empty">${h(L("portalOrdersUnavailable"))}</p>`; });
+  }).catch(() => {
+    list.querySelectorAll("[data-order-row]").forEach((row) => row.remove());
+    host.innerHTML = `<p class="nd-meta portal-activity__empty portal-activity__unavailable" data-orders-note="unavailable">${h(L("portalOrdersUnavailable"))}</p>`;
+  });
 }
 
 // Newest first across payments and orders; moving a row keeps its open state.

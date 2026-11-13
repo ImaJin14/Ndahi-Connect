@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openSecurityManager, waitForAccount, uiV2, openManageDevices } from "./portal-tabs.mjs";
+import { openSecurityManager, waitForAccount, uiV2, openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { setDefaultResultOrder } from "node:dns";
@@ -9,7 +9,7 @@ import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture, mainMac } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
 import { hashSecret, totpSecret } from "../lib/security.mjs";
-import { adminCustomerPath } from "./admin-nav.mjs";
+import { adminCustomerPath, adminIdentifierLabel } from "./admin-nav.mjs";
 
 // A synthetic retired store is an isolated browser fixture, not rollout evidence.
 // The separate core/API tests verify that real cutover cannot bypass readiness.
@@ -150,7 +150,7 @@ try {
     await page.route("**/api/authentication-policy", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Synthetic policy unavailable" }) }));
     await page.goto(portal + "/login?account=1");
     assert.equal(await page.locator("#authenticatorLogin").isVisible().catch(() => false), false);
-    await page.locator('#login [name="phone"]').fill("670050001"); await page.locator('#login [name="code"]').fill("NC-AAAA-1111"); await page.locator("#loginSubmit").click();
+    await useVoucherSignIn(page); await page.locator('#login [name="phone"]').fill("670050001"); await page.locator('#login [name="code"]').fill("NC-AAAA-1111"); await page.locator("#loginSubmit").click();
     await page.locator("#customerPin").fill("2468"); await page.locator("#loginSubmit").click();
     await page.waitForURL(/\/dashboard#account$/); await waitForAccount(page);
   }, { noSession: true, unsupported: true, storageDenied: true });
@@ -173,7 +173,7 @@ try {
     assert.equal(response.status, 410); assert.equal(response.body.code, "AUTHENTICATOR_RETIRED");
   }, { noSession: true });
   await scenario("admin password signs in without MFA despite leftover environment/profile flags", async ({ page }) => {
-    await page.goto(admin + "/login"); await page.getByLabel("Username").fill("owner"); await page.locator("#adminPassword").fill(password);
+    await page.goto(admin + "/login"); await page.getByLabel(adminIdentifierLabel, { exact: true }).fill("owner"); await page.locator("#adminPassword").fill(password);
     await page.getByRole("button", { name: "Continue", exact: true }).click(); await page.waitForURL(/\/dashboard$/);
     assert.equal(await page.locator('#mfaLogin [name="mfaCode"]').count(), 0);
     const retired = await page.evaluate(async (api) => { const response = await fetch(api + "/api/admin/login/mfa", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ challengeId: "old", mfaCode: "123456" }) }); return { status: response.status, body: await response.json() }; }, api);

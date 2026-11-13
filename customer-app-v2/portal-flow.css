@@ -16,6 +16,8 @@ main > .card.narrow, main.login-shell > .surface { box-sizing: border-box; width
 main > .card.narrow > .eyebrow, main.login-shell > .surface > .eyebrow { margin: 0 0 var(--nd-space-6); color: var(--nd-lime-text); font-size: var(--nd-fs-eyebrow); font-weight: 700; letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
 main > .card.narrow h1, main.login-shell > .surface h1 { margin: 0 0 var(--nd-space-10); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
 main > .card.narrow p, main.login-shell > .surface p, main > .card.narrow li { color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+/* The rule above outranks pair.css, so restore white on the current pairing step's forest pill. */
+main > .card.narrow .pair-progress li[aria-current="step"] { color: var(--nd-white); }
 main > .card.narrow p:empty, main.login-shell > .surface p:empty { display: none; }
 main > .card.narrow a:not(.button), main.login-shell > .surface a:not(.button) { color: var(--nd-forest); font-weight: 700; }
 main > .card.narrow label, main.login-shell > .surface label { display: block; margin: 0 0 var(--nd-space-12); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
