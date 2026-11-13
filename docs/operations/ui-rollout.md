@@ -22,15 +22,23 @@ with `data-ui-variant="v2"`, so testers can confirm which version they are on
    including saved cookies, and leaves those cookies unchanged.
 2. `?ui=new` or `?ui=old` in the URL: v2 or v1. The server saves the choice and
    redirects to the same URL without `ui`.
-3. A saved `ndahi_ui=v1` or `ndahi_ui=v2` cookie.
-4. A new visitor: v2 with probability `UI_V2_PERCENT` (0–100, default 0), otherwise
-   v1. The result is saved. **The admin app ignores `UI_V2_PERCENT`**: staff get v2
-   only by opting in with `?ui=new`.
+3. A saved interface preference: `ndahi_ui` on the portal, `ndahi_admin_ui`
+   on admin.
+4. Customer visitors without a preference are sampled by `UI_V2_PERCENT`
+   (0–100, default 0). **Admin defaults to v2**, as authorized by the owner on
+   13 November 2026, and is never sampled. `ADMIN_UI_DEFAULT=v1` can explicitly
+   retain the legacy admin default; unset or `v2` selects the new default.
 
-The `ndahi_ui` cookie is host-only (the portal and admin choices are separate),
-`Path=/`, `SameSite=Lax`, `HttpOnly`, and lasts 30 days from when it was set. It is
-not renewed on later visits. It is `Secure` under the same rule as the API session
-cookies: `SESSION_COOKIE_SECURE` when set, otherwise in production.
+The cookies are host-only, `Path=/`, `SameSite=Lax`, `HttpOnly`, and last 30 days.
+They are not renewed on later visits. They are `Secure` under the same rule as API
+session cookies: `SESSION_COOKIE_SECURE` when set, otherwise in production. These
+are interface preferences; authentication/session cookies are unchanged.
+
+Admin's separate preference migrates browsers with the old automatically saved
+`ndahi_ui=v1` default to v2 on their next navigation. Legacy `ndahi_ui=v2` opt-ins
+still work. An explicit `?ui=old` now writes `ndahi_admin_ui=v1`, so staff can
+retain a deliberate old-view choice. An explicit `?ui=new` switches it back. The
+customer cookie and customer default are unchanged.
 
 Every path (pages, `sw.js`, the manifest, `/version.json`) is served from the chosen
 folder, and each folder has its own release ID. Pages, `sw.js` and `/version.json`
@@ -51,7 +59,8 @@ use new storage keys.
 
 Invalid values stop the service: `UI_V2_PERCENT` must be a whole number from 0 to
 100 and `UI_V2_OFF` must be exactly `true` or `false` (unset means 0 and `false`).
-The pre-deploy `npm run check:environment` reports the same errors before a deploy.
+`ADMIN_UI_DEFAULT` must be `v1` or `v2` when nonempty. The pre-deploy
+`npm run check:environment` reports invalid rollout values before a deploy.
 It only warns when a valid value differs from the Blueprint default, so a ramp or
 rollback made in Render never blocks a deploy.
 
@@ -61,10 +70,21 @@ rollback made in Render never blocks a deploy.
   `https://staging-portal.ndahiconnect.net/login?ui=new` or
   `https://admin.ndahiconnect.net/login?ui=new`. Check for `data-ui-variant="v2"`
   on `<html>`.
-- Return to v1 with `?ui=old`, or by clearing the site's cookies (this makes you a
-  new visitor, who is sampled again on the portal).
+- Return to v1 with `?ui=old`. Clearing preferences restores admin's v2 default;
+  the portal samples the visitor again according to its own percentage.
 - Opt-ins are logged by the static servers as `ui.variant_requested` with `kind` and
   `variant`.
+
+## Browser verification
+
+The existing v1 browser journey lane runs with `ADMIN_UI_DEFAULT=v1`; its labels
+and navigation assertions continue to test the retained legacy screens. Run it
+locally with `ADMIN_UI_DEFAULT=v1 npm run test:browser` (and the same prefix for
+individual legacy admin journeys). `npm run test:browser:v2` explicitly opts into
+v2. The HTTP default-policy tests use an empty environment to verify the actual
+admin v2 default, legacy preference migration, deliberate old-view preference,
+kill switch and unchanged customer selection. Role-isolation browser tests select
+each variant explicitly with `?ui=old` / `?ui=new`.
 
 ## Ramp
 

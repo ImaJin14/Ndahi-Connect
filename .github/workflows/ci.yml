@@ -57,6 +57,10 @@ jobs:
     name: Browser authorization journeys
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Keep the existing v1 journey lane explicit after admin defaults to v2.
+    # The v2 lane and default-policy tests exercise the production default.
+    env:
+      ADMIN_UI_DEFAULT: v1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

@@ -90,7 +90,7 @@ export function createStaticServer(
     let headers = securityHeaders;
     if (rollout && !versioned) {
       headers = { ...securityHeaders, vary: "Cookie" };
-      if (persist) res.setHeader("set-cookie", uiVariantSetCookie(variant, secureCookie));
+      if (persist) res.setHeader("set-cookie", uiVariantSetCookie(variant, secureCookie, kind));
       if (requested) logger.info("ui.variant_requested", { kind, variant });
       if (redirect) {
         res.writeHead(302, { ...headers, location: redirect, "cache-control": "no-store" });
