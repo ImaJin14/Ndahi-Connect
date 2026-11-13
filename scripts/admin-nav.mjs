@@ -66,3 +66,7 @@ export const adminCustomerPath = (id) => (uiV2 ? `customer/${encodeURIComponent(
 
 // v2 moves the reseller ledger from Vouchers to its own Resellers screen.
 export const resellerLedgerView = uiV2 ? "resellers" : "vouchers";
+
+// Phase 6 (canvas: AdminLogin): v2 staff sign in with email + PIN (the username
+// still works in the email field), then a passkey; v1 keeps its labels.
+export const adminIdentifierLabel = uiV2 ? "Email" : "Username";

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import jsQR from "jsqr";
@@ -103,7 +104,7 @@ try {
     try {
       const { page, context } = await h.context("guest"), { page: main } = await h.context("main");
       await page.goto(h.pairUrl.replace("/pair?", "/login?"));
-      await page.locator('input[name="phone"]').fill("670050001"); await page.locator('input[name="code"]').fill("NC-AAAA-1111");
+      await useVoucherSignIn(page); await page.locator('input[name="phone"]').fill("670050001"); await page.locator('input[name="code"]').fill("NC-AAAA-1111");
       await page.getByRole("button", { name: "Continue", exact: true }).click();
       await page.getByRole("button", { name: "Request access", exact: true }).click();
       await page.waitForURL(u => u.pathname === "/pair"); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
