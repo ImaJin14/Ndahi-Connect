@@ -6,8 +6,8 @@
 // <sc-if>, <sc-for as>, <dc-import> with props, <helmet>, on* handlers,
 // setState, componentDidMount and data-props defaults. The template is parsed
 // as XML so <sc-for> inside <tbody> keeps its place (an HTML parser would move
-// it out of the table). Top-level props can be set in the query string, for
-// example PhoneOrder.dc.html?guest=true.
+// it out of the table). Top-level props the artboard declares in data-props
+// can be set in the query string, for example PhoneOrder.dc.html?guest=true.
 //
 // Readiness: <html data-dc-ready=""> is set only once every nested
 // <dc-import> has mounted and the short timers the screens start (for example
@@ -81,13 +81,21 @@
     return value == null || value === false ? "" : String(value);
   }
 
-  // Top-level props from the address, as a prototype-free dictionary.
-  // "true"/"false" become booleans; keys that could reach a prototype, and
-  // canvas-only $ keys, are ignored.
-  function queryProps(search) {
+  // Top-level props from the address, as a prototype-free dictionary. Only
+  // props the artboard declares (its own data-props default keys) can be set:
+  // names come from the trusted defaults and are looked up in the address, so
+  // no name from the address is ever written. Unknown, $ and prototype keys
+  // are ignored. The last of repeated values wins; "true"/"false" become
+  // booleans.
+  function queryProps(search, defaults) {
     var props = dict();
-    new URLSearchParams(search || "").forEach(function (value, key) {
+    if (!defaults || typeof defaults !== "object") return props;
+    var params = new URLSearchParams(search || "");
+    Object.keys(defaults).forEach(function (key) {
       if (!safeKey(key) || key.charAt(0) === "$") return;
+      var values = params.getAll(key);
+      if (!values.length) return;
+      var value = values[values.length - 1];
       props[key] = value === "true" ? true : value === "false" ? false : value;
     });
     return props;
@@ -269,7 +277,7 @@
     host.id = "dc-root";
     document.body.appendChild(host);
     load(location.pathname)
-      .then(function (file) { return mount(file, queryProps(location.search), host); })
+      .then(function (file) { return mount(file, queryProps(location.search, file.defaults), host); })
       .then(function () { return settled(Date.now()); })
       .then(function (quiet) {
         if (failures.length) throw failures[0];

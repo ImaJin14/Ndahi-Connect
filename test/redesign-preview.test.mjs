@@ -3,7 +3,7 @@
 // stand-in runtime parses and keeps its template helpers safe.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import vm from "node:vm";
 import { SCREENS, DEMO, FIXTURES, expectations, rejections } from "../scripts/redesign-preview.mjs";
@@ -156,11 +156,27 @@ test("the canvas helpers fill holes safely and read props from the address", asy
   assert.equal(c.lookup("a.constructor", [{ a: {} }]), undefined);
   assert.equal(c.lookup("'x'", []), "x");
   assert.equal(c.lookup("-2.5", []), -2.5);
-  // Address props.
-  const props = c.queryProps("?guest=true&paid=false&name=A&$preview=1&__proto__=x&constructor=y");
-  assert.deepEqual(JSON.parse(JSON.stringify(props)), { guest: true, paid: false, name: "A" });
-  const merged = c.mergeProps({ guest: false, size: 1 }, props);
+  // Address props: only names the artboard declares in data-props are read.
+  const declared = c.propDefaults('{"guest":{"default":false},"paid":{"default":true},"name":{"default":"Z"},"size":{"default":1},"$preview":{"default":{"width":390}}}');
+  const props = c.queryProps("?guest=true&paid=false&name=A&name=B&$preview=1&__proto__=x&constructor=y&prototype=z&toString=t&unknown=u", declared);
+  assert.deepEqual(JSON.parse(JSON.stringify(props)), { guest: true, paid: false, name: "B" }, "known keys only; the last repeated value wins");
+  assert.deepEqual(Object.keys(props).sort(), ["guest", "name", "paid"], "unknown, $ and reserved names are never written");
+  assert.equal(c.queryProps("?guest=TRUE&name=", declared).guest, "TRUE", "only exact true/false become booleans");
+  assert.equal(c.queryProps("?name=", declared).name, "", "an empty value is still a value");
+  assert.equal(c.queryProps("?name=a%20b", declared).name, "a b", "values are decoded");
+  assert.deepEqual(Object.keys(c.queryProps("?guest=true")), [], "no defaults, no address props");
+  assert.deepEqual(Object.keys(c.queryProps("?guest=true", null)), []);
+  assert.deepEqual(Object.keys(c.queryProps("", declared)), []);
+  // Inherited defaults are not declarations; own reserved or $ keys never are.
+  const inherited = Object.assign(Object.create({ inherited: 1 }), { guest: false });
+  assert.deepEqual(Object.keys(c.queryProps("?inherited=1&guest=true", inherited)), ["guest"]);
+  const raw = JSON.parse('{"__proto__":1,"constructor":2,"prototype":3,"$x":4,"ok":5}');
+  assert.deepEqual(JSON.parse(JSON.stringify(c.queryProps("?__proto__=a&constructor=b&prototype=c&$x=d&ok=e", raw))), { ok: "e" });
+  // dc-import semantics: defaults overlaid by props; unset props keep defaults.
+  const merged = c.mergeProps(declared, props);
   assert.equal(merged.guest, true);
+  assert.equal(merged.paid, false);
+  assert.equal(merged.name, "B");
   assert.equal(merged.size, 1);
   const hostile = JSON.parse('{"__proto__":{"polluted":true},"ok":1}');
   const safe = c.mergeProps({}, hostile);
@@ -178,6 +194,35 @@ test("the canvas helpers fill holes safely and read props from the address", asy
   assert.equal(c.xmlify("<div hidden>x</div>"), '<div hidden="">x</div>');
 });
 
+test("every prop an artboard reads is declared in data-props, so the address can set it", async () => {
+  const window = {};
+  vm.runInNewContext(await read("scripts/redesign-preview-canvas.js"), { window, URLSearchParams });
+  const c = window.__ndahiCanvas;
+  const dir = "docs/redesign/screens";
+  const boards = (await readdir(join(root, dir))).filter((name) => name.endsWith(".dc.html"));
+  assert.ok(boards.length > 0);
+  const variants = {};
+  for (const board of boards) {
+    const source = await read(join(dir, board));
+    // The same data-props match the runtime's parse() uses.
+    const meta = /data-props='([^']*)'/.exec(source);
+    const defaults = c.propDefaults(meta ? meta[1] : "{}");
+    for (const [, name] of source.matchAll(/this\.props\.(\w+)/g)) {
+      assert.ok(Object.prototype.hasOwnProperty.call(defaults, name), `${board} reads props.${name}, so data-props declares a default for it`);
+      const fromAddress = c.queryProps(`?${name}=probe`, defaults);
+      assert.equal(fromAddress[name], "probe", `${board}: ?${name}= reaches the screen`);
+      (variants[board] ||= []).push(name);
+    }
+    assert.doesNotMatch(source, /this\.props\[/, `${board} reads props by fixed names only`);
+  }
+  // The address variants the preview advertises today.
+  assert.ok(variants["PhoneOrder.dc.html"]?.includes("guest"));
+  assert.ok(variants["PhoneScanConnect.dc.html"]?.includes("scenario"));
+  const order = c.propDefaults(/data-props='([^']*)'/.exec(await read(join(dir, "PhoneOrder.dc.html")))[1]);
+  assert.equal(c.mergeProps(order, c.queryProps("?guest=true", order)).guest, true, "PhoneOrder.dc.html?guest=true still shows the guest order");
+  assert.equal(c.mergeProps(order, c.queryProps("", order)).guest, false);
+});
+
 test("address and default props never run a setter on Object.prototype", async () => {
   // A realm whose Object.prototype has a setter for "trap" (and logs any
   // __proto__ assignment): a plain {} dictionary would call it on props.trap = …
@@ -191,14 +236,20 @@ test("address and default props never run a setter on Object.prototype", async (
   vm.runInContext(await read("scripts/redesign-preview-canvas.js"), context);
   const c = context.window.__ndahiCanvas;
 
-  const fromQuery = c.queryProps("?trap=1&__proto__=x&ok=yes");
+  const defaults = c.propDefaults('{"trap":{"default":2},"ok":{"default":"no"},"__proto__":{"default":{"polluted":true}}}');
+  assert.equal(defaults.trap, 2);
+  assert.equal(Object.prototype.hasOwnProperty.call(defaults, "__proto__"), false);
+
+  const fromQuery = c.queryProps("?trap=1&__proto__=x&ok=yes&polluted=true", defaults);
   assert.equal(fromQuery.trap, "1", "an own value, not the inherited getter");
   assert.equal(fromQuery.ok, "yes");
   assert.equal(Object.prototype.hasOwnProperty.call(fromQuery, "__proto__"), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(fromQuery, "polluted"), false, "undeclared names are not written");
 
-  const defaults = c.propDefaults('{"trap":{"default":2},"__proto__":{"default":{"polluted":true}}}');
-  assert.equal(defaults.trap, 2);
-  assert.equal(Object.prototype.hasOwnProperty.call(defaults, "__proto__"), false);
+  // Even defaults that own "__proto__" (a raw parsed object) never let it through.
+  const raw = c.queryProps("?__proto__=x&trap=3", JSON.parse('{"__proto__":1,"trap":0}'));
+  assert.deepEqual(Object.keys(raw), ["trap"]);
+  assert.equal(raw.trap, "3");
 
   const merged = c.mergeProps(defaults, fromQuery);
   assert.equal(merged.trap, "1", "query props win over defaults");
