@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Claim a bundle someone gave you</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.mono{font-family:ui-monospace,Menlo,monospace;letter-spacing:.1em;text-transform:uppercase}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:#10241c;border:0;background:transparent;cursor:pointer;text-decoration:none}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneLogin.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Claim your bundle</span>
+    <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{stepLabel}}</span>
+  </div>
+
+  <sc-if value="{{isCode}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 20px 18px; display: flex; flex-direction: column; gap: 16px">
+      <h1 class="h1">Someone gave you a bundle?</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.5">Enter your phone number and the code you were given. You need both — that keeps your bundle safe.</p>
+      <div>
+        <label class="lbl" for="cn">Your phone number</label>
+        <div style="display: flex; gap: 8px">
+          <span style="display: flex; align-items: center; padding: 0 12px; border-radius: 10px; border: 1px solid #b8c7bd; background: #eef3e9; font-weight: 600">+237</span>
+          <input class="in" id="cn" type="tel" inputmode="tel" value="6•• •• 99 10">
+        </div>
+      </div>
+      <div>
+        <label class="lbl" for="cc">Code</label>
+        <input class="in mono" id="cc" value="{{codeValue}}" autocomplete="off" style="font-size: 20px; font-weight: 700">
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 13px">It's on the slip, or in the message they sent you. Scanning the QR fills this in.</p>
+      </div>
+      <sc-if value="{{showMismatch}}" hint-placeholder-val="{{ false }}">
+        <p role="alert" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px; line-height: 1.5"><strong>This code isn't for this number.</strong> Check both with the person who gave it to you. After 5 wrong tries, wait 15 minutes.</p>
+      </sc-if>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn" onClick="{{check}}">Continue</button>
+      <a class="btn2" href="PhoneScanConnect.dc.html">Scan the QR instead</a>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isSetup}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <section aria-label="Your bundle" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{fromLine}}</p>
+        <p style="margin: 8px 0 2px; font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 600">[PLAN 2] is waiting for you</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 14px">5 GB · 7 days · up to 3 devices. The 7 days start when you choose.</p>
+        <sc-if value="{{hasNote}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.1); font-size: 14px; font-style: italic">"For your calls with the family ❤"</p>
+        </sc-if>
+      </section>
+      <h1 class="h1" style="font-size: 23px">Set up your account to claim it</h1>
+      <div><label class="lbl" for="nm">Your name</label><input class="in" id="nm" value="Mama Ngum"></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+        <div><label class="lbl" for="p1">Create a PIN</label><input class="in" id="p1" type="password" inputmode="numeric" value="1357" style="letter-spacing: .3em"></div>
+        <div><label class="lbl" for="p2">Repeat PIN</label><input class="in" id="p2" type="password" inputmode="numeric" value="1357" style="letter-spacing: .3em"></div>
+      </div>
+      <div><label class="lbl" for="em">Email <span style="font-weight: 500; color: #5c6963">(recommended — to reset a forgotten PIN)</span></label><input class="in" id="em" type="email" placeholder="you@example.com"></div>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toStart}}">Create account and claim</button></div>
+  </sc-if>
+
+  <sc-if value="{{isStart}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2ZM12 22V7M12 7S10.5 2 7.5 3.5 9 7 12 7ZM12 7s1.5-5 4.5-3.5S15 7 12 7Z"></path></svg></div>
+      <h1 class="h1">It's yours, Mama Ngum</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">[PLAN 2] is saved in your account. Start it now on this phone, or keep it for later — it waits until 13 Feb 2027.</p>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn" onClick="{{toOnline}}">Start now and connect</button>
+      <a class="btn2" href="PhoneHome.dc.html">Keep it for later</a>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isOnline}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">You're online</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">[PLAN 2] started on this phone. It ends 20 Nov, or when the 5 GB run out.</p>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; text-align: left; align-self: stretch">Next time, just sign in with your number and PIN. You can add a passkey in Account to sign in with your fingerprint.</p>
+    </main>
+    <div class="foot"><a class="btn" href="PhoneHome.dc.html">Go to my home</a></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"from":{"editor":"enum","options":["ndahi","friend"],"default":"friend"},"code":{"editor":"enum","options":["matches","wrongNumber"],"default":"matches"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'code', tried: false }; }
+  renderVals() {
+    const s = this.state;
+    const ok = (this.props.code ?? 'matches') === 'matches';
+    const friend = (this.props.from ?? 'friend') === 'friend';
+    const go = (step) => () => this.setState({ step });
+    return {
+      isCode: s.step === 'code', isSetup: s.step === 'setup', isStart: s.step === 'start', isOnline: s.step === 'online',
+      stepLabel: { code: 'Step 1 of 3', setup: 'Step 2 of 3', start: 'Step 3 of 3', online: 'Done' }[s.step],
+      codeValue: friend ? 'T6QA-8PLM' : 'M3VX-7KQD',
+      showMismatch: s.tried && !ok,
+      check: () => ok ? this.setState({ step: 'setup' }) : this.setState({ tried: true }),
+      fromLine: friend ? 'A gift from Amina N.' : 'A gift from NDAHI',
+      hasNote: friend,
+      toStart: go('start'), toOnline: go('online')
+    };
+  }
+}
+</script>
+</body>
+</html>

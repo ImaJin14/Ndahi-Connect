@@ -69,7 +69,7 @@
       "expand": "fill",
       "h": 1020,
       "is_interactive": true,
-      "title": "Customers",
+      "title": "Customers (All \u00b7 Active \u00b7 Stale \u00b7 Suspended)",
       "w": 1280,
       "x": 2720,
       "y": 7796
@@ -157,7 +157,7 @@
     },
     "AdminSide.dc.html": {
       "h": 860,
-      "title": "Component · admin side menu",
+      "title": "Component \u00b7 admin side menu",
       "w": 240,
       "x": 470,
       "y": 11696
@@ -184,7 +184,7 @@
       "expand": "fill",
       "h": 1020,
       "is_interactive": true,
-      "title": "Vouchers",
+      "title": "Vouchers (one customer \u00b7 unregistered number \u00b7 batch)",
       "w": 1280,
       "x": 1360,
       "y": 7796
@@ -193,7 +193,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Account — desktop",
+      "title": "Account \u2014 desktop",
       "w": 1280,
       "x": 6800,
       "y": 0
@@ -202,7 +202,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Activity — desktop",
+      "title": "Activity \u2014 desktop",
       "w": 1280,
       "x": 5440,
       "y": 0
@@ -211,7 +211,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Internet — desktop",
+      "title": "Internet \u2014 desktop",
       "w": 1280,
       "x": 4080,
       "y": 0
@@ -220,7 +220,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Customer home — desktop",
+      "title": "Customer home \u2014 desktop",
       "w": 1280,
       "x": 0,
       "y": 0
@@ -252,7 +252,7 @@
     "PhoneBuyBundle.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "4 · Buy a bundle (plan → pay → active)",
+      "title": "4 \u00b7 Buy a bundle (plan \u2192 pay \u2192 active)",
       "w": 390,
       "x": 1410,
       "y": 1600
@@ -292,7 +292,7 @@
     "PhoneForgotPin.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Forgot PIN → reset by email",
+      "title": "Forgot PIN \u2192 reset by email",
       "w": 390,
       "x": 2350,
       "y": 1600
@@ -300,7 +300,7 @@
     "PhoneGuestCheckout.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Guest checkout (details → pay → tracking link)",
+      "title": "Guest checkout (details \u2192 pay \u2192 tracking link)",
       "w": 390,
       "x": 940,
       "y": 5392
@@ -316,7 +316,7 @@
     "PhoneGuestProduct.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Product — guest",
+      "title": "Product \u2014 guest",
       "w": 390,
       "x": 470,
       "y": 5392
@@ -324,7 +324,7 @@
     "PhoneGuestShop.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Public storefront — guest",
+      "title": "Public storefront \u2014 guest",
       "w": 390,
       "x": 0,
       "y": 5392
@@ -356,7 +356,7 @@
     "PhoneHotspot.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "1 · Hotspot: connect to Wi-Fi",
+      "title": "1 \u00b7 Hotspot: connect to Wi-Fi",
       "w": 390,
       "x": 0,
       "y": 1600
@@ -372,7 +372,7 @@
     "PhoneLogin.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "2 · Sign in",
+      "title": "2 \u00b7 Sign in",
       "w": 390,
       "x": 470,
       "y": 1600
@@ -430,8 +430,24 @@
       "is_interactive": true,
       "title": "Receipt",
       "w": 390,
-      "x": 1880,
+      "x": 1878,
       "y": 2864
+    },
+    "PhoneScanConnect.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scan to connect (active bundle \u2192 PIN or passkey)",
+      "w": 390,
+      "x": 4260,
+      "y": 1600
+    },
+    "PhoneScanNoBundle.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Scan to connect \u2014 no active bundle \u2192 buy",
+      "w": 390,
+      "x": 4730,
+      "y": 1600
     },
     "PhoneSessions.dc.html": {
       "h": 844,
@@ -452,7 +468,7 @@
     "PhoneVoucher.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "5 · Use a voucher",
+      "title": "5 \u00b7 Use a voucher",
       "w": 390,
       "x": 1880,
       "y": 1600
@@ -468,7 +484,7 @@
     "PhoneWifiConnected.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "3 · Finish Wi-Fi sign-in",
+      "title": "3 \u00b7 Finish Wi-Fi sign-in",
       "w": 390,
       "x": 940,
       "y": 1600
@@ -477,7 +493,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Product page — desktop",
+      "title": "Product page \u2014 desktop",
       "w": 1280,
       "x": 8160,
       "y": 0
@@ -486,7 +502,7 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Shop inside the portal — desktop",
+      "title": "Shop inside the portal \u2014 desktop",
       "w": 1280,
       "x": 1360,
       "y": 0
@@ -495,14 +511,14 @@
       "expand": "fill",
       "h": 1180,
       "is_interactive": true,
-      "title": "Public storefront for guests — desktop",
+      "title": "Public storefront for guests \u2014 desktop",
       "w": 1280,
       "x": 2720,
       "y": 0
     },
     "TabBar.dc.html": {
       "h": 74,
-      "title": "Component · phone tab bar",
+      "title": "Component \u00b7 phone tab bar",
       "w": 390,
       "x": 0,
       "y": 11696
@@ -515,21 +531,96 @@
       "x": 3760,
       "y": 1600
     },
-    "PhoneScanConnect.dc.html": {
-      "h": 844,
+    "AdminVoucherDetail.dc.html": {
+      "expand": "fill",
+      "h": 1020,
       "is_interactive": true,
-      "title": "Scan to connect (active bundle → PIN or passkey)",
-      "w": 390,
-      "x": 4260,
-      "y": 1600
+      "title": "Voucher detail (in use \u00b7 not used \u00b7 used up \u00b7 waiting for claim)",
+      "w": 1280,
+      "x": 5440,
+      "y": 10076
     },
-    "PhoneScanNoBundle.dc.html": {
+    "PhonePaymentFailed.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Scan to connect — no active bundle → buy",
+      "title": "Payment didn't go through (declined \u00b7 low balance \u00b7 timeout \u00b7 wrong network)",
       "w": 390,
-      "x": 4730,
-      "y": 1600
+      "x": 0,
+      "y": 13200
+    },
+    "PhoneRenew.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Renewal moments (80% used \u00b7 ends tomorrow \u00b7 ended \u2192 buy again)",
+      "w": 390,
+      "x": 470,
+      "y": 13200
+    },
+    "PhoneBuyForOther.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Buy a bundle for someone else",
+      "w": 390,
+      "x": 940,
+      "y": 13200
+    },
+    "PhoneOutage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Home during an outage (down \u00b7 restored)",
+      "w": 390,
+      "x": 1410,
+      "y": 13200
+    },
+    "PhoneHomeFR.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Accueil \u2014 French layout check",
+      "w": 390,
+      "x": 1880,
+      "y": 13200
+    },
+    "ResellerHome.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Reseller home (sell a code \u00b7 what you owe)",
+      "w": 390,
+      "x": 2350,
+      "y": 13200
+    },
+    "AdminInsights.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "Insights + new-design funnel",
+      "w": 1280,
+      "x": 0,
+      "y": 14644
+    },
+    "AdminOutage.dc.html": {
+      "expand": "fill",
+      "h": 1020,
+      "is_interactive": true,
+      "title": "Outages (notice \u2192 live \u2192 give time back)",
+      "w": 1280,
+      "x": 1360,
+      "y": 14644
+    },
+    "PhoneClaimGift.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Claim a bundle someone gave you (number + code \u2192 PIN \u2192 start)",
+      "w": 390,
+      "x": 3290,
+      "y": 13200
+    },
+    "ConnectFlow.dc.html": {
+      "h": 2780,
+      "is_interactive": true,
+      "title": "Get connected \u2014 full flow (5 paths + recoveries)",
+      "w": 2400,
+      "x": -2700,
+      "y": 1300
     }
   },
   "createdOnFiles": {
@@ -549,7 +640,12 @@
     "row6",
     "row7",
     "nav",
-    "guest"
+    "guest",
+    "row8",
+    "row9",
+    "added",
+    "claim",
+    "flow"
   ],
   "notes": {
     "guest": {
@@ -563,7 +659,7 @@
     "nav": {
       "fill": "green",
       "size": 24,
-      "text": "How to try it: press Play on any screen and tap through.\n\nCustomer tabs: Home · Internet · Shop · Activity · Account.\nInternet = bundles + vouchers. Activity = bundle payments and shop orders together.\n\nSign-in uses only a PIN or a passkey — no SMS codes, no authenticator app.\n\nPrices, plan names and the pickup location are placeholders.",
+      "text": "How to try it: press Play on any screen and tap through.\n\nCustomer tabs: Home \u00b7 Internet \u00b7 Shop \u00b7 Activity \u00b7 Account.\nInternet = bundles + vouchers. Activity = bundle payments and shop orders together.\n\nSign-in uses only a PIN or a passkey \u2014 no SMS codes, no authenticator app.\n\nPrices, plan names and the pickup location are placeholders.",
       "w": 360,
       "x": 5200,
       "y": 1600
@@ -571,7 +667,7 @@
     "row1": {
       "kind": "title1",
       "maxW": 8000,
-      "text": "Desktop — customer portal with the shop inside, plus the public storefront",
+      "text": "Desktop \u2014 customer portal with the shop inside, plus the public storefront",
       "w": 240,
       "x": 0,
       "y": -300
@@ -579,7 +675,7 @@
     "row2": {
       "kind": "title1",
       "maxW": 5120,
-      "text": "Phone — get connected, sign in and recover",
+      "text": "Phone \u2014 get connected, sign in and recover",
       "w": 240,
       "x": 0,
       "y": 1300
@@ -587,7 +683,7 @@
     "row3": {
       "kind": "title1",
       "maxW": 6970,
-      "text": "Phone — everyday use and account",
+      "text": "Phone \u2014 everyday use and account",
       "w": 240,
       "x": 0,
       "y": 2564
@@ -595,7 +691,7 @@
     "row4": {
       "kind": "title1",
       "maxW": 1800,
-      "text": "Phone — shop, signed in",
+      "text": "Phone \u2014 shop, signed in",
       "w": 240,
       "x": 0,
       "y": 3828
@@ -603,7 +699,7 @@
     "row5": {
       "kind": "title1",
       "maxW": 1800,
-      "text": "Phone — shop as a guest (no account)",
+      "text": "Phone \u2014 shop as a guest (no account)",
       "w": 240,
       "x": 0,
       "y": 5092
@@ -611,7 +707,7 @@
     "row6": {
       "kind": "title1",
       "maxW": 8000,
-      "text": "Admin — separate app, same design system",
+      "text": "Admin \u2014 separate app, same design system",
       "w": 240,
       "x": 0,
       "y": 6356
@@ -623,6 +719,46 @@
       "w": 240,
       "x": 0,
       "y": 11396
+    },
+    "row8": {
+      "kind": "title1",
+      "maxW": 3200,
+      "text": "Added \u2014 payment failures, renewals, gifting, outages, French, resellers",
+      "w": 240,
+      "x": 0,
+      "y": 12900
+    },
+    "row9": {
+      "kind": "title1",
+      "maxW": 2700,
+      "text": "Added \u2014 admin insights and outages",
+      "w": 240,
+      "x": 0,
+      "y": 14344
+    },
+    "added": {
+      "fill": "yellow",
+      "size": 24,
+      "text": "What changed elsewhere:\n\n\u2022 Customers: tick rows (or select all stale) \u2192 give a gift voucher or send a message in bulk.\n\u2022 Edit bundle: speed limit per customer (MikroTik queue).\n\u2022 Admin menu: Insights and Outages.\n\u2022 Buy a bundle: \"Payment didn't go through?\" link.\n\u2022 Tab bar: lang = fr.\n\nFrench check: watch button labels and the bundle card \u2014 French runs ~25% longer.",
+      "w": 380,
+      "x": 2820,
+      "y": 13200
+    },
+    "claim": {
+      "fill": "blue",
+      "size": 24,
+      "text": "Unregistered numbers:\n\n1. Admin \u2192 Vouchers \u2192 search a number with no account \u2192 Reserve for this number.\n2. They claim it with their number + the code (Sign in \u2192 \"Someone gave you a bundle?\").\n3. Voucher detail \u2192 Waiting for claim: change number, revoke, 90-day expiry.\n\nNo SMS: the code is the proof. Paying with Mobile Money from that number also claims it automatically.",
+      "w": 380,
+      "x": 3760,
+      "y": 13200
+    },
+    "flow": {
+      "kind": "title1",
+      "maxW": 2400,
+      "text": "Flow \u2014 get connected, end to end",
+      "w": 240,
+      "x": -2700,
+      "y": 1000
     }
   },
   "order": [
@@ -633,6 +769,7 @@
     "DesktopActivity.dc.html",
     "DesktopAccount.dc.html",
     "ProductDesktop.dc.html",
+    "ConnectFlow.dc.html",
     "PhoneHotspot.dc.html",
     "PhoneLogin.dc.html",
     "PhoneWifiConnected.dc.html",
@@ -673,6 +810,7 @@
     "AdminStore.dc.html",
     "AdminProducts.dc.html",
     "AdminVouchers.dc.html",
+    "AdminVoucherDetail.dc.html",
     "AdminCustomers.dc.html",
     "AdminBundles.dc.html",
     "AdminProductEdit.dc.html",
@@ -687,6 +825,15 @@
     "AdminAudit.dc.html",
     "AdminProfile.dc.html",
     "AdminVoucherPrint.dc.html",
+    "PhonePaymentFailed.dc.html",
+    "PhoneRenew.dc.html",
+    "PhoneBuyForOther.dc.html",
+    "PhoneOutage.dc.html",
+    "PhoneHomeFR.dc.html",
+    "ResellerHome.dc.html",
+    "AdminInsights.dc.html",
+    "AdminOutage.dc.html",
+    "PhoneClaimGift.dc.html",
     "TabBar.dc.html",
     "AdminSide.dc.html"
   ],

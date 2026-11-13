@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin outages</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:22px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+textarea.in{min-height:84px;padding:10px 12px;line-height:1.5;resize:vertical}
+.go{min-height:46px;padding:0 18px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.chk{display:flex;gap:10px;align-items:flex-start;min-height:44px;font-size:14px;cursor:pointer}
+.chk input{width:20px;height:20px;margin-top:1px;accent-color:#003b2b}
+td,th{text-align:left;padding:11px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="outages" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <div>
+      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Outages.</h1>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">Tell customers when the internet is down, and give back the time they lost.</p>
+    </div>
+
+    <sc-if value="{{isIdle}}" hint-placeholder-val="{{ false }}">
+      <section aria-labelledby="po" class="panel" style="max-width: 720px">
+        <div style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px"><strong>Starlink uplink not responding since 14:20.</strong> Detected automatically — post a notice so customers know.</div>
+        <h2 id="po" class="h2">Post an outage notice</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+          <div><label class="lbl" for="oa">Affected area</label><select class="in" id="oa"><option selected="">All sites · Bamenda</option><option>AP-Market only</option><option>AP-Junction only</option></select></div>
+          <div><label class="lbl" for="os">Started</label><input class="in" id="os" value="Today 14:20"></div>
+          <div><label class="lbl" for="on">Next update by</label><select class="in" id="on"><option>15:00</option><option selected="">15:30</option><option>16:00</option></select></div>
+        </div>
+        <div><label class="lbl" for="oe">Message (English)</label><textarea class="in" id="oe">Our satellite link dropped at 14:20. We're working on it. The time you lose will be added back to your bundle.</textarea></div>
+        <div><label class="lbl" for="of">Message (French)</label><textarea class="in" id="of">Notre liaison satellite est coupée depuis 14 h 20. Nous y travaillons. Le temps perdu sera ajouté à votre forfait.</textarea></div>
+        <label class="chk"><input type="checkbox" checked="">Show on the Wi-Fi sign-in page and in the portal</label>
+        <label class="chk"><input type="checkbox" checked="">Send a notification and email to the 47 customers with an active bundle</label>
+        <div style="display: flex; gap: 10px"><button type="button" class="go" onClick="{{post}}">Post notice</button></div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{isLive}}" hint-placeholder-val="{{ true }}">
+      <section aria-labelledby="lv" class="panel" style="max-width: 720px; border: 2px solid #e3b4b4">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+          <h2 id="lv" class="h2" style="display: flex; align-items: center; gap: 10px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #c0392b"></span>Outage in progress</h2>
+          <span style="padding: 4px 12px; border-radius: 999px; background: #fbe4e4; color: #8a2a2a; font-size: 13px; font-weight: 700">Down 2 h 25 min</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; color: #3d4a44">All sites · Bamenda · since 14:20 · notice shown to customers · 47 active bundles affected</p>
+        <div><label class="lbl" for="up">Post an update</label><textarea class="in" id="up" placeholder="e.g. Engineer on site, expected back by 17:00"></textarea></div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <button type="button" class="go2">Post update</button>
+          <button type="button" class="go" onClick="{{resolve}}">Mark as fixed…</button>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{isComp}}" hint-placeholder-val="{{ false }}">
+      <section aria-labelledby="cp" class="panel" style="max-width: 720px">
+        <h2 id="cp" class="h2">Back online — give time back?</h2>
+        <p style="margin: 0; font-size: 14px; color: #3d4a44">Outage lasted <strong>2 h 25 min</strong> (14:20 – 16:45). <strong>47 customers</strong> had an active bundle during it.</p>
+        <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+          <legend class="lbl">Add to their bundles</legend>
+          <sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+            <label style="{{o.style}}"><input type="radio" name="comp" checked="{{o.on}}" onChange="{{o.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{o.label}}</strong><span style="font-size: 13px; color: #5c6963">{{o.hint}}</span></span></label>
+          </sc-for>
+        </fieldset>
+        <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px">Customers see "We're back online" with the time added. Bundles that ended during the outage are extended too. Logged in the audit trail.</p>
+        <div style="display: flex; gap: 10px"><button type="button" class="go" onClick="{{confirm}}">{{confirmLabel}}</button></div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+      <p role="status" style="margin: 0; max-width: 720px; padding: 14px 16px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px"><strong>Outage closed.</strong> {{doneLine}}</p>
+    </sc-if>
+
+    <section aria-labelledby="ph" class="panel" style="gap: 6px">
+      <h2 id="ph" class="h2">Past outages</h2>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">When</th><th scope="col">Area</th><th scope="col">Length</th><th scope="col">Cause</th><th scope="col">Time given back</th></tr></thead>
+          <tbody>
+            <tr><td>2 Nov · 09:05</td><td>AP-Market</td><td>40 min</td><td>Power cut</td><td>+1 h · 12 customers</td></tr>
+            <tr><td>21 Oct · 19:30</td><td>All sites</td><td>3 h 10 min</td><td>Starlink obstruction</td><td>+4 h · 39 customers</td></tr>
+            <tr><td>8 Oct · 13:00</td><td>AP-Junction</td><td>15 min</td><td>Router restart</td><td style="color: #5c6963">None</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["detected","live","fixed"],"default":"live"},"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const st = props.stage ?? 'live';
+    this.state = { step: st === 'detected' ? 'idle' : st === 'fixed' ? 'comp' : 'live', comp: 'round' };
+  }
+  renderVals() {
+    const s = this.state;
+    const row = 'display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 12px; border-radius: 10px; cursor: pointer; ';
+    const choices = { round: ['+3 hours', 'Outage length, rounded up (suggested)'], day: ['+1 day', 'A goodwill gesture for a long outage'], none: ['Nothing', 'Short outage, no compensation'] };
+    const opts = Object.entries(choices).map(([id, [label, hint]]) => ({
+      label, hint, on: s.comp === id,
+      style: row + (s.comp === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'),
+      pick: () => this.setState({ comp: id })
+    }));
+    const go = (step) => () => this.setState({ step });
+    return {
+      isIdle: s.step === 'idle', isLive: s.step === 'live', isComp: s.step === 'comp', isDone: s.step === 'done',
+      post: go('live'), resolve: go('comp'), confirm: go('done'), opts,
+      confirmLabel: s.comp === 'none' ? 'Close outage' : `Add ${choices[s.comp][0].slice(1)} to 47 bundles`,
+      doneLine: s.comp === 'none' ? 'Customers now see "We’re back online".' : `${choices[s.comp][0]} added to 47 bundles. Customers now see "We’re back online".`
+    };
+  }
+}
+</script>
+</body>
+</html>

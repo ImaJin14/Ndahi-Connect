@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Get connected flow</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1e8}
+a{color:#003b2b}a:hover{color:#062a20}
+.mini{flex:0 0 176px;display:flex;flex-direction:column;gap:8px}
+.frame{position:relative;width:176px;height:380px;border-radius:16px;overflow:hidden;background:#fbfaf5;box-shadow:0 0 0 6px #10241c,0 14px 30px rgba(16,36,28,.28)}
+.frame>div{position:absolute;top:0;left:0;width:390px;height:844px;transform:scale(.4513);transform-origin:0 0}
+.cap{font-size:14px;font-weight:700;line-height:1.3;margin-top:6px}
+.cap small{display:block;font-weight:500;font-size:12px;color:#5c6963;margin-top:2px}
+.cap a{font-size:12px;font-weight:700}
+.arrow{flex:0 0 108px;align-self:center;margin-top:-50px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.arrow i{display:block;width:100%;height:2px;background:#10241c;position:relative}
+.arrow i:after{content:"";position:absolute;right:-1px;top:-5px;border:6px solid transparent;border-left:9px solid #10241c;border-right:0}
+.arrow span{font-size:12px;font-weight:600;color:#3d4a44;line-height:1.3}
+.chip{display:inline-block;padding:3px 8px;border-radius:999px;background:#fff4e0;color:#6b3a00;font-size:11px;font-weight:700}
+.online{flex:0 0 150px;align-self:center;margin-top:-50px;padding:16px;border-radius:16px;background:#003b2b;color:#ffffff;text-align:center}
+.online b{display:block;font-family:'Playfair Display',serif;font-size:20px;margin-top:6px}
+.online span{font-size:12px;color:#c8d8d0}
+.lane{display:flex;gap:0;align-items:flex-start;padding:22px 26px;border-radius:22px;background:#fbfaf5;border:1px solid #dfe5dc;transition:opacity .2s}
+.lbl{flex:0 0 190px;padding-right:18px;align-self:center;margin-top:-50px}
+.lbl p{margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#4d6b00}
+.lbl h2{margin:6px 0 6px;font-family:'Playfair Display',serif;font-weight:600;font-size:22px;line-height:1.15}
+.lbl span{font-size:13px;color:#5c6963;line-height:1.45}
+</style>
+</helmet>
+<div style="width: 2400px; min-height: 2780px; box-sizing: border-box; padding: 48px 56px; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #f3f1e8">
+  <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 30px">
+    <div>
+      <p style="margin: 0 0 8px; color: #4d6b00; font-size: 13px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Redesigned flow · phone</p>
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 52px; line-height: 1.05">Get connected.</h1>
+      <p style="margin: 10px 0 0; max-width: 820px; color: #3d4a44; font-size: 18px; line-height: 1.5">Every path from joining NDAHI Wi-Fi to being online. Five ways in, one place you end up. Verification is a PIN or a passkey only. Scanning or entering a code never connects a device on its own, and nobody can buy while a bundle is active.</p>
+    </div>
+    <div role="group" aria-label="Highlight a path" style="display: flex; flex-wrap: wrap; gap: 8px; max-width: 760px; justify-content: flex-end">
+      <sc-for list="{{paths}}" as="p" hint-placeholder-count="7">
+        <button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+      </sc-for>
+    </div>
+  </header>
+
+  <div style="display: flex; gap: 34px; align-items: flex-start">
+    <aside style="flex: 0 0 300px; position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px">
+      <div style="padding: 20px; border-radius: 22px; background: #fbfaf5; border: 1px solid #dfe5dc">
+        <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #4d6b00">Step 0</p>
+        <h2 style="margin: 6px 0 8px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Join NDAHI Wi-Fi</h2>
+        <div style="padding: 12px; border-radius: 12px; background: #ffffff; border: 1px solid #dfe5dc; font-size: 14px; display: flex; flex-direction: column; gap: 8px">
+          <span style="display: flex; justify-content: space-between"><strong>NDAHI</strong><span style="color: #345000; font-weight: 700">Connected</span></span>
+          <span style="display: flex; justify-content: space-between; color: #5c6963"><span>NDAHI-Home-2F</span><span>🔒</span></span>
+        </div>
+        <p style="margin: 10px 0 0; font-size: 13px; color: #5c6963; line-height: 1.45">The phone opens the sign-in page by itself. If it doesn't, the customer opens any website.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="width: 2px; height: 26px; background: #10241c"></span><span style="font-size: 12px; font-weight: 600; color: #3d4a44">Sign-in page opens</span></div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 8px">
+        <div class="frame" style="width: 234px; height: 506px"><div style="transform: scale(.6)"><dc-import name="PhoneHotspot" hint-size="390px,844px"></dc-import></div></div>
+        <p class="cap" style="text-align: center">Hotspot page<small>Works without a bundle · shows network status</small><a href="PhoneHotspot.dc.html">Open screen ›</a></p>
+      </div>
+    </aside>
+
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; min-width: 0">
+      <section aria-label="Path: I have an account" class="lane" style="{{o.account}}">
+        <div class="lbl"><p>Path 1</p><h2>I have an account</h2><span>Returning customer on a new visit or a new phone.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneLogin" hint-size="390px,844px"></dc-import></div></div><p class="cap">Sign in<small>Phone + PIN, or passkey</small><a href="PhoneLogin.dc.html">Open ›</a></p></div>
+        <div class="arrow"><span class="chip">Bundle active?</span><i></i><span>Yes</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneWifiConnected" hint-size="390px,844px"></dc-import></div></div><p class="cap">Finish Wi-Fi sign-in<small>Uses 1 of the bundle's devices</small><a href="PhoneWifiConnected.dc.html">Open ›</a></p></div>
+        <div class="arrow"><i></i><span>Connect this device</span></div>
+        <div class="online">✓<b>Online</b><span>Lands on Home</span></div>
+        <div class="arrow" style="flex-basis: 120px"><span class="chip">No bundle</span><i style="background: repeating-linear-gradient(90deg,#10241c 0 6px,transparent 6px 10px)"></i><span>Goes to Path 4, already signed in</span></div>
+      </section>
+      <section aria-label="Path: I have a voucher or gift code" class="lane" style="{{o.voucher}}">
+        <div class="lbl"><p>Path 2</p><h2>I have a code</h2><span>Printed voucher from a reseller, or a gift reserved for my number.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneVoucher" hint-size="390px,844px"></dc-import></div></div><p class="cap">Enter voucher code<small>Starts on this device at once</small><a href="PhoneVoucher.dc.html">Open ›</a></p></div>
+        <div class="arrow"><span class="chip">Code for a number?</span><i></i><span>Yes — a gift</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneClaimGift" hint-size="390px,844px"></dc-import></div></div><p class="cap">Claim with number + code<small>Create PIN · start now or later</small><a href="PhoneClaimGift.dc.html">Open ›</a></p></div>
+        <div class="arrow"><i></i><span>Start now and connect</span></div>
+        <div class="online">✓<b>Online</b><span>Saved to their account</span></div>
+        <div class="arrow" style="flex-basis: 120px"><span class="chip">Plain voucher</span><i style="background: repeating-linear-gradient(90deg,#10241c 0 6px,transparent 6px 10px)"></i><span>Online straight from the code screen</span></div>
+      </section>
+      <section aria-label="Path: Scan a QR code" class="lane" style="{{o.scan}}">
+        <div class="lbl"><p>Path 3</p><h2>Scan a QR</h2><span>From a slip, the saved voucher screen, or a family member's phone.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneScanConnect" scenario="active" hint-size="390px,844px"></dc-import></div></div><p class="cap">Checks the code, then confirm<small>Finds the account · PIN or passkey</small><a href="PhoneScanConnect.dc.html">Open ›</a></p></div>
+        <div class="arrow"><span class="chip">PIN ✓</span><i></i><span>Device added to the account</span></div>
+        <div class="online">✓<b>Online</b><span>Shows in Devices</span></div>
+        <div class="arrow" style="flex-basis: 130px"><span class="chip">No active bundle</span><i></i><span>Offer to buy · connects without scanning again</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneScanConnect" scenario="noBundle" hint-size="390px,844px"></dc-import></div></div><p class="cap">No active bundle<small>Buy a bundle, or enter a voucher</small><a href="PhoneScanNoBundle.dc.html">Open ›</a></p></div>
+      </section>
+      <section aria-label="Path: I'm new, buy a bundle" class="lane" style="{{o.buy}}">
+        <div class="lbl"><p>Path 4</p><h2>I'm new — buy</h2><span>First visit. The Mobile Money number becomes their account.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneBuyBundle" hint-size="390px,844px"></dc-import></div></div><p class="cap">Pick a plan → pay<small>MTN MoMo or Orange Money</small><a href="PhoneBuyBundle.dc.html">Open ›</a></p></div>
+        <div class="arrow"><span class="chip">Approve on phone</span><i></i><span>Screen updates by itself</span></div>
+        <div class="online">✓<b>Online</b><span>Receipt in Activity</span></div>
+        <div class="arrow" style="flex-basis: 130px"><span class="chip">Didn't go through</span><i></i><span>Declined · low balance · timeout · wrong network</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhonePaymentFailed" reason="timeout" hint-size="390px,844px"></dc-import></div></div><p class="cap">Payment didn't go through<small>Clear next step · never pay twice</small><a href="PhonePaymentFailed.dc.html">Open ›</a></p></div>
+      </section>
+      <section aria-label="Path: Use a bundle from another phone" class="lane" style="{{o.pair}}">
+        <div class="lbl"><p>Path 5</p><h2>Use someone's bundle</h2><span>A laptop or a family phone joins a bundle that has a free device slot.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhonePairRequest" hint-size="390px,844px"></dc-import></div></div><p class="cap">Enter pairing code<small>Shown on the owner's Devices screen</small><a href="PhonePairRequest.dc.html">Open ›</a></p></div>
+        <div class="arrow"><span class="chip">Same reference?</span><i></i><span>Owner checks PR-7Q4</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhonePairReview" hint-size="390px,844px"></dc-import></div></div><p class="cap">Owner approves<small>On the owner's phone</small><a href="PhonePairReview.dc.html">Open ›</a></p></div>
+        <div class="arrow"><i></i><span>Approved</span></div>
+        <div class="online">✓<b>Online</b><span>Owner can remove it any time</span></div>
+      </section>
+      <section aria-label="When something is in the way" class="lane" style="{{o.fix}}">
+        <div class="lbl"><p style="color: #6b3a00">Recoveries</p><h2>When something is in the way</h2><span>Each one explains the problem and gives one clear next step, then returns to its path.</span></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneScanConnect" scenario="notOnWifi" hint-size="390px,844px"></dc-import></div></div><p class="cap">Not on NDAHI Wi-Fi<small>Join steps → check again</small><a href="PhoneScanConnect.dc.html">Open ›</a></p></div>
+        <div style="flex: 0 0 34px"></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneScanConnect" scenario="wrongAccount" hint-size="390px,844px"></dc-import></div></div><p class="cap">Someone else signed in<small>Sign them out safely, or stay</small><a href="PhoneScanConnect.dc.html">Open ›</a></p></div>
+        <div style="flex: 0 0 34px"></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneForgotPin" hint-size="390px,844px"></dc-import></div></div><p class="cap">Forgot PIN<small>Email link · 15 min · one use</small><a href="PhoneForgotPin.dc.html">Open ›</a></p></div>
+        <div style="flex: 0 0 34px"></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhonePaymentFailed" reason="declined" hint-size="390px,844px"></dc-import></div></div><p class="cap">Payment declined<small>No money taken · try again</small><a href="PhonePaymentFailed.dc.html">Open ›</a></p></div>
+        <div style="flex: 0 0 34px"></div>
+        <div class="mini"><div class="frame"><div><dc-import name="PhoneOutage" state="down" hint-size="390px,844px"></dc-import></div></div><p class="cap">Network is down<small>Status shown · time given back</small><a href="PhoneOutage.dc.html">Open ›</a></p></div>
+      </section>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2400,"height":2780}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { path: 'all' }; }
+  renderVals() {
+    const cur = this.state.path;
+    const list = [['all', 'All paths'], ['account', '1 · Account'], ['voucher', '2 · Code'], ['scan', '3 · Scan'], ['buy', '4 · New'], ['pair', '5 · Other phone'], ['fix', 'Recoveries']];
+    const base = 'min-height: 44px; padding: 0 16px; border-radius: 999px; font: 700 15px "DM Sans", sans-serif; cursor: pointer; ';
+    const paths = list.map(([id, label]) => ({
+      label, pressed: id === cur ? 'true' : 'false',
+      style: base + (id === cur ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fbfaf5; color: #10241c;'),
+      pick: () => this.setState({ path: id })
+    }));
+    const o = {};
+    for (const [id] of list.slice(1)) o[id] = cur === 'all' || cur === id ? 'opacity: 1;' : 'opacity: .28;';
+    o.fix += ' background: #fff9ef; border-color: #f0d9b0;';
+    return { paths, o };
+  }
+}
+</script>
+</body>
+</html>
