@@ -187,7 +187,9 @@ function startDesign(state) {
       }
       send(404, "text/plain", "Not found");
     } catch (error) {
-      send(error.code === "ENOENT" ? 404 : 500, "text/plain", error.code === "ENOENT" ? "Not captured yet: use Capture again on the comparison page." : String(error.stack || error));
+      // The stack stays in the terminal running the preview, never in a response.
+      if (error.code !== "ENOENT") console.error("[preview]", error);
+      send(error.code === "ENOENT" ? 404 : 500, "text/plain", error.code === "ENOENT" ? "Not captured yet: use Capture again on the comparison page." : "Preview error. See the terminal running the preview.");
     }
   });
   return listen(server, designPort).then(() => server);
