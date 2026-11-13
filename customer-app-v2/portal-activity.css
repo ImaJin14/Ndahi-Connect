@@ -1,0 +1,145 @@
+/* Activity tab (canvas: PhoneActivity, DesktopActivity). Phones: the filter, a
+   waiting banner and plain rows (icon, title, date and method, status). From
+   768px the same rows read as a table in a card. A row expands to show v1's
+   amount, reference, messages and actions. */
+.portal-activity { padding: 0; border: 0; border-radius: 0; background: none; }
+.portal-activity:empty { display: none; }
+.portal-activity__h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#activityOrders .portal-activity__h { position: static; width: auto; height: auto; overflow: visible; clip-path: none; margin: var(--nd-space-8) 0 var(--nd-space-4); color: var(--nd-muted); font: 700 12px var(--nd-font-body); letter-spacing: .1em; text-transform: uppercase; }
+.portal-activity__filters { margin: var(--nd-space-4) 0; }
+.portal-activity__filters .nd-segmented__option { flex: 1; }
+.portal-activity__waiting { display: block; padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; text-decoration: none; }
+.portal-activity__list { display: flex; flex-direction: column; }
+.portal-activity__columns { display: none; }
+.portal-activity__item { border-bottom: 1px solid var(--nd-line); }
+.portal-activity__summary { display: flex; align-items: center; gap: var(--nd-space-12); min-height: 64px; padding: var(--nd-space-10) 0; cursor: pointer; list-style: none; }
+.portal-activity__summary::-webkit-details-marker { display: none; }
+.portal-activity__summary:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-activity__main { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 2px; }
+.portal-activity__main strong { color: var(--nd-ink); font-size: 15px; }
+.portal-activity__main .nd-meta { font-size: 13px; }
+.portal-activity__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-forest); }
+.portal-activity__status { flex-shrink: 0; }
+.portal-activity__pill { text-transform: capitalize; }
+.portal-activity__body { display: flex; flex-direction: column; gap: 4px; padding: 0 0 var(--nd-space-12) 52px; color: var(--nd-muted); font-size: 13px; }
+.portal-activity__body p, .portal-activity__body small { margin: 0; }
+.portal-activity__actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin-top: var(--nd-space-6); }
+.portal-activity__actions:empty { display: none; }
+.portal-activity__actions > * { margin: 0; }
+.portal-activity__actions .plan-actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin: 0; }
+.portal-activity__actions button, .portal-activity__actions a.button { min-height: 40px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 13px var(--nd-font-body); }
+.portal-activity__order { display: flex; align-items: center; gap: var(--nd-space-12); min-height: 64px; padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); }
+.portal-activity__order .portal-activity__main { flex: 1; }
+.portal-activity__rules { margin: var(--nd-space-10) 0 0; font-size: var(--nd-fs-meta); }
+.portal-activity__empty { margin: 0; }
+body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-activity-filter="orders"] [data-activity-kind="internet"] { display: none !important; }
+@media (min-width: 768px) {
+  #billing .portal-activity__list { padding: var(--nd-space-6) var(--nd-space-16) var(--nd-space-10); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  .portal-activity__columns, .portal-activity__summary { display: grid; grid-template-columns: 90px minmax(0, 1fr) 150px 130px 140px; align-items: center; gap: var(--nd-space-12); }
+  .portal-activity__columns { padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); color: var(--nd-muted); font-size: 12px; font-weight: 700; }
+  .portal-activity__summary { min-height: 46px; padding: var(--nd-space-6) 0; font-size: 14px; }
+  .portal-activity__summary .portal-activity__icon { display: none; }
+  .portal-activity__main strong { font-size: 14px; }
+  .portal-activity__body { padding-left: 102px; }
+  .portal-activity__method, .portal-activity__date, .portal-activity__amount { color: var(--nd-ink); }
+}
+/* ---------- Account hub (canvas: PhoneAccount, DesktopAccount) ---------- */
+/* Account (canvas: PhoneAccount, DesktopAccount). */
+.portal-account { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+.portal-account__head { display: flex; align-items: center; gap: var(--nd-space-14); padding: var(--nd-space-20) 2px 6px; }
+.portal-account__head .nd-avatar { width: 56px; height: 56px; background: var(--nd-forest); color: var(--nd-lime); font-size: 20px; }
+.portal-account__who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.portal-account .portal-account__title { margin: 0; color: var(--nd-ink); font: 600 24px/1.2 var(--nd-font-display); }
+.portal-account__contact { color: var(--nd-muted); font-size: 14px; overflow-wrap: anywhere; }
+.portal-account__edit { display: flex; align-items: center; min-height: 44px; color: var(--nd-forest); font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.portal-account__panels { display: flex; flex-direction: column; gap: var(--nd-space-8); padding-top: 10px; }
+.portal-account__panel { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+.portal-account .portal-account__group { margin: 6px 4px 0; color: var(--nd-muted); font: 700 12px var(--nd-font-body); letter-spacing: .1em; text-transform: uppercase; }
+.portal-account__list { display: flex; flex-direction: column; padding: 0 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+.portal-account__list > .nd-wide-only { display: contents; }
+.portal-account__item { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); min-height: 50px; padding: 0; border: 0; border-bottom: 1px solid var(--nd-line); background: none; color: var(--nd-ink); font: 600 15px var(--nd-font-body); text-align: left; text-decoration: none; cursor: pointer; }
+.portal-account__list > :last-child, .portal-account__list > .nd-wide-only:last-child .portal-account__item { border-bottom: 0; }
+.portal-account__item:hover { background: none; color: var(--nd-forest); }
+.portal-account__value { color: var(--nd-muted); font-size: 13px; font-weight: 600; }
+.portal-account__value .is-on { color: var(--nd-success-fg); font-weight: 700; }
+.portal-account__chevron { color: var(--nd-lime-text); font-size: 18px; }
+.portal-account__toggle { cursor: default; }
+.portal-account__signout { width: 100%; color: var(--nd-danger); }
+.portal-account__signout:hover { color: var(--nd-danger); }
+/* The hub is the Account tab (no page head); each detailed section opens as its own page. */
+body[data-current-tab="account"]:not([data-portal-sub]) .portal-head { display: none; }
+body[data-current-tab="account"]:not([data-portal-sub]) .account-layout > :not(.portal-account) { display: none !important; }
+@media (max-width: 767.98px) {
+  .portal-account__list > .nd-narrow-only:last-child { border-bottom: 0; }
+}
+@media (min-width: 768px) {
+  .portal-account__head { gap: var(--nd-space-18); padding: var(--nd-space-28) 0 var(--nd-space-18); }
+  .portal-account__head .nd-avatar { width: 64px; height: 64px; font-size: 24px; }
+  .portal-account .portal-account__title { font-size: 36px; }
+  .portal-account__contact { font-size: 15px; }
+  .portal-account__edit { min-height: 40px; text-decoration: none; padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+  .portal-account__panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--nd-space-16); align-items: start; padding-top: 0; }
+  .portal-account__panel { gap: var(--nd-space-6); padding: var(--nd-space-16) var(--nd-space-18) var(--nd-space-8); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+  .portal-account .portal-account__group { margin: 0 0 var(--nd-space-4); color: var(--nd-ink); font: 600 20px var(--nd-font-display); letter-spacing: 0; text-transform: none; }
+  .portal-account__list { padding: 0; border: 0; border-radius: 0; background: none; }
+  .portal-account__signout--button { align-self: flex-start; width: auto; min-height: 40px; margin-top: var(--nd-space-20); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); font-size: 14px; }
+}
+/* ---------- Receipt dialog (canvas: PhoneReceipt) ---------- */
+.portal-receipt { width: min(440px, calc(100vw - 24px)); padding: 0; border: 0; border-radius: var(--nd-radius-card-lg); background: var(--nd-ivory); color: var(--nd-ink); }
+.portal-receipt__bar { display: flex; align-items: center; justify-content: flex-start; gap: var(--nd-space-8); margin: 0; padding: var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }
+.portal-receipt__bar h2 { margin: 0; font: 700 15px var(--nd-font-body); }
+.portal-receipt__close { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--nd-radius-control); background: none; color: var(--nd-forest); font-size: 20px; cursor: pointer; }
+.portal-receipt__close:hover { background: var(--nd-sage); }
+.portal-receipt .receipt-preview { display: flex; flex-direction: column; gap: var(--nd-space-14); padding: var(--nd-space-16) var(--nd-space-18); }
+.portal-receipt__brand { display: flex; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-16); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-white); }
+.portal-receipt__brand strong { display: block; font-family: var(--nd-font-display); font-size: 20px; }
+.portal-receipt__brand small { color: var(--nd-lime); font-size: 10px; font-weight: 700; letter-spacing: .3em; }
+.portal-receipt__meta, .portal-receipt__help { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.5; }
+.portal-receipt__total span { display: block; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.portal-receipt__total strong { color: var(--nd-forest); font-size: 32px; }
+.portal-receipt__details { margin: 0; }
+.portal-receipt__details > div { display: flex; justify-content: space-between; gap: var(--nd-space-12); padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); }
+.portal-receipt__details dt { color: var(--nd-muted); }
+.portal-receipt__details dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.portal-receipt__actions { padding: var(--nd-space-12) var(--nd-space-16) var(--nd-space-18); border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
+.portal-receipt #receiptMessage:empty { display: none; }
+.portal-receipt[open] { display: flex; flex-direction: column; }
+.portal-receipt .receipt-preview { flex: 1 1 auto; overflow-y: auto; }
+/* Phones: a full page with a back arrow, as on the canvas, not v1's bottom sheet. */
+@media (max-width: 640px) {
+  .portal-receipt.receipt-dialog { top: 0 !important; bottom: 0 !important; height: 100dvh; max-height: 100dvh !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .portal-receipt.receipt-dialog::before { content: none; display: none; }
+}
+
+/* Shop orders open their order page (canvas: PhoneOrder). */
+a.portal-activity__order { color: inherit; text-decoration: none; }
+/* Orders sit in the payments list (#231): same row rhythm, same desktop columns. */
+.portal-activity__list > .portal-activity__order:last-child, .portal-activity__list > .portal-activity__item:last-child { border-bottom: 0; }
+.portal-activity__order .portal-activity__status { margin-left: auto; }
+@media (min-width: 768px) {
+  .portal-activity__list > .portal-activity__order { display: grid; grid-template-columns: 90px minmax(0, 1fr) 150px 130px 140px; align-items: center; gap: var(--nd-space-12); min-height: 46px; padding: var(--nd-space-6) 0; font-size: 14px; }
+  .portal-activity__list > .portal-activity__order .portal-activity__icon { display: none; }
+  .portal-activity__list > .portal-activity__order .nd-meta { display: none; }
+  .portal-activity__list > .portal-activity__order .portal-activity__status { margin-left: 0; }
+}
+#billing .portal-activity__list[data-activity-empty]:not(:has(> *)) { display: none; }
+/* Canvas rhythm: rows 68px apart on phones, 47px on desktop; no stray details margin. */
+.portal-activity__list > .portal-activity__item { margin: 0; }
+.portal-activity__list .portal-activity__summary, .portal-activity__list > .portal-activity__order { min-height: 56px; padding: var(--nd-space-6) 0; }
+@media (min-width: 768px) {
+  .portal-activity__list .portal-activity__summary, .portal-activity__list > .portal-activity__order { min-height: 46px; padding: 0; }
+}
+/* "No orders yet" belongs to the Orders view only. "Orders could not be loaded"
+   shows in All and Orders (Internet hides #activityOrders through its
+   data-activity-kind), so a failed lookup never reads as a complete stream. */
+body:not([data-activity-filter="orders"]) #activityOrders [data-orders-note="empty"] { display: none; }
+#activityOrders .portal-activity__unavailable { margin: var(--nd-space-8) 0 0; padding: var(--nd-space-10) var(--nd-space-14); border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; overflow-wrap: anywhere; }
+a.portal-activity__order:hover strong { text-decoration: underline; }
+a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+/* Desktop: the filter sits beside the title (canvas: DesktopActivity). */
+@media (min-width: 768px) {
+  .portal-activity__filters { justify-self: end; width: 330px; margin-top: -60px; }
+}
+.portal-receipt__actions { display: flex; gap: var(--nd-space-10); }
+.portal-receipt__actions > button { flex: 1; }
+.portal-receipt__actions > button[hidden] { display: none; }

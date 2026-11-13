@@ -1,0 +1,89 @@
+.account-setup-reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  margin-bottom: 18px;
+  background: #f1f7e7;
+  border: 1px solid #d5e1bd;
+  border-radius: 12px;
+}
+.account-setup-reminder p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.account-setup-reminder button {
+  flex: none;
+}
+.account-setup-dialog {
+  width: min(540px, calc(100% - 28px));
+  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  border: 1px solid #d4decf;
+  border-radius: 14px;
+  padding: 24px;
+  color: var(--forest, #003b2b);
+  background: #fff;
+}
+.account-setup-dialog::backdrop {
+  background: #002b20aa;
+}
+.account-setup-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.account-setup-heading h2 {
+  margin: 0;
+}
+.account-setup-heading button {
+  width: auto;
+}
+.account-setup-dialog p,
+.account-setup-dialog li {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.account-setup-dialog label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.account-setup-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.account-setup-dialog a {
+  color: inherit;
+}
+.account-setup-dialog #setupMessage {
+  overflow-wrap: anywhere;
+}
+.account-setup-dialog button {
+  min-height: 44px;
+}
+.account-setup-reminder[hidden] {
+  display: none;
+}
+@media (max-width: 620px) {
+  .account-setup-reminder {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .account-setup-reminder button {
+    width: 100%;
+  }
+  .account-setup-dialog {
+    padding: 18px;
+  }
+  .account-setup-heading {
+    align-items: flex-start;
+  }
+  .account-setup-heading h2 {
+    font-size: 24px;
+  }
+}

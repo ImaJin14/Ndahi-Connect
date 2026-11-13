@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { portalTab, uiV2, openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
 import { randomInt, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
@@ -50,8 +51,9 @@ try {
       await page.goto(portal + "/dashboard"); await page.locator("#dataBalance").waitFor();
       assert.equal(await page.locator("[data-quick-renew]").count(), 0);
       assert.equal(await page.locator('a[href^="/onboarding.html"]').count(), 0);
-      await page.locator('[data-portal-tab="bundles"]').click();
-      await page.locator("#managePlan").getByText(/cannot be stacked, renewed or switched/).waitFor();
+      await page.locator(portalTab("bundles")).click();
+      // v2 shows the canvas's short buy-next note (the full rule is on Package rules).
+      await page.locator("#managePlan").getByText(uiV2 ? /You can buy your next bundle once this one ends|cannot be stacked, renewed or switched/ : /cannot be stacked, renewed or switched/).filter({ visible: true }).first().waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await page.screenshot({ path: `${screenshots}/active-bundles-${width}.png`, fullPage: true });
       assert.equal((await store.snapshot()).payments.length, 1);
@@ -80,11 +82,11 @@ try {
     assert.equal(await page.locator("#requestPayment").isDisabled(), true);
     await page.screenshot({ path: `${screenshots}/guest-sign-in-to-connect.png`, fullPage: true });
     await page.getByRole("button", { name: "Sign in to connect" }).click(); await page.waitForURL("**/login");
-    await page.locator('[name="phone"]').fill(phone); await page.locator('[name="code"]').fill(paid.body.access.code);
+    await useVoucherSignIn(page); await page.locator('[name="phone"]').fill(phone); await page.locator('[name="code"]').fill(paid.body.access.code);
     await page.locator("#loginSubmit").click(); await page.locator("#customerPin").fill(pin); await page.locator("#loginSubmit").click();
     await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Weekly", { exact: true }).waitFor();
     assert.equal((await store.snapshot()).payments.length, 1);
-    await page.locator("#manageDevices summary").click();
+    await openManageDevices(page);
     await page.locator("#connectDevice button").click();
     await page.getByText("Connected successfully.", { exact: false }).waitFor();
   }, { signedIn: false });

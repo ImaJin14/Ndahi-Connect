@@ -1,0 +1,36 @@
+/* Layout for the design-kit reference page only (customer-app-v2/ui-kit.html).
+   Product screens never load this file. */
+.kit-head { background: var(--nd-forest); color: var(--nd-on-forest); }
+.kit-head__inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--nd-space-16) var(--nd-space-24); max-width: 1200px; margin: 0 auto; padding: var(--nd-space-20) var(--nd-space-16); }
+.kit-head__title { margin: var(--nd-space-6) 0 0; color: var(--nd-on-forest); }
+.kit-head .nd-meta { color: var(--nd-on-forest-soft); }
+.kit-head .nd-segmented { min-width: 240px; }
+.kit-main { display: flex; flex-direction: column; gap: 44px; max-width: 1200px; margin: 0 auto; padding: var(--nd-space-24) var(--nd-space-16) 64px; }
+.kit-section { display: flex; flex-direction: column; gap: var(--nd-space-16); min-width: 0; }
+.kit-section__intro { display: flex; flex-direction: column; gap: var(--nd-space-6); padding-bottom: var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }
+.kit-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--nd-space-24); }
+.kit-demo { display: flex; flex-direction: column; gap: var(--nd-space-12); min-width: 0; }
+.kit-demo__label { margin: 0; color: var(--nd-muted); font: 600 var(--nd-fs-caption)/1.4 var(--nd-font-mono); }
+.kit-frame { width: 100%; overflow: hidden; border: 1px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-ivory); }
+.kit-frame--phone { max-width: 390px; }
+.kit-frame--side { max-width: 240px; }
+.kit-frame--pad { padding: var(--nd-space-16); }
+.kit-frame .nd-topnav__links { position: static; }
+.kit-frame .nd-actionbar { position: static; }
+.kit-on-forest { display: flex; flex-wrap: wrap; gap: var(--nd-space-12) var(--nd-space-20); padding: var(--nd-space-16); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-on-forest-soft); }
+.kit-code { padding: 1px 5px; border-radius: 6px; background: var(--nd-sage); color: var(--nd-ink-soft); font: 600 var(--nd-fs-caption)/1.6 var(--nd-font-mono); }
+.kit-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--nd-space-10); }
+.kit-swatch { overflow: hidden; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-panel); background: var(--nd-paper); }
+.kit-swatch__chip { height: 52px; border-bottom: 1px solid var(--nd-line); }
+.kit-swatch__name, .kit-swatch__value { display: block; padding: 0 var(--nd-space-10); font: var(--nd-fs-caption)/1.6 var(--nd-font-mono); overflow-wrap: anywhere; }
+.kit-swatch__name { padding-top: var(--nd-space-8); color: var(--nd-ink); font-weight: 700; }
+.kit-swatch__value { padding-bottom: var(--nd-space-8); color: var(--nd-muted); }
+.kit-scale { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--nd-space-14); }
+.kit-scale__item { display: flex; flex-direction: column; align-items: center; gap: var(--nd-space-6); color: var(--nd-muted); font: var(--nd-fs-caption)/1.4 var(--nd-font-mono); }
+.kit-scale__box { background: var(--nd-lime); }
+.kit-scale__radius { width: 56px; height: 56px; border: 2px solid var(--nd-forest); background: var(--nd-sage); }
+@media (min-width: 900px) {
+  .kit-head__inner, .kit-main { padding-left: var(--nd-space-28); padding-right: var(--nd-space-28); }
+  .kit-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .kit-grid--wide { grid-template-columns: minmax(0, 1fr); }
+}

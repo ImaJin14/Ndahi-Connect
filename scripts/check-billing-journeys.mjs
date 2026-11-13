@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
+import { uiV2 } from "./portal-tabs.mjs";
 import { mkdir, readFile } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { MockPaymentAdapter } from "../lib/payments.mjs";
+// v1 lists payments in a table; v2 Activity rows are details elements (canvas rows).
+const paymentRows = uiV2 ? "#billing [data-payment-row]" : "#billing tbody tr";
 
 // Isolated local fixtures: no .env, live payment, mail, router, or database access.
 const apiPort = Number(process.env.BILLING_API_PORT || 8198), portalPort = Number(process.env.BILLING_PORT || 8197),
@@ -199,13 +202,13 @@ try {
     });
     await page.goto(`${portal}/dashboard#payments`);
     for (const status of ["expired", "failed", "cancelled"]) {
-      const row = page.locator("#billing tbody tr").filter({ hasText: `Closed ${status} package` });
+      const row = page.locator(paymentRows).filter({ hasText: `Closed ${status} package` });
       await row.waitFor();
       assert.equal(await row.locator("button:not([data-copy-payment])").count(), 0, `${status} payments have no customer money actions`);
       assert.equal(await row.getByText("Request a refund", { exact: true }).count(), 0);
     }
     assert.equal(await page.getByRole("button", { name: "View receipt" }).count(), 2, "confirmed receipts stay available");
-    const historical = page.locator("#billing tbody tr").filter({ hasText: "Historical expired package" });
+    const historical = page.locator(paymentRows).filter({ hasText: "Historical expired package" });
     assert.equal(await historical.getByRole("button", { name: /Check .* status/ }).count(), 0);
     assert.equal(await historical.getByText("Request a refund", { exact: true }).count(), 0);
   });
@@ -241,8 +244,8 @@ try {
       });
     });
     await page.goto(`${portal}/dashboard#payments`);
-    const mtnRow = page.locator("#billing tbody tr").filter({ hasText: "Weekly" }),
-      orangeRow = page.locator("#billing tbody tr").filter({ hasText: "Orange package" });
+    const mtnRow = page.locator(paymentRows).filter({ hasText: "Weekly" }),
+      orangeRow = page.locator(paymentRows).filter({ hasText: "Orange package" });
     await mtnRow.waitFor(); await orangeRow.waitFor();
     assert.match(await mtnRow.textContent(), /MTN Mobile Money/);
     assert.match(await orangeRow.textContent(), /Orange Money/);

@@ -1,0 +1,128 @@
+/* Standalone portal pages in the kit look: Package rules (canvas:
+   PhoneBillingTerms), Help (PhoneHelp), NDAHI Home (PhoneHomeRouter) and the
+   Hotspot landing (PhoneHotspot). A bar with a back arrow and the
+   page name, then one readable column. */
+body { background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+.portal-static { box-sizing: border-box; width: 100%; max-width: 680px; margin: 0 auto; padding: 0 var(--nd-space-16) var(--nd-space-48); }
+.portal-static__bar { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 56px; margin: 0 0 var(--nd-space-8); color: var(--nd-ink); font-size: 15px; font-weight: 700; }
+.portal-static__back { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -10px; border-radius: var(--nd-radius-control); color: var(--nd-ink); }
+.portal-static__back:hover { background: var(--nd-sage); }
+.portal-static__title { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+.portal-static__langs { display: flex; gap: 4px; margin-left: auto; }
+.portal-static__langs button { min-width: 44px; min-height: 36px; padding: 0 var(--nd-space-8); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-pill); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-meta) var(--nd-font-body); cursor: pointer; }
+.portal-static__bar-link { margin-left: auto; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; }
+.portal-static__back:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-static__main { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.portal-static__main h1 { margin: 0 0 var(--nd-space-6); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
+.portal-static__meta { margin: 0 0 var(--nd-space-16); color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+
+/* ---------- Package rules: one disclosure per topic ---------- */
+.portal-rule { border-bottom: 1px solid var(--nd-line); }
+.portal-rule > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 52px; cursor: pointer; list-style: none; }
+.portal-rule > summary::-webkit-details-marker { display: none; }
+.portal-rule > summary::before, .portal-rule > summary::after { content: none; display: none; }
+.portal-rule > summary:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-rule > summary h2,
+.portal-rule > summary > span:first-child { margin: 0; color: var(--nd-ink); font: 700 15px/1.3 var(--nd-font-body); }
+.portal-rule__chevron { flex-shrink: 0; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--nd-muted); border-bottom: 2px solid var(--nd-muted); transform: rotate(45deg); transition: transform .15s; }
+.portal-rule[open] .portal-rule__chevron { transform: rotate(-135deg); }
+.portal-rule__body { padding: 0 0 var(--nd-space-14); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.55; }
+.portal-rule__body p { margin: 0 0 var(--nd-space-10); }
+.portal-rule__body p:last-child { margin-bottom: 0; }
+.portal-rule > p { margin: 0 0 var(--nd-space-10); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.55; }
+.portal-rule > p:last-child { margin-bottom: var(--nd-space-14); }
+.portal-rule > p a { color: var(--nd-forest); font-weight: 700; }
+.portal-rules__pin { margin: var(--nd-space-18) 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .portal-rule__chevron { transition: none; } }
+
+/* ---------- Help (canvas: PhoneHelp) ---------- */
+.portal-help > h1 { margin: 0 0 var(--nd-space-8); color: var(--nd-forest); font: 700 28px/1.15 var(--nd-font-display); }
+.portal-help > h1 + p { margin: 0 0 var(--nd-space-16); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+.portal-help section { margin: 0 0 var(--nd-space-20); }
+.portal-help section > h2 { margin: 0 0 var(--nd-space-8); color: var(--nd-ink); font: 700 17px/1.3 var(--nd-font-body); }
+.portal-help__status { padding: var(--nd-space-10) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-sage); }
+.portal-help section.portal-help__status > h2 { margin: 0 0 2px; color: var(--nd-forest); font-size: var(--nd-fs-eyebrow); letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
+.portal-help__status p { margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-small); }
+.portal-help__check { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--nd-space-8) var(--nd-space-12); padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+.portal-help section.portal-help__check > h2 { grid-column: 1; margin: 0; }
+.portal-help__check > p { grid-column: 1 / -1; grid-row: 2; margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
+.portal-help__check > #runDiagnostics { grid-column: 2; grid-row: 1; min-height: 40px; padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; }
+.portal-help__check > #diagnosticsOutput { grid-column: 1 / -1; }
+.portal-help__check > #diagnosticsOutput:empty { display: none; }
+.portal-help__faq > h2 { margin-bottom: 0; }
+.portal-help__support > p { margin: 0 0 var(--nd-space-12); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+#supportContacts { display: flex; flex-wrap: wrap; gap: var(--nd-space-10); }
+#supportContacts > p { flex: 1 1 140px; margin: 0; }
+#supportContacts a { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: var(--nd-space-8) var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+#supportContacts a:hover { background: var(--nd-sage); }
+.portal-help > p:last-child { color: var(--nd-muted); font-size: var(--nd-fs-small); }
+.portal-help > p:last-child a { color: var(--nd-forest); font-weight: 700; }
+
+/* ---------- NDAHI Home (canvas: PhoneHomeRouter) ---------- */
+.portal-home-router { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.portal-home-router > .portal-static__bar { margin-bottom: 0; }
+.portal-home-router > #homeMessage:empty { display: none; }
+.portal-home-router > .surface { margin: 0; padding: var(--nd-space-16); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); box-shadow: none; }
+.portal-home-router .surface h2 { margin: 0 0 var(--nd-space-6); color: var(--nd-ink); font: 700 17px/1.3 var(--nd-font-body); }
+.portal-home-router .surface h3 { margin: var(--nd-space-10) 0 var(--nd-space-4); color: var(--nd-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+.portal-home-router .surface p, .portal-home-router .surface li { margin: 0 0 var(--nd-space-8); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
+.portal-home-router .surface ul, .portal-home-router .surface ol { margin: 0 0 var(--nd-space-8); padding-left: 20px; }
+/* Status card: the router's name stands out, then its bundle as receipt-style rows. */
+#homeStatus h3 { margin-top: var(--nd-space-12); color: var(--nd-forest); font: 700 22px/1.2 var(--nd-font-display); }
+#homeStatus dl { margin: var(--nd-space-8) 0 var(--nd-space-12); }
+#homeStatus dl { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+#homeStatus dt, #homeStatus dd { margin: 0; padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); }
+#homeStatus dt { color: var(--nd-muted); }
+#homeStatus dd { font-weight: 600; text-align: right; }
+/* Actions: one main action, options as wide choices, removal in red. */
+.portal-home-router .surface label { display: block; margin: 0 0 var(--nd-space-12); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+.portal-home-router .surface label > input:not([type="checkbox"]), .portal-home-router .surface label > select { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.portal-home-router .surface label > input[type="checkbox"] { margin: 0 8px 0 0; vertical-align: -2px; }
+.portal-home-router .surface button { box-sizing: border-box; display: block; width: 100%; min-height: 48px; margin: 0 0 var(--nd-space-10); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; }
+.portal-home-router .surface button:disabled { opacity: .55; cursor: not-allowed; }
+.portal-home-router #enrollHome, .portal-home-router #confirmHome > button:not([data-home-passkey]), .portal-home-router #homePurchase > button { min-height: 50px; border-color: transparent; background: var(--nd-lime); color: var(--nd-lime-ink); font-size: var(--nd-fs-body); }
+.portal-home-router #modeHome, .portal-home-router #modeDirect { min-height: 56px; text-align: left; border-radius: var(--nd-radius-card); }
+.portal-home-router #refreshHome { width: auto; min-height: 40px; }
+.portal-home-router #revokeHome, .portal-home-router #revokeHomePasskey { border-color: var(--nd-danger-line); color: var(--nd-danger); }
+
+/* ---------- Hotspot landing (canvas: PhoneHotspot) ---------- */
+body[data-hotspot-landing] > header, body[data-hotspot-landing] main > .card { display: none; }
+body[data-hotspot-landing] { background: var(--nd-ivory); }
+body[data-hotspot-landing] main { padding: 0; }
+.portal-hotspot[hidden] { display: none; }
+.portal-hotspot { max-width: 560px; margin: 0 auto; font-family: var(--nd-font-body); }
+.portal-hotspot__head { padding: var(--nd-space-12) var(--nd-space-18) var(--nd-space-24); background: var(--nd-forest); color: var(--nd-on-forest); }
+.portal-hotspot__brand { display: flex; align-items: center; gap: var(--nd-space-8); min-height: 44px; margin-bottom: var(--nd-space-14); }
+.portal-hotspot__brand strong { font: 700 18px var(--nd-font-display); }
+.portal-hotspot__brand a { margin-left: auto; color: var(--nd-lime); font-size: var(--nd-fs-small); font-weight: 700; }
+.portal-hotspot__eyebrow { margin: 0 0 var(--nd-space-6); color: var(--nd-lime); font-size: var(--nd-fs-eyebrow); font-weight: 700; letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
+.portal-hotspot__head h1 { margin: 0 0 var(--nd-space-8); color: var(--nd-on-forest); font: 700 30px/1.1 var(--nd-font-display); }
+.portal-hotspot__head h1 + p { margin: 0; color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); }
+.portal-hotspot__options { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: var(--nd-space-18) var(--nd-space-16) 0; }
+.portal-hotspot__opt { display: flex; align-items: center; gap: var(--nd-space-12); min-height: 72px; padding: var(--nd-space-12) var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); color: var(--nd-ink); text-decoration: none; }
+.portal-hotspot__opt:hover { border-color: var(--nd-line-strong); background: var(--nd-white); }
+.portal-hotspot__opt:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.portal-hotspot__icon { display: grid; flex-shrink: 0; place-items: center; width: 44px; height: 44px; border-radius: var(--nd-radius-control); background: var(--nd-sage); color: var(--nd-forest); }
+.portal-hotspot__text { flex: 1; min-width: 0; }
+.portal-hotspot__text strong { display: block; font-size: var(--nd-fs-body); }
+.portal-hotspot__text span { display: block; margin-top: 2px; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.portal-hotspot__chevron { color: var(--nd-muted); font-size: 22px; }
+.portal-hotspot__note { margin: var(--nd-space-16) var(--nd-space-16) 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); text-align: center; }
+.portal-hotspot__store { display: block; margin: var(--nd-space-12) var(--nd-space-16) var(--nd-space-24); color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; text-align: center; }
+.portal-rule__list { margin: 0 0 var(--nd-space-14); padding-left: 20px; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.55; }
+.portal-rules__full { margin-top: var(--nd-space-16); border-top: 1px solid var(--nd-line); }
+.portal-rules__full .portal-rule__body h3 { margin: var(--nd-space-12) 0 4px; color: var(--nd-ink); font: 700 14px var(--nd-font-body); }
+/* Help, as drawn (PhoneHelp): title, the connection check, questions, support. */
+.portal-help > h1 + p, .portal-help__status, .portal-help__check > p, .portal-help > p:last-child { display: none; }
+.portal-help__check > #runDiagnostics { border: 0; background: var(--nd-lime); color: var(--nd-lime-ink); }
+.portal-rules > h1, .portal-help > h1 { font-size: 24px; }
+/* NDAHI Home status as the canvas's forest card (PhoneHomeRouter). */
+.portal-home-router > #homeStatus { border: 0; background: var(--nd-forest); color: var(--nd-on-forest); }
+#homeStatus h2 { margin: 0 0 var(--nd-space-6); color: var(--nd-lime); font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+#homeStatus h2 + p { display: none; }
+#homeStatus > p { color: var(--nd-on-forest-soft); font-size: 13px; }
+#homeStatus h3 { color: var(--nd-white); }
+#homeStatus dt { color: var(--nd-on-forest-soft); border-color: var(--nd-line-on-forest); }
+#homeStatus dd { color: var(--nd-white); border-color: var(--nd-line-on-forest); }
+#homeStatus #refreshHome { border-color: var(--nd-line-on-forest); background: transparent; color: var(--nd-lime); }
+.portal-static__langs button { min-width: 40px; min-height: 32px; }

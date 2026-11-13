@@ -68,6 +68,10 @@ services:
         value: https://staging-api.ndahiconnect.net
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
+      - key: UI_V2_PERCENT
+        value: "0"
+      - key: UI_V2_OFF
+        value: "false"
 
   - type: web
     name: ndahi-staging-admin
@@ -91,6 +95,10 @@ services:
         value: https://staging-api.ndahiconnect.net
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
+      - key: UI_V2_PERCENT
+        value: "0"
+      - key: UI_V2_OFF
+        value: "false"
 
   - type: web
     name: ndahi-staging-api

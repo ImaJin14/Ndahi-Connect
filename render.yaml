@@ -68,6 +68,10 @@ services:
         sync: false
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
+      - key: UI_V2_PERCENT
+        value: "0"
+      - key: UI_V2_OFF
+        value: "false"
 
   - type: web
     name: ndahi-store
@@ -114,6 +118,10 @@ services:
         sync: false
       - key: PERFORMANCE_METRICS_ENABLED
         value: "true"
+      - key: UI_V2_PERCENT
+        value: "0"
+      - key: UI_V2_OFF
+        value: "false"
 
   - type: web
     name: ndahi-api

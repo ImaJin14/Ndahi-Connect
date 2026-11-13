@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { adminGenerateName, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -109,9 +110,10 @@ try {
 
     await page.locator('#generate [name="planId"]').selectOption("weekly");
     await page.locator('#generate [name="quantity"]').fill("24");
-    await page.getByRole("button", { name: "Generate resale vouchers", exact: true }).click();
+    await page.getByRole("button", { name: adminGenerateName("resale"), exact: true }).click();
 
     await page.getByText("24 vouchers generated", { exact: true }).waitFor();
+    await openGeneratedPrint(page);
     await page.locator("#voucherPrintPreview").waitFor();
 
     // Bulk generation uses the same thermal slip design as individual vouchers.
@@ -151,7 +153,7 @@ try {
     // Dedicated preview opens directly from the tap; native printing stays in its own click handler.
     await page.context().addInitScript(() => { window.printCalls = 0; window.print = () => { window.printCalls++; }; });
     const popupEvent = page.context().waitForEvent("page");
-    await page.getByRole("button", { name: "Print vouchers", exact: true }).click();
+    await page.getByRole("button", { name: printVouchersName(24), exact: true }).click();
     const popup = await popupEvent;
     await popup.getByRole("button", { name: "Print", exact: true }).waitFor();
     await popup.waitForFunction(() => !document.querySelector("#printNow").disabled);
@@ -179,19 +181,21 @@ try {
     await page.emulateMedia({ media: "screen" });
 
     // Close codes clears print preview and resets body attribute
-    await page.getByRole("button", { name: "Close codes", exact: true }).click();
+    await closeGeneratedCodes(page);
     assert.equal(await page.locator("#voucherPrintPreview").count(), 0);
     assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
   });
 
   await scenario("single assigned voucher defaults to 58mm thermal POS slip and never leaks customer PII onto printed slips", async (page) => {
     await page.goto(`${admin}/dashboard#voucher-create`);
+    await openVoucherOptions(page);
     await page.locator("#voucherPurpose").selectOption("assigned");
     await page.locator("#voucherSaleType").selectOption("sold");
     await page.locator("#customerSelect").selectOption("cust-pii-1");
-    await page.getByRole("button", { name: "Generate assigned voucher", exact: true }).click();
+    await page.getByRole("button", { name: adminGenerateName("assigned"), exact: true }).click();
 
     await page.getByText("1 voucher generated", { exact: true }).waitFor();
+    await openGeneratedPrint(page);
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
     assert.equal(await page.locator(".thermal-slip").count(), 1);
 
@@ -302,6 +306,7 @@ try {
 
     // Now navigate to Customers tab and print directly from User One's customer row
     await page.getByRole("link", { name: "Customers", exact: true }).click();
+    await openAdminCustomer(page, "cust-pii-1");
     await page.locator('[data-print-customer-voucher="cust-pii-1"]').waitFor();
     await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
 

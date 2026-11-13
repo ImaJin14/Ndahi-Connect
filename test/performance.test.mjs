@@ -4,6 +4,7 @@ import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { createPerformanceMetrics, operationFor } from "../lib/performance.mjs";
 import { productionConfigErrors } from "../lib/config.mjs";
+import { readFile } from "node:fs/promises";
 
 const token = "m".repeat(40);
 async function listen(server) {
@@ -40,7 +41,8 @@ test("static assets are versioned, compressed and immutable while pages revalida
   const page = await fetch(base + "/login", { headers: { "accept-encoding": "br" } });
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("content-encoding"), "br");
-  assert.equal(page.headers.get("cache-control"), "no-cache");
+  // Pages differ by UI variant, so only the browser may keep them.
+  assert.equal(page.headers.get("cache-control"), "private, no-cache");
   const html = await page.text(),
     styles = html.match(/href="(\/static\/styles\.[0-9a-f]{20}\.css)"/)?.[1];
   assert.ok(styles, "stylesheet reference is versioned");
@@ -122,9 +124,27 @@ test("web vitals accept only trusted origins and fixed categories", async (t) =>
   const oversized = await vital(base, { name: "LCP", value: 1, page: "login", device: "mobile", network: "slow", pad: "x".repeat(4000) });
   assert.equal(oversized.status, 413);
   const text = await (await fetch(base + "/api/metrics", { headers: { authorization: `Bearer ${token}` } })).text();
-  assert.match(text, /ndahi_web_vital_lcp_count\{app="customer",page="login",device="mobile",network="slow"\} 1/);
-  assert.match(text, /ndahi_web_vital_inp_count\{app="admin",page="dashboard",device="desktop",network="fast"\} 1/);
+  assert.match(text, /ndahi_web_vital_lcp_count\{app="customer",page="login",device="mobile",network="slow",variant="v1"\} 1/);
+  assert.match(text, /ndahi_web_vital_inp_count\{app="admin",page="dashboard",device="desktop",network="fast",variant="v1"\} 1/);
   assert.match(text, /ndahi_web_vital_rejected_total\{reason="invalid"\} 4/);
+});
+
+test("web vitals record the UI variant so v1 and v2 can be compared", async () => {
+  const metrics = createPerformanceMetrics({ enabled: true, token }),
+    sample = { name: "LCP", value: 900, page: "dashboard", device: "mobile", network: "fast" };
+  assert.equal(metrics.ingest({ ...sample, variant: "v2" }, "customer"), 204);
+  assert.equal(metrics.ingest({ ...sample, variant: "v1" }, "customer"), 204);
+  assert.equal(metrics.ingest(sample, "customer"), 204, "pages cached before the rollout send no variant");
+  for (const variant of ["v3", "", 2]) assert.equal(metrics.ingest({ ...sample, variant }, "customer"), 400);
+  const text = await metrics.registry.metrics();
+  assert.match(text, /ndahi_web_vital_lcp_count\{app="customer",page="dashboard",device="mobile",network="fast",variant="v2"\} 1/);
+  assert.match(text, /ndahi_web_vital_lcp_count\{app="customer",page="dashboard",device="mobile",network="fast",variant="v1"\} 2/);
+});
+
+test("the browser reports the variant marked on the page", async () => {
+  const source = await readFile(new URL("../shared-app/performance.js", import.meta.url), "utf8");
+  assert.match(source, /document\.documentElement\.dataset\.uiVariant === "v2" \? "v2" : "v1"/);
+  assert.match(source, /network: networkClass\(\),\n\s+variant,/);
 });
 
 test("browser telemetry is rate limited per window", () => {

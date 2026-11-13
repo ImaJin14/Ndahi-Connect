@@ -1,0 +1,473 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');:root{--forest:#003b2b;--dark:#062a20;--lime:#b9ee2e;--ivory:#f8f8f3;--paper:#fff;--ink:#12231c;--muted:#6b7771;--line:#dfe5df;--danger:#a93636;font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--ivory)}*{box-sizing:border-box}body{margin:0;min-height:100vh}header{height:76px;background:var(--forest);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:2}.brand{font:600 24px 'Playfair Display',serif}.brand small{font:600 10px 'DM Sans';letter-spacing:.22em;color:var(--lime);margin-left:10px}main{max-width:1320px;margin:auto;padding:34px 28px 70px}button{border:0;border-radius:8px;background:var(--lime);color:#1a260f;padding:10px 15px;font:700 13px 'DM Sans';cursor:pointer}button:hover{background:#c8f64d}.page-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:28px}.page-head h1{font:600 38px 'Playfair Display',serif;margin:0}.page-head p{color:var(--muted);margin:6px 0 0}.metrics{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:24px}.metric{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:17px;color:var(--muted);text-transform:capitalize;font-size:12px}.metric b{display:block;font-size:25px;color:var(--forest);margin-bottom:5px}.card{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:22px;margin-bottom:18px}.card h2{font:600 24px 'Playfair Display',serif;margin:0 0 16px}.card h3{font-size:14px;margin-top:24px}.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.full{grid-column:1/-1}form{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}input,select{border:1px solid #bcc8c0;border-radius:8px;background:#fff;padding:10px 12px;font:13px 'DM Sans';min-width:140px}table{width:100%;border-collapse:collapse;background:#fff}td,th{text-align:left;padding:11px 9px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:middle}th{color:var(--muted);font-weight:600}code{word-break:break-all;color:var(--forest)}.error{color:#ffb0b0}.login-shell{max-width:520px;margin:70px auto}.login-shell .card{padding:36px;box-shadow:0 20px 55px rgba(0,40,29,.12)}.login-shell h1{font:600 38px 'Playfair Display',serif;margin:0 0 10px}.login-shell p{color:var(--muted)}.login-shell form{display:grid}.login-shell input{width:100%;padding:13px}.status{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px}.status b{color:var(--forest)}@media(max-width:1000px){.metrics{grid-template-columns:repeat(3,1fr)}.admin-grid{grid-template-columns:1fr}.full{grid-column:auto}}@media(max-width:620px){header{padding:0 18px}.metrics{grid-template-columns:1fr 1fr}main{padding:24px 14px}.card{padding:16px;overflow:auto}.page-head{align-items:flex-start;flex-direction:column;gap:12px}form{display:grid}input,select{width:100%}}.action-row{display:flex;gap:10px;flex-wrap:wrap}.table-scroll{overflow-x:auto}.error{color:var(--danger);margin:10px 0}button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #6f9500;outline-offset:3px}
+.integration-card{padding:26px}.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}.section-heading h2{margin:2px 0 0}.section-kicker{margin:0;color:#6b7771;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}.payment-chip,.status-chip{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:700;text-transform:capitalize}.payment-chip{background:#eef3e9;color:#355246}.integration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.integration-item{display:flex;flex-direction:column;justify-content:space-between;min-height:190px;padding:18px;border:1px solid var(--line);border-radius:12px;background:#fbfcf9}.integration-copy h3{margin:0;font-size:17px}.integration-copy p{color:var(--muted);font-size:13px;line-height:1.5;margin:12px 0 18px}.integration-title{display:flex;align-items:center;justify-content:space-between;gap:10px}.status-good{background:#e9f5dc;color:#365800}.status-warning{background:#fff2d8;color:#7b4d00}.integration-item form{margin:0;display:flex;align-items:center;gap:8px}.secondary-action{width:100%;background:#fff;border:1px solid #aebeb5;color:var(--forest);box-shadow:none}.secondary-action:hover{background:#f2f6f1}.text-action{background:transparent;color:var(--danger);padding:10px}#integrationMessage{margin-top:14px}#mfaEnrollment{width:100%}@media(max-width:900px){.integration-grid{grid-template-columns:1fr}.integration-item{min-height:0}}@media(max-width:620px){.section-heading{flex-direction:column}.payment-chip{align-self:flex-start}}
+.admin-tabs{display:flex;gap:4px;margin-bottom:0;padding:5px;background:#e9eee9;border:1px solid var(--line);border-bottom:0;border-radius:13px 13px 0 0;overflow-x:auto;scrollbar-width:thin}.admin-tabs button{flex:0 0 auto;background:transparent;color:#526159;padding:11px 16px;border:1px solid transparent;border-radius:9px;white-space:nowrap}.admin-tabs button:hover{background:rgba(255,255,255,.65);color:var(--forest)}.admin-tabs button[aria-selected="true"]{background:#fff;border-color:#d8e0d9;color:var(--forest);box-shadow:0 2px 8px rgba(0,59,43,.08)}.tab-panels>.card{border-radius:0 0 13px 13px;margin-bottom:18px;min-height:260px}.tab-panel[hidden]{display:none}@media(max-width:620px){.admin-tabs{margin-left:-14px;margin-right:-14px;border-left:0;border-right:0;border-radius:0;padding-left:14px;padding-right:14px}.admin-tabs button{padding:10px 13px}.tab-panels>.card{border-radius:0 0 13px 13px}}
+
+.voucher-builder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end}.voucher-builder label{display:grid;gap:7px;color:#425149;font-size:12px;font-weight:700}.voucher-builder input,.voucher-builder select{width:100%;min-width:0}.custom-voucher-fields{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;grid-column:1/-1;padding:16px;border:1px solid var(--line);border-radius:11px;background:#fbfcf9}.voucher-builder>button{justify-self:start}.form-help{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}.generated-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}.generated-heading p{margin:5px 0 0;color:var(--muted);font-size:13px}.generated-heading .secondary-action{width:auto}.generated-codes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px}.generated-codes code{padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:#f7f9f5;text-align:center;font-weight:700;letter-spacing:.04em}@media(max-width:900px){.voucher-builder{grid-template-columns:1fr 1fr}.custom-voucher-fields{grid-template-columns:1fr 1fr}}@media(max-width:620px){.voucher-builder,.custom-voucher-fields{grid-template-columns:1fr}.generated-heading{align-items:flex-start;flex-direction:column}.generated-heading .secondary-action{width:100%}}
+.setup-banner{display:flex;align-items:center;justify-content:space-between;gap:28px;margin-bottom:20px;padding:20px 22px;border:1px solid #e8cf8b;border-radius:13px;background:#fff8e7}.setup-banner h2{font:600 21px 'Playfair Display',serif;margin:3px 0 6px}.setup-banner p{max-width:720px;margin:0;color:#685b3e;font-size:13px;line-height:1.55}.setup-services{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;min-width:260px}@media(max-width:760px){.setup-banner{align-items:flex-start;flex-direction:column}.setup-services{justify-content:flex-start;min-width:0}}
+.password-field{position:relative;display:block}.password-field input{padding-right:70px}.password-toggle{position:absolute;right:5px;top:50%;width:auto;min-width:56px;padding:7px 9px;transform:translateY(-50%);background:transparent;color:var(--forest)}.password-toggle:hover{background:#eef3e9}.login-shell [hidden]{display:none}.login-shell .section-kicker{margin-bottom:6px}
+
+[hidden]{display:none!important}.admin-dashboard main{padding-bottom:110px;min-width:0}.admin-dashboard .page-head h1{font-size:clamp(27px,4vw,38px)}.admin-dashboard .metrics{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}.metric a{color:var(--forest)}.admin-nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(80px,1fr);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:var(--forest);border-top:1px solid #245b45;box-shadow:0 -3px 15px #003b2b12}.admin-nav a{display:flex;flex-direction:column;align-items:center;gap:5px;padding:7px 2px;color:#d8e7d7;text-decoration:none;font-size:11px;min-width:0;min-height:48px;border-radius:8px}.admin-nav svg{width:23px;height:23px;flex:none}.admin-nav a[aria-current]{background:#174f37;color:var(--lime);font-weight:700}.admin-nav a:focus-visible,a.button-link:focus-visible{outline:3px solid var(--lime);outline-offset:-3px}.button-link{display:inline-block;border-radius:8px;background:var(--lime);color:var(--forest);font-size:13px;font-weight:700;padding:10px 15px;text-decoration:none}.secondary-link{background:#eef3e9}.more-menu .admin-tabs{flex-wrap:wrap;border:0;border-radius:8px;margin-bottom:16px}.more-menu .admin-tabs button{white-space:normal}.device-controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}#wifiSummary,#wifiMessage{font-size:13px;line-height:1.6;color:var(--muted)}#wifiMessage{color:var(--forest);margin-bottom:12px}#wifiSummary button{margin:6px 0}.admin-install{display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--line)}.admin-install h3{margin:0}.admin-install p{font-size:13px;line-height:1.5;color:var(--muted)}.admin-install img{border-radius:10px;flex:none}.admin-dashboard .card{min-width:0}.admin-dashboard .tab-panel td{overflow-wrap:anywhere}.update-notice{position:fixed;left:16px;right:16px;bottom:100px;z-index:6;max-width:600px;margin:auto;padding:14px;border:1px solid #92b681;border-radius:10px;background:#f2f9e9;color:var(--forest);box-shadow:0 4px 20px #003b2b20;font-size:13px}.update-notice button{margin:8px}.keyboard-open .admin-nav{display:none}.admin-dashboard #generated:empty,.admin-dashboard #activeVoucherPrint:empty,.admin-dashboard #customerVoucherPrint:empty{display:none}
+@media(min-width:1000px){.admin-dashboard{padding-left:190px}.admin-dashboard header{margin-left:-190px;padding-left:215px}.admin-nav{top:76px;bottom:0;right:auto;width:190px;display:flex;flex-direction:column;padding:20px 12px;gap:8px}.admin-nav a{flex-direction:row;gap:12px;justify-content:flex-start;font-size:14px;padding:14px}.admin-dashboard main{padding-bottom:50px}.admin-dashboard .update-notice{left:210px;bottom:20px}}
+@media(max-width:620px){.admin-install{flex-wrap:wrap}.admin-install>div{flex:1;min-width:160px}.admin-install button{width:100%}.more-menu .admin-tabs{display:grid;grid-template-columns:1fr 1fr}.admin-dashboard .metrics{grid-template-columns:1fr 1fr}.admin-dashboard .card{overflow:visible}.admin-dashboard table{min-width:420px}.admin-dashboard header{padding:0 14px}.brand small{letter-spacing:.1em;margin-left:5px}.admin-dashboard .tab-panels>.card{border-radius:13px}.device-controls{align-items:flex-start}.update-notice{bottom:100px}}
+.admin-dashboard .records-pager{flex-wrap:wrap;gap:8px}.admin-dashboard .records-pager span{flex:1;min-width:100px;max-width:100%;white-space:normal;overflow-wrap:anywhere}.admin-dashboard .records-pager .secondary-action{width:auto;min-width:0}.admin-dashboard .records-toolbar,.admin-dashboard .records-filter{min-width:0;max-width:100%}.admin-dashboard .table-scroll{max-width:100%}
+@media(max-width:370px){.admin-dashboard .records-pager span{order:-1;flex-basis:100%}.admin-dashboard .records-pager{justify-content:space-between}.admin-dashboard .brand{font-size:21px}.admin-dashboard .brand small{font-size:9px}}
+.admin-dashboard.has-update-notice main{padding-bottom:260px}
+
+/* --- Live Activity Pulse --- */
+.live-pulse {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 rgba(22, 163, 74, 0.4);
+  animation: livePulseAnim 2s infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+@keyframes livePulseAnim {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6); }
+  70% { box-shadow: 0 0 0 7px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-pulse { animation: none !important; }
+}
+
+/* --- Filter Chips --- */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.filter-chip {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: #425149;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+.filter-chip:hover {
+  background: #eef3e9;
+  color: var(--forest);
+}
+.filter-chip.active {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* --- Mobile Inspection Cards (< 768px) --- */
+@media (max-width: 768px) {
+  .admin-dashboard table,
+  .admin-dashboard tbody,
+  .admin-dashboard tr,
+  .admin-dashboard td {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .admin-dashboard thead {
+    display: none !important;
+  }
+  .admin-dashboard tr {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 30, 22, 0.05);
+  }
+  .admin-dashboard td {
+    padding: 6px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid #f0f4f1 !important;
+    overflow-wrap: anywhere;
+  }
+  .admin-dashboard td:last-child {
+    border-bottom: 0 !important;
+    padding-top: 10px !important;
+  }
+  .admin-dashboard td button,
+  .admin-dashboard td .button {
+    width: 100%;
+  }
+}
+
+/* --- Reseller Inventory & Cash Remittance Ledger --- */
+.reseller-ledger-section {
+  margin: 18px 0 26px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcf9;
+}
+.reseller-ledger-section h3 {
+  margin: 2px 0 0;
+  font: 600 20px "Playfair Display", serif;
+}
+.reseller-ledger-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.reseller-ledger-totals .sales-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.reseller-ledger-totals .sales-card strong {
+  font-size: 19px;
+  color: var(--forest);
+}
+.reseller-ledger-totals .sales-card span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.table-subtext {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.reseller-ledger-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.reseller-ledger-form {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.reseller-ledger-form h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  color: var(--forest);
+}
+.reseller-ledger-form label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #425149;
+}
+.reseller-ledger-form input,
+.reseller-ledger-form select {
+  width: 100%;
+  min-width: 0;
+}
+[data-reseller-ledger-message]:not(:empty) {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eef3e9;
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 600;
+}
+.reseller-remittance-history {
+  margin-top: 14px;
+}
+.reseller-remittance-history summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--forest);
+  margin-bottom: 8px;
+}
+
+/* --- Printable Thermal POS Slips (Issue #116) --- */
+.voucher-print-toolbar {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcf9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.voucher-print-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.voucher-print-format-label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #425149;
+}
+.voucher-print-privacy-note {
+  margin: 0;
+  font-size: 12px;
+}
+.voucher-print-surface {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.voucher-print-thermal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.thermal-slip {
+  background: #fff;
+  color: #000;
+  border: 1px dashed #222;
+  padding: 10px 8px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  box-sizing: border-box;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.voucher-print-thermal-58 .thermal-slip {
+  width: 58mm;
+  max-width: 100%;
+}
+.voucher-print-thermal-80 .thermal-slip {
+  width: 80mm;
+  max-width: 100%;
+}
+.thermal-header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  background: transparent;
+  color: #000;
+  height: auto;
+  position: static;
+  display: block;
+}
+.thermal-brand {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.thermal-subtitle {
+  margin: 2px 0 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.thermal-plan-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.thermal-plan-price {
+  font-weight: 800;
+  white-space: nowrap;
+}
+.thermal-code-block {
+  border: 2px solid #000;
+  padding: 6px 4px;
+  text-align: center;
+  margin-bottom: 6px;
+  background: #fff;
+}
+.thermal-code-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.thermal-voucher-code {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #000;
+  word-break: keep-all;
+}
+.thermal-slip .voucher-qr-box {
+  width: 92px;
+  height: 92px;
+  margin: 6px auto;
+}
+.voucher-qr-box svg,
+.voucher-qr-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.voucher-qr-img { image-rendering: pixelated; }
+.thermal-meta {
+  margin: 6px 0;
+  padding: 5px 0;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+}
+.thermal-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 2px 0;
+}
+.thermal-meta dt {
+  font-weight: 700;
+}
+.thermal-meta dd {
+  margin: 0;
+  text-align: right;
+}
+.thermal-instructions {
+  font-size: 10px;
+}
+.thermal-instructions p {
+  margin: 0 0 3px;
+}
+.thermal-instructions ol {
+  margin: 0;
+  padding-left: 15px;
+}
+
+@media (max-width: 680px) {
+  .voucher-print-controls button,
+  .voucher-print-format-label,
+  .voucher-print-format-label select {
+    width: 100%;
+  }
+}
+
+@page voucher-58 { size: 58mm 200mm; margin: 2mm; }
+@page voucher-80 { size: 80mm 200mm; margin: 2mm; }
+body[data-voucher-print-layout="thermal-58"] { page: voucher-58; }
+body[data-voucher-print-layout="thermal-80"] { page: voucher-80; }
+
+@media print {
+  @page {
+    margin: 6mm;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  body > header,
+  main > .page-head,
+  .admin-nav,
+  .update-notice,
+  .setup-banner,
+  .more-menu,
+  .tab-panel:not(#panel-voucher-create):not([data-voucher-print-host="true"]),
+  body:has(.tab-panel[data-voucher-print-host="true"]) .tab-panel:not([data-voucher-print-host="true"]),
+  #panel-voucher-create > .section-heading,
+  #generate,
+  #panel-vouchers > h2,
+  #panel-vouchers > p,
+  #resellerLedger,
+  #voucherRecords,
+  #panel-customers > h2,
+  #customerRecords,
+  #panel-customers > details,
+  .generated-heading,
+  .generated-codes,
+  .voucher-print-toolbar {
+    display: none !important;
+  }
+  main,
+  .tab-panels,
+  #panel-voucher-create:not([hidden]),
+  .tab-panel[data-voucher-print-host="true"],
+  #generated:not(:empty),
+  #activeVoucherPrint:not(:empty),
+  #customerVoucherPrint:not(:empty),
+  #voucherPrintPreview,
+  [data-voucher-print-host="true"],
+  #voucherPrintSurface {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .voucher-print-thermal {
+    display: block !important;
+  }
+  .thermal-slip {
+    border: 0;
+    border-bottom: 1px dashed #000;
+    margin: 0 auto 4mm;
+    break-after: page;
+    page-break-after: always;
+  }
+  .thermal-slip:last-child {
+    break-after: auto;
+    page-break-after: auto;
+    margin-bottom: 0;
+  }
+}
+
+/* Store management shares the admin palette and remains usable on narrow screens. */
+#panel-store form { margin: 20px 0; padding: 18px; border: 1px solid var(--line); border-radius: 10px; }
+#panel-store .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+#panel-store label { display: block; margin: 12px 0; font-size: 13px; font-weight: 600; }
+#panel-store input, #panel-store select, #panel-store textarea { width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); font: inherit; }
+#panel-store textarea { min-height: 100px; resize: vertical; line-height: 1.5; }
+#panel-store input[type="checkbox"] { width: auto; margin-right: 8px; }
+#panel-store fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: 14px 0; }
+#panel-store fieldset img { object-fit: contain; max-width: 100%; }
+#panel-store .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+#panel-store .form-help, #storeAdminMessage { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#panel-store button:disabled { opacity: .55; cursor: wait; }
+#panel-store input:focus-visible, #panel-store select:focus-visible, #panel-store textarea:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+@media (max-width: 600px) {
+  #panel-store .form-grid { grid-template-columns: 1fr; }
+  #panel-store form { padding: 12px; }
+  #panel-store .action-row button { flex: 1 1 auto; }
+}
+
+/* Store workspace: keep daily tasks separate from configuration. */
+.store-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}.store-toolbar p{margin:0}.store-toolbar a{color:var(--forest);font-size:13px}.store-state{padding:8px 12px;border-radius:20px;background:#eef1ed;font-size:13px;font-weight:700}.store-state.is-open{background:#e9f5dc;color:#365800}.store-sections{display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:#eef2eb;border-radius:10px;margin-bottom:22px}.store-sections button{min-height:44px}.store-sections button[aria-pressed="true"]{background:var(--forest);color:#fff}.store-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.store-summary-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;background:#f6f9f2;border:1px solid var(--line);color:var(--forest);padding:18px;min-width:0}.store-summary-card:hover{background:#edf5df}.store-summary-card strong{font-size:30px;line-height:1.2}.store-summary-card small{font-weight:400;line-height:1.5;color:var(--muted)}.store-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.store-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.store-overview-grid>section{border:1px solid var(--line);padding:16px;border-radius:10px;min-width:0}.store-overview-grid h4{margin:0 0 12px}.store-overview-grid p,.store-overview-grid li,.store-controls p{font-size:13px;line-height:1.6}.store-overview-grid ul{padding-left:18px}.store-controls{border-top:1px solid var(--line);margin-top:24px;padding-top:16px}.store-controls h3{margin-top:0}.store-setup-note{background:#fff5df;color:#765324;padding:12px;border-radius:8px}.store-controls button:disabled{cursor:not-allowed}.store-empty{padding:20px;background:#f6f9f2;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
+.metric{min-width:0;overflow-wrap:anywhere}
+@media(max-width:620px){.admin-dashboard .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric b{font-size:20px}.store-summary{grid-template-columns:1fr}.store-summary-card{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:4px 12px;padding:14px}.store-summary-card strong{grid-row:span 2}.store-summary-card small{grid-column:2}.store-overview-grid{grid-template-columns:1fr}.store-sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.store-sections button{padding:10px 5px;font-size:12px}.store-quick-actions{display:grid;grid-template-columns:1fr}.store-toolbar .action-row{width:100%;justify-content:space-between}}
+
+/* Voucher tables retain their receipt layout within mobile inspection-card pages. */
+.admin-dashboard .thermal-slip table { display:table !important; min-width:0 !important; width:100% !important; }
+.admin-dashboard .thermal-slip tbody { display:table-row-group !important; }
+.admin-dashboard .thermal-slip tr { display:table-row !important; border:0 !important; border-radius:0; padding:0; margin:0; box-shadow:none; }
+.admin-dashboard .thermal-slip td { display:table-cell !important; width:auto !important; min-width:0 !important; padding:2px 0 !important; border:0 !important; font-size:inherit; }
+.admin-dashboard .thermal-slip td:first-child { padding-right:4px !important; }

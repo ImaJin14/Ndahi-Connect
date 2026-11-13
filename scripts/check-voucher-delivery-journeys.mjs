@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { useVoucherSignIn } from "./portal-tabs.mjs";
 import http from 'node:http';
 import { createStaticServer } from '../static-server.mjs';
 import { pairingFixture, mainMac } from '../test/helpers/wifi-pairing-fixture.mjs';
@@ -86,7 +87,7 @@ try {
     const next = '/voucher-ready.html?payment=' + id;
     assert.equal(new URL(page.url()).searchParams.get('next'), next); assert.equal(new URL(page.url()).searchParams.get('account'), '1');
     const stored = await f.store.snapshot(), voucher = stored.vouchers.find(v => v.paymentId === id);
-    await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill(voucher.code); await page.locator('#loginSubmit').click();
+    await useVoucherSignIn(page); await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill(voucher.code); await page.locator('#loginSubmit').click();
     await page.locator('#customerPin').fill('2468'); await page.locator('#loginSubmit').click(); await page.waitForURL(portal + next);
     await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor(); assert.equal(await page.getByLabel('Voucher code', { exact: true }).inputValue(), voucher.code);
   }, { signedIn: false });

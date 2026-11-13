@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createStaticServer } from "../static-server.mjs";
@@ -107,7 +108,7 @@ try {
   await owner.locator('[data-main-proof] [name="pin"]').fill("2468");
   await owner.getByRole("button", { name: "Verify and select", exact: true }).click();
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor({ state: "attached" });
-  if (!await owner.locator("#manageDevices").evaluate((node) => node.open)) await owner.locator("#manageDevices > summary").click();
+  await openManageDevices(owner);
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   const customer = (await f.store.snapshot()).customers.find((c) => c.phone === phone);
   assert.equal(customer.wifiMainDevice.mac, ownerMac);
@@ -117,7 +118,7 @@ try {
   await guest.goto(portal + "/onboarding.html?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.82");
   await guest.getByRole("link", { name: "Customer login", exact: true }).click();
   await guest.locator('#login [name="phone"]').fill(phone);
-  await guest.locator('#login [name="code"]').fill(voucher.code);
+  await useVoucherSignIn(guest); await guest.locator('#login [name="code"]').fill(voucher.code);
   await guest.locator("#loginSubmit").click();
   const requested = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 201);
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
@@ -152,7 +153,7 @@ try {
   await owner.waitForURL((url) => url.pathname === "/dashboard");
   assert.deepEqual((await f.store.snapshot()).customers.find((c) => c.id === customer.id).wifiMainDevice, customer.wifiMainDevice);
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor({ state: "attached" });
-  if (!await owner.locator("#manageDevices").evaluate((node) => node.open)) await owner.locator("#manageDevices > summary").click();
+  await openManageDevices(owner);
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   const rejoiningGuest = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 202);
   await guest.goto(portal + "/pair?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.92#key=" + firstGuestKey);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { openAdminMore } from "./admin-nav.mjs";
 
 // Optional browser check. Install Playwright separately and set
 // PLAYWRIGHT_MODULE to its index.mjs when it is outside this project.
@@ -26,8 +27,7 @@ try {
   const page = await context.newPage(), errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:18981/dashboard");
-  await page.getByRole("link", { name: "More", exact: true }).click();
-  await page.getByRole("tab", { name: "Network setup", exact: true }).click();
+  await openAdminMore(page, "Network setup");
   await page.locator("#networkRouterConnection select").selectOption("simulation");
   await page.getByRole("button", { name: "Save router connection", exact: true }).click();
   await page.getByText("router connection saved.", { exact: false }).waitFor();

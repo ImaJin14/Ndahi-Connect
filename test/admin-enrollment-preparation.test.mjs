@@ -147,7 +147,7 @@ test("staff creation uses a private Argon2 intent and rejects a retargeted passw
   assert.equal(await argon2.verify(challenge.staffPasswordIntent.passwordHash, newPassword), true);
   assert.deepEqual(Object.keys(challenge.staffPasswordIntent).sort(), ["id", "passwordHash"]);
   assert.deepEqual(JSON.parse(challenge.target), ["admin-action-v1", "staff_create",
-    [fields.username, fields.displayName, fields.role, challenge.staffPasswordIntent.id]]);
+    [fields.username, fields.displayName, fields.role, challenge.staffPasswordIntent.id, ""]]);
   const serialized = JSON.stringify(challenge);
   assert.ok(!serialized.includes(newPassword));
   assert.ok(!JSON.stringify(first.body).includes(challenge.staffPasswordIntent.passwordHash));

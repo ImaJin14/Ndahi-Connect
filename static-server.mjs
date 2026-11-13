@@ -3,6 +3,11 @@ import { createAssetCatalog, sendAsset } from "./lib/static-assets.mjs";
 import { join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLogger, errorFields } from "./lib/logger.mjs";
+import { selectUiVariant, uiRolloutConfig, uiVariantSetCookie } from "./lib/ui-variant.mjs";
+
+const folders = { customer: "customer-app", admin: "admin-app", store: "store-app" };
+// HTML and the service worker differ per variant, so shared caches must not keep them.
+const privateCache = { immutable: "public, max-age=31536000, immutable", revalidate: "private, no-cache" };
 
 export function createStaticServer(
   kind = "customer",
@@ -15,6 +20,8 @@ export function createStaticServer(
     supportPhone = process.env.SUPPORT_PHONE || "",
     hotspotLoginUrl = process.env.HOTSPOT_LOGIN_URL || "",
     logger = createLogger({ service: kind, level: process.env.LOG_LEVEL }),
+    env = process.env,
+    random = Math.random,
   } = {},
 ) {
   let hotspotOrigin = "";
@@ -25,9 +32,17 @@ export function createStaticServer(
     }
     hotspotOrigin = login.origin;
   }
-  const root = join(process.cwd(), kind === "admin" ? "admin-app" : kind === "store" ? "store-app" : "customer-app");
-  let assets;
-  const getAssets = () => assets ||= createAssetCatalog(root, { telemetry }).catch((error) => { assets = undefined; throw error; });
+  // Customer and admin pages can run the v2 redesign beside v1; the store has one version.
+  const rollout = kind === "customer" || kind === "admin" ? uiRolloutConfig(env, kind) : null,
+    // The same Secure rule the API applies to its session cookies.
+    secureCookie = env.SESSION_COOKIE_SECURE ? env.SESSION_COOKIE_SECURE !== "false" : production,
+    folder = folders[kind] || folders.customer,
+    catalogs = new Map();
+  const getAssets = (variant = "v1") => {
+    const root = join(process.cwd(), variant === "v2" ? `${folder}-v2` : folder);
+    if (!catalogs.has(root)) catalogs.set(root, createAssetCatalog(root, { telemetry }).catch((error) => { catalogs.delete(root); throw error; }));
+    return catalogs.get(root);
+  };
   const reportUrl = `${apiUrl.replace(/\/$/, "")}/api/csp-report`,
     csp = [
       "default-src 'self'",
@@ -66,26 +81,43 @@ export function createStaticServer(
       res.writeHead(204, securityHeaders);
       return res.end();
     }
+    // Versioned /static/ files are named after their content, so they are shared
+    // safely, never set the variant cookie and ignore ?ui=.
+    const versioned = url.pathname.startsWith("/static/"),
+      { variant, persist, requested, redirect } = rollout
+        ? selectUiVariant({ kind, url, cookieHeader: req.headers.cookie, config: rollout, random })
+        : { variant: "v1" };
+    let headers = securityHeaders;
+    if (rollout && !versioned) {
+      headers = { ...securityHeaders, vary: "Cookie" };
+      if (persist) res.setHeader("set-cookie", uiVariantSetCookie(variant, secureCookie, persist));
+      if (requested) logger.info("ui.variant_requested", { kind, variant });
+      if (redirect) {
+        res.writeHead(302, { ...headers, location: redirect, "cache-control": "no-store" });
+        return res.end();
+      }
+    }
     if (url.pathname === "/version.json") {
+      const cacheControl = rollout ? "private, no-store" : "no-store";
       try {
-        const { revision } = await getAssets();
-        res.writeHead(200, { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" });
+        const { revision } = await getAssets(variant);
+        res.writeHead(200, { ...headers, "content-type": "application/json", "cache-control": cacheControl });
         return res.end(JSON.stringify({ revision }));
       } catch {
-        res.writeHead(503, { ...securityHeaders, "content-type": "application/json", "cache-control": "no-store" });
+        res.writeHead(503, { ...headers, "content-type": "application/json", "cache-control": cacheControl });
         return res.end(JSON.stringify({ error: "Release information is unavailable." }));
       }
     }
     if (url.pathname === "/config.js") {
       res.writeHead(200, {
-        ...securityHeaders,
+        ...headers,
         "content-type": "text/javascript",
         "cache-control": "no-store",
       });
       return res.end(`window.NDAHI_CONFIG=${JSON.stringify({ apiUrl, portalUrl, app: kind, supportEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail) ? supportEmail : "", supportPhone: /^\+?[0-9 ()-]{6,24}$/.test(supportPhone) ? supportPhone : "", ...(hotspotOrigin ? { hotspotLoginUrl } : {}) })}`);
     }
     if (kind !== "store" && (url.pathname === "/" || url.pathname === "/index.html")) {
-      res.writeHead(302, { ...securityHeaders, location: kind === "customer" ? "/onboarding.html" : "/login", "cache-control": "no-store" });
+      res.writeHead(302, { ...headers, location: kind === "customer" ? "/onboarding.html" : "/login", "cache-control": "no-store" });
       return res.end();
     }
     let path = kind === "store" && url.pathname === "/" ? "/index.html" : url.pathname;
@@ -96,23 +128,26 @@ export function createStaticServer(
     if (path === "/pair" && kind === "customer") path = "/pair.html";
     if (path === "/forgot-pin") path = "/forgot-pin.html";
     if (path === "/admin" && kind === "customer") {
-      res.writeHead(404, securityHeaders);
+      res.writeHead(404, headers);
       return res.end("Not found");
     }
     if (!["GET", "HEAD"].includes(req.method)) {
-      res.writeHead(405, { ...securityHeaders, allow: "GET, HEAD" });
+      res.writeHead(405, { ...headers, allow: "GET, HEAD" });
       return res.end();
     }
     try {
-      const { catalog } = await getAssets(), entry = catalog.get(path);
+      let entry = (await getAssets(variant)).catalog.get(path);
+      // A page already open in the other variant, or a browser that refuses cookies,
+      // may still request that variant's versioned files.
+      if (!entry && versioned && rollout && !rollout.off) entry = (await getAssets(variant === "v2" ? "v1" : "v2")).catalog.get(path);
       if (!entry) {
-        res.writeHead(404, { ...securityHeaders, "cache-control": "no-store" });
+        res.writeHead(404, { ...headers, "cache-control": "no-store" });
         return res.end("Not found");
       }
-      sendAsset(req, res, entry, securityHeaders);
+      sendAsset(req, res, entry, headers, rollout && (path === "/sw.js" || entry.type.startsWith("text/html")) ? privateCache : undefined);
     } catch (error) {
-      logger.error("static.assets_unavailable", errorFields(error));
-      res.writeHead(503, { ...securityHeaders, "cache-control": "no-store" });
+      logger.error("static.assets_unavailable", { ...errorFields(error), ...(rollout ? { variant } : {}) });
+      res.writeHead(503, { ...headers, "cache-control": "no-store" });
       res.end("Assets temporarily unavailable");
     }
   });

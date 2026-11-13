@@ -57,6 +57,11 @@ jobs:
     name: Browser authorization journeys
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Keep the existing v1 journey lane explicit now both apps default to v2.
+    # The v2 lane and default-policy tests exercise the production default.
+    env:
+      ADMIN_UI_DEFAULT: v1
+      CUSTOMER_UI_DEFAULT: v1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -93,6 +98,57 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: browser-failure-screenshots
+          path: |
+            /tmp/ndahi-*-checks
+            /tmp/ndahi-home-qa
+            /tmp/ndahi-store-*.png
+          if-no-files-found: ignore
+
+  browser-v2:
+    name: Browser journeys on UI v2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+      # The same journeys with the legacy v2 opt-in supported by both apps; every
+      # customer and admin page must be v2 (docs/operations/ui-rollout.md).
+      - name: Run desktop browser journeys on v2
+        run: STATUS_AUTH_WIDTH=1440 ADMIN_AUTH_WIDTH=1440 npm run test:browser:v2
+        env:
+          BILLING_API_PORT: 8198
+          BILLING_PORT: 8197
+          BILLING_ADMIN_PORT: 8199
+          STATUS_AUTH_API_PORT: 8298
+          STATUS_AUTH_PORT: 8297
+          ADMIN_AUTH_API_PORT: 8398
+          ADMIN_AUTH_PORT: 8399
+      - name: Run mobile browser journeys on v2
+        run: STATUS_AUTH_WIDTH=390 npm run check:status:authorization && ADMIN_AUTH_WIDTH=390 npm run check:admin:authorization
+        env:
+          NODE_OPTIONS: --import ./scripts/ui-v2-journeys.mjs
+          BILLING_API_PORT: 8298
+          BILLING_PORT: 8297
+          BILLING_ADMIN_PORT: 8299
+          STATUS_AUTH_API_PORT: 8398
+          STATUS_AUTH_PORT: 8397
+          ADMIN_AUTH_API_PORT: 8498
+          ADMIN_AUTH_PORT: 8499
+      - name: Verify device store and admin management journeys on v2
+        run: npm run check:store:browser
+        env:
+          NODE_OPTIONS: --import ./scripts/ui-v2-journeys.mjs
+      - name: Upload browser failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-v2-failure-screenshots
           path: |
             /tmp/ndahi-*-checks
             /tmp/ndahi-home-qa

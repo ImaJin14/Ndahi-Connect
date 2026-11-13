@@ -3,6 +3,7 @@ import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { portalTab } from "./portal-tabs.mjs";
 
 // Local mock services only. The synthetic edge header is injected by the test
 // harness to exercise both coverage states without a live router or payment.
@@ -134,9 +135,10 @@ try {
   }, { signedIn: true, address: inside });
   await scenario("customers can read balances and receipts while renewals and switches require Wi-Fi", async (page) => {
     await page.goto(portal + "/dashboard");
-    await page.getByText("Remaining", { exact: true }).waitFor();
+    // The balance hook both UI versions render (v2 has no "Remaining" label).
+    await page.locator("#dataBalance [data-remaining-data]").waitFor();
     await page.getByText("Your balance and payment history are available here.", { exact: false }).waitFor();
-    await page.getByRole("link", { name: "Payments", exact: true }).click();
+    await page.locator(portalTab("payments")).click();
     await page.getByRole("button", { name: "View receipt", exact: true }).click();
     await page.getByRole("dialog", { name: "Payment receipt" }).waitFor();
     await page.locator("#receiptClose").click();

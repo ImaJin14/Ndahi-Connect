@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-ui-variant="v2">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Packages - NDAHI Connect</title>
+  <!-- Theme preference disabled at user request. <script>try{const t=localStorage.getItem("ndahi-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(_){}</script> -->
+  <link rel="stylesheet" href="/styles.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#003b2b"><link rel="icon" type="image/png" href="/assets/icons/icon-192.png"><link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-title" content="NDAHI">
+  <link rel="stylesheet" href="/package-grid.css">
+  <link rel="stylesheet" href="/shared/ui/tokens.css">
+  <link rel="stylesheet" href="/portal-buy.css">
+</head>
+<body class="packages-page">
+  <header>
+    <a class="buy-bar__back" href="/dashboard" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"></path></svg></a><span class="buy-bar__title">Buy a bundle</span><span class="buy-bar__step">Step 1 of 3</span>
+    <a class="brand" href="/onboarding.html"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></a>
+    <div class="header-actions"><span class="network-state">Checking status...</span><!-- Language selection disabled at user request. <div class="lang-switcher" role="group" aria-label="Language"><button type="button" data-lang="en">EN</button><button type="button" data-lang="fr">FR</button></div> --><!-- Theme selection disabled at user request. <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"><span aria-hidden="true">🌓</span></button> --><a class="header-link" href="/login">Customer login</a></div>
+  </header>
+  <main class="wide" id="pageContent">
+    <section class="content" id="packages" aria-labelledby="packagesTitle">
+      <div id="accountIntro" hidden>
+        <a class="back-link" href="/dashboard">Back to dashboard</a>
+        <p class="eyebrow">Manage plan</p>
+        <h1 id="accountTitle">Your plan</h1>
+        <div id="currentPlan"></div>
+      </div>
+      <div class="section-head"><div><h1 id="packagesTitle">Choose the plan that fits you</h1><p id="packagesDescription">Connect anywhere within the NDAHI Wi-Fi coverage area.</p></div><div class="trust">Secure Mobile Money payment</div></div>
+      <aside id="privateMacAdvisory" class="private-mac-banner" role="region" aria-label="Private Wi-Fi address advisory" hidden></aside>
+      <div id="purchaseAccessNotice" class="plan-notice" role="status" aria-live="polite" hidden><p id="purchaseAccessMessage"></p><p>You do not need an active bundle to buy. If you already joined NDAHI Wi-Fi, choose “Use without internet” if prompted, temporarily turn off mobile data, and check again.</p><p>You can still view your balance and payment history from any network.</p><button type="button" id="recheckPurchaseAccess">I've connected — check again</button></div>
+      <div id="planNotice" role="status" aria-live="polite"></div>
+      <div id="plans" class="grid" aria-busy="true">Loading packages...</div>
+    </section>
+  <p class="help-link"><a id="assistedConnectionLink" href="/pair" hidden>Connect using your main device</a></p>
+  <aside id="entryConnectivity" class="network-state-banner network-state-banner-unknown" role="status" aria-label="Connection evidence"><p>Checking connection evidence…</p></aside>
+  <p class="help-link"><a href="https://store.ndahiconnect.net" target="_blank" rel="noopener">Device store ↗</a></p><p class="help-link"><a href="/help">Help, FAQs and support</a></p></main>
+  <section class="modal-card" id="checkout" role="dialog" aria-modal="true" aria-labelledby="selected" aria-describedby="checkoutPolicy" hidden>
+    <div class="card">
+      <button type="button" class="back-link" id="closeCheckout">Back to packages</button>
+      <h2 id="selected">Review payment</h2>
+      <div id="checkoutSummary"></div>
+      <p id="checkoutPolicy"></p><p><a href="/billing-terms.html" target="_blank" rel="noopener">Read payment, renewal, switching and cancellation rules</a></p>
+      <form id="purchase">
+        <fieldset id="purchaseFields">
+          <div class="form-row"><label>Your name<input name="name" autocomplete="name" required></label><label>Payment phone number<input name="phone" type="tel" placeholder="6XXXXXXXX" autocomplete="tel" required></label></div>
+          <label><span id="emailLabel">Email address (optional)</span><input name="email" type="email" autocomplete="email"><small id="emailHint">Confirm an email in Account after signup to receive email updates, receipts and PIN recovery.</small></label>
+          <dl id="accountContact" class="current-facts" hidden></dl>
+          <label id="accountPayer" hidden>Mobile Money payment number<input name="payerPhone" type="tel" inputmode="tel" placeholder="6XXXXXXXX" autocomplete="off" disabled><small>Defaults to your account number. Using another number applies only to this transaction.</small></label>
+          <label>Mobile Money network
+            <div class="payment-methods-badges" aria-hidden="true">
+              <span class="momo-badge momo-badge-mtn"><span class="momo-badge-dot"></span> MTN MoMo</span>
+              <span class="momo-badge momo-badge-orange"><span class="momo-badge-dot"></span> Orange Money</span>
+            </div>
+            <select name="network" aria-label="Mobile Money network" aria-describedby="paymentNetworkHint" required><option value="">Choose your network</option><option value="mtn">MTN Mobile Money</option><option value="orange">Orange Money</option></select>
+          </label>
+          <p id="paymentNetworkHint" class="trust" role="status" aria-live="polite">Enter the payment number to suggest its network. You can change the selection.</p>
+          <label id="acknowledgement" class="acknowledgement" hidden><input name="acknowledge" type="checkbox"><span id="acknowledgementText"></span></label>
+          <p id="providerFee" class="trust" hidden>The payment provider's service fee is added separately to the package price and shown in your Mobile Money approval prompt.</p>
+          <button type="submit" id="requestPayment">Request payment</button>
+        </fieldset>
+      </form>
+      <div id="checkoutPaymentTimer" hidden></div><p><a id="checkoutHelp" href="/help#payment" target="_blank" rel="noopener">Payment help</a></p><div id="message" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+  <footer class="footer-note">NDAHI Connect - Secure, reliable Wi-Fi for everyone</footer>
+  <script src="/config.js"></script>
+  <script type="module" src="/onboarding.js"></script>
+  <script type="module" src="/payment-network.js"></script>
+<script type="module" src="/entry-connectivity.js"></script><script type="module" src="/home-entry.js"></script></body>
+</html>

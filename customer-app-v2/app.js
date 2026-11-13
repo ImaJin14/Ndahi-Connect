@@ -1,0 +1,580 @@
+import { mountConnectivityBanner } from "./connectivity.js";
+import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
+import { applyNetworkStatus, networkBannerState } from "./network-status.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
+import { sessionStore, loadPasskeys, requestJson } from "./compat.js";
+import { runButton } from "/shared/pending.js";
+import { hotspotPath } from "./hotspot-path.js";
+import { deviceIcon, wifiDeviceList } from "./wifi-devices.js";
+import { devicesAdd, devicesHead, devicesTip, mountDevicesAdd, updateDevicesCount } from "./portal-devices.js";
+import { mountShop } from "./portal-shop.js";
+import { mountDeviceControls } from "./device-controls.js";
+import { mountInstallCard } from "./install.js";
+import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
+import { profileCard, vouchersCard, bundleCatalogue, voucherAction, homeQuickActions, homeRecentActivity, homeShopItems } from "./portal-content.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+import { mountProfileEdit, mountEmailLink } from "./profile.js";
+import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
+import { startUpdates } from "./updates.js";
+import { migrateLegacyCheckout } from "./checkout-store.js";
+import { mountNotifications } from "/shared/notifications.js";
+import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
+import { mountDataBalance } from "./data-balance.js";
+import { mountVoucherHistory } from "./voucher-history.js";
+import { internetBundle, internetSwitch } from "./portal-internet.js";
+import { activityDay, activityFilters, activityIcon, mountActivity, paymentPill, waitingBanner } from "./portal-activity.js";
+import { accountHub, mountAccountHub } from "./portal-account.js";
+import { mountCurrentWifi } from "./current-wifi.js";
+import { accountSecurityCard, accountSessionsCard, mountAccountSecurity, securityViewState, openSecurityManager } from "./account-security.js";
+
+migrateLegacyCheckout();
+const api = window.NDAHI_CONFIG.apiUrl,
+  $ = (selector) => document.querySelector(selector),
+  deviceId = (() => {
+    try { const saved = localStorage.getItem("ndahi-device"); if (saved) return saved; } catch (_) {}
+    const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  })(),
+  securitySetup = new URLSearchParams(location.search).get("setup") === "passkey";
+let stopConnectivity = () => {};
+let csrfToken = "", latestDashboard = null, refreshingPayments = false, stopCurrentWifi = () => {};
+let receiptRequest = 0, currentReceipt = null, receiptOpener = null, receiptController = null;
+try { localStorage.setItem("ndahi-device", deviceId); } catch (_) { /* Optional browser storage. */ }
+
+async function call(path, options = {}) {
+  const { response, body: result } = await requestJson(api + path, { credentials: "include", ...options, headers: { "content-type": "application/json", ...(options.method && options.method !== "GET" && csrfToken ? { "x-csrf-token": csrfToken } : {}), ...(options.headers || {}) } });
+  if (response.status === 401 && result.code !== "VERIFICATION_FAILED") {
+    saveReturnPath();
+    location.replace("/onboarding.html");
+    throw responseError(response, result);
+  }
+  if (!response.ok) throw responseError(response, result);
+  return result;
+}
+
+function paymentActions(payment, emailLinked) {
+  const confirmed = Boolean(payment.confirmedAt) || ["paid", "refunded", "refund-pending"].includes(payment.status),
+    receiptAvailable = confirmed && payment.receiptAvailable,
+    recheckLabel = ["paid", "refund-pending"].includes(payment.status) && payment.refund?.status === "pending" ? "Check refund status"
+      : ["pending", "processing"].includes(payment.status) ? "Check payment status" : "";
+  return `${recheckLabel ? `<button type="button" data-recheck-payment="${h(payment.id)}">${recheckLabel}</button>` : ""}${receiptAvailable ? `<button type="button" class="secondary-action" data-view-receipt="${h(payment.id)}">View receipt</button>${emailLinked ? `<button type="button" data-email-receipt="${h(payment.id)}">Email receipt</button><small>Receipt email: ${h(payment.receiptEmail?.status || "awaiting delivery")}</small>` : '<a href="#account">Link an email to receive receipts</a>'}` : ""}<button type="button" class="secondary-action" data-copy-payment="${h(payment.providerReference || payment.id)}">Copy reference</button><a class="payment-help" href="/help#payment">Payment help</a>${confirmed && payment.status === "paid" && !payment.refund ? `<details><summary>Request a refund</summary><form data-refund-payment="${h(payment.id)}"><label>Reason<textarea name="reason" maxlength="500" required></textarea></label><p>Support will review your request. This does not confirm a refund.</p><button>Send refund request</button></form></details>` : ""}`;
+}
+
+
+// Activity row (canvas: PhoneActivity, DesktopActivity): collapsed, the
+// canvas row — icon, "Bundle · plan", date and method, status (desktop adds
+// amount). Expanded, v1's amount, reference, messages and actions. Rows keep
+// their open state across redraws.
+const openPayments = new Set();
+function paymentRow(payment, customer) {
+  const lang = currentLanguage();
+  const title = t("adminForBundle", lang).replace("{plan}", payment.plan?.name || payment.planId);
+  return `<details class="portal-activity__item" data-payment-row="${h(payment.id)}" data-activity-kind="internet" data-activity-at="${h(payment.createdAt || "")}"${["pending", "processing"].includes(payment.status) ? " data-waiting" : ""}${openPayments.has(payment.id) ? " open" : ""}><summary class="portal-activity__summary">${activityIcon("wifi")}<span class="portal-activity__date nd-wide-only">${h(activityDay(payment.createdAt))}</span><span class="portal-activity__main"><strong>${h(title)}</strong><span class="nd-meta nd-narrow-only">${h([activityDay(payment.createdAt), payment.methodLabel || "Mobile Money"].join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">${h(payment.methodLabel || "Mobile Money")}</span><span class="portal-activity__amount nd-wide-only">${h(payment.amount.toLocaleString())} FCFA</span><span class="portal-activity__status">${paymentPill(payment.status)}</span></summary><div class="portal-activity__body"><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}<div class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</div></div></details>`;
+}
+
+// Receipt (canvas: PhoneReceipt): brand card, number and paid date, total,
+// then the details; each value stays its own element for support and tests.
+function receiptPreview(receipt) {
+  const lang = currentLanguage(), L = (key) => t(key, lang);
+  const details = [
+    ["portalReceiptBilledTo", receipt.customerName || L("portalReceiptCustomer")],
+    ["portalReceiptBundle", receipt.plan?.name || L("portalNotRecorded")],
+    ["portalReceiptData", receipt.dataLabel || L("portalNotRecorded")],
+    ["portalReceiptValidity", receipt.validityLabel || L("portalNotRecorded")],
+    ["portalReceiptDevices", receipt.deviceLabel || L("portalNotRecorded")],
+    ["portalReceiptPaidWith", receipt.methodLabel || "Mobile Money"],
+    ["portalReceiptNumber", receipt.payerPhone || L("portalNotRecorded")],
+    ["portalReceiptReference", receipt.providerReference || L("portalReceiptNoReference")],
+  ];
+  if (receipt.refundStatus) details.push(["portalReceiptRefund", receipt.refundStatus]);
+  return `<div class="portal-receipt__brand nd-on-forest"><span class="nd-brand__mark" aria-hidden="true">NC</span><span><strong>NDAHI Connect</strong><small>${h(L("portalReceiptWord"))}</small></span></div>
+<p class="portal-receipt__meta">${h(L("portalReceiptLine").replace("{number}", receipt.number).replace("{date}", receipt.paidAtLabel || L("portalNotRecorded")))}</p>
+<div class="portal-receipt__total"><span>${h(L("portalReceiptTotal"))}</span><strong>${h(receipt.amountLabel)}</strong></div>
+<dl class="portal-receipt__details">${details.map(([key, value]) => `<div><dt>${h(L(key))}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>
+${receipt.refundMessage ? `<p class="portal-receipt__help">${h(receipt.refundMessage)}</p>` : ""}
+<p class="portal-receipt__help">${h(L("portalReceiptHelp"))} <a href="/help.html">${h(L("portalContactSupport"))}</a>.</p>`;
+}
+
+async function openReceipt(button) {
+  const request = ++receiptRequest;
+  receiptController?.abort();
+  receiptController = new AbortController();
+  const signal = receiptController.signal;
+  currentReceipt = null;
+  receiptOpener = button;
+  $("#receiptDownload").hidden = true;
+  $("#receiptDownload").disabled = false;
+  $("#receiptShare").hidden = true;
+  $("#receiptShare").textContent = "Share";
+  $("#receiptDownload").textContent = "Download PDF";
+  $("#receiptMessage").replaceChildren();
+  $("#receiptPreview").textContent = "Loading your receipt…";
+  $("#receiptPreview").setAttribute("aria-busy", "true");
+  $("#receiptDialog").showModal();
+  document.body.classList.add("modal-open");
+  try {
+    const { receipt } = await call(`/api/account/payments/${encodeURIComponent(button.dataset.viewReceipt)}/receipt?format=json`, { signal });
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    currentReceipt = receipt;
+    $("#receiptPreview").innerHTML = receiptPreview(receipt);
+    $("#receiptDownload").hidden = false;
+    $("#receiptShare").hidden = false;
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) {
+      $("#receiptPreview").replaceChildren();
+      showError($("#receiptMessage"), error);
+    }
+  } finally {
+    if (request === receiptRequest) $("#receiptPreview").removeAttribute("aria-busy");
+  }
+}
+
+$("#receiptClose").onclick = () => $("#receiptDialog").close();
+$("#receiptDialog").addEventListener("close", () => {
+  receiptRequest++;
+  receiptController?.abort();
+  receiptController = null;
+  currentReceipt = null;
+  document.body.classList.remove("modal-open");
+  if (receiptOpener?.isConnected) receiptOpener.focus();
+});
+// Share (canvas: PhoneReceipt): the receipt's summary through the phone's
+// share sheet, or copied where sharing isn't available. There is no public link.
+$("#receiptShare").onclick = async () => {
+  const r = currentReceipt; if (!r) return;
+  const text = [`NDAHI Connect receipt ${r.number}`, `${r.plan?.name || "Bundle"} · ${r.amountLabel}`, `Paid ${r.paidAtLabel || ""}`, `Paid with ${r.methodLabel || "Mobile Money"}${r.providerReference ? ` · ${r.providerReference}` : ""}`].join("\n");
+  try {
+    if (navigator.share) await navigator.share({ title: `Receipt ${r.number}`, text });
+    else { await navigator.clipboard.writeText(text); $("#receiptShare").textContent = "Copied"; }
+  } catch (_) { /* Sharing was cancelled or isn't allowed; Download PDF still works. */ }
+};
+$("#receiptDownload").onclick = async (event) => {
+  const receipt = currentReceipt, request = receiptRequest, signal = receiptController?.signal, button = event.currentTarget;
+  if (!receipt) return;
+  $("#receiptMessage").replaceChildren();
+  button.disabled = true;
+  button.textContent = "Preparing PDF…";
+  try {
+    const response = await fetch(`${api}/api/account/payments/${encodeURIComponent(receipt.paymentId)}/receipt`, {
+      credentials: "include", headers: { accept: "application/pdf" }, signal,
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) { saveReturnPath(); location.replace("/login"); }
+      throw responseError(response, result);
+    }
+    const file = await response.blob();
+    if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/pdf") || await file.slice(0, 5).text() !== "%PDF-") {
+      throw responseError({ status: 409 }, { error: "The PDF receipt is unavailable. Please try again." });
+    }
+    if (request !== receiptRequest || !$("#receiptDialog").open) return;
+    const url = URL.createObjectURL(file), link = document.createElement("a");
+    link.href = url;
+    link.download = `ndahi-receipt-${String(receipt.paymentId).replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    $("#receiptMessage").textContent = "Your PDF receipt is ready to save.";
+  } catch (error) {
+    if (request === receiptRequest && $("#receiptDialog").open) showError($("#receiptMessage"), error);
+  } finally {
+    if (request === receiptRequest) { button.disabled = false; button.textContent = "Download PDF"; }
+  }
+};
+
+// Keep router-reported presence current while this view is open.
+let devicePoll;
+function watchWifiDevices() {
+  clearTimeout(devicePoll);
+  const tick = async () => {
+    const target = $("#wifiDeviceList");
+    if (!target || target.closest("[hidden]") || !$("#manageDevices")?.open) return;
+    if (!document.hidden) {
+      try { const list = await call("/api/account/wifi-devices"); target.innerHTML = wifiDeviceList(list); updateDevicesCount(list); }
+      catch (_) {
+        const stale = target.querySelector("[data-refresh-error]") || document.createElement("p");
+        stale.dataset.refreshError = "true";
+        stale.textContent = "Device updates are unavailable. The last device list may be out of date.";
+        if (!stale.isConnected) target.appendChild(stale);
+      }
+    }
+    devicePoll = setTimeout(tick, 5000);
+  };
+  void tick();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && $("#wifiDeviceList")) watchWifiDevices(); });
+window.addEventListener("hashchange", () => {
+  if (activePortalView() === "home" && $("#wifiDeviceList")) setTimeout(watchWifiDevices, 0);
+  else clearTimeout(devicePoll);
+});
+
+// Home shop suggestion from the public catalogue. Hidden when the store is
+// closed, empty or unreachable; the request is made once per page.
+let shopRequest;
+function loadHomeShop() {
+  const section = $("#homeShop"), list = $("#homeShopItems");
+  if (!section || !list) return;
+  shopRequest = shopRequest || fetch(api + "/api/store/catalogue", { cache: "no-store" }).then((response) => (response.ok ? response.json() : null)).catch(() => null);
+  shopRequest.then((catalogue) => {
+    if (!catalogue || (catalogue.settings && catalogue.settings.open === false) || !section.isConnected) return;
+    const markup = homeShopItems(catalogue);
+    if (!markup) return;
+    list.innerHTML = markup;
+    section.hidden = false;
+  });
+}
+
+async function load() {
+  const securityView = securityViewState();
+  const [result, security] = await Promise.all([
+    call("/api/account/dashboard"), call("/api/account/security"),
+  ]);
+  const active = result.activeBundle,
+    current = result.currentPlan,
+    dailyPlan = result.availablePlans.find((plan) => plan.id === "daily"),
+    dailyNotice = `${dailyPlan ? `The ${dailyPlan.price.toLocaleString()} FCFA Daily bundle` : "Daily"} can be purchased again after expiry or data exhaustion, including on the same day.`,
+    canPurchase = !active && result.subscriptionPurchaseAccess?.allowed !== false &&
+      result.customer.status !== "suspended" && !result.customer.suspended,
+    duration = current?.plan?.validityHours === 24 ? "24 hours" : current?.plan?.validityHours === 168 ? "7 days" : "30 days",
+    remaining = active ? Math.max(0, new Date(active.expiresAt) - Date.now()) : 0,
+    remainingText = active ? `${Math.floor(remaining / 36e5)}h ${Math.floor(remaining % 36e5 / 6e4)}m` : "Not active";
+  csrfToken = result.csrfToken;
+  applyNetworkStatus($(".network-state"), result.zone?.status);
+  $("#differentCode").open = !active;
+  // With a HotSpot, devices and their slots come from the router itself.
+  const hotspot = Boolean(window.NDAHI_CONFIG.hotspotLoginUrl) && active?.accessMode !== "home" && !active?.accessTransitionId,
+    wifiConnect = active && hotspot ? '<section class="surface full" id="currentWifi" aria-label="This device connection"></section>' : "",
+    thisDeviceConnected = active?.sessions.some((session) => session.deviceId === deviceId),
+    quickConnect = !active || hotspot ? "" : thisDeviceConnected ? "" : active.activeDevices < active.deviceLimit
+      ? `<form id="connectDevice"><label>Device name<input name="label" value="This device" placeholder="This device"></label><button>Connect this device</button></form><div id="connectMessage" role="status" aria-live="polite"></div>`
+      : "<p>All device slots are in use. Disconnect a device to add this one.</p>";
+  const pendingPayment = result.payments.find((payment) => ["pending", "processing"].includes(payment.status));
+  const purchaseNotice = result.purchaseAccess?.allowed === false
+    ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
+  const netBanner = networkBannerState({ purchaseAccess: result.purchaseAccess, active, zone: result.zone });
+  const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="Network status"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
+  stopConnectivity();
+  const lang = currentLanguage();
+  // Redesign: network notices sit in the page head (the Home hero on phones).
+  $("#portalNotices").innerHTML = `${netBannerMarkup}${purchaseNotice}`;
+  const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
+  $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
+    <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}</section>
+    <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<p class="home-pending__line"><strong id="pendingPaymentTitle">${h(t("homePaymentWaiting", lang))}</strong> ${h(t("homePaymentApprove", lang))}</p>${paymentClock(pendingPayment)}<details class="home-pending__help"><summary>${h(t("homePaymentNoPrompt", lang))}</summary>${ussdInstructions(pendingPayment.payerPhone)}</details><p class="home-pending__links"><a href="#payments">${h(t("homePaymentView", lang))}</a> · <a href="/help#payment">${h(t("homePaymentHelp", lang))}</a></p>` : ""}</section>
+    ${wifiConnect}
+    ${homeQuickActions()}
+    <div class="plan-actions full home-purchase" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div>
+    <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3"><span class="nd-narrow-only">${h(t("portalShopTitle", lang))}</span><span class="nd-wide-only">${h(t("homeShopTitleWide", lang))}</span></h2><a class="nd-section-head__link" href="/dashboard#shop"><span class="nd-narrow-only">${h(t("uiTabShop", lang))}</span><span class="nd-wide-only">${h(t("homeOpenShop", lang))}</span></a></div><div class="home-shop__items" id="homeShopItems"></div></section>
+    ${homeRecentActivity(result.payments)}
+    ${active ? '<div class="full" id="installApp" hidden></div>' : ""}
+    <details class="surface full portal-devices" id="manageDevices"><summary>Manage devices</summary><section aria-labelledby="devicesTitle">${devicesHead({ used: hotspot ? (active?.wifiDevices || []).length : active?.activeDevices, limit: active?.deviceLimit })}${hotspot && active ? `<div id="wifiDeviceList">${wifiDeviceList({ devices: active.wifiDevices || [], deviceLimit: active.deviceLimit, syncedAt: active.wifiDevicesAt })}</div>` : active?.sessions.length ? active.sessions.map((session) => `<div class="device portal-device">${deviceIcon}<div class="portal-device__main"><b>${h(session.label)}</b><br><small>${h(session.deviceId.slice(0, 14))}…</small></div><div class="device-actions"><button type="button" data-session="${h(session.id)}">Disconnect</button></div></div>`).join("") : active ? "<p>No devices are currently connected.</p>" : "<p>Activate a bundle to connect a device.</p>"}${active && !hotspot ? `<p class="portal-devices__slots">${h(active.activeDevices)} of ${h(active.deviceLimit)} device slots in use</p>` : ""}${quickConnect}${devicesTip({ hotspot, active })}${hotspot ? '<div id="deviceManagement"></div>' : ""}${devicesAdd({ hotspot, active })}</section></details>
+</div>
+    ${internetSwitch()}
+    ${internetBundle({ result, active, current, canPurchase })}
+    ${active?.accessMode === "home" ? "" : `<details class="portal-catalogue full" data-portal-view="bundles" data-internet-group="bundles" id="bundlesCatalogue"><summary>${h(t("portalBundlesAndPrices", currentLanguage()))}</summary>${bundleCatalogue(result)}</details>`}
+    <div class="account-layout full" data-portal-view="account">
+      ${accountHub(result.customer, security, { homeLinked: active?.accessMode === "home" })}
+      ${profileCard(result.customer)}
+      <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
+      ${accountSecurityCard(result.customer, security, securitySetup)}
+      ${accountSessionsCard(security)}
+    </div>
+    ${vouchersCard(result.vouchers)}
+    ${activityFilters()}${waitingBanner(result.payments)}<section class="portal-activity full" data-portal-view="payments" id="billing" aria-labelledby="billingTitle"><h2 class="portal-activity__h" id="billingTitle">${h(t("portalActivityPayments", currentLanguage()))}</h2><div id="billingMessage" role="status" aria-live="polite"></div>${result.payments.length ? `<div class="portal-activity__list"><div class="portal-activity__columns nd-wide-only" aria-hidden="true"><span>${h(t("portalColDate", currentLanguage()))}</span><span>${h(t("portalColWhat", currentLanguage()))}</span><span>${h(t("portalColPaidWith", currentLanguage()))}</span><span>${h(t("portalColAmount", currentLanguage()))}</span><span>${h(t("adminColStatus", currentLanguage()))}</span></div>${result.payments.map((payment) => paymentRow(payment, result.customer)).join("")}</div>` : `<div class="portal-activity__list" data-activity-empty></div><p class="nd-meta portal-activity__empty" data-activity-kind="internet">${h(t("portalNoPayments", currentLanguage()))}</p>`}<div id="activityOrders" data-activity-kind="orders" aria-live="polite"></div><p class="portal-activity__rules"><a href="/billing-terms.html">${h(t("portalPaymentRules", currentLanguage()))}</a></p></section>
+  </div>`;
+  if (active?.accessMode === "home" || active?.accessTransitionId) {
+    const controls = document.getElementById("manageDevices");
+    if (controls) { controls.textContent=""; const link=document.createElement("a"); link.href="/home-router.html"; link.textContent="Manage your Home router · All home devices share this allowance"; controls.replaceWith(link); }
+  }
+  stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
+  latestDashboard = result;
+  mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
+  mountProfileEdit({call,customer:result.customer,onChanged:async pending=>{
+    await load();
+    if(pending){$("#confirmEmail")?.scrollIntoView({block:"center"});$("#confirmEmail input")?.focus();}
+    else {$("#dashboardMessage").textContent="Your profile was updated.";$("#editProfile summary")?.focus();}
+  }});
+  mountAccountSecurity({ call, customer: result.customer, restore: securityView, setup: securitySetup, onChanged: async view => {
+    await load();
+    openSecurityManager(view);
+  } });
+  // The PIN and passkey pages open the manager on their panel once its buttons work.
+  const securityPage = { pin: "pin", passkeys: "passkeys" }[document.body.getAttribute("data-portal-sub")];
+  if (securityPage) document.querySelector(`[data-security-panel="${securityPage}"]`)?.click();
+  mountEmailLink({ call, customer: result.customer, onChanged: async (confirmed) => {
+    await load();
+    if (confirmed) {$("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';$("#editProfile summary")?.focus();}
+    else $("#confirmEmail")?.scrollIntoView({ block: "center" });
+  } });
+  const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
+  $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
+  if (active) mountInstallCard($("#installApp"));
+  loadHomeShop();
+  mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
+    const actions = $("#bundlePurchaseActions");
+    const markup = bundlePurchaseContent(snapshot);
+    if (actions && actions.innerHTML !== markup) actions.innerHTML = markup;
+    const eligible = Boolean(snapshot && snapshot.purchase.allowed === true && !snapshot.activeId);
+    $("#managePlan").querySelectorAll('a[href^="/onboarding"]').forEach(link => { link.hidden = !eligible; });
+    if (latestDashboard) {
+      latestDashboard.subscriptionPurchaseAccess = snapshot ? snapshot.purchase : { allowed: false };
+      if (snapshot) latestDashboard.activeBundle = snapshot.activeId ? snapshot.bundle : null;
+    }
+  } });
+  mountVoucherHistory({ vouchers: result.vouchers, activeId: active?.id });
+  mountActivity({ call });
+  document.querySelectorAll("details[data-payment-row]").forEach((row) => { row.ontoggle = () => { if (row.open) openPayments.add(row.dataset.paymentRow); else openPayments.delete(row.dataset.paymentRow); }; });
+  mountAccountHub(call);
+  mountDevicesAdd();
+  mountShop({ call, api });
+  const quickRedeem = $("[data-quick-redeem]");
+  if (quickRedeem) quickRedeem.onsubmit = (event) => { event.preventDefault(); void redeemCode(quickRedeem, quickRedeem.querySelector("[data-quick-redeem-message]")); };
+  const redeemPhone = $("#redeem [name=phone]");
+  if (redeemPhone && !redeemPhone.value) redeemPhone.value = result.customer.phone || "";  const openCatalogue = $("[data-open-catalogue]"), catalogue = $("#bundlesCatalogue");
+  if (openCatalogue && catalogue) openCatalogue.onclick = (event) => { event.preventDefault(); catalogue.open = true; catalogue.scrollIntoView({ block: "start" }); catalogue.querySelector("summary")?.focus(); };
+  else if (openCatalogue) openCatalogue.hidden = true;
+  $("#manageNotificationSettings").onclick = () => notifications.open({ category: "usage", settings: true });
+  if ($("#manageDevices")) $("#manageDevices").ontoggle = () => { if ($("#manageDevices").open) watchWifiDevices(); else clearTimeout(devicePoll); };
+  if (hotspot && active) watchWifiDevices();
+  else clearTimeout(devicePoll);
+  stopCurrentWifi();
+  if (hotspot) {
+    const controls = mountDeviceControls({ container: $("#deviceManagement"), call, onChanged: load });
+    stopCurrentWifi = mountCurrentWifi({ container: $("#currentWifi"), call, onMainDisconnect: async (mac) => { $("#manageDevices").open = true; return (await controls)?.disconnect(mac); } });
+  }
+  const planNotice = sessionStore.get("ndahi-plan-notice");
+  if (planNotice) {
+    $("#dashboardMessage").innerHTML = `<div class="success">${h(planNotice)}</div>`;
+    sessionStore.remove("ndahi-plan-notice");
+  }
+  if (securitySetup) {
+    // Passkey setup opens the Passkey sign-in page (Account is a hub, canvas).
+    if (location.hash !== "#passkeys") {
+      history.replaceState(null, "", location.pathname + location.search + "#passkeys");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    }
+    $("#addCustomerPasskey").focus({ preventScroll: true });
+  }
+}
+
+// A voucher code connects this device. The code page and the desktop "Got a
+// voucher?" card ask only for the code (canvas), so the account's number goes with it.
+async function redeemCode(form, message) {
+  const button = form.querySelector('[type="submit"], button');
+  message.textContent = "";
+  try {
+    await runButton(button, "Connecting…", async () => {
+      const input = { phone: latestDashboard?.customer?.phone || "", ...Object.fromEntries(new FormData(form)), deviceId };
+      if (!input.phone) input.phone = latestDashboard?.customer?.phone || "";
+      const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify(input) });
+      message.innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
+    });
+  } catch (error) { showError(message, error); }
+}
+$("#redeem").onsubmit = (event) => { event.preventDefault(); void redeemCode(event.target, $("#redeemMessage")); };
+
+$("#dashboard").onclick = async (event) => {
+  const quickRenew = event.target.closest("[data-quick-renew]");
+  if (quickRenew && !latestDashboard?.activeBundle && latestDashboard?.subscriptionPurchaseAccess?.allowed !== false) {
+    location.assign("/onboarding.html?action=renew&plan=" + encodeURIComponent(quickRenew.dataset.quickRenew) + "&quick=1");
+    return;
+  }
+  if (await voucherAction(event)) return;
+  const copy = event.target.closest("[data-copy-payment]");
+  if (copy) {
+    try {
+      await runButton(copy, "Copying…", async () => {
+        let copied = false;
+        try { if (navigator.clipboard) { await navigator.clipboard.writeText(copy.dataset.copyPayment); copied = true; } } catch (_) {}
+        if (!copied) {
+          const input = document.createElement("textarea"); input.value = copy.dataset.copyPayment;
+          document.body.appendChild(input); input.select(); copied = document.execCommand("copy"); input.remove(); copy.focus();
+        }
+        $("#billingMessage").textContent = copied ? "Payment reference copied." : `Payment reference: ${copy.dataset.copyPayment}`;
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const receiptButton = event.target.closest("[data-view-receipt]");
+  if (receiptButton) { await openReceipt(receiptButton); return; }
+  const billingButton = event.target.closest("[data-recheck-payment], [data-email-receipt]");
+  if (billingButton) {
+    try {
+      await runButton(billingButton, billingButton.dataset.emailReceipt ? "Sending…" : "Checking…", async () => {
+        const id = billingButton.dataset.recheckPayment || billingButton.dataset.emailReceipt;
+        const result = billingButton.dataset.emailReceipt
+          ? await call("/api/account/payments/receipt-email", { method: "POST", body: JSON.stringify({ paymentId: id }) })
+          : await call(`/api/account/payments/${encodeURIComponent(id)}/status`);
+        await load();
+        $("#billingMessage").textContent = billingButton.dataset.emailReceipt
+          ? result.payment.receiptEmail?.status === "sent" ? "Receipt sent to your account email." : "Email delivery is pending or unavailable. You can download the receipt here."
+          : result.payment.recoveryMessage || result.payment.refund?.message || `Payment status: ${result.payment.status}.`;
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const revokeSessionButton = event.target.closest("[data-revoke-session]");
+  if (revokeSessionButton) {
+    if (!confirm("Sign out this session? If it's the device you're using now, you'll be signed out too.")) return;
+    try {
+      await runButton(revokeSessionButton, "Signing out…", async () => {
+        const result = await call("/api/account/security/sessions/revoke", { method: "POST", body: JSON.stringify({ sessionId: revokeSessionButton.dataset.revokeSession }) });
+        if (result.loggedOut) { location.href = "/login"; return; }
+        await load();
+        $("#dashboardMessage").textContent = "Session signed out.";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const logoutEverywhereButton = event.target.closest("#logoutEverywhere");
+  if (logoutEverywhereButton) {
+    if (!confirm("Log out everywhere? This signs out every device, including this one.")) return;
+    try {
+      await runButton(logoutEverywhereButton, "Signing out…", async () => {
+        await call("/api/account/security/logout-everywhere", { method: "POST", body: "{}" });
+        location.href = "/login";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  if (event.target.closest("[data-refresh-wifi]")) { watchWifiDevices(); return; }
+  const wifiDevice = event.target.closest("button[data-wifi-device]");
+  if (wifiDevice) {
+    try {
+      await runButton(wifiDevice, "Disconnecting…", async () => {
+        await call("/api/account/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({ mac: wifiDevice.dataset.wifiDevice, sessionId: wifiDevice.dataset.wifiSession, startedAt: wifiDevice.dataset.wifiStarted, retainApproval: true }) });
+        watchWifiDevices();
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const button = event.target.closest("button[data-session]");
+  if (!button) return;
+  try {
+    await runButton(button, "Disconnecting…", async () => {
+      await call("/api/account/devices/disconnect", { method: "POST", body: JSON.stringify({ sessionId: button.dataset.session }) });
+      await load();
+    });
+  } catch (error) { showError($("#dashboardMessage"), error); }
+};
+
+$("#dashboard").onsubmit = async (event) => {
+  const renameDeviceForm = event.target.closest("[data-rename-device]");
+  if (renameDeviceForm) {
+    event.preventDefault();
+    try {
+      await runButton(renameDeviceForm.querySelector("button"), "Saving…", async () => {
+        const mac = renameDeviceForm.dataset.renameDevice;
+        const nickname = new FormData(renameDeviceForm).get("nickname");
+        await call("/api/account/device-management/nickname", { method: "POST", body: JSON.stringify({ mac, nickname }) });
+        watchWifiDevices();
+        await load();
+        $("#dashboardMessage").textContent = "Device nickname saved.";
+      });
+    } catch (error) { showError($("#dashboardMessage"), error); }
+    return;
+  }
+  const refundForm = event.target.closest("[data-refund-payment]");
+  if (refundForm) {
+    event.preventDefault();
+    try {
+      await runButton(refundForm.querySelector("button"), "Sending…", async () => {
+        await call("/api/account/payments/refund", { method: "POST", body: JSON.stringify({ paymentId: refundForm.dataset.refundPayment, reason: new FormData(refundForm).get("reason") }) });
+        await load();
+        $("#billingMessage").textContent = "Refund requested. Support will review it; you can track its status here.";
+      });
+    } catch (error) { showError($("#billingMessage"), error); }
+    return;
+  }
+  const form = event.target.closest("#connectDevice");
+  if (!form) return;
+  event.preventDefault();
+  const button = form.querySelector("button");
+  try {
+    await runButton(button, "Connecting…", async () => {
+      const result = await call("/api/account/devices/connect", { method: "POST", body: JSON.stringify({ ...Object.fromEntries(new FormData(form)), deviceId }) });
+      $("#dashboardMessage").innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      await load();
+      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
+    });
+  } catch (error) { showError($("#connectMessage"), error); }
+};
+
+function applyLanguage(lang) {
+  document.documentElement.lang = lang;
+  const brandSmall = document.querySelector(".brand small");
+  if (brandSmall) brandSmall.textContent = t("brandSmall", lang);
+  const portalTitle = document.getElementById("portalTitle");
+  if (portalTitle) portalTitle.textContent = t("portalTitle", lang);
+  const eyebrow = document.querySelector(".welcome .eyebrow");
+  if (eyebrow) eyebrow.textContent = t("eyebrowDashboard", lang);
+  const logout = document.getElementById("logout");
+  if (logout) logout.textContent = t("logout", lang);
+}
+
+function mountLanguageSwitcher() {
+  const current = getPreferredLanguage();
+  document.querySelectorAll(".lang-switcher [data-lang]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.lang === current);
+    btn.onclick = () => {
+      const selected = btn.dataset.lang;
+      setPreferredLanguage(selected);
+      document.querySelectorAll(".lang-switcher [data-lang]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.lang === selected);
+      });
+      applyLanguage(selected);
+    };
+  });
+  applyLanguage(current);
+}
+
+// Language selection is temporarily disabled.
+// mountLanguageSwitcher();
+
+$("#logout").onclick = async (event) => {
+  try {
+    await runButton(event.currentTarget, "Logging out…", async () => {
+      await call("/api/account/logout", { method: "POST", body: "{}" });
+      location.href = "/login";
+    });
+  } catch (error) { showError($("#dashboardMessage"), error); }
+};
+
+load().catch((error) => {
+  if (error.status !== 401) {
+    applyNetworkStatus($(".network-state"), "unavailable");
+    showError($("#dashboard"), error, {
+      actions: [{ label: "Try again", run: () => location.reload() }],
+    });
+  }
+});
+
+async function refreshPaymentRecords() {
+  if (refreshingPayments || document.hidden || !latestDashboard || !["home", "payments"].includes(activePortalView())) return;
+  refreshingPayments = true;
+  try {
+    const result = await call("/api/account/dashboard");
+    const rows = document.querySelectorAll("[data-payment-row]");
+    rows.forEach((row) => {
+      if (row.contains(document.activeElement) || row.querySelector("textarea")?.value) return;
+      const payment = result.payments.find((p) => p.id === row.dataset.paymentRow);
+      if (payment) row.outerHTML = paymentRow(payment, result.customer);
+    });
+    const pending = result.payments.find((p) => ["pending", "processing"].includes(p.status)), card = $("#pendingPayment");
+    if (card) { card.hidden = !pending; card.innerHTML = pending ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pending)}<a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a>` : ""; }
+    stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
+  latestDashboard = result;
+    mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
+  } finally { refreshingPayments = false; }
+}
+mountPaymentTimers({ onExpired: refreshPaymentRecords });
+setInterval(() => {
+  if (latestDashboard?.payments.some((p) => ["pending", "processing"].includes(p.status))) void refreshPaymentRecords().catch(() => {});
+}, 15000);
+window.addEventListener("online", () => { void refreshPaymentRecords().catch(() => {}); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) void refreshPaymentRecords().catch(() => {}); });
+startUpdates({ isBusy: () => Boolean(document.querySelector("[data-sensitive-output]")) });

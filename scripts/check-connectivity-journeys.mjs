@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { uiV2, waitForAccount } from "./portal-tabs.mjs";
 import http from 'node:http';
 import {mkdir} from 'node:fs/promises';
 import {createStaticServer} from '../static-server.mjs';
@@ -17,12 +18,15 @@ try{
  }
  for(const width of [320,1280])await scenario('unpaid captive presence offers sign-in without a join-Wi-Fi instruction at '+width+'px',async(page,probes)=>{
   await page.goto(portal+'/login');const banner=page.locator('#entryConnectivity');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();assert.equal(await banner.getByRole('link',{name:'Sign in',exact:true}).getAttribute('href'),'/login');assert.doesNotMatch(await banner.textContent(),/Join Wi-Fi|Starlink Active|Connected & Active/);assert.equal(probes(),0);
+  // A font fallback or larger text must not let a phone input set the grid's
+  // minimum width. This reproduced the narrow-screen CI overflow before the fix.
+  if (uiV2 && width === 320) await page.evaluate(() => { const input = document.querySelector('input[name="phone"]'); input.style.fontFamily = 'monospace'; input.style.fontSize = '20px'; });
  },{signedIn:false,width});
  await scenario('an active bundle alone cannot invent Connected or working internet',async(page,probes)=>{await page.goto(portal+'/dashboard');const banner=page.locator('.network-state-banner');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();assert.match(await banner.textContent(),/authorization is still being checked/);assert.equal(probes(),0);});
  for(const internet of [true,false])await scenario('exact HotSpot authorization with browser internet '+(internet?'available':'unavailable')+' stays distinct',async(page,probes)=>{
   await f.call('/api/account/device-management/current/identify',{mac:mainMac,address:'10.20.0.1'});await page.goto(portal+'/dashboard');const banner=page.locator('.network-state-banner');await banner.getByText('Router connection confirmed',{exact:true}).waitFor();await banner.getByText(internet?/internet check passed/:/Internet availability is not confirmed/).waitFor();assert.equal(probes(),1);assert.equal(await banner.getByText('Join Wi-Fi',{exact:true}).count(),0);await page.screenshot({path:screenshots+'/router-internet-'+internet+'.png',fullPage:true});
  },{internet});
- await scenario('mobile-data or VPN ingress stays unconfirmed while account access remains usable',async(page,probes)=>{await page.goto(portal+'/dashboard#account');await page.getByRole('heading',{name:'PIN & passkeys',exact:true}).waitFor();await page.locator('.network-state-banner').getByText('NDAHI Wi-Fi not confirmed',{exact:true}).waitFor();assert.equal(probes(),0);},{inside:false});
+ await scenario('mobile-data or VPN ingress stays unconfirmed while account access remains usable',async(page,probes)=>{/* v2 shows the Wi-Fi evidence on Home only (canvas); Account still opens. */await page.goto(portal+(uiV2?'/dashboard#home':'/dashboard#account'));if(!uiV2)await waitForAccount(page);await page.locator('.network-state-banner').getByText('NDAHI Wi-Fi not confirmed',{exact:true}).waitFor();if(uiV2){await page.goto(portal+'/dashboard#account');await waitForAccount(page);}assert.equal(probes(),0);},{inside:false});
  await scenario('expired subscription leads to eligible plans without asserting off-network',async page=>{await f.store.transaction(s=>{s.vouchers[0].status='expired';});await page.goto(portal+'/dashboard');await page.locator('.network-state-banner').getByRole('link',{name:'View bundles',exact:true}).waitFor();});
  await scenario('failed evidence read cannot use zone/account success to show Connected',async page=>{await page.route('**/api/account/connectivity',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));await page.goto(portal+'/dashboard');await page.locator('.network-state-banner').getByText('Connection not verified',{exact:true}).waitFor();assert.doesNotMatch(await page.locator('.network-state-banner').textContent(),/Connected & Active|Starlink Active/);});
  await scenario('onboarding network evidence does not redirect or discard a checkout',async page=>{await page.goto(portal+'/onboarding.html');assert.equal(await page.locator('#entryConnectivity').count(),1,'one connection banner per page');await page.locator('#entryConnectivity').getByText('NDAHI network detected',{exact:true}).waitFor();assert.equal(new URL(page.url()).pathname,'/onboarding.html');});
