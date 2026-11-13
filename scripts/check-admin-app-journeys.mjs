@@ -4,6 +4,8 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
+import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2 } from "./admin-nav.mjs";
+import { lowContrastText } from "./ui-checks.mjs";
 
 const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
 const store = createStore({ persistent: false }), secret = randomUUID(), tokens = Object.fromEntries(["owner", "operator", "auditor", "reseller"].map((r) => [r, randomUUID()]));
@@ -47,6 +49,329 @@ try {
     catch (e) { await page.screenshot({ path: `${screenshots}/failure-${checks}.png`, fullPage: true }).catch(() => {}); throw e; }
     finally { await context.close(); }
   }
+  // Redesigned admin Home (v2 only; canvas: Admin).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned admin Home shows metrics, Needs attention and latest payments at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#home`);
+    await page.getByRole("heading", { name: "Your operations.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Needs attention", exact: true }).waitFor();
+    await page.locator("#homeAttention > *").first().waitFor();
+    assert.equal(await page.locator("#activeSessionsMetric").textContent(), "2");
+    await page.getByRole("heading", { name: "Latest payments", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Print vouchers", exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/home-${width}.png`, fullPage: true });
+    await page.getByRole("link", { name: adminLinkName("Payments"), exact: true }).click();
+    await page.locator('[data-admin-nav="payments"][aria-current]').waitFor();
+    assert.equal(await page.getByRole("link", { name: "Print vouchers", exact: true }).count(), 0, "head actions belong to Home");
+  }, { width });
+  if (uiV2) await scenario("optional Home discovery failure keeps an authenticated dashboard open", async (page) => {
+    await page.route("**/api/admin/home", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Fixture Home unavailable" }) }));
+    const discovery = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/admin/home");
+    await page.goto(`${admin}/dashboard#home`);
+    assert.equal((await discovery).status(), 503);
+    await page.waitForLoadState("networkidle");
+    assert.equal(new URL(page.url()).pathname, "/dashboard");
+    await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+  });
+  // Redesigned Payments and Cash (v2 only; canvas: AdminPayments, AdminCash).
+  // "Today" is read in the browser (Africa/Douala), so these payments are dated from the real clock.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Payments and Cash show today's figures, filters and exports at ${width}px`, async (page) => {
+    const real = Date.now(), today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
+    const recent = Math.max(today + 1000, real - 60000);
+    const payment = (id, status, createdAt, amount, extra = {}) => ({ id, status, createdAt: at(createdAt), amount, currency: "XAF", provider: "mesomb", network: "mtn",
+      payerPhone: "670042011", providerReference: `REF-${id.toUpperCase()}`, planId: "weekly", planSnapshot: { id: "weekly", name: "Weekly", price: amount }, ...extra });
+    await store.transaction((s) => {
+      s.payments.unshift(
+        payment("paid", "paid", recent, 3000, { confirmedAt: at(recent) }),
+        payment("failed", "failed", recent - 1, 1000),
+        payment("waitnew", "pending", recent - 2, 1000),
+        payment("waitold", "pending", real - 20 * 60000, 1000),
+        payment("paidold", "paid", today - 3 * 3600000, 250, { confirmedAt: at(today - 3 * 3600000) }),
+      );
+    });
+    await page.goto(`${admin}/dashboard#payments`);
+    await page.getByRole("heading", { name: "Payments and revenue.", exact: true }).waitFor();
+    await page.waitForFunction(() => document.getElementById("paymentsTodayBundles").textContent !== "—");
+    assert.deepEqual(await page.locator("#paymentsTodayBundles, #paymentsTodayStore, #paymentsWaiting, #paymentsFailedToday").allTextContents(), ["3,000 FCFA", "0 FCFA", "1", "1"]);
+    const rows = page.locator("#paymentRecords tbody tr");
+    await page.getByRole("heading", { name: "All payments", exact: true }).waitFor();
+    await rows.filter({ hasText: "REF-PAIDOLD" }).waitFor();
+    assert.equal(await rows.count(), 5);
+    await page.getByRole("button", { name: "Waiting", exact: true }).click();
+    await page.waitForFunction(() => document.querySelectorAll("#paymentRecords tbody tr").length === 2);
+    assert.equal(await page.getByRole("button", { name: "Waiting", exact: true }).getAttribute("aria-pressed"), "true");
+    assert.equal(await rows.getByRole("button", { name: "Check with provider", exact: true }).count(), 2);
+    await page.getByRole("button", { name: "All", exact: true }).click();
+    await page.getByRole("searchbox", { name: "Search payments", exact: true }).fill("REF-PAIDOLD");
+    await page.waitForFunction(() => document.querySelectorAll("#paymentRecords tbody tr").length === 1);
+    await rows.getByRole("button", { name: "Approve full refund", exact: true }).waitFor();
+    const csv = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export CSV", exact: true }).click();
+    assert.equal((await csv).suggestedFilename(), "ndahi-report.csv");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/payments-${width}.png`, fullPage: true });
+
+    await page.locator("#admin-nav-cash").click();
+    await page.getByRole("heading", { name: "Cash and settlements.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Cash collected before fees", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Export CSV", exact: true }).count(), 0, "head actions belong to Payments");
+    assert.equal(await page.locator("#cashCollectedReport tbody tr").count(), 2);
+    assert.equal(await page.locator("#settlementReport").count(), 0, "no settlement figures until providers report them");
+    assert.match(await page.locator("#panel-cash").innerText(), /3,250 FCFA[\s\S]*Internet payments, since 1 Nov 2026/);
+    const cash = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export for accountant (CSV)", exact: true }).click();
+    assert.equal((await cash).suggestedFilename(), "ndahi-cash-before-fees.csv");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/cash-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned Vouchers and batch printing (v2 only; canvas: AdminVouchers, AdminVoucherPrint).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Vouchers creates a batch and prints it on its own screen at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#vouchers`);
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Create a batch", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Recent vouchers", exact: true }).waitFor();
+    await page.locator('[data-voucher-record="v1"]').waitFor();
+    assert.equal(await page.locator('[data-voucher-record="v1"] .nd-pill').textContent(), "In use");
+    assert.equal(await page.locator("#voucherOptions").evaluate((details) => details.open), false, "purpose and sale type wait under More options");
+    await page.getByLabel("How many", { exact: true }).fill("3");
+    await page.getByRole("button", { name: "Create 3 vouchers", exact: true }).click();
+    await page.getByText("3 vouchers generated", { exact: true }).waitFor();
+    assert.equal(await page.locator("#generated .generated-codes code").count(), 3);
+    await page.locator('#voucherRecords tbody tr[data-voucher-record]').nth(3).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/vouchers-${width}.png`, fullPage: true });
+
+    await page.getByRole("link", { name: "Print slips", exact: true }).click();
+    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
+    assert.match(await page.locator("#adminLede").textContent(), /^3 slips · /);
+    assert.equal(await page.locator("#voucherPrintSurface .thermal-slip").count(), 3);
+    await page.getByRole("button", { name: "Print 3 slips", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminEyebrow").isVisible(), false, "the back link replaces the eyebrow");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/voucher-print-${width}.png`, fullPage: false });
+    await page.getByRole("link", { name: "Back to Vouchers", exact: true }).click();
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    assert.equal(await page.locator("#voucherPrintSurface").count(), 0, "slips leave the page with their screen");
+    assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
+    // A reload forgets the batch, so its print screen falls back to Vouchers.
+    await page.evaluate(() => { location.hash = "voucher-print"; });
+    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
+    await page.reload();
+    await page.waitForFunction(() => location.hash === "#vouchers");
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+  }, { width });
+  // Redesigned Customers and customer detail (v2 only; canvas: AdminCustomers, AdminCustomerDetail).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Customers lists bundles and opens a customer's detail at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#customers`);
+    await page.getByRole("heading", { name: "Your customers.", exact: true }).waitFor();
+    const row = page.locator("#customerRecords tbody tr").filter({ hasText: "Fixture customer" });
+    await row.waitFor();
+    // Name, masked phone, bundle, devices, store orders, status, action.
+    assert.deepEqual((await row.locator("td").allInnerTexts()).map((text) => text.trim()), ["Fixture customer", "6•• •• 20 01", "Weekly · unlimited", "2 / 2", "0", "Active", "Suspend"]);
+    await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");
+    await page.locator("#customerRecords tbody").getByText("No matching customers.", { exact: true }).waitFor();
+    await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("670042001");
+    await row.waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/customers-${width}.png`, fullPage: true });
+
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
+    await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminAvatar").textContent(), "F");
+    assert.match(await page.locator("#adminLede").textContent(), /^\+237 670 04 20 01/);
+    await page.getByRole("link", { name: "Back to Customers", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Support actions", exact: true }).waitFor();
+    for (const name of ["Print active voucher", "Recover PIN with a support code", "Replace bundle", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    await page.screenshot({ path: `${screenshots}/customer-${width}.png`, fullPage: true });
+    await page.getByRole("tab", { name: "Devices", exact: true }).click();
+    await page.getByRole("tabpanel", { name: "Devices" }).getByText("AA:BB:CC:DD:EE:01", { exact: false }).waitFor();
+    await page.getByRole("tab", { name: "Devices", exact: true }).press("ArrowRight");
+    assert.equal(await page.getByRole("tab", { name: "Overview", exact: true }).getAttribute("aria-selected"), "true", "arrow keys move between tabs");
+    await page.getByRole("tab", { name: "Payments & orders", exact: true }).click();
+    await page.getByText("No payments or store orders yet.", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    // Replace bundle opens Vouchers with an assigned voucher for this customer.
+    await page.getByRole("tab", { name: "Overview", exact: true }).click();
+    await page.getByRole("button", { name: "Replace bundle", exact: true }).click();
+    await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    assert.equal(await page.locator("#voucherPurpose").inputValue(), "assigned");
+    await page.waitForFunction(() => document.querySelector("#customerSelect").value === "c1");
+    assert.equal(await page.locator("#voucherReplaceActive").isChecked(), true);
+  }, { width });
+  // Redesigned Bundles and Edit bundle (v2 only; canvas: AdminBundles, AdminBundleEdit).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Bundles creates, edits and deletes a custom bundle at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#bundles`);
+    await page.getByRole("heading", { name: "Your bundles.", exact: true }).waitFor();
+    const weekly = page.locator('[data-bundle-card="weekly"]');
+    assert.match(await weekly.innerText(), /Weekly[\s\S]*On sale[\s\S]*1,000 FCFA[\s\S]*5 GB · 7 days · 1 device[\s\S]*1 voucher issued/);
+    const form = page.locator("#bundle");
+    await form.getByLabel("Name", { exact: true }).fill("Weekend");
+    await form.getByLabel("Price (FCFA)", { exact: true }).fill("500");
+    await form.getByLabel("Validity (hours)", { exact: true }).fill("48");
+    await form.getByRole("button", { name: "Create bundle", exact: true }).click();
+    const card = page.locator(".admin-bundle").filter({ hasText: "Weekend" });
+    await card.waitFor();
+    // A blank data allowance is unlimited, not 0 GB.
+    assert.match(await card.innerText(), /500 FCFA[\s\S]*Unlimited · 2 days · 1 device/);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/bundles-${width}.png`, fullPage: true });
+
+    await card.getByRole("link", { name: "Edit Weekend", exact: true }).click();
+    await page.getByRole("heading", { name: "Edit Weekend", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Back to Bundles", exact: true }).waitFor();
+    const edit = page.locator("#bundleEdit"), preview = page.locator("#bundlePreview");
+    assert.equal(await edit.getByLabel("Unlimited data").isChecked(), true);
+    assert.equal(await page.locator("#bundleQuotaField").isVisible(), false);
+    await edit.getByLabel("Unlimited data").uncheck();
+    await edit.getByLabel("Data allowance (GB)", { exact: true }).fill("2");
+    await edit.getByLabel("Device limit", { exact: true }).fill("3");
+    assert.equal(await preview.locator("[data-preview-detail]").textContent(), "2 GB · 2 days · 3 devices");
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    await page.screenshot({ path: `${screenshots}/bundle-edit-${width}.png`, fullPage: true });
+    await edit.getByRole("button", { name: "Save bundle", exact: true }).click();
+    await page.getByText("Saved — logged in the audit trail", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Edit Weekend", exact: true }).count(), 1, "saving keeps the edit screen");
+    await page.getByRole("link", { name: "Back to Bundles", exact: true }).click();
+    assert.match(await card.innerText(), /2 GB · 2 days · 3 devices/);
+    await card.getByRole("button", { name: "Delete Weekend", exact: true }).click();
+    await card.waitFor({ state: "detached" });
+    // An unknown bundle address falls back to the list.
+    await page.evaluate(() => { location.hash = "bundle/missing"; });
+    await page.waitForFunction(() => location.hash === "#bundles");
+  }, { width });
+  // Redesigned Live devices (v2 only; canvas: AdminDevices).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Live devices names customers and keeps the router summary at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#devices`);
+    await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
+    const row = page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac });
+    await row.waitFor();
+    assert.match(await page.locator("#wifiSummary").textContent(), /^2 confirmed connected · Router reading current · checked /);
+    assert.equal(await page.locator("#wifiLive").getAttribute("data-state"), "ready");
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).waitFor();
+    assert.match(await row.innerText(), /10\.20\.0\.2[\s\S]*Connected/);
+    await page.getByRole("button", { name: "Refresh devices", exact: true }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/live-devices-${width}.png`, fullPage: true });
+    await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
+    await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
+  }, { width });
+  // Redesigned Connections (v2 only; canvas: AdminConnections).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Connections shows services, admin security and router checks at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#connections`);
+    await page.getByRole("heading", { name: "Connections and security.", exact: true }).waitFor();
+    const router = page.locator(".admin-service").filter({ hasText: "MikroTik gateway" });
+    assert.match(await router.innerText(), /Connected[\s\S]*2 devices confirmed connected/);
+    await router.getByRole("button", { name: "Sync usage", exact: true }).waitFor();
+    assert.match(await page.locator(".admin-service").filter({ hasText: "Omada controller" }).innerText(), /Not connected/);
+    const security = page.getByRole("region", { name: "Admin security" });
+    assert.match(await security.innerText(), /Password or passkey[\s\S]*1 owner · 1 operator · 1 auditor · 1 reseller[\s\S]*1 stuck/);
+    await security.getByRole("link", { name: "Open audit log" }).waitFor();
+    await page.getByRole("row").filter({ hasText: "legacy-uuid" }).getByRole("button", { name: "Mark obsolete" }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/connections-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned Profile & security (v2 only; canvas: AdminProfile).
+  for (const role of ["owner", "operator"]) if (uiV2) await scenario(`redesigned Profile & security shows you, your passkeys and (owners) staff as ${role}`, async (page) => {
+    await page.goto(`${admin}/dashboard#profile`);
+    await page.getByRole("heading", { name: "Profile and security.", exact: true }).waitFor();
+    assert.match(await page.getByRole("region", { name: "You", exact: true }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
+    await page.getByRole("button", { name: "Change password", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Add a passkey on this device", exact: true }).waitFor();
+    const staff = page.getByRole("region", { name: "Staff (owner only)", exact: true });
+    if (role === "owner") {
+      assert.match(await staff.innerText(), /fixture-owner · owner\s*You/);
+      assert.equal(await staff.getByRole("button", { name: "Deactivate", exact: true }).count(), 3);
+      await staff.getByText("Add a staff account", { exact: true }).click();
+      await staff.getByLabel("Temporary password", { exact: true }).waitFor();
+    } else assert.equal(await staff.count(), 0, "only owners manage staff");
+    // Mismatched passwords never reach the verification step.
+    await page.getByLabel("New password", { exact: true }).fill("first-password");
+    await page.getByLabel("Confirm new password", { exact: true }).fill("other-password");
+    await page.getByRole("button", { name: "Change password", exact: true }).click();
+    await page.getByText("The two passwords don't match.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("dialog").count(), 0);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/profile-${role}.png`, fullPage: true });
+  }, { role, width: role === "owner" ? 1280 : 390 });
+  // Redesigned Audit log (v2 only; canvas: AdminAudit).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Audit log words actions and filters by area at ${width}px`, async (page) => {
+    await store.transaction((s) => {
+      s.auditLogs.unshift(
+        { id: "audit-1", action: "voucher.revoked", actor: "fixture-owner", ip: "127.0.0.1", meta: { voucherId: "v1" }, at: now.toISOString() },
+        { id: "audit-2", action: "payment.refund_requested", actor: "fixture-operator", ip: "127.0.0.1", meta: { paymentId: "p1" }, at: now.toISOString() },
+      );
+    });
+    await page.goto(`${admin}/dashboard#audit`);
+    await page.getByRole("heading", { name: "Audit log.", exact: true }).waitFor();
+    const rows = page.locator("#auditRecords tbody tr");
+    await rows.filter({ hasText: "Revoked a voucher" }).waitFor();
+    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /fixture-owner[\s\S]*Revoked a voucher[\s\S]*v1/);
+    await page.getByRole("button", { name: "Money", exact: true }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll("#auditRecords tbody tr")].every((row) => !row.textContent.includes("Revoked a voucher")));
+    await rows.filter({ hasText: "Approved a full refund" }).waitFor();
+    const csv = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    assert.match((await csv).suggestedFilename(), /^ndahi-audit-\d{4}-\d{2}-\d{2}\.csv$/);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/audit-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned Resellers (v2 only; canvas: AdminResellers).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Resellers shows the ledger and cash handoff at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#resellers`);
+    await page.getByRole("heading", { name: "Resellers, stock and cash.", exact: true }).waitFor();
+    await page.locator('[data-reseller-row="staff-reseller"]').waitFor();
+    await page.getByRole("heading", { name: "Record a cash handoff", exact: true }).waitFor();
+    await page.getByLabel("Amount received (FCFA)").waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/resellers-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned Network setup (v2 only; canvas: AdminNetworkSetup).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Network setup walks four steps over the existing forms at ${width}px`, async (page) => {
+    await page.goto(`${admin}/dashboard#network-setup`);
+    await page.getByRole("heading", { name: "Connect and configure your equipment.", exact: true }).waitFor();
+    const steps = page.getByRole("list", { name: "Setup steps" });
+    assert.deepEqual((await steps.getByRole("button").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()), ["1 Router", "2 Access points", "3 Wi-Fi", "4 Review"]);
+    assert.equal(await page.locator("#networkRouterConnection").isVisible(), true);
+    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), false);
+    await steps.getByRole("button", { name: "Access points" }).click();
+    assert.equal(await steps.getByRole("button", { name: "Access points" }).getAttribute("aria-current"), "step");
+    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), true);
+    await steps.getByRole("button", { name: "Review" }).click();
+    await page.getByText("Preview router, access point or Wi-Fi changes", { exact: false }).waitFor();
+    await page.locator("#networkPairingStatus").waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/network-setup-${width}.png`, fullPage: true });
+  }, { width });
+  // Redesigned sign-in look (v2 only; canvas: AdminLogin). Same method until Phase 6.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned admin sign-in keeps username, password and passkey at ${width}px`, async (page, context) => {
+    await context.clearCookies({ name: "admin_session" });
+    await page.goto(`${admin}/login`);
+    await page.getByRole("heading", { name: "Administrator access.", exact: true }).waitFor();
+    await page.getByLabel("Username").waitFor();
+    await page.locator("#adminPassword").waitFor();
+    await page.getByRole("button", { name: "Continue", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Sign in with a passkey", exact: true }).waitFor();
+    await page.getByText("Every sign-in is logged.", { exact: false }).waitFor();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/login-${width}.png`, fullPage: true });
+  }, { width });
+
   await scenario("owner can inspect and copy purchase diagnostics in admin, with bounded retries and no provisioning", async (page) => {
     let attempts = 0, release;
     const gate = new Promise((r) => { release = r; });
@@ -62,7 +387,7 @@ try {
       return route.fulfill({ contentType: "application/json", body: JSON.stringify({ report }) });
     });
     await page.goto(`${admin}/dashboard#more`);
-    await page.getByRole("tab", { name: "Network setup", exact: true }).click();
+    await openAdminMore(page, "Network setup");
     const button = page.getByRole("button", { name: "Check purchase access", exact: true });
     await button.click();
     assert.equal(await page.locator("#networkPurchaseCheck").isDisabled(), true);
@@ -88,19 +413,19 @@ try {
     await page.locator("#activeSessionsMetric").waitFor();
     assert.equal(await page.locator("#activeSessionsMetric").textContent(), "2");
     for (const [id, label] of [["store", "Store"], ["customers", "Customers"], ["bundles", "Bundles"], ["connections", "Connections"]]) {
-      await page.getByRole("link", { name: label, exact: true }).click();
+      await page.getByRole("link", { name: adminLinkName(label), exact: true }).click();
       await page.locator(`[data-tab-panel="${id}"]:visible`).waitFor();
       assert.equal(await page.locator(`[data-admin-nav="${id}"]`).getAttribute("aria-current"), "page");
       assert.equal(await page.locator("[data-admin-more]").isVisible(), false);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     }
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
-    await page.getByRole("link", { name: "Devices", exact: true }).click();
+    for (const tab of ["Network setup", "Generate voucher", "Audit"]) assert.equal(await adminMoreCount(page, tab), 1, tab);
+    if (!uiV2) assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
     assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
     await page.reload(); await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Payments", exact: true }).click();
+    await page.getByRole("link", { name: adminLinkName("Payments"), exact: true }).click();
     await page.goBack(); assert.equal(new URL(page.url()).hash, "#devices");
     assert.equal(await page.locator('[data-admin-nav="devices"]').getAttribute("aria-current"), "page");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -126,7 +451,7 @@ try {
     assert.equal(readCalls, 1); assert.equal((await store.snapshot()).vouchers[0].wifiDevices.length, 2);
     devices = []; release();
     await page.locator("#wifiSummary").filter({ hasText: "0 confirmed connected" }).waitFor();
-    await page.locator("#wifiRecords").getByText("No records found.").waitFor();
+    await page.locator("#wifiRecords tbody").getByText(uiV2 ? "No Wi-Fi devices right now." : "No records found.").waitFor();
   });
   await scenario("failed router readings preserve stale devices and expose a bounded retry action", async (page) => {
     now = new Date(+now + 180000); failRead = true;
@@ -154,9 +479,12 @@ try {
     assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
     await page.goto(`${admin}/dashboard#store`);
     await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    assert.equal(await page.getByRole("tab", { name: "Network setup", exact: true }).count(), 0);
-    await page.getByRole("link", { name: "Devices", exact: true }).click();
+    if (uiV2 && role === "auditor") {
+      await page.goto(`${admin}/dashboard#voucher-print`);
+      await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    }
+    assert.equal(await adminMoreCount(page, "Network setup"), 0);
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
     assert.equal(await page.locator("#refreshWifi").isVisible(), role === "operator");
     assert.equal(await page.getByRole("button", { name: "Disconnect", exact: true }).count(), role === "operator" ? 2 : 0);
@@ -173,7 +501,7 @@ try {
     await context.setOffline(true); await page.reload(); await page.getByRole("heading", { name: "You're offline" }).waitFor();
     assert.ok(!(await page.locator("body").innerText()).includes("670042001"));
     await context.setOffline(false); await page.getByRole("link", { name: "Try again" }).click();
-    await page.getByRole("link", { name: "Devices", exact: true }).click(); await page.locator("#wifiRecords").waitFor();
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click(); await page.locator("#wifiRecords").waitFor();
   });
   await scenario("the admin install button invokes the available browser prompt and hides after installation", async (page) => {
     await page.goto(`${admin}/dashboard#more`);
@@ -205,9 +533,8 @@ try {
     assert.equal(reloads, 0); assert.equal(await page.locator('#bundle [name="name"]').inputValue(), "Unsaved bundle");
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "true"; document.querySelector("#bundle").reset(); });
     await page.clock.fastForward(61000); assert.equal(reloads, 0);
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    await page.getByRole("tab", { name: "Generate voucher", exact: true }).click();
-    await page.getByRole("button", { name: "Generate resale vouchers" }).click();
+    await openAdminMore(page, "Generate voucher");
+    await page.getByRole("button", { name: adminGenerateName("resale") }).click();
     await page.getByText("1 voucher generated").waitFor();
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "false"; });
     await page.clock.fastForward(61000); assert.equal(reloads, 0, "generated codes must not disappear on an automatic update");

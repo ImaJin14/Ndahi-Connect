@@ -1,4 +1,8 @@
 import { runButton } from "/shared/pending.js";
+import { currentLanguage, localize } from "/shared/ui/dom.js";
+
+// v2 sign-in (canvas: AdminLogin): restyled only; password or passkey until Phase 6.
+localize(document.body, currentLanguage());
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector);

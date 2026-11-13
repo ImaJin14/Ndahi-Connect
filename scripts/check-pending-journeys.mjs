@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
+import { adminLinkName, openAdminMore } from "./admin-nav.mjs";
 
 // Isolated fixtures with delayed responses; no .env, database or live providers.
 const apiPort = Number(process.env.PENDING_API_PORT || 8498), portalPort = Number(process.env.PENDING_PORT || 8497),
@@ -162,15 +163,14 @@ try {
 
   await scenario("admin voucher generation and integration failures restore controls", async (page) => {
     await page.goto(`${admin}/dashboard`);
-    await page.getByRole("link", { name: "More", exact: true }).click();
-    await page.getByRole("tab", { name: "Generate voucher" }).click();
+    await openAdminMore(page, "Generate voucher");
     const generation = await hold(page, "/api/admin/vouchers/generate", { error: "Fixture generation failure" });
     await submitTwice(page, "#generate"); await generation.started;
     assert.equal(await page.locator("#generate button").textContent(), "Generating…");
     generation.release(); await idle(page, "#generate button");
     assert.equal(generation.count(), 1);
     await page.getByText("Fixture generation failure", { exact: true }).waitFor();
-    await page.getByRole("link", { name: "Connections", exact: true }).click();
+    await page.getByRole("link", { name: adminLinkName("Connections"), exact: true }).click();
     const sync = await hold(page, "/api/admin/integrations/sync-usage", { error: "Fixture sync failure" });
     await page.locator("#syncUsage").click(); await sync.started;
     await page.evaluate(() => document.querySelector("#syncUsage").onclick());

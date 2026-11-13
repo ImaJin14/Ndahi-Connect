@@ -1,5 +1,49 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { isPending, runButton } from "/shared/pending.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+
+const L = (key, values) => format(key, values || {}, currentLanguage());
+
+// v2 (canvas: AdminNetworkSetup): the same forms and logic, grouped into four
+// steps — Router, Access points, Wi-Fi, Review. Status, voucher enforcement,
+// assisted connections and history stay visible under the steps.
+const STEPS = [
+  ["router", "adminSetupRouter", ["#networkRouterConnection", "#networkRouterConfig"]],
+  ["aps", "adminSetupAps", ["#networkOmadaConnection", "#networkAdopt"]],
+  ["wifi", "adminSetupWifi", ["#networkWifiConfig"]],
+  ["review", "adminSetupReview", ["#networkPreview"]],
+];
+export function showSetupStep(root, name) {
+  root.querySelectorAll("[data-setup-step]").forEach((button) => {
+    const on = button.dataset.setupStep === name;
+    if (on) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
+  });
+  root.querySelectorAll("[data-setup-panel]").forEach((panel) => { panel.hidden = panel.dataset.setupPanel !== name; });
+  const empty = root.querySelector(".admin-setup__empty"), preview = root.querySelector("#networkPreview");
+  if (empty && preview) empty.hidden = !preview.hidden;
+}
+function arrangeSteps(root) {
+  root.querySelector(".section-heading")?.remove();
+  const nav = document.createElement("ol"), panels = document.createElement("div");
+  nav.className = "admin-steps"; nav.setAttribute("aria-label", L("adminSetupSteps"));
+  panels.className = "admin-setup__steps";
+  STEPS.forEach(([name, label, parts], index) => {
+    const item = document.createElement("li"), button = document.createElement("button"), panel = document.createElement("section");
+    button.type = "button"; button.dataset.setupStep = name;
+    button.innerHTML = `<span class="admin-steps__num" aria-hidden="true">${index + 1}</span>${h(L(label))}`;
+    button.onclick = () => showSetupStep(root, name);
+    item.appendChild(button); nav.appendChild(item);
+    panel.className = "nd-panel admin-setup__step"; panel.dataset.setupPanel = name; panel.setAttribute("aria-label", L(label));
+    parts.forEach((selector) => { const part = root.querySelector(selector); if (part) panel.appendChild(part); });
+    if (name === "review") panel.insertAdjacentHTML("afterbegin", `<p class="nd-meta admin-setup__empty">${h(L("adminSetupReviewEmpty"))}</p>`);
+    panels.appendChild(panel);
+  });
+  root.querySelectorAll(".network-setup-grid").forEach((grid) => { if (!grid.children.length) grid.remove(); });
+  const anchor = root.querySelector("#networkPrerequisites");
+  anchor.after(nav, panels, root.querySelector("#networkInventory"), root.querySelector("#networkMessage"));
+  showSetupStep(root, "router");
+}
 
 let stopPrevious = () => {};
 export async function mountNetworkSetup(root, call) {
@@ -57,6 +101,7 @@ export async function mountNetworkSetup(root, call) {
     <section><h3>Provisioning history</h3><button type="button" id="networkRefresh" class="secondary-action">Refresh jobs</button><div id="networkJobs"></div></section>
     <section id="networkRecovery" hidden></section>`;
   const $ = (s) => root.querySelector(s);
+  arrangeSteps(root);
   const message = (text) => { $("#networkMessage").textContent = text; };
   async function busy(button, task) {
     try { await runButton(button, "Working…", task); }
@@ -73,6 +118,7 @@ export async function mountNetworkSetup(root, call) {
     selectedJob = job;
     const plan = job.plan, target = $("#networkPreview");
     target.hidden = false;
+    showSetupStep(root, "review");
     target.innerHTML = `<h3>3. Review ${h(job.kind)} changes</h3><p>${job.mode === "simulation" ? "SIMULATION — this will not configure physical equipment." : "These changes will be sent to your equipment."}</p>
       ${plan.conflicts.length ? `<h4>Resolve these conflicts</h4><ul>${plan.conflicts.map((v) => `<li>${h(v)}</li>`).join("")}</ul>` : ""}
       <ul>${(plan.warnings || []).map((v) => `<li>${h(v)}</li>`).join("")}</ul>

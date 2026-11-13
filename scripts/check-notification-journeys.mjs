@@ -7,6 +7,7 @@ import { hashSecret } from "../lib/security.mjs";
 import { recordOperationalFailure, updateOperationalIncident } from "../lib/operational-incidents.mjs";
 import { recordUsageAlerts } from "../lib/usage-alerts.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
+import { openAdminMore } from "./admin-nav.mjs";
 
 const listen = (s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve));
 const close = (s) => new Promise((resolve) => { s.close(resolve); s.closeAllConnections(); });
@@ -215,8 +216,7 @@ try {
   assert.deepEqual(errors, []);
   console.log("PASS offline saved-device removal works after bundle expiry, requires fresh PIN, escapes names and awaits router confirmation at 320px");
   await administrator.keyboard.press("Escape");
-  await administrator.getByRole("link", { name: "More", exact: true }).click();
-  await administrator.getByRole("tab", { name: "Network setup", exact: true }).click();
+  await openAdminMore(administrator, "Network setup");
   await administrator.locator("#networkPairingStatus").filter({ hasText: "Main-device approval is required" }).waitFor();
   await f.store.transaction((s) => { delete s.networkSetup.deviceApproval; s.networkSetup.assistedConnections.enabled = false; });
   await administrator.getByRole("button", { name: "Refresh jobs", exact: true }).click();

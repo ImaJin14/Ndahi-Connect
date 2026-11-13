@@ -4,13 +4,16 @@ import { requestAdminActionProof } from "/action-proof.js";
 
 export function openAuthenticatorRecovery({ customerId, call, opener, retired = false }) {
   document.querySelector("[data-authenticator-recovery]")?.remove();
-  const host = document.createElement("section"); host.className = "surface"; host.dataset.authenticatorRecovery = "true";
+  const host = document.createElement("section"); host.className = "surface nd-panel admin-recovery"; host.dataset.authenticatorRecovery = "true";
   host.innerHTML = `<h3>Verified account recovery</h3><p>Verify the customer's identity in person or through an existing verified channel. This issues a time-limited support code for PIN recovery. The customer chooses their new PIN; support never sees it. Portal sessions and previous account backup codes will be revoked.</p>
     <form><input type="hidden" name="customerId" value="${h(customerId)}"><label>Support case reference<input name="caseReference" minlength="3" maxlength="80" required></label><label>Reason and verification notes<textarea name="reason" minlength="12" maxlength="500" required></textarea></label>
     <label>Identity verification<select name="verificationMethod"><option value="in_person">Verified in person</option><option value="existing_verified_channel">Existing verified channel</option></select></label><label><input type="checkbox" name="confirmedIdentity" required> I verified this customer's identity.</label>
     <p>Your fresh administrator password or passkey will be requested before issuing a code.</p>
     <button type="submit">Verify and issue support code</button><button type="button" data-close-authenticator-recovery>Cancel</button><p data-recovery-message role="status" aria-live="polite"></p></form>`;
-  document.getElementById("customerRecords").after(host);
+  // v2: opened from a customer's support actions, the form appears under them.
+  const overview = opener && opener.closest(".admin-customer__overview");
+  (overview || document.getElementById("customerRecords")).after(host);
+  if (overview) host.scrollIntoView({ block: "nearest" });
   const form = host.querySelector("form"), message = host.querySelector("[data-recovery-message]");
   form.onsubmit = async (event) => {
     event.preventDefault(); event.stopPropagation();
