@@ -129,8 +129,11 @@ a.portal-activity__order { color: inherit; text-decoration: none; }
 @media (min-width: 768px) {
   .portal-activity__list .portal-activity__summary, .portal-activity__list > .portal-activity__order { min-height: 46px; padding: 0; }
 }
-/* The orders' empty or unavailable note belongs to the Orders view only. */
-body:not([data-activity-filter="orders"]) #activityOrders { display: none; }
+/* "No orders yet" belongs to the Orders view only. "Orders could not be loaded"
+   shows in All and Orders (Internet hides #activityOrders through its
+   data-activity-kind), so a failed lookup never reads as a complete stream. */
+body:not([data-activity-filter="orders"]) #activityOrders [data-orders-note="empty"] { display: none; }
+#activityOrders .portal-activity__unavailable { margin: var(--nd-space-8) 0 0; padding: var(--nd-space-10) var(--nd-space-14); border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; overflow-wrap: anywhere; }
 a.portal-activity__order:hover strong { text-decoration: underline; }
 a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
 /* Desktop: the filter sits beside the title (canvas: DesktopActivity). */
