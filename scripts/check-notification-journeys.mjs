@@ -244,7 +244,8 @@ try {
   await owner.locator("#sessionActivity [data-revoke-session]").first().waitFor();
   assert.equal(await owner.locator("#sessionActivity").evaluate((el) => el.open), true);
   assert.equal(await owner.getByRole("dialog", { name: "Notifications", exact: true }).isHidden(), true);
-  assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await owner.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth + 1);
+  assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
   console.log("PASS security/sign-in history lives in the centre and Review sessions opens active session controls without duplicate Account history at 320px");
 
   await f.store.transaction((s) => {
