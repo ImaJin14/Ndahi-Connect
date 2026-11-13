@@ -86,6 +86,10 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
 const SHELL = "Admin shell — screen not rebuilt yet";
+// Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
+// not built yet. The build capture shows today's nearest page; each issue
+// replaces its entry when the screen is built.
+const NOT_BUILT = (issue) => `Not built yet (#${issue})`;
 const NO_PAIRING = "Device approvals need live router coverage and the network queue, which the preview keeps off";
 // The portal shop's failure view (customer-app-v2/portal-shop.js render()).
 const SHOP_ERROR = ".error[role=\"alert\"]:not(:empty)";
@@ -116,6 +120,14 @@ export const SCREENS = [
       ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
       .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
         { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
+    ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
+    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
+    ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
+    ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
+    ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
+    ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
+    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", `${NOT_BUILT(250)}: a board of every path, each built on its own screen`,
+      { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],
     ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html#ids={voucherIds}&width=58", "Redesigned page; the slip stays the thermal POS format shared with admin printing",
@@ -175,6 +187,9 @@ export const SCREENS = [
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
+    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#vouchers", NOT_BUILT(258), { panel: "vouchers", menu: "vouchers" }],
+    ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
+    ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
   ].map(([id, title, desktop, path, status, options]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(options || {}) })),
 ];
