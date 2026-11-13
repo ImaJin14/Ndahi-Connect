@@ -22,28 +22,34 @@ with `data-ui-variant="v2"`, so testers can confirm which version they are on
    including saved cookies, and leaves those cookies unchanged.
 2. `?ui=new` or `?ui=old` in the URL: v2 or v1. The server saves the choice and
    redirects to the same URL without `ui`.
-3. A saved interface preference: `ndahi_ui` on the portal, `ndahi_admin_ui`
-   on admin.
-4. Customer visitors without a preference are sampled by `UI_V2_PERCENT`
-   (0–100, default 0). **Admin defaults to v2**, as authorized by the owner on
-   13 November 2026, and is never sampled. `ADMIN_UI_DEFAULT=v1` can explicitly
-   retain the legacy admin default; unset or `v2` selects the new default.
+3. A saved choice: `ndahi_portal_ui` on the portal, `ndahi_admin_ui` on admin.
+4. A legacy `ndahi_ui=v2` cookie (an earlier opt-in or v2 sample): v2.
+5. The app's default. **Both apps default to v2**, as authorized by the owner on
+   13 November 2026 (admin first, then the customer portal the same day).
+   `ADMIN_UI_DEFAULT=v1` on `ndahi-admin` or `CUSTOMER_UI_DEFAULT=v1` on
+   `ndahi-customer` keeps that app on the earlier v1 default; unset or `v2`
+   selects v2.
 
-Only explicit admin `?ui=` choices save a preference. Computed admin defaults are
+Only explicit `?ui=` choices are saved under the v2 default. Computed defaults are
 not saved, so a later default change takes effect on the next navigation for
-staff without a deliberate choice. Use `UI_V2_OFF=true` to force v1 for everyone,
-including staff who explicitly chose v2.
+anyone without a deliberate choice. Use `UI_V2_OFF=true` to force v1 for everyone,
+including people who explicitly chose v2.
+
+With `CUSTOMER_UI_DEFAULT=v1` the portal behaves as it did before: a saved
+`ndahi_ui` cookie wins, and a visitor without one is sampled by `UI_V2_PERCENT`
+(0–100, default 0) and the result is saved as `ndahi_ui`. Under the v2 default
+`UI_V2_PERCENT` has no effect. Admin is never sampled.
 
 The cookies are host-only, `Path=/`, `SameSite=Lax`, `HttpOnly`, and last 30 days.
 They are not renewed on later visits. They are `Secure` under the same rule as API
 session cookies: `SESSION_COOKIE_SECURE` when set, otherwise in production. These
 are interface preferences; authentication/session cookies are unchanged.
 
-Admin's separate preference migrates browsers with the old automatically saved
-`ndahi_ui=v1` default to v2 on their next navigation. Legacy `ndahi_ui=v2` opt-ins
-still work. An explicit `?ui=old` now writes `ndahi_admin_ui=v1`, so staff can
-retain a deliberate old-view choice. An explicit `?ui=new` switches it back. The
-customer cookie and customer default are unchanged.
+The separate choice cookies migrate browsers that hold the old automatically saved
+`ndahi_ui=v1` (every portal visitor while the percentage was 0, and every admin
+visitor) to v2 on their next navigation. Legacy `ndahi_ui=v2` opt-ins still work.
+An explicit `?ui=old` writes `ndahi_portal_ui=v1` or `ndahi_admin_ui=v1`, so a
+deliberate old-view choice is kept; `?ui=new` switches it back.
 
 Every path (pages, `sw.js`, the manifest, `/version.json`) is served from the chosen
 folder, and each folder has its own release ID. Pages, `sw.js` and `/version.json`
@@ -64,76 +70,52 @@ use new storage keys.
 
 Invalid values stop the service: `UI_V2_PERCENT` must be a whole number from 0 to
 100 and `UI_V2_OFF` must be exactly `true` or `false` (unset means 0 and `false`).
-On admin, `ADMIN_UI_DEFAULT` must be `v1` or `v2` when nonempty; it is ignored by
-the customer service. The pre-deploy
+`ADMIN_UI_DEFAULT` (admin only) and `CUSTOMER_UI_DEFAULT` (portal only) must be
+`v1` or `v2` when nonempty; each app ignores the other's setting. The pre-deploy
 `npm run check:environment` reports invalid rollout values before a deploy.
 It only warns when a valid value differs from the Blueprint default, so a ramp or
 rollback made in Render never blocks a deploy.
 
-## Opt in or out (testers and staff)
+## Choose a version (testers, staff and support)
 
-- Open any page with `?ui=new`, for example
-  `https://staging-portal.ndahiconnect.net/login?ui=new` or
-  `https://admin.ndahiconnect.net/login?ui=new`. Check for `data-ui-variant="v2"`
-  on `<html>`.
-- Return to v1 with `?ui=old`. Clearing preferences restores admin's v2 default;
-  the portal samples the visitor again according to its own percentage.
-- Opt-ins are logged by the static servers as `ui.variant_requested` with `kind` and
-  `variant`.
+- Open any page with `?ui=old` for v1 or `?ui=new` for v2, for example
+  `https://portal.ndahiconnect.net/login?ui=old` or
+  `https://admin.ndahiconnect.net/login?ui=old`. v2 pages carry
+  `data-ui-variant="v2"` on `<html>`.
+- Clearing site data removes the choice and restores the app's default (v2).
+- Choices are logged by the static servers as `ui.variant_requested` with `kind`
+  and `variant`.
 
 ## Browser verification
 
-The existing v1 browser journey lane runs with `ADMIN_UI_DEFAULT=v1`; its labels
-and navigation assertions continue to test the retained legacy screens. Run it
-locally with `ADMIN_UI_DEFAULT=v1 npm run test:browser` (and the same prefix for
-individual legacy admin journeys). `npm run test:browser:v2` explicitly opts into
-v2. The HTTP default-policy tests use an empty environment to verify the actual
-admin v2 default, legacy preference migration, deliberate old-view preference,
-kill switch and unchanged customer selection. The role-isolation browser suite
-also verifies fresh/legacy-cookie admin defaults and explicit old/new choices at
-390 and 1280 px, then checks each role on explicitly selected v1 and v2.
-
-## Customer ramp
-
-Test customer v2 by explicit opt-in on staging, then production, before raising
-`UI_V2_PERCENT` 10 → 50 → 100 on `ndahi-customer`. Admin already defaults to v2
-and does not participate in this sampling ramp.
-
-1. Check the comparisons below for the current step.
-2. In Render, open **ndahi-customer → Environment**, set `UI_V2_PERCENT`, and save.
-   Render redeploys; `check:environment` prints a warning that the value differs
-   from `render.yaml`. That warning is expected during a rollout.
-3. Commit the same value to `render.yaml` in a small PR. A Blueprint sync applies
-   the committed value, so without this the next sync would put the old percentage
-   back.
-4. Hold each step long enough to collect comparable data (at least a few days and
-   50 page loads per version for each web-vital comparison).
-
-Changing the percentage only affects visitors without a saved choice: new visitors,
-and returning visitors whose 30-day cookie has expired. Everyone who visited while
-the percentage was 0 keeps v1 for up to 30 days. Captive-portal sign-in windows and
-private browsing often discard cookies, so those visitors are sampled again on each
-visit.
+The existing v1 browser journey lane runs with `ADMIN_UI_DEFAULT=v1` and
+`CUSTOMER_UI_DEFAULT=v1`; its labels and navigation assertions continue to test
+the retained v1 screens. Run it locally with
+`ADMIN_UI_DEFAULT=v1 CUSTOMER_UI_DEFAULT=v1 npm run test:browser` (and the same
+prefix for individual v1 journeys). `npm run test:browser:v2` explicitly opts into
+v2. The HTTP default-policy tests (`test/ui-variant.test.mjs`) use an empty
+environment to verify both v2 defaults, legacy preference migration, deliberate
+old-view choices, the kill switch and the v1-default sampling path. The cold-route
+and role-isolation browser suites (`test/redesign-browser/`) verify fresh and
+legacy-cookie defaults and explicit old/new choices at 390 and 1280 px on the
+portal and on admin.
 
 ## Roll back
 
-1. In Render, set `UI_V2_OFF=true` on `ndahi-customer`, and on `ndahi-admin` if
-   needed, then save. After the deploy every visitor receives v1, whatever their
-   cookie says. Open tabs switch at their next release check.
-2. Commit `UI_V2_OFF: "true"` to `render.yaml` straight away. Until that PR merges,
-   a Blueprint sync would set it back to `false`.
-3. Once v2 is fixed, set `UI_V2_OFF=false` on the affected service:
-   - On the customer portal, saved preferences apply again. Lowering
-     `UI_V2_PERCENT` changes only visitors without a saved choice; existing v2
-     preferences still last up to 30 days.
-   - On `ndahi-admin`, staff without a deliberate preference return to the v2
-     default. Set `ADMIN_UI_DEFAULT=v1` before lifting the kill switch if those
-     staff should stay on v1. Explicit `?ui=new` choices and legacy v2 opt-ins
-     still select v2. `UI_V2_PERCENT` has no effect on admin.
-   Keep `UI_V2_OFF=true` when everyone must be forced to v1, including explicit
-   v2 choices.
+1. To return everyone to v1 at once, set `UI_V2_OFF=true` on `ndahi-customer`
+   and/or `ndahi-admin` in Render, then save. After the deploy every visitor
+   receives v1, whatever their cookie says. Open tabs switch at their next
+   release check. Commit `UI_V2_OFF: "true"` to `render.yaml` straight away;
+   until that PR merges, a Blueprint sync would set it back to `false`.
+2. To restore the v1 default but keep deliberate v2 choices, set
+   `CUSTOMER_UI_DEFAULT=v1` (portal) or `ADMIN_UI_DEFAULT=v1` (admin) instead.
+   Visitors with `?ui=new` choices or legacy v2 cookies stay on v2; on the portal,
+   `UI_V2_PERCENT` samples everyone else again.
+3. Once v2 is fixed, lift the kill switch with `UI_V2_OFF=false` (and remove the
+   `*_UI_DEFAULT=v1` override if you set one). Visitors without a deliberate choice
+   return to the v2 default on their next navigation.
 
-To roll back a single person, send them a link with `?ui=old`.
+To move a single person, send them a link with `?ui=old` or `?ui=new`.
 
 ## What to compare before each step
 

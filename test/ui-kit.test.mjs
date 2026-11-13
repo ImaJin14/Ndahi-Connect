@@ -180,7 +180,8 @@ test("the static server serves the kit to v2 only and versions its files", async
   const base = `http://127.0.0.1:${server.address().port}`;
   const get = (path, cookie) => fetch(base + path, { redirect: "manual", headers: cookie ? { cookie } : {} });
 
-  assert.equal((await get("/ui-kit.html")).status, 404, "v1 visitors (the default) have no kit page");
+  assert.equal((await get("/ui-kit.html", "ndahi_portal_ui=v1")).status, 404, "v1 visitors have no kit page");
+  assert.equal((await get("/ui-kit.html")).status, 200, "v2 is the default");
   const response = await get("/ui-kit.html", "ndahi_ui=v2");
   assert.equal(response.status, 200);
   const html = await response.text();

@@ -99,7 +99,7 @@ The physical path remains Starlink → RB5009 → managed PoE/injector → EAP65
 
 ## Front-end redesign rollout (v1/v2)
 
-The customer portal and admin app serve the redesigned front end (`customer-app-v2/`, `admin-app-v2/`) against the same API and database. Admin defaults to v2; the customer portal still defaults to v1. Use `?ui=new` or `?ui=old` to choose an interface explicitly. `UI_V2_PERCENT` (default `0`) samples new portal visitors, and `UI_V2_OFF=true` sends everyone back to v1. Follow the [UI rollout runbook](docs/operations/ui-rollout.md) for preference migration, testing, rollout and rollback.
+The customer portal and admin app serve the redesigned front end (`customer-app-v2/`, `admin-app-v2/`) against the same API and database. Both default to v2. Use `?ui=new` or `?ui=old` to choose an interface explicitly. `CUSTOMER_UI_DEFAULT=v1` or `ADMIN_UI_DEFAULT=v1` restores an app's v1 default, and `UI_V2_OFF=true` sends everyone back to v1. Follow the [UI rollout runbook](docs/operations/ui-rollout.md) for preference migration, testing, rollout and rollback.
 
 ## Verification
 

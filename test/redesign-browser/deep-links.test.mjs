@@ -77,6 +77,39 @@ test("customer security deep links mount in fresh authenticated contexts and sur
     headless: true,
     ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}),
   });
+  // The real customer default without a query or preference, including browsers
+  // that saved the previous automatically sampled v1 interface.
+  const voucherSwitch = (page) => page.getByRole("button", { name: "Use a voucher code", exact: true });
+  for (const width of [390, 1280]) {
+    for (const legacy of [false, true]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 } });
+      await context.route("**/*", localOnly);
+      if (legacy) await context.addCookies([{ name: "ndahi_ui", value: "v1", url: portal, httpOnly: true, sameSite: "Lax" }]);
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      try {
+        await page.goto(`${portal}/login`);
+        await voucherSwitch(page).waitFor();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), "v2");
+        assert.equal((await context.cookies()).some((cookie) => cookie.name === "ndahi_portal_ui"), false, "computed defaults are not saved as preferences");
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await page.goto(`${portal}/login?ui=old`);
+        await page.locator('#login [name="code"]').waitFor();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), null);
+        assert.equal(await voucherSwitch(page).count(), 0);
+        await page.reload();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), null, "a deliberate old view survives reload");
+        await page.goto(`${portal}/login?ui=new`);
+        await voucherSwitch(page).waitFor();
+        assert.equal(await page.locator("html").getAttribute("data-ui-variant"), "v2");
+        assert.deepEqual(errors, []);
+        console.info(`PASS customer default/legacy migration and old/new choices at ${width}px (${legacy ? "legacy" : "fresh"})`);
+      } finally {
+        await context.close();
+      }
+    }
+  }
   const routes = [
     { hash: "passkeys", section: "#accountSecurity", panel: "passkeys" },
     { hash: "pin", section: "#accountSecurity", panel: "pin" },
