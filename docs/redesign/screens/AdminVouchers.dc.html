@@ -50,8 +50,8 @@ th{color:#5c6963;font-weight:600;font-size:13px}
               <div role="status" style="display: flex; flex-direction: column; gap: 12px">
                 <div style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff">
                   <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{doneTag}}</p>
-                  <p style="margin: 8px 0 4px; font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .1em">R8TW-3MXK</p>
-                  <p style="margin: 0; color: #c8d8d0; font-size: 14px">Active now on {{who}}'s account. It shows in their Internet tab and they get a notification and an email.</p>
+                  <p style="margin: 8px 0 4px; font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .1em">{{doneCode}}</p>
+                  <p style="margin: 0; color: #c8d8d0; font-size: 14px">{{doneLine}}</p>
                 </div>
                 <sc-if value="{{replaced}}" hint-placeholder-val="{{ false }}">
                   <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px">Their old [PLAN 2] bundle was ended and its devices disconnected. Logged in the audit trail.</p>
@@ -77,10 +77,22 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                 </sc-if>
 
                 <sc-if value="{{isUnknown}}" hint-placeholder-val="{{ false }}">
-                  <div style="display: flex; flex-direction: column; gap: 12px">
-                    <p style="margin: 0; padding: 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.5"><strong>No account with +237 6•• •• 99 10.</strong> A voucher can only go to a customer who has signed up. Ask them to sign up with this number, then come back here.</p>
-                    <p style="margin: 0; color: #3d4a44; font-size: 14px">Need to give them internet today? Switch to <strong>Batch</strong>, make one voucher with no reseller, and hand them the printed slip — it starts on whichever account redeems it.</p>
-                    <button type="button" class="go2" onClick="{{unpick}}">← Search again</button>
+                  <div style="display: flex; flex-direction: column; gap: 14px">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 2px dashed #b8c7bd; background: #ffffff">
+                      <span class="av" style="background: #eef0ee; color: #5c6963">?</span>
+                      <span style="flex: 1"><strong style="display: block">+237 6•• •• 99 10</strong><span style="font-size: 13px; color: #5c6963">No NDAHI account yet</span></span>
+                      <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
+                    </div>
+                    <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #e3f0ff; color: #1d4f86; font-size: 14px; line-height: 1.5">The voucher is <strong>reserved for this number</strong>. To claim it they need the number <em>and</em> the code, so give them the slip or read them the code. If they later pay with Mobile Money from this number, it's added to their account automatically.</p>
+                    <div><label class="lbl" for="vb2">Bundle</label><select class="in" id="vb2"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                      <legend class="lbl">How it was paid</legend>
+                      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+                        <label style="{{k.style}}"><input type="radio" name="sk2" checked="{{k.on}}" onChange="{{k.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{k.label}}</strong><span style="font-size: 13px; color: #5c6963">{{k.hint}}</span></span></label>
+                      </sc-for>
+                    </fieldset>
+                    <button type="button" class="go" onClick="{{give}}">Reserve [PLAN 2] for this number</button>
+                    <p style="margin: 0; color: #5c6963; font-size: 13px">Unclaimed after 90 days, it expires. You can change the number or revoke it any time before it's claimed.</p>
                   </div>
                 </sc-if>
 
@@ -143,8 +155,9 @@ th{color:#5c6963;font-weight:600;font-size:13px}
             <thead><tr><th scope="col">Code</th><th scope="col">Bundle</th><th scope="col">For</th><th scope="col">Type</th><th scope="col">Status</th></tr></thead>
             <tbody>
               <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
-                <tr><td class="code"><a href="AdminVoucherDetail.dc.html">R8TW-3MXK</a></td><td>[PLAN 2]</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">{{who}}</a></td><td>{{doneType}}</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
+                <tr><td class="code"><a href="AdminVoucherDetail.dc.html">{{doneCode}}</a></td><td>[PLAN 2]</td><td>{{doneFor}}</td><td>{{doneType}}</td><td><span style="{{donePill}}">{{doneStatus}}</span></td></tr>
               </sc-if>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">M3VX-7KQD</a></td><td>[PLAN 1]</td><td>6•• •• 57 03 · no account yet</td><td>Gift</td><td><span class="pill" style="background: #f1e8fb; color: #5b2d86">Waiting for claim</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">K7PM-42XQ</a></td><td>[PLAN 2]</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">J. Fon</a></td><td>Gift</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">B2RT-9WNA</a></td><td>[PLAN 1]</td><td>Batch B-1029-01</td><td>Sold</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Used up</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">QF83-ZK4M</a></td><td>[PLAN 2]</td><td>Batch B-1105-02 · [RESELLER]</td><td>Sold</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
@@ -199,7 +212,12 @@ class Component extends DCLogic {
       kinds, confirmed: s.confirmed, flipConfirm: set({ confirmed: !s.confirmed }),
       blocked, giveLabel: s.kind === 'gift' ? 'Give [PLAN 2] as a gift' : 'Give [PLAN 2] — sold',
       give: () => { if (!blocked) this.setState({ done: true }); },
-      replaced: p.active,
+      replaced: p.active && s.pick !== 'unknown',
+      doneCode: s.pick === 'unknown' ? 'P4NE-2WJH' : 'R8TW-3MXK',
+      doneLine: s.pick === 'unknown' ? 'Reserved for +237 6•• •• 99 10. Give them this code: they claim it with their number when they sign up. Expires 11 Feb 2027 if unclaimed.' : `Active now on ${p.who}'s account. It shows in their Internet tab and they get a notification and an email.`,
+      doneFor: s.pick === 'unknown' ? '6•• •• 99 10 · no account yet' : p.who,
+      doneStatus: s.pick === 'unknown' ? 'Waiting for claim' : 'In use',
+      donePill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (s.pick === 'unknown' ? 'background: #f1e8fb; color: #5b2d86;' : 'background: #eaf6d5; color: #345000;'),
       doneTag: (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · 5 GB · 7 days',
       doneType: s.kind === 'gift' ? 'Gift' : 'Sold',
       reset: set({ done: false, pick: null, confirmed: false, kind: 'sold' })

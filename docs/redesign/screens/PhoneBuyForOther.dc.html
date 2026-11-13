@@ -95,14 +95,14 @@ class Component extends DCLogic {
     const go = (step) => () => this.setState({ step });
     const on = 'border: 2px solid #003b2b; background: #f3f9e8;', off = 'border: 1px solid #dfe5dc; background: #fffef9;';
     const cases = [
-      ['noAccount', 'No NDAHI account yet', "We'll give you a code to send them. It's linked to their number, so it's theirs when they sign up or enter it."],
+      ['noAccount', 'No NDAHI account yet', "We'll give you a code to send them. They claim it with the code and their own number, so nobody else can use it."],
       ['hasAccount', 'Mama Ngum · NDAHI customer', "It goes straight to her account and she gets a notification. No code to pass on."],
       ['activeBundle', 'Mama Ngum · bundle active until 18 Nov', "She can only use it once her current bundle ends. It's saved in her account until then."]
     ].map(([id, title, sub]) => ({ title, sub, pressed: s.who === id ? 'true' : 'false', style: s.who === id ? on : off, pick: () => this.setState({ who: id }) }));
     const plans = [['p1', '[PLAN 1]', '1 GB · 1 day'], ['p2', '[PLAN 2]', '5 GB · 7 days'], ['p3', '[PLAN 3]', '15 GB · 30 days']]
       .map(([id, name, detail]) => ({ name, detail, pressed: s.plan === id ? 'true' : 'false', style: s.plan === id ? on : off, pick: () => this.setState({ plan: id }) }));
     const done = {
-      noAccount: ['Paid — now send it', "Share the code with Mama Ngum on WhatsApp or show her the QR. It only works for 6•• •• 88 21. The 7 days start when she uses it."],
+      noAccount: ['Paid — now send it', "Send Mama Ngum the code on WhatsApp or show her the QR. She claims it with the code and her number 6•• •• 88 21, and the 7 days start when she chooses."],
       hasAccount: ['Sent to Mama Ngum', "It's in her account now and she's been notified. The code below is a backup in case she asks."],
       activeBundle: ['Saved for Mama Ngum', "It's waiting in her account and starts when her current bundle ends on 18 Nov. She's been notified."]
     }[s.who];

@@ -184,7 +184,7 @@
       "expand": "fill",
       "h": 1020,
       "is_interactive": true,
-      "title": "Vouchers",
+      "title": "Vouchers (one customer \u00b7 unregistered number \u00b7 batch)",
       "w": 1280,
       "x": 1360,
       "y": 7796
@@ -535,7 +535,7 @@
       "expand": "fill",
       "h": 1020,
       "is_interactive": true,
-      "title": "Voucher detail",
+      "title": "Voucher detail (in use \u00b7 not used \u00b7 used up \u00b7 waiting for claim)",
       "w": 1280,
       "x": 5440,
       "y": 10076
@@ -605,6 +605,14 @@
       "w": 1280,
       "x": 1360,
       "y": 14644
+    },
+    "PhoneClaimGift.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Claim a bundle someone gave you (number + code \u2192 PIN \u2192 start)",
+      "w": 390,
+      "x": 3290,
+      "y": 13200
     }
   },
   "createdOnFiles": {
@@ -627,7 +635,8 @@
     "guest",
     "row8",
     "row9",
-    "added"
+    "added",
+    "claim"
   ],
   "notes": {
     "guest": {
@@ -725,6 +734,14 @@
       "w": 380,
       "x": 2820,
       "y": 13200
+    },
+    "claim": {
+      "fill": "blue",
+      "size": 24,
+      "text": "Unregistered numbers:\n\n1. Admin \u2192 Vouchers \u2192 search a number with no account \u2192 Reserve for this number.\n2. They claim it with their number + the code (Sign in \u2192 \"Someone gave you a bundle?\").\n3. Voucher detail \u2192 Waiting for claim: change number, revoke, 90-day expiry.\n\nNo SMS: the code is the proof. Paying with Mobile Money from that number also claims it automatically.",
+      "w": 380,
+      "x": 3760,
+      "y": 13200
     }
   },
   "order": [
@@ -798,6 +815,7 @@
     "ResellerHome.dc.html",
     "AdminInsights.dc.html",
     "AdminOutage.dc.html",
+    "PhoneClaimGift.dc.html",
     "TabBar.dc.html",
     "AdminSide.dc.html"
   ],

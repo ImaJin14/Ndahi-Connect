@@ -22,7 +22,9 @@ Settled with the owner during design. Don't reopen these in a PR; if one looks w
 ## Giving a voucher to a customer
 
 - Admin → Vouchers has two modes: **For one customer** and **Batch to print or sell**. Customer detail links to the first.
-- Find the customer by name or phone number. Only existing accounts can receive one (matches `POST /api/admin/vouchers/generate` with a `customerId`). A number with no account gets told to sign up first, or is handed an unassigned voucher from a batch of one.
+- Find the customer by name or phone number. For an existing account it works like v1's `POST /api/admin/vouchers/generate` with a `customerId`.
+- **A number with no account:** the admin can reserve the voucher for that number. To claim it, the person enters their number **and** the code (on the slip, or read to them) at "Someone gave you a bundle?" on sign-in, creates a PIN, then starts it now or later. There is no SMS: the code is the proof of ownership. Paying with Mobile Money from that number also claims it automatically. Unclaimed reservations expire after 90 days. Before they're claimed, the admin can change the number (the old number can't claim it any more) or revoke it. Claim attempts are rate-limited (5 wrong tries, then a 15-minute wait).
+- "Buy for someone else" uses the same mechanism.
 - Mark it **Sold** (revenue) or **Gift** (no revenue). Only owners and operators can do this.
 - It starts immediately. If the customer already has an active bundle, the admin must tick a confirmation; the old bundle ends and its devices are disconnected (existing replace behaviour, audited).
 
@@ -59,7 +61,10 @@ Front-end phases stay front-end. These are separate, small server tasks, each it
 
 1. **Last-active per customer** for the Customers filter (derive from voucher history).
 2. **Payment failure reasons**: map provider responses to `declined`, `low_balance`, `timeout`, `wrong_network`. Timeouts must keep polling and never allow a second charge for the same attempt.
-3. **Vouchers bound to a phone number**: covers buying for someone else and giving a voucher to an unregistered number. The voucher is claimable only by the account with that number.
+3. **Vouchers reserved for a phone number**: covers buying for someone else and giving a voucher to an unregistered number.
+   - Claiming needs the number and the code, rate-limited per number. A Mobile Money payment from that number claims it automatically.
+   - Unclaimed reservations expire after 90 days. The admin can change the number or revoke it, and both are audited.
+   - Starting the bundle is a separate step from claiming it.
 4. **Outages**: an outage record (area, start, end, messages in EN and FR) shown on the hotspot page and portal, plus "add time to bundles active during [start, end]" as one audited action.
 5. **Speed limit per bundle**: store download and upload Mbps on the plan and apply it as a MikroTik queue when the voucher syncs.
 6. **Bulk actions**: give a gift voucher and send a notification to many customers in one audited request.

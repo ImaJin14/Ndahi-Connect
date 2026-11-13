@@ -6,7 +6,7 @@ Everything an agent needs to build the redesign is in this folder. It was assemb
 | --- | --- |
 | [`execution-plan.md`](execution-plan.md) | The eight phases, done-when criteria, testing bar, risks, and which agent leads each phase. **Start here.** |
 | [`decisions.md`](decisions.md) | Product decisions already made, and the open questions the owner still has to answer. |
-| [`screens/`](screens/) | Source of all 72 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
+| [`screens/`](screens/) | Source of all 73 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
 | [`usability-test.md`](usability-test.md) | Five-person test to run before ramping the new design past 10%. |
 | [`prompts/`](prompts/) | Ready-to-run prompts, one per PR. `phase-0-rollout-switch.md` is first. |
 | [`../../AGENTS.md`](../../AGENTS.md) | Rules every agent follows (Claude Code, Antigravity, Codex, Copilot). |
@@ -30,7 +30,7 @@ PNG exports of each screen can be added to `screens/png/`, named like the artboa
 
 ## Screen index
 
-**Customer — phone:** PhoneHome, PhoneInternet, PhoneShop, PhoneActivity, PhoneAccount (the five tabs, with `TabBar`); PhoneBuyBundle, PhoneCheckout, PhoneOrder, PhoneProduct, PhoneReceipt, PhoneVoucher, PhoneVoucherReady, `VoucherSlip`; PhoneScanConnect, PhoneScanNoBundle, PhoneHotspot, PhoneWifiConnected; PhoneLogin, PhonePasskey, PhoneForgotPin, PhoneChangePin, PhoneSessions, PhoneEditProfile; PhoneDevices, PhonePairRequest, PhonePairReview; PhoneNotifications, PhoneHelp, PhoneBillingTerms, PhoneHomeRouter; PhonePaymentFailed, PhoneRenew, PhoneBuyForOther, PhoneOutage, PhoneHomeFR (French check).
+**Customer — phone:** PhoneHome, PhoneInternet, PhoneShop, PhoneActivity, PhoneAccount (the five tabs, with `TabBar`); PhoneBuyBundle, PhoneCheckout, PhoneOrder, PhoneProduct, PhoneReceipt, PhoneVoucher, PhoneVoucherReady, `VoucherSlip`; PhoneScanConnect, PhoneScanNoBundle, PhoneHotspot, PhoneWifiConnected; PhoneLogin, PhonePasskey, PhoneForgotPin, PhoneChangePin, PhoneSessions, PhoneEditProfile; PhoneDevices, PhonePairRequest, PhonePairReview; PhoneNotifications, PhoneHelp, PhoneBillingTerms, PhoneHomeRouter; PhonePaymentFailed, PhoneRenew, PhoneBuyForOther, PhoneOutage, PhoneHomeFR (French check), PhoneClaimGift.
 
 **Customer — desktop:** Main (home), DesktopInternet, DesktopActivity, DesktopAccount, Shop, ProductDesktop.
 
