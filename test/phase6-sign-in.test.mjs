@@ -153,3 +153,58 @@ test("support removes a customer's lost passkeys after the recorded identity che
   assert.equal(s.dashboardSessions.some((session) => session.customerId === customerId), false);
   assert.ok(JSON.stringify(s).includes("Passkeys were removed from your NDAHI account"));
 });
+
+// #245: a recovery proof authorizes exactly the action it was made for.
+test("a recovery proof made for one action never runs the other, and nothing changes", async (t) => {
+  const f = await fixture(t), customerKey = keyFixture();
+  await f.store.transaction((s) => { s.customers[0].passkeys = [customerKey.key]; });
+  const before = await f.store.snapshot(), customerId = before.customers[0].id;
+  const fields = { customerId, caseReference: "CASE-2026-245", reason: "Customer verified in person at the office.", verificationMethod: "in_person", confirmedIdentity: true };
+  const unchanged = async (label) => {
+    const s = await f.store.snapshot(), c = s.customers.find((x) => x.id === customerId), was = before.customers.find((x) => x.id === customerId);
+    assert.equal((c.passkeys || []).length, 1, `${label}: passkeys kept`);
+    assert.equal(s.pinResetChallenges.length, before.pinResetChallenges.length, `${label}: no recovery code`);
+    assert.equal(s.dashboardSessions.filter((x) => x.customerId === customerId).length, before.dashboardSessions.filter((x) => x.customerId === customerId).length, `${label}: sessions kept`);
+    assert.equal(c.supportRecoveryIssuedAt, was.supportRecoveryIssuedAt, `${label}: no recovery issued`);
+  };
+  // Contradictory fields are refused before any proof is spent.
+  const pinProof = await f.prove("support_recovery", { ...fields, recoveryPurpose: "pin" });
+  const swapped = await f.call("/api/admin/customers/recovery", { ...fields, recoveryPurpose: "pin", purpose: "passkeys", ...pinProof });
+  assert.equal(swapped.status, 400); assert.equal(swapped.body.code, "RECOVERY_ACTION_MISMATCH");
+  await unchanged("pin proof, contradictory fields");
+  // A PIN-recovery proof cannot remove passkeys.
+  const pinProof2 = await f.prove("support_recovery", { ...fields, recoveryPurpose: "pin" });
+  const pinForPasskeys = await f.call("/api/admin/customers/recovery", { ...fields, purpose: "passkeys", ...pinProof2 });
+  assert.equal(pinForPasskeys.status, 400); assert.equal(pinForPasskeys.body.code, "VERIFICATION_FAILED");
+  await unchanged("pin proof used for passkeys");
+  // A passkey-removal proof cannot issue a PIN recovery code.
+  const keyProof = await f.prove("support_recovery", { ...fields, recoveryPurpose: "passkeys" });
+  const keysForPin = await f.call("/api/admin/customers/recovery", { ...fields, purpose: "pin", ...keyProof });
+  assert.equal(keysForPin.status, 400); assert.equal(keysForPin.body.code, "VERIFICATION_FAILED");
+  assert.equal(keysForPin.body.recoveryCode, undefined);
+  await unchanged("passkeys proof used for a PIN code");
+  // With only recoveryPurpose, the proved action is the one that runs: never a PIN code.
+  const keyProof2 = await f.prove("support_recovery", { ...fields, recoveryPurpose: "passkeys" });
+  const onlyRecovery = await f.call("/api/admin/customers/recovery", { ...fields, recoveryPurpose: "passkeys", ...keyProof2 });
+  assert.equal(onlyRecovery.status, 200, JSON.stringify(onlyRecovery.body));
+  assert.equal(onlyRecovery.body.recoveryCode, undefined, "no PIN recovery code from a passkey proof");
+  const after = await f.store.snapshot();
+  assert.equal(after.pinResetChallenges.length, before.pinResetChallenges.length);
+  assert.equal(after.customers.find((c) => c.id === customerId).passkeys.length, 0);
+});
+
+// #245: a passkey-only sign-in started before the cutover cannot finish after it.
+test("a passkey-only challenge from before the cutover is refused after it, once", async (t) => {
+  const f = await fixture(t);
+  const options = await f.request("/api/admin/passkey/options", { username: "owner" });
+  assert.equal(options.status, 200, "before the cutover the old path still starts");
+  const sessions = (await f.store.snapshot()).adminSessions.length;
+  await f.store.transaction((s) => { s.zone = { ...(s.zone || {}), authenticatorRetirement: { version: 1, retiredAt: new Date().toISOString() } }; });
+  const response = f.owner.assertion(options.body.options);
+  const late = await f.request("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response });
+  assert.equal(late.status, 409); assert.equal(late.body.code, "PIN_STEP_REQUIRED");
+  assert.equal(late.cookie, "", "no session");
+  const replay = await f.request("/api/admin/passkey/verify", { challengeId: options.body.challengeId, response });
+  assert.equal(replay.status, 401, "the challenge was spent");
+  assert.equal((await f.store.snapshot()).adminSessions.length, sessions);
+});

@@ -30,7 +30,7 @@ await f.store.transaction(async (s) => {
   s.zone = { ...(s.zone || {}), authenticatorRetirement: { version: 1, retiredAt: new Date().toISOString() } };
 });
 const screenshots = "/tmp/ndahi-phase6-sign-in";
-let browser, checks = 0;
+let browser, page, checks = 0;
 try {
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
@@ -38,7 +38,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 900 } }), errors = [];
   await context.addCookies([{ name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" }]);
   await context.route("**/*", (route) => origins.has(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
-  const page = await context.newPage(); page.setDefaultTimeout(20000); page.on("pageerror", (error) => errors.push(error.message));
+  page = await context.newPage(); page.setDefaultTimeout(20000); page.on("pageerror", (error) => errors.push(error.message));
   const cdp = await context.newCDPSession(page); await cdp.send("WebAuthn.enable");
   await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
   const signIn = async (email, value) => {
@@ -79,6 +79,45 @@ try {
   await page.waitForURL(/\/dashboard/);
   console.log("PASS email + PIN, then the passkey, opens the admin"); checks++;
 
+  // Both sign-in steps at desktop width too (#245).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await context.clearCookies({ name: "admin_session" });
+  await signIn("owner@ndahi.test", pin);
+  await page.getByRole("heading", { name: "Confirm with your passkey.", exact: true }).waitFor();
+  assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: `${screenshots}/admin-passkey-step-1280.png`, fullPage: true });
+  await page.getByRole("button", { name: "Use passkey", exact: true }).click();
+  await page.waitForURL(/\/dashboard/);
+  console.log("PASS both sign-in steps at 390 and 1280"); checks++;
+
+  // Support removes a customer's lost passkeys (canvas: AdminCustomerDetail):
+  // the audited form, then fresh proof: the PIN at 390, the passkey at 1280.
+  const customerId = (await f.store.snapshot()).customers[0].id;
+  for (const [width, proof] of [[390, "pin"], [1280, "passkey"]]) {
+    await f.store.transaction((s) => { s.customers[0].passkeys = [{ id: `lost-${width}`, publicKey: "lost-key", counter: 0, label: "Lost phone", createdAt: new Date().toISOString() }]; });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${admin}/dashboard#customer/${encodeURIComponent(customerId)}`);
+    await page.getByRole("button", { name: "Remove lost passkeys", exact: true }).click();
+    const form = page.locator("[data-authenticator-recovery]");
+    await form.getByRole("heading", { name: "Remove lost passkeys", exact: true }).waitFor();
+    await form.getByLabel("Support case reference").fill(`CASE-P6-${width}`);
+    await form.getByLabel("Reason and verification notes").fill("Phone lost; identity checked at the office.");
+    await form.getByLabel("I verified this customer's identity.").check();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/admin-remove-passkeys-${width}.png`, fullPage: true });
+    await form.getByRole("button", { name: "Verify and remove passkeys", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Verify administrator action" });
+    if (proof === "pin") {
+      await dialog.getByLabel("Current administrator PIN").fill(pin);
+      await dialog.getByRole("button", { name: "Verify PIN", exact: true }).click();
+    } else await dialog.getByRole("button", { name: "Verify with passkey", exact: true }).click();
+    await form.getByRole("heading", { name: "Passkeys removed", exact: true }).waitFor();
+    assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 0);
+  }
+  console.log("PASS support removes a customer's lost passkeys with PIN or passkey proof at 390 and 1280"); checks++;
+
   // Customer sign-in leads with phone + PIN; the voucher code is the second path.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(portal + "/login");
@@ -96,6 +135,8 @@ try {
   console.log("PASS customers sign in with phone + PIN; the voucher code is the second path"); checks++;
   for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 900 });
+    // Leave the dashboard first: its signed-out redirect must not race this visit.
+    await page.goto("about:blank");
     await context.clearCookies({ name: "customer_session" });
     await page.goto(portal + "/login");
     await page.locator("#customerPin").waitFor();
@@ -106,6 +147,10 @@ try {
   assert.deepEqual(errors, []);
   await context.close();
   console.log(`${checks} Phase 6 sign-in journeys passed.`);
+} catch (error) {
+  // CI keeps this page for the failure artifact.
+  await page?.screenshot({ path: `${screenshots}/failure.png`, fullPage: true }).catch(() => {});
+  throw error;
 } finally {
   await browser?.close();
   await f.close?.();

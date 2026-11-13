@@ -44,6 +44,12 @@ An administrator without a passkey depends on the cutover:
 
 Follow `authenticator-retirement.md`. Back up, run on staging, check the sign-in journeys there, then run on production with `--apply --expected-digest <reviewed digest>`. From that moment every administrator signs in with PIN + passkey.
 
+## Review fixes (#245)
+
+- **Recovery proofs are bound to the action that runs.** The recovery route settles on one action (`purpose`, or else `recoveryPurpose`, default PIN) and refuses contradictory fields before any proof is spent. The fresh proof is checked against that same action. A PIN-recovery proof cannot remove passkeys, and a passkey-removal proof cannot issue a PIN code. Negative tests confirm that no passkey, session or recovery code changes.
+- **No passkey-only sign-in after the cutover**, even for a challenge started before it. `/api/admin/passkey/verify` refuses with `PIN_STEP_REQUIRED` once the retirement marker exists. The challenge is spent, so it cannot be replayed.
+- **CI runs the Phase 6 journey** (job `phase6-sign-in` in `.github/workflows/redesign-regressions.yml`), with failure screenshots kept as an artifact. The journey now also checks both admin sign-in steps at 1280, and support removing a customer's passkeys with a PIN proof (390) and a passkey proof (1280).
+
 ## Evidence
 
 - Unit: `test/phase6-sign-in.test.mjs` covers the two-step flow, the single-use step, the before/after cutover behaviour, email changes, owner removal of staff passkeys and support removal of customer passkeys. The retirement tests were updated to the two-step flow.
