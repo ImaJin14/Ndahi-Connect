@@ -6,7 +6,7 @@ Everything an agent needs to build the redesign is in this folder. It was assemb
 | --- | --- |
 | [`execution-plan.md`](execution-plan.md) | The eight phases, done-when criteria, testing bar, risks, and which agent leads each phase. **Start here.** |
 | [`decisions.md`](decisions.md) | Product decisions already made, and the open questions the owner still has to answer. |
-| [`screens/`](screens/) | Source of all 65 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
+| [`screens/`](screens/) | Source of all 64 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
 | [`prompts/`](prompts/) | Ready-to-run prompts, one per PR. `phase-0-rollout-switch.md` is first. |
 | [`../../AGENTS.md`](../../AGENTS.md) | Rules every agent follows (Claude Code, Antigravity, Codex, Copilot). |
 
