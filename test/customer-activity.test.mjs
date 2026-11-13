@@ -15,22 +15,23 @@ function state() {
   customer("a", "Amina", 90); customer("b", "Fon", 60); customer("c", "Ekane", 80); customer("d", "Grace", 41);
   customer("e", "Nji", 70, { status: "suspended" }); customer("f", "New", 0); customer("g", "Unused", 20); customer("h", "Revoked", 50);
   const voucher = (id, customerId, status, extra = {}) => s.vouchers.push({ id, customerId, status, planId: "weekly", quotaBytes: null, usedBytes: 0, deviceLimit: 1, ...extra });
-  voucher("va", "a", "active", { activatedAt: daysAgo(2), expiresAt: daysAgo(-5) });
+  // The router read customer a's device a minute ago: online now.
+  voucher("va", "a", "active", { activatedAt: daysAgo(2), expiresAt: daysAgo(-5), wifiDevicesAt: new Date(+now - 60000).toISOString(), wifiDevices: [{ mac: "AA:BB:CC:DD:EE:01", sessionId: "r1", startedAt: daysAgo(1) }] });
   voucher("vb", "b", "expired", { activatedAt: daysAgo(16), expiresAt: daysAgo(9) });
   voucher("vb-old", "b", "expired", { activatedAt: daysAgo(40), expiresAt: daysAgo(33) });
   voucher("vc", "c", "exhausted", { activatedAt: daysAgo(45), exhaustedAt: daysAgo(42), expiresAt: daysAgo(38) });
   voucher("ve", "e", "active", { activatedAt: daysAgo(1), expiresAt: daysAgo(-6) });
   voucher("vg", "g", "available", { createdAt: daysAgo(3) });
   voucher("vh", "h", "revoked", { activatedAt: daysAgo(20), expiresAt: daysAgo(13) });
-  s.sessions.push({ id: "s1", customerId: "a", voucherId: "va", status: "online" },
-    { id: "s2", customerId: "b", voucherId: "vb", status: "inactive", connectedAt: daysAgo(12), disconnectedAt: daysAgo(10) });
+  // A legacy app session is not a Wi-Fi connection.
+  s.sessions.push({ id: "s1", customerId: "d", status: "online" });
   return s;
 }
 
 test("activity is derived from voucher history", () => {
   const activity = customerActivity(state(), { now, staleDays: 30 }), get = (id) => activity.get(id);
   assert.deepEqual(get("a"), { state: "active", online: true, hasBundle: true, neverBought: false, idleDays: null, lastEndedAt: null, lastSeenAt: now.toISOString(), joinedAt: daysAgo(90) });
-  assert.equal(get("b").lastSeenAt, daysAgo(10), "last seen is the device's latest connection");
+  assert.equal(get("d").online, false, "a legacy app session is not online on Wi-Fi");
   assert.equal(get("d").lastSeenAt, null);
   assert.deepEqual([get("b").state, get("b").idleDays, get("b").lastEndedAt], ["active", 9, daysAgo(9)], "the latest ended bundle counts");
   assert.deepEqual([get("c").state, get("c").idleDays], ["stale", 42], "a quota cut-off ends a bundle when it happened");
