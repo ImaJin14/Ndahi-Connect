@@ -613,6 +613,14 @@
       "w": 390,
       "x": 3290,
       "y": 13200
+    },
+    "ConnectFlow.dc.html": {
+      "h": 2780,
+      "is_interactive": true,
+      "title": "Get connected \u2014 full flow (5 paths + recoveries)",
+      "w": 2400,
+      "x": -2700,
+      "y": 1300
     }
   },
   "createdOnFiles": {
@@ -636,7 +644,8 @@
     "row8",
     "row9",
     "added",
-    "claim"
+    "claim",
+    "flow"
   ],
   "notes": {
     "guest": {
@@ -742,6 +751,14 @@
       "w": 380,
       "x": 3760,
       "y": 13200
+    },
+    "flow": {
+      "kind": "title1",
+      "maxW": 2400,
+      "text": "Flow \u2014 get connected, end to end",
+      "w": 240,
+      "x": -2700,
+      "y": 1000
     }
   },
   "order": [
@@ -752,6 +769,7 @@
     "DesktopActivity.dc.html",
     "DesktopAccount.dc.html",
     "ProductDesktop.dc.html",
+    "ConnectFlow.dc.html",
     "PhoneHotspot.dc.html",
     "PhoneLogin.dc.html",
     "PhoneWifiConnected.dc.html",

@@ -6,7 +6,7 @@ Everything an agent needs to build the redesign is in this folder. It was assemb
 | --- | --- |
 | [`execution-plan.md`](execution-plan.md) | The eight phases, done-when criteria, testing bar, risks, and which agent leads each phase. **Start here.** |
 | [`decisions.md`](decisions.md) | Product decisions already made, and the open questions the owner still has to answer. |
-| [`screens/`](screens/) | Source of all 73 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
+| [`screens/`](screens/) | Source of all 74 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
 | [`usability-test.md`](usability-test.md) | Five-person test to run before ramping the new design past 10%. |
 | [`prompts/`](prompts/) | Ready-to-run prompts, one per PR. `phase-0-rollout-switch.md` is first. |
 | [`../../AGENTS.md`](../../AGENTS.md) | Rules every agent follows (Claude Code, Antigravity, Codex, Copilot). |
@@ -29,6 +29,8 @@ Screens are 390 × 844 (phone, `Phone*`), 1280 wide (desktop, `Desktop*`, `Shop`
 PNG exports of each screen can be added to `screens/png/`, named like the artboards (`PhoneHome.png`). Until then, ask the owner for a screenshot of the screen you're building, or a link to the canvas. Agents with a browser (Antigravity) should compare their result against the PNG at 390 px and 1280 px.
 
 ## Screen index
+
+**Flow board:** ConnectFlow — every get-connected path on one board, built from the real screens.
 
 **Customer — phone:** PhoneHome, PhoneInternet, PhoneShop, PhoneActivity, PhoneAccount (the five tabs, with `TabBar`); PhoneBuyBundle, PhoneCheckout, PhoneOrder, PhoneProduct, PhoneReceipt, PhoneVoucher, PhoneVoucherReady, `VoucherSlip`; PhoneScanConnect, PhoneScanNoBundle, PhoneHotspot, PhoneWifiConnected; PhoneLogin, PhonePasskey, PhoneForgotPin, PhoneChangePin, PhoneSessions, PhoneEditProfile; PhoneDevices, PhonePairRequest, PhonePairReview; PhoneNotifications, PhoneHelp, PhoneBillingTerms, PhoneHomeRouter; PhonePaymentFailed, PhoneRenew, PhoneBuyForOther, PhoneOutage, PhoneHomeFR (French check), PhoneClaimGift.
 
