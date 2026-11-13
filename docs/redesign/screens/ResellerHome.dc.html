@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reseller home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:12px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none}
+.st{padding:12px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
+.st b{display:block;font-size:20px;color:#003b2b}
+.st span{font-size:12px;color:#5c6963}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 16px 18px 20px">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="display: flex; align-items: center; gap: 10px"><span style="width: 34px; height: 34px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NC</span><span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 19px">NDAHI</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700">RESELLER</small></span></span>
+      <a href="AdminLogin.dc.html" style="color: #dce8e2; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center">Sign out</a>
+    </div>
+    <h1 style="margin: 16px 0 2px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">Market kiosk</h1>
+    <p style="margin: 0; color: #c8d8d0; font-size: 13px">Brenda · keeps [RATE]% of each sale</p>
+  </header>
+
+  <main style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div class="st"><b>{{stock}}</b><span>codes in hand</span></div>
+      <div class="st"><b>{{sold}}</b><span>sold this week</span></div>
+      <div class="st" style="background: #fff4e0; border-color: #f0d9b0"><b style="color: #6b3a00">[XAF]</b><span>to pay NDAHI</span></div>
+    </div>
+
+    <sc-if value="{{selling}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Sell a code" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; text-align: center; display: flex; flex-direction: column; gap: 10px">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Show the customer · [PLAN 2]</p>
+        <p style="margin: 0; font: 700 28px ui-monospace, Menlo, monospace; letter-spacing: .1em">W9LD-6PRC</p>
+        <div role="img" aria-label="QR code for W9LD-6PRC" style="margin: 0 auto; width: 128px; height: 128px; border-radius: 10px; border: 7px solid #ffffff; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 16px 16px"></div>
+        <p style="margin: 0; color: #c8d8d0; font-size: 13px">They scan it, or type it on the Wi-Fi page. Take [PRICE] FCFA cash.</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+          <button type="button" onClick="{{cancel}}" style="min-height: 48px; border-radius: 10px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #ffffff; font: 700 15px 'DM Sans', sans-serif; cursor: pointer">Cancel</button>
+          <button type="button" onClick="{{markSold}}" style="min-height: 48px; border: 0; border-radius: 10px; background: #b9ee2e; color: #15210c; font: 700 15px 'DM Sans', sans-serif; cursor: pointer">Cash received</button>
+        </div>
+      </section>
+    </sc-if>
+    <sc-if value="{{notSelling}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <sc-if value="{{justSold}}" hint-placeholder-val="{{ false }}">
+          <p role="status" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 700">Sold W9LD-6PRC · [PRICE] FCFA added to what you collected</p>
+        </sc-if>
+        <label for="sp" style="font-size: 13px; font-weight: 600">Bundle to sell</label>
+        <select id="sp" style="min-height: 48px; padding: 0 12px; border-radius: 10px; border: 1px solid #b8c7bd; background: #ffffff; font: 15px 'DM Sans', sans-serif"><option>[PLAN 1] · 4 in hand</option><option selected="">[PLAN 2] · 7 in hand</option><option>[PLAN 3] · 1 in hand</option></select>
+        <button type="button" class="btn" onClick="{{sell}}">Sell a code</button>
+      </div>
+    </sc-if>
+
+    <section aria-labelledby="sk">
+      <h2 id="sk" style="margin: 0 0 2px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 19px">Your money</h2>
+      <div class="row"><span style="color: #5c6963">Collected this week</span><strong>[XAF]</strong></div>
+      <div class="row"><span style="color: #5c6963">Your commission</span><strong>[XAF]</strong></div>
+      <div class="row"><span style="color: #5c6963">Paid to NDAHI · 10 Nov</span><strong>[XAF]</strong></div>
+      <div class="row" style="border-bottom: 0"><span style="font-weight: 700">Still to pay NDAHI</span><strong style="color: #6b3a00">[XAF]</strong></div>
+    </section>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto">
+      <button type="button" class="btn2" onClick="{{ask}}">{{askLabel}}</button>
+      <a class="btn2" href="AdminVoucherPrint.dc.html">Print my codes</a>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { selling: false, sold: 18, stock: 12, justSold: false, asked: false }; }
+  renderVals() {
+    const s = this.state;
+    return {
+      stock: s.stock, sold: s.sold, selling: s.selling, notSelling: !s.selling, justSold: s.justSold,
+      sell: () => this.setState({ selling: true, justSold: false }),
+      cancel: () => this.setState({ selling: false }),
+      markSold: () => this.setState({ selling: false, justSold: true, sold: s.sold + 1, stock: s.stock - 1 }),
+      askLabel: s.asked ? 'Request sent' : 'Ask for more codes', ask: () => this.setState({ asked: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

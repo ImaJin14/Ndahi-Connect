@@ -13,7 +13,7 @@
 body{margin:0}
 </style>
 </helmet>
-<div style="width: 240px; min-height: 860px; box-sizing: border-box; padding: 18px 12px 24px; background: #003b2b; color: #ffffff; font-family: 'DM Sans', system-ui, sans-serif">
+<div style="width: 240px; min-height: 900px; box-sizing: border-box; padding: 18px 12px 24px; background: #003b2b; color: #ffffff; font-family: 'DM Sans', system-ui, sans-serif">
   <a href="Admin.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 8px; color: #ffffff; text-decoration: none">
     <span style="width: 36px; height: 36px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 12px">NC</span>
     <span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 19px">NDAHI</strong><small style="color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700">ADMIN</small></span>
@@ -31,7 +31,7 @@ body{margin:0}
   <a href="AdminLogin.dc.html" style="display: flex; align-items: center; min-height: 40px; margin-top: 18px; padding: 0 12px; border-radius: 8px; color: #dce8e2; text-decoration: none; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,.18)">Sign out</a>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["home","devices","connections","homerouters","setup","bundles","vouchers","payments","store","products","cash","customers","resellers","audit","profile"],"default":"home"},"$preview":{"width":240,"height":860}}'>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["home","devices","connections","homerouters","setup","bundles","vouchers","payments","store","products","cash","customers","resellers","audit","profile","insights","outages"],"default":"home"},"$preview":{"width":240,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     const current = this.props.current ?? 'home';
@@ -41,8 +41,8 @@ class Component extends DCLogic {
       return { label, href, badge: badge || '', cur: on ? 'page' : 'false', style: base + (on ? 'background: rgba(185,238,46,.16); color: #b9ee2e;' : 'color: #dce8e2;') };
     };
     const groups = [
-      { title: '', items: [item('home', 'Home', 'Admin.dc.html')] },
-      { title: 'Network', items: [item('devices', 'Live devices', 'AdminDevices.dc.html'), item('connections', 'Connections', 'AdminConnections.dc.html'), item('homerouters', 'Home routers', 'AdminHomeRouters.dc.html'), item('setup', 'Network setup', 'AdminNetworkSetup.dc.html')] },
+      { title: '', items: [item('home', 'Home', 'Admin.dc.html'), item('insights', 'Insights', 'AdminInsights.dc.html')] },
+      { title: 'Network', items: [item('devices', 'Live devices', 'AdminDevices.dc.html'), item('connections', 'Connections', 'AdminConnections.dc.html'), item('outages', 'Outages', 'AdminOutage.dc.html'), item('homerouters', 'Home routers', 'AdminHomeRouters.dc.html'), item('setup', 'Network setup', 'AdminNetworkSetup.dc.html')] },
       { title: 'Sales', items: [item('bundles', 'Bundles', 'AdminBundles.dc.html'), item('vouchers', 'Vouchers', 'AdminVouchers.dc.html'), item('payments', 'Payments', 'AdminPayments.dc.html', '2'), item('store', 'Store orders', 'AdminStore.dc.html', '3'), item('products', 'Products', 'AdminProducts.dc.html'), item('cash', 'Cash & settlements', 'AdminCash.dc.html')] },
       { title: 'People', items: [item('customers', 'Customers', 'AdminCustomers.dc.html'), item('resellers', 'Resellers', 'AdminResellers.dc.html')] },
       { title: 'System', items: [item('audit', 'Audit log', 'AdminAudit.dc.html'), item('profile', 'Profile & security', 'AdminProfile.dc.html')] }
