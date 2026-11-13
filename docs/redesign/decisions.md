@@ -26,6 +26,18 @@ Settled with the owner during design. Don't reopen these in a PR; if one looks w
 - Mark it **Sold** (revenue) or **Gift** (no revenue). Only owners and operators can do this.
 - It starts immediately. If the customer already has an active bundle, the admin must tick a confirmation; the old bundle ends and its devices are disconnected (existing replace behaviour, audited).
 
+## Customer list filters
+
+- Admin → Customers has filter chips: **All · Active · Stale · Suspended**, each with a count, plus a "Stale after" setting (7, 14, 30, 60 or 90 days; default 30).
+- **Active:** has a bundle now, or one ended within the threshold. **Stale:** no bundle for the threshold or longer, or signed up and never bought. **Suspended** is shown separately.
+- A "Last active" column shows when the last bundle ended (or "Online now"). Stale rows offer **Give voucher**; the stale view offers a CSV export.
+- Derive "last bundle ended" from voucher history. If the admin API doesn't return it per customer, add a read-only field rather than a new endpoint.
+
+## Voucher detail
+
+- Each code in Recent vouchers opens a detail page: a ticket-style card (plan, QR, code, print/copy), usage (data, time, devices), a history timeline (created → sold/gift → redeemed → ends), and details (customer, type, batch, router sync, receipt email).
+- Actions match v1: mark sold/gift, resend receipt email, print, and **Revoke** with an inline confirmation.
+
 ## Scan to connect
 
 Scanning a voucher QR never connects a device on its own. The flow:

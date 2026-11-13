@@ -14,13 +14,14 @@ body{margin:0;background:#fbfaf5}
 a{color:#003b2b}a:hover{color:#062a20}
 td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
 th{color:#5c6963;font-weight:600;font-size:13px}
+.sel{min-height:40px;padding:0 10px;border-radius:9px;border:1px solid #b8c7bd;background:#ffffff;font:600 14px 'DM Sans',sans-serif;color:#10241c}
 </style>
 </helmet>
 <div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
     <dc-import name="AdminSide" current="customers" hint-size="240px,780px"></dc-import>
   </aside>
-  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
       <div>
         <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">People</p>
@@ -30,50 +31,105 @@ th{color:#5c6963;font-weight:600;font-size:13px}
       <input id="cs" placeholder="Search name or phone" style="min-height: 44px; width: 260px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
     </div>
 
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+      <div role="group" aria-label="Show customers" style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} <span style="{{f.countStyle}}">{{f.count}}</span></button>
+        </sc-for>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3d4a44">Stale after
+        <select class="sel" onChange="{{pickDays}}">
+          <sc-for list="{{dayOpts}}" as="o" hint-placeholder-count="4"><option value="{{o.v}}" selected="{{o.on}}">{{o.label}}</option></sc-for>
+        </select>
+      </label>
+    </div>
+
+    <sc-if value="{{isStale}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">
+        <span style="flex: 1 1 320px"><strong>{{staleCount}} customers</strong> have had no bundle for {{days}} days or more. A gift voucher or a message often brings them back.</span>
+        <button type="button" style="min-height: 40px; padding: 0 14px; border-radius: 9px; border: 1px solid #e0c08a; background: #fffef9; color: #6b3a00; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Export list (CSV)</button>
+      </div>
+    </sc-if>
+
     <section aria-label="Customer list" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 22px">
       <div style="overflow-x: auto">
         <table style="width: 100%; border-collapse: collapse">
-          <thead><tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Bundle</th><th scope="col">Devices</th><th scope="col">Store orders</th><th scope="col">Status</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th></tr></thead>
+          <thead><tr><th scope="col">Customer</th><th scope="col">Phone</th><th scope="col">Bundle</th><th scope="col">Last active</th><th scope="col">Devices</th><th scope="col">State</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th></tr></thead>
           <tbody>
             <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
               <tr>
-                <td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">{{r.name}}</a></td><td>{{r.phone}}</td><td>{{r.bundle}}</td><td>{{r.devices}}</td><td>{{r.orders}}</td>
-                <td><span style="{{r.pill}}">{{r.status}}</span></td>
-                <td><button type="button" onClick="{{r.flip}}" style="{{r.btnStyle}}">{{r.action}}</button></td>
+                <td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">{{r.name}}</a></td><td>{{r.phone}}</td><td>{{r.bundle}}</td><td>{{r.last}}</td><td>{{r.devices}}</td>
+                <td><span style="{{r.pill}}">{{r.state}}</span></td>
+                <td style="display: flex; gap: 8px; justify-content: flex-end">
+                  <sc-if value="{{r.stale}}" hint-placeholder-val="{{ false }}"><a href="AdminVouchers.dc.html" style="display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #dfe5dc; background: #ffffff; font: 700 13px 'DM Sans', sans-serif; text-decoration: none">Give voucher</a></sc-if>
+                  <button type="button" onClick="{{r.flip}}" style="{{r.btnStyle}}">{{r.action}}</button>
+                </td>
               </tr>
             </sc-for>
           </tbody>
         </table>
       </div>
-      <p style="margin: 12px 0 0; color: #5c6963; font-size: 13px">Suspending signs the customer out and disconnects their devices. It asks for your confirmation and is logged.</p>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 18px 0 4px; text-align: center; color: #5c6963; font-size: 14px">No customers in this view.</p>
+      </sc-if>
+      <p style="margin: 12px 0 0; color: #5c6963; font-size: 13px">Active = has a bundle now, or had one in the last {{days}} days. Stale = no bundle for {{days}} days or more, or never bought one. Suspending signs the customer out and disconnects their devices; it asks you to confirm and is logged.</p>
     </section>
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"filter":{"editor":"enum","options":["all","active","stale","suspended"],"default":"all"},"$preview":{"width":1280,"height":1020}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { suspended: ['e'] }; }
+  constructor(props) { super(props); this.state = { f: props.filter ?? 'all', days: 30, suspended: ['e'] }; }
   renderVals() {
     const s = this.state;
+    // idle: days since the last bundle ended (0 = has one now); never: signed up but never bought
     const base = [
-      { id: 'a', name: 'Amina N.', phone: '6•• •• 12 45', bundle: '[PLAN 2] · 3.2 GB left', devices: '2 / 3', orders: '2' },
-      { id: 'b', name: 'J. Fon', phone: '6•• •• 40 19', bundle: '[PLAN 3] · 11 GB left', devices: '3 / 3', orders: '1' },
-      { id: 'c', name: 'M. Ekane', phone: '6•• •• 77 31', bundle: 'Payment waiting', devices: '0 / 1', orders: '0' },
-      { id: 'd', name: 'Grace T.', phone: '6•• •• 03 66', bundle: 'None', devices: '0', orders: '0' },
-      { id: 'e', name: 'K. Nji', phone: '6•• •• 59 20', bundle: '[PLAN 1] · expired', devices: '0', orders: '0' }
+      { id: 'a', name: 'Amina N.', phone: '6•• •• 12 45', bundle: '[PLAN 2] · 3.2 GB left', last: 'Online now', idle: 0, devices: '2 / 3' },
+      { id: 'b', name: 'J. Fon', phone: '6•• •• 40 19', bundle: '[PLAN 3] · 11 GB left', last: 'Today', idle: 0, devices: '3 / 3' },
+      { id: 'c', name: 'M. Ekane', phone: '6•• •• 77 31', bundle: 'Payment waiting', last: 'Today · ended 1 Nov', idle: 12, devices: '0 / 1' },
+      { id: 'f', name: 'L. Ngwa', phone: '6•• •• 21 08', bundle: 'None', last: 'Ended 4 Nov', idle: 9, devices: '0' },
+      { id: 'g', name: 'P. Mbah', phone: '6•• •• 64 52', bundle: 'None', last: 'Ended 2 Oct', idle: 42, devices: '0' },
+      { id: 'd', name: 'Grace T.', phone: '6•• •• 03 66', bundle: 'Never bought', last: 'Joined 3 Oct', idle: 41, devices: '0', never: true },
+      { id: 'h', name: 'S. Tabe', phone: '6•• •• 18 77', bundle: 'None', last: 'Ended 20 Sep', idle: 54, devices: '0' },
+      { id: 'i', name: 'B. Achu', phone: '6•• •• 92 30', bundle: 'None', last: 'Ended 15 Jul', idle: 121, devices: '0' },
+      { id: 'e', name: 'K. Nji', phone: '6•• •• 59 20', bundle: '[PLAN 1] · expired', last: 'Ended 28 Oct', idle: 16, devices: '0' }
     ];
-    const rows = base.map((r) => {
-      const sus = s.suspended.includes(r.id);
+    const kindOf = (r) => s.suspended.includes(r.id) ? 'suspended' : (r.never || r.idle >= s.days) ? 'stale' : 'active';
+    const all = base.map((r) => ({ ...r, kind: kindOf(r) }));
+    const count = (k) => all.filter((r) => k === 'all' || r.kind === k).length;
+    const look = {
+      active: ['Active', 'background: #eaf6d5; color: #345000;'],
+      stale: [null, 'background: #fff4e0; color: #6b3a00;'],
+      suspended: ['Suspended', 'background: #fbe4e4; color: #8a2a2a;']
+    };
+    const rows = all.filter((r) => s.f === 'all' || r.kind === s.f).map((r) => {
+      const sus = r.kind === 'suspended';
       return {
         ...r,
-        status: sus ? 'Suspended' : 'Active',
-        pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (sus ? 'background: #fbe4e4; color: #8a2a2a;' : 'background: #eaf6d5; color: #345000;'),
+        stale: r.kind === 'stale',
+        state: r.kind === 'stale' ? (r.never ? 'Stale · never bought' : `Stale · ${r.idle} days`) : look[r.kind][0],
+        pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + look[r.kind][1],
         action: sus ? 'Restore' : 'Suspend',
         btnStyle: 'min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #dfe5dc; background: #ffffff; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ' + (sus ? 'color: #003b2b;' : 'color: #a73535;'),
         flip: () => this.setState({ suspended: sus ? s.suspended.filter((x) => x !== r.id) : [...s.suspended, r.id] })
       };
     });
-    return { rows };
+    const chip = 'display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const filters = [['all', 'All'], ['active', 'Active'], ['stale', 'Stale'], ['suspended', 'Suspended']].map(([id, label]) => {
+      const on = id === s.f;
+      return {
+        label, count: count(id), pressed: on ? 'true' : 'false',
+        style: chip + (on ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+        countStyle: 'min-width: 22px; padding: 1px 7px; border-radius: 999px; font-size: 12px; ' + (on ? 'background: #b9ee2e; color: #15210c;' : 'background: #eef3e9; color: #3d4a44;'),
+        pick: () => this.setState({ f: id })
+      };
+    });
+    const dayOpts = [7, 14, 30, 60, 90].map((d) => ({ v: String(d), label: `${d} days`, on: d === s.days }));
+    return {
+      filters, rows, empty: rows.length === 0, dayOpts, days: s.days,
+      pickDays: (e) => this.setState({ days: Number(e.target.value) }),
+      isStale: s.f === 'stale', staleCount: count('stale')
+    };
   }
 }
 </script>
