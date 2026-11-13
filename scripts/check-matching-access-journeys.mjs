@@ -30,6 +30,20 @@ async function harness(width) {
   return { f, portal, pairUrl, context, errors, handoffs, async close() { for (const c of contexts) await c.close(); await f.close(); await new Promise(r => { website.close(r); website.closeAllConnections(); }); } };
 }
 async function noOverflow(...pages) { for (const p of pages) assert.equal(await p.evaluate(() => document.documentElement.scrollWidth > innerWidth), false); }
+// Rendered contrast of each pairing progress step against the background it actually sits on,
+// using the same blending, luminance and 4.5:1 / 3:1 thresholds as ui-checks.mjs lowContrastText.
+async function progressContrast(page) {
+  return page.locator(".pair-progress li").evaluateAll(steps => steps.map(step => {
+    const rgba = value => { const p = value.match(/[\d.]+/g).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+    const blend = ([r, g, b, a], u) => [r * a + u[0] * (1 - a), g * a + u[1] * (1 - a), b * a + u[2] * (1 - a)];
+    const lum = rgb => { const [r, g, b] = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const layers = []; for (let n = step; n; n = n.parentElement) { const c = rgba(getComputedStyle(n).backgroundColor); if (c[3] > 0) { layers.push(c); if (c[3] === 1) break; } }
+    const under = layers.reduceRight((u, l) => blend(l, u), [255, 255, 255]), style = getComputedStyle(step), fg = blend(rgba(style.color), under);
+    const [light, dark] = [lum(fg), lum(under)].sort((a, b) => b - a), size = parseFloat(style.fontSize);
+    const minimum = size >= 24 || (size >= 18.66 && Number(style.fontWeight) >= 700) ? 3 : 4.5;
+    return { step: step.dataset.pairStep, current: step.getAttribute("aria-current") === "step", visible: step.getBoundingClientRect().width > 0, text: step.textContent.trim(), ratio: Number(((light + 0.05) / (dark + 0.05)).toFixed(2)), minimum };
+  }));
+}
 try {
   await mkdir("/tmp/ndahi-matching-access-screens", { recursive: true });
   for (const width of [320, 1280]) {
@@ -55,6 +69,9 @@ try {
       assert.equal(await main.getByLabel("Matching request code", { exact: true }).textContent(), await guest.getByLabel("Matching request code", { exact: true }).textContent());
       assert.equal((await h.f.store.snapshot()).routerCommands.filter(c => c.action === "connect_wifi_device").length, 0);
       await noOverflow(guest, main, wrong);
+      const steps = await progressContrast(guest), waiting = steps.filter(s => s.current);
+      assert.equal(waiting.length, 1, "exactly one current pairing step"); assert.equal(waiting[0].step, "waiting"); assert.equal(waiting[0].visible, true);
+      for (const s of steps) assert.ok(s.ratio >= s.minimum, `pairing step "${s.text}" contrast ${s.ratio}:1 is below ${s.minimum}:1 at ${width}px`);
       await guest.screenshot({ path: `/tmp/ndahi-matching-access-screens/request-${width}.png`, fullPage: true });
       await main.screenshot({ path: `/tmp/ndahi-matching-access-screens/review-${width}.png`, fullPage: true });
       await approval.focus(); await main.keyboard.press("Enter"); await main.getByText("Connecting — waiting for the router to confirm.", { exact: true }).waitFor();
