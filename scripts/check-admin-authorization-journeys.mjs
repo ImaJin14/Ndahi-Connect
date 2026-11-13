@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
-import { adminGenerateName, openAdminMore, adminIdentifierLabel } from "./admin-nav.mjs";
+import { adminGenerateName, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
 
 const apiPort = Number(process.env.ADMIN_AUTH_API_PORT || 8398);
 const adminPort = Number(process.env.ADMIN_AUTH_PORT || 8399);
@@ -93,14 +93,19 @@ try {
     await page.locator("#adminPassword").fill(password);
     await page.getByRole("button", { name: "Continue" }).click();
     await page.waitForURL("**/dashboard");
-    await openAdminMore(page, "Generate voucher");
-    const generateButton = page.getByRole("button", { name: adminGenerateName("resale") });
-    await generateButton.waitFor();
-    await generateButton.click();
-    if (role === "auditor") {
-      await page.getByText("Your role does not permit this action.").waitFor();
+    if (uiV2 && role === "auditor") {
+      await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+      await page.goto(`${admin}/dashboard#vouchers`);
+      await page.locator('[data-admin-nav="vouchers"][aria-current]').waitFor();
+      assert.equal(await page.locator("#generate").isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: adminGenerateName("resale") }).count(), 0);
     } else {
-      await page.getByText("1 voucher generated").waitFor();
+      await openAdminMore(page, "Generate voucher");
+      const generateButton = page.getByRole("button", { name: adminGenerateName("resale") });
+      await generateButton.waitFor();
+      await generateButton.click();
+      if (role === "auditor") await page.getByText("Your role does not permit this action.").waitFor();
+      else await page.getByText("1 voucher generated").waitFor();
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);

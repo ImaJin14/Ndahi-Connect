@@ -20,15 +20,27 @@ export function homeQuickActions() {
     + `<ul class="home-quick__list nd-wide-only">${links.map(([href, key]) => `<li><a class="home-quick__link" href="${href}">${h(L(key))}<span aria-hidden="true">→</span></a></li>`).join("")}</ul></section>`;
 }
 
-const ACTIVITY = { paid: ["homeActivityPaid", "success"], pending: ["homeActivityWaiting", "warning"], processing: ["homeActivityWaiting", "warning"], refunded: ["homeActivityRefunded", ""], "refund-pending": ["homeActivityRefundPending", ""] };
+const ACTIVITY = {
+  paid: ["homeActivityPaid", "success"],
+  pending: ["homeActivityWaiting", "warning"],
+  processing: ["homeActivityWaiting", "warning"],
+  failed: ["homeActivityFailed", "danger"],
+  expired: ["portalPay_expired", ""],
+  cancelled: ["portalPay_cancelled", ""],
+  canceled: ["portalPay_cancelled", ""],
+  refunded: ["homeActivityRefunded", ""],
+  "refund-pending": ["homeActivityRefundPending", ""],
+};
 
 // Desktop only: the three latest payments. Shop orders join in Phase 4.
 export function homeRecentActivity(payments) {
   if (!payments || !payments.length) return "";
   const rows = payments.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 3).map((payment) => {
-    const [key, tone] = ACTIVITY[payment.status] || ["homeActivityFailed", "danger"];
+    const entry = Object.prototype.hasOwnProperty.call(ACTIVITY, payment.status) ? ACTIVITY[payment.status] : null;
+    const label = entry ? L(entry[0]) : (payment.status ? String(payment.status) : L("portalNotRecorded"));
+    const tone = entry ? entry[1] : "";
     const date = new Date(payment.createdAt).toLocaleDateString(currentLanguage(), { day: "numeric", month: "short" });
-    return `<div class="nd-row"><span class="nd-row__main"><span class="nd-row__title">${h(L("homeActivityBundle", { plan: (payment.plan && payment.plan.name) || payment.planId }))}</span><span class="nd-meta">${h(date)} · ${h(payment.methodLabel || "Mobile Money")}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L(key))}</span></div>`;
+    return `<div class="nd-row"><span class="nd-row__main"><span class="nd-row__title">${h(L("homeActivityBundle", { plan: (payment.plan && payment.plan.name) || payment.planId }))}</span><span class="nd-meta">${h(date)} · ${h(payment.methodLabel || "Mobile Money")}</span></span><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(label)}</span></div>`;
   }).join("");
   return `<section class="home-activity nd-card nd-wide-only" aria-labelledby="homeActivityTitle"><div class="nd-section-head"><h2 id="homeActivityTitle" class="nd-h3">${h(L("homeActivityTitle"))}</h2><a class="nd-section-head__link" href="/dashboard#activity">${h(L("homeActivitySeeAll"))}</a></div>${rows}</section>`;
 }
@@ -109,7 +121,7 @@ export async function voucherAction(event) {
   if (!button) return false;
   const card = button.closest(".voucher-card"), message = card.querySelector("[data-voucher-message]");
   if (button.hasAttribute("data-print-voucher")) {
-    const { url } = openVoucherPrintPreview({ voucherIds: [button.dataset.printVoucher], layout: "a6" });
+    const { url } = openVoucherPrintPreview({ voucherIds: [button.dataset.printVoucher] });
     message.replaceChildren(); const link = document.createElement("a"); link.href = url; link.textContent = "Open print preview in this tab"; message.appendChild(link); return true;
   }
   try {

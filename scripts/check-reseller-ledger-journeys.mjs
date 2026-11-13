@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { resellerLedgerView } from "./admin-nav.mjs";
+import { resellerLedgerView, uiV2 } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -197,6 +197,7 @@ try {
     assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,800 FCFA/);
 
     // Configure commission split to 15% (prospective only — already-redeemed sales keep their agreed 10% rate)
+    if (uiV2) await page.locator("[data-reseller-advanced] > summary").click();
     const commForm = page.locator("[data-reseller-commission-form]");
     await commForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
     await commForm.locator('input[name="commissionPercent"]').fill("15");
@@ -246,6 +247,7 @@ try {
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     assert.match(await row.locator('[data-cell="stock"]').textContent(), /3 unsold \/ 2 sold \/ 5 total/);
     const adjustment = page.locator("[data-reseller-adjustment-form]");
+    if (uiV2) await page.locator("[data-reseller-advanced] > summary").click();
     await adjustment.locator('[name="resellerId"]').selectOption("staff-reseller-1");
     await adjustment.locator('[name="amount"]').fill("-100");
     await adjustment.locator('[name="reason"]').fill("Audited customer credit");

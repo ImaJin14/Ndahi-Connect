@@ -1,0 +1,32 @@
+name: Redesign regressions
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-regressions:
+    name: Cold security routes and admin role isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Syntax-check browser regression modules
+        run: node --check test/redesign-browser/deep-links.test.mjs && node --check test/redesign-browser/permissions.test.mjs
+      - name: Syntax-check preview and customer screen modules
+        run: |
+          for module in scripts/redesign-preview.mjs scripts/redesign-preview-canvas.js customer-app-v2/portal-{account,activity,devices,internet,shop}.js; do
+            node --check "$module"
+          done
+      - name: Verify cold routes and role isolation on both UI variants
+        run: node --test --test-timeout=300000 test/redesign-browser/*.test.mjs

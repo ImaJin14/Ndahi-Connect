@@ -65,6 +65,15 @@ try {
     await page.locator('[data-admin-nav="payments"][aria-current]').waitFor();
     assert.equal(await page.getByRole("link", { name: "Print vouchers", exact: true }).count(), 0, "head actions belong to Home");
   }, { width });
+  if (uiV2) await scenario("optional Home discovery failure keeps an authenticated dashboard open", async (page) => {
+    await page.route("**/api/admin/home", (route) => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Fixture Home unavailable" }) }));
+    const discovery = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/admin/home");
+    await page.goto(`${admin}/dashboard#home`);
+    assert.equal((await discovery).status(), 503);
+    await page.waitForLoadState("networkidle");
+    assert.equal(new URL(page.url()).pathname, "/dashboard");
+    await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+  });
   // Redesigned Payments and Cash (v2 only; canvas: AdminPayments, AdminCash).
   // "Today" is read in the browser (Africa/Douala), so these payments are dated from the real clock.
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Payments and Cash show today's figures, filters and exports at ${width}px`, async (page) => {
@@ -139,7 +148,7 @@ try {
     await page.getByRole("link", { name: "Print slips", exact: true }).click();
     await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
     assert.match(await page.locator("#adminLede").textContent(), /^3 slips · /);
-    assert.equal(await page.locator(`#voucherPrintSurface ${uiV2 ? ".voucher-card" : ".thermal-slip"}`).count(), 3, "v2 prints A6 voucher cards by default");
+    assert.equal(await page.locator("#voucherPrintSurface .thermal-slip").count(), 3);
     await page.getByRole("button", { name: "Print 3 slips", exact: true }).waitFor();
     assert.equal(await page.locator("#adminEyebrow").isVisible(), false, "the back link replaces the eyebrow");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
@@ -472,6 +481,10 @@ try {
     assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
     await page.goto(`${admin}/dashboard#store`);
     await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
+    if (uiV2 && role === "auditor") {
+      await page.goto(`${admin}/dashboard#voucher-print`);
+      await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    }
     assert.equal(await adminMoreCount(page, "Network setup"), 0);
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
     await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
