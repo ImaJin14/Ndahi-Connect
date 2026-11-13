@@ -7,6 +7,7 @@
 .portal-head__title { margin: 0; color: var(--nd-ink); font-family: var(--nd-font-display); font-size: var(--nd-fs-h1); font-weight: 600; line-height: var(--nd-lh-tight); }
 /* Focus is moved here by script after a tab change; it is not a control. */
 .portal-head__title:focus { outline: none; }
+.portal-account__language .nd-input { width: auto; max-width: 60%; min-width: 0; }
 .portal-head__notices { display: flex; flex-direction: column; gap: var(--nd-space-8); margin-top: var(--nd-space-8); }
 .portal-head__notices:empty { display: none; }
 .portal-head__notices .network-state-banner { margin: 0; }
@@ -26,6 +27,7 @@
 .home-card__facts > div { min-width: 0; }
 .home-card__facts dt { color: var(--nd-muted); font-size: var(--nd-fs-caption); }
 .home-card__facts dd { margin: 2px 0 0; font-size: var(--nd-fs-meta); font-weight: 600; overflow-wrap: anywhere; }
+.home-bundle__actions .nd-btn { padding-inline: var(--nd-space-8); font-size: var(--nd-fs-body); }
 .home-bundle__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-10); }
 
 /* A waiting payment is a short banner (canvas: Activity's waiting banner), its prompt help folded away. */
@@ -149,3 +151,6 @@ body[data-current-tab="home"]:not([data-portal-sub]) #manageDevices { display: n
   .nd-topnav--phone-bar .notification-bell { margin: 0; border: 0; background: none; color: var(--nd-white); }
   .nd-topnav--phone-bar .notification-bell [data-notification-count] { top: 8px; right: 8px; min-width: 0; width: 8px; height: 8px; padding: 0; overflow: hidden; border-radius: 50%; background: var(--nd-lime); color: var(--nd-forest); font-size: 0; }
 }
+
+/* French expiry stays on one line beside the concise recorded-session count. */
+:lang(fr) .home-bundle .nd-meter-legend > span:first-child { flex-shrink: 0; white-space: nowrap; }

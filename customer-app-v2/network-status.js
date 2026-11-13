@@ -1,3 +1,6 @@
+import { t } from '/shared/i18n.js';
+import { currentLanguage } from '/shared/ui/dom.js';
+const L = key => t(key, currentLanguage());
 const LABELS = {
   online: "Network online",
   degraded: "Network degraded",
@@ -34,12 +37,12 @@ export function applyNetworkStatus(el, status) {
 
 export function networkBannerState(options = {}) {
   const value = options.connectivity, now = Date.now();
-  if (!value || value.version !== 1 || !(Date.parse(value.expiresAt) > now)) return { status: "unknown", badge: "Connection not verified", message: "Checking this device's network. Account access remains available from any network.", actionText: "Connection help", actionHref: "/help#connection" };
-  if (value.network.state !== "confirmed") return { status: "unknown", badge: "NDAHI Wi-Fi not confirmed", message: "This request did not verify NDAHI Wi-Fi. Mobile data, a VPN or routing changes can affect this check.", actionText: "Check Wi-Fi sign-in", actionHref: "/hotspot" };
-  if (value.hotspot.state === "authenticated") return { status: value.internet.state === "available" ? "active" : "degraded", badge: "Router connection confirmed", message: value.internet.state === "available" ? "This device has HotSpot access. The browser's internet check passed." : "This device has HotSpot access. Internet availability is not confirmed; do not buy again to fix connectivity.", actionText: value.internet.state === "available" ? null : "Connection help", actionHref: value.internet.state === "available" ? null : "/help#connection" };
+  if (!value || value.version !== 1 || !(Date.parse(value.expiresAt) > now)) return { status: "unknown", badge: L("homeNetworkCheckingBadge"), message: L("homeNetworkCheckingBody"), actionText: L("homeNetworkHelp"), actionHref: "/help#connection" };
+  if (value.network.state !== "confirmed") return { status: "unknown", badge: L("homeNetworkUnknownBadge"), message: L("homeNetworkUnknownBody"), actionText: L("homeNetworkCheck"), actionHref: "/hotspot" };
+  if (value.hotspot.state === "authenticated") return { status: value.internet.state === "available" ? "active" : "degraded", badge: "Router connection confirmed", message: value.internet.state === "available" ? "This device has HotSpot access. The browser's internet check passed." : "This device has HotSpot access. Internet availability is not confirmed; do not buy again to fix connectivity.", actionText: value.internet.state === "available" ? null : L("homeNetworkHelp"), actionHref: value.internet.state === "available" ? null : "/help#connection" };
   if (value.account.state === "signed-out") return { status: "pre-auth", badge: "NDAHI network detected", message: "Sign in to use your existing access or check bundle eligibility. Internet access is not yet confirmed.", actionText: "Sign in", actionHref: "/login" };
   if (["expired", "exhausted", "none"].includes(value.subscription.state)) return { status: "pre-auth", badge: "NDAHI network detected", message: "Review eligible bundles to connect. Network presence does not grant internet access.", actionText: "View bundles", actionHref: "/dashboard#bundles" };
-  return { status: "unknown", badge: "NDAHI network detected", message: "Your account is available. This device's HotSpot authorization is still being checked.", actionText: "Connection help", actionHref: "/help#connection" };
+  return { status: "unknown", badge: "NDAHI network detected", message: "Your account is available. This device's HotSpot authorization is still being checked.", actionText: L("homeNetworkHelp"), actionHref: "/help#connection" };
 }
 
 // Fixed HTTPS/CORS target, no cookies, referrer or account/device details. Only

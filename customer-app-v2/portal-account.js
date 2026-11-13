@@ -1,10 +1,9 @@
 // Redesigned Account tab (canvas: PhoneAccount, DesktopAccount): who you are,
 // then grouped links to each part of your account. The detailed sections
 // (profile, notification settings, PIN & passkeys, sessions) follow below and
-// each link opens its section. Language switching is turned off product-wide,
-// so the canvas's Language control is not shown.
+// each link opens its section. Language is an explicit Account preference.
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { format } from "/shared/i18n.js";
+import { format, setPreferredLanguage } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
@@ -20,7 +19,7 @@ const item = (href, label, value, extra = "") => `<a class="portal-account__item
 // with number and email, three panels side by side and a Sign out button.
 // Notification switches change the account's real preferences: low data
 // alerts are the Data / bundles category, bundle ending soon the expiry
-// warnings. Language switching is off product-wide, so it isn't offered.
+// warnings. English remains the default; French is an explicit preference.
 const toggle = (key, label) => `<label class="portal-account__item portal-account__toggle"><span>${h(label)}</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input" data-account-pref="${key}" disabled><span class="nd-switch__track" aria-hidden="true"></span></span></label>`;
 export function accountHub(customer, security, { homeLinked = false } = {}) {
   const name = customer.name || L("portalYourAccount");
@@ -42,6 +41,7 @@ export function accountHub(customer, security, { homeLinked = false } = {}) {
     </section>
     <section class="portal-account__panel" aria-labelledby="accountHomeGroup"><h3 class="portal-account__group nd-wide-only" id="accountHomeGroup">${h(L("portalHomeAndHelp"))}</h3>
       <div class="portal-account__list">
+        <label class="portal-account__item portal-account__language"><span>${h(L("uiLanguage"))}</span><select class="nd-input" data-account-language><option value="en" ${currentLanguage() === "en" ? "selected" : ""}>${h(L("uiLanguageEnglish"))}</option><option value="fr" ${currentLanguage() === "fr" ? "selected" : ""}>${h(L("uiLanguageFrench"))}</option></select></label>
         ${item("/home-router.html", L("portalHomeRouterLink"), homeLinked ? h(L("portalLinked")) : "")}
         <span class="nd-wide-only">${item("/billing-terms.html", L("portalPackageRulesLink"), "")}</span>
         ${item("/help.html", L("portalHelpSupport"), "")}
@@ -79,6 +79,11 @@ async function mountPreferences(call) {
 
 export function mountAccountHub(call) {
   void mountPreferences(call);
+  const language = document.querySelector("[data-account-language]");
+  if (language) language.onchange = () => {
+    const selected = setPreferredLanguage(language.value);
+    window.dispatchEvent(new CustomEvent("ndahi:language", { detail: selected }));
+  };
   document.querySelectorAll("[data-account-open]").forEach((link) => {
     link.onclick = (event) => {
       const target = document.getElementById(link.dataset.accountOpen);

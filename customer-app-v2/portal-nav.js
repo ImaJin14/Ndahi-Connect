@@ -122,6 +122,11 @@ function applyView(scroll = false) {
       for (const [text, cls] of [[t(phone[0], lang), "nd-narrow-only"], [wide, "nd-wide-only"]]) {
         const span = document.createElement("span"); span.className = cls; span.textContent = text; title.appendChild(span);
       }
+    } else if (tab === "home" && lang === "fr") {
+      const phoneTitle = document.createElement("span"), desktopTitle = document.createElement("span");
+      phoneTitle.className = "nd-narrow-only"; phoneTitle.textContent = t("portalHomeWelcome", lang);
+      desktopTitle.className = "nd-wide-only"; desktopTitle.textContent = wide;
+      title.append(phoneTitle, desktopTitle);
     } else title.textContent = wide;
     let lede = document.getElementById("portalLede");
     if (!lede) { lede = document.createElement("p"); lede.id = "portalLede"; lede.className = "portal-head__lede nd-narrow-only"; title.after(lede); }

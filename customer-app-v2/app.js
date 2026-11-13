@@ -18,7 +18,7 @@ import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-ti
 import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
-import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { t } from "/shared/i18n.js";
 import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { mountVoucherHistory } from "./voucher-history.js";
@@ -516,24 +516,20 @@ function applyLanguage(lang) {
   if (logout) logout.textContent = t("logout", lang);
 }
 
-function mountLanguageSwitcher() {
-  const current = getPreferredLanguage();
-  document.querySelectorAll(".lang-switcher [data-lang]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.lang === current);
-    btn.onclick = () => {
-      const selected = btn.dataset.lang;
-      setPreferredLanguage(selected);
-      document.querySelectorAll(".lang-switcher [data-lang]").forEach((b) => {
-        b.classList.toggle("active", b.dataset.lang === selected);
-      });
-      applyLanguage(selected);
-    };
-  });
-  applyLanguage(current);
+function mountLanguagePreference() {
+  // English remains the default. French is an explicit Account preference,
+  // rather than an automatic change based on the browser's language.
+  let selected = "en";
+  try { if (localStorage.getItem("ndahi-lang") === "fr") selected = "fr"; } catch (_) {}
+  applyLanguage(selected);
 }
 
-// Language selection is temporarily disabled.
-// mountLanguageSwitcher();
+mountLanguagePreference();
+window.addEventListener("ndahi:language", (event) => {
+  const selected = event.detail === "fr" ? "fr" : "en";
+  applyLanguage(selected);
+  void load();
+});
 
 $("#logout").onclick = async (event) => {
   try {

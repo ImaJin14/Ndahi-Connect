@@ -1,5 +1,4 @@
-import { activeBundleContent } from './active-bundle.js';
-import { formatExpiryCountdown } from '/shared/data-usage.js';
+import { activeBundleContent, homeExpiryCountdown } from './active-bundle.js';
 import { automaticPoll } from './automatic-poll.js';
 import { t } from '/shared/i18n.js';
 import { currentLanguage } from '/shared/ui/dom.js';
@@ -16,7 +15,7 @@ export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
     const v=snapshot&&snapshot.bundle;
     if(v&&v.status==='active'&&Date.parse(v.expiresAt)<=now()&&!expiredRequest){expiredRequest=true;draw();onSnapshot(null);poll.wake();}
     const pill=host.querySelector('[data-expiry-countdown]');
-    if(pill&&v)pill.textContent=formatExpiryCountdown(v.expiresAt,now())||t('homeExpiryUnavailable',currentLanguage());
+    if(pill&&v)pill.textContent=homeExpiryCountdown(v.expiresAt,now())||t('homeExpiryUnavailable',currentLanguage());
     countdown=setTimeout(tick,1000);
   };
   const poll=automaticPoll({active:relevant,delay:()=>failures?Math.min(60000,15000*2**(failures-1)):15000,onPause:()=>{clearTimeout(countdown);draw(true);onSnapshot(null);},run:async context=>{
