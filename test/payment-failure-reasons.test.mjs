@@ -26,6 +26,16 @@ test("a confirmed failure records its reason; an expired request was not approve
   const unknown = { createdAt: at(0).toISOString() };
   recordGatewayFailure(unknown, { status: "failed", failureCode: null }, at(30));
   assert.equal(unknown.failureCode, "declined");
+  // An Orange-block number paid as MTN, with no clearer provider reason.
+  const orangeOnMtn = { createdAt: at(0).toISOString(), payerPhone: "699001245", network: "mtn" };
+  recordGatewayFailure(orangeOnMtn, { status: "failed", failureCode: null }, at(30));
+  assert.equal(orangeOnMtn.failureCode, "wrong_network");
+  const matching = { createdAt: at(0).toISOString(), payerPhone: "670001245", network: "mtn" };
+  recordGatewayFailure(matching, { status: "failed", failureCode: null }, at(30));
+  assert.equal(matching.failureCode, "declined");
+  const providerSays = { createdAt: at(0).toISOString(), payerPhone: "699001245", network: "mtn" };
+  recordGatewayFailure(providerSays, { status: "failed", failureCode: "low_balance" }, at(30));
+  assert.equal(providerSays.failureCode, "low_balance", "a clear provider reason wins");
   const expired = { createdAt: at(0).toISOString() };
   recordGatewayFailure(expired, { status: "failed", requestExpired: true, failureCode: "low_balance" }, at(30));
   assert.deepEqual([expired.status, expired.failureCode], ["expired", "declined"]);
