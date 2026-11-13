@@ -539,6 +539,72 @@
       "w": 1280,
       "x": 5440,
       "y": 10076
+    },
+    "PhonePaymentFailed.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Payment didn't go through (declined \u00b7 low balance \u00b7 timeout \u00b7 wrong network)",
+      "w": 390,
+      "x": 0,
+      "y": 13200
+    },
+    "PhoneRenew.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Renewal moments (80% used \u00b7 ends tomorrow \u00b7 ended \u2192 buy again)",
+      "w": 390,
+      "x": 470,
+      "y": 13200
+    },
+    "PhoneBuyForOther.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Buy a bundle for someone else",
+      "w": 390,
+      "x": 940,
+      "y": 13200
+    },
+    "PhoneOutage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Home during an outage (down \u00b7 restored)",
+      "w": 390,
+      "x": 1410,
+      "y": 13200
+    },
+    "PhoneHomeFR.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Accueil \u2014 French layout check",
+      "w": 390,
+      "x": 1880,
+      "y": 13200
+    },
+    "ResellerHome.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Reseller home (sell a code \u00b7 what you owe)",
+      "w": 390,
+      "x": 2350,
+      "y": 13200
+    },
+    "AdminInsights.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "Insights + new-design funnel",
+      "w": 1280,
+      "x": 0,
+      "y": 14644
+    },
+    "AdminOutage.dc.html": {
+      "expand": "fill",
+      "h": 1020,
+      "is_interactive": true,
+      "title": "Outages (notice \u2192 live \u2192 give time back)",
+      "w": 1280,
+      "x": 1360,
+      "y": 14644
     }
   },
   "createdOnFiles": {
@@ -558,7 +624,10 @@
     "row6",
     "row7",
     "nav",
-    "guest"
+    "guest",
+    "row8",
+    "row9",
+    "added"
   ],
   "notes": {
     "guest": {
@@ -632,6 +701,30 @@
       "w": 240,
       "x": 0,
       "y": 11396
+    },
+    "row8": {
+      "kind": "title1",
+      "maxW": 3200,
+      "text": "Added \u2014 payment failures, renewals, gifting, outages, French, resellers",
+      "w": 240,
+      "x": 0,
+      "y": 12900
+    },
+    "row9": {
+      "kind": "title1",
+      "maxW": 2700,
+      "text": "Added \u2014 admin insights and outages",
+      "w": 240,
+      "x": 0,
+      "y": 14344
+    },
+    "added": {
+      "fill": "yellow",
+      "size": 24,
+      "text": "What changed elsewhere:\n\n\u2022 Customers: tick rows (or select all stale) \u2192 give a gift voucher or send a message in bulk.\n\u2022 Edit bundle: speed limit per customer (MikroTik queue).\n\u2022 Admin menu: Insights and Outages.\n\u2022 Buy a bundle: \"Payment didn't go through?\" link.\n\u2022 Tab bar: lang = fr.\n\nFrench check: watch button labels and the bundle card \u2014 French runs ~25% longer.",
+      "w": 380,
+      "x": 2820,
+      "y": 13200
     }
   },
   "order": [
@@ -697,6 +790,14 @@
     "AdminAudit.dc.html",
     "AdminProfile.dc.html",
     "AdminVoucherPrint.dc.html",
+    "PhonePaymentFailed.dc.html",
+    "PhoneRenew.dc.html",
+    "PhoneBuyForOther.dc.html",
+    "PhoneOutage.dc.html",
+    "PhoneHomeFR.dc.html",
+    "ResellerHome.dc.html",
+    "AdminInsights.dc.html",
+    "AdminOutage.dc.html",
     "TabBar.dc.html",
     "AdminSide.dc.html"
   ],

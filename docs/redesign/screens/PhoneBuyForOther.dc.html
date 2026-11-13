@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buy a bundle for someone else</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:48px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:#10241c;border:0;background:transparent;cursor:pointer;text-decoration:none}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:27px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+.card{box-sizing:border-box;width:100%;display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px;border-radius:14px;font-family:inherit;color:#10241c;cursor:pointer;text-align:left}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneInternet.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Buy for someone else</span>
+    <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{stepLabel}}</span>
+  </div>
+
+  <sc-if value="{{isWho}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">Who is it for?</h1>
+      <div><label class="lbl" for="rn">Their phone number</label><input class="in" id="rn" type="tel" value="6•• •• 88 21"></div>
+      <div><label class="lbl" for="rname">Their name <span style="font-weight: 500; color: #5c6963">(optional)</span></label><input class="in" id="rname" value="Mama Ngum"></div>
+      <div role="group" aria-label="Preview which case applies" style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{cases}}" as="c" hint-placeholder-count="3">
+          <button type="button" class="card" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="{{c.style}}"><span style="flex: 1"><strong style="display: block; font-size: 15px">{{c.title}}</strong><span style="font-size: 13px; color: #5c6963">{{c.sub}}</span></span></button>
+        </sc-for>
+      </div>
+      <p style="margin: 0; color: #5c6963; font-size: 12px">Design note: the three cards above show what we tell the buyer for each kind of number. In the app only the matching one appears, under the number.</p>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toPlan}}">Continue</button></div>
+  </sc-if>
+
+  <sc-if value="{{isPlan}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+      <h1 class="h1">Pick a bundle for Mama Ngum</h1>
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+        <button type="button" class="card" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}"><span style="flex: 1"><strong style="display: block; font-size: 16px">{{p.name}}</strong><span style="font-size: 13px; color: #5c6963">{{p.detail}}</span></span><strong>[PRICE]</strong></button>
+      </sc-for>
+      <div style="margin-top: 6px"><label class="lbl" for="msg">Add a note <span style="font-weight: 500; color: #5c6963">(optional)</span></label><input class="in" id="msg" value="For your calls with the family ❤"></div>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn" onClick="{{toWait}}">Pay [PRICE] FCFA with MTN MoMo</button>
+      <p style="margin: 0; text-align: center; color: #5c6963; font-size: 12px">Charged to your number 6•• •• 12 45. You approve on your phone.</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
+      <h1 class="h1">Approve on your phone</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">An MTN MoMo request for <strong>[PRICE] FCFA</strong> was sent to your number. This screen updates by itself.</p>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Check status</button><a class="btn2" href="PhonePaymentFailed.dc.html">Payment didn't go through?</a></div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 52px; height: 52px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span>
+        <h1 class="h1" style="font-size: 25px">{{doneTitle}}</h1>
+      </div>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">{{doneBody}}</p>
+      <section aria-label="Gift voucher" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; text-align: center">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">For Mama Ngum · [PLAN 2]</p>
+        <p style="margin: 10px 0; font: 700 28px ui-monospace, Menlo, monospace; letter-spacing: .1em">T6QA-8PLM</p>
+        <div role="img" aria-label="QR code for voucher T6QA-8PLM" style="margin: 0 auto; width: 120px; height: 120px; border-radius: 10px; border: 7px solid #ffffff; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 15px 15px"></div>
+      </section>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn" onClick="{{share}}">{{shareLabel}}</button>
+      <a class="btn2" href="PhoneActivity.dc.html">See it in Activity</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"recipient":{"editor":"enum","options":["noAccount","hasAccount","activeBundle"],"default":"noAccount"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'who', who: props.recipient ?? 'noAccount', plan: 'p2', shared: false }; }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const on = 'border: 2px solid #003b2b; background: #f3f9e8;', off = 'border: 1px solid #dfe5dc; background: #fffef9;';
+    const cases = [
+      ['noAccount', 'No NDAHI account yet', "We'll give you a code to send them. It's linked to their number, so it's theirs when they sign up or enter it."],
+      ['hasAccount', 'Mama Ngum · NDAHI customer', "It goes straight to her account and she gets a notification. No code to pass on."],
+      ['activeBundle', 'Mama Ngum · bundle active until 18 Nov', "She can only use it once her current bundle ends. It's saved in her account until then."]
+    ].map(([id, title, sub]) => ({ title, sub, pressed: s.who === id ? 'true' : 'false', style: s.who === id ? on : off, pick: () => this.setState({ who: id }) }));
+    const plans = [['p1', '[PLAN 1]', '1 GB · 1 day'], ['p2', '[PLAN 2]', '5 GB · 7 days'], ['p3', '[PLAN 3]', '15 GB · 30 days']]
+      .map(([id, name, detail]) => ({ name, detail, pressed: s.plan === id ? 'true' : 'false', style: s.plan === id ? on : off, pick: () => this.setState({ plan: id }) }));
+    const done = {
+      noAccount: ['Paid — now send it', "Share the code with Mama Ngum on WhatsApp or show her the QR. It only works for 6•• •• 88 21. The 7 days start when she uses it."],
+      hasAccount: ['Sent to Mama Ngum', "It's in her account now and she's been notified. The code below is a backup in case she asks."],
+      activeBundle: ['Saved for Mama Ngum', "It's waiting in her account and starts when her current bundle ends on 18 Nov. She's been notified."]
+    }[s.who];
+    return {
+      isWho: s.step === 'who', isPlan: s.step === 'plan', isWait: s.step === 'wait', isDone: s.step === 'done',
+      stepLabel: { who: 'Step 1 of 3', plan: 'Step 2 of 3', wait: 'Step 3 of 3', done: 'Done' }[s.step],
+      cases, plans, toPlan: go('plan'), toWait: go('wait'), toDone: go('done'),
+      doneTitle: done[0], doneBody: done[1],
+      shareLabel: s.shared ? 'Shared' : (s.who === 'noAccount' ? 'Share code on WhatsApp' : 'Share code anyway'),
+      share: () => this.setState({ shared: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
