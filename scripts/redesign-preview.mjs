@@ -69,7 +69,8 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken"];
+export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken",
+  "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork"];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -109,6 +110,12 @@ export const SCREENS = [
     ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true, expect: ["#resetRequest"] }],
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
+    // A returning guest whose saved checkout did not go through, one per reason
+    // (the canvas's `reason` prop). The cookie is the one the page saves.
+    ...[["declined", "declined", "checkoutDeclined", "declined by the provider"], ["low-balance", "lowBalance", "checkoutLowBalance", "provider reported a low balance"],
+      ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
+      .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
+        { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],
     ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html#ids={voucherIds}&width=58", "Redesigned page; the slip stays the thermal POS format shared with admin printing",
@@ -251,6 +258,19 @@ async function startApi() {
       demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
       demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
     );
+    // Four guest checkouts that did not go through (Payment failed screens), with
+    // no customer record so the admin lists are unchanged. Each fixture is the
+    // saved-checkout cookie the page writes; its key reads only the outcome.
+    const failedAt = new Date(now - 2 * 60000).toISOString(), lateCheckUntil = new Date(now + 864e5).toISOString();
+    for (const [fixture, reason, phone] of [["checkoutDeclined", "declined", "670001245"], ["checkoutLowBalance", "low_balance", "670011245"],
+      ["checkoutTimeout", "timeout", "670021245"], ["checkoutWrongNetwork", "wrong_network", "699001245"]]) {
+      const requestKey = randomUUID() + randomUUID();
+      const payment = demoPayment(randomUUID(), 3, 1, `237${phone}`, "mtn", { customerId: `preview-guest-${reason}`, provider: "mock", requestKey, checkoutAudience: "guest",
+        guestCheckoutDetails: { name: "Demo buyer", phone, network: "mtn" }, creationState: "accepted", checkoutClosedAt: failedAt, lateCheckUntil,
+        ...(reason === "timeout" ? { status: "expired" } : { status: "failed", providerFailedAt: failedAt, failureCode: reason }) });
+      s.payments.push(payment);
+      fixtures[fixture] = JSON.stringify({ value: JSON.stringify({ requestKey, planId: payment.planId, paymentId: payment.id }), expiresAt: now + 864e5 });
+    }
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
     // Demo store settings so checkout accepts the demo orders below.
@@ -506,9 +526,9 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
       for (const width of widths(screen)) {
         const phone = width < 768, viewport = { width, height: phone ? 844 : 900 }, board = phone ? screen.phone : screen.desktop;
         const common = { id: screen.id, title: screen.title, app: screen.app, width, viewport };
-        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: "default props" }, async (files) => {
+        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: screen.design || "default props" }, async (files) => {
           const page = await browser.newPage({ viewport });
-          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html`, files, phone, timeout })); }
+          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html${screen.design ? `?${screen.design}` : ""}`, files, phone, timeout })); }
           finally { await page.close(); }
         }));
         const entry = { ...common, kind: "build", session: sessionOf(screen), state: screen.state || sessionOf(screen), ...(screen.blocked ? { blocked: screen.blocked } : {}) };
@@ -517,6 +537,7 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
           try {
             await context.addCookies([
               { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
+              ...(screen.checkout && state.fixtures?.[screen.checkout] ? [{ name: "ndahi-checkout", value: encodeURIComponent(state.fixtures[screen.checkout]), domain: "localhost", path: "/", sameSite: "Strict" }] : []),
               ...(screen.signedOut ? [] : [screen.app === "admin"
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
                 : { name: "customer_session", value: state.cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
@@ -580,6 +601,8 @@ function page(title, body) {
 
 const statusPill = (s) => `<span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>${s.blocked ? ` <span class="pill blocked">Blocked fixture</span>` : ""}`;
 function buildHref(s, state) {
+  // A screen that needs a saved checkout opens through this server, which sets it.
+  if (s.checkout) return state.fixtures?.[s.checkout] ? `/open/${encodeURIComponent(s.id)}` : null;
   const base = s.app === "store" ? storeSite : s.app === "admin" ? admin : portal;
   try { return base + resolvePath(s.path, state.fixtures || {}); } catch { return null; }
 }
@@ -588,7 +611,8 @@ async function indexPage(state) {
   const groups = await boards();
   const card = (s) => {
     const href = buildHref(s, state);
-    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html">desktop</a>`].filter(Boolean).join(" · ");
+    const props = s.design ? `?${s.design}` : "";
+    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html${escape(props)}">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html${escape(props)}">desktop</a>`].filter(Boolean).join(" · ");
     return `<div class="card"><strong>${escape(s.title)}</strong> ${statusPill(s)}
     <p class="meta">Design: ${boardsOf}<br>Build: ${href ? `<a href="${escape(href)}">${escape(s.path.replace(/\{\w+\}/g, "…"))}</a>` : "demo fixture unavailable"}${s.signedOut ? " (signed out)" : ""}</p>${s.blocked ? `<p class="meta">${escape(s.blocked)}.</p>` : ""}</div>`;
   };
@@ -652,6 +676,12 @@ function startDesign(state) {
           ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
           : `${state.cookie}; Path=/api/account; SameSite=Lax; HttpOnly`];
         res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
+        return res.end();
+      }
+      // Opens a screen that needs the guest's saved checkout cookie (cookies ignore ports).
+      const opening = /^\/open\/([\w-]+)$/.exec(url.pathname), screen = opening && SCREENS.find((x) => x.id === opening[1] && x.checkout);
+      if (screen && state.fixtures?.[screen.checkout]) {
+        res.writeHead(303, { "set-cookie": ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", `ndahi-checkout=${encodeURIComponent(state.fixtures[screen.checkout])}; Path=/; SameSite=Strict`], location: `${portal}${screen.path}` });
         return res.end();
       }
       if (url.pathname === "/design/support.js") return send(200, TYPES[".js"], await readFile(join(root, "scripts/redesign-preview-canvas.js")));

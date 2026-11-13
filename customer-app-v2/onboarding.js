@@ -590,8 +590,9 @@ function retryCheckout(payment, change) {
   const form = $("#purchase"), number = account ? form.elements.payerPhone : form.elements.phone;
   if (account && payment.payerPhone) number.value = String(payment.payerPhone).replace(/^\+?237(?=6)/, "");
   if (change === "network") {
-    form.elements.network.value = payment.network === "orange" ? "mtn" : "orange";
+    form.dataset.requestedNetwork = payment.network === "orange" ? "mtn" : "orange";
     form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+    if (!number.value) { number.focus(); return; }
   }
   if (change === "number") { number.value = ""; number.focus(); return; }
   $("#requestPayment").focus();

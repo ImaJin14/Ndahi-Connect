@@ -37,7 +37,7 @@ export function failureContent(payment, reason, { money = (value) => `${value} F
   const network = payment.network === "orange" ? "orange" : "mtn", other = network === "mtn" ? "orange" : "mtn";
   const n = NETWORKS[network], o = NETWORKS[other];
   const values = { brand: n.brand, wallet: n.wallet, balance: n.balance, otherBrand: o.brand, otherWallet: o.wallet,
-    price: money(payment.amount), number: maskedNumber(payment.payerPhone) };
+    price: money(payment.amount), number: payment.payerPhoneMasked || maskedNumber(payment.payerPhone) };
   const key = { declined: "Declined", low_balance: "LowBalance", timeout: "Timeout", wrong_network: "WrongNetwork" }[reason];
   const timeout = reason === "timeout";
   return {
