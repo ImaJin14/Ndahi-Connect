@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bundle running low or ended</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex-direction:column;width:100%;min-height:56px;padding:6px 16px;border:0;border-radius:12px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 16px 18px 70px">
+    <span style="display: flex; align-items: center; gap: 10px"><span style="width: 34px; height: 34px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 19px">NDAHI</strong></span>
+    <h1 style="margin: 18px 0 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px">{{hello}}</h1>
+  </header>
+
+  <sc-if value="{{showPush}}" hint-placeholder-val="{{ true }}">
+    <div role="note" aria-label="Phone notification preview" style="position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; padding: 12px 14px; border-radius: 16px; background: rgba(255,255,255,.97); box-shadow: 0 12px 30px rgba(0,0,0,.22); display: flex; gap: 10px">
+      <span style="flex: 0 0 32px; height: 32px; border-radius: 8px; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-size: 10px; font-weight: 700">NC</span>
+      <span style="flex: 1; font-size: 13px; line-height: 1.4"><span style="display: flex; justify-content: space-between; color: #5c6963; font-size: 12px"><span>NDAHI Connect</span><span>now</span></span><strong style="display: block">{{pushTitle}}</strong>{{pushBody}}</span>
+      <button type="button" aria-label="Dismiss notification" onClick="{{hidePush}}" style="align-self: flex-start; width: 32px; height: 32px; border: 0; background: transparent; color: #5c6963; font-size: 18px; cursor: pointer">×</button>
+    </div>
+  </sc-if>
+
+  <main style="flex: 1; overflow: hidden; padding: 0 16px; margin-top: -54px; display: flex; flex-direction: column; gap: 14px">
+    <section aria-label="Your bundle" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 18px; padding: 18px; box-shadow: 0 16px 40px rgba(4,42,31,.12); display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">[PLAN 2]</p>
+        <span style="{{pill}}">{{pillText}}</span>
+      </div>
+      <p style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -.02em">{{big}} <span style="font-size: 14px; font-weight: 500; color: #5c6963">{{bigSub}}</span></p>
+      <div style="height: 8px; border-radius: 999px; background: #e7ece5; overflow: hidden"><div style="{{bar}}"></div></div>
+      <p style="margin: 0; font-size: 14px; color: #3d4a44; line-height: 1.5">{{note}}</p>
+
+      <sc-if value="{{isEnded}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <a class="btn" href="PhoneBuyBundle.dc.html">Buy [PLAN 2] again<span style="font-size: 13px; font-weight: 600">[PRICE] FCFA · MTN MoMo 6•• •• 12 45</span></a>
+          <a class="btn2" href="PhoneBuyBundle.dc.html">Choose a different plan</a>
+        </div>
+      </sc-if>
+      <sc-if value="{{notEnded}}" hint-placeholder-val="{{ true }}">
+        <label style="display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 0 12px; border-radius: 10px; background: #eef3e9; font-size: 14px; font-weight: 600; cursor: pointer">
+          <input type="checkbox" checked="{{remind}}" onChange="{{flip}}" style="width: 20px; height: 20px; accent-color: #003b2b">
+          <span style="flex: 1">Remind me the moment it ends</span>
+        </label>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="tp" style="padding: 14px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
+      <h2 id="tp" style="margin: 0 0 6px; font-size: 15px">{{tipTitle}}</h2>
+      <p style="margin: 0; font-size: 14px; color: #3d4a44; line-height: 1.5">{{tip}}</p>
+    </section>
+    <a href="PhoneBillingTerms.dc.html" style="align-self: center; font-size: 13px; font-weight: 700; min-height: 44px; display: flex; align-items: center">Why can't I buy while a bundle is active?</a>
+  </main>
+
+  <dc-import name="TabBar" current="home" hint-size="390px,74px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"moment":{"editor":"enum","options":["lowData","endsSoon","ended"],"default":"lowData"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { push: true, remind: true }; }
+  renderVals() {
+    const m = this.props.moment ?? 'lowData';
+    const s = this.state;
+    const amber = 'background: #fff4e0; color: #6b3a00;', grey = 'background: #eef0ee; color: #3d4a44;';
+    const v = {
+      lowData: { hello: 'Running low.', pushT: '80% of your data used', pushB: '1 GB left on [PLAN 2]. It ends when the data or the 7 days run out.',
+        pillText: '1 GB left', pill: amber, big: '1.0 GB', bigSub: 'of 5 GB left', w: 20, color: '#c47a00',
+        note: 'Ends 15 Nov, or sooner when the data runs out.',
+        tipTitle: 'Make it last', tip: 'Videos and app updates use the most data. Turn off auto-updates on mobile data, or set videos to 480p.' },
+      endsSoon: { hello: 'Ends tomorrow.', pushT: '[PLAN 2] ends tomorrow at 18:03', pushB: "You'll be able to buy your next bundle in one tap once it ends.",
+        pillText: 'Ends tomorrow', pill: amber, big: '2.4 GB', bigSub: 'left · ends 18:03 tomorrow', w: 48, color: '#c47a00',
+        note: "Unused data doesn't carry over. Use it before 18:03 tomorrow.",
+        tipTitle: 'Next bundle', tip: "When it ends we'll show a one-tap button to buy [PLAN 2] again with the same Mobile Money number." },
+      ended: { hello: 'Your bundle ended.', pushT: 'Your [PLAN 2] has ended', pushB: 'Tap to buy it again in one step.',
+        pillText: 'Ended', pill: grey, big: '0 GB', bigSub: 'ended today at 18:03', w: 0, color: '#b8c7bd',
+        note: "Buy again and you're back online straight away on this device.",
+        tipTitle: 'Buying for the family?', tip: 'A bundle covers up to 3 devices. Or buy one for someone else from the Internet tab.' }
+    }[m];
+    return {
+      hello: v.hello, pushTitle: v.pushT, pushBody: v.pushB, showPush: s.push, hidePush: () => this.setState({ push: false }),
+      pillText: v.pillText, pill: 'padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + v.pill,
+      big: v.big, bigSub: v.bigSub, bar: `width: ${v.w}%; height: 100%; border-radius: 999px; background: ${v.color}`,
+      note: v.note, tipTitle: v.tipTitle, tip: v.tip,
+      isEnded: m === 'ended', notEnded: m !== 'ended',
+      remind: s.remind, flip: () => this.setState({ remind: !s.remind })
+    };
+  }
+}
+</script>
+</body>
+</html>

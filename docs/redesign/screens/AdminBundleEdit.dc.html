@@ -36,6 +36,14 @@ a{color:#003b2b}a:hover{color:#062a20}
         <sc-if value="{{limited}}" hint-placeholder-val="{{ true }}">
           <div style="max-width: 240px"><label class="lbl" for="bd">Data (GB)</label><input class="in" id="bd" type="number" value="5"></div>
         </sc-if>
+        <fieldset style="margin: 0; padding: 14px; border: 1px solid #dfe5dc; border-radius: 12px; display: flex; flex-direction: column; gap: 10px">
+          <legend style="padding: 0 6px; font-size: 14px; font-weight: 700">Speed limit per customer</legend>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+            <div><label class="lbl" for="sd">Download (Mbps)</label><input class="in" id="sd" type="number" value="{{down}}" onInput="{{setDown}}" placeholder="No limit"></div>
+            <div><label class="lbl" for="su">Upload (Mbps)</label><input class="in" id="su" type="number" value="3" placeholder="No limit"></div>
+          </div>
+          <p style="margin: 0; color: #5c6963; font-size: 13px">Shared by all of a customer's devices. Applied on the MikroTik as a queue for this bundle. Leave blank for no limit.</p>
+        </fieldset>
         <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Changes apply to new purchases only. Customers with this bundle keep what they paid for.</p>
         <div style="display: flex; gap: 10px; align-items: center">
           <button type="button" onClick="{{save}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save bundle</button>
@@ -55,12 +63,13 @@ a{color:#003b2b}a:hover{color:#062a20}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { unl: false, saved: false }; }
+  constructor(props) { super(props); this.state = { unl: false, saved: false, down: '10' }; }
   renderVals() {
     const s = this.state;
     return {
       unlimited: s.unl, limited: !s.unl,
-      preview: (s.unl ? 'Unlimited · fair use' : '5 GB') + ' · 7 days · 3 devices',
+      preview: (s.unl ? 'Unlimited · fair use' : '5 GB') + ' · 7 days · 3 devices' + (s.down ? ` · up to ${s.down} Mbps` : ''),
+      down: s.down, setDown: (e) => this.setState({ down: e.target.value }),
       flipUnl: () => this.setState({ unl: !s.unl }),
       saved: s.saved, save: () => this.setState({ saved: true })
     };

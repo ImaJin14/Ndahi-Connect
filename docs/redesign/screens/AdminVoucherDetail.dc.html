@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin voucher detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px}
+.h2{margin:0 0 14px;font-family:'Playfair Display',serif;font-weight:600;font-size:20px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:0;font-size:14px}
+.kv dt{padding:11px 0;color:#5c6963;border-bottom:1px solid #dfe5dc}
+.kv dd{margin:0;padding:11px 0;font-weight:600;border-bottom:1px solid #dfe5dc;min-width:0}
+.mono{font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em}
+.go2{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 14px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.go2:hover{border-color:#003b2b}
+.danger{color:#a73535;border-color:#e3b4b4}
+.stat b{display:block;font-size:22px;color:#003b2b}
+.stat span{font-size:13px;color:#5c6963}
+.bar{height:10px;border-radius:999px;background:#e4e9e1;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:#003b2b}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 18px 28px;font-size:14px}
+.tl li:before{content:"";position:absolute;left:6px;top:20px;bottom:-2px;width:2px;background:#dfe5dc}
+.tl li:last-child{padding-bottom:0}
+.tl li:last-child:before{display:none}
+.dot{position:absolute;left:0;top:3px;width:14px;height:14px;border-radius:50%;box-sizing:border-box}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="vouchers" hint-size="240px,860px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <a href="AdminVouchers.dc.html" style="font-size: 14px; font-weight: 700">← Vouchers</a>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+      <h1 class="mono" style="margin: 0; font-size: 34px; font-weight: 700">{{code}}</h1>
+      <span style="{{pill}}">{{statusLabel}}</span>
+      <button type="button" onClick="{{copy}}" style="min-height: 40px; padding: 0 12px; border: 0; background: transparent; color: #003b2b; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">{{copyLabel}}</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <div style="flex: 0 1 300px; min-width: 260px; display: flex; flex-direction: column; gap: 12px">
+        <section aria-label="Voucher" style="{{ticket}}">
+          <div style="padding: 22px 22px 18px">
+            <div style="display: flex; justify-content: space-between; align-items: center">
+              <span style="display: flex; align-items: center; gap: 8px"><span style="width: 28px; height: 28px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 10px">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 17px">NDAHI</strong></span>
+              <span style="color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{kindTag}}</span>
+            </div>
+            <p style="margin: 18px 0 2px; font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600">[PLAN 2]</p>
+            <p style="margin: 0; color: #c8d8d0; font-size: 14px">5 GB · 7 days · up to 3 devices</p>
+          </div>
+          <div aria-hidden="true" style="position: relative; height: 0; border-top: 2px dashed rgba(255,255,255,.28); margin: 0 14px">
+            <span style="position: absolute; left: -26px; top: -12px; width: 24px; height: 24px; border-radius: 50%; background: #fbfaf5"></span>
+            <span style="position: absolute; right: -26px; top: -12px; width: 24px; height: 24px; border-radius: 50%; background: #fbfaf5"></span>
+          </div>
+          <div style="padding: 18px 22px 22px; display: flex; flex-direction: column; align-items: center; gap: 12px">
+            <div role="img" aria-label="QR code for {{code}}" style="{{qr}}"></div>
+            <p class="mono" style="margin: 0; font-size: 22px; font-weight: 700">{{code}}</p>
+            <p style="margin: 0; color: #c8d8d0; font-size: 12px">{{validLine}}</p>
+          </div>
+        </section>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+          <a class="go2" href="AdminVoucherPrint.dc.html">Print slip</a>
+          <button type="button" class="go2" onClick="{{copy}}">{{copyLabel}}</button>
+        </div>
+      </div>
+
+      <div style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <sc-if value="{{isRevoked}}" hint-placeholder-val="{{ false }}">
+          <p role="status" style="margin: 0; padding: 14px 16px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px"><strong>Revoked just now by Owner.</strong> J. Fon's devices were disconnected and the code can't be used again. Logged in the audit trail.</p>
+        </sc-if>
+
+        <sc-if value="{{showUsage}}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="us" class="panel">
+            <h2 id="us" class="h2">Usage</h2>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px">
+              <div class="stat"><b>{{dataLeft}}</b><span>{{dataSub}}</span></div>
+              <div class="stat"><b>{{timeLeft}}</b><span>{{timeSub}}</span></div>
+              <div class="stat"><b>2 of 3</b><span>devices connected</span></div>
+            </div>
+            <div class="bar" role="img" aria-label="{{barLabel}}"><i style="{{barW}}"></i></div>
+          </section>
+        </sc-if>
+        <sc-if value="{{isWaiting}}" hint-placeholder-val="{{ false }}">
+          <section aria-labelledby="rs" class="panel" style="display: flex; flex-direction: column; gap: 12px; border: 2px solid #d9c4ef">
+            <h2 id="rs" class="h2" style="margin: 0">Reserved for a number</h2>
+            <p style="margin: 0; font-size: 15px"><strong>+237 6•• •• 57 03</strong> · no NDAHI account yet</p>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+              <div class="stat"><b>78 days</b><span>left to claim · until 11 Feb</span></div>
+              <div class="stat"><b>0</b><span>wrong claim attempts</span></div>
+              <div class="stat"><b>Code + number</b><span>both needed to claim</span></div>
+            </div>
+            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px">Claimed automatically if this number pays for anything with Mobile Money. The bundle's days only start when they choose to start it.</p>
+            <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+                <div style="flex: 1 1 220px"><label for="nn" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">New phone number</label><input id="nn" type="tel" value="6•• •• 57 30" style="box-sizing: border-box; width: 100%; min-height: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; font: 14px 'DM Sans', sans-serif"></div>
+                <button type="button" class="go2" onClick="{{saveNumber}}">Save number</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{numberSaved}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; color: #345000; font-weight: 700; font-size: 14px">Number changed to 6•• •• 57 30. The old number can no longer claim it. Logged in the audit trail.</p></sc-if>
+          </section>
+        </sc-if>
+        <sc-if value="{{isUnused}}" hint-placeholder-val="{{ false }}">
+          <section class="panel" style="display: flex; gap: 14px; align-items: center">
+            <span style="flex: 0 0 44px; height: 44px; border-radius: 50%; background: #e3f0ff; color: #1d4f86; display: grid; place-items: center; font-weight: 700">!</span>
+            <p style="margin: 0; font-size: 14px; color: #3d4a44">Not redeemed yet. The bundle's 7 days only start when someone enters or scans this code.</p>
+          </section>
+        </sc-if>
+
+        <section aria-labelledby="hi" class="panel">
+          <h2 id="hi" class="h2">History</h2>
+          <ol class="tl">
+            <li><span class="dot" style="background: #003b2b"></span><strong>Created</strong> {{createdLine}}<br><span style="color: #5c6963; font-size: 13px">{{createdWhen}}</span></li>
+            <li><span class="dot" style="background: #003b2b"></span><strong>{{kindTag}}</strong> — {{kindLine}}<br><span style="color: #5c6963; font-size: 13px">29 Oct · 10:14</span></li>
+            <sc-if value="{{redeemed}}" hint-placeholder-val="{{ true }}">
+              <li><span class="dot" style="background: #003b2b"></span><strong>Redeemed</strong> by <a href="AdminCustomerDetail.dc.html" style="font-weight: 700">J. Fon</a> on an Android phone at AP-Market<br><span style="color: #5c6963; font-size: 13px">8 Nov · 18:03 · receipt emailed</span></li>
+            </sc-if>
+            <sc-if value="{{isRevoked}}" hint-placeholder-val="{{ false }}">
+              <li><span class="dot" style="background: #a73535"></span><strong style="color: #8a2a2a">Revoked</strong> by Owner<br><span style="color: #5c6963; font-size: 13px">Today · just now</span></li>
+            </sc-if>
+            <sc-if value="{{showEnds}}" hint-placeholder-val="{{ true }}">
+              <li><span class="dot" style="border: 2px solid #b8c7bd; background: #ffffff"></span><span style="color: #5c6963"><strong>{{endsTitle}}</strong> {{endsLine}}</span></li>
+            </sc-if>
+          </ol>
+        </section>
+
+        <section aria-labelledby="dt" class="panel">
+          <h2 id="dt" class="h2">Details</h2>
+          <dl class="kv" style="margin: 0">
+            <dt>Customer</dt><dd><sc-if value="{{isWaiting}}" hint-placeholder-val="{{ false }}">6•• •• 57 03 · <span style="color: #5c6963; font-weight: 500">no account yet</span></sc-if><sc-if value="{{redeemed}}" hint-placeholder-val="{{ true }}"><a href="AdminCustomerDetail.dc.html">J. Fon</a> · 6•• •• 40 19</sc-if><sc-if value="{{isUnused}}" hint-placeholder-val="{{ false }}"><span style="color: #5c6963; font-weight: 500">Not redeemed yet</span></sc-if></dd>
+            <dt>Type</dt><dd>{{kindTag}} · face value [XAF]</dd>
+            <dt>{{batchLabel}}</dt><dd>{{batchLine}}</dd>
+            <dt>Router</dt><dd><span style="color: #345000">{{routerLine}}</span></dd>
+            <dt style="border-bottom: 0">Receipt email</dt><dd style="border-bottom: 0">{{emailLine}}</dd>
+          </dl>
+        </section>
+
+        <sc-if value="{{notRevoked}}" hint-placeholder-val="{{ true }}">
+          <section aria-labelledby="ac" class="panel" style="display: flex; flex-direction: column; gap: 12px">
+            <h2 id="ac" class="h2" style="margin: 0">Actions</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px">
+              <button type="button" class="go2" onClick="{{flipKind}}">{{kindAction}}</button>
+              <sc-if value="{{isWaiting}}" hint-placeholder-val="{{ false }}"><button type="button" class="go2" onClick="{{editNumber}}">Change number</button></sc-if>
+              <sc-if value="{{notWaiting}}" hint-placeholder-val="{{ true }}"><button type="button" class="go2">Resend receipt email</button></sc-if>
+              <button type="button" class="go2 danger" onClick="{{askRevoke}}">Revoke voucher</button>
+            </div>
+            <sc-if value="{{asking}}" hint-placeholder-val="{{ false }}">
+              <div role="alertdialog" aria-label="Confirm revoke" style="padding: 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 14px">
+                <span style="flex: 1 1 260px"><strong>Revoke {{code}}?</strong> {{revokeWarn}}</span>
+                <button type="button" class="go2" onClick="{{cancel}}">Keep it</button>
+                <button type="button" onClick="{{revoke}}" style="min-height: 44px; padding: 0 16px; border: 0; border-radius: 9px; background: #a73535; color: #ffffff; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Revoke</button>
+              </div>
+            </sc-if>
+          </section>
+        </sc-if>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"status":{"editor":"enum","options":["inUse","notUsed","usedUp","waitingClaim"],"default":"inUse"},"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { kind: 'gift', asking: false, revoked: false, copied: false }; }
+  renderVals() {
+    const s = this.state;
+    const st = s.revoked ? 'revoked' : (this.props.status ?? 'inUse');
+    const w = (this.props.status ?? 'inUse') === 'waitingClaim';
+    const tone = {
+      inUse: ['In use', '#eaf6d5', '#345000'], notUsed: ['Not used', '#e3f0ff', '#1d4f86'],
+      usedUp: ['Used up', '#eef0ee', '#3d4a44'], revoked: ['Revoked', '#fbe4e4', '#8a2a2a'], waitingClaim: ['Waiting for claim', '#f1e8fb', '#5b2d86']
+    }[st];
+    const dim = st === 'usedUp' || st === 'revoked';
+    const used = st === 'usedUp';
+    const set = (o) => () => this.setState(o);
+    return {
+      statusLabel: tone[0],
+      pill: `padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: ${tone[1]}; color: ${tone[2]};`,
+      ticket: 'border-radius: 18px; overflow: hidden; color: #ffffff; ' + (dim ? 'background: #5c6963;' : 'background: #003b2b;') + ' box-shadow: 0 10px 24px rgba(0,59,43,.18);',
+      qr: 'width: 150px; height: 150px; border-radius: 10px; border: 8px solid #ffffff; background: repeating-conic-gradient(#10241c 0 25%, #ffffff 0 50%) 0 0 / 16px 16px;' + (dim ? ' opacity: .35;' : ''),
+      kindTag: s.kind === 'gift' ? 'Gift' : 'Sold',
+      kindLine: s.kind === 'gift' ? 'complimentary, no revenue recorded' : 'sold for cash, counted as revenue',
+      kindAction: s.kind === 'gift' ? 'Mark as sold' : 'Mark as gift',
+      flipKind: set({ kind: s.kind === 'gift' ? 'sold' : 'gift' }),
+      isRevoked: st === 'revoked', notRevoked: st !== 'revoked',
+      isUnused: st === 'notUsed', showUsage: st === 'inUse' || st === 'usedUp',
+      redeemed: st !== 'notUsed' && !w, showEnds: st === 'inUse' || st === 'waitingClaim',
+      isWaiting: st === 'waitingClaim', notWaiting: st !== 'waitingClaim',
+      code: w ? 'M3VX-7KQD' : 'K7PM-42XQ',
+      validLine: w ? 'Only for 6•• •• 57 03 · claim by 11 Feb 2027' : 'Valid until 5 Feb 2027 if not used',
+      createdLine: w ? 'for +237 6•• •• 57 03 by Owner' : 'in batch B-1029-01 by Owner',
+      createdWhen: w ? '13 Nov · 16:02' : '29 Oct · 10:12',
+      endsTitle: w ? 'Expires' : 'Ends', endsLine: w ? '11 Feb 2027 if not claimed' : '15 Nov · 18:03, or when the data runs out',
+      batchLabel: w ? 'Reserved for' : 'Batch', batchLine: w ? 'Phone number · given in person' : 'B-1029-01 · 20 codes',
+      editing: !!s.editing && !s.numberSaved, numberSaved: !!s.numberSaved,
+      editNumber: set({ editing: true }), saveNumber: set({ numberSaved: true }),
+      dataLeft: used ? '0 GB' : '3.2 GB', dataSub: used ? 'of 5 GB left' : 'of 5 GB left · 1.8 used',
+      timeLeft: used ? 'Ended' : '2 days', timeSub: used ? '12 Nov · data ran out' : 'ends 15 Nov · 18:03',
+      barW: 'width: ' + (used ? '100%' : '36%'), barLabel: used ? '5 of 5 GB used' : '1.8 of 5 GB used',
+      emailLine: (st === 'notUsed' || st === 'waitingClaim') ? 'Sent when redeemed' : 'Delivered 8 Nov · 18:04',
+      routerLine: st === 'revoked' ? 'Disconnect sent · confirmed' : (st === 'notUsed' || st === 'waitingClaim') ? 'Waiting for redemption' : 'Synced to MikroTik · 40 s ago',
+      revokeWarn: (st === 'notUsed' || st === 'waitingClaim') ? 'The code stops working. This can’t be undone.' : 'J. Fon’s 2 devices are disconnected now and the rest of the bundle is lost. This can’t be undone.',
+      asking: s.asking, askRevoke: set({ asking: true }), cancel: set({ asking: false }), revoke: set({ revoked: true, asking: false }),
+      copyLabel: s.copied ? 'Copied' : 'Copy code', copy: set({ copied: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
