@@ -64,7 +64,9 @@ test("a gift for a number with no account is a reservation its owner claims", as
   const { store, call, buy } = await start(t);
   const paid = await buy("670008899");
   assert.equal(paid.status, 200);
-  assert.deepEqual(paid.body.gift, { recipientPhone: "670008899", recipientName: "Mama Ngum", note: "For your calls with the family ❤", outcome: "reserved", recipientBundleEndsAt: null });
+  const { qr, ...gift } = paid.body.gift;
+  assert.deepEqual(gift, { recipientPhone: "670008899", recipientName: "Mama Ngum", note: "For your calls with the family ❤", outcome: "reserved", recipientBundleEndsAt: null });
+  assert.match(qr, /^data:image\/png;base64,/, "a QR the recipient scans to claim it");
   const code = paid.body.access.code, s = await store.snapshot(), v = s.vouchers.find((x) => x.code === code);
   assert.deepEqual([v.status, v.customerId, v.reservation.status, v.reservation.phone, v.reservation.by, v.giftedBy], ["available", null, "waiting", "670008899", { type: "customer", id: "c-buyer" }, "c-buyer"]);
   assert.equal(s.vouchers.find((x) => x.id === "v-buyer").status, "active", "the buyer's own bundle is untouched");
