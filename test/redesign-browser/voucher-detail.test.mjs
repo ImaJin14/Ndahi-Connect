@@ -18,15 +18,16 @@ const later = (days) => new Date(Date.now() + days * 864e5).toISOString();
 const text = async (locator) => (await locator.textContent()).replace(/\s+/g, " ");
 
 test("a voucher's page shows its ticket and history and runs its actions", { timeout: 180000 }, async (t) => {
-  const secret = "redesign-voucher-detail", store = createStore({ persistent: false });
+  // Created clearly before it was redeemed, so the history order is fixed.
+  const secret = "redesign-voucher-detail", store = createStore({ persistent: false }), created = later(-5);
   await store.transaction((s) => {
     s.customers.push({ id: "c-fon", name: "J. Fon", phone: "670004019" });
     s.vouchers.unshift({ id: "v-unused", planId: "weekly", code: "M3VX-7KQD", status: "available", generatedByAdmin: true, saleType: "sold", saleAmount: 1000, faceValue: 1000,
       quotaBytes: 5e9, usedBytes: 0, deviceLimit: 3, createdAt: later(-1) });
     s.vouchers.unshift({ id: "v-active", customerId: "c-fon", planId: "weekly", code: "K7PM-42XQ", status: "active", generatedByAdmin: true, saleType: "gift", saleAmount: 0, faceValue: 1000,
-      quotaBytes: 5e9, usedBytes: 1.8e9, deviceLimit: 3, createdAt: later(-5), activatedAt: later(-5), expiresAt: later(2), routerSyncStatus: "synchronized",
+      quotaBytes: 5e9, usedBytes: 1.8e9, deviceLimit: 3, createdAt: created, activatedAt: later(-4.9), expiresAt: later(2), routerSyncStatus: "synchronized",
       wifiDevices: [{ mac: "AA:BB:CC:DD:EE:01" }, { mac: "AA:BB:CC:DD:EE:02" }] });
-    s.auditLogs.unshift({ id: "a1", action: "voucher.generated", actor: "owner", meta: { voucherIds: ["v-active"], quantity: 1, saleType: "gift" }, at: later(-5) });
+    s.auditLogs.unshift({ id: "a1", action: "voucher.generated", actor: "owner", meta: { voucherIds: ["v-active"], quantity: 1, saleType: "gift" }, at: created });
     s.adminUsers.push({ id: "vd-owner", username: "owner", displayName: "Owner", role: "owner", active: true, passkeys: [] });
     s.adminSessions.push({ userId: "vd-owner", role: "owner", tokenHash: hashSecret("vd-owner", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
   });
