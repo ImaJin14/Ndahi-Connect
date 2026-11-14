@@ -129,7 +129,7 @@ export const SCREENS = [
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
-    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", `${NOT_BUILT(250)}: a board of every path, each built on its own screen`,
+    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "A board of every path, each built on its own screen (walked in #250); this capture is the Wi-Fi landing it starts from",
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],

@@ -59,10 +59,17 @@
 /* ---------- The code form: its own page (#redeem), canvas PhoneVoucher ---------- */
 body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
 #redeem .portal-redeem__phone, #redeem .portal-redeem__label { display: none; }
-.portal-redeem__intro { display: flex; flex-direction: column; gap: 4px; margin: 0 0 var(--nd-space-14); }
-.portal-redeem__intro strong { color: var(--nd-forest); font: 600 26px/1.2 var(--nd-font-display); }
-.portal-redeem__intro span { color: var(--nd-muted); font-size: 14px; }
-#redeem .portal-redeem__code input { min-height: 56px; font: 700 22px var(--nd-font-mono); letter-spacing: .12em; text-align: center; text-transform: uppercase; }
+/* As drawn: title block, the dashed code box, then each action, 18px apart. */
+#redeem { display: flex; flex-direction: column; gap: var(--nd-space-18); }
+#redeem > *, #redeem .form-row > label { margin: 0; }
+.portal-redeem__intro { display: flex; flex-direction: column; gap: var(--nd-space-8); margin: 0; }
+.portal-redeem__intro strong { color: var(--nd-ink); font: 600 30px/1.15 var(--nd-font-display); }
+.portal-redeem__intro span { color: var(--nd-muted); font-size: var(--nd-fs-body); line-height: 1.5; }
+#redeem .portal-redeem__code input { min-height: 60px; margin-top: var(--nd-space-8); background: var(--nd-white); color: var(--nd-ink); font: 700 26px var(--nd-font-mono); letter-spacing: .12em; text-align: center; text-transform: uppercase; }
+#activateDevice #redeem > button { min-height: var(--nd-button-height); font-size: var(--nd-fs-control); }
+.portal-redeem__scan { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: var(--nd-button-height); padding: 0 var(--nd-space-16); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-control) var(--nd-font-body); text-decoration: none; }
+.portal-redeem__scan:hover { background: var(--nd-sage); }
+.portal-redeem__once { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: 1.5; }
 
 @media (max-width: 767.98px) {
   body[data-current-tab="internet"] .portal-internet__switch { display: flex; margin: var(--nd-space-8) 0 var(--nd-space-4); }
@@ -87,4 +94,4 @@ body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
 @media (max-width: 767.98px) {
   #voucherHistory .portal-vouchers__h { display: none; }
 }
-#redeem .portal-redeem__code { padding: var(--nd-space-14) var(--nd-space-16) var(--nd-space-16); border: 1.5px dashed var(--nd-line-strong); border-radius: 14px; }
+#redeem .portal-redeem__code { padding: var(--nd-space-18); border: 2px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
