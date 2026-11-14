@@ -18,7 +18,8 @@ const day = (at) => new Date(at).toLocaleDateString(locale(), { day: "numeric", 
 const price = (amount) => Number(amount).toLocaleString(locale());
 const masked = (phone) => {
   const d = String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, "");
-  return d.length === 9 ? `${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : "";
+  // Kept on one line (no-break spaces).
+  return d.length === 9 ? `${d[0]}••\u00a0••\u00a0${d.slice(5, 7)}\u00a0${d.slice(7)}` : "";
 };
 const STEPS = { who: "giftStep1", plan: "giftStep2", wait: "giftStep3", done: "giftStepDone" };
 const METHODS = { mtn: "giftMtn", orange: "giftOrange" };
