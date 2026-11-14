@@ -12,13 +12,13 @@ import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
 import { profileCard, vouchersCard, bundleCatalogue, voucherAction, homeQuickActions, homeRecentActivity, homeShopItems } from "./portal-content.js";
-import { currentLanguage } from "/shared/ui/dom.js";
+import { currentLanguage, localize } from "/shared/ui/dom.js";
 import { mountProfileEdit, mountEmailLink } from "./profile.js";
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
 import { migrateLegacyCheckout } from "./checkout-store.js";
 import { mountNotifications } from "/shared/notifications.js";
-import { getPreferredLanguage, setPreferredLanguage, t } from "/shared/i18n.js";
+import { t } from "/shared/i18n.js";
 import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { renewalExtras, showRenewal } from "./renewal.js";
@@ -227,6 +227,12 @@ function loadHomeShop() {
   });
 }
 
+function pendingPaymentContent(payment) {
+  if (!payment) return "";
+  const lang = currentLanguage();
+  return `<p class="home-pending__line"><strong id="pendingPaymentTitle">${h(t("homePaymentWaiting", lang))}</strong> ${h(t("homePaymentApprove", lang))}</p>${paymentClock(payment)}<details class="home-pending__help"><summary>${h(t("homePaymentNoPrompt", lang))}</summary>${ussdInstructions(payment.payerPhone)}</details><p class="home-pending__links"><a href="#payments">${h(t("homePaymentView", lang))}</a> · <a href="/help#payment">${h(t("homePaymentHelp", lang))}</a></p>`;
+}
+
 async function load() {
   const securityView = securityViewState();
   const [result, security] = await Promise.all([
@@ -255,7 +261,7 @@ async function load() {
   const purchaseNotice = result.purchaseAccess?.allowed === false
     ? `<p role="status">${h(result.purchaseAccess.message)} Your balance and payment history are available here.</p>` : "";
   const netBanner = networkBannerState({ purchaseAccess: result.purchaseAccess, active, zone: result.zone });
-  const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="Network status"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
+  const netBannerMarkup = `<aside class="network-state-banner network-state-banner-${netBanner.status}" role="status" aria-label="${h(t("homeNetworkStatus", document.documentElement.lang))}"><div class="network-banner-indicator" aria-hidden="true"></div><div class="network-banner-text"><span class="network-banner-badge">${h(netBanner.badge)}</span><span class="network-banner-message">${h(netBanner.message)}</span></div>${netBanner.actionText && netBanner.actionHref ? `<a class="network-banner-action" href="${h(netBanner.actionHref)}">${h(netBanner.actionText)}</a>` : ""}</aside>`;
   stopConnectivity();
   const lang = currentLanguage();
   // Redesign: network notices sit in the page head (the Home hero on phones).
@@ -263,7 +269,7 @@ async function load() {
   const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
     <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
-    <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPayment ? `<p class="home-pending__line"><strong id="pendingPaymentTitle">${h(t("homePaymentWaiting", lang))}</strong> ${h(t("homePaymentApprove", lang))}</p>${paymentClock(pendingPayment)}<details class="home-pending__help"><summary>${h(t("homePaymentNoPrompt", lang))}</summary>${ussdInstructions(pendingPayment.payerPhone)}</details><p class="home-pending__links"><a href="#payments">${h(t("homePaymentView", lang))}</a> · <a href="/help#payment">${h(t("homePaymentHelp", lang))}</a></p>` : ""}</section>
+    <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPaymentContent(pendingPayment)}</section>
     ${wifiConnect}
     ${renewalExtras()}
     ${homeQuickActions()}
@@ -512,6 +518,7 @@ $("#dashboard").onsubmit = async (event) => {
 
 function applyLanguage(lang) {
   document.documentElement.lang = lang;
+  ["header", "#shopPanel", "#portalHead", "#activateDevice"].forEach(selector => { const root = document.querySelector(selector); if (root) localize(root, lang); });
   const brandSmall = document.querySelector(".brand small");
   if (brandSmall) brandSmall.textContent = t("brandSmall", lang);
   const portalTitle = document.getElementById("portalTitle");
@@ -522,24 +529,29 @@ function applyLanguage(lang) {
   if (logout) logout.textContent = t("logout", lang);
 }
 
-function mountLanguageSwitcher() {
-  const current = getPreferredLanguage();
-  document.querySelectorAll(".lang-switcher [data-lang]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.lang === current);
-    btn.onclick = () => {
-      const selected = btn.dataset.lang;
-      setPreferredLanguage(selected);
-      document.querySelectorAll(".lang-switcher [data-lang]").forEach((b) => {
-        b.classList.toggle("active", b.dataset.lang === selected);
-      });
-      applyLanguage(selected);
-    };
-  });
-  applyLanguage(current);
+function mountLanguagePreference() {
+  // English remains the default. French is an explicit Account preference,
+  // rather than an automatic change based on the browser's language.
+  let selected = "en";
+  try { if (localStorage.getItem("ndahi-lang") === "fr") selected = "fr"; } catch (_) {}
+  applyLanguage(selected);
 }
 
-// Language selection is temporarily disabled.
-// mountLanguageSwitcher();
+mountLanguagePreference();
+window.addEventListener("ndahi:language", async (event) => {
+  const selected = event.detail === "fr" ? "fr" : "en";
+  const restoreFocus = document.activeElement?.matches('[data-account-language]');
+  applyLanguage(selected);
+  try {
+    await load();
+    if (restoreFocus && activePortalView() === "account") document.querySelector('[data-account-language]')?.focus();
+  } catch (error) {
+    // Keep the existing view and picker usable when a translated data refresh fails.
+    const message = $("#dashboardMessage");
+    message.textContent = t("homeLanguageRefreshFailed", selected);
+    if (restoreFocus) document.querySelector('[data-account-language]')?.focus();
+  }
+});
 
 $("#logout").onclick = async (event) => {
   try {
@@ -571,9 +583,10 @@ async function refreshPaymentRecords() {
       if (payment) row.outerHTML = paymentRow(payment, result.customer);
     });
     const pending = result.payments.find((p) => ["pending", "processing"].includes(p.status)), card = $("#pendingPayment");
-    if (card) { card.hidden = !pending; card.innerHTML = pending ? `<h2>Payment awaiting confirmation</h2>${paymentClock(pending)}<a href="#payments">View payment</a> · <a href="/help#payment">Payment help</a>` : ""; }
+    if (card) { card.hidden = !pending; card.innerHTML = pendingPaymentContent(pending); }
+    stopConnectivity();
     stopConnectivity = mountConnectivityBanner({ container: $(".network-state-banner"), api });
-  latestDashboard = result;
+    latestDashboard = result;
     mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
   } finally { refreshingPayments = false; }
 }
