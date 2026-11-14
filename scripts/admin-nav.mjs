@@ -24,7 +24,15 @@ export const adminSignOutName = uiV2 ? "Sign out" : "Logout";
 
 // Opens a view that v1 keeps under More.
 export async function openAdminMore(page, tab) {
-  if (uiV2) return page.getByRole("link", { name: V2_MORE[tab], exact: true }).click();
+  if (uiV2) {
+    await page.getByRole("link", { name: V2_MORE[tab], exact: true }).click();
+    if (tab === "Generate voucher") {
+      await page.locator("#panel-vouchers").waitFor({ state: "visible" });
+      await page.locator("#generate").waitFor({ state: "attached" });
+      if (await page.getByRole("tab", { name: "Batch to print or sell", exact: true }).count()) await page.getByRole("tab", { name: "Batch to print or sell", exact: true }).click();
+    }
+    return;
+  }
   await page.getByRole("link", { name: "More", exact: true }).click();
   await page.getByRole("tab", { name: tab, exact: true }).click();
 }
@@ -50,7 +58,7 @@ export async function openVoucherOptions(page) {
   if (uiV2 && !(await page.locator("#voucherOptions").evaluate((details) => details.open))) await page.locator("#voucherOptions > summary").click();
 }
 export async function openGeneratedPrint(page) {
-  if (uiV2) await page.getByRole("link", { name: "Print slips", exact: true }).click();
+  if (uiV2) await page.getByRole("link", { name: /^Print slips?$/, exact: true }).click();
 }
 export const printVouchersName = (count) => (!uiV2 ? "Print vouchers" : count === 1 ? "Print 1 slip" : `Print ${count} slips`);
 export async function closeGeneratedCodes(page) {

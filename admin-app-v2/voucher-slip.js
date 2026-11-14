@@ -202,14 +202,15 @@ export function voucherSlipInstructions(item) {
   ];
 }
 
-// Inline styles and table rows survive email clients as well as browser printing.
+// Email keeps its inline styles. The v2 browser uses the existing external
+// thermal classes: its CSP deliberately rejects inline style attributes.
 export function renderVoucherSlip(
   item,
   { widthMm = 58, index = 0, email = false } = {},
 ) {
   const width = widthMm === 80 ? 80 : 58;
   const qrSrc = email && item.qrCode ? "cid:ndahi-voucher-qr" : item.qrCode;
-  return `<article class="thermal-slip" data-voucher-slip="${index}" ${email ? "" : `data-voucher-code="${h(item.code)}"`} style="width:${width}mm;max-width:100%;box-sizing:border-box;background:#fff;color:#000;border:1px dashed #222;padding:10px 8px;font-family:monospace;font-size:11px;line-height:1.35;overflow-wrap:anywhere;">
+  const markup = `<article class="thermal-slip" data-voucher-slip="${index}" ${email ? "" : `data-voucher-code="${h(item.code)}"`} style="width:${width}mm;max-width:100%;box-sizing:border-box;background:#fff;color:#000;border:1px dashed #222;padding:10px 8px;font-family:monospace;font-size:11px;line-height:1.35;overflow-wrap:anywhere;">
   <header class="thermal-header" style="text-align:center;border-bottom:2px solid #000;padding:0 0 6px;margin:0 0 6px;background:#fff;color:#000;display:block;height:auto;position:static;">
     <p class="thermal-brand" style="margin:0;font-size:14px;font-weight:800;letter-spacing:.08em;">${VOUCHER_SLIP_DESIGN.brand}</p>
     <p class="thermal-subtitle" style="margin:2px 0 0;font-size:9px;font-weight:700;letter-spacing:.12em;">${VOUCHER_SLIP_DESIGN.subtitle}</p>
@@ -236,6 +237,7 @@ export function renderVoucherSlip(
       "",
     )}</ol><p style="margin:6px 0 0;font-size:9px;">${h(item.notice)}</p></footer>
 </article>`;
+  return email ? markup : markup.replace(/\sstyle="[^"]*"/g, "");
 }
 
 export function renderThermalSlipsHtml(vouchers = [], plan = {}, widthMm = 58) {

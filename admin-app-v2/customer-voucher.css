@@ -1,0 +1,74 @@
+/* AdminVouchers individual mode, using the shared kit palette and controls. */
+.customer-voucher, .customer-voucher__fields, .customer-voucher__success { display: flex; flex-direction: column; gap: var(--nd-space-14); }
+.customer-voucher__fields, .customer-voucher__kinds { min-width: 0; margin: 0; padding: 0; border: 0; }
+.customer-voucher__modes { display: flex; gap: var(--nd-space-4); padding: var(--nd-space-4); border-radius: var(--nd-radius-panel); background: var(--nd-sage); margin-bottom: 0; }
+.customer-voucher__modes button { flex: 1; min-width: 0; min-height: 40px; padding: var(--nd-space-6) var(--nd-space-8); border: 0; border-radius: var(--nd-radius-sm); background: transparent; color: var(--nd-ink-soft); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; }
+.customer-voucher__modes button[aria-selected=true] { background: var(--nd-white); color: var(--nd-forest); box-shadow: var(--nd-shadow-soft); }
+.customer-voucher__hit, .customer-voucher__picked { display: flex; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-12); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-panel); background: var(--nd-white); color: var(--nd-ink); text-align: left; }
+.customer-voucher__hit { width: 100%; min-height: 56px; font: inherit; cursor: pointer; }
+.customer-voucher__hit:hover { border-color: var(--nd-forest); }
+.customer-voucher__picked { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+.customer-voucher__person { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.customer-voucher__person strong, .customer-voucher__person .nd-meta { display: block; }
+.customer-voucher__matches, .customer-voucher__kinds { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+.customer-voucher__kind { display: flex; align-items: center; gap: var(--nd-space-10); min-height: 56px; padding: var(--nd-space-8) var(--nd-space-12); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-panel); background: var(--nd-white); cursor: pointer; }
+.customer-voucher__kind.is-selected { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+.customer-voucher__kind input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--nd-forest); }
+.customer-voucher__kind strong, .customer-voucher__kind .nd-meta { display: block; }
+.customer-voucher__warning p { margin: var(--nd-space-8) 0; }
+.customer-voucher__warning .admin-check { min-height: 40px; }
+.customer-voucher__warning input { width: 20px; height: 20px; flex-shrink: 0; }
+.customer-voucher__code { border-radius: var(--nd-radius-hero); padding: var(--nd-space-16); background: var(--nd-forest); color: var(--nd-white); overflow-wrap: anywhere; }
+.customer-voucher__code .nd-eyebrow { color: var(--nd-lime); }
+.customer-voucher__code .nd-code { font-size: 26px; margin: var(--nd-space-8) 0 var(--nd-space-4); }
+.customer-voucher__code > p:last-child { margin: 0; color: var(--nd-on-forest-soft); }
+.customer-voucher #giveVoucherMessage:empty { display: none; }
+
+/* The source gives both panels comparable width; the old batch-only panel was narrow. */
+@media (min-width: 1000px) {
+  .admin-vouchers__create { flex: 1 1 386px; }
+  .admin-vouchers__list { flex: 999 1 420px; }
+}
+.customer-voucher__kind > input { flex: 0 0 18px; min-width: 18px; margin: 0; }
+.customer-voucher__kind > span { flex: 1; min-width: 0; }
+
+.customer-voucher { margin: 0; }
+.customer-voucher .nd-input { min-width: 0; min-height: 44px; font-size: var(--nd-fs-small); }
+.customer-voucher [data-give-submit] { min-height: 46px; font-size: var(--nd-fs-small); }
+.customer-voucher [data-give-submit]:disabled { background: var(--nd-neutral-bg); color: var(--nd-muted); opacity: 1; }
+.customer-voucher .nd-avatar { flex: 0 0 36px; width: 36px; height: 36px; font-size: var(--nd-fs-small); }
+.customer-voucher__person > strong { font-size: var(--nd-fs-small); }
+
+/* Source radio cards have56px content plus their8px insets and borders. */
+.customer-voucher__kind { min-height: 76px; }
+.customer-voucher__kind strong { font-size: var(--nd-fs-small); }
+
+.customer-voucher__anomaly { border: 2px solid var(--nd-danger-fg); border-radius: var(--nd-radius-panel); padding: var(--nd-space-12); background: var(--nd-danger-bg); font-weight: 700; }
+
+.customer-voucher__success-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-10); }
+.customer-voucher__success-actions .nd-btn { min-width: 0; min-height: 44px; padding-inline: var(--nd-space-8); font-size: var(--nd-fs-small); }
+.customer-voucher__code > p:last-child { font-size: var(--nd-fs-small); }
+.customer-voucher__warning { padding: var(--nd-space-12) var(--nd-space-14); }
+.customer-voucher__warning .customer-voucher__warning-copy { margin: 0 0 var(--nd-space-10); }
+.customer-voucher__warning .admin-check { font-weight: 600; }
+.customer-voucher [data-give-submit]:disabled { border-color: transparent; }
+
+#voucherBatch .nd-input { min-height: 44px; font-size: var(--nd-fs-small); }
+#voucherBatch #generate > [type=submit] { min-height: 46px; font-size: var(--nd-fs-small); }
+#voucherBatch #voucherHelp { font-size: var(--nd-fs-small); }
+#voucherBatch #generated { margin-top: var(--nd-space-14); }
+#voucherBatch #generated:empty { margin: 0; }
+#voucherBatch .admin-batch > .nd-btn--dark { order: 1; }
+#voucherBatch .admin-batch > details, #voucherBatch .admin-batch__more { order: 2; }
+
+/* Existing filters/actions disclose on demand; source rows remain compact. */
+.voucher-record-filters { display: contents; }
+.voucher-record-filters:not([open]) > .records-filters { display: none; }
+.voucher-record-filters > summary { flex: 0 0 auto; list-style: none; }
+.voucher-record-actions > summary { list-style: none; }
+.voucher-record-actions .admin-actions { flex-direction: column; align-items: stretch; padding-top: var(--nd-space-8); }
+#voucherRecords .voucher-record-code { min-height: 24px; border: 0; border-radius: 0; padding: 0; background: transparent; color: var(--nd-forest); text-decoration: underline; cursor: pointer; }
+@media (min-width: 768px) {
+  #voucherRecords .nd-table td { padding-block: var(--nd-space-8); }
+  .voucher-record-actions > summary { min-height: 24px; padding-inline: var(--nd-space-6); font-size: var(--nd-fs-caption); }
+}

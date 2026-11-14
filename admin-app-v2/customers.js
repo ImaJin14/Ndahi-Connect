@@ -109,7 +109,7 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
     role === "owner" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-reset-authenticator="${h(c.id)}">${h(L("adminRecoverPin"))}</button>` : "",
     // Phase 6 (canvas: AdminCustomerDetail): owners remove lost passkeys after an identity check.
     role === "owner" && c.passkeys > 0 ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-remove-customer-passkeys="${h(c.id)}">${h(L("adminRemoveCustomerPasskeys"))}</button>` : "",
-    canManage && c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-replace-bundle="${h(c.id)}" data-replace-phone="${h(c.phone || "")}">${h(L("adminReplaceBundle"))}</button>` : "",
+    canManage && c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-replace-bundle="${h(c.id)}" data-replace-phone="${h(c.phone || "")}">${h(L("adminGiveVoucher"))}</button>` : "",
     suspendButton(c, true),
   ].join("");
   host.innerHTML = `<div class="admin-subtabs" role="tablist" aria-label="${h(L("adminColCustomer"))}">

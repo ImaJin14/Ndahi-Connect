@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
+import { adminGenerateName, uiV2, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -188,13 +188,21 @@ try {
 
   await scenario("single assigned voucher defaults to 58mm thermal POS slip and never leaks customer PII onto printed slips", async (page) => {
     await page.goto(`${admin}/dashboard#voucher-create`);
-    await openVoucherOptions(page);
-    await page.locator("#voucherPurpose").selectOption("assigned");
-    await page.locator("#voucherSaleType").selectOption("sold");
-    await page.locator("#customerSelect").selectOption("cust-pii-1");
-    await page.getByRole("button", { name: adminGenerateName("assigned"), exact: true }).click();
-
-    await page.getByText("1 voucher generated", { exact: true }).waitFor();
+    if (uiV2) {
+      await page.getByRole("tab", { name: "For one customer", exact: true }).click();
+      await page.locator('[name="customerSearch"]').fill("cust-pii-1");
+      await page.locator('[data-give-pick]').first().click();
+      await page.locator('#customerVoucherForm [name="planId"]').selectOption("weekly");
+      await page.locator('[data-give-submit]').click();
+      await page.locator('.customer-voucher__code').waitFor();
+    } else {
+      await openVoucherOptions(page);
+      await page.locator("#voucherPurpose").selectOption("assigned");
+      await page.locator("#voucherSaleType").selectOption("sold");
+      await page.locator("#customerSelect").selectOption("cust-pii-1");
+      await page.getByRole("button", { name: adminGenerateName("assigned"), exact: true }).click();
+      await page.getByText("1 voucher generated", { exact: true }).waitFor();
+    }
     await openGeneratedPrint(page);
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
     assert.equal(await page.locator(".thermal-slip").count(), 1);
