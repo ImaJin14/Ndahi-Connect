@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin insights</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:21px}
+.sub{margin:4px 0 16px;color:#5c6963;font-size:13px}
+.metric b{display:block;font-size:24px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+.up{color:#345000;font-weight:700}
+.down{color:#a73535;font-weight:700}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="insights" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Owner</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Insights.</h1>
+      </div>
+      <div role="group" aria-label="Period" style="display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="3">
+          <button type="button" aria-pressed="{{p.pressed}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+      <div class="panel metric" style="padding: 18px"><b>[XAF]</b><span>Revenue · <span class="up">▲ 12%</span> vs previous</span></div>
+      <div class="panel metric" style="padding: 18px"><b>{{bundles}}</b><span>Bundles sold · <span class="up">▲ 8%</span></span></div>
+      <div class="panel metric" style="padding: 18px"><b>{{custs}}</b><span>Paying customers · <span class="up">▲ 5%</span></span></div>
+      <div class="panel metric" style="padding: 18px"><b>31%</b><span>Bought again within 2 days · <span class="down">▼ 3 pts</span></span></div>
+    </div>
+
+    <section aria-labelledby="rv" class="panel">
+      <h2 id="rv" class="h2">Revenue per day</h2>
+      <p class="sub">Bundles and store, {{periodWord}}. Tallest day: Sat 7 Nov.</p>
+      <div role="img" aria-label="Bar chart of daily revenue, rising towards weekends" style="display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-bottom: 6px; border-bottom: 1px solid #dfe5dc">
+        <sc-for list="{{bars}}" as="b" hint-placeholder-count="30">
+          <span title="{{b.t}}" style="{{b.style}}"></span>
+        </sc-for>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #5c6963"><span>{{startLabel}}</span><span>Today</span></div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px">
+      <section aria-labelledby="hr" class="panel" style="flex: 1 1 380px">
+        <h2 id="hr" class="h2">Busiest hours</h2>
+        <p class="sub">Devices online, average by hour. Peak 19:00–22:00.</p>
+        <div role="img" aria-label="Heat strip of usage by hour; darkest from 19:00 to 22:00" style="display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px">
+          <sc-for list="{{hours}}" as="h" hint-placeholder-count="24">
+            <span title="{{h.t}}" style="{{h.style}}"></span>
+          </sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: #5c6963"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+      </section>
+
+      <section aria-labelledby="ap" class="panel" style="flex: 1 1 380px; display: flex; flex-direction: column; gap: 12px">
+        <div><h2 id="ap" class="h2">Access point load at peak</h2><p class="sub" style="margin-bottom: 0">Share of capacity used, 19:00–22:00.</p></div>
+        <sc-for list="{{aps}}" as="a" hint-placeholder-count="3">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px"><strong>{{a.name}}</strong><span style="{{a.numStyle}}">{{a.pct}}%</span></div>
+            <div style="height: 10px; border-radius: 999px; background: #e4e9e1; overflow: hidden"><i style="{{a.bar}}"></i></div>
+          </div>
+        </sc-for>
+        <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px"><strong>AP-Market is near full at peak.</strong> A second access point there would ease evening slowdowns. Starlink link at peak: 74% used.</p>
+      </section>
+    </div>
+
+    <section aria-labelledby="fn" class="panel">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px">
+        <h2 id="fn" class="h2">From Wi-Fi page to paid</h2>
+        <span style="display: flex; gap: 14px; font-size: 13px"><span style="display: flex; align-items: center; gap: 6px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #b8c7bd"></i>Current design</span><span style="display: flex; align-items: center; gap: 6px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #003b2b"></i>New design</span></span>
+      </div>
+      <p class="sub">Visitors on each design who reached each step, {{periodWord}}. Use this before raising the new-design share.</p>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <sc-for list="{{funnel}}" as="f" hint-placeholder-count="4">
+          <div style="display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: center">
+            <span style="font-size: 14px; font-weight: 600">{{f.step}}</span>
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; align-items: center; gap: 8px"><i style="{{f.oldBar}}"></i><span style="font-size: 12px; color: #5c6963">{{f.old}}%</span></div>
+              <div style="display: flex; align-items: center; gap: 8px"><i style="{{f.newBar}}"></i><span style="font-size: 12px; font-weight: 700">{{f.nw}}%</span></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 14px 0 0; font-size: 13px; color: #3d4a44">New design: <strong class="up">+6 pts</strong> paid. Biggest gain is at payment started → paid, likely the clearer approval and failure screens. 10% of visitors are on the new design.</p>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { p: '30' }; }
+  renderVals() {
+    const p = this.state.p;
+    const n = { '7': 7, '30': 30, '90': 30 }[p];
+    const seed = [42, 38, 45, 51, 66, 88, 72, 40, 43, 47, 55, 61, 92, 79, 44, 41, 50, 58, 64, 97, 83, 46, 48, 53, 60, 69, 100, 86, 52, 57];
+    const data = seed.slice(-n);
+    const bars = data.map((v, i) => ({ t: `${v}% of best day`, style: `flex: 1; height: ${v}%; border-radius: 4px 4px 0 0; background: ${i === data.length - 1 ? '#b9ee2e' : (v >= 85 ? '#003b2b' : '#6f9500')};` }));
+    const load = [8, 5, 3, 2, 2, 3, 9, 18, 26, 30, 33, 36, 40, 38, 35, 37, 44, 58, 76, 94, 100, 91, 62, 28];
+    const hours = load.map((v, i) => ({ t: `${String(i).padStart(2, '0')}:00 · ${Math.round(v * 0.62)} devices`, style: `height: 34px; border-radius: 4px; background: rgba(0,59,43,${(0.08 + v / 100 * 0.92).toFixed(2)});` }));
+    const aps = [['AP-Market', 92], ['AP-Junction', 61], ['AP-School road', 38]].map(([name, pct]) => ({
+      name, pct, numStyle: 'font-weight: 700; color: ' + (pct >= 85 ? '#a73535' : '#10241c'),
+      bar: `display: block; height: 100%; width: ${pct}%; border-radius: 999px; background: ${pct >= 85 ? '#c0392b' : '#003b2b'}`
+    }));
+    const steps = [['Opened Wi-Fi page', 100, 100], ['Signed in or signed up', 58, 63], ['Started a payment', 34, 39], ['Paid', 22, 28]];
+    const funnel = steps.map(([step, old, nw]) => ({ step, old, nw,
+      oldBar: `display: block; height: 12px; width: ${old * 0.85}%; border-radius: 4px; background: #b8c7bd`,
+      newBar: `display: block; height: 12px; width: ${nw * 0.85}%; border-radius: 4px; background: #003b2b` }));
+    const base = 'min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const periods = [['7', '7 days'], ['30', '30 days'], ['90', '90 days']].map(([id, label]) => ({ label, pressed: id === p ? 'true' : 'false', style: base + (id === p ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ p: id }) }));
+    return {
+      periods, bars, hours, aps, funnel,
+      periodWord: { '7': 'last 7 days', '30': 'last 30 days', '90': 'last 90 days (weekly bars)' }[p],
+      startLabel: { '7': '7 Nov', '30': '14 Oct', '90': '15 Aug' }[p],
+      bundles: { '7': 96, '30': 412, '90': 1180 }[p], custs: { '7': 71, '30': 203, '90': 318 }[p]
+    };
+  }
+}
+</script>
+</body>
+</html>
