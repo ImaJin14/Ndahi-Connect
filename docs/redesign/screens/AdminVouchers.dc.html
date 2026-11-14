@@ -18,6 +18,12 @@ th{color:#5c6963;font-weight:600;font-size:13px}
 .in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
 .code{font:700 14px ui-monospace,Menlo,monospace;letter-spacing:.06em}
 .pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.go{min-height:46px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go[disabled]{background:#e4e9e1;color:#5c6963;cursor:not-allowed}
+.go2{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.hit{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 12px;border-radius:10px;border:1px solid #dfe5dc;background:#ffffff;font:14px 'DM Sans',sans-serif;color:#10241c;text-align:left;cursor:pointer}
+.hit:hover{border-color:#003b2b}
+.av{flex:0 0 36px;height:36px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-weight:700}
 </style>
 </helmet>
 <div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
@@ -31,18 +37,109 @@ th{color:#5c6963;font-weight:600;font-size:13px}
     </div>
 
     <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
-      <section aria-labelledby="cv" style="flex: 1 1 300px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
-        <h2 id="cv" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Create a batch</h2>
-        <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · 1 GB · 1 day</option><option selected>[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
-          <div><label class="lbl" for="vq">How many</label><input class="in" id="vq" type="number" value="20"></div>
-          <div><label class="lbl" for="vr">For reseller</label><select class="in" id="vr"><option>None</option><option selected>[RESELLER]</option></select></div>
+      <section aria-label="New vouchers" style="flex: 1 1 340px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+        <div role="tablist" aria-label="Who the voucher is for" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+          <sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+            <button type="button" role="tab" aria-selected="{{m.sel}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button>
+          </sc-for>
         </div>
-        <button type="button" onClick="{{create}}" style="min-height: 46px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Create 20 vouchers</button>
-        <sc-if value="{{made}}" hint-placeholder-val="{{ false }}">
-          <div style="padding: 14px; border-radius: 12px; background: #eaf6d5; display: flex; flex-direction: column; gap: 10px">
-            <strong style="font-size: 14px; color: #345000">Batch B-1110-03 ready · 20 codes</strong>
-            <a href="AdminVoucherPrint.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 9px; background: #003b2b; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Print slips</a>
+
+        <sc-if value="{{isCustomer}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+              <div role="status" style="display: flex; flex-direction: column; gap: 12px">
+                <div style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff">
+                  <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{doneTag}}</p>
+                  <p style="margin: 8px 0 4px; font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .1em">{{doneCode}}</p>
+                  <p style="margin: 0; color: #c8d8d0; font-size: 14px">{{doneLine}}</p>
+                </div>
+                <sc-if value="{{replaced}}" hint-placeholder-val="{{ false }}">
+                  <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px">Their old [PLAN 2] bundle was ended and its devices disconnected. Logged in the audit trail.</p>
+                </sc-if>
+                <div style="display: flex; gap: 10px">
+                  <a class="go2" href="AdminVoucherPrint.dc.html" style="flex: 1">Print slip</a>
+                  <button type="button" class="go2" style="flex: 1" onClick="{{reset}}">Give another</button>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{notDone}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <sc-if value="{{noPick}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 8px">
+                    <label class="lbl" for="cq" style="margin: 0">Customer name or phone number</label>
+                    <input class="in" id="cq" type="search" value="6" placeholder="e.g. Amina or 6•• •• 12 45">
+                    <p style="margin: 0; color: #5c6963; font-size: 13px">3 matches</p>
+                    <button type="button" class="hit" onClick="{{pickAmina}}"><span class="av">A</span><span style="flex: 1"><strong style="display: block">Amina N.</strong><span style="font-size: 13px; color: #5c6963">6•• •• 12 45 · [PLAN 2] active</span></span></button>
+                    <button type="button" class="hit" onClick="{{pickGrace}}"><span class="av">G</span><span style="flex: 1"><strong style="display: block">Grace T.</strong><span style="font-size: 13px; color: #5c6963">6•• •• 03 66 · no bundle</span></span></button>
+                    <button type="button" class="hit" onClick="{{pickUnknown}}" style="border-style: dashed"><span class="av" style="background: #eef0ee; color: #5c6963">?</span><span style="flex: 1"><strong style="display: block">6•• •• 99 10</strong><span style="font-size: 13px; color: #5c6963">No account with this number</span></span></button>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{isUnknown}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-direction: column; gap: 14px">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 2px dashed #b8c7bd; background: #ffffff">
+                      <span class="av" style="background: #eef0ee; color: #5c6963">?</span>
+                      <span style="flex: 1"><strong style="display: block">+237 6•• •• 99 10</strong><span style="font-size: 13px; color: #5c6963">No NDAHI account yet</span></span>
+                      <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
+                    </div>
+                    <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #e3f0ff; color: #1d4f86; font-size: 14px; line-height: 1.5">The voucher is <strong>reserved for this number</strong>. To claim it they need the number <em>and</em> the code, so give them the slip or read them the code. If they later pay with Mobile Money from this number, it's added to their account automatically.</p>
+                    <div><label class="lbl" for="vb2">Bundle</label><select class="in" id="vb2"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                      <legend class="lbl">How it was paid</legend>
+                      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+                        <label style="{{k.style}}"><input type="radio" name="sk2" checked="{{k.on}}" onChange="{{k.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{k.label}}</strong><span style="font-size: 13px; color: #5c6963">{{k.hint}}</span></span></label>
+                      </sc-for>
+                    </fieldset>
+                    <button type="button" class="go" onClick="{{give}}">Reserve [PLAN 2] for this number</button>
+                    <p style="margin: 0; color: #5c6963; font-size: 13px">Unclaimed after 90 days, it expires. You can change the number or revoke it any time before it's claimed.</p>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{isPicked}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-direction: column; gap: 14px">
+                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 2px solid #003b2b; background: #f3f9e8">
+                      <span class="av">{{initial}}</span>
+                      <span style="flex: 1"><strong style="display: block">{{who}}</strong><span style="font-size: 13px; color: #5c6963">{{whoLine}}</span></span>
+                      <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
+                    </div>
+                    <div><label class="lbl" for="vb1">Bundle</label><select class="in" id="vb1"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                      <legend class="lbl">How it was paid</legend>
+                      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+                        <label style="{{k.style}}"><input type="radio" name="sk" checked="{{k.on}}" onChange="{{k.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{k.label}}</strong><span style="font-size: 13px; color: #5c6963">{{k.hint}}</span></span></label>
+                      </sc-for>
+                    </fieldset>
+                    <sc-if value="{{hasActive}}" hint-placeholder-val="{{ false }}">
+                      <div style="padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; display: flex; flex-direction: column; gap: 10px">
+                        <span><strong>Amina already has [PLAN 2] active</strong> (3.2 GB left, ends 12 Nov). This voucher replaces it straight away: the old bundle ends and its 2 devices are disconnected.</span>
+                        <label style="display: flex; gap: 10px; align-items: center; min-height: 40px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{confirmed}}" onChange="{{flipConfirm}}" style="width: 20px; height: 20px; accent-color: #6b3a00">Yes, replace her current bundle</label>
+                      </div>
+                    </sc-if>
+                    <button type="button" class="go" disabled="{{blocked}}" onClick="{{give}}">{{giveLabel}}</button>
+                    <p style="margin: 0; color: #5c6963; font-size: 13px">Starts immediately on their account. Only owners and operators can give vouchers to customers.</p>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{isBatch}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <p style="margin: 0; color: #5c6963; font-size: 14px">Unassigned codes to print and sell. Each one starts on whichever account redeems it.</p>
+            <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <div><label class="lbl" for="vq">How many</label><input class="in" id="vq" type="number" value="20"></div>
+              <div><label class="lbl" for="vr">For reseller</label><select class="in" id="vr"><option>None</option><option selected="">[RESELLER]</option></select></div>
+            </div>
+            <button type="button" class="go" onClick="{{create}}">Create 20 vouchers</button>
+            <sc-if value="{{made}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 14px; border-radius: 12px; background: #eaf6d5; display: flex; flex-direction: column; gap: 10px">
+                <strong style="font-size: 14px; color: #345000">Batch B-1110-03 ready · 20 codes</strong>
+                <a href="AdminVoucherPrint.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 9px; background: #003b2b; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none">Print slips</a>
+              </div>
+            </sc-if>
           </div>
         </sc-if>
       </section>
@@ -50,18 +147,22 @@ th{color:#5c6963;font-weight:600;font-size:13px}
       <section aria-labelledby="rv" style="flex: 999 1 420px; min-width: 0; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px">
           <h2 id="rv" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Recent vouchers</h2>
-          <label for="vs" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a code</label>
-          <input id="vs" placeholder="Find a code" style="min-height: 40px; width: 200px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
+          <label for="vs" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a code, name or number</label>
+          <input id="vs" placeholder="Code, name or number" style="min-height: 40px; width: 220px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
         </div>
         <div style="overflow-x: auto">
           <table style="width: 100%; border-collapse: collapse">
-            <thead><tr><th scope="col">Code</th><th scope="col">Bundle</th><th scope="col">Batch</th><th scope="col">Status</th></tr></thead>
+            <thead><tr><th scope="col">Code</th><th scope="col">Bundle</th><th scope="col">For</th><th scope="col">Type</th><th scope="col">Status</th></tr></thead>
             <tbody>
-              <tr><td class="code">K7PM-42XQ</td><td>[PLAN 2]</td><td>B-1029-01</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
-              <tr><td class="code">B2RT-9WNA</td><td>[PLAN 1]</td><td>B-1029-01</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Used up</span></td></tr>
-              <tr><td class="code">QF83-ZK4M</td><td>[PLAN 2]</td><td>B-1105-02</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
-              <tr><td class="code">W9LD-6PRC</td><td>[PLAN 2]</td><td>B-1105-02</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
-              <tr><td class="code">H4XN-TT2B</td><td>[PLAN 3]</td><td>B-1105-02</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Disabled</span></td></tr>
+              <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+                <tr><td class="code"><a href="AdminVoucherDetail.dc.html">{{doneCode}}</a></td><td>[PLAN 2]</td><td>{{doneFor}}</td><td>{{doneType}}</td><td><span style="{{donePill}}">{{doneStatus}}</span></td></tr>
+              </sc-if>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">M3VX-7KQD</a></td><td>[PLAN 1]</td><td>6•• •• 57 03 · no account yet</td><td>Gift</td><td><span class="pill" style="background: #f1e8fb; color: #5b2d86">Waiting for claim</span></td></tr>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">K7PM-42XQ</a></td><td>[PLAN 2]</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">J. Fon</a></td><td>Gift</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">B2RT-9WNA</a></td><td>[PLAN 1]</td><td>Batch B-1029-01</td><td>Sold</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Used up</span></td></tr>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">QF83-ZK4M</a></td><td>[PLAN 2]</td><td>Batch B-1105-02 · [RESELLER]</td><td>Sold</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">W9LD-6PRC</a></td><td>[PLAN 2]</td><td>Batch B-1105-02 · [RESELLER]</td><td>Sold</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Not used</span></td></tr>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">H4XN-TT2B</a></td><td>[PLAN 3]</td><td>Batch B-1105-02</td><td>Sold</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Disabled</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -70,10 +171,58 @@ th{color:#5c6963;font-weight:600;font-size:13px}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["customer","batch"],"default":"customer"},"$preview":{"width":1280,"height":1020}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { made: false }; }
-  renderVals() { return { made: this.state.made, create: () => this.setState({ made: true }) }; }
+  constructor(props) {
+    super(props);
+    this.state = { mode: props.mode ?? 'customer', made: false, pick: null, kind: 'sold', confirmed: false, done: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const tabBase = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const modes = [['customer', 'For one customer'], ['batch', 'Batch to print or sell']].map(([id, label]) => ({
+      label, sel: id === s.mode ? 'true' : 'false',
+      style: tabBase + (id === s.mode ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'),
+      pick: () => this.setState({ mode: id })
+    }));
+    const people = {
+      amina: { who: 'Amina N.', initial: 'A', line: '+237 6•• •• 12 45 · [PLAN 2] active, ends 12 Nov', active: true },
+      grace: { who: 'Grace T.', initial: 'G', line: '+237 6•• •• 03 66 · no active bundle', active: false }
+    };
+    const p = people[s.pick] || { who: '', initial: '', line: '', active: false };
+    const rowBase = 'display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 12px; border-radius: 10px; cursor: pointer; ';
+    const kinds = [
+      ['sold', 'Sold', 'They paid you cash — counts as revenue'],
+      ['gift', 'Gift', 'Complimentary — no revenue recorded']
+    ].map(([id, label, hint]) => ({
+      label, hint, on: s.kind === id,
+      style: rowBase + (s.kind === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'),
+      pick: () => this.setState({ kind: id })
+    }));
+    const blocked = p.active && !s.confirmed;
+    const set = (o) => () => this.setState(o);
+    return {
+      modes, isCustomer: s.mode === 'customer', isBatch: s.mode === 'batch',
+      made: s.made, create: set({ made: true }),
+      isDone: s.done, notDone: !s.done,
+      noPick: !s.pick, isUnknown: s.pick === 'unknown', isPicked: s.pick === 'amina' || s.pick === 'grace',
+      pickAmina: set({ pick: 'amina', confirmed: false }), pickGrace: set({ pick: 'grace', confirmed: false }), pickUnknown: set({ pick: 'unknown' }),
+      unpick: set({ pick: null, confirmed: false }),
+      who: p.who, initial: p.initial, whoLine: p.line, hasActive: p.active,
+      kinds, confirmed: s.confirmed, flipConfirm: set({ confirmed: !s.confirmed }),
+      blocked, giveLabel: s.kind === 'gift' ? 'Give [PLAN 2] as a gift' : 'Give [PLAN 2] — sold',
+      give: () => { if (!blocked) this.setState({ done: true }); },
+      replaced: p.active && s.pick !== 'unknown',
+      doneCode: s.pick === 'unknown' ? 'P4NE-2WJH' : 'R8TW-3MXK',
+      doneLine: s.pick === 'unknown' ? 'Reserved for +237 6•• •• 99 10. Give them this code: they claim it with their number when they sign up. Expires 11 Feb 2027 if unclaimed.' : `Active now on ${p.who}'s account. It shows in their Internet tab and they get a notification and an email.`,
+      doneFor: s.pick === 'unknown' ? '6•• •• 99 10 · no account yet' : p.who,
+      doneStatus: s.pick === 'unknown' ? 'Waiting for claim' : 'In use',
+      donePill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (s.pick === 'unknown' ? 'background: #f1e8fb; color: #5b2d86;' : 'background: #eaf6d5; color: #345000;'),
+      doneTag: (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · 5 GB · 7 days',
+      doneType: s.kind === 'gift' ? 'Gift' : 'Sold',
+      reset: set({ done: false, pick: null, confirmed: false, kind: 'sold' })
+    };
+  }
 }
 </script>
 </body>
