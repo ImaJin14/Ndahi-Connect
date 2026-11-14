@@ -27,14 +27,14 @@ const state = () => ({
 });
 
 const view = (v) => ({ id: v.id, status: v.status, plan: { name: v.planId === "weekly" ? "Weekly" : "Daily" }, quotaBytes: v.quotaBytes ?? null,
-  remainingBytes: v.quotaBytes == null ? null : v.quotaBytes - v.usedBytes, expiresAt: v.expiresAt ?? null, activeDevices: 2, deviceLimit: v.deviceLimit, code: v.code });
+  remainingBytes: v.quotaBytes == null ? null : v.quotaBytes - v.usedBytes, usedBytes: v.usedBytes, expiresAt: v.expiresAt ?? null, activeDevices: 2, deviceLimit: v.deviceLimit, code: v.code });
 
 test("each customer row carries its current bundle, waiting payment and store order count", () => {
   const { items } = queryRecords(state(), { collection: "customers" }, { voucherView: view });
   const byId = Object.fromEntries(items.map((c) => [c.id, c]));
   // An active bundle wins over a newer expired one.
   assert.deepEqual(byId.c1.summary, {
-    bundle: { id: "v-active", name: "Weekly", status: "active", quotaBytes: 5e9, remainingBytes: 4e9, expiresAt: "2030-01-08T00:00:00Z", activeDevices: 2, deviceLimit: 3 },
+    bundle: { id: "v-active", name: "Weekly", status: "active", quotaBytes: 5e9, remainingBytes: 4e9, usedBytes: 1e9, expiresAt: "2030-01-08T00:00:00Z", activeDevices: 2, deviceLimit: 3 },
     paymentWaiting: false, storeOrders: 2,
   });
   // Without an active bundle, the newest one is shown.

@@ -186,7 +186,7 @@ export const SCREENS = [
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)", { panel: "store", menu: "products", expect: ["#storeCatalogueTitle"] }],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", { open: ["a[href*=\"#product/\"]:not([href$=\"/new\"])"], panel: "store", menu: "products", hash: "^#product/", expect: ["#storeProductForm"] }],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)", { panel: "cash", menu: "cash" }],
-    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned", { panel: "customers", menu: "customers" }],
+    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
