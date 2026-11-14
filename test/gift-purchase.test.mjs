@@ -38,6 +38,9 @@ async function start(t) {
     const made = await call("/api/account/plan/purchase", { action: "gift", planId: "weekly", recipientPhone, recipientName: "Mama Ngum", note: "For your calls with the family ❤",
       payerPhone: "670001245", network: "mtn", requestKey: randomUUID().replaceAll("-", ""), ...extra });
     if (made.status !== 201) return made;
+    // The payment reaches the provider even though the buyer's own bundle runs.
+    const pending = (await store.snapshot()).payments.find((p) => p.id === made.body.payment.id);
+    assert.notEqual(pending.status, "failed", pending.failureReason);
     assert.equal((await call(`/api/payments/${made.body.payment.id}/confirm`, {}, { buyer: false })).status, 200);
     return call(`/api/account/payments/${made.body.payment.id}/status`);
   };
