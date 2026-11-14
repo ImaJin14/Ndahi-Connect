@@ -42,3 +42,6 @@ body[data-login-mode="pin"] .voucher-only,
 body[data-login-mode="voucher"] .pin-only { display: none !important; }
 /* The newcomer link keeps text contrast on the light page (it inherited a lime meant for dark grounds). */
 .login-page .new-customer a { color: var(--nd-forest); }
+
+/* "Someone gave you a bundle? Claim it" (#254, canvas: PhoneLogin). */
+.portal-login__claim { display: flex; align-items: center; align-self: center; justify-content: center; min-height: 44px; color: var(--nd-forest); font-size: 14px; font-weight: 700; }

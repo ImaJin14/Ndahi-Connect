@@ -40,7 +40,8 @@ import { MockEmailAdapter } from "../lib/email.mjs";
 import { publishInitialStoreCatalogue } from "../lib/initial-store-catalogue.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { voucherQrUrl } from "../lib/voucher-qr.mjs";
-import { plans as PLANS } from "../lib/api/state.mjs";
+import { plans as PLANS, uniqueActivationCode } from "../lib/api/state.mjs";
+import { maskPhone, newReservation } from "../lib/reservations.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const screensDir = join(root, "docs/redesign/screens");
@@ -69,7 +70,7 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken"];
+export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken", "reservedCode", "reservedFriendCode", "reservedVoucherId"];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -84,6 +85,7 @@ export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "gue
 //   blocked    the preview can't put the build in the artboard's state; the text
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
+//   design     canvas props for the design capture, as a query ("moment=ended")
 const SHELL = "Admin shell — screen not rebuilt yet";
 // Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
 // not built yet. The build capture shows today's nearest page; each issue
@@ -115,7 +117,9 @@ export const SCREENS = [
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
     ["payment-failed", "Payment didn't go through", "PhonePaymentFailed", null, "/onboarding.html", NOT_BUILT(251), { signedOut: true, expect: ["#packagesTitle"] }],
     ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
-    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
+    // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
+    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/claim.html?code={reservedFriendCode}", "Redesigned", { signedOut: true, design: "from=friend", state: "a friend's gift reserved for 6•• •• 99 10", expect: ["#claimCode"] }],
+    ["claim-gift-ndahi", "Claim a gift from NDAHI", "PhoneClaimGift", null, "/claim.html?code={reservedCode}", "Redesigned", { signedOut: true, design: "from=ndahi", state: "staff reserved it for 6•• •• 57 03", expect: ["#claimCode"] }],
     ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
@@ -181,6 +185,7 @@ export const SCREENS = [
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
+    ["admin-voucher-reserved", "Voucher waiting for claim", "AdminVoucherDetail", "/dashboard#voucher/{reservedVoucherId}", "Redesigned (#254)", { panel: "voucher", menu: "vouchers", design: "status=waitingClaim", expect: [".admin-voucher__reserved"] }],
     ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
@@ -270,6 +275,17 @@ async function startApi() {
     );
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
+    // Two vouchers reserved for numbers with no account (#254): one staff gave,
+    // one a friend gave with a note (the claim page and "Waiting for claim").
+    const reservedAt = now - 2 * 864e5, weekly = PLANS.find((plan) => plan.id === "weekly");
+    for (const [id, number, by, note] of [["preview-reserved", "670005703", { type: "admin", id: "preview-owner" }], ["preview-reserved-friend", "670009910", customer ? { type: "customer", id: customer.id } : { type: "admin" }, "For your calls with the family ❤"]]) {
+      const v = { id, planId: weekly.id, code: uniqueActivationCode(s), status: "available", customerId: null, activatedAt: null, expiresAt: null, quotaBytes: weekly.quotaGb * 1e9, usedBytes: 0,
+        deviceLimit: weekly.deviceLimit, generatedByAdmin: by.type === "admin", saleType: "gift", saleAmount: 0, faceValue: weekly.price, createdAt: new Date(reservedAt).toISOString(),
+        reservation: newReservation(number, by, reservedAt, note) };
+      s.vouchers.push(v);
+      if (by.type === "admin") s.auditLogs.unshift({ id: randomUUID(), action: "voucher.generated", actor: "demo-owner", meta: { voucherIds: [id], customerId: null, planId: weekly.id, quantity: 1, saleType: "gift", reservedFor: maskPhone(number) }, at: v.createdAt });
+      if (by.type === "admin") { fixtures.reservedCode = v.code; fixtures.reservedVoucherId = id; } else fixtures.reservedFriendCode = v.code;
+    }
     // Demo store settings so checkout accepts the demo orders below.
     Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo)", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
       warranty: { en: "Demo warranty text.", fr: "Texte de garantie (démo)." }, returns: { en: "Demo returns text.", fr: "Texte de retours (démo)." } });
@@ -523,9 +539,9 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
       for (const width of widths(screen)) {
         const phone = width < 768, viewport = { width, height: phone ? 844 : 900 }, board = phone ? screen.phone : screen.desktop;
         const common = { id: screen.id, title: screen.title, app: screen.app, width, viewport };
-        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: "default props" }, async (files) => {
+        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: screen.design || "default props" }, async (files) => {
           const page = await browser.newPage({ viewport });
-          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html`, files, phone, timeout })); }
+          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html${screen.design ? `?${screen.design}` : ""}`, files, phone, timeout })); }
           finally { await page.close(); }
         }));
         const entry = { ...common, kind: "build", session: sessionOf(screen), state: screen.state || sessionOf(screen), ...(screen.blocked ? { blocked: screen.blocked } : {}) };
@@ -605,7 +621,8 @@ async function indexPage(state) {
   const groups = await boards();
   const card = (s) => {
     const href = buildHref(s, state);
-    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html">desktop</a>`].filter(Boolean).join(" · ");
+    const props = s.design ? `?${s.design}` : "";
+    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html${escape(props)}">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html${escape(props)}">desktop</a>`].filter(Boolean).join(" · ");
     return `<div class="card"><strong>${escape(s.title)}</strong> ${statusPill(s)}
     <p class="meta">Design: ${boardsOf}<br>Build: ${href ? `<a href="${escape(href)}">${escape(s.path.replace(/\{\w+\}/g, "…"))}</a>` : "demo fixture unavailable"}${s.signedOut ? " (signed out)" : ""}</p>${s.blocked ? `<p class="meta">${escape(s.blocked)}.</p>` : ""}</div>`;
   };

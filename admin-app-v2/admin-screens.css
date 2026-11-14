@@ -525,3 +525,17 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-code-link { text-decoration: none; }
 .admin-head-title--inline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-14); }
 .admin-voucher a { color: var(--nd-forest); font-weight: 700; }
+
+/* Reserved for a number (#254, canvas: AdminVoucherDetail "waitingClaim"). */
+.nd-pill--claim { background: #f1e8fb; color: #5b2d86; }
+.admin-voucher__reserved { display: flex; flex-direction: column; gap: 12px; border: 2px solid #d9c4ef; }
+.admin-voucher__reserved .admin-voucher__h2, .admin-voucher__reserved .admin-voucher__stats { margin: 0; }
+.admin-voucher__reserved-for { margin: 0; font-size: 15px; }
+.admin-voucher__note { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: 13px; }
+.admin-voucher__renumber { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.admin-voucher__renumber[hidden], .admin-voucher__saved:empty { display: none; }
+.admin-voucher__renumber > div { flex: 1 1 220px; }
+.admin-voucher__renumber label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.admin-voucher__renumber input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #b8c7bd; border-radius: 9px; font: 14px var(--nd-font-body); }
+.admin-voucher__saved { margin: 0; color: #345000; font-size: 14px; font-weight: 700; }
+.admin-voucher__muted { color: var(--nd-muted); font-weight: 500; }

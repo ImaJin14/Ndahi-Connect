@@ -1,0 +1,43 @@
+/* Claim a bundle someone gave you (#254, canvas: PhoneClaimGift). A top bar
+   with back, title and step; the step's content; actions pinned at the foot. */
+body.claim-page { margin: 0; background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+.claim { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; max-width: 560px; margin: 0 auto; }
+.claim a { color: var(--nd-forest); }
+.claim__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid var(--nd-line); }
+.claim__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: var(--nd-ink) !important; text-decoration: none; }
+.claim__title { flex: 1; font-size: 15px; font-weight: 700; }
+.claim__step { padding-right: 8px; color: var(--nd-muted); font-size: 13px; }
+.claim__body, .claim__form { display: flex; flex: 1; flex-direction: column; gap: 0; margin: 0; }
+/* The portal's base styles space every form and main; the canvas does not. */
+.claim .claim__main { max-width: none; margin: 0; }
+.claim__main { display: flex; flex: 1; flex-direction: column; gap: 16px; padding: 20px 18px; }
+.claim__main--setup { gap: 14px; padding: 18px; }
+.claim__main--done { align-items: center; gap: 14px; padding: 30px 22px; text-align: center; }
+.claim__h1 { margin: 0; font-family: var(--nd-font-display); font-size: 28px; font-weight: 600; line-height: 1.15; }
+.claim__h1:focus { outline: none; }
+.claim__h1--sm { font-size: 23px; }
+.claim__lede { margin: 0; color: var(--nd-neutral-fg); font-size: 15px; line-height: 1.5; }
+.claim__label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.claim__label-note { color: var(--nd-muted); font-weight: 500; }
+.claim__phone { display: flex; gap: 8px; }
+.claim__prefix { display: flex; align-items: center; padding: 0 12px; border: 1px solid #b8c7bd; border-radius: 10px; background: var(--nd-sage); font-weight: 600; }
+.claim__input { box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid #b8c7bd; border-radius: 10px; background: #ffffff; color: var(--nd-ink); font: 16px var(--nd-font-body); }
+.claim__input--code { font-family: ui-monospace, Menlo, monospace; font-size: 20px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.claim__input--pin { letter-spacing: .3em; }
+.claim__hint { margin: 6px 0 0; color: var(--nd-muted); font-size: 13px; }
+.claim__alert { margin: 0; padding: 12px 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px; line-height: 1.5; }
+.claim__alert[hidden] { display: none; }
+.claim__gift { padding: 16px; border-radius: 16px; background: var(--nd-forest); color: #ffffff; }
+.claim__from { margin: 0; color: var(--nd-lime); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.claim__plan { margin: 8px 0 2px; font-family: var(--nd-font-display); font-size: 24px; font-weight: 600; }
+.claim__terms { margin: 0; color: #c8d8d0; font-size: 14px; }
+.claim__note { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .1); font-size: 14px; font-style: italic; }
+.claim__pins { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.claim__badge { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; color: #345000; }
+.claim__done-text { margin: 0; color: var(--nd-neutral-fg); font-size: 15px; line-height: 1.55; }
+.claim__next { align-self: stretch; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: 14px; text-align: left; }
+.claim__foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 18px; border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
+.claim__btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--nd-lime); color: var(--nd-lime-ink) !important; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.claim__btn:disabled { opacity: .6; cursor: progress; }
+.claim__btn--secondary { border: 1px solid #b8c7bd; background: var(--nd-paper); color: var(--nd-forest) !important; }
+.claim__btn:focus-visible, .claim__back:focus-visible, .claim__input:focus-visible { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }

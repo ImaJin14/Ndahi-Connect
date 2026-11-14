@@ -35,7 +35,8 @@ test("every preview screen pairs real canvas artboards with a page of the app", 
   }
   // Every admin artboard except the shared side menu has a preview entry.
   const adminBoards = Object.keys(canvas.boards).filter((name) => name.startsWith("Admin") && name !== "AdminSide.dc.html");
-  assert.deepEqual(SCREENS.filter((s) => s.app === "admin").map((s) => `${s.desktop}.dc.html`).sort(), adminBoards.sort());
+  // (An artboard may have several entries, one per state it draws.)
+  assert.deepEqual([...new Set(SCREENS.filter((s) => s.app === "admin").map((s) => `${s.desktop}.dc.html`))].sort(), adminBoards.sort());
   // Every customer and store artboard except the shared tab bar has one too.
   const customerBoards = Object.keys(canvas.boards).filter((name) => !name.startsWith("Admin") && name !== "TabBar.dc.html");
   assert.deepEqual([...new Set(SCREENS.filter((s) => s.app !== "admin").flatMap((s) => [s.phone, s.desktop]).filter(Boolean).map((b) => `${b}.dc.html`))].sort(), customerBoards.sort());
