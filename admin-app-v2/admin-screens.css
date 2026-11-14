@@ -282,8 +282,22 @@
 
 /* ---------- Audit log (canvas: AdminAudit) ---------- */
 .admin-audit { display: flex; flex-direction: column; gap: var(--nd-space-20); }
-.admin-audit__list { padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-18); }
-.admin-audit__list .records-toolbar--kit { flex-direction: row-reverse; justify-content: flex-end; }
+/* #232: the area chips sit right under the head, outside the log card (as on
+   the canvas), with the search at the end of their row; the table and its
+   pager are the card. Same records kit and hooks as before. */
+.nd-panel.admin-audit__list { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.admin-audit__list .records-toolbar--kit { margin: 0 0 var(--nd-space-16); padding: 0; border: 0; }
+.admin-audit__list .records-filter--kit { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10) var(--nd-space-16); width: 100%; }
+.admin-audit__list .records-filter--kit .nd-chips { order: -1; flex: 1 1 auto; }
+.admin-audit__list .records-filter--kit > input[type="search"] { width: 240px; max-width: 100%; }
+.admin-audit__list .nd-table-wrap { padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-6); border: 1px solid var(--nd-line); border-bottom: 0; border-radius: var(--nd-radius-card-lg) var(--nd-radius-card-lg) 0 0; background: var(--nd-paper); }
+.admin-audit__list .records-pager { margin: 0; padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-18); border: 1px solid var(--nd-line); border-top: 0; border-radius: 0 0 var(--nd-radius-card-lg) var(--nd-radius-card-lg); background: var(--nd-paper); }
+.admin-audit__list .nd-table-wrap:has(+ .records-pager[hidden]), .admin-audit__list .nd-table-wrap:last-child { border-bottom: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); }
+@media (max-width: 767.98px) {
+  .admin-audit__list .records-filter--kit > input[type="search"] { width: 100%; }
+  .admin-audit__list .nd-table-wrap { padding: var(--nd-space-6) var(--nd-space-14) var(--nd-space-4); }
+  .admin-audit__list .records-pager { padding: var(--nd-space-10) var(--nd-space-14) var(--nd-space-14); }
+}
 .admin-profile__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--nd-space-20); align-items: start; }
 .admin-profile__card { display: flex; flex-direction: column; gap: var(--nd-space-14); }
 .admin-profile__card .nd-h2 { margin: 0; }
@@ -498,3 +512,9 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-customers__bulk-error { margin: 0; color: var(--nd-on-forest); font-size: var(--nd-fs-meta); }
 .admin-customers__bulk-error[hidden], .admin-customers__sent[hidden] { display: none; }
 .admin-customers__sent { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: var(--nd-fs-small); font-weight: 700; }
+/* Home routers (canvas: AdminHomeRouters; #232): the operations facts as a
+   compact grid of label-over-value tiles. */
+#homeDiagnostics .admin-home-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--nd-space-10); margin: var(--nd-space-12) 0 0; }
+#homeDiagnostics .admin-home-facts > div { display: flex; flex-direction: column; gap: 2px; padding: var(--nd-space-10) var(--nd-space-12); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-control); background: var(--nd-white); }
+#homeDiagnostics .admin-home-facts dt { color: var(--nd-muted); font-size: 12px; font-weight: 600; }
+#homeDiagnostics .admin-home-facts dd { margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-small); font-weight: 700; text-align: left; overflow-wrap: anywhere; }
