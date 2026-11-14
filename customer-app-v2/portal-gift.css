@@ -23,7 +23,7 @@ body.gift-page { margin: 0; background: var(--nd-ivory); color: var(--nd-ink); f
 .gift__card--on { border: 2px solid var(--nd-forest); background: #f3f9e8; }
 .gift__card > span { flex: 1; }
 .gift__card > span > strong { display: block; font-size: 15px; }
-.gift__card > span > span { color: var(--nd-muted); font-size: 13px; }
+.gift__card > span > span { display: block; color: var(--nd-muted); font-size: 13px; line-height: 1.3; }
 .gift__card .gift__plan-name { font-size: 16px; }
 .gift__plans { display: flex; flex-direction: column; gap: 10px; }
 .gift__note-field { margin-top: 6px; }
