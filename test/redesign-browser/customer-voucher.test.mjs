@@ -74,6 +74,10 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await page.getByRole('link', { name: 'Print slip', exact: true }).click();
     await page.locator('.thermal-slip').waitFor(); assert.equal(await page.locator('#voucherPrintLayout').inputValue(), 'thermal-58');
     assert.equal(await page.getByText('A4', { exact: true }).count(), 0);
+    await page.evaluate(() => { location.hash = 'voucher-create'; });
+    await page.locator('#generate').waitFor({ state: 'visible' });
+    assert.equal(await page.getByRole('tab', { name: 'Batch to print or sell', exact: true }).getAttribute('aria-selected'), 'true', 'legacy links still select batch on the current document');
+    assert.equal(posts.length, 1);
   }, { width });
 
   for (const width of [390, 1280]) await scenario(`customer detail requires fresh consent and sold replaces once at ${width}px`, async ({ page, posts }) => {

@@ -246,6 +246,9 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
             if (variant.name === "v2") {
               await page.goto(`${admin}/dashboard?${variant.query}#vouchers`);
               await page.locator("#panel-vouchers:not([hidden])").waitFor({ state: "visible" });
+              await page.locator("#customerVoucherForm").waitFor({ state: "visible" });
+              assert.equal(await page.getByRole("tab", { name: "For one customer", exact: true }).getAttribute("aria-selected"), "true");
+              await page.getByRole("tab", { name: "Batch to print or sell", exact: true }).click();
               assert.equal(await page.locator("#panel-vouchers:not([hidden]) #generate").isVisible(), true);
             }
           }

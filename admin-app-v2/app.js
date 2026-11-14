@@ -291,7 +291,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
       heads: { store: $("#storeHeadOrders"), products: $("#storeHeadProducts"), product: $("#storeHeadProduct") } });
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
+  let customerVoucher;
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer(); if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
@@ -407,7 +408,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
       await resellerLedgerView.refresh();
     });
   };
-  const customerVoucher = mountCustomerVoucher($("#customerVoucher"), {
+  customerVoucher = mountCustomerVoucher($("#customerVoucher"), {
     call, plans: x.bundles.filter(p => !p.resale && p.discontinued !== true), role: adminRole,
     onReady: result => {
       clearPrintContainers(); lastBatch = result ? { vouchers: result.vouchers || [result.voucher], plan: result.plan, reseller: "" } : null;
