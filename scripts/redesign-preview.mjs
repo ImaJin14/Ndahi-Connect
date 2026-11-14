@@ -40,7 +40,8 @@ import { MockEmailAdapter } from "../lib/email.mjs";
 import { publishInitialStoreCatalogue } from "../lib/initial-store-catalogue.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { voucherQrUrl } from "../lib/voucher-qr.mjs";
-import { plans as PLANS } from "../lib/api/state.mjs";
+import { plans as PLANS, uniqueActivationCode } from "../lib/api/state.mjs";
+import { maskPhone, newReservation } from "../lib/reservations.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const screensDir = join(root, "docs/redesign/screens");
@@ -70,7 +71,7 @@ export function captureDir() {
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
 export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken",
-  "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork"];
+  "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork", "reservedCode", "reservedFriendCode", "reservedVoucherId"];
 // Demo accounts for Home's renewal moments (#252, canvas: PhoneRenew), each
 // with its own session: [moment, phone, plan]. The phones mask as 6•• •• 12 45.
 export const MOMENT_ACCOUNTS = [["lowData", "670031245", "weekly"], ["endsSoon", "670041245", "weekly"], ["ended", "670051245", "family"]];
@@ -126,7 +127,9 @@ export const SCREENS = [
       .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
         { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
     ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
-    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
+    // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
+    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/claim.html?code={reservedFriendCode}", "Redesigned", { signedOut: true, design: "from=friend", state: "a friend's gift reserved for 6•• •• 99 10", expect: ["#claimCode"] }],
+    ["claim-gift-ndahi", "Claim a gift from NDAHI", "PhoneClaimGift", null, "/claim.html?code={reservedCode}", "Redesigned", { signedOut: true, design: "from=ndahi", state: "staff reserved it for 6•• •• 57 03", expect: ["#claimCode"] }],
     // Home's renewal moments, one demo account each (the canvas's `moment` prop).
     ...[["low-data", "lowData", "Running low", "a Weekly bundle with four fifths of its 5 GB used"], ["ends-soon", "endsSoon", "Ends soon", "a Weekly bundle ending in 20 hours"],
       ["ended", "ended", "Ended", "a Connect Family bundle that ended an hour ago"]]
@@ -196,6 +199,7 @@ export const SCREENS = [
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
+    ["admin-voucher-reserved", "Voucher waiting for claim", "AdminVoucherDetail", "/dashboard#voucher/{reservedVoucherId}", "Redesigned (#254)", { panel: "voucher", menu: "vouchers", design: "status=waitingClaim", expect: [".admin-voucher__reserved"] }],
     ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
@@ -319,6 +323,17 @@ async function startApi() {
     }
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
+    // Two vouchers reserved for numbers with no account (#254): one staff gave,
+    // one a friend gave with a note (the claim page and "Waiting for claim").
+    const reservedAt = now - 2 * 864e5, weekly = PLANS.find((plan) => plan.id === "weekly");
+    for (const [id, number, by, note] of [["preview-reserved", "670005703", { type: "admin", id: "preview-owner" }], ["preview-reserved-friend", "670009910", customer ? { type: "customer", id: customer.id } : { type: "admin" }, "For your calls with the family ❤"]]) {
+      const v = { id, planId: weekly.id, code: uniqueActivationCode(s), status: "available", customerId: null, activatedAt: null, expiresAt: null, quotaBytes: weekly.quotaGb * 1e9, usedBytes: 0,
+        deviceLimit: weekly.deviceLimit, generatedByAdmin: by.type === "admin", saleType: "gift", saleAmount: 0, faceValue: weekly.price, createdAt: new Date(reservedAt).toISOString(),
+        reservation: newReservation(number, by, reservedAt, note) };
+      s.vouchers.push(v);
+      if (by.type === "admin") s.auditLogs.unshift({ id: randomUUID(), action: "voucher.generated", actor: "demo-owner", meta: { voucherIds: [id], customerId: null, planId: weekly.id, quantity: 1, saleType: "gift", reservedFor: maskPhone(number) }, at: v.createdAt });
+      if (by.type === "admin") { fixtures.reservedCode = v.code; fixtures.reservedVoucherId = id; } else fixtures.reservedFriendCode = v.code;
+    }
     // Demo store settings so checkout accepts the demo orders below.
     Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo)", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
       warranty: { en: "Demo warranty text.", fr: "Texte de garantie (démo)." }, returns: { en: "Demo returns text.", fr: "Texte de retours (démo)." } });
