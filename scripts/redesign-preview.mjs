@@ -84,6 +84,7 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //   blocked    the preview can't put the build in the artboard's state; the text
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
+//   design     canvas props for the design capture, as a query ("moment=ended")
 const SHELL = "Admin shell — screen not rebuilt yet";
 // Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
 // not built yet. The build capture shows today's nearest page; each issue
@@ -114,7 +115,10 @@ export const SCREENS = [
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
     ["payment-failed", "Payment didn't go through", "PhonePaymentFailed", null, "/onboarding.html", NOT_BUILT(251), { signedOut: true, expect: ["#packagesTitle"] }],
-    ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
+    // Buying for someone else (#255), one entry per kind of number (the canvas's `recipient` prop).
+    ...[["", "noAccount", "670008899", "a number with no account"], ["-account", "hasAccount", "670008821", "a customer with no bundle running"], ["-active", "activeBundle", "670008822", "a customer whose bundle runs for 3 more days"]]
+      .map(([suffix, recipient, number, state]) => [`buy-for-other${suffix}`, `Buy for someone else: ${state}`, "PhoneBuyForOther", null, "/gift.html", "Redesigned",
+        { design: `recipient=${recipient}`, state, open: [{ fill: "#giftPhone", value: number }, { fill: "#giftName", value: "Mama Ngum" }], expect: [".gift__card--on"] }]),
     ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
     ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
@@ -269,6 +273,12 @@ async function startApi() {
     );
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
+    // Two people the demo customer can buy a bundle for (#255): one with an
+    // account, one whose bundle is running.
+    s.customers.push({ id: "preview-recipient", name: "Mama Ngum", phone: "670008821", createdAt: new Date(now - 30 * 864e5).toISOString() },
+      { id: "preview-recipient-busy", name: "Papa Ngum", phone: "670008822", createdAt: new Date(now - 30 * 864e5).toISOString() });
+    s.vouchers.push({ id: "preview-recipient-bundle", customerId: "preview-recipient-busy", planId: "weekly", code: "NC-PAPA-0001", status: "active", activatedAt: new Date(now - 4 * 864e5).toISOString(),
+      expiresAt: new Date(now + 3 * 864e5).toISOString(), quotaBytes: 5e9, usedBytes: 1e9, deviceLimit: 1, routerSyncStatus: "synchronized" });
     // Demo store settings so checkout accepts the demo orders below.
     Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo)", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
       warranty: { en: "Demo warranty text.", fr: "Texte de garantie (démo)." }, returns: { en: "Demo returns text.", fr: "Texte de retours (démo)." } });
@@ -522,9 +532,9 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
       for (const width of widths(screen)) {
         const phone = width < 768, viewport = { width, height: phone ? 844 : 900 }, board = phone ? screen.phone : screen.desktop;
         const common = { id: screen.id, title: screen.title, app: screen.app, width, viewport };
-        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: "default props" }, async (files) => {
+        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: screen.design || "default props" }, async (files) => {
           const page = await browser.newPage({ viewport });
-          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html`, files, phone, timeout })); }
+          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html${screen.design ? `?${screen.design}` : ""}`, files, phone, timeout })); }
           finally { await page.close(); }
         }));
         const entry = { ...common, kind: "build", session: sessionOf(screen), state: screen.state || sessionOf(screen), ...(screen.blocked ? { blocked: screen.blocked } : {}) };
@@ -604,7 +614,8 @@ async function indexPage(state) {
   const groups = await boards();
   const card = (s) => {
     const href = buildHref(s, state);
-    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html">desktop</a>`].filter(Boolean).join(" · ");
+    const props = s.design ? `?${s.design}` : "";
+    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html${escape(props)}">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html${escape(props)}">desktop</a>`].filter(Boolean).join(" · ");
     return `<div class="card"><strong>${escape(s.title)}</strong> ${statusPill(s)}
     <p class="meta">Design: ${boardsOf}<br>Build: ${href ? `<a href="${escape(href)}">${escape(s.path.replace(/\{\w+\}/g, "…"))}</a>` : "demo fixture unavailable"}${s.signedOut ? " (signed out)" : ""}</p>${s.blocked ? `<p class="meta">${escape(s.blocked)}.</p>` : ""}</div>`;
   };
