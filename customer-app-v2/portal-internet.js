@@ -41,6 +41,7 @@ export function internetBundle({ result, active, current, canPurchase }) {
   ${note ? `<p class="portal-internet__note nd-narrow-only" role="status">${note}<a href="/billing-terms.html">${h(L("portalWhy"))}</a></p>` : ""}
   ${actions}
   <a class="nd-btn nd-btn--block portal-internet__see" href="/dashboard#bundles" data-open-catalogue>${h(L("portalSeeBundles"))}</a>
+  <a class="nd-btn nd-btn--secondary nd-btn--block portal-internet__gift" href="/gift.html">${h(L("giftLink"))}</a>
   ${earlierBundles(result.vouchers || [], active)}
 </section>`;
 }

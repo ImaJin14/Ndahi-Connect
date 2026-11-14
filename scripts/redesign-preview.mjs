@@ -126,7 +126,6 @@ export const SCREENS = [
       ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
       .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
         { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
-    ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
     // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
     ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/claim.html?code={reservedFriendCode}", "Redesigned", { signedOut: true, design: "from=friend", state: "a friend's gift reserved for 6•• •• 99 10", expect: ["#claimCode"] }],
     ["claim-gift-ndahi", "Claim a gift from NDAHI", "PhoneClaimGift", null, "/claim.html?code={reservedCode}", "Redesigned", { signedOut: true, design: "from=ndahi", state: "staff reserved it for 6•• •• 57 03", expect: ["#claimCode"] }],
@@ -135,6 +134,10 @@ export const SCREENS = [
       ["ended", "ended", "Ended", "a Connect Family bundle that ended an hour ago"]]
       .map(([id, moment, title, state]) => [`renew-${id}`, `Renewal: ${title.toLowerCase()}`, "PhoneRenew", null, "/dashboard#home", "Redesigned",
         { tab: "home", design: `moment=${moment}`, account: moment, state, expect: ["#renewActions > *"] }]),
+    // Buying for someone else (#255), one entry per kind of number (the canvas's `recipient` prop).
+    ...[["", "noAccount", "670008899", "a number with no account"], ["-account", "hasAccount", "670008821", "a customer with no bundle running"], ["-active", "activeBundle", "670008822", "a customer whose bundle runs for 3 more days"]]
+      .map(([suffix, recipient, number, state]) => [`buy-for-other${suffix}`, `Buy for someone else: ${state}`, "PhoneBuyForOther", null, "/gift.html", "Redesigned",
+        { design: `recipient=${recipient}`, state, open: [{ fill: "#giftPhone", value: number }, { fill: "#giftName", value: "Mama Ngum" }], expect: [".gift__card--on"] }]),
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
@@ -323,6 +326,12 @@ async function startApi() {
     }
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
+    // Two people the demo customer can buy a bundle for (#255): one with an
+    // account, one whose bundle is running.
+    s.customers.push({ id: "preview-recipient", name: "Mama Ngum", phone: "670008821", createdAt: new Date(now - 30 * 864e5).toISOString() },
+      { id: "preview-recipient-busy", name: "Papa Ngum", phone: "670008822", createdAt: new Date(now - 30 * 864e5).toISOString() });
+    s.vouchers.push({ id: "preview-recipient-bundle", customerId: "preview-recipient-busy", planId: "weekly", code: "NC-PAPA-0001", status: "active", activatedAt: new Date(now - 4 * 864e5).toISOString(),
+      expiresAt: new Date(now + 3 * 864e5).toISOString(), quotaBytes: 5e9, usedBytes: 1e9, deviceLimit: 1, routerSyncStatus: "synchronized" });
     // Two vouchers reserved for numbers with no account (#254): one staff gave,
     // one a friend gave with a note (the claim page and "Waiting for claim").
     const reservedAt = now - 2 * 864e5, weekly = PLANS.find((plan) => plan.id === "weekly");
