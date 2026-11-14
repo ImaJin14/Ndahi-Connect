@@ -76,7 +76,7 @@ export function activeBundleContent(snapshot, { now = Date.now(), unavailable = 
     ${percent === null ? '' : `<progress class="nd-meter-bar${meterTone}" max="100" value="${(100 - percent).toFixed(1)}" aria-hidden="true"></progress>`}
     <div class="nd-meter-legend"><span data-expiry-countdown>${h(homeExpiryCountdown(v.expiresAt, now) || L('homeExpiryUnavailable'))}</span>${v.accessMode === 'home' ? `<span>${h(L('homeHomeAccessValue'))}</span>` : `<span><span data-bundle-devices>${h(devices)}</span>${counted ? ' ' + h(L('homeDevicesSuffix')) : ''}</span>`}</div>
     <dl class="home-card__facts"><div><dt>${h(L('homeConsumed'))}</dt><dd data-used-data>${h(known ? fmt(v.usedBytes) : L('homeValueUnavailable'))}${percent === null ? '' : ` (${h(percent.toFixed(1))}%)`}</dd></div><div><dt>${h(L('homeAllowance'))}</dt><dd>${h(quotaLabel)}</dd></div><div><dt>${h(L('homeExpires'))}</dt><dd>${expires}</dd></div></dl>
-    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${v.usage.observedAt ? `<p class="nd-meta home-card__recorded">${h(L('homeUsageRecorded', { time: new Date(v.usage.observedAt).toLocaleTimeString() }))}</p>` : ''}${provisioning}`;
+    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${v.usage.observedAt ? `<p class="nd-meta home-card__recorded">${h(L('homeUsageRecorded', { time: new Date(v.usage.observedAt).toLocaleTimeString(currentLanguage()) }))}</p>` : ''}${provisioning}`;
 }
 
 export function bundlePurchaseContent(snapshot) {

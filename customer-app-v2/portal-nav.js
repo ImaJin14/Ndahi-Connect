@@ -210,10 +210,10 @@ export function mountPortalNavigation(pending = 0, name) {
   clear(nav);
   renderPortalTabs({ current: activePortalTab(), hrefs: HREFS, badges, lang }).forEach((link) => nav.appendChild(link));
   nav.hidden = false;
+  ["header", "#shopPanel", "#portalHead", "#activateDevice"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
   if (!mounted) {
     mounted = true;
-    // Once only: app.js changes the logout label while signing out.
-    ["header", "#shopPanel", "#portalHead"].forEach((selector) => { const root = document.querySelector(selector); if (root) localize(root, lang); });
+
     window.addEventListener("hashchange", () => applyView(true));
     // Closing a page's section (Cancel, Escape, Close) returns to its tab.
     document.addEventListener("toggle", (event) => {

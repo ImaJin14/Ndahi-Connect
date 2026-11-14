@@ -1,4 +1,6 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { t } from "/shared/i18n.js";
+import { currentLanguage, localize } from "/shared/ui/dom.js";
 
 const marker = "ndahi-email-setup-prompt";
 const api = window.NDAHI_CONFIG.apiUrl;
@@ -210,9 +212,12 @@ async function init() {
   }
   banner = document.createElement("section");
   banner.className = "account-setup-reminder";
-  banner.setAttribute("aria-label", "Account setup reminder");
+  banner.setAttribute("aria-label", t("homeSetupReminder", currentLanguage()));
   banner.innerHTML =
-    '<div><strong>Complete account setup</strong><p>Confirm an email to receive account updates and receipts, and recover a forgotten PIN.</p></div><button type="button">Complete account setup</button>';
+    '<div><strong data-i18n="homeSetupTitle"></strong><p data-i18n="homeSetupBody"></p></div><button type="button" data-i18n="homeSetupTitle"></button>';
+  const translateReminder = () => { localize(banner, currentLanguage()); banner.setAttribute("aria-label", t("homeSetupReminder", currentLanguage())); };
+  translateReminder();
+  window.addEventListener("ndahi:language", translateReminder);
   document.querySelector("#dashboardMessage").after(banner);
   banner.querySelector("button").onclick = openSetup;
   dialog = document.createElement("dialog");

@@ -10,6 +10,8 @@ Reference: `docs/redesign/screens/PhoneHomeFR.dc.html` and `TabBar.dc.html`, fro
 - All five selected tab states: [360px](issue-260/tab-states-fr-360-comparison.png), [390px](issue-260/tab-states-fr-390-comparison.png). Labels, icons, selected state, targets and single-line placement match.
 - [French desktop, 1280px](issue-260/home-fr-1280.png). There is no French desktop artboard: this is responsiveness evidence, not an invented desktop reference.
 - Account picker with keyboard focus: [360px](issue-260/account-fr-360.png), [390px](issue-260/account-fr-390.png).
+- [Six French network states](issue-260/network-states.json), with360px captures for [confirmed router](issue-260/network-connected-360.png), [Internet unconfirmed](issue-260/network-internet-unconfirmed-360.png), [signed out](issue-260/network-signed-out-360.png), [ended bundle](issue-260/network-bundle-ended-360.png), [authorizing](issue-260/network-authorizing-360.png) and [unconfirmed Wi-Fi](issue-260/network-wifi-unconfirmed-360.png). These are synthetic evidence states, preserving all network conditions and cautions.
+- [French pending-payment refresh](issue-260/payment-pending-fr-360.png), including the payment timer and USSD help.
 - [Measured tab labels](issue-260/tab-metrics.json): zero clipped or wrapped labels in all five active tabs at 360/390px. The automated test also measures 1280px.
 
 The 390px reference is native size. The 360px reference changes only the source frame width from390 to360; fonts, spacing and icons are not scaled. Screenshots use deviceScaleFactor1; optional install guidance was dismissed through its actual button before capture. Both source and build are browser-rendered. No screenshots were used as production UI.
@@ -22,10 +24,10 @@ The preview uses real local APIs with synthetic accounts and no external payment
 
 - `npm run check`: passed; new browser test syntax checked and included by the CI regression glob.
 - `npm test`: 1,300 passed, 0 failed, 41 PostgreSQL cases skipped because TEST_DATABASE_URL was unset locally. CI supplies its database separately.
-- New `test/redesign-browser/french-home.test.mjs`: passed. Covers French browser/English default; Account keyboard selection; French persistence and switching back; Home/navigation at360/390/1280; every active tab at360; translated countdown after a tick; blocked storage; zero page errors.
+- New `test/redesign-browser/french-home.test.mjs`: passed. Covers French browser/English default; actual native keyboard selection with retained focus; French persistence and switching back; static labels and the Home setup reminder; Home/navigation at360/390/1280; every active tab at360; an actual translated countdown text change; six network states; pending-payment refresh/timer/help; handled failed language refresh; French browser with blocked storage; zero page errors.
 - Portal account: 21 v1 and25 v2 journeys passed. Dashboard entry and its PWA checks passed on both variants. v1 runs explicitly used CUSTOMER_UI_DEFAULT=v1 ADMIN_UI_DEFAULT=v1; v2 runs used scripts/ui-v2-journeys.mjs.
 - Keyboard focus on the native select and tab navigation checked. Rendered Account contrast scan: zero failures.
-- Claude Code read-only review was attempted but its account usage limit prevented a review (reset22:00Douala). No Claude approval is claimed.
+- [Claude Code read-only reviews](issue-260/claude-review.md): four P2 refresh/focus findings corrected and regression-tested; follow-up found no remaining P0/P1/P2 in scope. The review did not execute tests or grant owner visual approval.
 
 ## Acceptance metric and checklist handoff
 

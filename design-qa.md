@@ -13,6 +13,8 @@ Full-view comparison inputs: `home-fr-390-comparison.png`, `home-fr-360-comparis
 3. P2: long recorded-session text squeezed the French expiry onto two lines at360. Concise singular/plural session copy and a non-shrinking expiry preserve the label. The adjacent recorded-usage message retains its evidence meaning.
 4. P2: Bundle details wrapped at390. Matched the source's15px button type and8px inset using existing kit tokens. Post-fix captures above show it on one line at390.
 
+5. P2 completion review: static labels, keyboard focus, failed language refresh and pending-payment refresh fixed. Six network states, the visible account reminder, payment timers and USSD help are translated and captured. A real countdown change and keyboard focus are required by the regression. Claude’s follow-up found no remaining P0/P1/P2 in scope.
+
 ## Fidelity surfaces
 
 - Typography: locally served DM Sans / Playfair Display, French accents and figure decimal comma checked. All five tab labels are11px, single-line and unclipped; source/build strips match. Phone heading matches the reference copy. Desktop retains the personalized greeting.
