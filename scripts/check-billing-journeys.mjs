@@ -127,7 +127,8 @@ try {
       await seedSavedCheckout(context, { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
       await page.goto(`${portal}/onboarding.html`);
       // No click needed: the visit itself checks the saved key and releases the packages.
-      await page.getByText(/This does not confirm whether money was deducted/).waitFor();
+      // The key still reads why it failed (#251), so the provider's reason shows.
+      await page.getByText("Synthetic provider failure", { exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: "Resume saved payment" }).count(), 0);
       assert.equal(await savedCookie(context), undefined);
       const opener = page.locator('[data-plan="weekly"]');

@@ -169,7 +169,11 @@ test("BILL-001 mismatched verification cannot release or fulfill a payment; prov
   const p = (await f.call("/api/purchase", "POST", input())).json.payment;
   assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).json.payment.status, "pending");
   mismatch = false; time = new Date(+time + 6000);
-  assert.equal((await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey })).response.status, 404);
+  // The key now reads only why it failed (#251): no full number, request key or code.
+  const outcome = await f.call(`/api/payments/${p.id}/status`, "GET", null, "", { "x-checkout-key": input().requestKey });
+  assert.equal(outcome.response.status, 200);
+  assert.deepEqual([outcome.json.payment.status, outcome.json.payment.failureCode, outcome.json.payment.moneyTaken, outcome.json.payment.payerPhone, outcome.json.payment.requestKey, outcome.json.access],
+    ["failed", "declined", false, null, undefined, undefined]);
   assert.equal((await f.store.snapshot()).payments.find((x) => x.id === p.id).status, "failed");
   assert.equal((await f.call("/api/purchase", "POST", input({ requestKey: "new-confirmed-retry" }))).response.status, 201);
 });
