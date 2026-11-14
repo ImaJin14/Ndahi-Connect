@@ -70,7 +70,8 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken", "reservedCode", "reservedFriendCode", "reservedVoucherId"];
+export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken",
+  "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork", "reservedCode", "reservedFriendCode", "reservedVoucherId"];
 // Demo accounts for Home's renewal moments (#252, canvas: PhoneRenew), each
 // with its own session: [moment, phone, plan]. The phones mask as 6•• •• 12 45.
 export const MOMENT_ACCOUNTS = [["lowData", "670031245", "weekly"], ["endsSoon", "670041245", "weekly"], ["ended", "670051245", "family"]];
@@ -119,7 +120,12 @@ export const SCREENS = [
     ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true, expect: ["#resetRequest"] }],
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
-    ["payment-failed", "Payment didn't go through", "PhonePaymentFailed", null, "/onboarding.html", NOT_BUILT(251), { signedOut: true, expect: ["#packagesTitle"] }],
+    // A returning guest whose saved checkout did not go through, one per reason
+    // (the canvas's `reason` prop). The cookie is the one the page saves.
+    ...[["declined", "declined", "checkoutDeclined", "declined by the provider"], ["low-balance", "lowBalance", "checkoutLowBalance", "provider reported a low balance"],
+      ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
+      .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
+        { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
     ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
     // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
     ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/claim.html?code={reservedFriendCode}", "Redesigned", { signedOut: true, design: "from=friend", state: "a friend's gift reserved for 6•• •• 99 10", expect: ["#claimCode"] }],
@@ -302,6 +308,19 @@ async function startApi() {
       demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
       demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
     );
+    // Four guest checkouts that did not go through (Payment failed screens), with
+    // no customer record so the admin lists are unchanged. Each fixture is the
+    // saved-checkout cookie the page writes; its key reads only the outcome.
+    const failedAt = new Date(now - 2 * 60000).toISOString(), lateCheckUntil = new Date(now + 864e5).toISOString();
+    for (const [fixture, reason, phone] of [["checkoutDeclined", "declined", "670001245"], ["checkoutLowBalance", "low_balance", "670011245"],
+      ["checkoutTimeout", "timeout", "670021245"], ["checkoutWrongNetwork", "wrong_network", "699001245"]]) {
+      const requestKey = randomUUID() + randomUUID();
+      const payment = demoPayment(randomUUID(), 3, 1, `237${phone}`, "mtn", { customerId: `preview-guest-${reason}`, provider: "mock", requestKey, checkoutAudience: "guest",
+        guestCheckoutDetails: { name: "Demo buyer", phone, network: "mtn" }, creationState: "accepted", checkoutClosedAt: failedAt, lateCheckUntil,
+        ...(reason === "timeout" ? { status: "expired" } : { status: "failed", providerFailedAt: failedAt, failureCode: reason }) });
+      s.payments.push(payment);
+      fixtures[fixture] = JSON.stringify({ value: JSON.stringify({ requestKey, planId: payment.planId, paymentId: payment.id }), expiresAt: now + 864e5 });
+    }
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
     // Two vouchers reserved for numbers with no account (#254): one staff gave,
@@ -579,6 +598,7 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
           try {
             await context.addCookies([
               { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
+              ...(screen.checkout && state.fixtures?.[screen.checkout] ? [{ name: "ndahi-checkout", value: encodeURIComponent(state.fixtures[screen.checkout]), domain: "localhost", path: "/", sameSite: "Strict" }] : []),
               ...(screen.signedOut ? [] : [screen.app === "admin"
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
                 : { name: "customer_session", value: (screen.account ? state.accounts?.[screen.account] || "" : state.cookie).split("=")[1] || "", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
@@ -642,6 +662,8 @@ function page(title, body) {
 
 const statusPill = (s) => `<span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>${s.blocked ? ` <span class="pill blocked">Blocked fixture</span>` : ""}`;
 function buildHref(s, state) {
+  // A screen that needs a saved checkout opens through this server, which sets it.
+  if (s.checkout) return state.fixtures?.[s.checkout] ? `/open/${encodeURIComponent(s.id)}` : null;
   // A demo account's screen opens through this server, which signs it in.
   if (s.account) return state.accounts?.[s.account] ? `/sign-in/portal/${encodeURIComponent(s.account)}` : null;
   const base = s.app === "store" ? storeSite : s.app === "admin" ? admin : portal;
@@ -719,6 +741,12 @@ function startDesign(state) {
           ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
           : `${session}; Path=/api/account; SameSite=Lax; HttpOnly`];
         res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
+        return res.end();
+      }
+      // Opens a screen that needs the guest's saved checkout cookie (cookies ignore ports).
+      const opening = /^\/open\/([\w-]+)$/.exec(url.pathname), screen = opening && SCREENS.find((x) => x.id === opening[1] && x.checkout);
+      if (screen && state.fixtures?.[screen.checkout]) {
+        res.writeHead(303, { "set-cookie": ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", `ndahi-checkout=${encodeURIComponent(state.fixtures[screen.checkout])}; Path=/; SameSite=Strict`], location: `${portal}${screen.path}` });
         return res.end();
       }
       if (url.pathname === "/design/support.js") return send(200, TYPES[".js"], await readFile(join(root, "scripts/redesign-preview-canvas.js")));

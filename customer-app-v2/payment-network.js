@@ -13,7 +13,12 @@ export function mountPaymentNetwork(form) {
     const payer = form.elements.payerPhone;
     const number = payer && !payer.disabled ? payer.value : form.elements.phone.value;
     const locked = network.matches(':disabled');
-    const state = choose({ number, network: network.value, manual, locked });
+    // "Pay with Orange Money instead" (payment-failed.js) asks for a network before
+    // the number is known; it becomes the customer's own choice for that number.
+    const requested = !locked && form.dataset.requestedNetwork;
+    let state = choose({ number, network: requested || network.value, manual: manual || Boolean(requested), locked });
+    if (requested && state.valid) delete form.dataset.requestedNetwork;
+    if (requested && !state.valid) state = { ...state, network: requested, manual: true };
     if (!locked && network.value !== state.network) network.value = state.network;
     const label = state.network === 'mtn' ? 'MTN Mobile Money' : 'Orange Money';
     const message = locked ? 'This saved payment keeps its original number and network. Recheck it before starting another payment.'

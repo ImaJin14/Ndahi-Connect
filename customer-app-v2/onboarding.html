@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#003b2b"><link rel="icon" type="image/png" href="/assets/icons/icon-192.png"><link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-title" content="NDAHI">
   <link rel="stylesheet" href="/package-grid.css">
   <link rel="stylesheet" href="/shared/ui/tokens.css">
+  <link rel="stylesheet" href="/shared/ui/components.css">
   <link rel="stylesheet" href="/portal-buy.css">
 </head>
 <body class="packages-page">
@@ -59,6 +60,26 @@
         </fieldset>
       </form>
       <div id="checkoutPaymentTimer" hidden></div><p><a id="checkoutHelp" href="/help#payment" target="_blank" rel="noopener">Payment help</a></p><div id="message" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+  <section class="pay-failed" id="paymentFailed" role="dialog" aria-modal="true" aria-labelledby="paymentFailedTitle" hidden>
+    <div class="pay-failed__bar"><span data-i18n="payFailedBar">Buy a bundle</span><a href="/help#payment" data-i18n="payFailedHelp">Help</a></div>
+    <div class="pay-failed__main">
+      <div class="pay-failed__icon"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="paymentFailedIcon" d=""></path></svg></div>
+      <h1 class="pay-failed__title" id="paymentFailedTitle" tabindex="-1"></h1>
+      <p class="pay-failed__body" id="paymentFailedBody"></p>
+      <p class="pay-failed__money" id="paymentFailedMoney"></p>
+      <section class="pay-failed__details" aria-label="Payment details" data-i18n-aria-label="payFailedDetails">
+        <div class="pay-failed__row"><span data-i18n="payFailedBundle">Bundle</span><strong id="paymentFailedBundle"></strong></div>
+        <div class="pay-failed__row"><span data-i18n="payFailedPaidWith">Paid with</span><strong id="paymentFailedMethod"></strong></div>
+        <div class="pay-failed__row"><span data-i18n="payFailedReference">Reference</span><strong class="pay-failed__ref" id="paymentFailedReference"></strong></div>
+      </section>
+      <p class="pay-failed__checks" id="paymentFailedChecks" hidden></p>
+    </div>
+    <div class="pay-failed__foot">
+      <button type="button" class="nd-btn nd-btn--block" id="paymentFailedPrimary"></button>
+      <button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="paymentFailedSecondary"></button>
+      <a class="nd-btn nd-btn--secondary nd-btn--block" id="paymentFailedHelpLink" href="/help#payment" hidden></a>
     </div>
   </section>
   <footer class="footer-note">NDAHI Connect - Secure, reliable Wi-Fi for everyone</footer>

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { createServer, createStore } from '../server.mjs';
 import { createStaticServer } from '../static-server.mjs';
+import { uiV2 } from './portal-tabs.mjs';
 const store=createStore({persistent:false});let now=new Date();
 const website=http.createServer();await new Promise(r=>website.listen(0,'127.0.0.1',r));const portal=`http://127.0.0.1:${website.address().port}`;
 const server=createServer({store,now:()=>now,env:{NODE_ENV:'test',PAYMENT_MODE:'mock',EMAIL_MODE:'mock',MIKROTIK_MODE:'mock',OMADA_MODE:'mock',BILLING_WORKER_ENABLED:'false',SESSION_COOKIE_SECURE:'false',CUSTOMER_APP_URL:portal}});
@@ -58,7 +59,10 @@ try{
    await seedSaved(context,{requestKey,planId:'weekly',paymentId:created.json.payment.id});await page.goto(portal+'/onboarding.html');await page.getByRole('button',{name:'Resume saved payment',exact:true}).click();await page.locator('#resumeRecheck').waitFor();
    assert.equal(await page.locator('[name=network]').inputValue(),'orange');assert.equal(await page.locator('[name=network]').isDisabled(),true);await page.locator('#paymentNetworkHint').getByText(/original number and network/).waitFor();
    await store.transaction(s=>{const p=s.payments.find(p=>p.id===created.json.payment.id);p.status='failed';p.providerFailedAt=now.toISOString();p.failureReason='Synthetic decline';});
-   await page.locator('#resumeRecheck').click();await page.locator('#message .error-card').waitFor();await page.locator('#closeCheckout').click();await page.locator('[data-plan="weekly"]').click();
+   await page.locator('#resumeRecheck').click();
+   // v2 shows why it failed (#251, canvas: PhonePaymentFailed); "Try again" opens a fresh checkout.
+   if(uiV2){await page.getByRole('heading',{name:'Payment not approved',exact:true}).waitFor();await page.getByRole('button',{name:'Try again',exact:true}).click();}
+   else{await page.locator('#message .error-card').waitFor();await page.locator('#closeCheckout').click();await page.locator('[data-plan="weekly"]').click();}
    await page.getByLabel('Payment phone number',{exact:true}).fill('690123457');await page.waitForFunction(()=>document.querySelector('[name=network]').value==='orange');assert.equal(await page.locator('[name=network]').isDisabled(),false);
    assert.equal((await store.snapshot()).payments.length,baseline.payments.length+1);
   });
