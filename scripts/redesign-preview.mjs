@@ -70,6 +70,9 @@ export function captureDir() {
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
 export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken"];
+// Demo accounts for Home's renewal moments (#252, canvas: PhoneRenew), each
+// with its own session: [moment, phone, plan]. The phones mask as 6•• •• 12 45.
+export const MOMENT_ACCOUNTS = [["lowData", "670031245", "weekly"], ["endsSoon", "670041245", "weekly"], ["ended", "670051245", "family"]];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -84,6 +87,8 @@ export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "gue
 //   blocked    the preview can't put the build in the artboard's state; the text
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
+//   design     canvas props for the design capture, as a query ("moment=ended")
+//   account    a MOMENT_ACCOUNTS demo account to sign in as instead of the demo customer
 const SHELL = "Admin shell — screen not rebuilt yet";
 // Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
 // not built yet. The build capture shows today's nearest page; each issue
@@ -116,7 +121,11 @@ export const SCREENS = [
     ["payment-failed", "Payment didn't go through", "PhonePaymentFailed", null, "/onboarding.html", NOT_BUILT(251), { signedOut: true, expect: ["#packagesTitle"] }],
     ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
     ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
-    ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
+    // Home's renewal moments, one demo account each (the canvas's `moment` prop).
+    ...[["low-data", "lowData", "Running low", "a Weekly bundle with four fifths of its 5 GB used"], ["ends-soon", "endsSoon", "Ends soon", "a Weekly bundle ending in 20 hours"],
+      ["ended", "ended", "Ended", "a Connect Family bundle that ended an hour ago"]]
+      .map(([id, moment, title, state]) => [`renew-${id}`, `Renewal: ${title.toLowerCase()}`, "PhoneRenew", null, "/dashboard#home", "Redesigned",
+        { tab: "home", design: `moment=${moment}`, account: moment, state, expect: ["#renewActions > *"] }]),
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
@@ -225,6 +234,13 @@ async function startApi() {
   const setup = await call("/api/account/setup/pin", { phone: DEMO.phone, code: paid.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
   const cookie = setup.response.headers.get("set-cookie").split(";")[0];
   fixtures.paymentId = purchase.body.payment.id;
+  const accounts = {};
+  for (const [moment, phone, planId] of MOMENT_ACCOUNTS) {
+    const bought = await call("/api/purchase", { phone, name: DEMO.name, planId });
+    const confirmed = await call(`/api/payments/${bought.body.payment.id}/confirm`, {});
+    const made = await call("/api/account/setup/pin", { phone, code: confirmed.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
+    accounts[moment] = made.response.headers.get("set-cookie").split(";")[0];
+  }
   await publishInitialStoreCatalogue({ store });
   await store.transaction((s) => {
     const now = Date.now(), customer = s.customers.find((c) => c.phone.endsWith(DEMO.phone));
@@ -248,6 +264,20 @@ async function startApi() {
       fixtures.voucherIds = JSON.stringify([active.id]);
       fixtures.voucherId = active.id;
     } else warnings.push("The demo customer has no active bundle; voucher and scan captures will fail.");
+    // Renewal moments: four fifths used; ending in 20 hours with 2.4 GB left;
+    // ended an hour ago. Each was paid by MTN MoMo, which Buy again offers again.
+    for (const [moment, phone] of MOMENT_ACCOUNTS) {
+      const owner = s.customers.find((c) => c.phone.endsWith(phone)), v = owner && s.vouchers.find((x) => x.customerId === owner.id);
+      if (!v) { warnings.push(`The ${moment} demo account has no bundle; its renewal capture will fail.`); continue; }
+      const payment = s.payments.find((p) => p.id === v.paymentId);
+      if (payment) payment.network = "mtn";
+      // Set up as the demo customer is: a confirmed email and a bundle the router took.
+      Object.assign(owner, { email: `${moment.toLowerCase()}@example.test`, emailVerifiedAt: new Date(now).toISOString() });
+      v.routerSyncStatus = "synchronized";
+      if (moment === "lowData") v.usedBytes = Math.round(v.quotaBytes * 0.8);
+      if (moment === "endsSoon") Object.assign(v, { usedBytes: v.quotaBytes - 2.4e9, activatedAt: new Date(now - 148 * 36e5).toISOString(), expiresAt: new Date(now + 20 * 36e5).toISOString() });
+      if (moment === "ended") Object.assign(v, { status: "expired", usedBytes: Math.round(v.quotaBytes * 0.7), activatedAt: new Date(now - 721 * 36e5).toISOString(), expiresAt: new Date(now - 36e5).toISOString() });
+    }
     // Demo payments for the admin Payments and Cash screens: two waiting (one
     // over 10 minutes), gateway-confirmed sales this month, one failed today
     // and one expired yesterday. Gateway references are made up; no provider is called.
@@ -303,7 +333,7 @@ async function startApi() {
     warnings.push(`Demo store orders incomplete (${firstLine(error)}); Order and Guest order captures will fail.`);
   }
   for (const warning of warnings) console.warn("[preview]", warning);
-  return { server, cookie, code: paid.body.access.code, staff, fixtures, warnings };
+  return { server, cookie, accounts, code: paid.body.access.code, staff, fixtures, warnings };
 }
 
 // The static servers cache their files, so a change swaps in fresh ones.
@@ -480,7 +510,7 @@ export async function captureBuild(page, screen, { origin, fixtures, files, phon
   return { url: page.url(), settled, full, steps };
 }
 
-const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : "demo customer");
+const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : screen.account ? `demo customer (${screen.account})` : "demo customer");
 // Phone artboards are captured at 390px and desktop ones at 1280px.
 export const widths = (s) => [s.phone && 390, s.desktop && 1280].filter(Boolean);
 
@@ -523,9 +553,9 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
       for (const width of widths(screen)) {
         const phone = width < 768, viewport = { width, height: phone ? 844 : 900 }, board = phone ? screen.phone : screen.desktop;
         const common = { id: screen.id, title: screen.title, app: screen.app, width, viewport };
-        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: "default props" }, async (files) => {
+        manifest.results.push(await record(dir, `${screen.id}-design-${width}`, { ...common, kind: "design", board, state: screen.design || "default props" }, async (files) => {
           const page = await browser.newPage({ viewport });
-          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html`, files, phone, timeout })); }
+          try { return await withFailureShot(page, files, () => captureDesign(page, { url: `${design}/design/${board}.dc.html${screen.design ? `?${screen.design}` : ""}`, files, phone, timeout })); }
           finally { await page.close(); }
         }));
         const entry = { ...common, kind: "build", session: sessionOf(screen), state: screen.state || sessionOf(screen), ...(screen.blocked ? { blocked: screen.blocked } : {}) };
@@ -536,7 +566,7 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
               { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
               ...(screen.signedOut ? [] : [screen.app === "admin"
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
-                : { name: "customer_session", value: state.cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
+                : { name: "customer_session", value: (screen.account ? state.accounts?.[screen.account] || "" : state.cookie).split("=")[1] || "", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
             ]);
             // The hotspot landing needs a Wi-Fi sign-in URL, which the preview portal has none of.
             if (screen.hotspot) await context.route("**/config.js", async (route) => { const r = await route.fetch(); await route.fulfill({ response: r, body: `${await r.text()}\nwindow.NDAHI_CONFIG.hotspotLoginUrl="https://hotspot.ndahi.test/login";` }); });
@@ -597,6 +627,8 @@ function page(title, body) {
 
 const statusPill = (s) => `<span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>${s.blocked ? ` <span class="pill blocked">Blocked fixture</span>` : ""}`;
 function buildHref(s, state) {
+  // A demo account's screen opens through this server, which signs it in.
+  if (s.account) return state.accounts?.[s.account] ? `/sign-in/portal/${encodeURIComponent(s.account)}` : null;
   const base = s.app === "store" ? storeSite : s.app === "admin" ? admin : portal;
   try { return base + resolvePath(s.path, state.fixtures || {}); } catch { return null; }
 }
@@ -605,7 +637,8 @@ async function indexPage(state) {
   const groups = await boards();
   const card = (s) => {
     const href = buildHref(s, state);
-    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html">desktop</a>`].filter(Boolean).join(" · ");
+    const props = s.design ? `?${s.design}` : "";
+    const boardsOf = [s.phone && `<a href="/design/${s.phone}.dc.html${escape(props)}">phone</a>`, s.desktop && `<a href="/design/${s.desktop}.dc.html${escape(props)}">desktop</a>`].filter(Boolean).join(" · ");
     return `<div class="card"><strong>${escape(s.title)}</strong> ${statusPill(s)}
     <p class="meta">Design: ${boardsOf}<br>Build: ${href ? `<a href="${escape(href)}">${escape(s.path.replace(/\{\w+\}/g, "…"))}</a>` : "demo fixture unavailable"}${s.signedOut ? " (signed out)" : ""}</p>${s.blocked ? `<p class="meta">${escape(s.blocked)}.</p>` : ""}</div>`;
   };
@@ -663,11 +696,13 @@ function startDesign(state) {
         res.writeHead(303, { location: "/compare" }); return res.end();
       }
       // One-click sign-in: hand the demo session to this browser (cookies ignore ports).
-      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))$/.exec(url.pathname);
-      if (signIn) {
+      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))(?:\/(\w+))?$/.exec(url.pathname);
+      // /sign-in/portal/<moment> signs in as that renewal-moment demo account.
+      const session = signIn && signIn[3] ? signIn[1] === "portal" && state.accounts?.[signIn[3]] : signIn && state.cookie;
+      if (signIn && session) {
         const cookies = ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", signIn[2]
           ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
-          : `${state.cookie}; Path=/api/account; SameSite=Lax; HttpOnly`];
+          : `${session}; Path=/api/account; SameSite=Lax; HttpOnly`];
         res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
         return res.end();
       }

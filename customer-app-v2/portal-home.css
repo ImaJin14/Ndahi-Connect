@@ -149,3 +149,34 @@ body[data-current-tab="home"]:not([data-portal-sub]) #manageDevices { display: n
   .nd-topnav--phone-bar .notification-bell { margin: 0; border: 0; background: none; color: var(--nd-white); }
   .nd-topnav--phone-bar .notification-bell [data-notification-count] { top: 8px; right: 8px; min-width: 0; width: 8px; height: 8px; padding: 0; overflow: hidden; border-radius: 50%; background: var(--nd-lime); color: var(--nd-forest); font-size: 0; }
 }
+
+/* ---------- Renewal moments (#252, canvas: PhoneRenew) ----------
+   renewal.js sets body[data-renew-moment] (lowData, endsSoon, ended). The card
+   gains its next step, then a tip and why buying waits; on phones the moment
+   takes the place of Home's shortcuts and shop, as on the canvas. */
+.home-card__message:empty, .home-renew__actions:empty, .home-renew-more[hidden], .home-renew-tip[hidden] { display: none; }
+.home-renew-more { display: flex; flex-direction: column; gap: 14px; }
+body[data-renew-moment] .home-bundle, body[data-renew-moment] .home-bundle #dataBalance { gap: 12px; }
+body[data-renew-moment] #bundlePurchaseActions { display: none; }
+.home-renew__note { margin: 0; color: var(--nd-neutral-fg); font-size: 14px; line-height: 1.5; }
+.home-renew__meter::-webkit-progress-value { background: #c47a00; }
+.home-renew__meter::-moz-progress-bar { background: #c47a00; }
+.home-renew__actions { display: flex; flex-direction: column; gap: 10px; }
+.home-renew__remind { display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 0 12px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-ink); font-size: 14px; font-weight: 600; cursor: pointer; }
+.home-renew__remind input { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; accent-color: var(--nd-forest); }
+.home-renew__remind span { flex: 1; }
+.home-renew__buy { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 6px 16px; border: 0; border-radius: 12px; background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 16px var(--nd-font-body); cursor: pointer; }
+.home-renew__buy span { font-size: 13px; font-weight: 600; }
+.home-renew__other { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0 16px; border: 1px solid #b8c7bd; border-radius: 10px; background: var(--nd-paper); color: var(--nd-forest); font: 700 15px var(--nd-font-body); text-decoration: none; }
+.home-renew-tip { padding: 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+.home-renew-tip h2 { margin: 0 0 6px; font: 700 15px/1.2 var(--nd-font-body); }
+.home-renew-tip p { margin: 0; color: var(--nd-neutral-fg); font-size: 14px; line-height: 1.5; }
+.home-renew-why { display: flex; align-items: center; align-self: center; min-height: 44px; color: var(--nd-forest); font-size: 13px; font-weight: 700; }
+@media (max-width: 767.98px) {
+  body[data-renew-moment] .home-view { gap: 14px; }
+  body[data-renew-moment] .home-view > .home-quick, body[data-renew-moment] .home-view > .home-shop, body[data-renew-moment] .home-view > #installApp, body[data-renew-moment] .home-bundle__actions { display: none; }
+}
+@media (min-width: 768px) {
+  .home-view > .home-renew-more { grid-column: 1; }
+  .home-bundle .home-renew__note { color: var(--nd-on-forest-soft); }
+}

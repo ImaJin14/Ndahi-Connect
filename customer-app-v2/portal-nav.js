@@ -116,7 +116,7 @@ function applyView(scroll = false) {
   });
   const title = document.getElementById("portalTitle");
   if (title) {
-    const wide = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang), phone = PHONE_TITLES[tab];
+    const wide = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.moment || title.dataset.welcome || t("portalWelcome", lang), phone = PHONE_TITLES[tab];
     clear(title);
     if (phone) {
       for (const [text, cls] of [[t(phone[0], lang), "nd-narrow-only"], [wide, "nd-wide-only"]]) {
@@ -189,6 +189,15 @@ export function mountThemeToggle(button = document.getElementById("themeToggle")
     updateLabel();
   };
   */
+}
+
+// A renewal moment's hello ("Running low.", renewal.js) replaces the welcome on
+// Home; an empty text brings the welcome back.
+export function setHomeTitle(text) {
+  const title = document.getElementById("portalTitle");
+  if (!title) return;
+  if (text) title.dataset.moment = text; else delete title.dataset.moment;
+  if (activePortalTab() === "home" && !document.body.hasAttribute("data-portal-sub")) title.textContent = text || title.dataset.welcome || t("portalWelcome", currentLanguage());
 }
 
 export function mountPortalNavigation(pending = 0, name) {
