@@ -51,7 +51,8 @@ function endedPhrase(at, now) {
 
 // The moment's card: plan, pill, the figure and its meter, and one line on what
 // happens next. Freshness shows only when the balance is not current (the
-// canvas has no line for the usual case); unlimited bundles show data used.
+// canvas has no line for the usual case) and from 90% used the data warning;
+// unlimited bundles show data used.
 function momentContent(snapshot, moment, { now, unavailable, paused }) {
   const v = snapshot.bundle, unlimited = v.quotaBytes === null, known = Number.isFinite(v.usedBytes);
   const remaining = !unlimited && known && v.quotaBytes > 0 ? Math.max(0, v.quotaBytes - v.usedBytes) : undefined;
@@ -62,7 +63,7 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
   const used = `<span data-used-data>${h(known ? figure(v.usedBytes) : L('homeValueUnavailable'))}</span>`;
   const big = ended
     ? unlimited ? `${used} <span class="nd-figure__unit">${h(L('homeRenewUsed', { when: endedPhrase(v.endedAt, now) }))}</span>`
-      : `<span data-remaining-data>${h(L('homeRenewNone'))}</span> <span class="nd-figure__unit">${h(endedPhrase(v.endedAt, now))}</span>`
+      : `<span data-remaining-data>${h(v.status === 'exhausted' ? fmt(0) : L('homeRenewNone'))}</span> <span class="nd-figure__unit">${h(endedPhrase(v.endedAt, now))}</span>`
     : unlimited ? `${used} <span class="nd-figure__unit">${h(L('homeRenewUsed', { when: L('homeRenewEnds', { when: whenOf(v.expiresAt, now) }) }))}</span>`
     : `<span data-remaining-data>${h(remaining === undefined ? L('homeValueUnavailable') : figure(remaining))}</span> <span class="nd-figure__unit">${h(moment === 'lowData' ? L('homeRenewOfLeft', { quota: short(v.quotaBytes) }) : L('homeRenewLeft', { when: L('homeRenewEnds', { when: whenOf(v.expiresAt, now) }) }))}</span>`;
   const meter = unlimited || (!ended && remaining === undefined) ? ''
@@ -72,11 +73,16 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
   const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
   const fresh = unavailable ? 'homeFreshUnavailable' : paused ? 'homeFreshPaused' : ended ? ''
     : evidenceExpired ? 'homeFreshExpired' : v.usage.state === 'stale' ? 'homeFreshStale' : v.usage.state === 'unavailable' ? 'homeFreshNone' : '';
+  // From 90% used the warning the notification also gives stays on the card,
+  // as on the ordinary card; at the canvas's 80% there is none.
+  const warning = moment === 'lowData' ? dataWarning(v) : null;
+  // A bundle that ran out of data says so, as the "data used up" notice does.
+  const message = [fresh ? L(fresh) : '', ended && v.status === 'exhausted' ? L('homeDataUsedUp') : '', warning === 'low' ? L('homeLowData', { amount: fmt(remaining) }) : warning === '90' ? L('homeOver90') : ''].filter(Boolean).join(' ');
   const provisioning = ended ? '' : v.provisioning === 'dead_letter' ? `<p class="nd-error" role="alert">${h(L('homeProvisionFailed'))}</p>` : v.provisioning === 'pending' ? `<p class="nd-meta">${h(L('homeProvisionPending'))}</p>` : '';
   return `<div class="home-card__top"><div><p class="nd-eyebrow">${h(L(ended ? 'homeRenewLastBundle' : 'activeBundle'))}</p><h2 class="home-card__plan">${h(v.plan.name)}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''}" data-bundle-status role="status">${h(pill)}</p></div>
     <p class="nd-figure home-card__figure">${big}</p>${meter}
     <p class="home-renew__note">${h(note)}</p>
-    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${fresh ? h(L(fresh)) : ''}</p>${provisioning}`;
+    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${provisioning}`;
 }
 
 export function activeBundleContent(snapshot, { now = Date.now(), unavailable = false, paused = false } = {}) {
