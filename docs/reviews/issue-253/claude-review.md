@@ -13,3 +13,10 @@ I found no remaining P1 or P2 issues. This was a read-only review: I didn't run 
 2. **A missing `items` field would throw.** `vouchers.js:53` uses `result.items.map` without a guard, unlike line 40. If the API ever leaves out `items`, the error is caught and shown as "failed to load", so the receipt is still safe. Using `(result.items || [])` would make it consistent.
 
 Side effect, not a bug: the voucher list will now show its own failed/retry state on a 503 instead of redirecting to login. The rest of the dashboard still redirects, so I think this is acceptable.
+
+
+##14 November completion review: atomic server guard
+
+Actual Claude Code read-only review of the current server/controller/tests. No P0/P1 code findings. It verified that the expectation compare precedes writes inside the global transaction, PostgreSQL locks serialize independent stores, null and legacy omission differ correctly, and the browser clears consent on409 without retrying. Two P2 wording findings (old race limitation and “unchanged endpoint” comment) were corrected. The review did not execute tests or grant visual approval.
+
+Remaining limits are lack of idempotency keys/reload request recovery for unknown outcomes and legacy callers that omit the optional guard.

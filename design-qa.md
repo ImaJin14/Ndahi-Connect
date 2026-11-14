@@ -8,7 +8,7 @@ Full-view inputs: the12 in-scope `*-comparison-1280.png` files listed in the rev
 
 ## Iterations and fixes
 
-- P1: customer-detail entry previously pre-checked replacement. Removed; current bundle is re-read and consent must be fresh. Race/receipt warnings and lost-response handling were reviewed with Claude and covered by meaningful regressions.
+- P1: customer-detail entry previously pre-checked replacement. Removed; current bundle is re-read and consent must be fresh. The owner-authorized server guard now rejects a changed active voucher atomically; receipt warnings and lost-response handling remain. Claude verified the lock/guard and meaningful race regressions cover it.
 - P2: the former300px batch panel cramped the new form and allowed the browser's140px input minimum to squeeze radios. Matched the source content width, scoped native control minima and44px inputs, fixed radio cards and spacing, and captured again.
 - P2: initial success actions stacked and used the wrong surface/type. Matched the source's two-column bordered actions and14px receipt copy, retaining truthful server evidence wording.
 - P2: batch introduction, quantity controls and ready state drifted from the new source. Moved its explanation before the fields, matched control typography, and collapsed raw codes behind Show codes. Existing advanced batch functions remain, visibly listed as extensions for owner review.
@@ -23,6 +23,6 @@ Full-view inputs: the12 in-scope `*-comparison-1280.png` files listed in the rev
 - Assets/icons: existing kit sidebar, initials avatars and controls retained. These references require no missing raster/photo assets and no replacement art was fabricated.
 - Copy/content: mode names, payment hints, entry action and main actions follow the source, with EN/FR keys. API-unavailable delivery promises, confirmed physical disconnects and invented batch IDs are replaced by honest copy. Unregistered reservation is gated for #254.
 
-No remaining P1/P2 code issue was found in Claude's final focused review. Functional tests and capture readiness pass. Exact visual acceptance is still blocked on owner review of the listed API constraints and retained advanced/list/sidebar controls; the pairs are not represented as pixel-identical. Deployment and physical verification are pending.
+Claude’s completion review verified the atomic guard and found no P0/P1 code issue; its two P2 stale-wording findings have been corrected. Functional tests and capture readiness pass. Exact visual acceptance is still blocked on owner review of the listed API constraints and retained advanced/list/sidebar controls; the pairs are not represented as pixel-identical. Deployment and physical verification are pending.
 
 final result: blocked

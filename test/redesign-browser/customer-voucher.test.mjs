@@ -69,6 +69,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await recent.getByRole('link', { name: 'Grace T.', exact: true }).waitFor();
     assert.match(await recent.innerText(), /Gift/);
     await page.getByText('Active now on Grace T.’s account. It shows in their Internet tab.', { exact: true }).waitFor();
+    assert.equal(posts[0].expectedActiveVoucherId, null);
     await capture(page, `gift-success-${width}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByRole('link', { name: 'Print slip', exact: true }).click();
@@ -135,11 +136,36 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await submit(page).click(); await page.getByText('Their active bundle changed. Review it and confirm again before giving this voucher.', { exact: true }).waitFor();
     assert.equal(posts.length, 0); assert.equal(await confirm(page).isChecked(), false); assert.equal(await submit(page).isDisabled(), true);
   });
-  await scenario('replacement race after the final read is detected from the receipt', async ({ page, context, posts }) => {
+  await scenario('atomic guard rejects replacement race after the final read', async ({ page, context, posts }) => {
     await open(page); await pick(page, 'Amina'); await confirm(page).check();
     await context.route('**/api/admin/vouchers/generate', async route => {
       await store.transaction(s => { s.vouchers[0].status = 'replaced'; s.vouchers.push({ ...s.vouchers[0], id: 'unexpected-b', status: 'active', code: 'NC-B-2' }); });
       const response = await route.fetch(); await route.fulfill({ response });
+    }, { times: 1 });
+    await submit(page).click(); await page.getByText('Their active bundle changed. Review it and confirm again before giving this voucher.', { exact: true }).waitFor();
+    assert.equal(posts.length, 1); assert.equal(posts[0].expectedActiveVoucherId, 'v1');
+    assert.equal(await confirm(page).isChecked(), false); assert.equal(await submit(page).isDisabled(), true);
+    const state = await store.snapshot();
+    assert.equal(state.vouchers.find(v => v.id === 'unexpected-b').status, 'active');
+    assert.equal(state.vouchers.length, baseline.vouchers.length + 1);
+    assert.equal(state.auditLogs.some(a => a.action === 'voucher.admin_replaced'), false);
+    await capture(page, 'atomic-replacement-rejected-1280');
+  });
+  await scenario('atomic guard handles an active bundle disappearing without automatic retry', async ({ page, context, posts }) => {
+    await open(page); await pick(page, 'Amina'); await confirm(page).check();
+    await context.route('**/api/admin/vouchers/generate', async route => {
+      await store.transaction(s => { s.vouchers[0].status = 'expired'; });
+      const response = await route.fetch(); assert.equal(response.status(), 409); await route.fulfill({ response });
+    }, { times: 1 });
+    await submit(page).click(); await page.getByText('Their active bundle changed. Review it and confirm again before giving this voucher.', { exact: true }).waitFor();
+    assert.equal(posts.length, 1); assert.equal(await confirm(page).count(), 0);
+    assert.equal((await store.snapshot()).vouchers.length, baseline.vouchers.length);
+  });
+  await scenario('a malformed replacement receipt still blocks another grant and printing', async ({ page, context, posts }) => {
+    await open(page); await pick(page, 'Amina'); await confirm(page).check();
+    await context.route('**/api/admin/vouchers/generate', async route => {
+      const response = await route.fetch(), body = await response.json();
+      body.replacedVoucher.id = 'unexpected-b'; await route.fulfill({ response, json: body });
     }, { times: 1 });
     await submit(page).click(); await page.locator('.customer-voucher__anomaly').filter({ hasText: 'unexpected-b' }).waitFor();
     assert.equal(posts.length, 1); assert.equal(await page.getByRole('button', { name: 'Give another', exact: true }).count(), 0);

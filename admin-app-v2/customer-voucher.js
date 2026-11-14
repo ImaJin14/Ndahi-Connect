@@ -1,4 +1,4 @@
-// AdminVouchers: one existing customer, using the unchanged generate endpoint.
+// AdminVouchers: one existing customer, with atomic active-bundle consent.
 import { escapeHtml as h } from '/shared/safe-html.js';
 import { format } from '/shared/i18n.js';
 import { currentLanguage } from '/shared/ui/dom.js';
@@ -92,7 +92,7 @@ export function mountCustomerVoucher(host, { call: apiCall, plans, role, onReady
       const next = fresh.items?.find(c => c.id === customer.id);
       if (!next || next.status === 'suspended') throw Object.assign(Error(), { code: 'CUSTOMER_UNAVAILABLE' });
       if ((active(next)?.id || null) !== acceptedId) { customer = next; clearConsent(); pending = false; draw(); host.querySelector('#giveVoucherMessage').textContent = L('adminGiveChanged'); return; }
-      const payload = { customerId: customer.id, planId, purpose: 'assigned', saleType: kind, replaceActive: Boolean(active(customer) && confirmed) };
+      const payload = { customerId: customer.id, planId, purpose: 'assigned', saleType: kind, replaceActive: Boolean(active(customer) && confirmed), expectedActiveVoucherId: acceptedId };
       mutationStarted = true;
       const issued = await call('/api/admin/vouchers/generate', { method: 'POST', body: JSON.stringify(payload) });
       if (!issued.voucher?.code || !issued.plan) throw Error(L('adminGiveUnknownOutcome'));
@@ -104,8 +104,8 @@ export function mountCustomerVoucher(host, { call: apiCall, plans, role, onReady
       // Refresh/print preparation must never hide a known creation receipt.
       try { onReady(result.verified && !result.unexpectedReplacement ? issued : null); } catch (_) { /* The receipt remains visible. */ }
     } catch (error) {
-      if (error.code === 'ACTIVE_BUNDLE_EXISTS' && error.activeBundle) {
-        customer = { ...customer, summary: { ...customer.summary, bundle: { ...error.activeBundle, status: 'active' } } }; clearConsent(); pending = false; draw();
+      if (error.code === 'ACTIVE_BUNDLE_CHANGED' || (error.code === 'ACTIVE_BUNDLE_EXISTS' && error.activeBundle)) {
+        customer = { ...customer, summary: { ...customer.summary, bundle: error.activeBundle ? { ...error.activeBundle, status: 'active' } : null } }; clearConsent(); pending = false; draw();
         host.querySelector('#giveVoucherMessage').textContent = L('adminGiveChanged');
       } else {
         uncertain = mutationStarted && (!error.status || error.status >= 500);
