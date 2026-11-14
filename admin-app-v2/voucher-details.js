@@ -111,7 +111,8 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
         entry.base.replaceChildren(...template.content.querySelector("tr").childNodes);
         if (!item.permissions?.manage) entry.base.querySelectorAll("[data-voucher], [data-resend-email], [data-classify]").forEach((b) => b.remove());
         if (!item.permissions?.code) entry.base.querySelectorAll("[data-print-voucher]").forEach((b) => b.remove());
-        (entry.base.querySelector("[data-voucher-code-control]") || entry.base.querySelector(".admin-actions") || entry.base.lastElementChild).append(entry.button); entry.html = html;
+        // The code links to the voucher page (#258); inline Details sits beside the Actions menu.
+        (entry.base.querySelector("[data-voucher-code-control]") || entry.base.querySelector("[data-voucher-details-slot]") || entry.base.querySelector(".admin-actions") || entry.base.lastElementChild).append(entry.button); entry.html = html;
         if (focused) entry.button.focus({ preventScroll: true });
       }
       if (entry.base.querySelector("[data-voucher-code-control]")) {

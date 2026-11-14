@@ -28,7 +28,7 @@ function largeState({ customers = 20000, vouchers = 50000, sessions = 30000 } = 
 
 test("record queries validate collection and paging parameters", () => {
   const parse = (query) => parseRecordQuery(new URLSearchParams(query));
-  assert.deepEqual(parse("collection=customers"), { collection: "customers", page: 1, pageSize: 25, q: "", status: "" });
+  assert.deepEqual(parse("collection=customers"), { collection: "customers", activity: "", staleDays: 30, page: 1, pageSize: 25, q: "", status: "" });
   assert.equal(parse("collection=vouchers&page=3&pageSize=100&q=%20ABC%20").q, "abc");
   for (const bad of ["collection=adminSessions", "collection=customers&page=0", `collection=customers&pageSize=${maxPageSize + 1}`, "collection=customers&page=1.5"]) {
     assert.throws(() => parse(bad), RecordQueryError, bad);

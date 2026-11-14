@@ -173,8 +173,12 @@ try {
     await page.getByRole("heading", { name: "Your customers.", exact: true }).waitFor();
     const row = page.locator("#customerRecords tbody tr").filter({ hasText: "Fixture customer" });
     await row.waitFor();
-    // Name, masked phone, bundle, devices, store orders, status, action.
-    assert.deepEqual((await row.locator("td").allInnerTexts()).map((text) => text.trim()), ["Fixture customer", "6•• •• 20 01", "Weekly · unlimited", "2 / 2", "0", "Active", "Suspend"]);
+    // Name, masked phone, bundle (unlimited shows data used), last active,
+    // devices, state, actions (#256, canvas: AdminCustomers).
+    // The first cell is the selection box (#257).
+    const cells = (await row.locator("td").allInnerTexts()).map((text) => text.trim()).slice(1);
+    assert.deepEqual([cells[0], cells[1], cells[2], cells[4], cells[5], cells[6]], ["Fixture customer", "6•• •• 20 01", "Weekly · 0 GB used", "2 / 2", "Active", "Suspend"]);
+    assert.match(cells[3], /^(Online now|Today|Yesterday|—|\d{1,2} [A-Z][a-z]{2})$/);
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");
     await page.locator("#customerRecords tbody").getByText("No matching customers.", { exact: true }).waitFor();
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("670042001");

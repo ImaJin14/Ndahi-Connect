@@ -16,6 +16,9 @@ mountPrivateMacAdvisory();
 
 migrateLegacyCheckout();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
+// A gift slip's QR opens /login?claim=<code> (#254); the claim page takes it from there.
+const claimCode = new URLSearchParams(location.search).get("claim");
+if (claimCode !== null) location.replace("/claim.html" + (claimCode ? "?code=" + encodeURIComponent(claimCode) : ""));
 let accessToken = "", accessMode = "", accountOnly = new URLSearchParams(location.search).get("account") === "1";
 const runLogin = (button, text, task) => runButton(button, text, task, {
   controls: [$("#loginSubmit"), $("#changeDetails"), $("#customerPasskeyLogin")],

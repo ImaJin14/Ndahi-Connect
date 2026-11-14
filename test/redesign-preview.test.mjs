@@ -30,11 +30,12 @@ test("every preview screen pairs real canvas artboards with a page of the app", 
       if (screen.tab) assert.match(screen.tab, /^(home|internet|shop|activity|account)$/, "captures wait for this tab");
     } else {
       assert.equal(screen.app, "admin");
-      assert.match(screen.path, /^\/(dashboard#[a-z-]+|login|home-routers\.html)$/);
+      assert.match(screen.path, /^\/(dashboard#[a-z-]+(\/\{\w+\})?|login|home-routers\.html)$/);
     }
   }
   // Every admin artboard except the shared side menu has a preview entry.
   const adminBoards = Object.keys(canvas.boards).filter((name) => name.startsWith("Admin") && name !== "AdminSide.dc.html");
+  // (An artboard may have several entries, one per state it draws.)
   assert.deepEqual([...new Set(SCREENS.filter((s) => s.app === "admin").map((s) => `${s.desktop}.dc.html`))].sort(), adminBoards.sort());
   // Every customer and store artboard except the shared tab bar has one too.
   const customerBoards = Object.keys(canvas.boards).filter((name) => !name.startsWith("Admin") && name !== "TabBar.dc.html");

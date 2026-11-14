@@ -85,7 +85,8 @@ export function mountVoucherRecords(container, { call, canManagePayments }) {
         v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => button(`data-classify="${h(v.id)}" data-sale-type="${type}"`, L(type === "sold" ? "adminMarkSold" : "adminMarkGift"), true)).join("") : "",
       ].join("");
       const forCustomer = v.customerId ? `<a href="/dashboard#customer/${encodeURIComponent(v.customerId)}">${h(v.customerName || L("adminGiveCustomerAccount"))}</a>` : v.permissions?.manage ? h(L("adminGiveUnassigned")) : "—";
-      return `<tr><td data-voucher-code-control></td><td>${h(v.plan?.name || "—")}</td>${canManagePayments ? `<td>${forCustomer}</td>` : ""}<td>${h(saleLabel(v) || "—")}</td><td>${voucherStatus(v.status)}</td><td>${actions ? `<details class="voucher-record-actions"><summary class="nd-btn nd-btn--compact nd-btn--secondary">${h(L("adminGiveActions"))}</summary><div class="admin-actions">${actions}</div></details>` : ""}</td></tr>`;
+      // Each code opens its detail page (canvas: AdminVoucherDetail, #258).
+      return `<tr><td><a class="admin-code-link" href="/dashboard#voucher/${encodeURIComponent(v.id)}"><code class="admin-code">${h(v.code)}</code></a></td><td>${h(v.plan?.name || "—")}</td>${canManagePayments ? `<td>${forCustomer}</td>` : ""}<td>${h(saleLabel(v) || "—")}</td><td>${voucherStatus(v.status)}</td><td><div class="voucher-record-cell"><span data-voucher-details-slot></span>${actions ? `<details class="voucher-record-actions"><summary class="nd-btn nd-btn--compact nd-btn--secondary">${h(L("adminGiveActions"))}</summary><div class="admin-actions">${actions}</div></details>` : ""}</div></td></tr>`;
     },
   });
   // Keep the source's compact default list while retaining operational tools.
