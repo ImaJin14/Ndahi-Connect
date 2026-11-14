@@ -21,6 +21,7 @@ import { mountNotifications } from "/shared/notifications.js";
 import { t } from "/shared/i18n.js";
 import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
+import { renewalExtras, showRenewal } from "./renewal.js";
 import { mountVoucherHistory } from "./voucher-history.js";
 import { internetBundle, internetSwitch } from "./portal-internet.js";
 import { activityDay, activityFilters, activityIcon, mountActivity, paymentPill, waitingBanner } from "./portal-activity.js";
@@ -267,9 +268,10 @@ async function load() {
   $("#portalNotices").innerHTML = `${netBannerMarkup}${purchaseNotice}`;
   const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
-    <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}</section>
+    <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
     <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPaymentContent(pendingPayment)}</section>
     ${wifiConnect}
+    ${renewalExtras()}
     ${homeQuickActions()}
     <div class="plan-actions full home-purchase" id="bundlePurchaseActions">${bundlePurchaseContent(result.bundleStatus)}</div>
     <section class="home-shop" id="homeShop" aria-labelledby="homeShopTitle" hidden><div class="nd-section-head"><h2 id="homeShopTitle" class="nd-h3"><span class="nd-narrow-only">${h(t("portalShopTitle", lang))}</span><span class="nd-wide-only">${h(t("homeShopTitleWide", lang))}</span></h2><a class="nd-section-head__link" href="/dashboard#shop"><span class="nd-narrow-only">${h(t("uiTabShop", lang))}</span><span class="nd-wide-only">${h(t("homeOpenShop", lang))}</span></a></div><div class="home-shop__items" id="homeShopItems"></div></section>
@@ -318,7 +320,9 @@ async function load() {
   $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
   if (active) mountInstallCard($("#installApp"));
   loadHomeShop();
+  showRenewal(result.bundleStatus, { payments: result.payments, call });
   mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
+    showRenewal(snapshot, { payments: result.payments, call });
     const actions = $("#bundlePurchaseActions");
     const markup = bundlePurchaseContent(snapshot);
     if (actions && actions.innerHTML !== markup) actions.innerHTML = markup;
@@ -386,7 +390,9 @@ $("#redeem").onsubmit = (event) => { event.preventDefault(); void redeemCode(eve
 $("#dashboard").onclick = async (event) => {
   const quickRenew = event.target.closest("[data-quick-renew]");
   if (quickRenew && !latestDashboard?.activeBundle && latestDashboard?.subscriptionPurchaseAccess?.allowed !== false) {
-    location.assign("/onboarding.html?action=renew&plan=" + encodeURIComponent(quickRenew.dataset.quickRenew) + "&quick=1");
+    // Buy again (#252) names the payment whose number and network to offer again.
+    location.assign("/onboarding.html?action=renew&plan=" + encodeURIComponent(quickRenew.dataset.quickRenew) + "&quick=1" +
+      (quickRenew.dataset.renewPayer ? "&payer=" + encodeURIComponent(quickRenew.dataset.renewPayer) : ""));
     return;
   }
   if (await voucherAction(event)) return;

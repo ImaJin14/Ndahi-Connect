@@ -116,18 +116,14 @@ function applyView(scroll = false) {
   });
   const title = document.getElementById("portalTitle");
   if (title) {
-    const wide = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.welcome || t("portalWelcome", lang), phone = PHONE_TITLES[tab];
+    const wide = TITLES[tab] ? t(TITLES[tab], lang) : title.dataset.moment || title.dataset.welcome || t("portalWelcome", lang), phone = PHONE_TITLES[tab];
     clear(title);
     if (phone) {
       for (const [text, cls] of [[t(phone[0], lang), "nd-narrow-only"], [wide, "nd-wide-only"]]) {
         const span = document.createElement("span"); span.className = cls; span.textContent = text; title.appendChild(span);
       }
-    } else if (tab === "home" && lang === "fr") {
-      const phoneTitle = document.createElement("span"), desktopTitle = document.createElement("span");
-      phoneTitle.className = "nd-narrow-only"; phoneTitle.textContent = t("portalHomeWelcome", lang);
-      desktopTitle.className = "nd-wide-only"; desktopTitle.textContent = wide;
-      title.append(phoneTitle, desktopTitle);
-    } else title.textContent = wide;
+    } else if (tab === "home") fillHomeTitle(title, wide, lang);
+    else title.textContent = wide;
     let lede = document.getElementById("portalLede");
     if (!lede) { lede = document.createElement("p"); lede.id = "portalLede"; lede.className = "portal-head__lede nd-narrow-only"; title.after(lede); }
     lede.textContent = phone ? t(phone[1], lang) : "";
@@ -194,6 +190,29 @@ export function mountThemeToggle(button = document.getElementById("themeToggle")
     updateLabel();
   };
   */
+}
+
+// A renewal moment's hello ("Running low.", renewal.js) replaces the welcome on
+// Home; an empty text brings the welcome back.
+// Home's title: French phones show the reference heading and wide screens the
+// welcome (#260); a renewal moment's hello (#252) replaces both.
+function fillHomeTitle(title, wide, lang) {
+  if (lang === "fr" && !title.dataset.moment) {
+    const phoneTitle = document.createElement("span"), desktopTitle = document.createElement("span");
+    phoneTitle.className = "nd-narrow-only"; phoneTitle.textContent = t("portalHomeWelcome", lang);
+    desktopTitle.className = "nd-wide-only"; desktopTitle.textContent = wide;
+    title.append(phoneTitle, desktopTitle);
+  } else title.textContent = wide;
+}
+
+export function setHomeTitle(text) {
+  const title = document.getElementById("portalTitle");
+  if (!title) return;
+  if (text) title.dataset.moment = text; else delete title.dataset.moment;
+  if (activePortalTab() !== "home" || document.body.hasAttribute("data-portal-sub")) return;
+  const lang = currentLanguage();
+  clear(title);
+  fillHomeTitle(title, text || title.dataset.welcome || t("portalWelcome", lang), lang);
 }
 
 export function mountPortalNavigation(pending = 0, name) {

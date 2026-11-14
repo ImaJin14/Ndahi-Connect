@@ -106,7 +106,16 @@ body[data-portal-sub="editProfile"] #editProfile > summary:focus { outline: none
 /* ---------- Shared page head (Change PIN, Passkey sign-in, Signed-in devices) ---------- */
 .portal-sub-head { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 44px; margin: 0 0 var(--nd-space-12); }
 .portal-sub-head[hidden] { display: none; }
-.portal-sub-head__title { margin: 0; color: var(--nd-ink); font: 700 var(--nd-fs-title-sm) var(--nd-font-body); }
+.portal-sub-head__title { margin: 0; color: var(--nd-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }
+/* Phone sub-page bar, as on every sub-page artboard: 10px padding, a 15px title
+   and a divider across the full width (the shell keeps 16px sides). */
+@media (max-width: 767px) {
+  /* The main portal head is empty on a sub-page; only the sub-page bar shows. */
+  body[data-portal-sub] #portalHead { display: none; }
+  body[data-portal-sub] .portal-sub-head { margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-12); padding: 0 var(--nd-space-10); min-height: 64px; border-bottom: 1px solid var(--nd-line); }
+  /* Voucher (canvas: PhoneVoucher) sets its content 22px in. */
+  body[data-portal-sub="redeem"] #activateDevice { padding: var(--nd-space-10) var(--nd-space-6) 0; }
+}
 .portal-sub-head__title:focus, .portal-sub-head__title:focus-visible { outline: none; }
 
 /* ---------- Account pages: one section, no card ---------- */

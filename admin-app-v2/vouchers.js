@@ -62,7 +62,8 @@ export function mountVoucherRecords(container, { call, canManagePayments }) {
         v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => button(`data-classify="${h(v.id)}" data-sale-type="${type}"`, L(type === "sold" ? "adminMarkSold" : "adminMarkGift"), true)).join("") : "",
       ].join("");
       const detail = [saleLabel(v), L("adminDevicesUsed", { used: v.activeDevices || 0, limit: v.deviceLimit || 0 })].filter(Boolean).join(" · ");
-      return `<tr><td><code class="admin-code">${h(v.code)}</code></td><td>${h(v.plan?.name || "—")}<span class="admin-cell__sub">${h(detail)}</span></td><td>${voucherStatus(v.status)}</td><td><div class="admin-actions">${actions}</div></td></tr>`;
+      // Each code opens its detail page (canvas: AdminVoucherDetail, #258).
+      return `<tr><td><a class="admin-code-link" href="/dashboard#voucher/${encodeURIComponent(v.id)}"><code class="admin-code">${h(v.code)}</code></a></td><td>${h(v.plan?.name || "—")}<span class="admin-cell__sub">${h(detail)}</span></td><td>${voucherStatus(v.status)}</td><td><div class="admin-actions">${actions}</div></td></tr>`;
     },
   });
 }
