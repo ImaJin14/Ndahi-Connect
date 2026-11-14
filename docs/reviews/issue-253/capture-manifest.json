@@ -1,0 +1,240 @@
+{
+  "implementationCommit": "0800ea9e829fde5858d1991cd9ef4660f5acdff0",
+  "referenceCommit": "202005c3b374e5e6e688b5297a06d5a13f6eb12f",
+  "comparisons": [
+    {
+      "state": "initial",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "initial-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "inactive-sold",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "inactive-sold-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "inactive-gift",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "inactive-gift-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "active-unconfirmed",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        935
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "active-unconfirmed-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "active-confirmed",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        935
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "active-confirmed-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "active-gift-unconfirmed",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        935
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "active-gift-unconfirmed-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "active-gift-confirmed",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        935
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "active-gift-confirmed-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "gift-success",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "gift-success-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "sold-replacement-success",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "sold-replacement-success-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "batch",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "batch-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "batch-success",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        1297
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "batch-success-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "customer-detail",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "customer-detail-comparison-1280.png",
+      "scope": "253"
+    },
+    {
+      "state": "no-account",
+      "referencePixels": [
+        1280,
+        1026
+      ],
+      "buildPixels": [
+        1280,
+        900
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "deviceScaleFactor": 1,
+      "comparison": "no-account-comparison-1280.png",
+      "scope": "dependent issue254; blocked, not counted"
+    }
+  ]
+}
