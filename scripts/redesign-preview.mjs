@@ -40,7 +40,8 @@ import { MockEmailAdapter } from "../lib/email.mjs";
 import { publishInitialStoreCatalogue } from "../lib/initial-store-catalogue.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { voucherQrUrl } from "../lib/voucher-qr.mjs";
-import { plans as PLANS } from "../lib/api/state.mjs";
+import { plans as PLANS, uniqueActivationCode } from "../lib/api/state.mjs";
+import { maskPhone, newReservation } from "../lib/reservations.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const screensDir = join(root, "docs/redesign/screens");
@@ -69,7 +70,11 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken"];
+export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken",
+  "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork", "reservedCode", "reservedFriendCode", "reservedVoucherId"];
+// Demo accounts for Home's renewal moments (#252, canvas: PhoneRenew), each
+// with its own session: [moment, phone, plan]. The phones mask as 6•• •• 12 45.
+export const MOMENT_ACCOUNTS = [["lowData", "670031245", "weekly"], ["endsSoon", "670041245", "weekly"], ["ended", "670051245", "family"]];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -85,6 +90,7 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
 //   design     canvas props for the design capture, as a query ("moment=ended")
+//   account    a MOMENT_ACCOUNTS demo account to sign in as instead of the demo customer
 const SHELL = "Admin shell — screen not rebuilt yet";
 // Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
 // not built yet. The build capture shows today's nearest page; each issue
@@ -114,17 +120,28 @@ export const SCREENS = [
     ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true, expect: ["#resetRequest"] }],
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
-    ["payment-failed", "Payment didn't go through", "PhonePaymentFailed", null, "/onboarding.html", NOT_BUILT(251), { signedOut: true, expect: ["#packagesTitle"] }],
+    // A returning guest whose saved checkout did not go through, one per reason
+    // (the canvas's `reason` prop). The cookie is the one the page saves.
+    ...[["declined", "declined", "checkoutDeclined", "declined by the provider"], ["low-balance", "lowBalance", "checkoutLowBalance", "provider reported a low balance"],
+      ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
+      .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
+        { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
+    // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
+    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/claim.html?code={reservedFriendCode}", "Redesigned", { signedOut: true, design: "from=friend", state: "a friend's gift reserved for 6•• •• 99 10", expect: ["#claimCode"] }],
+    ["claim-gift-ndahi", "Claim a gift from NDAHI", "PhoneClaimGift", null, "/claim.html?code={reservedCode}", "Redesigned", { signedOut: true, design: "from=ndahi", state: "staff reserved it for 6•• •• 57 03", expect: ["#claimCode"] }],
+    // Home's renewal moments, one demo account each (the canvas's `moment` prop).
+    ...[["low-data", "lowData", "Running low", "a Weekly bundle with four fifths of its 5 GB used"], ["ends-soon", "endsSoon", "Ends soon", "a Weekly bundle ending in 20 hours"],
+      ["ended", "ended", "Ended", "a Connect Family bundle that ended an hour ago"]]
+      .map(([id, moment, title, state]) => [`renew-${id}`, `Renewal: ${title.toLowerCase()}`, "PhoneRenew", null, "/dashboard#home", "Redesigned",
+        { tab: "home", design: `moment=${moment}`, account: moment, state, expect: ["#renewActions > *"] }]),
     // Buying for someone else (#255), one entry per kind of number (the canvas's `recipient` prop).
     ...[["", "noAccount", "670008899", "a number with no account"], ["-account", "hasAccount", "670008821", "a customer with no bundle running"], ["-active", "activeBundle", "670008822", "a customer whose bundle runs for 3 more days"]]
       .map(([suffix, recipient, number, state]) => [`buy-for-other${suffix}`, `Buy for someone else: ${state}`, "PhoneBuyForOther", null, "/gift.html", "Redesigned",
         { design: `recipient=${recipient}`, state, open: [{ fill: "#giftPhone", value: number }, { fill: "#giftName", value: "Mama Ngum" }], expect: [".gift__card--on"] }]),
-    ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
-    ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
-    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", `${NOT_BUILT(250)}: a board of every path, each built on its own screen`,
+    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "A board of every path, each built on its own screen (walked in #250); this capture is the Wi-Fi landing it starts from",
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],
@@ -181,11 +198,12 @@ export const SCREENS = [
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)", { panel: "store", menu: "products", expect: ["#storeCatalogueTitle"] }],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", { open: ["a[href*=\"#product/\"]:not([href$=\"/new\"])"], panel: "store", menu: "products", hash: "^#product/", expect: ["#storeProductForm"] }],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)", { panel: "cash", menu: "cash" }],
-    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned", { panel: "customers", menu: "customers" }],
+    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
-    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#vouchers", NOT_BUILT(258), { panel: "vouchers", menu: "vouchers" }],
+    ["admin-voucher-reserved", "Voucher waiting for claim", "AdminVoucherDetail", "/dashboard#voucher/{reservedVoucherId}", "Redesigned (#254)", { panel: "voucher", menu: "vouchers", design: "status=waitingClaim", expect: [".admin-voucher__reserved"] }],
+    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
@@ -229,6 +247,13 @@ async function startApi() {
   const setup = await call("/api/account/setup/pin", { phone: DEMO.phone, code: paid.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
   const cookie = setup.response.headers.get("set-cookie").split(";")[0];
   fixtures.paymentId = purchase.body.payment.id;
+  const accounts = {};
+  for (const [moment, phone, planId] of MOMENT_ACCOUNTS) {
+    const bought = await call("/api/purchase", { phone, name: DEMO.name, planId });
+    const confirmed = await call(`/api/payments/${bought.body.payment.id}/confirm`, {});
+    const made = await call("/api/account/setup/pin", { phone, code: confirmed.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
+    accounts[moment] = made.response.headers.get("set-cookie").split(";")[0];
+  }
   await publishInitialStoreCatalogue({ store });
   await store.transaction((s) => {
     const now = Date.now(), customer = s.customers.find((c) => c.phone.endsWith(DEMO.phone));
@@ -250,7 +275,22 @@ async function startApi() {
       // The bundle's current QR, the same one its account pages show.
       fixtures.qrToken = new URLSearchParams(new URL(voucherQrUrl(active, customer, portal)).hash.slice(1)).get("qr") || "";
       fixtures.voucherIds = JSON.stringify([active.id]);
+      fixtures.voucherId = active.id;
     } else warnings.push("The demo customer has no active bundle; voucher and scan captures will fail.");
+    // Renewal moments: four fifths used; ending in 20 hours with 2.4 GB left;
+    // ended an hour ago. Each was paid by MTN MoMo, which Buy again offers again.
+    for (const [moment, phone] of MOMENT_ACCOUNTS) {
+      const owner = s.customers.find((c) => c.phone.endsWith(phone)), v = owner && s.vouchers.find((x) => x.customerId === owner.id);
+      if (!v) { warnings.push(`The ${moment} demo account has no bundle; its renewal capture will fail.`); continue; }
+      const payment = s.payments.find((p) => p.id === v.paymentId);
+      if (payment) payment.network = "mtn";
+      // Set up as the demo customer is: a confirmed email and a bundle the router took.
+      Object.assign(owner, { email: `${moment.toLowerCase()}@example.test`, emailVerifiedAt: new Date(now).toISOString() });
+      v.routerSyncStatus = "synchronized";
+      if (moment === "lowData") v.usedBytes = Math.round(v.quotaBytes * 0.8);
+      if (moment === "endsSoon") Object.assign(v, { usedBytes: v.quotaBytes - 2.4e9, activatedAt: new Date(now - 148 * 36e5).toISOString(), expiresAt: new Date(now + 20 * 36e5).toISOString() });
+      if (moment === "ended") Object.assign(v, { status: "expired", usedBytes: Math.round(v.quotaBytes * 0.7), activatedAt: new Date(now - 721 * 36e5).toISOString(), expiresAt: new Date(now - 36e5).toISOString() });
+    }
     // Demo payments for the admin Payments and Cash screens: two waiting (one
     // over 10 minutes), gateway-confirmed sales this month, one failed today
     // and one expired yesterday. Gateway references are made up; no provider is called.
@@ -271,6 +311,19 @@ async function startApi() {
       demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
       demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
     );
+    // Four guest checkouts that did not go through (Payment failed screens), with
+    // no customer record so the admin lists are unchanged. Each fixture is the
+    // saved-checkout cookie the page writes; its key reads only the outcome.
+    const failedAt = new Date(now - 2 * 60000).toISOString(), lateCheckUntil = new Date(now + 864e5).toISOString();
+    for (const [fixture, reason, phone] of [["checkoutDeclined", "declined", "670001245"], ["checkoutLowBalance", "low_balance", "670011245"],
+      ["checkoutTimeout", "timeout", "670021245"], ["checkoutWrongNetwork", "wrong_network", "699001245"]]) {
+      const requestKey = randomUUID() + randomUUID();
+      const payment = demoPayment(randomUUID(), 3, 1, `237${phone}`, "mtn", { customerId: `preview-guest-${reason}`, provider: "mock", requestKey, checkoutAudience: "guest",
+        guestCheckoutDetails: { name: "Demo buyer", phone, network: "mtn" }, creationState: "accepted", checkoutClosedAt: failedAt, lateCheckUntil,
+        ...(reason === "timeout" ? { status: "expired" } : { status: "failed", providerFailedAt: failedAt, failureCode: reason }) });
+      s.payments.push(payment);
+      fixtures[fixture] = JSON.stringify({ value: JSON.stringify({ requestKey, planId: payment.planId, paymentId: payment.id }), expiresAt: now + 864e5 });
+    }
     for (const product of s.storeProducts) if (DEMO_PRICES[product.sku]) { product.price = DEMO_PRICES[product.sku]; product.stock = 6; }
     s.storeSettings.open = true;
     // Two people the demo customer can buy a bundle for (#255): one with an
@@ -279,6 +332,17 @@ async function startApi() {
       { id: "preview-recipient-busy", name: "Papa Ngum", phone: "670008822", createdAt: new Date(now - 30 * 864e5).toISOString() });
     s.vouchers.push({ id: "preview-recipient-bundle", customerId: "preview-recipient-busy", planId: "weekly", code: "NC-PAPA-0001", status: "active", activatedAt: new Date(now - 4 * 864e5).toISOString(),
       expiresAt: new Date(now + 3 * 864e5).toISOString(), quotaBytes: 5e9, usedBytes: 1e9, deviceLimit: 1, routerSyncStatus: "synchronized" });
+    // Two vouchers reserved for numbers with no account (#254): one staff gave,
+    // one a friend gave with a note (the claim page and "Waiting for claim").
+    const reservedAt = now - 2 * 864e5, weekly = PLANS.find((plan) => plan.id === "weekly");
+    for (const [id, number, by, note] of [["preview-reserved", "670005703", { type: "admin", id: "preview-owner" }], ["preview-reserved-friend", "670009910", customer ? { type: "customer", id: customer.id } : { type: "admin" }, "For your calls with the family ❤"]]) {
+      const v = { id, planId: weekly.id, code: uniqueActivationCode(s), status: "available", customerId: null, activatedAt: null, expiresAt: null, quotaBytes: weekly.quotaGb * 1e9, usedBytes: 0,
+        deviceLimit: weekly.deviceLimit, generatedByAdmin: by.type === "admin", saleType: "gift", saleAmount: 0, faceValue: weekly.price, createdAt: new Date(reservedAt).toISOString(),
+        reservation: newReservation(number, by, reservedAt, note) };
+      s.vouchers.push(v);
+      if (by.type === "admin") s.auditLogs.unshift({ id: randomUUID(), action: "voucher.generated", actor: "demo-owner", meta: { voucherIds: [id], customerId: null, planId: weekly.id, quantity: 1, saleType: "gift", reservedFor: maskPhone(number) }, at: v.createdAt });
+      if (by.type === "admin") { fixtures.reservedCode = v.code; fixtures.reservedVoucherId = id; } else fixtures.reservedFriendCode = v.code;
+    }
     // Demo store settings so checkout accepts the demo orders below.
     Object.assign(s.storeSettings, { pickup: "NDAHI office, Molyko (demo)", hours: "Mon–Sat 9:00–18:00", contact: "+237 670 000 000 (demo)",
       warranty: { en: "Demo warranty text.", fr: "Texte de garantie (démo)." }, returns: { en: "Demo returns text.", fr: "Texte de retours (démo)." } });
@@ -312,7 +376,7 @@ async function startApi() {
     warnings.push(`Demo store orders incomplete (${firstLine(error)}); Order and Guest order captures will fail.`);
   }
   for (const warning of warnings) console.warn("[preview]", warning);
-  return { server, cookie, code: paid.body.access.code, staff, fixtures, warnings };
+  return { server, cookie, accounts, code: paid.body.access.code, staff, fixtures, warnings };
 }
 
 // The static servers cache their files, so a change swaps in fresh ones.
@@ -489,7 +553,7 @@ export async function captureBuild(page, screen, { origin, fixtures, files, phon
   return { url: page.url(), settled, full, steps };
 }
 
-const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : "demo customer");
+const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : screen.account ? `demo customer (${screen.account})` : "demo customer");
 // Phone artboards are captured at 390px and desktop ones at 1280px.
 export const widths = (s) => [s.phone && 390, s.desktop && 1280].filter(Boolean);
 
@@ -543,9 +607,10 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
           try {
             await context.addCookies([
               { name: "ndahi_ui", value: "v2", domain: "localhost", path: "/" },
+              ...(screen.checkout && state.fixtures?.[screen.checkout] ? [{ name: "ndahi-checkout", value: encodeURIComponent(state.fixtures[screen.checkout]), domain: "localhost", path: "/", sameSite: "Strict" }] : []),
               ...(screen.signedOut ? [] : [screen.app === "admin"
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
-                : { name: "customer_session", value: state.cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
+                : { name: "customer_session", value: (screen.account ? state.accounts?.[screen.account] || "" : state.cookie).split("=")[1] || "", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
             ]);
             // The hotspot landing needs a Wi-Fi sign-in URL, which the preview portal has none of.
             if (screen.hotspot) await context.route("**/config.js", async (route) => { const r = await route.fetch(); await route.fulfill({ response: r, body: `${await r.text()}\nwindow.NDAHI_CONFIG.hotspotLoginUrl="https://hotspot.ndahi.test/login";` }); });
@@ -606,6 +671,10 @@ function page(title, body) {
 
 const statusPill = (s) => `<span class="pill${s.status.startsWith("Redesigned") ? " done" : ""}">${escape(s.status)}</span>${s.blocked ? ` <span class="pill blocked">Blocked fixture</span>` : ""}`;
 function buildHref(s, state) {
+  // A screen that needs a saved checkout opens through this server, which sets it.
+  if (s.checkout) return state.fixtures?.[s.checkout] ? `/open/${encodeURIComponent(s.id)}` : null;
+  // A demo account's screen opens through this server, which signs it in.
+  if (s.account) return state.accounts?.[s.account] ? `/sign-in/portal/${encodeURIComponent(s.account)}` : null;
   const base = s.app === "store" ? storeSite : s.app === "admin" ? admin : portal;
   try { return base + resolvePath(s.path, state.fixtures || {}); } catch { return null; }
 }
@@ -673,12 +742,20 @@ function startDesign(state) {
         res.writeHead(303, { location: "/compare" }); return res.end();
       }
       // One-click sign-in: hand the demo session to this browser (cookies ignore ports).
-      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))$/.exec(url.pathname);
-      if (signIn) {
+      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))(?:\/(\w+))?$/.exec(url.pathname);
+      // /sign-in/portal/<moment> signs in as that renewal-moment demo account.
+      const session = signIn && signIn[3] ? signIn[1] === "portal" && state.accounts?.[signIn[3]] : signIn && state.cookie;
+      if (signIn && session) {
         const cookies = ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", signIn[2]
           ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
-          : `${state.cookie}; Path=/api/account; SameSite=Lax; HttpOnly`];
+          : `${session}; Path=/api/account; SameSite=Lax; HttpOnly`];
         res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
+        return res.end();
+      }
+      // Opens a screen that needs the guest's saved checkout cookie (cookies ignore ports).
+      const opening = /^\/open\/([\w-]+)$/.exec(url.pathname), screen = opening && SCREENS.find((x) => x.id === opening[1] && x.checkout);
+      if (screen && state.fixtures?.[screen.checkout]) {
+        res.writeHead(303, { "set-cookie": ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", `ndahi-checkout=${encodeURIComponent(state.fixtures[screen.checkout])}; Path=/; SameSite=Strict`], location: `${portal}${screen.path}` });
         return res.end();
       }
       if (url.pathname === "/design/support.js") return send(200, TYPES[".js"], await readFile(join(root, "scripts/redesign-preview-canvas.js")));

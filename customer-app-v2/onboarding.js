@@ -14,6 +14,7 @@ import { configurePairingLink } from "./wifi-pairing.js";
 import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
+import { didntGoThroughButton, hidePaymentFailed, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -160,6 +161,18 @@ function renderAccount() {
     plans = cataloguePlans.filter((plan) => plan.id !== current?.planId);
   }
 }
+// The account's payment number. Buy again on Home (#252) names the payment the
+// last bundle was bought with, so its number and network are offered again;
+// the network counts as the customer's own choice, as it was then.
+function fillAccountPayer() {
+  const form = $("#purchase"), id = pageParams.get("payer");
+  const repeat = id && (account.payments || []).find((payment) => payment.id === id && payment.payerPhone);
+  form.elements.payerPhone.value = repeat ? repeat.payerPhone.replace(/^\+?237(?=\d{9}$)/, "") : account.customer.phone;
+  if (repeat && ["mtn", "orange"].includes(repeat.network) && form.elements.network.value !== repeat.network) {
+    form.elements.network.value = repeat.network;
+    form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
 function renderAccountContact() {
   const form = $("#purchase");
   for (const name of ["name", "phone", "email"]) form.elements[name].value = account.customer[name] || "";
@@ -177,7 +190,7 @@ function renderAccountContact() {
   $("#accountPayer").hidden = false;
   form.elements.payerPhone.disabled = false;
   form.elements.payerPhone.required = true;
-  form.elements.payerPhone.value = account.customer.phone;
+  fillAccountPayer();
   $("#acknowledgement").hidden = false;
   form.elements.acknowledge.required = true;
 }
@@ -259,7 +272,12 @@ async function initialize() {
           // A closed (expired) checkout no longer blocks a new payment.
           if (["failed", "refunded", "expired"].includes(result.payment.status)) {
             checkoutStore.remove(`ndahi-payment-${pending.action || "purchase"}-${pending.planId}`);
-            location.reload();
+            if (result.payment.failureCode) {
+              paymentInProgress = undefined;
+              $("#planNotice").textContent = "";
+              renderPlans();
+              showFailure(result.payment);
+            } else location.reload();
           } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
         });
       } catch (error) {
@@ -362,11 +380,13 @@ async function restoreSavedCheckout() {
   catch { /* Offline or unavailable: keep the key so the payment can still be resumed. */ }
   if (recovered === null) return;
   if (recovered && ["failed", "refunded", "expired"].includes(recovered.payment.status)) {
+    if (recovered.payment.failureCode === "timeout") keepUnresolved(recovered.payment.id, saved.requestKey);
     clearRequestKey();
     paymentInProgress = undefined;
     fillSavedDetails(recovered.details);
     notice(recovered.payment.failureReason || "Your previous payment did not complete. You can choose a package again.", false);
     renderPlans();
+    showFailure(recovered.payment);
     return;
   }
   notice(recovered?.payment.status === "paid"
@@ -398,7 +418,7 @@ async function resumeSavedCheckout(button, saved, checked) {
       $("#purchaseFields").disabled = true;
       $("#message").textContent = "Checking your existing payment…";
       if (!await checkPayment(created.payment.id, phone)) {
-        $("#message").innerHTML = '<p>Approve the existing phone prompt, then recheck. Do not start another payment.</p><button type="button" id="resumeRecheck">Recheck payment</button>';
+        $("#message").innerHTML = '<p>Approve the existing phone prompt, then recheck. Do not start another payment.</p><button type="button" id="resumeRecheck">Recheck payment</button>' + didntGoThrough;
         $("#resumeRecheck").onclick = (event) => runButton(event.currentTarget, "Checking…", () => waitForPayment(created.payment.id, phone));
         if (created.checkout.mode === "mock") {
           $("#message").insertAdjacentHTML("beforeend", '<button type="button" id="resumeMock">Simulate payment approval</button>');
@@ -450,7 +470,7 @@ function renderCheckoutReview() {
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  if (account && !paymentInProgress) $("#purchase").elements.payerPhone.value = account.customer.phone;
+  if (account && !paymentInProgress) fillAccountPayer();
   renderCheckoutReview();
   $("#message").textContent = "";
   showCheckout();
@@ -560,6 +580,55 @@ function releaseFailedPayment() {
   if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);
   renderPlans();
 }
+// "Payment didn't go through" (canvas: PhonePaymentFailed). Shown for the reason the
+// API gives; while a request is still open the customer can ask for it, which shows
+// the timeout state. A timed-out request keeps its key so "Check again" can still
+// read it, and is never charged again from here.
+const didntGoThrough = didntGoThroughButton();
+let unresolvedCheckout, failedPaymentChecks = 0, failedPayment;
+function keepUnresolved(id, key) { if (key) unresolvedCheckout = { id, key }; }
+function showFailure(payment, reason = payment.failureCode) {
+  if (!reason) return false;
+  const same = failedPayment?.id === payment.id;
+  if (!same) failedPaymentChecks = 0;
+  failedPayment = same ? { ...failedPayment, ...payment } : { ...payment };
+  return showPaymentFailed(failedPayment, reason, paymentFailedActions, { money, checks: Math.max(1, failedPaymentChecks) });
+}
+function retryCheckout(payment, change) {
+  hidePaymentFailed();
+  failedPayment = undefined;
+  if (!choose(payment.planId)) { $("#packages").scrollIntoView({ block: "start" }); return; }
+  openCheckout($(`#plans button[data-plan="${CSS.escape(payment.planId)}"]`) || $("#plans"));
+  const form = $("#purchase"), number = account ? form.elements.payerPhone : form.elements.phone;
+  if (account && payment.payerPhone) number.value = String(payment.payerPhone).replace(/^\+?237(?=6)/, "");
+  if (change === "network") {
+    form.dataset.requestedNetwork = payment.network === "orange" ? "mtn" : "orange";
+    form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+    if (!number.value) { number.focus(); return; }
+  }
+  if (change === "number") { number.value = ""; number.focus(); return; }
+  $("#requestPayment").focus();
+}
+const paymentFailedActions = {
+  tryAgain: (payment) => retryCheckout(payment),
+  otherNetwork: (payment) => retryCheckout(payment, "network"),
+  differentNumber: (payment) => retryCheckout(payment, "number"),
+  smallerBundle: () => {
+    hidePaymentFailed();
+    failedPayment = undefined;
+    $("#packages").scrollIntoView({ block: "start" });
+    $("#plans button[data-plan]:not([disabled])")?.focus();
+  },
+  checkAgain: (payment) => runButton($("#paymentFailedPrimary"), "Checking…", async () => {
+    failedPaymentChecks = Math.max(1, failedPaymentChecks) + 1;
+    if (!await checkPayment(payment.id, payment.payerPhone)) showFailure(failedPayment, "timeout");
+  }).catch((error) => showError($("#paymentFailedChecks"), error)),
+};
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-payment-failed]") || !paymentInProgress?.id) return;
+  failedPaymentChecks = Math.max(1, failedPaymentChecks);
+  showFailure(paymentInProgress, paymentInProgress.failureCode || "timeout");
+});
 async function beginAccountSecurity(paid, phone) {
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
   if (account) {
@@ -592,6 +661,7 @@ async function checkPayment(paymentId, phone) {
       checkoutKey = activeRequestKey && checkoutStore.get(activeRequestKey);
       const saved = savedCheckout();
       if (!checkoutKey && (!saved?.paymentId || saved.paymentId === paymentId)) checkoutKey = saved?.requestKey;
+      if (!checkoutKey && unresolvedCheckout?.id === paymentId) checkoutKey = unresolvedCheckout.key;
     }
   }
   let status;
@@ -622,9 +692,13 @@ async function checkPayment(paymentId, phone) {
     return true;
   }
   if (["failed", "refunded", "expired"].includes(status.payment.status)) {
+    if (status.payment.failureCode === "timeout") keepUnresolved(status.payment.id, checkoutKey);
     releaseFailedPayment();
+    if (showFailure(status.payment)) return true;
     throw new ApiError(409, status.payment.failureReason || `Payment ${status.payment.status}. Return to packages to try again.`);
   }
+  // Still open but the provider could not confirm it: the timeout view keeps counting.
+  if (paymentFailedOpen()) showFailure(status.payment, "timeout");
   return false;
 }
 async function waitForPayment(paymentId, phone) {
@@ -678,12 +752,13 @@ $("#purchase").onsubmit = async (event) => {
     }
     if (["failed", "refunded", "expired"].includes(created.payment.status)) {
       releaseFailedPayment();
+      if (showFailure(created.payment)) return;
       throw new ApiError(409, "This payment did not complete. You can try again.");
     }
     $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
-    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}`;
+    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}${didntGoThrough}`;
     if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");

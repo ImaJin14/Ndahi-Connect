@@ -32,22 +32,24 @@ const number = value => Number.isFinite(value) ? value.toLocaleString() : "Not m
 const pilotStatus = value => value === "reported_pass" ? "Reported pass; evidence review required"
   : value === "simulation_only" ? "Simulation only; physical evidence required"
   : value === "incomplete_or_failed" ? "Incomplete or failed checks" : "No report recorded";
+// Each fact is a tile, label over value (#232): values sit with their labels
+// instead of across a 1,100px row. The ids the journeys read stay on the dd.
 function diagnostics(info) {
   const d = info.diagnostics;
   if (!d) return;
   document.querySelector("#homeDiagnostics").innerHTML = `<h2 class="nd-h2">${h(L("adminHomeOperations"))}</h2>
     <p>Observed ${h(d.observedAt)}. Configuration checks and reported trials do not certify a router model or enable Home.</p>
-    <dl class="profile-facts">
-      <dt>Active households</dt><dd>${h(d.activeHouseholds)}</dd>
-      <dt>Pending / needs review</dt><dd>${h(d.queue.pending)} / ${h(d.queue.needsReview)}</dd>
-      <dt>Oldest pending operation</dt><dd id="homeQueueAge">${h(duration(d.queue.oldestAgeMs))}</dd>
-      <dt>Fresh / stale or missing usage</dt><dd>${h(d.usage.fresh)} / <span id="homeUsageStale">${h(d.usage.stale)}</span> (60-second freshness target)</dd>
-      <dt>Payment-to-first-authorization p95</dt><dd>${h(duration(d.activation.p95Ms))} · ${h(d.activation.samples)} server-observed samples, including outages</dd>
-      <dt>Accounting discontinuities / active review</dt><dd>${h(d.accounting.discontinuities)} / ${h(d.accounting.activeReview)}</dd>
-      <dt>Confirmed gateway revocations at cutoff</dt><dd>${h(d.cutoffs.gatewayConfirmed)}; packet-level cutoff still requires physical evidence</dd>
-      <dt>Latest operator-reported pilot</dt><dd id="homePilotStatus">${h(pilotStatus(d.pilot.status))}</dd>
-      <dt>Reported quota / activation trials</dt><dd>${h(d.pilot.quotaSamples ?? 0)} / ${h(d.pilot.activationSamples ?? 0)}</dd>
-      <dt>Reported maximum overshoot</dt><dd>${h(number(d.pilot.maxOvershootBytes))} bytes</dd>
+    <dl class="profile-facts admin-home-facts">
+      <div><dt>Active households</dt><dd>${h(d.activeHouseholds)}</dd></div>
+      <div><dt>Pending / needs review</dt><dd>${h(d.queue.pending)} / ${h(d.queue.needsReview)}</dd></div>
+      <div><dt>Oldest pending operation</dt><dd id="homeQueueAge">${h(duration(d.queue.oldestAgeMs))}</dd></div>
+      <div><dt>Fresh / stale or missing usage</dt><dd>${h(d.usage.fresh)} / <span id="homeUsageStale">${h(d.usage.stale)}</span> (60-second freshness target)</dd></div>
+      <div><dt>Payment-to-first-authorization p95</dt><dd>${h(duration(d.activation.p95Ms))} · ${h(d.activation.samples)} server-observed samples, including outages</dd></div>
+      <div><dt>Accounting discontinuities / active review</dt><dd>${h(d.accounting.discontinuities)} / ${h(d.accounting.activeReview)}</dd></div>
+      <div><dt>Confirmed gateway revocations at cutoff</dt><dd>${h(d.cutoffs.gatewayConfirmed)}; packet-level cutoff still requires physical evidence</dd></div>
+      <div><dt>Latest operator-reported pilot</dt><dd id="homePilotStatus">${h(pilotStatus(d.pilot.status))}</dd></div>
+      <div><dt>Reported quota / activation trials</dt><dd>${h(d.pilot.quotaSamples ?? 0)} / ${h(d.pilot.activationSamples ?? 0)}</dd></div>
+      <div><dt>Reported maximum overshoot</dt><dd>${h(number(d.pilot.maxOvershootBytes))} bytes</dd></div>
     </dl>`;
 }
 async function refresh() {
