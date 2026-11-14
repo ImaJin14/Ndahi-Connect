@@ -476,7 +476,7 @@ function mountRecordViews(canManagePayments) {
   voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
   if (!canManagePayments) return;
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
-  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost"), filtersHost: $("#customerFilters"), noteHost: $("#customerNote"), api });
+  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost"), filtersHost: $("#customerFilters"), noteHost: $("#customerNote"), api, bundles: [...bundleIndex.values()] });
   void mountRecords($("#sessionRecords"), {
     call,
     collection: "sessions",

@@ -173,7 +173,8 @@ try {
     await row.waitFor();
     // Name, masked phone, bundle (unlimited shows data used), last active,
     // devices, state, actions (#256, canvas: AdminCustomers).
-    const cells = (await row.locator("td").allInnerTexts()).map((text) => text.trim());
+    // The first cell is the selection box (#257).
+    const cells = (await row.locator("td").allInnerTexts()).map((text) => text.trim()).slice(1);
     assert.deepEqual([cells[0], cells[1], cells[2], cells[4], cells[5], cells[6]], ["Fixture customer", "6•• •• 20 01", "Weekly · 0 GB used", "2 / 2", "Active", "Suspend"]);
     assert.match(cells[3], /^(Online now|Today|Yesterday|—|\d{1,2} [A-Z][a-z]{2})$/);
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");

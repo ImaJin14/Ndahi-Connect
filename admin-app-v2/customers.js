@@ -8,6 +8,7 @@ import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { mountRecords } from "/records.js";
 import { maskPhone, paymentFor, paymentMethod, paymentStatus, saveFile } from "/payments.js";
+import { requestAdminActionProof } from "/action-proof.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
@@ -79,14 +80,30 @@ const STALE_DAYS = [7, 14, 30, 60, 90];
 
 // The list with its Active / Stale / Suspended chips, "Stale after" and, in the
 // stale view, the export (canvas: AdminCustomers).
-export function mountCustomerRecords(container, { call, searchHost, filtersHost = null, noteHost = null, api = "" }) {
+// "[PLAN 1] · 1 GB · 1 day" for the gift bundle choice.
+const bundleChoice = (b) => [b.name, b.quotaGb == null ? L("adminUnlimited") : `${b.quotaGb} GB`,
+  b.validityHours % 24 === 0 ? L(b.validityHours === 24 ? "adminOneDay" : "adminDays", { count: b.validityHours / 24 }) : L("adminHours", { count: b.validityHours })].join(" · ");
+const requestKey = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^A-Za-z0-9_-]/g, "");
+
+export function mountCustomerRecords(container, { call, searchHost, filtersHost = null, noteHost = null, api = "", bundles = [] }) {
   const filter = { activity: "", staleDays: 30 };
   let lastQ = "", list;
+  // Bulk actions (canvas: AdminCustomers, #257): the rows ticked across pages,
+  // the open panel, and one request key per send until it succeeds.
+  const selected = new Map(), bulk = { panel: null, keys: {} };
   if (filtersHost) {
     filtersHost.innerHTML = `<div class="admin-customers__filters"><div class="nd-chips admin-customers__chips" role="group" aria-label="${h(L("adminShowCustomers"))}">${FILTERS.map(([value, key, count]) =>
       `<button type="button" class="nd-chip admin-customers__chip" aria-pressed="${value === filter.activity}" data-activity="${value}">${h(L(key))} <span class="admin-customers__count" data-count="${count}">0</span></button>`).join("")}</div>
       <label class="admin-customers__stale">${h(L("adminStaleAfter"))}<select class="admin-customers__days">${STALE_DAYS.map((d) => `<option value="${d}"${d === filter.staleDays ? " selected" : ""}>${h(L("adminDays", { count: d }))}</option>`).join("")}</select></label></div>
-      <div class="admin-customers__banner" hidden><span class="admin-customers__banner-text"></span><button type="button" class="admin-customers__export">${h(L("adminExportList"))}</button></div>`;
+      <div class="admin-customers__banner" hidden><span class="admin-customers__banner-text"></span><button type="button" class="admin-customers__export">${h(L("adminExportList"))}</button></div>
+      <section class="admin-customers__bulk" aria-label="${h(L("adminBulkActions"))}" hidden><div class="admin-customers__bulk-row"><strong class="admin-customers__bulk-count"></strong>
+        <button type="button" class="admin-customers__bulk-btn" data-bulk-open="gift" aria-pressed="false">${h(L("adminBulkGift"))}</button><button type="button" class="admin-customers__bulk-btn" data-bulk-open="message" aria-pressed="false">${h(L("adminBulkMessage"))}</button><button type="button" class="admin-customers__bulk-clear">${h(L("adminBulkClear"))}</button></div>
+        <div class="admin-customers__bulk-panel" data-bulk-panel="gift" hidden><label for="bulkGiftBundle">${h(L("adminFieldBundle"))}</label><select id="bulkGiftBundle">${bundles.filter((b) => b.active !== false).map((b) => `<option value="${h(b.id)}">${h(bundleChoice(b))}</option>`).join("")}</select>
+          <span class="admin-customers__bulk-note">${h(L("adminBulkGiftNote"))}</span><button type="button" class="admin-customers__bulk-send" data-bulk-send="gift"></button></div>
+        <div class="admin-customers__bulk-panel admin-customers__bulk-panel--message" data-bulk-panel="message" hidden><label for="bulkMessageText">${h(L("adminBulkMessageLabel"))}</label><textarea id="bulkMessageText" maxlength="500"></textarea>
+          <div class="admin-customers__bulk-end"><button type="button" class="admin-customers__bulk-send" data-bulk-send="message"></button></div></div>
+        <p class="admin-customers__bulk-error" role="alert" hidden></p></section>
+      <p class="admin-customers__sent" role="status" hidden></p>`;
     filtersHost.querySelectorAll("[data-activity]").forEach((chip) => {
       chip.onclick = () => {
         filter.activity = chip.dataset.activity;
@@ -95,6 +112,11 @@ export function mountCustomerRecords(container, { call, searchHost, filtersHost 
       };
     });
     filtersHost.querySelector(".admin-customers__days").onchange = (event) => { filter.staleDays = Number(event.target.value); void list?.reload(); };
+    filtersHost.querySelectorAll("[data-bulk-open]").forEach((button) => {
+      button.onclick = () => { bulk.panel = bulk.panel === button.dataset.bulkOpen ? null : button.dataset.bulkOpen; renderBulk(); };
+    });
+    filtersHost.querySelector(".admin-customers__bulk-clear").onclick = () => { selected.clear(); bulk.panel = null; syncRows(); renderBulk(); };
+    filtersHost.querySelectorAll("[data-bulk-send]").forEach((button) => { button.onclick = () => void sendBulk(button); });
     filtersHost.querySelector(".admin-customers__export").onclick = async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -106,6 +128,58 @@ export function mountCustomerRecords(container, { call, searchHost, filtersHost 
       } catch (error) { button.closest(".admin-customers__banner").querySelector(".admin-customers__banner-text").textContent = error.message; }
       finally { button.disabled = false; }
     };
+  }
+  const bulkHost = () => filtersHost && filtersHost.querySelector(".admin-customers__bulk");
+  function renderBulk() {
+    const host = bulkHost();
+    if (!host) return;
+    host.hidden = !selected.size;
+    if (!selected.size) bulk.panel = null;
+    host.querySelector(".admin-customers__bulk-count").textContent = L("adminBulkSelected", { count: selected.size });
+    host.querySelectorAll("[data-bulk-open]").forEach((button) => button.setAttribute("aria-pressed", String(bulk.panel === button.dataset.bulkOpen)));
+    host.querySelectorAll("[data-bulk-panel]").forEach((panel) => { panel.hidden = panel.dataset.bulkPanel !== bulk.panel; });
+    host.querySelector('[data-bulk-send="gift"]').textContent = L("adminBulkGiveTo", { count: selected.size });
+    host.querySelector('[data-bulk-send="message"]').textContent = L("adminBulkSendTo", { count: selected.size });
+  }
+  function syncRows() {
+    container.querySelectorAll("[data-select]").forEach((box) => {
+      box.checked = selected.has(box.dataset.select);
+      box.closest("tr").classList.toggle("admin-customers__row--on", box.checked);
+    });
+    const boxes = [...container.querySelectorAll("[data-select]")], all = container.querySelector("[data-select-all]");
+    if (all) all.checked = boxes.length > 0 && boxes.every((box) => box.checked);
+  }
+  container.addEventListener("change", (event) => {
+    const box = event.target.closest("[data-select], [data-select-all]");
+    if (!box) return;
+    if (box.matches("[data-select-all]")) container.querySelectorAll("[data-select]").forEach((row) => { if (box.checked) selected.set(row.dataset.select, row.dataset.name); else selected.delete(row.dataset.select); });
+    else if (box.checked) selected.set(box.dataset.select, box.dataset.name); else selected.delete(box.dataset.select);
+    filtersHost?.querySelector(".admin-customers__sent")?.setAttribute("hidden", "");
+    syncRows(); renderBulk();
+  });
+  async function sendBulk(button) {
+    const action = button.dataset.bulkSend, host = bulkHost(), error = host.querySelector(".admin-customers__bulk-error");
+    const input = { action, customerIds: [...selected.keys()], requestKey: bulk.keys[action] ||= requestKey() };
+    if (action === "gift") input.planId = host.querySelector("#bulkGiftBundle").value;
+    else input.message = host.querySelector("#bulkMessageText").value;
+    error.hidden = true;
+    button.disabled = true;
+    try {
+      const proof = action === "gift" ? await requestAdminActionProof({ call, purpose: "customer_bulk_gift", input }) : {};
+      const result = await call("/api/admin/customers/bulk", { method: "POST", body: JSON.stringify({ ...input, ...proof }) });
+      delete bulk.keys[action];
+      const sent = filtersHost.querySelector(".admin-customers__sent");
+      sent.textContent = L(action === "gift" ? "adminBulkGiftDone" : "adminBulkMessageDone", { count: result.done }) +
+        (result.skipped && result.skipped.length ? ` · ${L("adminBulkSkipped", { count: result.skipped.length })}` : "");
+      sent.hidden = false;
+      if (action === "message") host.querySelector("#bulkMessageText").value = "";
+      selected.clear(); bulk.panel = null; renderBulk();
+      void list?.refresh();
+    } catch (failure) {
+      if (failure && failure.name === "AbortError") return;
+      error.textContent = failure.message || L("adminBulkFailed");
+      error.hidden = false;
+    } finally { button.disabled = false; }
   }
   const showCounts = (result, { q }) => {
     lastQ = q || "";
@@ -120,9 +194,9 @@ export function mountCustomerRecords(container, { call, searchHost, filtersHost 
     call,
     collection: "customers",
     params: () => ({ activity: filter.activity, staleDays: filter.staleDays }),
-    onResult: showCounts,
+    onResult: (result, state) => { showCounts(result, state); queueMicrotask(syncRows); },
     title: L("adminCustomerList"),
-    headers: [L("adminColCustomer"), L("adminColPhone"), L("adminFieldBundle"), L("adminColLastActive"), L("adminColDevices"), L("adminColState"), { label: L("adminColActions") }],
+    headers: [{ html: `<input type="checkbox" class="admin-customers__check" data-select-all aria-label="${h(L("adminSelectAllShown"))}">` }, L("adminColCustomer"), L("adminColPhone"), L("adminFieldBundle"), L("adminColLastActive"), L("adminColDevices"), L("adminColState"), { label: L("adminColActions") }],
     empty: L("adminCustomersNone"),
     kit: {
       heading: false,
@@ -140,7 +214,7 @@ export function mountCustomerRecords(container, { call, searchHost, filtersHost 
         summary: (page, pages, total) => L("adminPageSummary", { page, pages, total }),
       },
     },
-    row: (c) => `<tr><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(bundleText(c.summary))}</td><td>${h(lastActive(c.activity))}</td><td>${h(devicesText(c.summary))}</td><td>${statePill(c)}</td><td class="admin-customers__actions">${c.activity && c.activity.state === "stale" ? `<a class="nd-btn nd-btn--compact nd-btn--secondary" href="${customerHref(c.id)}">${h(L("adminGiveVoucherShort"))}</a>` : ""}${suspendButton(c)}</td></tr>`,
+    row: (c) => `<tr${selected.has(c.id) ? ' class="admin-customers__row--on"' : ""}><td class="admin-customers__select"><input type="checkbox" class="admin-customers__check" data-select="${h(c.id)}" data-name="${h(c.name || "")}" aria-label="${h(L("adminSelectCustomer", { name: c.name || L("adminUnnamedCustomer") }))}"${selected.has(c.id) ? " checked" : ""}></td><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(c.activity && c.activity.neverBought && !(c.summary && c.summary.paymentWaiting) ? L("adminNeverBought") : bundleText(c.summary))}</td><td>${h(lastActive(c.activity))}</td><td>${h(devicesText(c.summary))}</td><td>${statePill(c)}</td><td class="admin-customers__actions">${c.activity && c.activity.state === "stale" ? `<a class="nd-btn nd-btn--compact nd-btn--secondary" href="${customerHref(c.id)}">${h(L("adminGiveVoucherShort"))}</a>` : ""}${suspendButton(c)}</td></tr>`,
   });
   return list;
 }
