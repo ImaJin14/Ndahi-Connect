@@ -5,6 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { blank } from "../server.mjs";
 import { notificationItems } from "../lib/notifications.mjs";
+import { bundleStatus } from "../lib/bundle-status.mjs";
 
 const now = new Date("2026-11-14T10:00:00Z"); // 11:00 in Douala
 const state = (voucher, prefs) => {
@@ -31,4 +32,12 @@ test("a bundle ending within a day gets one reminder with its local time", () =>
 test("an ended bundle says so and leads to buying it again", () => {
   const ended = items(state({ status: "expired", expiresAt: "2026-11-14T09:00:00Z" })).find((n) => n.id === "bundle:v1");
   assert.deepEqual([ended.title, ended.body, ended.url], ["Your Weekly has ended", "Tap to buy it again in one step.", "/dashboard#home"]);
+});
+
+test("the bundle status says when an ended bundle stopped", () => {
+  const status = (voucher) => { const s = state(voucher); return bundleStatus(s, s.customers[0], now).bundle; };
+  assert.equal(status({ expiresAt: "2026-11-15T08:00:00Z" }).endedAt, null, "an active bundle has not ended");
+  assert.equal(status({ status: "expired", expiresAt: "2026-11-14T09:00:00Z" }).endedAt, "2026-11-14T09:00:00Z");
+  assert.equal(status({ status: "exhausted", usedBytes: 5e9, expiresAt: "2026-11-15T08:00:00Z", exhaustedAt: "2026-11-14T08:30:00Z" }).endedAt, "2026-11-14T08:30:00Z");
+  assert.equal(status({ usedBytes: 5e9, expiresAt: "2026-11-15T08:00:00Z" }).endedAt, null, "used up but not yet cut off: the time is not known");
 });
