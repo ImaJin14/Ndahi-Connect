@@ -1,0 +1,44 @@
+[
+  {
+    "state": "connected",
+    "badge": "Connexion au routeur confirmée",
+    "message": "Cet appareil dispose d’un accès HotSpot. Le test Internet du navigateur a réussi.",
+    "tabsFit": true,
+    "overflow": false
+  },
+  {
+    "state": "internet-unconfirmed",
+    "badge": "Connexion au routeur confirmée",
+    "message": "Cet appareil dispose d’un accès HotSpot. L’accès Internet n’est pas confirmé ; ne rachetez pas de forfait pour rétablir la connexion.",
+    "tabsFit": true,
+    "overflow": false
+  },
+  {
+    "state": "signed-out",
+    "badge": "Réseau NDAHI détecté",
+    "message": "Connectez-vous pour utiliser votre accès existant ou vérifier les forfaits disponibles. L’accès Internet n’est pas encore confirmé.",
+    "tabsFit": true,
+    "overflow": false
+  },
+  {
+    "state": "bundle-ended",
+    "badge": "Réseau NDAHI détecté",
+    "message": "Consultez les forfaits disponibles pour vous connecter. La présence sur le réseau ne donne pas accès à Internet.",
+    "tabsFit": true,
+    "overflow": false
+  },
+  {
+    "state": "authorizing",
+    "badge": "Réseau NDAHI détecté",
+    "message": "Votre compte est accessible. L’autorisation HotSpot de cet appareil est encore en cours de vérification.",
+    "tabsFit": true,
+    "overflow": false
+  },
+  {
+    "state": "wifi-unconfirmed",
+    "badge": "Wi-Fi NDAHI non confirmé",
+    "message": "Cette requête ne confirme pas le Wi-Fi NDAHI. Les données mobiles, un VPN ou le routage peuvent modifier ce résultat.",
+    "tabsFit": true,
+    "overflow": false
+  }
+]

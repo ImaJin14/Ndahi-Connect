@@ -1,0 +1,322 @@
+[
+  {
+    "width": 360,
+    "tab": "home",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 360,
+    "tab": "internet",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 360,
+    "tab": "shop",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 360,
+    "tab": "activity",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 360,
+    "tab": "account",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "tab": "home",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "tab": "internet",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "tab": "shop",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "tab": "activity",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "tab": "account",
+    "labels": [
+      {
+        "text": "Accueil",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Internet",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Boutique",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Activité",
+        "clipped": false,
+        "wrapped": false
+      },
+      {
+        "text": "Compte",
+        "clipped": false,
+        "wrapped": false
+      }
+    ],
+    "overflow": false
+  }
+]

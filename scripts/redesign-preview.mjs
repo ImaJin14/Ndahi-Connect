@@ -139,7 +139,7 @@ export const SCREENS = [
       .map(([suffix, recipient, number, state]) => [`buy-for-other${suffix}`, `Buy for someone else: ${state}`, "PhoneBuyForOther", null, "/gift.html", "Redesigned",
         { design: `recipient=${recipient}`, state, open: [{ fill: "#giftPhone", value: number }, { fill: "#giftName", value: "Mama Ngum" }], expect: [".gift__card--on"] }]),
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
-    ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
+    ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", "Redesigned; optional French", { tab: "home", lang: "fr", expect: ['html[lang="fr"]', '[data-remaining-data]'] }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
     ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "A board of every path, each built on its own screen (walked in #250); this capture is the Wi-Fi landing it starts from",
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
@@ -613,6 +613,8 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
                 : { name: "customer_session", value: (screen.account ? state.accounts?.[screen.account] || "" : state.cookie).split("=")[1] || "", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
             ]);
+            // Explicit preference only; other preview screens keep English.
+            if (screen.lang) await context.addInitScript(lang => localStorage.setItem("ndahi-lang", lang), screen.lang);
             // The hotspot landing needs a Wi-Fi sign-in URL, which the preview portal has none of.
             if (screen.hotspot) await context.route("**/config.js", async (route) => { const r = await route.fetch(); await route.fulfill({ response: r, body: `${await r.text()}\nwindow.NDAHI_CONFIG.hotspotLoginUrl="https://hotspot.ndahi.test/login";` }); });
             const page = await context.newPage();
