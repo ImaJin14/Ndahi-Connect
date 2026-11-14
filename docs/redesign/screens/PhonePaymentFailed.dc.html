@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment did not go through</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #dfe5dc; min-height: 44px">
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Buy a bundle</span>
+    <a href="PhoneHelp.dc.html" style="font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center">Help</a>
+  </div>
+  <main style="flex: 1; padding: 28px 22px 18px; display: flex; flex-direction: column; gap: 14px">
+    <div style="{{iconWrap}}">
+      <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="{{iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{iconPath}}"></path></svg>
+    </div>
+    <h1 class="h1" role="status">{{title}}</h1>
+    <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">{{body}}</p>
+    <sc-if value="{{money}}" hint-placeholder-val="{{ true }}">
+      <p style="{{moneyStyle}}">{{moneyLine}}</p>
+    </sc-if>
+    <section aria-label="Payment details" style="padding: 4px 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
+      <div class="row"><span style="color: #5c6963">Bundle</span><strong>[PLAN 2] · [PRICE] FCFA</strong></div>
+      <div class="row"><span style="color: #5c6963">Paid with</span><strong>{{method}} · 6•• •• 12 45</strong></div>
+      <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Reference</span><strong style="font-family: ui-monospace, Menlo, monospace">PAY-1113-0042</strong></div>
+    </section>
+    <sc-if value="{{isTimeout}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 0; color: #5c6963; font-size: 13px">Checked {{checks}} time{{plural}} · we keep checking for 15 minutes even if you close this page.</p>
+    </sc-if>
+  </main>
+  <div class="foot">
+    <sc-if value="{{isTimeout}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="btn" onClick="{{check}}">Check again</button>
+    </sc-if>
+    <sc-if value="{{notTimeout}}" hint-placeholder-val="{{ true }}">
+      <a class="btn" href="PhoneBuyBundle.dc.html">{{primary}}</a>
+    </sc-if>
+    <a class="btn2" href="{{secondaryHref}}">{{secondary}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"reason":{"editor":"enum","options":["declined","lowBalance","timeout","wrongNetwork"],"default":"declined"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { checks: 1 }; }
+  renderVals() {
+    const r = this.props.reason ?? 'declined';
+    const X = 'M18 6 6 18M6 6l12 12', CLOCK = 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', WALLET = 'M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01', SIM = 'M6 3h9l4 4v14H6ZM9 12h6v5H9Z';
+    const red = ['#fbe4e4', '#8a2a2a'], amber = ['#fff4e0', '#6b3a00'];
+    const v = {
+      declined: { tone: red, path: X, title: 'Payment not approved', method: 'MTN MoMo',
+        body: 'The request was declined or cancelled on your phone, so nothing happened.',
+        money: 'No money was taken.', primary: 'Try again', secondary: 'Pay with Orange Money instead', href: 'PhoneBuyBundle.dc.html' },
+      lowBalance: { tone: red, path: WALLET, title: 'Not enough Mobile Money', method: 'MTN MoMo',
+        body: 'Your MoMo balance is below [PRICE] FCFA. Add money at any MoMo agent, then try again — or pick a smaller bundle.',
+        money: 'No money was taken.', primary: 'Try again', secondary: 'Choose a smaller bundle', href: 'PhoneBuyBundle.dc.html' },
+      timeout: { tone: amber, path: CLOCK, title: 'Still waiting for MTN', method: 'MTN MoMo',
+        body: "MTN hasn't confirmed yet. If you approved on your phone, your bundle starts by itself as soon as they do.",
+        money: "Please don't pay again yet — you could be charged twice.", primary: '', secondary: 'Get help with this payment', href: 'PhoneHelp.dc.html' },
+      wrongNetwork: { tone: red, path: SIM, title: "This number isn't on MTN MoMo", method: 'MTN MoMo',
+        body: '6•• •• 12 45 looks like an Orange number. Pay with Orange Money, or enter an MTN MoMo number.',
+        money: 'No money was taken.', primary: 'Pay with Orange Money', secondary: 'Use a different number', href: 'PhoneBuyBundle.dc.html' }
+    }[r];
+    const isTimeout = r === 'timeout';
+    return {
+      title: v.title, body: v.body, method: v.method, primary: v.primary, secondary: v.secondary, secondaryHref: v.href,
+      iconWrap: `width: 80px; height: 80px; border-radius: 50%; display: grid; place-items: center; background: ${v.tone[0]}`,
+      iconColor: v.tone[1], iconPath: v.path,
+      money: true, moneyLine: v.money,
+      moneyStyle: 'margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 700; ' + (isTimeout ? 'background: #fff4e0; color: #6b3a00;' : 'background: #eaf6d5; color: #345000;'),
+      isTimeout, notTimeout: !isTimeout,
+      checks: this.state.checks, plural: this.state.checks === 1 ? '' : 's',
+      check: () => this.setState({ checks: this.state.checks + 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

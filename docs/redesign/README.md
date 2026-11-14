@@ -6,7 +6,9 @@ Everything an agent needs to build the redesign is in this folder. It was assemb
 | --- | --- |
 | [`execution-plan.md`](execution-plan.md) | The eight phases, done-when criteria, testing bar, risks, and which agent leads each phase. **Start here.** |
 | [`decisions.md`](decisions.md) | Product decisions already made, and the open questions the owner still has to answer. |
-| [`screens/`](screens/) | Source of all 64 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
+| [`screens/`](screens/) | Source of all 74 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
+| [`designs-2026-11-13.md`](designs-2026-11-13.md) | Everything designed on 13 Nov, with a description, success rating and success measure for each. |
+| [`usability-test.md`](usability-test.md) | Five-person test to run before ramping the new design past 10%. |
 | [`prompts/`](prompts/) | Ready-to-run prompts, one per PR. `phase-0-rollout-switch.md` is first. |
 | [`../../AGENTS.md`](../../AGENTS.md) | Rules every agent follows (Claude Code, Antigravity, Codex, Copilot). |
 
@@ -42,10 +44,14 @@ Guest store selectors follow the full-page store (bb1f908): products open at `#p
 
 ## Screen index
 
-**Customer — phone:** PhoneHome, PhoneInternet, PhoneShop, PhoneActivity, PhoneAccount (the five tabs, with `TabBar`); PhoneBuyBundle, PhoneCheckout, PhoneOrder, PhoneProduct, PhoneReceipt, PhoneVoucher, PhoneVoucherReady, `VoucherSlip`; PhoneScanConnect, PhoneScanNoBundle, PhoneHotspot, PhoneWifiConnected; PhoneLogin, PhonePasskey, PhoneForgotPin, PhoneChangePin, PhoneSessions, PhoneEditProfile; PhoneDevices, PhonePairRequest, PhonePairReview; PhoneNotifications, PhoneHelp, PhoneBillingTerms, PhoneHomeRouter.
+**Flow board:** ConnectFlow — every get-connected path on one board, built from the real screens.
+
+**Customer — phone:** PhoneHome, PhoneInternet, PhoneShop, PhoneActivity, PhoneAccount (the five tabs, with `TabBar`); PhoneBuyBundle, PhoneCheckout, PhoneOrder, PhoneProduct, PhoneReceipt, PhoneVoucher, PhoneVoucherReady, `VoucherSlip`; PhoneScanConnect, PhoneScanNoBundle, PhoneHotspot, PhoneWifiConnected; PhoneLogin, PhonePasskey, PhoneForgotPin, PhoneChangePin, PhoneSessions, PhoneEditProfile; PhoneDevices, PhonePairRequest, PhonePairReview; PhoneNotifications, PhoneHelp, PhoneBillingTerms, PhoneHomeRouter; PhonePaymentFailed, PhoneRenew, PhoneBuyForOther, PhoneOutage, PhoneHomeFR (French check), PhoneClaimGift.
 
 **Customer — desktop:** Main (home), DesktopInternet, DesktopActivity, DesktopAccount, Shop, ProductDesktop.
 
 **Public store (guests):** StoreGuest (desktop), PhoneGuestShop, PhoneGuestProduct, PhoneGuestCheckout, PhoneGuestOrder.
 
-**Admin:** AdminLogin, Admin (home), AdminSide (menu); AdminPayments, AdminCash, AdminResellers; AdminStore, AdminProducts, AdminProductEdit; AdminVouchers, AdminVoucherPrint; AdminBundles, AdminBundleEdit; AdminCustomers, AdminCustomerDetail, AdminDevices; AdminConnections, AdminNetworkSetup, AdminHomeRouters, AdminAudit, AdminProfile.
+**Admin:** AdminLogin, Admin (home), AdminSide (menu); AdminPayments, AdminCash, AdminResellers; AdminStore, AdminProducts, AdminProductEdit; AdminVouchers, AdminVoucherDetail, AdminVoucherPrint; AdminBundles, AdminBundleEdit; AdminCustomers, AdminCustomerDetail, AdminDevices; AdminConnections, AdminOutage, AdminNetworkSetup, AdminHomeRouters, AdminAudit, AdminProfile; AdminInsights.
+
+**Reseller:** ResellerHome (phone).
