@@ -8,7 +8,7 @@ import { hashSecret } from "../lib/security.mjs";
 import { recordOperationalFailure, updateOperationalIncident } from "../lib/operational-incidents.mjs";
 import { recordUsageAlerts } from "../lib/usage-alerts.mjs";
 import { approveDevice } from "../lib/wifi-approval.mjs";
-import { openAdminMore } from "./admin-nav.mjs";
+import { openAdminMore, uiV2 } from "./admin-nav.mjs";
 
 const listen = (s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve));
 const close = (s) => new Promise((resolve) => { s.close(resolve); s.closeAllConnections(); });
@@ -350,6 +350,7 @@ try {
   await administrator.goto(administration + "/dashboard#vouchers");
   await administrator.reload();
   const records = administrator.locator("#voucherRecords");
+  if (uiV2) await records.locator(".voucher-record-filters > summary").click();
   await records.getByLabel("Filter vouchers by status", { exact: true }).selectOption("expired");
   await records.getByLabel("Vouchers from date", { exact: true }).fill("2026-09-01");
   await records.getByLabel("Vouchers through date", { exact: true }).fill("2026-09-01");

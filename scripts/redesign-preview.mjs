@@ -188,7 +188,7 @@ export const SCREENS = [
     ["admin-setup", "Network setup", "AdminNetworkSetup", "/dashboard#network-setup", "Redesigned (four steps over the existing forms; status, enforcement and history stay below)", { panel: "network-setup", menu: "setup" }],
     ["admin-bundles", "Bundles", "AdminBundles", "/dashboard#bundles", "Redesigned (no Pause / Put on sale or drafts: the API has neither; sold this week shown as vouchers issued)", { panel: "bundles", menu: "bundles" }],
     ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles", "Redesigned", { open: ["a[href*=\"#bundle/\"]"], panel: "bundle-edit", menu: "bundles", hash: "^#bundle/" }],
-    ["admin-vouchers", "Vouchers", "AdminVouchers", "/dashboard#vouchers", "Redesigned (no Batch column: vouchers carry no batch number)", { panel: "vouchers", menu: "vouchers" }],
+    ["admin-vouchers", "Vouchers — one customer", "AdminVouchers", "/dashboard#vouchers", "Redesigned; existing-customer mode (253)", { panel: "vouchers", menu: "vouchers", expect: ["#customerVoucherForm", "[data-give-pick]"] }],
     // Creates a batch of three in-memory vouchers, then opens its print screen.
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)",
       { open: [{ fill: "#generate [name=\"quantity\"]", value: "3" }, "#generate button[type=\"submit\"]", "#generated a[href=\"/dashboard#voucher-print\"]"],
@@ -200,6 +200,7 @@ export const SCREENS = [
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)", { panel: "cash", menu: "cash" }],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
+    ["admin-vouchers-batch", "Vouchers — batch", "AdminVouchers", "/dashboard#vouchers", "Redesigned; existing batch and thermal print workflow", { panel: "vouchers", menu: "vouchers", design: "mode=batch", open: ['[data-voucher-mode="batch"]'], expect: ["#generate", "#voucherQuantity"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
     ["admin-voucher-reserved", "Voucher waiting for claim", "AdminVoucherDetail", "/dashboard#voucher/{reservedVoucherId}", "Redesigned (#254)", { panel: "voucher", menu: "vouchers", design: "status=waitingClaim", expect: [".admin-voucher__reserved"] }],

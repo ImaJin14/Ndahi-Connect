@@ -1,4 +1,6 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 // Details live only in the current DOM. Neither contact data nor responses are
 // persisted in browser storage, service-worker caches, or a cross-page cache.
@@ -109,8 +111,16 @@ export function mountVoucherDetails(container, { columns, refreshRecords }) {
         entry.base.replaceChildren(...template.content.querySelector("tr").childNodes);
         if (!item.permissions?.manage) entry.base.querySelectorAll("[data-voucher], [data-resend-email], [data-classify]").forEach((b) => b.remove());
         if (!item.permissions?.code) entry.base.querySelectorAll("[data-print-voucher]").forEach((b) => b.remove());
-        (entry.base.querySelector(".admin-actions") || entry.base.lastElementChild).append(" ", entry.button); entry.html = html;
+        // The code links to the voucher page (#258); inline Details sits beside the Actions menu.
+        (entry.base.querySelector("[data-voucher-code-control]") || entry.base.querySelector("[data-voucher-details-slot]") || entry.base.querySelector(".admin-actions") || entry.base.lastElementChild).append(entry.button); entry.html = html;
         if (focused) entry.button.focus({ preventScroll: true });
+      }
+      if (entry.base.querySelector("[data-voucher-code-control]")) {
+        // Reuse the same control so expanded state, focus and scope revocation
+        // stay owned by this component across row refreshes.
+        entry.button.className = "admin-code voucher-record-code";
+        entry.button.textContent = item.code || "—";
+        entry.button.setAttribute("aria-label", format("adminGiveDetails", { code: item.code || item.id }, currentLanguage()));
       }
       for (const node of [entry.base, entry.panel]) {
         if (node !== cursor) body.insertBefore(node, cursor);

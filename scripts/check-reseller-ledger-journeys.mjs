@@ -239,10 +239,11 @@ try {
 
     // Generate 2 more resale vouchers assigned directly to Buea Market Kiosk
     await page.goto(`${adminOrigin}/dashboard#voucher-create`);
+    if (uiV2) await page.getByRole("tab", { name: "Batch to print or sell", exact: true }).click();
     await page.locator("#voucherResellerSelect").selectOption("staff-reseller-1");
     await page.locator('#voucherQuantity input[name="quantity"]').fill("2");
     await page.locator('#generate button[type="submit"], #generate button:not([type])').click();
-    await page.locator("#generated .generated-codes code").first().waitFor();
+    await page.locator("#generated .generated-codes code").first().waitFor({ state: "attached" });
 
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     assert.match(await row.locator('[data-cell="stock"]').textContent(), /3 unsold \/ 2 sold \/ 5 total/);

@@ -7,7 +7,8 @@ import { hashSecret } from "../lib/security.mjs";
 import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
 import { lowContrastText } from "./ui-checks.mjs";
 
-const api = "http://127.0.0.1:8998", admin = "http://127.0.0.1:8997", origins = new Set([api, admin]);
+const apiPort = Number(process.env.ADMIN_JOURNEY_API_PORT || 8998), adminPort = Number(process.env.ADMIN_JOURNEY_PORT || 8997);
+const api = `http://127.0.0.1:${apiPort}`, admin = `http://127.0.0.1:${adminPort}`, origins = new Set([api, admin]);
 const store = createStore({ persistent: false }), secret = randomUUID(), tokens = Object.fromEntries(["owner", "operator", "auditor", "reseller"].map((r) => [r, randomUUID()]));
 let now = new Date("2030-01-01T08:00:00Z"), devices, failRead = false, readGate, disconnectGate, readCalls = 0;
 const observed = [{ mac: "AA:BB:CC:DD:EE:01", sessionId: "*A", startedAt: "2030-01-01T07:55:00.000Z", address: "10.20.0.2" },
@@ -32,7 +33,7 @@ await store.transaction((s) => {
 });
 const baseline = await store.snapshot();
 try {
-  await listen(server, 8998); await listen(website, 8997); await mkdir(screenshots, { recursive: true });
+  await listen(server, apiPort); await listen(website, adminPort); await mkdir(screenshots, { recursive: true });
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   async function scenario(name, work, { width = 390, role = "owner", apple = false } = {}) {
@@ -131,6 +132,7 @@ try {
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Vouchers creates a batch and prints it on its own screen at ${width}px`, async (page) => {
     await page.goto(`${admin}/dashboard#vouchers`);
     await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
+    await page.getByRole("tab", { name: "Batch to print or sell", exact: true }).click();
     await page.getByRole("heading", { name: "Create a batch", exact: true }).waitFor();
     await page.getByRole("heading", { name: "Recent vouchers", exact: true }).waitFor();
     await page.locator('[data-voucher-record="v1"]').waitFor();
@@ -191,7 +193,7 @@ try {
     assert.match(await page.locator("#adminLede").textContent(), /^\+237 670 04 20 01/);
     await page.getByRole("link", { name: "Back to Customers", exact: true }).waitFor();
     await page.getByRole("heading", { name: "Support actions", exact: true }).waitFor();
-    for (const name of ["Print active voucher", "Recover PIN with a support code", "Replace bundle", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();
+    for (const name of ["Print active voucher", "Recover PIN with a support code", "Give a voucher (sold or gift)", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     await page.screenshot({ path: `${screenshots}/customer-${width}.png`, fullPage: true });
     await page.getByRole("tab", { name: "Devices", exact: true }).click();
@@ -201,13 +203,13 @@ try {
     await page.getByRole("tab", { name: "Payments & orders", exact: true }).click();
     await page.getByText("No payments or store orders yet.", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    // Replace bundle opens Vouchers with an assigned voucher for this customer.
+    // Give a voucher opens the customer mode without consenting to replacement.
     await page.getByRole("tab", { name: "Overview", exact: true }).click();
-    await page.getByRole("button", { name: "Replace bundle", exact: true }).click();
+    await page.getByRole("button", { name: "Give a voucher (sold or gift)", exact: true }).click();
     await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();
-    assert.equal(await page.locator("#voucherPurpose").inputValue(), "assigned");
-    await page.waitForFunction(() => document.querySelector("#customerSelect").value === "c1");
-    assert.equal(await page.locator("#voucherReplaceActive").isChecked(), true);
+    await page.locator(".customer-voucher__picked").waitFor();
+    assert.equal(await page.locator('#customerVoucherForm [name="replaceActive"]').isChecked(), false);
+    assert.equal(await page.locator("[data-give-submit]").isDisabled(), true);
   }, { width });
   // Redesigned Bundles and Edit bundle (v2 only; canvas: AdminBundles, AdminBundleEdit).
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Bundles creates, edits and deletes a custom bundle at ${width}px`, async (page) => {

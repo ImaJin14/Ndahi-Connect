@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Syntax-check browser regression modules
-        run: for module in test/redesign-browser/*.test.mjs; do node --check "$module"; done
+        run: for module in test/redesign-browser/*.test.mjs admin-app-v2/*.js; do node --check "$module"; done
       - name: Syntax-check preview and customer screen modules
         run: |
           for module in scripts/redesign-preview.mjs scripts/redesign-preview-canvas.js customer-app-v2/portal-{account,activity,devices,internet,shop}.js; do
