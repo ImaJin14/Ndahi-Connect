@@ -155,7 +155,8 @@ try {
     await page.goto(`${portal}/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30`);
     // v2 shows the hotspot landing's choices first; sign-in keeps the device's Wi-Fi details.
     if (uiV2) {
-      const signIn = page.getByRole("link", { name: /^I have an account or a voucher/ });
+      // The landing's four ways online (#250, canvas: PhoneHotspot).
+      const signIn = page.getByRole("link", { name: /^I have an account Sign in/ });
       assert.match(await signIn.getAttribute("href"), /^\/login\?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10\.20\.0\.30$/);
       await signIn.click();
     }

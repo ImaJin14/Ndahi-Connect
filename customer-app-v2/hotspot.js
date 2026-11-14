@@ -8,6 +8,9 @@ import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
 import { requestJson, markReady, randomId, loadPasskeys } from "./compat.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
+import { fetchNetworkStatus } from "./network-status.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage, localize } from "/shared/ui/dom.js";
 
 if (!resumeVoucherScanFromWifi(wifiHint())) {
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
@@ -241,8 +244,15 @@ button.onclick = connect;
 function showLanding(evidence) {
   const landing = document.getElementById("hotspotLanding");
   if (!landing) return false;
+  const lang = currentLanguage(), L = (key) => format(key, {}, lang);
+  localize(landing, lang);
   landing.querySelectorAll("[data-hotspot-link]").forEach((link) => { link.href = withWifiHint(link.dataset.hotspotLink); });
-  if (evidence.network.state === "confirmed") document.getElementById("hotspotWifi").textContent = "You're on NDAHI Wi-Fi";
+  if (evidence.network.state === "confirmed") document.getElementById("hotspotWifi").textContent = L("hotspotOnWifi");
+  // The network's own state (public /api/status), with its dot.
+  void fetchNetworkStatus(config.apiUrl).then((status) => {
+    document.getElementById("hotspotStatus").dataset.status = status;
+    document.getElementById("hotspotStatusText").textContent = L(`hotspotStatus_${status}`);
+  });
   document.body.setAttribute("data-hotspot-landing", "");
   landing.hidden = false;
   return true;

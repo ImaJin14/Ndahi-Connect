@@ -69,8 +69,11 @@ export function captureDir() {
 }
 export const DEMO = { phone: "670000001", pin: "2468", name: "Amina Nfor", email: "amina@example.test" };
 // Values made while seeding the demo data that screen paths can name as {key}.
-export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "guestOrderToken",
+export const FIXTURES = ["qrToken", "voucherIds", "voucherId", "paymentId", "guestOrderId", "guestOrderToken",
   "checkoutDeclined", "checkoutLowBalance", "checkoutTimeout", "checkoutWrongNetwork"];
+// Demo accounts for Home's renewal moments (#252, canvas: PhoneRenew), each
+// with its own session: [moment, phone, plan]. The phones mask as 6•• •• 12 45.
+export const MOMENT_ACCOUNTS = [["lowData", "670031245", "weekly"], ["endsSoon", "670041245", "weekly"], ["ended", "670051245", "family"]];
 
 // Built screens and the canvas artboards they follow. Status says how far each has come.
 //
@@ -85,6 +88,8 @@ export const FIXTURES = ["qrToken", "voucherIds", "paymentId", "guestOrderId", "
 //   blocked    the preview can't put the build in the artboard's state; the text
 //              says what is shown instead, and expect checks that it is
 //   state      what the build capture shows, for the manifest
+//   design     canvas props for the design capture, as a query ("moment=ended")
+//   account    a MOMENT_ACCOUNTS demo account to sign in as instead of the demo customer
 const SHELL = "Admin shell — screen not rebuilt yet";
 // Artboards added on 13 Nov 2026 (docs/redesign/designs-2026-11-13.md) that are
 // not built yet. The build capture shows today's nearest page; each issue
@@ -122,11 +127,15 @@ export const SCREENS = [
         { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
     ["buy-for-other", "Buy for someone else", "PhoneBuyForOther", null, "/onboarding.html", NOT_BUILT(255), { signedOut: true, expect: ["#packagesTitle"] }],
     ["claim-gift", "Claim a gift", "PhoneClaimGift", null, "/login", NOT_BUILT(254), { signedOut: true, expect: ["#login"] }],
-    ["renew", "Renewal moments", "PhoneRenew", null, "/dashboard#home", NOT_BUILT(252), { tab: "home" }],
+    // Home's renewal moments, one demo account each (the canvas's `moment` prop).
+    ...[["low-data", "lowData", "Running low", "a Weekly bundle with four fifths of its 5 GB used"], ["ends-soon", "endsSoon", "Ends soon", "a Weekly bundle ending in 20 hours"],
+      ["ended", "ended", "Ended", "a Connect Family bundle that ended an hour ago"]]
+      .map(([id, moment, title, state]) => [`renew-${id}`, `Renewal: ${title.toLowerCase()}`, "PhoneRenew", null, "/dashboard#home", "Redesigned",
+        { tab: "home", design: `moment=${moment}`, account: moment, state, expect: ["#renewActions > *"] }]),
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", NOT_BUILT(260), { tab: "home" }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", `${NOT_BUILT(261)}; it will live in the admin app`, { signedOut: true, expect: ["#login"] }],
-    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", `${NOT_BUILT(250)}: a board of every path, each built on its own screen`,
+    ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "A board of every path, each built on its own screen (walked in #250); this capture is the Wi-Fi landing it starts from",
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],
@@ -183,11 +192,11 @@ export const SCREENS = [
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)", { panel: "store", menu: "products", expect: ["#storeCatalogueTitle"] }],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", { open: ["a[href*=\"#product/\"]:not([href$=\"/new\"])"], panel: "store", menu: "products", hash: "^#product/", expect: ["#storeProductForm"] }],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)", { panel: "cash", menu: "cash" }],
-    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned", { panel: "customers", menu: "customers" }],
+    ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (commission is set per reseller, so there is no single split in the head)", { panel: "resellers", menu: "resellers" }],
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
-    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#vouchers", NOT_BUILT(258), { panel: "vouchers", menu: "vouchers" }],
+    ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#home", NOT_BUILT(259), { panel: "home" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
@@ -231,6 +240,13 @@ async function startApi() {
   const setup = await call("/api/account/setup/pin", { phone: DEMO.phone, code: paid.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
   const cookie = setup.response.headers.get("set-cookie").split(";")[0];
   fixtures.paymentId = purchase.body.payment.id;
+  const accounts = {};
+  for (const [moment, phone, planId] of MOMENT_ACCOUNTS) {
+    const bought = await call("/api/purchase", { phone, name: DEMO.name, planId });
+    const confirmed = await call(`/api/payments/${bought.body.payment.id}/confirm`, {});
+    const made = await call("/api/account/setup/pin", { phone, code: confirmed.body.access.code, pin: DEMO.pin, confirmPin: DEMO.pin });
+    accounts[moment] = made.response.headers.get("set-cookie").split(";")[0];
+  }
   await publishInitialStoreCatalogue({ store });
   await store.transaction((s) => {
     const now = Date.now(), customer = s.customers.find((c) => c.phone.endsWith(DEMO.phone));
@@ -252,7 +268,22 @@ async function startApi() {
       // The bundle's current QR, the same one its account pages show.
       fixtures.qrToken = new URLSearchParams(new URL(voucherQrUrl(active, customer, portal)).hash.slice(1)).get("qr") || "";
       fixtures.voucherIds = JSON.stringify([active.id]);
+      fixtures.voucherId = active.id;
     } else warnings.push("The demo customer has no active bundle; voucher and scan captures will fail.");
+    // Renewal moments: four fifths used; ending in 20 hours with 2.4 GB left;
+    // ended an hour ago. Each was paid by MTN MoMo, which Buy again offers again.
+    for (const [moment, phone] of MOMENT_ACCOUNTS) {
+      const owner = s.customers.find((c) => c.phone.endsWith(phone)), v = owner && s.vouchers.find((x) => x.customerId === owner.id);
+      if (!v) { warnings.push(`The ${moment} demo account has no bundle; its renewal capture will fail.`); continue; }
+      const payment = s.payments.find((p) => p.id === v.paymentId);
+      if (payment) payment.network = "mtn";
+      // Set up as the demo customer is: a confirmed email and a bundle the router took.
+      Object.assign(owner, { email: `${moment.toLowerCase()}@example.test`, emailVerifiedAt: new Date(now).toISOString() });
+      v.routerSyncStatus = "synchronized";
+      if (moment === "lowData") v.usedBytes = Math.round(v.quotaBytes * 0.8);
+      if (moment === "endsSoon") Object.assign(v, { usedBytes: v.quotaBytes - 2.4e9, activatedAt: new Date(now - 148 * 36e5).toISOString(), expiresAt: new Date(now + 20 * 36e5).toISOString() });
+      if (moment === "ended") Object.assign(v, { status: "expired", usedBytes: Math.round(v.quotaBytes * 0.7), activatedAt: new Date(now - 721 * 36e5).toISOString(), expiresAt: new Date(now - 36e5).toISOString() });
+    }
     // Demo payments for the admin Payments and Cash screens: two waiting (one
     // over 10 minutes), gateway-confirmed sales this month, one failed today
     // and one expired yesterday. Gateway references are made up; no provider is called.
@@ -321,7 +352,7 @@ async function startApi() {
     warnings.push(`Demo store orders incomplete (${firstLine(error)}); Order and Guest order captures will fail.`);
   }
   for (const warning of warnings) console.warn("[preview]", warning);
-  return { server, cookie, code: paid.body.access.code, staff, fixtures, warnings };
+  return { server, cookie, accounts, code: paid.body.access.code, staff, fixtures, warnings };
 }
 
 // The static servers cache their files, so a change swaps in fresh ones.
@@ -498,7 +529,7 @@ export async function captureBuild(page, screen, { origin, fixtures, files, phon
   return { url: page.url(), settled, full, steps };
 }
 
-const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : "demo customer");
+const sessionOf = (screen) => (screen.signedOut ? "signed out" : screen.app === "admin" ? "demo owner" : screen.account ? `demo customer (${screen.account})` : "demo customer");
 // Phone artboards are captured at 390px and desktop ones at 1280px.
 export const widths = (s) => [s.phone && 390, s.desktop && 1280].filter(Boolean);
 
@@ -555,7 +586,7 @@ export async function capture(state, { only, dir, launch, source = sourceInfo(),
               ...(screen.checkout && state.fixtures?.[screen.checkout] ? [{ name: "ndahi-checkout", value: encodeURIComponent(state.fixtures[screen.checkout]), domain: "localhost", path: "/", sameSite: "Strict" }] : []),
               ...(screen.signedOut ? [] : [screen.app === "admin"
                 ? { name: "admin_session", value: state.staff.owner, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }
-                : { name: "customer_session", value: state.cookie.split("=")[1], domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
+                : { name: "customer_session", value: (screen.account ? state.accounts?.[screen.account] || "" : state.cookie).split("=")[1] || "", domain: "localhost", path: "/api/account", httpOnly: true, sameSite: "Lax" }]),
             ]);
             // The hotspot landing needs a Wi-Fi sign-in URL, which the preview portal has none of.
             if (screen.hotspot) await context.route("**/config.js", async (route) => { const r = await route.fetch(); await route.fulfill({ response: r, body: `${await r.text()}\nwindow.NDAHI_CONFIG.hotspotLoginUrl="https://hotspot.ndahi.test/login";` }); });
@@ -618,6 +649,8 @@ const statusPill = (s) => `<span class="pill${s.status.startsWith("Redesigned") 
 function buildHref(s, state) {
   // A screen that needs a saved checkout opens through this server, which sets it.
   if (s.checkout) return state.fixtures?.[s.checkout] ? `/open/${encodeURIComponent(s.id)}` : null;
+  // A demo account's screen opens through this server, which signs it in.
+  if (s.account) return state.accounts?.[s.account] ? `/sign-in/portal/${encodeURIComponent(s.account)}` : null;
   const base = s.app === "store" ? storeSite : s.app === "admin" ? admin : portal;
   try { return base + resolvePath(s.path, state.fixtures || {}); } catch { return null; }
 }
@@ -685,11 +718,13 @@ function startDesign(state) {
         res.writeHead(303, { location: "/compare" }); return res.end();
       }
       // One-click sign-in: hand the demo session to this browser (cookies ignore ports).
-      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))$/.exec(url.pathname);
-      if (signIn) {
+      const signIn = /^\/sign-in\/(portal|admin\/(owner|operator|reseller))(?:\/(\w+))?$/.exec(url.pathname);
+      // /sign-in/portal/<moment> signs in as that renewal-moment demo account.
+      const session = signIn && signIn[3] ? signIn[1] === "portal" && state.accounts?.[signIn[3]] : signIn && state.cookie;
+      if (signIn && session) {
         const cookies = ["ndahi_ui=v2; Path=/; SameSite=Lax; HttpOnly", signIn[2]
           ? `admin_session=${state.staff[signIn[2]]}; Path=/; SameSite=Lax; HttpOnly`
-          : `${state.cookie}; Path=/api/account; SameSite=Lax; HttpOnly`];
+          : `${session}; Path=/api/account; SameSite=Lax; HttpOnly`];
         res.writeHead(303, { "set-cookie": cookies, location: signIn[2] ? `${admin}/dashboard` : `${portal}/dashboard` });
         return res.end();
       }

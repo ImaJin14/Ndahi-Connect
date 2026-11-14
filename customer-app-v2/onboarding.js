@@ -161,6 +161,18 @@ function renderAccount() {
     plans = cataloguePlans.filter((plan) => plan.id !== current?.planId);
   }
 }
+// The account's payment number. Buy again on Home (#252) names the payment the
+// last bundle was bought with, so its number and network are offered again;
+// the network counts as the customer's own choice, as it was then.
+function fillAccountPayer() {
+  const form = $("#purchase"), id = pageParams.get("payer");
+  const repeat = id && (account.payments || []).find((payment) => payment.id === id && payment.payerPhone);
+  form.elements.payerPhone.value = repeat ? repeat.payerPhone.replace(/^\+?237(?=\d{9}$)/, "") : account.customer.phone;
+  if (repeat && ["mtn", "orange"].includes(repeat.network) && form.elements.network.value !== repeat.network) {
+    form.elements.network.value = repeat.network;
+    form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
 function renderAccountContact() {
   const form = $("#purchase");
   for (const name of ["name", "phone", "email"]) form.elements[name].value = account.customer[name] || "";
@@ -178,7 +190,7 @@ function renderAccountContact() {
   $("#accountPayer").hidden = false;
   form.elements.payerPhone.disabled = false;
   form.elements.payerPhone.required = true;
-  form.elements.payerPhone.value = account.customer.phone;
+  fillAccountPayer();
   $("#acknowledgement").hidden = false;
   form.elements.acknowledge.required = true;
 }
@@ -458,7 +470,7 @@ function renderCheckoutReview() {
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
-  if (account && !paymentInProgress) $("#purchase").elements.payerPhone.value = account.customer.phone;
+  if (account && !paymentInProgress) fillAccountPayer();
   renderCheckoutReview();
   $("#message").textContent = "";
   showCheckout();
