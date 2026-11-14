@@ -252,7 +252,7 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
 </div></section>
 <section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNote"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
 <section class="tab-panel admin-resellers" id="panel-resellers" aria-labelledby="adminTitle" data-tab-panel="resellers" ${activeAdminTab === "resellers" ? "" : "hidden"}><div id="resellerLedger"></div></section>
-<section class="tab-panel admin-customers" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><section class="nd-panel admin-customers__list" aria-label="${h(L("adminCustomerList"))}"><div id="customerRecords"></div><p class="nd-meta admin-customers__note">${h(L("adminSuspendNote"))}</p></section><details class="admin-options admin-legacy"><summary>${h(L("adminLegacySessions"))}</summary><p class="nd-meta">${h(L("adminLegacySessionsNote"))}</p><div id="sessionRecords"></div></details></section>
+<section class="tab-panel admin-customers" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><div id="customerFilters"></div><section class="nd-panel admin-customers__list" aria-label="${h(L("adminCustomerList"))}"><div id="customerRecords"></div><p class="nd-meta admin-customers__note" id="customerNote">${h(L("adminSuspendNote"))}</p></section><details class="admin-options admin-legacy"><summary>${h(L("adminLegacySessions"))}</summary><p class="nd-meta">${h(L("adminLegacySessionsNote"))}</p><div id="sessionRecords"></div></details></section>
 <section class="tab-panel admin-customer" id="panel-customer" aria-labelledby="adminTitle" data-tab-panel="customer" ${activeAdminTab === "customer" ? "" : "hidden"}><div id="customerVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="customerDetail"></div></section>
 <section class="tab-panel admin-payments" id="panel-payments" aria-labelledby="adminTitle" data-tab-panel="payments" ${activeAdminTab === "payments" ? "" : "hidden"}>${access.contacts ? `<div class="nd-metrics admin-payments__metrics">
 <div class="nd-metric"><b class="nd-metric__value" id="paymentsTodayBundles">—</b><span class="nd-metric__label">${h(L("adminPaymentsTodayBundles"))}</span></div>
@@ -476,7 +476,7 @@ function mountRecordViews(canManagePayments) {
   voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
   if (!canManagePayments) return;
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
-  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost") });
+  void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost"), filtersHost: $("#customerFilters"), noteHost: $("#customerNote"), api });
   void mountRecords($("#sessionRecords"), {
     call,
     collection: "sessions",

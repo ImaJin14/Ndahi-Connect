@@ -143,9 +143,28 @@
 .admin-support .admin-btn--danger { border-color: var(--nd-danger-line); }
 
 /* ---------- Customers (canvas: AdminCustomers) ---------- */
-.admin-customers { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-customers { display: flex; flex-direction: column; gap: var(--nd-space-20); }
 .admin-customers__list { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-22); }
-.admin-customers__note { margin: var(--nd-space-12) 0 0; }
+.admin-customers__note { margin: var(--nd-space-12) 0 0; font-size: var(--nd-fs-meta); }
+/* Filters (canvas: AdminCustomers): chips with counts, "Stale after", and in
+   the stale view a banner with the CSV export. */
+#customerFilters { display: flex; flex-direction: column; gap: var(--nd-space-20); }
+#customerFilters:empty { display: none; }
+.admin-customers__filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--nd-space-12); }
+.admin-customers__chips { gap: var(--nd-space-8); }
+.admin-customers__chip { display: inline-flex; align-items: center; gap: var(--nd-space-8); font-size: var(--nd-fs-small); }
+.admin-customers__count { min-width: 22px; padding: 1px 7px; box-sizing: border-box; border-radius: var(--nd-radius-pill); background: var(--nd-sage); color: var(--nd-ink-soft); font-size: var(--nd-fs-caption); text-align: center; }
+.admin-customers__chip[aria-pressed="true"] .admin-customers__count { background: var(--nd-lime); color: var(--nd-lime-ink); }
+.admin-customers__stale { display: flex; align-items: center; gap: var(--nd-space-8); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); }
+.admin-customers__days { min-height: 40px; padding: 0 var(--nd-space-10); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 600 var(--nd-fs-small) var(--nd-font-body); }
+.admin-customers__banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-14) var(--nd-space-16); border-radius: var(--nd-radius-panel); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-small); }
+.admin-customers__banner[hidden] { display: none; }
+.admin-customers__banner-text { flex: 1 1 320px; }
+.admin-customers__export { min-height: 40px; padding: 0 var(--nd-space-14); border: 1px solid var(--nd-warning-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-warning-fg); font: 700 var(--nd-fs-meta) var(--nd-font-body); cursor: pointer; }
+#panel-customers #customerRecords th, #panel-customers #customerRecords td { padding: var(--nd-space-12) var(--nd-space-10); border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); text-align: left; white-space: nowrap; }
+#panel-customers #customerRecords th { color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 600; }
+.admin-customers__actions { text-align: right; }
+.admin-customers__actions > * + * { margin-left: var(--nd-space-8); }
 .admin-name { color: var(--nd-forest); font-weight: 700; }
 .admin-legacy .nd-meta { margin: 0 0 var(--nd-space-8); }
 
