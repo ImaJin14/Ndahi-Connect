@@ -18,6 +18,7 @@ test("payment evidence is bound to the voucher and old snapshots stay unlimited"
     { downloadMbps: null, uploadMbps: 0.001 });
   assert.throws(() => voucherBundleSpeeds(voucher, { id: "other", planId: "daily", planSnapshot: {} }), /does not match/);
   assert.throws(() => voucherBundleSpeeds(voucher, { id: "p", planId: "other", planSnapshot: {} }), /does not match/);
+  assert.throws(() => voucherBundleSpeeds(voucher, { id: "p", planId: "daily", planSnapshot: { id: "other", downloadMbps: 5 } }), /does not match/);
 });
 
 test("invalid rates fail closed and unlimited directions are explicit", () => {
