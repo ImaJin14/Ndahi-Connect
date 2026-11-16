@@ -40,6 +40,21 @@ test("invalid speed settings never alter a custom bundle or its audit trail", as
   }
 });
 
+test("speed boundary values persist and editing one direction preserves the other", async () => {
+  const state = blank();
+  const created = await call(state, "/api/admin/bundles", { ...input, downloadMbps: 0.001, uploadMbps: 10000 });
+  assert.equal(created.status, 201);
+  const id = created.body.bundle.id;
+  const changed = await call(state, "/api/admin/bundles/update", { ...input, bundleId: id, downloadMbps: "0.002" });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.bundle.downloadMbps, 0.002);
+  assert.equal(changed.body.bundle.uploadMbps, 10000);
+  const before = structuredClone(state);
+  const invalid = await call(state, "/api/admin/bundles/update", { ...input, bundleId: id, uploadMbps: 10000.001 });
+  assert.equal(invalid.status, 400);
+  assert.deepEqual(state, before);
+});
+
 test("built-in bundle speed settings persist in overrides and are preserved by older clients", async (t) => {
   const state = blank(), plan = plans.find((item) => item.id === "daily"), original = structuredClone(plan);
   t.after(() => { for (const key of Object.keys(plan)) delete plan[key]; Object.assign(plan, original); });
