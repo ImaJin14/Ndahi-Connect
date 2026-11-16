@@ -35,3 +35,11 @@ test("invalid outage intervals are rejected and unaffected vouchers are excluded
   const before = voucher("before", "c", "expired", "2026-11-15T01:00:00Z", "2026-11-16T07:00:00Z");
   assert.deepEqual(selectOutageCredits({ vouchers: [before] }, outage, now), { vouchers: [], reviewCustomerIds: [] });
 });
+
+test("vouchers need positive overlap with the outage to receive credit", () => {
+  const atFix = voucher("at-fix", "a", "active", outage.fixedAt, "2026-11-17T10:00:00Z");
+  const atStart = voucher("at-start", "b", "expired", "2026-11-15T08:00:00Z", outage.startedAt);
+  const during = voucher("during", "c", "active", "2026-11-16T09:59:59Z", "2026-11-17T10:00:00Z");
+  assert.deepEqual(selectOutageCredits({ vouchers: [atFix, atStart, during] }, outage, now).vouchers.map(v => v.id), ["during"]);
+  assert.deepEqual(selectOutageCredits({ vouchers: [during] }, { ...outage, startedAt: outage.fixedAt }, now), { vouchers: [], reviewCustomerIds: [] });
+});
