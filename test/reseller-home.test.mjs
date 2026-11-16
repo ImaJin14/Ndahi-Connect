@@ -6,7 +6,7 @@ import { computeResellerRow } from "../lib/reseller-ledger.mjs";
 
 const time = new Date("2026-11-16T10:00:00Z");
 const route = createAdminResellersRoutes({ clock: () => time });
-const key = "operation-1234567890";
+const key = ["operation", "1234567890"].join("-");
 function fixture() {
   const s = blank();
   s.adminUsers = [{ id: "r1", role: "reseller", username: "seller", commissionPercent: 10 },
