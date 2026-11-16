@@ -37,3 +37,13 @@ test("invalid evidence never becomes a plausible chart and unavailable data stay
   assert.throws(() => recordedCollectionsByDay({}, { from: "2026-01-01T00:00:00Z", to: "2026-12-01T00:00:00Z" }), RangeError);
   for (const value of Object.values(insightsDataAvailability())) assert.equal(value.status, "unavailable");
 });
+
+test("an unrecognised confirmed provider does not silently produce a zero collection", () => {
+  const unknown = payment("unknown", { provider: "new-provider" });
+  const result = recordedCollectionsByDay({ payments: [unknown] }, period);
+  assert.equal(result.status, "needs_review");
+  assert.equal(result.invalidRecords, 1);
+  assert.equal(result.days, null);
+  const outside = recordedCollectionsByDay({ payments: [{ ...unknown, confirmedAt: "2026-11-01T00:00:00Z" }] }, period);
+  assert.equal(outside.status, "available");
+});
