@@ -19,7 +19,7 @@ test("authenticated reseller actions pass the central gate without expanding oth
       s.adminUsers.push({ id: name, username: name, active: true, role, passkeys: [] });
       s.adminSessions.push({ userId: name, role, tokenHash: hashSecret(tokens[name], secret), csrfToken: "csrf", expiresAt: "2030-01-02T00:00:00Z" });
     }
-    s.vouchers.push({ id: "voucher-one", code: "NC-AAAA-BBBB", assignedResellerId: "reseller", status: "available", faceValue: 500, saleType: "sold" });
+    s.vouchers.push({ id: "voucher-one", code: "NC-AAAA-BBBB", assignedResellerId: "reseller", generatedByAdmin: true, status: "available", faceValue: 500, saleType: "sold" });
   });
   const server = createServer({ store, now: () => new Date(at), validateConfig: false, env: {
     NODE_ENV: "test", PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "not-configured",
@@ -40,6 +40,9 @@ test("authenticated reseller actions pass the central gate without expanding oth
   assert.equal((await call("other", "/api/admin/resellers/cash-sale", sale)).status, 404);
   for (const actor of ["owner", "operator", "auditor"]) assert.equal((await call(actor, "/api/admin/resellers/cash-sale", sale)).status, 403);
   assert.equal((await call("reseller", "/api/admin/resellers/cash-sale", sale)).status, 201);
+  const reclassify = await call("owner", "/api/admin/vouchers/classify", { voucherId: "voucher-one", saleType: "gift" });
+  assert.equal(reclassify.status, 409);
+  assert.equal(reclassify.body.code, "LEDGER_ADJUSTMENT_REQUIRED");
   const replay = await call("reseller", "/api/admin/resellers/cash-sale", sale);
   assert.equal(replay.status, 200);
   assert.equal(replay.body.replayed, true);
