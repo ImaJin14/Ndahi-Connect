@@ -5,3 +5,5 @@
 6c922e80628a02081ff26983b1b0135cea2d45b3:test/reseller-home.test.mjs:generic-api-key:9
 # Deterministic, non-secret operation key used in the authenticated reseller API test.
 a8fd22666e3c74d75a629d4cbf254896e477a0d4:test/reseller-home-api-integration.test.mjs:generic-api-key:38
+# Deterministic operation key in the reseller interface test fixture, not a credential.
+bc50e0b0759b9b7f3c6414d136b6964755b4ba95:test/redesign-browser/reseller-home.test.mjs:generic-api-key:121
