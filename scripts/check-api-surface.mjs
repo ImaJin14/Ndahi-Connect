@@ -38,7 +38,9 @@ const knownBackendMatchers = [
   /^\/api\/admin\/vouchers\/[^/]+\/details$/,
   /^\/api\/admin\/network\/incidents\/[^/]+$/,
   /^\/api\/admin\/network\/setup\/(?:status|connection|discover|purchase-access|assisted-connections|preview|apply|confirm|rollback|refresh|recovery|resolve|activate|cancel)$/,
-  /^\/api\/admin\/store(?:\/(?:receipt|products\/save|products\/delete|categories\/save|categories\/delete|settings\/save|stock\/adjust|orders\/update|ready|collect|cancel|contact|notes|rotate-link|refund|refund-reference|verify))?$/,
+  // Order actions (ready, collect, cancel, contact, notes, rotate-link, refund,
+  // refund-reference, verify) are an `action` sent to orders/update, not paths.
+  /^\/api\/admin\/store(?:\/(?:receipt|products\/save|products\/delete|categories\/save|categories\/delete|settings\/save|stock\/adjust|orders\/update))?$/,
   /^\/api\/admin\/resellers\/(?:ledger|commission|remittances|adjustments)$/,
 ];
 
