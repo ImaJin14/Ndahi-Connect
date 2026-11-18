@@ -1,6 +1,5 @@
 // "Payment didn't go through" (canvas: PhonePaymentFailed). One full-screen
 // view per reason the API gives (payment.failureCode): declined, low_balance,
-// check_balance (the provider's answer covers a low balance or an account limit),
 // wrong_network after the provider confirmed the failure (no money taken), and
 // timeout while a request is unresolved (don't pay again yet). Text only through
 // textContent; the API's values are never parsed as HTML.
@@ -12,7 +11,6 @@ import { escapeHtml } from "/shared/safe-html.js";
 const ICONS = {
   declined: "M18 6 6 18M6 6l12 12",
   low_balance: "M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01",
-  check_balance: "M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01",
   timeout: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   wrong_network: "M6 3h9l4 4v14H6ZM9 12h6v5H9Z",
 };
@@ -22,6 +20,9 @@ const NETWORKS = {
   orange: { brand: "Orange", wallet: "Orange Money", balance: "Orange Money" },
 };
 export const failureReasons = Object.keys(ICONS);
+// The canvas has four views. The API's check_balance (an operator answer that
+// covers a low balance or an account limit, usually the balance) shows low_balance.
+const shownReason = (reason) => reason === "check_balance" ? "low_balance" : reason;
 const L = (key, values) => format(key, values, currentLanguage());
 
 // "Payment didn't go through?" under the waiting message (canvas: PhoneBuyBundle).
@@ -40,7 +41,7 @@ export function failureContent(payment, reason, { money = (value) => `${value} F
   const n = NETWORKS[network], o = NETWORKS[other];
   const values = { brand: n.brand, wallet: n.wallet, balance: n.balance, otherBrand: o.brand, otherWallet: o.wallet,
     price: money(payment.amount), number: payment.payerPhoneMasked || maskedNumber(payment.payerPhone) };
-  const key = { declined: "Declined", low_balance: "LowBalance", check_balance: "CheckBalance", timeout: "Timeout", wrong_network: "WrongNetwork" }[reason];
+  const key = { declined: "Declined", low_balance: "LowBalance", timeout: "Timeout", wrong_network: "WrongNetwork" }[reason];
   const timeout = reason === "timeout";
   return {
     reason, network, other, timeout,
@@ -64,8 +65,8 @@ let open = null;
 
 // Shows the view. `actions` are called with the payment: tryAgain,
 // otherNetwork, smallerBundle, differentNumber and checkAgain (timeout).
-export function showPaymentFailed(payment, reason, actions = {}, options = {}) {
-  const view = $("#paymentFailed");
+export function showPaymentFailed(payment, apiReason, actions = {}, options = {}) {
+  const view = $("#paymentFailed"), reason = shownReason(apiReason);
   if (!view || !failureReasons.includes(reason)) return false;
   const content = failureContent(payment, reason, options);
   const set = (id, text) => { $(id).textContent = text; };
@@ -86,7 +87,7 @@ export function showPaymentFailed(payment, reason, actions = {}, options = {}) {
   secondary.hidden = content.timeout;
   help.hidden = !content.timeout;
   if (content.timeout) help.textContent = content.secondary; else secondary.textContent = content.secondary;
-  const run = { declined: ["tryAgain", "otherNetwork"], low_balance: ["tryAgain", "smallerBundle"], check_balance: ["tryAgain", "smallerBundle"],
+  const run = { declined: ["tryAgain", "otherNetwork"], low_balance: ["tryAgain", "smallerBundle"],
     wrong_network: ["otherNetwork", "differentNumber"], timeout: ["checkAgain"] }[reason];
   primary.onclick = () => actions[run[0]]?.(payment, content);
   secondary.onclick = () => actions[run[1]]?.(payment, content);

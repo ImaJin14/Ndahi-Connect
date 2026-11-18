@@ -79,16 +79,15 @@ No provider lets NDAHI read a payer's balance before a request (MeSomb's balance
 endpoint is the merchant's own; MTN's is the same), so a low balance cannot be
 detected before the charge is asked for. Instead:
 
-- **Before paying**, checkout reminds the customer that their Mobile Money balance
-  must cover the price (plus the provider's fee with MeSomb), and that a declined
-  request takes nothing.
 - **When the operator refuses the request for its balance**, the payment closes at
   once as a confirmed failure (`creationState: "refused"`, `status: "failed"`, no
   money taken) and the customer sees why straight away, instead of waiting out the
   five-minute approval window. They can pay again immediately. MeSomb answers with
   HTTP 400 `subscriber-insufficient-balance` (reason `low_balance`) or an answer
   that also covers account limits, such as `CUSTOMER_BALANCE_INVALID` (reason
-  `check_balance`: "check your balance"). MeSomb's catch-all
+  `check_balance`, kept for support records). The portal shows the canvas "Not
+  enough Mobile Money" screen for both; the design has no separate view, and no
+  pre-payment reminder (owner decision, 18 November). MeSomb's catch-all
   `subscriber-internal-error` names no single cause and is not treated as a
   balance refusal.
 - A balance failure reported later (webhook, status check or reconciliation)

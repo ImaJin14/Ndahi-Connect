@@ -96,8 +96,7 @@ function show(step) {
 }
 
 // Why a gift payment did not go through: a balance answer from the provider gets its own words.
-const failedMessage = (payment) => L(payment?.failureCode === "low_balance" ? "giftPaymentLowBalance"
-  : payment?.failureCode === "check_balance" ? "giftPaymentCheckBalance" : "giftPaymentFailed");
+const failedMessage = (payment) => L(["low_balance", "check_balance"].includes(payment?.failureCode) ? "giftPaymentLowBalance" : "giftPaymentFailed");
 const fail = (error) => {
   const box = $("#giftError");
   if (!box) return;
