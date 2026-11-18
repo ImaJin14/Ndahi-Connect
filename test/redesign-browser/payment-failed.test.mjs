@@ -6,6 +6,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../../server.mjs";
 import { createStaticServer } from "../../static-server.mjs";
 import { lowContrastText } from "../../scripts/ui-checks.mjs";
+import { MockPaymentAdapter } from "../../lib/payments.mjs";
 
 // Payment didn't go through (#251, canvas: PhonePaymentFailed): a returning
 // guest's saved checkout shows the reason the API gives, at 390 and 1280 px, and
@@ -28,6 +29,7 @@ const secret = "redesign-payment-failed-secret";
 const REASONS = {
   declined: { phone: "670001245", title: "Payment not approved", primary: "Try again", secondary: "Pay with Orange Money instead" },
   low_balance: { phone: "670011245", title: "Not enough Mobile Money", primary: "Try again", secondary: "Choose a smaller bundle" },
+  check_balance: { phone: "670031245", title: "Check your MoMo balance", primary: "Try again", secondary: "Choose a smaller bundle" },
   timeout: { phone: "670021245", title: "Still waiting for MTN", primary: "Check again", secondary: "Get help with this payment" },
   wrong_network: { phone: "699001245", title: "This number isn't on MTN MoMo", primary: "Pay with Orange Money", secondary: "Use a different number" },
 };
@@ -49,7 +51,15 @@ test("a guest sees why a payment didn't go through and the next step, on phone a
   const apiPort = await reservePort(), api = `http://127.0.0.1:${apiPort}`;
   const staticServer = await listen(createStaticServer("customer", { apiUrl: api, env: { NODE_ENV: "test" } }));
   const portal = `http://127.0.0.1:${staticServer.address().port}`;
-  const apiServer = createServer({ store, validateConfig: false, env: {
+  // The operator refuses this number's request for its balance (MeSomb answers at once).
+  const refusingPhone = "670088245";
+  class RefusingMock extends MockPaymentAdapter {
+    async createPayment(payment) {
+      if (payment.payerPhone === refusingPhone) throw Object.assign(Error("insufficient balance"), { refusal: { failureCode: "low_balance" } });
+      return super.createPayment(payment);
+    }
+  }
+  const apiServer = createServer({ store, validateConfig: false, payments: { mock: new RefusingMock() }, env: {
     NODE_ENV: "test", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false", CUSTOMER_APP_URL: portal,
     PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock",
     BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent",
@@ -145,4 +155,34 @@ test("a guest sees why a payment didn't go through and the next step, on phone a
   assert.equal(await page.locator("#paymentFailedMethod").textContent(), "MTN MoMo · 6•• •• 92 45");
   await page.screenshot({ path: `${screenshots}/live-timeout-390.png` });
   await context.close();
+
+  // Before paying, checkout reminds the customer that the balance must cover the
+  // price; a refusal for the balance is explained straight away, nothing taken.
+  const refusal = await browser.newContext({ viewport: { width: 390, height: 900 } });
+  await refusal.route("**/*", local);
+  const refusalPage = await refusal.newPage(), refusalErrors = [];
+  refusalPage.on("pageerror", (error) => refusalErrors.push(error.message));
+  await refusalPage.goto(`${portal}/onboarding.html`);
+  await refusalPage.locator('#plans button[data-plan="weekly"]:not([disabled])').click();
+  await refusalPage.locator("#checkout").waitFor({ state: "visible" });
+  assert.equal(await refusalPage.locator("#balanceReminder").textContent(),
+    "Make sure your Mobile Money balance covers 1,000 FCFA. If it doesn't, your provider declines the payment and nothing is taken.");
+  assert.equal(await refusalPage.locator("#balanceReminder").isVisible(), true);
+  await refusalPage.locator('#purchase [name="name"]').fill("Synthetic buyer");
+  await refusalPage.locator('#purchase [name="phone"]').fill(refusingPhone);
+  await refusalPage.locator('#purchase [name="network"]').selectOption("mtn");
+  const refusalAcknowledge = refusalPage.locator('#purchase [name="acknowledge"]');
+  if (await refusalAcknowledge.isVisible()) await refusalAcknowledge.check();
+  await refusalPage.screenshot({ path: `${screenshots}/balance-reminder-390.png` });
+  await refusalPage.locator("#requestPayment").click();
+  await refusalPage.getByRole("heading", { name: "Not enough Mobile Money", exact: true }).waitFor();
+  assert.equal(await refusalPage.locator("#paymentFailedMoney").textContent(), "No money was taken.");
+  assert.equal(await refusalPage.locator("#paymentFailedMethod").textContent(), "MTN MoMo · 6•• •• 82 45");
+  await refusalPage.screenshot({ path: `${screenshots}/live-low-balance-390.png` });
+  // "Try again" returns to checkout for the same bundle: nothing blocks a new payment.
+  await refusalPage.getByRole("button", { name: "Try again", exact: true }).click();
+  await refusalPage.locator("#checkout").waitFor({ state: "visible" });
+  assert.equal(await refusalPage.locator("#requestPayment").isDisabled(), false);
+  assert.deepEqual(refusalErrors, []);
+  await refusal.close();
 });

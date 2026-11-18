@@ -15,6 +15,8 @@ import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
 import { didntGoThroughButton, hidePaymentFailed, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -457,8 +459,14 @@ function renderCheckoutReview() {
     $("#checkoutPolicy").textContent = "";
     $("#requestPayment").textContent = "Choose another package";
     $("#requestPayment").disabled = true;
+    $("#balanceReminder").hidden = true;
     return;
   }
+  // No provider shows a payer's balance before the request, so remind them first;
+  // a refusal for a low balance is then explained straight away (payment-failed.js).
+  $("#balanceReminder").textContent = format(paymentProvider === "mesomb" ? "payBalanceReminderFee" : "payBalanceReminder",
+    { price: money(selected.price) }, currentLanguage());
+  $("#balanceReminder").hidden = false;
   $("#selected").textContent = checkoutTitle();
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
     : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
