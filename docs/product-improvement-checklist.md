@@ -1453,6 +1453,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: provider-code mapping, the real MeSomb SDK with a stubbed 400, billing, purchase API, a live browser refusal at 390 px plus every failure view at 390/1280 px; security regressions (refusals cannot be forged, wording alone never closes a payment, a later confirmed payment still activates); `npm test` with PostgreSQL 1,388 of 1,388; v2 billing, plan, pending, payment-network, gift and French journeys pass.
 - Deployed: merged as `83e5567`, live at 18:00 UTC on 18 November; CI, redesign regressions and deployment smoke checks pass. The live portal serves the canvas failure screen with no reminder. Not yet verified with a real low-balance MTN or Orange Money payment.
 
+### Usage tracking through router restarts — PR #294 (18 November 2026)
+
+- Problem reported by the owner: staff could not see customers' actual consumption, and usage was not tracked properly on fixed-quota plans. Causes found in code: (1) RouterOS restarts hotspot user counters on reboot or user re-creation; readings below recorded usage were ignored, so usage froze and the router's `limit-bytes-total` allowed the whole quota again; (2) a usage read dead-lettered after about an hour of router outage and was never queued again without an operator replay; (3) admin Customers showed only "data left" for fixed plans and nothing showed when usage was last read.
+- Implemented: readings carry the user's own counters; a restart (counters went down, or a total below recorded usage for 45 s or more) keeps prior usage in `routerUsageOffset`, adds new readings, and re-syncs the router limit to the data left. Usage reads back off to at most 5 minutes and resume 15 minutes after dead-lettering. Admin Customers shows data used on every plan; voucher detail shows when usage was last read and warns after ten minutes.
+- Tested: 6 new usage-tracking tests (restart, single dip not counted twice, earlier restarts found, limit validation, backoff and recovery, adapter counters); `npm test` with PostgreSQL 1,405 of 1,405; admin and connection browser journeys pass.
+- Deployed: merged as `543be72`, live at 18:56 UTC on 18 November; CI, redesign regressions and deployment smoke checks pass; live admin assets verified.
+- Not yet verified: on the real router. That hotspot counters restart on reboot comes from MikroTik forum reports. Reboot the router once with an active test voucher and confirm usage keeps rising and the router's limit drops to the data left.
+
 ### API surface verification audit & contract coverage (18 November 2026)
 
 - Implemented: added static frontend-to-backend route/link auditor ([`scripts/check-api-surface.mjs`](../scripts/check-api-surface.mjs)) wired into `npm run check` (`check:api-surface`) and documented the Page→Action→API inventory in [`docs/reviews/api-verification-plan-and-matrix-2026-11-18.md`](reviews/api-verification-plan-and-matrix-2026-11-18.md).
