@@ -95,6 +95,8 @@ function show(step) {
   bind(step);
 }
 
+// Why a gift payment did not go through: a balance answer from the provider gets its own words.
+const failedMessage = (payment) => L(["low_balance", "check_balance"].includes(payment?.failureCode) ? "giftPaymentLowBalance" : "giftPaymentFailed");
 const fail = (error) => {
   const box = $("#giftError");
   if (!box) return;
@@ -146,6 +148,8 @@ function bind(step) {
         const made = await call("/api/account/plan/purchase", { action: "gift", planId: state.plan.id, recipientPhone: state.phone, recipientName: state.name, note: state.note,
           payerPhone: state.buyer.phone, network: network(), requestKey: crypto.randomUUID().replaceAll("-", "") });
         state.payment = made.payment;
+        // The provider can refuse straight away (for example, a low balance).
+        if (["failed", "expired", "cancelled"].includes(made.payment.status)) { fail({ message: failedMessage(made.payment) }); button.disabled = false; return; }
         show("wait");
         poll();
       } catch (error) { fail(error); button.disabled = false; }
@@ -167,7 +171,7 @@ async function check(now) {
   try {
     const result = await call(`/api/account/payments/${encodeURIComponent(state.payment.id)}/status`);
     if (result.payment.status === "paid" && result.access) { state.result = result; show("done"); return true; }
-    if (["failed", "expired", "cancelled"].includes(result.payment.status)) { fail({ message: L("giftPaymentFailed") }); return true; }
+    if (["failed", "expired", "cancelled"].includes(result.payment.status)) { fail({ message: failedMessage(result.payment) }); return true; }
   } catch (error) { if (now) fail(error); }
   return false;
 }

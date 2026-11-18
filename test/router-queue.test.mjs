@@ -126,7 +126,10 @@ test("expiry and quota exhaustion enqueue durable disconnect commands instead of
   });
   // Any mutate() call runs clean(), which used to await the router directly;
   // it must now enqueue and return immediately even though the router hangs.
+  // The housekeeping worker runs it without waiting for a request (the public
+  // catalogue no longer triggers it).
   const start = Date.now();
+  await server.listeners("request")[0].housekeeping();
   const response = await fetch(`http://127.0.0.1:${server.address().port}/api/plans`);
   assert.equal(response.status, 200);
   assert.ok(Date.now() - start < 1000, "clean() must not block on a hanging router call");

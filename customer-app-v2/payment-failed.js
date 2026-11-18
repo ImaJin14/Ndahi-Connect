@@ -20,6 +20,9 @@ const NETWORKS = {
   orange: { brand: "Orange", wallet: "Orange Money", balance: "Orange Money" },
 };
 export const failureReasons = Object.keys(ICONS);
+// The canvas has four views. The API's check_balance (an operator answer that
+// covers a low balance or an account limit, usually the balance) shows low_balance.
+const shownReason = (reason) => reason === "check_balance" ? "low_balance" : reason;
 const L = (key, values) => format(key, values, currentLanguage());
 
 // "Payment didn't go through?" under the waiting message (canvas: PhoneBuyBundle).
@@ -62,8 +65,8 @@ let open = null;
 
 // Shows the view. `actions` are called with the payment: tryAgain,
 // otherNetwork, smallerBundle, differentNumber and checkAgain (timeout).
-export function showPaymentFailed(payment, reason, actions = {}, options = {}) {
-  const view = $("#paymentFailed");
+export function showPaymentFailed(payment, apiReason, actions = {}, options = {}) {
+  const view = $("#paymentFailed"), reason = shownReason(apiReason);
   if (!view || !failureReasons.includes(reason)) return false;
   const content = failureContent(payment, reason, options);
   const set = (id, text) => { $(id).textContent = text; };
