@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   smoke:
-    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && contains(fromJSON('["production", "staging", "main - ndahi-api", "main - ndahi-customer", "main - ndahi-admin"]'), github.event.deployment.environment))
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && contains(fromJSON('["production", "staging", "main - ndahi-api", "main - ndahi-customer", "main - ndahi-admin", "main - ndahi-store"]'), github.event.deployment.environment))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || (github.event.deployment.environment == 'staging' && 'staging' || 'production') }}
@@ -31,5 +31,6 @@ jobs:
         env:
           CUSTOMER_APP_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_CUSTOMER_APP_URL || 'https://staging-portal.ndahiconnect.net') || (vars.CUSTOMER_APP_URL || 'https://portal.ndahiconnect.net') }}
           ADMIN_APP_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_ADMIN_APP_URL || 'https://staging-admin.ndahiconnect.net') || (vars.ADMIN_APP_URL || 'https://admin.ndahiconnect.net') }}
+          STORE_APP_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_STORE_APP_URL || '') || (vars.STORE_APP_URL || 'https://store.ndahiconnect.net') }}
           API_URL: ${{ (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' || github.event.deployment.environment == 'staging') && (vars.STAGING_API_URL || 'https://staging-api.ndahiconnect.net') || (vars.API_URL || 'https://api.ndahiconnect.net') }}
           SMOKE_ALLOW_BOOTSTRAP: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_bootstrap && 'true' || 'false' }}

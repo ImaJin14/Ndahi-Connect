@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 
-export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', expectAuthenticatorRetired = false, request = fetch }) {
-  const bases = [customerUrl, adminUrl, apiUrl].map(value => {
+export async function checkDeployment({ customerUrl, adminUrl, storeUrl = '', apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', expectAuthenticatorRetired = false, extended = Boolean(storeUrl), request = fetch }) {
+  const rawUrls = storeUrl ? [customerUrl, adminUrl, apiUrl, storeUrl] : [customerUrl, adminUrl, apiUrl];
+  const bases = rawUrls.map(value => {
     const url = new URL(value);
     assert.ok(!url.username && !url.password && url.pathname === '/' && !url.search && !url.hash, 'Use service origins without credentials or paths');
     assert.ok(url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)), 'Services require HTTPS outside localhost');
     return url.origin;
   });
-  assert.equal(new Set(bases).size, 3, 'Each service must have a distinct origin');
-  const [customer, admin, api] = bases;
+  assert.equal(new Set(bases).size, bases.length, 'Each service must have a distinct origin');
+  const [customer, admin, api, store] = bases;
   const passed = [];
   const get = async (base, path, status = 200, headers = {}) => {
     const response = await request(`${base}${path}`, { headers, redirect: 'manual', signal: AbortSignal.timeout(10000) });
@@ -30,6 +31,13 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
   const plans = await (await get(api, '/api/plans')).json();
   assert.ok(Array.isArray(plans.plans) && plans.plans.length > 0, 'Plan catalogue must not be empty');
   assert.equal(plans.paymentProvider, expectedProvider, 'Unexpected payment provider');
+  if (extended) {
+    const statusInfo = await (await get(api, '/api/status')).json();
+    assert.ok(typeof statusInfo.service === 'string', 'Status endpoint must report service');
+    const homeConfig = await (await get(api, '/api/home/config')).json();
+    assert.equal(typeof homeConfig.enabled, 'boolean', 'Home config must report enabled boolean');
+    await get(api, '/api/purchase/access');
+  }
   passed.push('Catalogue and configured provider (live payment still requires acceptance testing)');
   for (const [base, kind] of [[customer, 'customer'], [admin, 'admin']]) {
     const root = await get(base, '/', 302);
@@ -65,6 +73,28 @@ export async function checkDeployment({ customerUrl, adminUrl, apiUrl, allowBoot
   }
   await get(api, '/api/plans', 403, { origin: 'https://untrusted.invalid' });
   await get(api, '/api/admin/dashboard', 403, { origin: customer });
+  if (store) {
+    const storePage = await get(store, '/');
+    assert.match(storePage.headers.get('content-type') || '', /text\/html/);
+    assert.ok(storePage.headers.get('content-security-policy'), 'Missing store CSP');
+    const storeHtml = await storePage.text();
+    const storeEtag = storePage.headers.get('etag');
+    assert.ok(storeEtag, 'Missing store ETag');
+    await get(store, '/', 304, { 'if-none-match': storeEtag });
+    const storeAsset = storeHtml.match(/(?:src|href)="(\/static\/[^"?]+)"/)?.[1];
+    assert.ok(storeAsset, 'Missing revisioned store static asset');
+    assert.match((await get(store, storeAsset)).headers.get('cache-control') || '', /immutable/);
+    const storeConfig = await (await get(store, '/config.js')).text();
+    assert.ok(storeConfig.includes(JSON.stringify(api)), 'Store points at unexpected API');
+    assert.ok(storeConfig.includes('"store"'), 'Wrong store service config');
+    const cat = await get(api, '/api/store/catalogue', 200, { origin: store });
+    assert.equal(cat.headers.get('access-control-allow-origin'), store);
+    await cat.arrayBuffer();
+    const ctx = await (await get(api, '/api/account/store/context', 200, { origin: store })).json();
+    assert.equal(ctx.authenticated, false);
+    await get(api, '/api/admin/dashboard', 403, { origin: store });
+    passed.push('Store service, configuration, catalogue, and CORS');
+  }
   passed.push('Service separation, authentication gates and CORS');
   return passed;
 }
@@ -74,6 +104,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const checks = await checkDeployment({
       customerUrl: process.env.CUSTOMER_APP_URL || 'https://portal.ndahiconnect.net',
       adminUrl: process.env.ADMIN_APP_URL || 'https://admin.ndahiconnect.net',
+      storeUrl: process.env.STORE_APP_URL || '',
       apiUrl: process.env.API_URL || 'https://api.ndahiconnect.net',
       allowBootstrap: process.env.SMOKE_ALLOW_BOOTSTRAP === 'true',
       expectAuthenticatorRetired: process.env.SMOKE_EXPECT_AUTHENTICATOR_RETIRED === 'true',
