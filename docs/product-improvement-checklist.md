@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-11-03
+Last reviewed: 2026-11-18
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -542,6 +542,7 @@ Use this document as the source of truth for product, engineering, security, and
   - Implemented: PostgreSQL writes only changed rows, with payload-guarded updates and deletes. Customer checkout, redemption, PIN login, dashboard, and auth throttling lock only their customer scope under a shared global lock, and retry on conflict with buffered responses. Other transactions stay exclusive. Migration 004 allows prepend ordinals; the pre-deploy check requires it.
   - Local verification: 11 PostgreSQL 17 store tests (different customers run concurrently, the same customer serializes, no lost updates, trimming without conflicts); 300-user load test on PostgreSQL in 16 s vs 6 min 15 s before, with zero failures.
   - Remaining: apply migration 004 and verify production latency.
+  - 18 November 2026: every transaction still read the whole state, and 66 of 76 request transactions plus all worker transactions still took the global lock exclusively. Measured and planned in `docs/operations/api-optimization-plan.md`; phase 1 (targeted reads under the shared lock) is PR #290. See "API optimization phase 1" at the end of this checklist.
 
 - [-] **PERF-003 — Add pagination and server-side filtering**
   - Cover customers, vouchers, payments, sessions, events, and audit logs.
@@ -1430,3 +1431,23 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented: administrators sign in with email (or username) + PIN, then confirm with a passkey. The passkey step is single use, expires after five minutes and is bound to current credentials. Administrators without a passkey add one on the sign-in page; this is required after the retirement marker and offered before it. Passkey-only sign-in is refused after the cutover. Self-service sign-in email; owner removal of a staff member's lost passkeys; owner removal of a customer's lost passkeys through the audited support-recovery form. v2 customer sign-in leads with phone + PIN, with the voucher code as the second path. v1 admin sign-in handles the passkey step. See `docs/operations/phase6-sign-in.md`.
 - Tested: `test/phase6-sign-in.test.mjs`, updated retirement tests, `scripts/check-phase6-sign-in-journeys.mjs` (virtual authenticator), the full v2 browser suite, v1 runs of the edited journeys, `npm run check` and `npm test`.
 - Not deployed. The cutover (`scripts/authenticator-retirement.mjs --apply`) has not run on staging or production. Not tried with a real phone or security key.
+
+### API optimization phase 1 — PR #290 (18 November 2026)
+
+- Cause measured: every request loaded, re-serialized and often copied the whole database, so cost grew with stored data; most transactions held the global lock exclusively; the Home (15 s) and checkout (3 s) polls multiplied it; the billing worker re-checked unsendable receipts on every pass. Production sample on 18 November before the change: `GET /api/plans` median 821 ms (max 5.0 s), signed-out bundle status 1,061 ms and dashboards ~1,070–1,100 ms, against a 155 ms floor for a request that never touches the database.
+- Implemented: targeted reads and transactions in the PostgreSQL store (dependent row selection, shared lock, full-state rerun if a callback writes outside what it loaded). Snapshots are no longer deep-copied. Targeted: plans, status, the customer CSRF check, bundle status, payment status with its billing checks, and the billing worker's per-payment steps. A 30-second housekeeping worker replaces cleanup on public reads. Switch: `STORE_TARGETED_READS=false`.
+- Tested: `npm test` with PostgreSQL 17, 1,380 of 1,380 (0 skipped). On/off response equivalence on one database. v2 billing, plan, pending, subscription, payment-network, status, payment-failed and gift journeys pass. Hosted CI and redesign regressions pass. Local PostgreSQL 17 at 40,000 payments: bundle status 1,278 → 3 ms, payment status 5,870 → 3 ms, plans 1,279 → 0.7 ms, 16 simultaneous Home polls 20.3 s → 37 ms, one billing pass 225.6 → 2.1 s (`scripts/benchmark-api-reads.mjs`).
+- Deployment: not merged or deployed (ready for review). After merge, repeat the production sample and watch error rates, bundle expiry and pending payments through a busy evening. The dashboard, account/admin pages, workers and customer writes are later phases in the plan.
+
+### Receipt emails waiting on the customer — PR #291 (18 November 2026)
+
+- Implemented (owner-approved): a receipt blocked on a missing email or on transactional email being off is checked hourly instead of every 30-second billing pass, and on the next pass once the customer confirms an email or turns transactional email back on. Receipts whose delivery stopped for good, or that wait for a retry or a live lease, are no longer picked.
+- Tested: new receipt backoff tests including the real notification-settings route; `npm test` with PostgreSQL 1,383 of 1,383.
+- Deployment: draft PR stacked on #290; not merged or deployed.
+
+### Low Mobile Money balance notice — PR #292 (18 November 2026)
+
+- Constraint: no provider lets NDAHI read a payer's balance before the request (MeSomb's and MTN's balance endpoints report the merchant's own account).
+- Implemented: checkout reminds customers that their balance must cover the price (plus the MeSomb fee). An operator refusal for the balance (MeSomb HTTP 400 `subscriber-insufficient-balance`, or balance-or-limit answers such as `CUSTOMER_BALANCE_INVALID`) closes the payment at once as a confirmed failure with no money taken, shows "Not enough Mobile Money" or "Check your MoMo balance", and lets the customer pay again immediately. Other submission errors stay uncertain. Refusals do not count towards provider-failure alerts. English and French.
+- Tested: provider-code mapping, the real MeSomb SDK with a stubbed 400, billing, purchase API, a live browser refusal at 390 px plus the failure view at 390/1280 px; `npm test` with PostgreSQL 1,385 of 1,385; v2 billing, plan, pending, subscription, payment-network, gift and French journeys pass.
+- Deployment: draft PR stacked on #290; not merged or deployed. Canvas deviations (the checkout reminder line and the check-balance variant) need the owner's OK. Not yet verified with a real low-balance MTN or Orange Money payment.
