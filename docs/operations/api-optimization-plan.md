@@ -109,9 +109,11 @@ Target: the dashboard as flat as bundle status is after phase 1.
   notification delivery, store orders and security alerts claim their job with
   a targeted load, and pick candidates with an indexed query instead of a full
   snapshot.
-- **Owner decision needed:** receipts blocked on a missing email are retried on
-  every billing pass. Proposed: re-check them only when the customer links or
-  confirms an email (or at most hourly).
+- Receipts blocked on a missing email or on transactional email being off were
+  retried on every billing pass, forever. Owner-approved on 18 November and
+  implemented on branch `fix/receipt-email-backoff`: they are checked hourly, and
+  on the next pass once the customer confirms an email or turns transactional
+  email back on.
 
 ### Phase 4 — customer writes
 
