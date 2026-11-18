@@ -1,7 +1,8 @@
 # API optimization plan
 
-Status, 18 November 2026: phase 1 is implemented and tested on branch
-`perf/targeted-store-reads` (draft PR). Nothing in this plan is deployed yet.
+Status, 18 November 2026: phase 1 is merged (#290, `f31cd8f`) and deployed to
+production; see [Production after phase 1](#production-after-phase-1). Phases 2–7
+are not started. The receipt-retry item from phase 3 is also deployed (#291).
 This plan supersedes the ordering in the unmerged
 `api-performance-rollout-plan-2026-11-14.md` draft and keeps its deployment-safety
 rules (one reviewable release at a time, a switch back to the old path, no
@@ -111,7 +112,7 @@ Target: the dashboard as flat as bundle status is after phase 1.
   snapshot.
 - Receipts blocked on a missing email or on transactional email being off were
   retried on every billing pass, forever. Owner-approved on 18 November and
-  implemented on branch `fix/receipt-email-backoff`: they are checked hourly, and
+  deployed in #291 (`ec7cbf2`): they are checked hourly, and
   on the next pass once the customer confirms an email or turns transactional
   email back on.
 
@@ -143,10 +144,10 @@ connection.
 
 ## Rolling out phase 1
 
-1. The owner reviews and merges the draft PR; Render deploys it on merge.
-2. After deploy, compare the production sample above (same requests, same
+1. Done: merged as `f31cd8f`, live at 17:39 UTC on 18 November.
+2. Done for one quiet period; see below. Repeat after deploy: compare the production sample above (same requests, same
    connection reuse) and watch `ndahi_request_duration_seconds` for the routes.
-3. Watch error rates, bundles expiring on time and pending-payment outcomes
+3. Pending: watch error rates, bundles expiring on time and pending-payment outcomes
    through one busy evening.
 4. If anything is wrong, set `STORE_TARGETED_READS=false` on `ndahi-api`; the
    restart restores the original behaviour without a code change.
@@ -182,3 +183,27 @@ floor from Cameroon. Pages that load the dashboard stay at today's speed until
 phase 2. Requests also stop queueing behind each other during busy periods,
 because the polls no longer hold the database-wide lock. Confirm with the
 production sample after deploy; local numbers are not production latency.
+
+## Production after phase 1
+
+Same sample as above (10 rounds on one warm HTTP/2 connection), median ms. The
+first sample right after each deploy was slower across the board while the new
+instance started its workers, so samples were repeated five minutes later.
+
+| Request | Before (18 Nov) | After #290 | After #291 and #292 too |
+| --- | ---: | ---: | ---: |
+| `GET /api/authentication-policy` (no database: network floor) | 155 | 159 | 276 |
+| `GET /api/plans` | 821 (max 4,996) | **166** (max 401) | **271** (max 2,721) |
+| `GET /api/status` | 620 (max 1,468) | **172** (max 284) | **282** (max 1,098) |
+| `GET /api/account/bundle-status` (signed out) | 1,061 | **168** | **291** |
+| `GET /api/account/dashboard` (signed out, not yet targeted) | 1,069 | **349** | **450** |
+| `GET /api/admin/dashboard` (signed out, not yet targeted) | 1,095 | **446** | **571** |
+
+The network floor itself varies (155–276 ms across these samples), so compare
+each column with its own floor: the targeted routes now take within ~15 ms of
+it. The dashboards are faster
+too, because the polls no longer hold the database-wide lock ahead of them.
+Single requests still spike to ~2 s while waiting behind a worker's exclusive
+lock (phase 3). Signed-in timings, the busy-evening check and error-rate
+monitoring are still to do.
+
