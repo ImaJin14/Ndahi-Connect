@@ -173,6 +173,7 @@ test("a guest sees why a payment didn't go through and the next step, on phone a
   await refusalPage.locator('#purchase [name="network"]').selectOption("mtn");
   const refusalAcknowledge = refusalPage.locator('#purchase [name="acknowledge"]');
   if (await refusalAcknowledge.isVisible()) await refusalAcknowledge.check();
+  await refusalPage.locator("#balanceReminder").scrollIntoViewIfNeeded();
   await refusalPage.screenshot({ path: `${screenshots}/balance-reminder-390.png` });
   await refusalPage.locator("#requestPayment").click();
   await refusalPage.getByRole("heading", { name: "Not enough Mobile Money", exact: true }).waitFor();
