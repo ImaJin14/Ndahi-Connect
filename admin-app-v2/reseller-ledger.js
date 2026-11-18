@@ -56,12 +56,12 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
       <article class="sales-card">
         <p class="section-kicker">Assigned stock</p>
         <strong data-total-assigned>${escapeHtml(totals.assignedVouchers || 0)} vouchers</strong>
-        <span>${escapeHtml(totals.unsoldVouchers || 0)} unsold (${escapeHtml(formatFcfa(totals.unsoldFaceValue))}) · ${escapeHtml(totals.redeemedVouchers || 0)} redeemed</span>
+        <span>${escapeHtml(totals.unsoldVouchers || 0)} unsold (${escapeHtml(formatFcfa(totals.unsoldFaceValue))}) · ${escapeHtml(totals.redeemedVouchers || 0)} sold</span>
       </article>
       <article class="sales-card">
-        <p class="section-kicker">Redeemed sales</p>
+        <p class="section-kicker">Sales</p>
         <strong data-total-cash-collected>${escapeHtml(formatFcfa(totals.cashCollected))}</strong>
-        <span>Gross cash collected on redeemed resale codes</span>
+        <span>Gross cash collected from resale codes</span>
       </article>
       <article class="sales-card">
         <p class="section-kicker">${isReseller ? "Commission earned" : "Reseller commissions"}</p>
@@ -80,7 +80,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
         <thead>
           <tr>
             <th>Reseller</th>
-            <th>Stock (Unsold / Redeemed / Total)</th>
+            <th>Stock (Unsold / Sold / Total)</th>
             <th>Cash collected</th>
             <th>Commission</th>
             <th>Owed to owner</th>
@@ -155,6 +155,7 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
           </div>`
         : ""
     }
+    ${role === "owner" ? `<section class="nd-panel"><h3>Stock requests</h3><div data-owner-stock-requests aria-live="polite">Loading requests…</div></section>` : ""}
     <div data-reseller-ledger-message role="status" aria-live="polite"></div>
 
     <details class="reseller-remittance-history" ${remittances.length ? "open" : ""}>
@@ -199,6 +200,119 @@ export function renderResellerLedgerMarkup(ledger, { role = "owner" } = {}) {
 export function mountResellerLedger(container, { initialLedger, role = "owner", scopeKey, call } = {}) {
   if (!container) return { refresh: async () => {} };
   let currentLedger = initialLedger;
+  let ownerRequests = null, ownerRequestError = "";
+  const home = role === "reseller" ? document.createElement("section") : null;
+  if (home) {
+    home.setAttribute("aria-label", "Reseller home");
+    document.querySelector("#panel-home")?.prepend(home);
+  }
+  let homeData = null, homeError = "", selectedId = "", deliveredCode = "", deliveredQr = "", deliveryError = "", homeMessage = "";
+  const homeStorageKey = scopeKey ? `ndahi-reseller-home:${scopeKey}` : "";
+  let homePending = null, homeStorageError = "";
+  if (home) {
+    try {
+      const saved = homeStorageKey && sessionStorage.getItem(homeStorageKey);
+      if (saved) {
+        homePending = JSON.parse(saved);
+        if (!/^[A-Za-z0-9_-]{16,120}$/.test(homePending.key || "") ||
+            !["cash-sale", "stock-requests"].includes(homePending.type) ||
+            (homePending.type === "cash-sale" && typeof homePending.voucherId !== "string")) throw new Error("Invalid saved operation");
+      }
+    } catch { homeStorageError = "Saved action access is unavailable. Enable session storage before recording a sale or request."; }
+  }
+  function renderHome() {
+    if (!home) return;
+    if (!homeData) {
+      home.innerHTML = `<div class="nd-panel"><h2>Reseller home</h2><p role="status">${escapeHtml(homeError || "Loading your stock…")}</p><button type="button" class="nd-btn nd-btn--secondary" data-home-refresh>Refresh</button></div>`;
+    } else {
+      const stock = homeData.stock || [], selected = stock.find(v => v.id === selectedId);
+      const qr = /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(deliveredQr) ? deliveredQr : "";
+      home.innerHTML = `<div class="nd-panel"><h2>Reseller home</h2>
+        <div class="nd-metrics"><div class="nd-metric"><b class="nd-metric__value">${escapeHtml(homeData.stockCount)}</b><span>Codes in hand</span></div>
+        <div class="nd-metric"><b class="nd-metric__value">${escapeHtml(homeData.salesThisWeek)}</b><span>Sold this week</span></div>
+        <div class="nd-metric"><b class="nd-metric__value">${escapeHtml(formatFcfa(homeData.reseller?.outstandingBalance))}</b><span>To pay NDAHI</span></div></div>
+        <p>Collected this week: ${escapeHtml(formatFcfa(homeData.weeklyCollected))} · Your commission: ${escapeHtml(formatFcfa(homeData.weeklyCommission))}</p>
+        ${homePending?.confirmed && homePending.type === "cash-sale" ? `<div class="nd-panel"><p>Cash received and recorded. Show this code to the customer.</p>${deliveredCode ? `<strong data-delivered-code>${escapeHtml(deliveredCode)}</strong>${qr ? `<p><img src="${escapeHtml(qr)}" alt="QR code for ${escapeHtml(deliveredCode)}" width="160" height="160"></p>` : ""}` : `<p>${escapeHtml(deliveryError || "Loading the sold code…")}</p><button type="button" class="nd-btn nd-btn--secondary" data-home-delivery-refresh>Reload sold code</button>`}<p><button type="button" class="nd-btn" data-home-done ${deliveredCode ? "" : "disabled"}>Done</button></p></div>` : homePending ? `<p role="status">A previous ${homePending.type === "cash-sale" ? "cash sale" : "stock request"} may have been recorded. Retry it to confirm before starting another.</p><button type="button" class="nd-btn" data-home-retry>Retry saved action</button>` : `<label class="nd-field"><span>Bundle to sell</span><select class="nd-input" data-home-stock ${stock.length ? "" : "disabled"}><option value="">Choose a bundle</option>${stock.map(v => `<option value="${escapeHtml(v.id)}" ${selectedId === v.id ? "selected" : ""}>${escapeHtml(v.plan?.name || v.planId)} · ${escapeHtml(formatFcfa(v.faceValue ?? v.plan?.price))}</option>`).join("")}</select></label>
+        ${selected ? `<div class="nd-panel"><p>Take ${escapeHtml(formatFcfa(selected.faceValue ?? selected.plan?.price))} cash. The code will be shown once the sale is recorded.</p><button type="button" class="nd-btn" data-home-sale>Cash received</button></div>` : ""}
+        <p><button type="button" class="nd-btn nd-btn--secondary" data-home-request>Ask for more codes</button> <a class="nd-btn nd-btn--secondary" href="/dashboard#voucher-print">Print my codes</a></p>`}
+        <p role="status" aria-live="polite">${escapeHtml(homeStorageError || homeMessage || homeError)}</p></div>`;
+    }
+    home.querySelector("[data-home-refresh]")?.addEventListener("click", refreshHome);
+    home.querySelector("[data-home-stock]")?.addEventListener("change", event => { selectedId = event.target.value; homeMessage = ""; renderHome(); });
+    home.querySelector("[data-home-delivery-refresh]")?.addEventListener("click", loadDeliveredCode);
+    home.querySelector("[data-home-done]")?.addEventListener("click", () => {
+      try { sessionStorage.removeItem(homeStorageKey); homePending = null; deliveredCode = ""; deliveredQr = ""; homeMessage = ""; renderHome(); }
+      catch { homeMessage = "Could not finish delivery. Try again."; renderHome(); }
+    });
+    home.querySelector("[data-home-sale]")?.addEventListener("click", () => submitHome("cash-sale", selectedId));
+    home.querySelector("[data-home-request]")?.addEventListener("click", () => submitHome("stock-requests"));
+    home.querySelector("[data-home-retry]")?.addEventListener("click", () => submitHome());
+  }
+  async function refreshHome() {
+    if (!home || typeof call !== "function") return;
+    try { homeData = await call("/api/admin/resellers/ledger?view=home"); homeError = ""; }
+    catch (error) { homeError = error.message || "Could not load reseller stock."; }
+    renderHome();
+  }
+  async function loadDeliveredCode() {
+    if (!homePending?.confirmed || homePending.type !== "cash-sale") return;
+    const pending = homePending;
+    try {
+      const result = await call(`/api/admin/vouchers/${encodeURIComponent(pending.voucherId)}/details?full=1`);
+      if (homePending !== pending) return;
+      deliveredCode = result.detail?.code || ""; deliveredQr = result.detail?.qr || "";
+      deliveryError = deliveredCode ? "" : "Could not load the code. Refresh or open your vouchers.";
+    } catch { deliveryError = "Could not load the code. Refresh or open your vouchers."; }
+    renderHome();
+  }
+  async function submitHome(type, voucherId) {
+    if (!home || typeof call !== "function") return;
+    const buttons = home.querySelectorAll("button");
+    buttons.forEach(button => { button.disabled = true; });
+    try {
+      if (homeStorageError || !homeStorageKey) throw new Error(homeStorageError || "Reload the signed-in page before recording this action.");
+      if (!homePending) {
+        const pending = { type, key: createOperationKey(), ...(voucherId ? { voucherId } : {}) };
+        const saved = JSON.stringify(pending);
+        try { sessionStorage.setItem(homeStorageKey, saved); if (sessionStorage.getItem(homeStorageKey) !== saved) throw new Error("Storage unavailable"); }
+        catch { throw new Error("Enable session storage before recording this action; nothing was submitted."); }
+        homePending = pending;
+      }
+      const pending = homePending;
+      const body = { operationKey: pending.key, ...(pending.voucherId ? { voucherId: pending.voucherId } : {}) };
+      const response = await call(`/api/admin/resellers/${pending.type}`, { method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(body) });
+      if (pending.type === "cash-sale") {
+        const confirmed = { ...pending, confirmed: true };
+        // Keep the operation until the code has been shown. A reload can fetch it again;
+        // a failed write retains the unconfirmed key and the next retry is idempotent.
+        sessionStorage.setItem(homeStorageKey, JSON.stringify(confirmed)); homePending = confirmed;
+        homeMessage = `${response.replayed ? "Already recorded" : "Recorded"} ${formatFcfa(response.sale?.amount)} cash received.`;
+      } else {
+        sessionStorage.removeItem(homeStorageKey); homePending = null;
+        homeMessage = response.replayed ? "Stock request already recorded." : "Stock request sent.";
+      }
+      selectedId = "";
+      await refreshHome();
+      if (homePending?.confirmed) await loadDeliveredCode();
+      try { currentLedger = await call("/api/admin/resellers/ledger"); render(); } catch { /* home is already updated; ledger can refresh later */ }
+    } catch (error) {
+      // These domain responses are definitive: the route checks for a matching
+      // previously committed key before evaluating the voucher or key conflict.
+      // Authentication, network and unknown failures retain the key for replay.
+      if (homePending && ["OPERATION_KEY_REQUIRED", "IDEMPOTENCY_CONFLICT", "VOUCHER_NOT_SELLABLE", "PRICE_UNAVAILABLE"].includes(error.code)) {
+        try { sessionStorage.removeItem(homeStorageKey); homePending = null; selectedId = ""; }
+        catch { /* Keep the saved action if storage is unavailable. */ }
+        homeMessage = `${error.message || "The action was rejected."} This action was not recorded; check the voucher or contact the owner.`;
+      } else homeMessage = error.message || "Could not confirm the action. Retry the saved action.";
+      renderHome();
+    }
+  }
+  async function refreshOwnerRequests() {
+    if (role !== "owner" || typeof call !== "function") return;
+    try { ownerRequests = (await call("/api/admin/resellers/ledger?view=stock-requests")).requests || []; ownerRequestError = ""; }
+    catch (error) { ownerRequestError = error.message || "Could not load stock requests."; }
+    render();
+  }
   const operations = new Map();
   for (const type of ["remittance", "adjustment"]) {
     const state = { storageKey: scopeKey ? `ndahi-reseller-${type}:${scopeKey}` : "", pending: null, error: "" };
@@ -267,6 +381,8 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
       messageEl.textContent = statusMessage;
     }
 
+    const requests = container.querySelector("[data-owner-stock-requests]");
+    if (requests) requests.innerHTML = ownerRequestError ? `<p>${escapeHtml(ownerRequestError)}</p>` : ownerRequests === null ? "Loading requests…" : ownerRequests.length ? `<ul>${ownerRequests.map(item => `<li>${escapeHtml(item.resellerName || item.resellerId)} · ${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "")}</li>`).join("")}</ul>` : "No stock requests yet.";
     bindFinancialForm(container.querySelector("[data-reseller-remittance-form]"), "remittance", messageEl);
     bindFinancialForm(container.querySelector("[data-reseller-adjustment-form]"), "adjustment", messageEl);
     if (operations.get("adjustment")?.pending) {
@@ -313,12 +429,16 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
   }
 
   render();
+  if (home) { renderHome(); void refreshHome().then(() => { if (homePending?.confirmed) void loadDeliveredCode(); }); }
+  if (role === "owner") void refreshOwnerRequests();
 
   return {
     async refresh() {
       if (typeof call !== "function") return;
       currentLedger = await call("/api/admin/resellers/ledger");
       render();
+      if (home) await refreshHome();
+      if (role === "owner") await refreshOwnerRequests();
     },
   };
 }
