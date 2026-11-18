@@ -175,6 +175,13 @@ export function createHandler(opts = {}) {
     return usage.value;
   };
   handler.storeCommerce = context.storeCommerce;
+  // Expiry, quota cut-off and stale-session housekeeping used to ride on every
+  // request, including public catalogue reads. Requests that now load only their
+  // own rows tidy only those rows, so this keeps a floor under the rest whatever
+  // the traffic. Scoped: it runs beside customer transactions, not ahead of them.
+  handler.housekeepingEnabled = context.targetedReads && env.HOUSEKEEPING_WORKER_ENABLED !== "false";
+  handler.housekeepingIntervalMs = positiveInteger(env.HOUSEKEEPING_INTERVAL_SECONDS, 30) * 1000;
+  handler.housekeeping = () => context.mutate(() => {}, { scope: [] });
   return handler;
 }
 
@@ -191,6 +198,7 @@ export const createServer = (opts) => {
     securityAlertsTimer,
     networkSetupTimer,
     monitorTimer,
+    housekeepingTimer,
     storeTimer;
   const runBilling = () =>
     Promise.all([handler.billing.run(), handler.transactionalEmails.run()]).catch((error) => {
@@ -231,6 +239,12 @@ export const createServer = (opts) => {
       handler.logger.error("network.setup_worker_failed");
     });
   server.on("listening", () => {
+    if (handler.housekeepingEnabled) {
+      housekeepingTimer = setInterval(() => {
+        void handler.housekeeping().catch((error) => handler.logger.error("housekeeping.worker_failed", databaseDiagnostic(error)));
+      }, handler.housekeepingIntervalMs);
+      housekeepingTimer.unref();
+    }
     storeTimer = setInterval(() => { void handler.storeCommerce.run().catch(error => handler.logger.error("store.worker_failed", databaseDiagnostic(error))); }, 15000);
     storeTimer.unref();
     if (handler.homeWorkerEnabled) {
@@ -290,6 +304,7 @@ export const createServer = (opts) => {
     timer.unref();
   });
   server.on("close", () => {
+    clearInterval(housekeepingTimer);
     clearInterval(storeTimer);
     clearInterval(networkSetupTimer);
     clearInterval(billingTimer);
