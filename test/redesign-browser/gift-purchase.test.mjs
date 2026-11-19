@@ -31,7 +31,8 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
   const portalServer = await listen(createStaticServer("customer", { apiUrl: api, env: { NODE_ENV: "test" } }));
   const portal = `http://127.0.0.1:${portalServer.address().port}`;
   const apiServer = createServer({ store, validateConfig: false, env: { NODE_ENV: "test", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false", CUSTOMER_APP_URL: portal,
-    PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
+    // A synthetic 2% MTN fee rule (not MeSomb's rate): the fee and total come from the server (#297).
+    PAYMENT_MODE: "mock", PAYMENT_FEE_MTN: "percent=2", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
   await new Promise((resolve) => apiServer.listen(apiPort, "127.0.0.1", resolve));
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
@@ -59,11 +60,12 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
     await page.getByRole("heading", { name: `Pick a bundle for ${name}` }).waitFor();
     assert.equal(await page.getByRole("radio", { name: /Weekly/ }).getAttribute("aria-checked"), "true", "the buyer's own plan is chosen to start with");
     await page.getByLabel("Add a note (optional)").fill("For your calls with the family ❤");
-    assert.equal(await text(page.locator(".gift__charged")), "Charged to your number 6•• •• 12 45. You approve on your phone.");
+    assert.equal(await text(page.locator(".gift__cost")), "Bundle 1,000 + MTN MoMo fee 20 1,020 FCFA");
+    assert.equal(await text(page.locator(".gift__charged")), "Charged to your number 6•• •• 12 45 — your balance needs at least 1,020 FCFA.");
     if (label) await check(`${label}-plan`);
-    await page.getByRole("button", { name: "Pay 1,000 FCFA with MTN MoMo" }).click();
+    await page.getByRole("button", { name: "Pay 1,020 FCFA with MTN MoMo" }).click();
     await page.getByRole("heading", { name: "Approve on your phone" }).waitFor();
-    assert.equal(await text(page.locator(".gift__text")), "An MTN MoMo request for 1,000 FCFA was sent to your number. This screen updates by itself.");
+    assert.equal(await text(page.locator(".gift__text")), "An MTN MoMo request for 1,020 FCFA (incl. 20 FCFA fee) was sent to your number. This screen updates by itself.");
     if (label) await check(`${label}-wait`);
     const payment = (await store.snapshot()).payments.find((p) => p.gift && !["paid", "failed", "expired"].includes(p.status));
     assert.ok(payment, JSON.stringify((await store.snapshot()).payments.map((p) => [p.status, p.failureReason, p.providerStatus, p.provider, p.network, p.payerPhone])));

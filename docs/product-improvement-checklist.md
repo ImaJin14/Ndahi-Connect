@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-11-18
+Last reviewed: 2026-11-19
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -1467,4 +1467,23 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented (bug fixes): added `POST /api/account/device-management/current/reset` and `POST /api/account/device-management/nickname` to `customerCsrfPaths` (`lib/api/state.mjs`), and added `/api/admin/profile/password` and `/api/admin/profile/pin` to `selfServicePaths` (`lib/api/admin.mjs`) so `operator`, `reseller`, and `auditor` roles can update their own password/PIN. Extended [`scripts/check-deployment.mjs`](../scripts/check-deployment.mjs) and `.github/workflows/deployment-smoke.yml` with optional `STORE_APP_URL` / store-app and public-config checks (`main - ndahi-store`).
 - Tested (in-memory & Chromium): `node scripts/check-api-surface.mjs --strict` reports 0 unmatched `/api/*` paths, 0 broken HTML links, and 0 findings across 18 `customer-app-v2`, 15 `customer-app`, 4 `admin-app-v2`, 4 `admin-app`, and 1 `store-app` HTML pages (147 frontend endpoints, 161 backend literals, 67 `customerCsrfPaths`). Added [`test/api-contract-matrix.test.mjs`](../test/api-contract-matrix.test.mjs) (8 tests, including PostgreSQL contract matrix guarded by `TEST_DATABASE_URL`) and [`test/redesign-browser/api-smoke-actions.test.mjs`](../test/redesign-browser/api-smoke-actions.test.mjs) (Playwright Chromium flows covering customer/store/admin cold routes, simulated `503` recovery, 5-tab mobile nav + profile edit, admin operator password/PIN change + re-login, and owner 12-view sweep + bundle create/delete). Local `npm test`, `npm run check`, `npm run check:ui-v2`, and `npm run check:providers` pass after code changes (`55` PostgreSQL tests skipped locally because `TEST_DATABASE_URL` is unset; CI runs them against `postgres:17`).
 - Live smoke (not yet deployed from this branch): `check-deployment.mjs` against production (`portal`, `admin`, `store`, `api`) passed all 6 checks prior to committing; staging (`staging-portal`, `staging-admin`, `staging-api`) failed with `ENOTFOUND` (staging services not yet provisioned). Live real-router / live Mobile Money / physical handset verification remains unexercised by this audit.
+
+### Mobile Money fee and total before paying — #297 (19 November 2026)
+
+- Problem: MeSomb is asked with `fees: false`, so customers approve the price plus a fee they were never shown. A balance that covered the price but not the fee failed with a message that named only the price.
+- Fee source: MeSomb has no fee quote before a charge (SDK 3.0.2 and its API schema: `getPricing()` documents only the application key and name). It reports `fees` and `trxamount` on a transaction. The owner chose a per-network rule on the API (`PAYMENT_FEE_MTN`, `PAYMENT_FEE_ORANGE`), checked against MeSomb's real fees with the read-only `scripts/check-payment-fees.mjs`.
+- Implemented:
+  - one server quote (`lib/payment-fees.mjs`), carried by the plan lists and the store catalogue (per quantity);
+  - the quoted `fee` and `total` saved on payments and store orders, with `amount` still the price sent;
+  - MeSomb's fee recorded from successful transactions, with mismatches logged;
+  - v2 buy, gift, renew, failure and both store checkouts per `docs/redesign/screens/`, plus a minimal v1 change;
+  - low-balance and check-balance wording with the total, receipts with the fee line, EN and FR strings.
+  - Without a rule, screens say "plus the Mobile Money fee shown in your prompt".
+- Tested:
+  - unit and API tests (`test/payment-fees.test.mjs`, `test/payment-fee-disclosure.test.mjs`);
+  - browser test `test/redesign-browser/payment-fee-disclosure.test.mjs` at 390 px in English and French;
+  - updated gift, renewal and payment-failed browser tests.
+  - Full results are in the PR.
+- Not deployed. Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. The checker must run in the Render shell before the rules are set. A staging payment with a balance between the price and the total is still to be done.
+- Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
 
