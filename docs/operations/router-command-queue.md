@@ -99,3 +99,22 @@ against a MikroTik bridge in staging. No live-router or deployed-environment
 verification is implied by local tests. NET-002 (RouterOS reconciliation)
 repairs drift through this same queue; NET-003 (`router-command-dead-letter.md`)
 adds the attempt limit, alerting, and operator replay controls described above.
+
+## Bundle speed limits (#263)
+
+A bundle can carry a download and upload limit in Mbps (`downloadMbps`, `uploadMbps`, set through the admin bundle API). Every voucher records the limits of the plan it was issued from (`speedSnapshot`). A purchase keeps the speed it was bought with, and later catalogue edits never change it.
+
+**One limit shared by the bundle's devices.** This is the owner's decision of 19 November: two devices on a 10 Mbps bundle share 10 Mbps.
+- **How the router applies it:** one simple queue per bundle, `ndahi-speed-<voucherId>`, with comment `ndahi:speed:<voucherId>`. Its `target` is the addresses of that bundle's devices online now, and its `max-limit` is upload/download in bit/s.
+- **How it stays current:** when the usage sync sees the device list change, it queues `sync_speed`.
+- **Removal:** the queue is removed once the bundle has no device online, no limit, or has ended.
+- **Unmanaged queues:** a queue with the same name but another comment is never touched.
+- **Timing:** a newly connected device is limited from the next usage read.
+
+**Off by default.** Nothing changes on the router until the API service has `ROUTER_SPEED_LIMITS=on`. Turn it on only after this check on the RB5009:
+
+1. Give a test bundle a low limit (for example 2 Mbps down, 1 Mbps up) and issue a voucher from it.
+2. Connect two devices with that voucher. Within a minute, `/queue simple print where name~"ndahi-speed"` shows one queue with both addresses and `max-limit=1000000/2000000`.
+3. Run a speed test on both devices at once. Together they stay near the limit.
+4. **FastTrack check:** if a FastTrack rule covers the hotspot subnet, fast-tracked traffic skips simple queues, so exclude the hotspot subnet from FastTrack. Default configurations have a `fasttrack-connection` rule in the forward chain.
+5. Disconnect both devices. The queue is removed after the next usage read.
