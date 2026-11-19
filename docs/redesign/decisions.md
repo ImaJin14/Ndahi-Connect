@@ -85,6 +85,15 @@ Front-end phases stay front-end. These are separate, small server tasks, each it
 
 - Run `usability-test.md` before ramping past 10%.
 
+## Payment fees are shown before paying (19 Nov)
+
+- Every payment screen shows the price, the Mobile Money fee for the chosen network, and the **total to approve**. The Pay button and the waiting screen use the total, and the waiting screen tells the customer to check that the prompt shows the same total.
+- Before paying, a note says the balance must cover the total, otherwise the payment fails and no money is taken.
+- The low-balance failure states the total and how it breaks down: price plus fee.
+- Applies to: buy a bundle, buy for someone else, renew, signed-in checkout, guest checkout, and the payment-failed screen.
+- `[FEE]` and `[TOTAL]` come from the server for the chosen network, never computed or hard-coded in the front end.
+- Open: whether the fee is shown to the customer (current setup, `fees: false` in `lib/payments.mjs`), or absorbed by NDAHI so the customer pays exactly the price.
+
 ## Scan to connect
 
 Scanning a voucher QR never connects a device on its own. The flow:

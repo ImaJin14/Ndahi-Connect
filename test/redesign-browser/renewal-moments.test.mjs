@@ -42,7 +42,8 @@ test("Home shows each renewal moment as on the canvas and acts on it", { timeout
   const staticServer = await listen(createStaticServer("customer", { apiUrl: api, env: { NODE_ENV: "test" } }));
   const portal = `http://127.0.0.1:${staticServer.address().port}`;
   const apiServer = createServer({ store, validateConfig: false, env: { NODE_ENV: "test", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false", CUSTOMER_APP_URL: portal,
-    PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
+    // A synthetic 2% MTN fee rule (not MeSomb's rate): "Buy again" shows the server's total (#297).
+    PAYMENT_MODE: "mock", PAYMENT_FEE_MTN: "percent=2", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
   await new Promise((resolve) => apiServer.listen(apiPort, "127.0.0.1", resolve));
   const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
   const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
@@ -127,7 +128,7 @@ test("Home shows each renewal moment as on the canvas and acts on it", { timeout
     const when = day(endedAt) === day(Date.now()) ? "today" : "yesterday";
     assert.equal(await text(card(page).locator(".home-card__figure")), `0 GB ended ${when} at ${time(endedAt)}`);
     assert.equal(await text(card(page).locator(".home-renew__note")), "Buy again and you're back online straight away on this device.");
-    const buy = card(page).getByRole("button", { name: "Buy Connect Family again 10,000 FCFA · MTN MoMo 6•• •• 12 45", exact: true });
+    const buy = card(page).getByRole("button", { name: "Buy Connect Family again 10,200 FCFA incl. fee · MTN MoMo 6•• •• 12 45", exact: true });
     await buy.waitFor();
     await card(page).getByRole("link", { name: "Choose a different plan", exact: true }).waitFor();
     assert.equal(await text(page.getByRole("region", { name: "Buying for the family?" })), "Buying for the family? A bundle covers up to 3 devices.");

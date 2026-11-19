@@ -86,7 +86,7 @@ The PostgreSQL store no longer serializes every write behind one lock and rewrit
 
 On the 300-customer purchase and redemption load test against local PostgreSQL 17, total runtime fell from 6 min 15 s to 16 s. Median latency fell from 103.9 s to 4.8 s and p95 from 183.3 s to 6.3 s, with no failed requests. The load generator and API share one process, so these figures compare the two stores and are not production latency.
 
-Each transaction still reads the full state. Moving reads to per-workflow queries is the next scaling step; see [API architecture](../architecture/api-domains.md).
+Each transaction still reads the full state. Moving reads to per-workflow queries is the next scaling step; see [API architecture](../architecture/api-domains.md). The [API optimization plan](api-optimization-plan.md) measures this and moves the public and polled routes to targeted reads first (switch: `STORE_TARGETED_READS`).
 
 ## Production verification
 

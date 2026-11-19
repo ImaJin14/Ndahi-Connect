@@ -134,7 +134,8 @@ try {
     await page.getByRole('button', { name: 'Increase quantity', exact: true }).click();
     await page.getByRole('link', { name: 'Buy now', exact: true }).click();
     await page.waitForURL('**/dashboard#checkout/router/2');
-    await page.getByRole('button', { name: 'Pay 200,000 FCFA', exact: true }).click();
+    // The mocked catalogue carries no fee quote (no PAYMENT_FEE_* rule), so the fee is "in the prompt" (#297).
+    await page.getByRole('button', { name: 'Pay 200,000 FCFA + fee', exact: true }).click();
     await page.waitForURL('**/dashboard#order/order-1');
     assert.deepEqual([checkout.productId, checkout.quantity, checkout.expectedPrice, checkout.network], ['router', 2, 100000, 'mtn']);
     assert.ok(checkout.name && checkout.phone && checkout.payerPhone, 'details come from the account');

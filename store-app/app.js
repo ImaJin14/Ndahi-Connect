@@ -98,7 +98,17 @@ const words = {
     payer: "Mobile Money number",
     network: "Payment network",
     quantity: "Quantity",
-    pay: "Pay with Mobile Money",
+    // Price, Mobile Money fee and total, all from the server (#297, canvas: PhoneGuestCheckout).
+    pay: "Pay {total}",
+    payNoFee: "Pay {price} + fee",
+    item: "Item",
+    fee: "{method} fee",
+    feeInPrompt: "Shown in your prompt",
+    totalApprove: "Total to approve",
+    balanceNote: "Your balance needs at least {total}, or the payment fails and nothing is taken.",
+    balanceNoteNoFee: "Your balance needs {price} plus the Mobile Money fee shown in your prompt, or the payment fails and nothing is taken.",
+    requestSent: "A {method} request for {total} (incl. {fee} fee) was sent. If this page closes, reopen the store in the same browser to pick up where you left off.",
+    requestSentNoFee: "A {method} request for {price} plus the Mobile Money fee shown in your prompt was sent. If this page closes, reopen the store in the same browser to pick up where you left off.",
     payHelp:
       "Approve the request on your phone. We never ask for your Mobile Money PIN.",
     total: "Total",
@@ -232,7 +242,16 @@ const words = {
     payer: "Numéro Mobile Money",
     network: "Réseau de paiement",
     quantity: "Quantité",
-    pay: "Payer par Mobile Money",
+    pay: "Payer {total}",
+    payNoFee: "Payer {price} + frais",
+    item: "Article",
+    fee: "Frais {method}",
+    feeInPrompt: "Indiqués dans la demande",
+    totalApprove: "Total à valider",
+    balanceNote: "Votre solde doit être d’au moins {total}, sinon le paiement échoue et rien n’est prélevé.",
+    balanceNoteNoFee: "Votre solde doit couvrir {price}, plus les frais Mobile Money indiqués dans la demande, sinon le paiement échoue et rien n’est prélevé.",
+    requestSent: "Une demande {method} de {total} (dont {fee} de frais) a été envoyée. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
+    requestSentNoFee: "Une demande {method} de {price}, plus les frais Mobile Money indiqués dans la demande, a été envoyée. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
     payHelp:
       "Validez la demande sur votre téléphone. Nous ne demandons jamais votre code PIN Mobile Money.",
     total: "Total",
@@ -280,6 +299,11 @@ const words = {
   },
 };
 const t = (key) => words[lang][key] || key,
+  // A sentence with its {placeholders} filled in.
+  tf = (key, values) => t(key).replace(/\{(\w+)\}/g, (match, name) => (name in values ? String(values[name]) : match)),
+  METHODS = { mtn: "MTN MoMo", orange: "Orange Money" },
+  // The server's quote for this quantity on this network (paymentQuotes, #297).
+  quoteOf = (p, network, count) => { const q = p?.paymentQuotes?.[network]?.[count - 1]; return Number.isFinite(q?.total) ? q : null; },
   l = (value) =>
     typeof value === "object" ? value?.[lang] || value?.en || "" : value || "",
   money = (n) =>
@@ -482,7 +506,14 @@ function showCheckout() {
   const c = pending ? pending.input : account.customer || {};
   const count = Number(c.quantity) || qty || 1;
   $("#checkoutDetail").innerHTML =
-    `<h2 id="checkoutTitle">${h(t("checkoutHow"))}</h2><p class="checkout-line">${h(l(selected.name))} × ${h(count)} · ${h(money(selected.price * count))}</p>${account.authenticated ? `<p class="notice notice--quiet">${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><span class="choice__icon">${ICON.store}</span><span><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><span class="choice__icon">${ICON.person}</span><span><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></span></a></div>`}<form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required aria-describedby="payerHint" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"><p class="form-help" id="payerHint">${h(t("payerHint"))}</p></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(l(data.settings.hours))}</span><span>${h(t("deliveryLater"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><label class="method"><input type="radio" name="network" value="mtn" ${c.network === "orange" ? "" : "checked"}><span>MTN Mobile Money</span></label><label class="method"><input type="radio" name="network" value="orange" ${c.network === "orange" ? "checked" : ""}><span>Orange Money</span></label></fieldset><div class="checkout-summary"><span>${h(t("total"))}</span><strong id="total">${h(money(selected.price * count))}</strong></div><p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><p class="form-help">${h(t("separate"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit">${h(t("pay"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
+    `<h2 id="checkoutTitle">${h(t("checkoutHow"))}</h2><p class="checkout-line">${h(l(selected.name))} × ${h(count)} · ${h(money(selected.price * count))}</p>${account.authenticated ? `<p class="notice notice--quiet">${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><span class="choice__icon">${ICON.store}</span><span><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><span class="choice__icon">${ICON.person}</span><span><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></span></a></div>`}<form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required aria-describedby="payerHint" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"><p class="form-help" id="payerHint">${h(t("payerHint"))}</p></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(l(data.settings.hours))}</span><span>${h(t("deliveryLater"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><label class="method"><input type="radio" name="network" value="mtn" ${c.network === "orange" ? "" : "checked"}><span>MTN Mobile Money</span></label><label class="method"><input type="radio" name="network" value="orange" ${c.network === "orange" ? "checked" : ""}><span>Orange Money</span></label></fieldset>${checkoutCost(selected, count, c.network === "orange" ? "orange" : "mtn")}<p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p><p class="form-help">${h(t("separate"))}</p><details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit" id="payButton">${h(payLabel(selected, count, c.network === "orange" ? "orange" : "mtn"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
+  // The breakdown and the Pay button follow the chosen network.
+  $("#checkoutForm").querySelectorAll('input[name="network"]').forEach((radio) => {
+    radio.onchange = () => {
+      $("#checkoutCost").outerHTML = checkoutCost(selected, count, radio.value);
+      $("#payButton").textContent = payLabel(selected, count, radio.value);
+    };
+  });
   if (pending)
     $("#checkoutForm")
       .querySelectorAll("input,select")
@@ -531,6 +562,23 @@ function showCheckout() {
   };
   $("#checkoutDialog").showModal();
 }
+// Item, the Mobile Money fee for the network and the total to approve. Without a
+// quote from the server the fee is "shown in your prompt", never worked out here.
+function checkoutCost(p, count, network) {
+  const q = quoteOf(p, network, count), price = p.price * count;
+  return `<div class="checkout-cost" id="checkoutCost"><div class="checkout-cost__row"><span>${h(t("item"))}</span><span>${h(money(price))}</span></div><div class="checkout-cost__row"><span>${h(tf("fee", { method: METHODS[network] }))}</span><span>${h(q ? money(q.fee) : t("feeInPrompt"))}</span></div>${q ? `<div class="checkout-summary"><span>${h(t("totalApprove"))}</span><strong id="total">${h(money(q.total))}</strong></div>` : ""}<p class="checkout-cost__balance">${h(q ? tf("balanceNote", { total: money(q.total) }) : tf("balanceNoteNoFee", { price: money(price) }))}</p></div>`;
+}
+function payLabel(p, count, network) {
+  const q = quoteOf(p, network, count);
+  return q ? tf("pay", { total: money(q.total) }) : tf("payNoFee", { price: money(p.price * count) });
+}
+// The request that was sent, with the amounts recorded on the order.
+function requestSent(o) {
+  const method = METHODS[o.network] || "Mobile Money";
+  return Number.isFinite(o.fee) && Number.isFinite(o.total)
+    ? tf("requestSent", { method, total: money(o.total), fee: money(o.fee) })
+    : tf("requestSentNoFee", { method, price: money(o.amount) });
+}
 async function refreshAccount() {
   account = await call("/api/account/store/context");
 }
@@ -571,7 +619,7 @@ async function showOrder(id, token, verify = false) {
   );
   const o = result.order, paid = o.paymentStatus === "paid", link = token ? location.origin + "/" + orderHash(id, token) : "";
   $("#view").innerHTML =
-    `<div class="order-page"><div class="bar"><a class="bar-back" href="#orders" aria-label="${h(t("orders"))}">${ICON.back}</a><h1 class="bar-title">${h(t("order"))} ${h(o.reference)}</h1></div><div class="order-line">${visual(o.product)}<div><strong>${h(l(o.product.name))} × ${h(o.quantity)}</strong><span>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</span></div><span class="order-status is-${toneOf(o)}">${h(t(o.status))}</span></div>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.collectionCode ? `<section class="code-card" aria-labelledby="codeTitle"><h2 class="eyebrow" id="codeTitle">${h(t("collection"))}</h2><p class="code-card__code">${h(o.collectionCode)}</p><p>${h(t("codeHelp").replace("{place}", (o.pickup || place()).replace(/[\s.]+$/, "")))}</p></section>` : ""}${progress(o)}${token && !account.authenticated ? `<section class="keep-link" aria-labelledby="keepTitle"><h2 id="keepTitle">${h(t("keepLink"))}</h2><p>${h(t("keepLinkText"))}</p><div class="keep-link__row"><input readonly id="privateLink" aria-label="${h(t("link"))}" value="${h(link)}"><button type="button" id="copyLink">${h(t("copyShort"))}</button></div></section>` : ""}<div class="order-facts"><p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></div>${paid ? "" : `<p class="form-help">${h(t("reserved"))}</p>`}<div class="order-actions">${paid ? "" : `<button id="checkPayment">${h(t("check"))}</button>`}${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claimGuest"))}</button>` : `<a class="button secondary" id="signToClaim" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("claimGuest"))}</a>` : ""}</div>${token && !account.authenticated ? `<p class="form-help">${h(t("signHelp"))}</p>` : ""}</div>`;
+    `<div class="order-page"><div class="bar"><a class="bar-back" href="#orders" aria-label="${h(t("orders"))}">${ICON.back}</a><h1 class="bar-title">${h(t("order"))} ${h(o.reference)}</h1></div><div class="order-line">${visual(o.product)}<div><strong>${h(l(o.product.name))} × ${h(o.quantity)}</strong><span>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</span></div><span class="order-status is-${toneOf(o)}">${h(t(o.status))}</span></div>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.paymentStatus === "pending" && o.status === "awaiting_payment" ? `<p class="notice notice--quiet" id="paymentRequest">${h(requestSent(o))}</p>` : ""}${o.collectionCode ? `<section class="code-card" aria-labelledby="codeTitle"><h2 class="eyebrow" id="codeTitle">${h(t("collection"))}</h2><p class="code-card__code">${h(o.collectionCode)}</p><p>${h(t("codeHelp").replace("{place}", (o.pickup || place()).replace(/[\s.]+$/, "")))}</p></section>` : ""}${progress(o)}${token && !account.authenticated ? `<section class="keep-link" aria-labelledby="keepTitle"><h2 id="keepTitle">${h(t("keepLink"))}</h2><p>${h(t("keepLinkText"))}</p><div class="keep-link__row"><input readonly id="privateLink" aria-label="${h(t("link"))}" value="${h(link)}"><button type="button" id="copyLink">${h(t("copyShort"))}</button></div></section>` : ""}<div class="order-facts"><p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></div>${paid ? "" : `<p class="form-help">${h(t("reserved"))}</p>`}<div class="order-actions">${paid ? "" : `<button id="checkPayment">${h(t("check"))}</button>`}${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claimGuest"))}</button>` : `<a class="button secondary" id="signToClaim" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("claimGuest"))}</a>` : ""}</div>${token && !account.authenticated ? `<p class="form-help">${h(t("signHelp"))}</p>` : ""}</div>`;
   if ($("#checkPayment"))
     $("#checkPayment").onclick = (e) =>
       action(e.currentTarget, () => showOrder(id, token, true));
