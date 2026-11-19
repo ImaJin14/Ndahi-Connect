@@ -280,7 +280,9 @@ export function mountResellerLedger(container, { initialLedger, role = "owner", 
       }
       const pending = homePending;
       const body = { operationKey: pending.key, ...(pending.voucherId ? { voucherId: pending.voucherId } : {}) };
-      const response = await call(`/api/admin/resellers/${pending.type}`, { method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(body) });
+      // Literal paths, so each action is checked against the API (scripts/check-api-surface.mjs).
+      const path = pending.type === "cash-sale" ? "/api/admin/resellers/cash-sale" : "/api/admin/resellers/stock-requests";
+      const response = await call(path, { method: "POST", headers: { "idempotency-key": pending.key }, body: JSON.stringify(body) });
       if (pending.type === "cash-sale") {
         const confirmed = { ...pending, confirmed: true };
         // Keep the operation until the code has been shown. A reload can fetch it again;
