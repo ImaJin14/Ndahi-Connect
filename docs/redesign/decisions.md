@@ -118,3 +118,10 @@ Needed before the phase that uses them. Until then, keep the placeholder and pul
 | Product photos and warranty wording | Phase 4 | image slots, `[WARRANTY]` |
 | Restyle the public store in Phase 4, or later? | Phase 4 | — |
 | Reseller commission rate shown on the ledger | Phase 5 | `[RATE]` |
+
+## Owner decisions for the Phase 5 drafts (19 Nov)
+
+- **Outages (#259):** when an outage is marked fixed, every bundle active during it gets the outage's full length back, rounded up to the next hour.
+- **Speed limit per bundle (#263):** one limit shared by all of a customer's devices on that bundle; two devices on a 10 Mbps bundle share 10 Mbps. Verified on the RB5009 before it counts as done.
+- **Reseller codes redeemed before "Cash received" (#261):** they count as sold, and the reseller owes their price. The screen therefore shows the code and QR first, then "Cash received", as designed.
+- **Reseller price and commission (#261):** the price and commission rate recorded when the code was issued apply, even if the bundle's price or the reseller's rate changes later.
