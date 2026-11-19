@@ -64,8 +64,11 @@ a{color:#003b2b}a:hover{color:#062a20}
       </fieldset>
     </main>
     <div class="foot">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px"><span style="color: #5c6963; font-size: 14px">Total</span><strong style="font-size: 20px">[PRICE] FCFA</strong></div>
-      <button type="button" class="btn" onClick="{{toWait}}">Pay [PRICE] FCFA</button>
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #3d4a44"><span>Item</span><span>[PRICE] FCFA</span></div>
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #3d4a44; margin-top: 4px"><span>{{methodName}} fee</span><span>[FEE] FCFA</span></div>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 6px 0 4px; padding-top: 6px; border-top: 1px solid #dfe5dc"><span style="font-weight: 700; font-size: 14px">Total to approve</span><strong style="font-size: 20px">[TOTAL] FCFA</strong></div>
+      <p style="margin: 0 0 10px; color: #6b3a00; font-size: 12px">Your balance needs at least [TOTAL] FCFA, or the payment fails and nothing is taken.</p>
+      <button type="button" class="btn" onClick="{{toWait}}">Pay [TOTAL] FCFA</button>
     </div>
   </sc-if>
 
@@ -73,7 +76,7 @@ a{color:#003b2b}a:hover{color:#062a20}
     <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
       <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
       <h1 class="h1">Approve on your phone</h1>
-      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>[PRICE] FCFA</strong> was sent to 6•• •• 88 02. If this page closes, reopen the store in the same browser to pick up where you left off.</p>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>[TOTAL] FCFA</strong> (incl. [FEE] FCFA fee) was sent to 6•• •• 88 02. If this page closes, reopen the store in the same browser to pick up where you left off.</p>
     </main>
     <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
       <button type="button" class="btn" onClick="{{toDone}}">Check status</button>

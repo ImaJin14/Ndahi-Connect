@@ -35,6 +35,8 @@ a{color:#003b2b}a:hover{color:#062a20}
     </sc-if>
     <section aria-label="Payment details" style="padding: 4px 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
       <div class="row"><span style="color: #5c6963">Bundle</span><strong>[PLAN 2] · [PRICE] FCFA</strong></div>
+      <div class="row"><span style="color: #5c6963">{{method}} fee</span><strong>[FEE] FCFA</strong></div>
+      <div class="row"><span style="color: #5c6963">Total asked</span><strong>[TOTAL] FCFA</strong></div>
       <div class="row"><span style="color: #5c6963">Paid with</span><strong>{{method}} · 6•• •• 12 45</strong></div>
       <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Reference</span><strong style="font-family: ui-monospace, Menlo, monospace">PAY-1113-0042</strong></div>
     </section>
@@ -65,7 +67,7 @@ class Component extends DCLogic {
         body: 'The request was declined or cancelled on your phone, so nothing happened.',
         money: 'No money was taken.', primary: 'Try again', secondary: 'Pay with Orange Money instead', href: 'PhoneBuyBundle.dc.html' },
       lowBalance: { tone: red, path: WALLET, title: 'Not enough Mobile Money', method: 'MTN MoMo',
-        body: 'Your MoMo balance is below [PRICE] FCFA. Add money at any MoMo agent, then try again — or pick a smaller bundle.',
+        body: 'Your MoMo balance is below [TOTAL] FCFA: the bundle ([PRICE] FCFA) plus the Mobile Money fee ([FEE] FCFA). Add money at any MoMo agent, then try again — or pick a smaller bundle.',
         money: 'No money was taken.', primary: 'Try again', secondary: 'Choose a smaller bundle', href: 'PhoneBuyBundle.dc.html' },
       timeout: { tone: amber, path: CLOCK, title: 'Still waiting for MTN', method: 'MTN MoMo',
         body: "MTN hasn't confirmed yet. If you approved on your phone, your bundle starts by itself as soon as they do.",

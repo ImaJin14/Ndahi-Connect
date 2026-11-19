@@ -41,6 +41,9 @@ body.gift-page { margin: 0; background: var(--nd-ivory); color: var(--nd-ink); f
 /* Pinned at the foot as on the canvas, however long the plan list. */
 .gift__foot { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 18px; border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
 .gift__charged { margin: 0; color: var(--nd-muted); font-size: 12px; text-align: center; }
+/* The bundle plus the Mobile Money fee, and the total to approve (#297). */
+.gift__cost { display: flex; justify-content: space-between; gap: 12px; color: var(--nd-ink-soft); font-size: 14px; }
+.gift__cost strong { flex: none; color: var(--nd-ink); }
 .gift__btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--nd-lime); color: var(--nd-lime-ink) !important; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
 .gift__btn:disabled { opacity: .6; cursor: not-allowed; }
 .gift__btn--secondary { border: 1px solid #b8c7bd; background: var(--nd-paper); color: var(--nd-forest) !important; }

@@ -19,7 +19,9 @@ export function mountPaymentNetwork(form) {
     let state = choose({ number, network: requested || network.value, manual: manual || Boolean(requested), locked });
     if (requested && state.valid) delete form.dataset.requestedNetwork;
     if (requested && !state.valid) state = { ...state, network: requested, manual: true };
-    if (!locked && network.value !== state.network) network.value = state.network;
+    // A suggested network is announced so the fee and total follow it (#297);
+    // not as "change", which would count as the customer's own choice.
+    if (!locked && network.value !== state.network) { network.value = state.network; network.dispatchEvent(new Event('networkchange', { bubbles: true })); }
     const label = state.network === 'mtn' ? 'MTN Mobile Money' : 'Orange Money';
     const message = locked ? 'This saved payment keeps its original number and network. Recheck it before starting another payment.'
       : !state.number ? 'Enter the payment number to suggest its Mobile Money network. You can always choose it yourself.'

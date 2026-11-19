@@ -36,6 +36,11 @@ const who = () => state.name || masked(state.phone);
 const duration = (hours) => hours % 24 === 0 ? (hours === 24 ? L("giftOneDay") : L("giftDays", { count: hours / 24 })) : L("giftHours", { count: hours });
 const data = (plan) => plan.quotaGb === null ? L("giftUnlimited") : `${plan.quotaGb} GB`;
 const network = () => suggestedPaymentNetwork(state.buyer.phone) || "mtn";
+// The bundle's price, Mobile Money fee and total for the buyer's network, from the
+// server (#297): the plan's quote before paying, the payment's record after.
+const quote = (plan) => { const q = plan?.paymentQuotes?.[network()]; return Number.isFinite(q?.total) ? q : null; };
+const amounts = (payment) => Number.isFinite(payment?.fee) && Number.isFinite(payment?.total)
+  ? { price: price(payment.amount), fee: price(payment.fee), total: price(payment.total) } : null;
 const icon = (path, colour, size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="${colour}" stroke-width="${size > 30 ? 1.8 : 2.4}" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"></path></svg>`;
 
 // The one case that applies, under the number (the canvas shows all three as a design note).
@@ -69,11 +74,16 @@ function show(step) {
         <span><strong class="gift__plan-name">${h(p.name)}</strong><span>${h(`${data(p)} · ${duration(p.validityHours)}`)}</span></span><strong>${h(L("giftPrice", { price: price(p.price) }))}</strong></button>`).join("")}</div>
       <div class="gift__note-field"><label class="gift__label" for="giftNote">${h(L("giftNote"))} <span class="gift__label-note">${h(L("giftOptional"))}</span></label><input class="gift__input" id="giftNote" name="note" maxlength="140" autocomplete="off" value="${h(state.note)}"></div>
       <p class="gift__alert" id="giftError" role="alert" hidden></p>
-    </main><div class="gift__foot"><button class="gift__btn" type="submit"${state.plan ? "" : " disabled"}>${h(state.plan ? L("giftPay", { price: price(state.plan.price), method: L(METHODS[net]) }) : L("giftChoose"))}</button>
-      <p class="gift__charged">${h(L("giftCharged", { number: masked(state.buyer.phone) }))}</p></div></form>`;
+    </main><div class="gift__foot">${state.plan ? costLine(net) : ""}<button class="gift__btn" type="submit"${state.plan ? "" : " disabled"}>${h(!state.plan ? L("giftChoose")
+        : quote(state.plan) ? L("giftPay", { total: price(quote(state.plan).total), method: L(METHODS[net]) }) : L("giftPayNoFee", { price: price(state.plan.price), method: L(METHODS[net]) }))}</button>
+      ${state.plan ? `<p class="gift__charged">${h(quote(state.plan) ? L("giftCharged", { number: masked(state.buyer.phone), total: price(quote(state.plan).total) })
+        : L("giftChargedNoFee", { number: masked(state.buyer.phone), price: price(state.plan.price) }))}</p>` : ""}</div></form>`;
   }
   if (step === "wait") {
-    const body2 = h(L("giftWaitBody", { method: L(METHODS[network()]), price: "\u0000" })).replace("\u0000", `<strong>${h(L("giftPrice", { price: price(state.plan.price) }))}</strong>`);
+    // The total actually requested, from the payment record; bold as on the canvas.
+    const paid = amounts(state.payment), method = L(METHODS[state.payment?.network] || METHODS[network()]);
+    const body2 = paid ? h(L("giftWaitBody", { method, total: "\u0000", fee: paid.fee })).replace("\u0000", `<strong>${h(L("giftPrice", { price: paid.total }))}</strong>`)
+      : h(L("giftWaitBodyNoFee", { method, price: "\u0000" })).replace("\u0000", `<strong>${h(L("giftPrice", { price: price(state.plan.price) }))}</strong>`);
     body.innerHTML = `<main class="gift__main gift__main--center"><div class="gift__badge gift__badge--wait">${icon("M5 2h14v20H5ZM10 18h4M12 7v4l2 2", "currentColor", 38)}</div>
       <h1 class="gift__h1" id="giftHeading">${h(L("giftWaitTitle"))}</h1><p class="gift__text">${body2}</p>
       <p class="gift__alert" id="giftError" role="alert" hidden></p></main>
@@ -95,6 +105,20 @@ function show(step) {
   bind(step);
 }
 
+// "Bundle 1 500 + MTN MoMo fee 30 · 1 530 FCFA" over the Pay button (canvas: PhoneBuyForOther).
+function costLine(net) {
+  const q = quote(state.plan);
+  return `<div class="gift__cost">${q ? `<span>${h(L("giftCost", { price: price(q.price), method: L(METHODS[net]), fee: price(q.fee) }))}</span><strong>${h(L("giftCostTotal", { total: price(q.total) }))}</strong>`
+    : `<span>${h(L("giftCostNoFee", { price: price(state.plan.price) }))}</span>`}</div>`;
+}
+
+// Why a gift payment did not go through: a balance answer names the total that was asked.
+function failedMessage(payment) {
+  const code = payment?.failureCode;
+  if (!["low_balance", "check_balance"].includes(code)) return L("giftPaymentFailed");
+  const paid = amounts(payment), key = code === "check_balance" ? "giftPaymentCheckBalance" : "giftPaymentLowBalance";
+  return paid ? L(key, paid) : L(key + "NoFee", { price: price(payment.amount) });
+}
 const fail = (error) => {
   const box = $("#giftError");
   if (!box) return;
@@ -146,6 +170,8 @@ function bind(step) {
         const made = await call("/api/account/plan/purchase", { action: "gift", planId: state.plan.id, recipientPhone: state.phone, recipientName: state.name, note: state.note,
           payerPhone: state.buyer.phone, network: network(), requestKey: crypto.randomUUID().replaceAll("-", "") });
         state.payment = made.payment;
+        // The provider can refuse straight away (for example, a low balance).
+        if (["failed", "expired", "cancelled"].includes(made.payment.status)) { fail({ message: failedMessage(made.payment) }); button.disabled = false; return; }
         show("wait");
         poll();
       } catch (error) { fail(error); button.disabled = false; }
@@ -167,7 +193,7 @@ async function check(now) {
   try {
     const result = await call(`/api/account/payments/${encodeURIComponent(state.payment.id)}/status`);
     if (result.payment.status === "paid" && result.access) { state.result = result; show("done"); return true; }
-    if (["failed", "expired", "cancelled"].includes(result.payment.status)) { fail({ message: L("giftPaymentFailed") }); return true; }
+    if (["failed", "expired", "cancelled"].includes(result.payment.status)) { fail({ message: failedMessage(result.payment) }); return true; }
   } catch (error) { if (now) fail(error); }
   return false;
 }

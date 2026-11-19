@@ -222,3 +222,105 @@ test("operational incident state commits atomically and survives normalized-stor
   await assert.rejects(store.transaction((s) => { s.operationalIncidents[0].count++; s.routerCommands[0].status = "processed"; throw Error("incident rollback"); }));
   const s = await restarted.snapshot(); assert.equal(s.operationalIncidents[0].count, 1); assert.equal(s.routerCommands[0].status, "retry");
 });
+
+// Targeted reads (API optimization phase 1): requests load only the rows they use.
+async function seedTargeted() {
+  await store.transaction((s) => {
+    s.customers.push({ id: "c1", phone: "670000101" }, { id: "c2", phone: "670000102" });
+    s.payments.unshift({ id: "p2", customerId: "c2", status: "paid" });
+    s.payments.unshift({ id: "p1", customerId: "c1", status: "pending" });
+    s.vouchers.unshift({ id: "v1", customerId: "c1", paymentId: "p1", code: "NC-AAAA-BBBB" });
+    s.vouchers.unshift({ id: "v2", customerId: "c2", paymentId: "p2", code: "NC-CCCC-DDDD" });
+    s.routerCommands.push({ id: "router:sync_usage:global", action: "sync_usage", status: "processed" });
+    s.events.push({ id: "e1", type: "seed" });
+    s.zone = { id: "z", status: "maintenance", notes: "" };
+  });
+}
+
+test("targeted reads return only the selected rows, following dependent steps", { skip }, async () => {
+  await seedTargeted();
+  const state = await store.read([
+    { rows: { customers: { phone: ["670000101"] } }, settings: ["zone"] },
+    (s) => ({ rows: { vouchers: { customerId: s.customers.map((c) => c.id) } } }),
+    (s) => ({ rows: { payments: { id: s.vouchers.map((v) => v.paymentId) }, bundles: true } }),
+  ]);
+  assert.deepEqual(state.customers.map((c) => c.id), ["c1"]);
+  assert.deepEqual(state.vouchers.map((v) => v.id), ["v1"]);
+  assert.deepEqual(state.payments.map((p) => p.id), ["p1"]);
+  assert.deepEqual([state.events, state.routerCommands, state.bundles], [[], [], []]);
+  assert.equal(state.zone.status, "maintenance");
+  assert.equal(state.networkSetup, undefined, "unrequested settings are not read");
+  // A filter on a field without its own column matches the payload.
+  assert.deepEqual((await store.read([{ rows: { payments: { status: ["paid"] } } }])).payments.map((p) => p.id), ["p2"]);
+  assert.deepEqual((await store.read([{ rows: { vouchers: { code: [] } } }])).vouchers, []);
+  await assert.rejects(store.read([{ rows: { payments: { "status'": ["x"] } } }]), /Invalid filter field/);
+});
+
+test("targeted transactions write only loaded rows and keep their place in the order", { skip }, async () => {
+  await seedTargeted();
+  const before = await rows("SELECT id, ordinal, xmin::text AS version FROM payments ORDER BY ordinal");
+  const result = await store.transaction((s) => {
+    assert.deepEqual(s.payments.map((p) => p.id), ["p2"]);
+    s.payments[0].status = "refunded";
+    s.payments.reverse();
+    return "done";
+  }, { load: [{ rows: { payments: { id: ["p2"] } } }] });
+  assert.equal(result, "done");
+  const after = await rows("SELECT id, ordinal, xmin::text AS version FROM payments ORDER BY ordinal");
+  assert.deepEqual(after.map(({ id, ordinal }) => [id, ordinal]), before.map(({ id, ordinal }) => [id, ordinal]));
+  assert.equal(after.find(({ id }) => id === "p1").version, before.find(({ id }) => id === "p1").version, "p1 was not rewritten");
+  assert.equal((await store.snapshot()).payments.find(({ id }) => id === "p2").status, "refunded");
+  assert.equal(store.stats.targeted, 1);
+  assert.equal(store.stats.fullFallbacks, 0);
+});
+
+test("a targeted transaction that adds rows or writes outside its load reruns on the full state", { skip }, async () => {
+  await seedTargeted();
+  const seen = [];
+  await store.transaction((s) => {
+    seen.push(s.payments.length);
+    s.payments.unshift({ id: "p3", customerId: "c1", status: "pending" });
+  }, { load: [{ rows: { payments: { customerId: ["c1"] } } }] });
+  assert.deepEqual(seen, [1, 2], "the second run saw every payment");
+  assert.deepEqual((await store.snapshot()).payments.map(({ id }) => id), ["p3", "p1", "p2"], "the new row is placed as on the full state");
+  await store.transaction((s) => { s.events.push({ id: "e2", type: "log" }); }, { load: [{ rows: { payments: { id: ["p1"] } } }] });
+  await store.transaction((s) => { s.zone.status = "degraded"; }, { load: [{ rows: { payments: { id: ["p1"] } } }] });
+  const state = await store.snapshot();
+  assert.deepEqual(state.events.map(({ id }) => id), ["e1", "e2"]);
+  assert.equal(state.zone.status, "degraded");
+  assert.equal(store.stats.fullFallbacks, 3);
+});
+
+test("a loaded setting without a row is not written back as its default", { skip }, async () => {
+  await store.transaction(() => {}, { load: [{ settings: ["networkSetup", "zone"] }] });
+  assert.deepEqual(await rows("SELECT key FROM app_settings"), []);
+  await store.transaction((s) => { s.zone = { ...s.zone, status: "maintenance" }; }, { load: [{ settings: ["zone"] }] });
+  assert.equal((await rows("SELECT value FROM app_settings WHERE key = 'zone'"))[0].value.status, "maintenance");
+});
+
+test("targeted transactions retry on a concurrent change and run beside other scopes", { skip }, async () => {
+  await seedTargeted();
+  let calls = 0;
+  await store.transaction(async (s) => {
+    calls++;
+    if (calls === 1) await pool.query(`UPDATE payments SET payload = payload || '{"note":"external"}' WHERE id = 'p1'`);
+    s.payments[0].status = "expired";
+  }, { load: [{ rows: { payments: { id: ["p1"] } } }] });
+  assert.equal(calls, 2, "the conflicting attempt was retried");
+  const p1 = (await store.snapshot()).payments.find(({ id }) => id === "p1");
+  assert.deepEqual([p1.status, p1.note], ["expired", "external"]);
+  // A scoped customer transaction holding its lock does not block a targeted one.
+  const held = gate(), release = gate();
+  const blocker = store.transaction(async () => { held.open(); await release.opened; }, { scope: ["customer:670000102"] });
+  await held.opened;
+  assert.equal(await settled(store.transaction((s) => { s.payments[0].status = "paid"; }, { load: [{ rows: { payments: { id: ["p1"] } } }] })), true);
+  release.open();
+  await blocker;
+});
+
+test("snapshots are independent copies built without change tracking", { skip }, async () => {
+  await seedTargeted();
+  const first = await store.snapshot();
+  first.payments[0].status = "mutated";
+  assert.notEqual((await store.snapshot()).payments[0].status, "mutated");
+});

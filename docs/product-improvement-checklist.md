@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-11-03
+Last reviewed: 2026-11-19
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -542,6 +542,7 @@ Use this document as the source of truth for product, engineering, security, and
   - Implemented: PostgreSQL writes only changed rows, with payload-guarded updates and deletes. Customer checkout, redemption, PIN login, dashboard, and auth throttling lock only their customer scope under a shared global lock, and retry on conflict with buffered responses. Other transactions stay exclusive. Migration 004 allows prepend ordinals; the pre-deploy check requires it.
   - Local verification: 11 PostgreSQL 17 store tests (different customers run concurrently, the same customer serializes, no lost updates, trimming without conflicts); 300-user load test on PostgreSQL in 16 s vs 6 min 15 s before, with zero failures.
   - Remaining: apply migration 004 and verify production latency.
+  - 18 November 2026: every transaction still read the whole state, and 66 of 76 request transactions plus all worker transactions still took the global lock exclusively. Measured and planned in `docs/operations/api-optimization-plan.md`; phase 1 (targeted reads under the shared lock) merged in #290 and deployed 18 November. See "API optimization phase 1" at the end of this checklist.
 
 - [-] **PERF-003 — Add pagination and server-side filtering**
   - Cover customers, vouchers, payments, sessions, events, and audit logs.
@@ -1430,3 +1431,59 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented: administrators sign in with email (or username) + PIN, then confirm with a passkey. The passkey step is single use, expires after five minutes and is bound to current credentials. Administrators without a passkey add one on the sign-in page; this is required after the retirement marker and offered before it. Passkey-only sign-in is refused after the cutover. Self-service sign-in email; owner removal of a staff member's lost passkeys; owner removal of a customer's lost passkeys through the audited support-recovery form. v2 customer sign-in leads with phone + PIN, with the voucher code as the second path. v1 admin sign-in handles the passkey step. See `docs/operations/phase6-sign-in.md`.
 - Tested: `test/phase6-sign-in.test.mjs`, updated retirement tests, `scripts/check-phase6-sign-in-journeys.mjs` (virtual authenticator), the full v2 browser suite, v1 runs of the edited journeys, `npm run check` and `npm test`.
 - Not deployed. The cutover (`scripts/authenticator-retirement.mjs --apply`) has not run on staging or production. Not tried with a real phone or security key.
+
+### API optimization phase 1 — PR #290 (18 November 2026)
+
+- Cause measured: every request loaded, re-serialized and often copied the whole database, so cost grew with stored data; most transactions held the global lock exclusively; the Home (15 s) and checkout (3 s) polls multiplied it; the billing worker re-checked unsendable receipts on every pass. Production sample on 18 November before the change: `GET /api/plans` median 821 ms (max 5.0 s), signed-out bundle status 1,061 ms and dashboards ~1,070–1,100 ms, against a 155 ms floor for a request that never touches the database.
+- Implemented: targeted reads and transactions in the PostgreSQL store (dependent row selection, shared lock, full-state rerun if a callback writes outside what it loaded). Snapshots are no longer deep-copied. Targeted: plans, status, the customer CSRF check, bundle status, payment status with its billing checks, and the billing worker's per-payment steps. A 30-second housekeeping worker replaces cleanup on public reads. Switch: `STORE_TARGETED_READS=false`.
+- Tested: `npm test` with PostgreSQL 17, 1,380 of 1,380 (0 skipped). On/off response equivalence on one database. Security regressions (`test/targeted-reads-security.test.mjs`, in-memory and PostgreSQL): own-cookie session lookup, CSRF, payment and bundle ownership, parameterized filters; CodeQL and secret scanning pass. v2 billing, plan, pending, subscription, payment-network, status, payment-failed and gift journeys pass. Hosted CI and redesign regressions pass. Local PostgreSQL 17 at 40,000 payments: bundle status 1,278 → 3 ms, payment status 5,870 → 3 ms, plans 1,279 → 0.7 ms, 16 simultaneous Home polls 20.3 s → 37 ms, one billing pass 225.6 → 2.1 s (`scripts/benchmark-api-reads.mjs`).
+- Deployed: merged as `f31cd8f`, live on all four services at 17:39 UTC on 18 November; production smoke checks pass. Production sample after warm-up (median, before → after): plans 821 → 166 ms, status 620 → 172 ms, signed-out bundle status 1,061 → 168 ms, signed-out dashboards ~1,070–1,100 → 349–446 ms, against a 155–159 ms network floor. Occasional ~2 s spikes remain behind workers' exclusive lock (phase 3).
+- Not yet verified: signed-in timings in production, a busy evening, and error-rate or expiry monitoring after the switch. The dashboard, account/admin pages, workers and customer writes are later phases in the plan.
+
+### Receipt emails waiting on the customer — PR #291 (18 November 2026)
+
+- Implemented (owner-approved): a receipt blocked on a missing email or on transactional email being off is checked hourly instead of every 30-second billing pass, and on the next pass once the customer confirms an email or turns transactional email back on. Receipts whose delivery stopped for good, or that wait for a retry or a live lease, are no longer picked.
+- Tested: new receipt backoff tests including the real notification-settings route; security regressions (own session and CSRF required, no cross-customer release, never to an unconfirmed address); `npm test` with PostgreSQL 1,383 of 1,383 before the security test.
+- Deployed: merged as `ec7cbf2` on 18 November; CI and redesign regressions pass on `main`; live with #292 from 18:00 UTC. Not yet observed in production data.
+
+### Low Mobile Money balance notice — PR #292 (18 November 2026)
+
+- Constraint: no provider lets NDAHI read a payer's balance before the request (MeSomb's and MTN's balance endpoints report the merchant's own account).
+- Implemented: an operator refusal for the balance (MeSomb HTTP 400 `subscriber-insufficient-balance`, or balance-or-limit answers such as `CUSTOMER_BALANCE_INVALID`, recorded as `check_balance`) closes the payment at once as a confirmed failure with no money taken, shows the canvas "Not enough Mobile Money" screen, and lets the customer pay again immediately. Other submission errors stay uncertain. Refusals do not count towards provider-failure alerts. Screens match the canvas exactly (owner decision, 18 November): no pre-payment reminder and no extra failure view.
+- Tested: provider-code mapping, the real MeSomb SDK with a stubbed 400, billing, purchase API, a live browser refusal at 390 px plus every failure view at 390/1280 px; security regressions (refusals cannot be forged, wording alone never closes a payment, a later confirmed payment still activates); `npm test` with PostgreSQL 1,388 of 1,388; v2 billing, plan, pending, payment-network, gift and French journeys pass.
+- Deployed: merged as `83e5567`, live at 18:00 UTC on 18 November; CI, redesign regressions and deployment smoke checks pass. The live portal serves the canvas failure screen with no reminder. Not yet verified with a real low-balance MTN or Orange Money payment.
+
+### Usage tracking through router restarts — PR #294 (18 November 2026)
+
+- Problem reported by the owner: staff could not see customers' actual consumption, and usage was not tracked properly on fixed-quota plans. Causes found in code: (1) RouterOS restarts hotspot user counters on reboot or user re-creation; readings below recorded usage were ignored, so usage froze and the router's `limit-bytes-total` allowed the whole quota again; (2) a usage read dead-lettered after about an hour of router outage and was never queued again without an operator replay; (3) admin Customers showed only "data left" for fixed plans and nothing showed when usage was last read.
+- Implemented: readings carry the user's own counters; a restart (counters went down, or a total below recorded usage for 45 s or more) keeps prior usage in `routerUsageOffset`, adds new readings, and re-syncs the router limit to the data left. Usage reads back off to at most 5 minutes and resume 15 minutes after dead-lettering. Admin Customers shows data used on every plan; voucher detail shows when usage was last read and warns after ten minutes.
+- Tested: 6 new usage-tracking tests (restart, single dip not counted twice, earlier restarts found, limit validation, backoff and recovery, adapter counters); `npm test` with PostgreSQL 1,405 of 1,405; admin and connection browser journeys pass.
+- Deployed: merged as `543be72`, live at 18:56 UTC on 18 November; CI, redesign regressions and deployment smoke checks pass; live admin assets verified.
+- Not yet verified: on the real router. That hotspot counters restart on reboot comes from MikroTik forum reports. Reboot the router once with an active test voucher and confirm usage keeps rising and the router's limit drops to the data left.
+
+### API surface verification audit & contract coverage (18 November 2026)
+
+- Implemented: added static frontend-to-backend route/link auditor ([`scripts/check-api-surface.mjs`](../scripts/check-api-surface.mjs)) wired into `npm run check` (`check:api-surface`) and documented the Page→Action→API inventory in [`docs/reviews/api-verification-plan-and-matrix-2026-11-18.md`](reviews/api-verification-plan-and-matrix-2026-11-18.md).
+- Implemented (bug fixes): added `POST /api/account/device-management/current/reset` and `POST /api/account/device-management/nickname` to `customerCsrfPaths` (`lib/api/state.mjs`), and added `/api/admin/profile/password` and `/api/admin/profile/pin` to `selfServicePaths` (`lib/api/admin.mjs`) so `operator`, `reseller`, and `auditor` roles can update their own password/PIN. Extended [`scripts/check-deployment.mjs`](../scripts/check-deployment.mjs) and `.github/workflows/deployment-smoke.yml` with optional `STORE_APP_URL` / store-app and public-config checks (`main - ndahi-store`).
+- Tested (in-memory & Chromium): `node scripts/check-api-surface.mjs --strict` reports 0 unmatched `/api/*` paths, 0 broken HTML links, and 0 findings across 18 `customer-app-v2`, 15 `customer-app`, 4 `admin-app-v2`, 4 `admin-app`, and 1 `store-app` HTML pages (147 frontend endpoints, 161 backend literals, 67 `customerCsrfPaths`). Added [`test/api-contract-matrix.test.mjs`](../test/api-contract-matrix.test.mjs) (8 tests, including PostgreSQL contract matrix guarded by `TEST_DATABASE_URL`) and [`test/redesign-browser/api-smoke-actions.test.mjs`](../test/redesign-browser/api-smoke-actions.test.mjs) (Playwright Chromium flows covering customer/store/admin cold routes, simulated `503` recovery, 5-tab mobile nav + profile edit, admin operator password/PIN change + re-login, and owner 12-view sweep + bundle create/delete). Local `npm test`, `npm run check`, `npm run check:ui-v2`, and `npm run check:providers` pass after code changes (`55` PostgreSQL tests skipped locally because `TEST_DATABASE_URL` is unset; CI runs them against `postgres:17`).
+- Live smoke (not yet deployed from this branch): `check-deployment.mjs` against production (`portal`, `admin`, `store`, `api`) passed all 6 checks prior to committing; staging (`staging-portal`, `staging-admin`, `staging-api`) failed with `ENOTFOUND` (staging services not yet provisioned). Live real-router / live Mobile Money / physical handset verification remains unexercised by this audit.
+
+### Mobile Money fee and total before paying — draft PR #299, issue #297 (19 November 2026)
+
+- Problem: MeSomb is asked with `fees: false`, so customers approve the price plus a fee they were never shown. A balance that covered the price but not the fee failed with a message that named only the price.
+- Fee source: MeSomb has no fee quote before a charge (SDK 3.0.2 and its API schema: `getPricing()` documents only the application key and name). It reports `fees` and `trxamount` on a transaction. The owner chose a per-network rule on the API (`PAYMENT_FEE_MTN`, `PAYMENT_FEE_ORANGE`), checked against MeSomb's real fees with the read-only `scripts/check-payment-fees.mjs`.
+- Implemented:
+  - one server quote (`lib/payment-fees.mjs`), carried by the plan lists and the store catalogue (per quantity);
+  - the quoted `fee` and `total` saved on payments and store orders, with `amount` still the price sent;
+  - MeSomb's fee recorded from successful transactions, with mismatches logged;
+  - v2 buy, gift, renew, failure and both store checkouts per `docs/redesign/screens/`, plus a minimal v1 change;
+  - low-balance and check-balance wording with the total, receipts with the fee line, EN and FR strings.
+  - Without a rule, screens say "plus the Mobile Money fee shown in your prompt".
+- Tested:
+  - unit and API tests (`test/payment-fees.test.mjs`, `test/payment-fee-disclosure.test.mjs`);
+  - browser test `test/redesign-browser/payment-fee-disclosure.test.mjs` at 390 px in English and French;
+  - updated gift, renewal and payment-failed browser tests.
+  - Full results are in the PR.
+- Not deployed. Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. The checker must run in the Render shell before the rules are set. A staging payment with a balance between the price and the total is still to be done.
+- Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
+

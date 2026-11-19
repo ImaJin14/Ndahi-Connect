@@ -213,6 +213,13 @@ services:
         sync: false
       - key: MESOMB_WEBHOOK_SECRET
         sync: false
+      # Mobile Money fee rule per network, from the MeSomb contract (#297).
+      # Optional: unset shows "plus the fee shown in your prompt". See
+      # docs/operations/billing-experience.md and scripts/check-payment-fees.mjs.
+      - key: PAYMENT_FEE_MTN
+        sync: false
+      - key: PAYMENT_FEE_ORANGE
+        sync: false
       - key: FLW_API_URL
         value: https://api.flutterwave.com/v3
       - key: FLW_SECRET_KEY

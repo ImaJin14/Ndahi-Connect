@@ -53,8 +53,9 @@ a{color:#003b2b}a:hover{color:#062a20}
       <div style="margin-top: 6px"><label class="lbl" for="msg">Add a note <span style="font-weight: 500; color: #5c6963">(optional)</span></label><input class="in" id="msg" value="For your calls with the family ❤"></div>
     </main>
     <div class="foot">
-      <button type="button" class="btn" onClick="{{toWait}}">Pay [PRICE] FCFA with MTN MoMo</button>
-      <p style="margin: 0; text-align: center; color: #5c6963; font-size: 12px">Charged to your number 6•• •• 12 45. You approve on your phone.</p>
+      <div style="display: flex; justify-content: space-between; font-size: 14px; color: #3d4a44"><span>Bundle [PRICE] + MTN MoMo fee [FEE]</span><strong style="color: #10241c">[TOTAL] FCFA</strong></div>
+      <button type="button" class="btn" onClick="{{toWait}}">Pay [TOTAL] FCFA with MTN MoMo</button>
+      <p style="margin: 0; text-align: center; color: #5c6963; font-size: 12px">Charged to your number 6•• •• 12 45 — your balance needs at least [TOTAL] FCFA.</p>
     </div>
   </sc-if>
 
@@ -62,7 +63,7 @@ a{color:#003b2b}a:hover{color:#062a20}
     <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
       <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
       <h1 class="h1">Approve on your phone</h1>
-      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">An MTN MoMo request for <strong>[PRICE] FCFA</strong> was sent to your number. This screen updates by itself.</p>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">An MTN MoMo request for <strong>[TOTAL] FCFA</strong> (incl. [FEE] FCFA fee) was sent to your number. This screen updates by itself.</p>
     </main>
     <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Check status</button><a class="btn2" href="PhonePaymentFailed.dc.html">Payment didn't go through?</a></div>
   </sc-if>
