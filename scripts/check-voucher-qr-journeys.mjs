@@ -118,20 +118,64 @@ try {
       assert.equal(f.calls.length, 1);
     },
   );
+  // #213: the PIN works before Wi-Fi identifies the device, but only signs in.
   await scenario(
-    "unknown WiFi disables proof until hotspot sign-in identifies the same browser",
-    async (page) => {
+    "unknown Wi-Fi: the PIN signs in without connecting, then hotspot sign-in lets the device connect",
+    async (page, context) => {
       await page.goto(origin + "/voucher-connect.html" + qr);
       await page.locator("#wifiGuidance").waitFor();
-      assert.equal(await page.locator("#connectWithPin").isDisabled(), true);
-      await page.goto(
-        origin + "/hotspot?mac=AA:BB:CC:DD:EE:03&address=10.20.0.30",
-      );
-      await page.waitForURL((url) => url.pathname === "/voucher-connect.html");
-      await page.waitForFunction(
-        () => !document.querySelector("#connectWithPin").disabled,
-      );
+      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+      await page.locator("#accountPin").fill("2468");
+      await page.locator("#connectWithPin").click();
+      await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("You're signed in"));
+      assert.equal(await page.locator("#wifiGuidance").isVisible(), true);
+      assert.equal(await page.locator("#connectWithPin").isDisabled(), true, "no connection until the device is identified");
       assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
+      assert.ok((await context.cookies(f.api + "/api/account")).some((cookie) => cookie.name === "customer_session"));
+      await page.goto(origin + "/hotspot?mac=AA:BB:CC:DD:EE:03&address=10.20.0.30");
+      await page.waitForURL((url) => url.pathname === "/voucher-connect.html");
+      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+      assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
+    },
+  );
+  await scenario(
+    "a wrong PIN leaves the controls ready, and the right PIN then connects",
+    async (page) => {
+      await page.goto(origin + path + qr);
+      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+      await page.locator("#accountPin").fill("0000");
+      await page.locator("#connectWithPin").click();
+      await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("Could not verify"));
+      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+      // The API asks for a one-second wait after a first wrong PIN.
+      await page.waitForTimeout(1200);
+      await page.locator("#accountPin").fill("2468");
+      await page.locator("#connectWithPin").click();
+      await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("Waiting for the router"));
+      assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 1);
+    },
+  );
+  await scenario(
+    "a cancelled passkey prompt restores the controls for the PIN",
+    async (page, context) => {
+      // A QR is bound to the account's credentials, so it is made after the passkey is added.
+      let passkeyQr;
+      await f.store.transaction((s) => {
+        s.customers[0].passkeys = [{ id: "cHJvb2Y", publicKey: "cHVibGlj", counter: 0, transports: ["internal"] }];
+        passkeyQr = new URL(voucherQrUrl(s.vouchers[0], s.customers[0], origin)).hash;
+      });
+      await context.addInitScript(() => {
+        if (navigator.credentials) navigator.credentials.get = () => Promise.reject(new DOMException("The operation was cancelled.", "NotAllowedError"));
+      });
+      await page.goto(origin + path + passkeyQr);
+      await page.waitForFunction(() => !document.querySelector("#connectWithPasskey").disabled && !document.querySelector("#connectWithPasskey").hidden);
+      await page.locator("#connectWithPasskey").click();
+      await page.waitForFunction(() => /cancelled|unavailable|not allowed/i.test(document.querySelector("#qrMessage").textContent));
+      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+      await page.locator("#accountPin").fill("2468");
+      await page.locator("#connectWithPin").click();
+      await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("Waiting for the router"));
+      assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 1);
     },
   );
   await scenario(

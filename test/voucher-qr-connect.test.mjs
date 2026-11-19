@@ -176,17 +176,53 @@ test("expired challenge and rotated QR fail closed, including already queued aut
   await f.process();
   assert.equal(f.calls.length, 0);
 });
-test("legacy printed code still resolves to proof-only connection context and off-network proof is denied", async (t) => {
+test("legacy printed code resolves to proof-only context; off-network proof signs in without a connection", async (t) => {
   const f = await fixture(t);
   const reply = await begin(f, { qr: undefined, legacyCode: "NC-AAAA-1111" });
   assert.equal(reply.status, 200);
-  const denied = await f.call(
+  // #213: the PIN works off NDAHI Wi-Fi, but only as an account sign-in.
+  const signedIn = await f.call(
     root + "/verify",
     { ...target, context: reply.body.context, pin: "2468" },
     { session: "", address: "198.51.100.9" },
   );
-  assert.equal(denied.body.code, "WIFI_REQUIRED");
-  assert.equal(denied.headers.get("set-cookie"), null);
+  assert.equal(signedIn.status, 200);
+  assert.equal(signedIn.body.wifiRequired, true);
+  assert.equal(signedIn.body.qrAuthorization, undefined, "no router connection grant");
+  assert.match(signedIn.headers.get("set-cookie"), /customer_session=/);
+  const s = await f.store.snapshot();
+  assert.equal(s.customerAccessChallenges.filter((ch) => ch.type === "qr_connect_grant").length, 0);
+  assert.equal(s.wifiPairingRequests.length, 0);
+  assert.ok(s.securityEvents.some((e) => e.type === "customer.voucher_qr.verified_without_wifi"));
+  // The verified context is single-use.
+  const again = await f.call(root + "/verify", { ...target, context: reply.body.context, pin: "2468" }, { session: "" });
+  assert.equal(again.body.code, "QR_CONTEXT_EXPIRED");
+});
+
+test("missing device identity: the PIN signs in, a wrong PIN can be retried, and only an identified device gets a grant (#213)", async (t) => {
+  const f = await fixture(t);
+  const unknown = { mac: "", address: "", key: "" };
+  const started = await begin(f, unknown);
+  assert.deepEqual([started.status, started.body.wifiReady], [200, false]);
+  // A wrong PIN leaves the same attempt usable.
+  const wrong = await f.call(root + "/verify", { ...unknown, context: started.body.context, pin: "0000" }, { session: "" });
+  assert.deepEqual([wrong.status, wrong.body.code], [401, "VERIFICATION_FAILED"]);
+  // Straight away, the short wait after a wrong PIN applies (the page re-enables after it)...
+  const early = await f.call(root + "/verify", { ...unknown, context: started.body.context, pin: "2468" }, { session: "" });
+  assert.deepEqual([early.status, early.body.code], [429, "PIN_THROTTLED"]);
+  // ...and once it has passed, the same attempt accepts the right PIN.
+  await f.store.transaction((s) => { delete s.customers[0].pinNextAttemptAt; });
+  const signedIn = await f.call(root + "/verify", { ...unknown, context: started.body.context, pin: "2468" }, { session: "" });
+  assert.deepEqual([signedIn.status, signedIn.body.wifiRequired, signedIn.body.qrAuthorization], [200, true, undefined]);
+  // Device details can't be swapped into an attempt begun without them.
+  const swapped = await begin(f, unknown);
+  const changed = await f.call(root + "/verify", { ...target, context: swapped.body.context, pin: "2468" }, { session: "" });
+  assert.equal(changed.body.code, "DEVICE_CHANGED");
+  // Once Wi-Fi sign-in identifies the device, a new attempt grants the bound connection.
+  const granted = await verifyPin(f);
+  assert.ok(granted.token);
+  const s = await f.store.snapshot();
+  assert.deepEqual(s.customerAccessChallenges.filter((ch) => ch.type === "qr_connect_grant").map((ch) => ch.target), [JSON.stringify([target.mac.toUpperCase(), target.address, target.key])]);
 });
 test("actual user-verified passkey signs in through a QR-bound single-use challenge", async (t) => {
   const f = await pairingFixture({ liveClock: true, now: new Date() });
@@ -228,12 +264,17 @@ test("actual user-verified passkey signs in through a QR-bound single-use challe
     { qr, ...target },
     { session: "" },
   );
+  // #213: a passkey prompt the customer cancels leaves the attempt usable; the
+  // next prompt gets a fresh challenge.
+  const abandoned = await f.call(root + "/options", { context: started.body.context, ...target }, { session: "" });
+  assert.equal(abandoned.status, 200);
   const options = await f.call(
     root + "/options",
     { context: started.body.context, ...target },
     { session: "" },
   );
   assert.equal(options.status, 200);
+  assert.notEqual(options.body.challengeId, abandoned.body.challengeId);
   const client = Buffer.from(
     JSON.stringify({
       type: "webauthn.get",
