@@ -75,7 +75,7 @@ async function recheckPurchaseAccess() {
       renderPlans();
       if (selected && !paymentInProgress && !creatingPayment) {
         $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
-        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+        $("#requestPayment").textContent = purchaseAccess.allowed ? requestLabel() : "Connect to NDAHI Wi-Fi";
       }
     }
   })();
@@ -206,7 +206,6 @@ async function initialize() {
     $("#emailLabel").textContent = "Payment contact email";
     $("#emailHint").textContent = "Flutterwave requires an email for this payment. Confirm an address in Account to enable email notifications.";
   }
-  $("#providerFee").hidden = paymentProvider !== "mesomb";
   try {
     account = await call("/api/account/dashboard");
     subscriptionAccess = account.subscriptionPurchaseAccess || { allowed: !account.activeBundle && account.customer.status !== "suspended" && !account.customer.suspended };
@@ -430,6 +429,25 @@ function choose(id) {
 }
 const checkoutTitle = () =>
   `${accountAction === "renew" ? "Renew" : accountAction === "switch" ? "Switch to" : upgradePurchase ? "Upgrade to" : "Buy"} ${selected.name}`;
+// The Mobile Money fee and total for the chosen network, from the server's quote
+// (plans[].paymentQuotes, #297). Without one, the fee is "shown in your prompt".
+const quoteFor = (plan, network) => (Number.isFinite(plan?.paymentQuotes?.[network]?.total) ? plan.paymentQuotes[network] : null);
+const requestLabel = () => {
+  const quote = quoteFor(selected, $("#purchase").elements.network.value);
+  return `Request payment - ${money(quote ? quote.total : selected.price)}${!quote && paymentProvider === "mesomb" ? " + fee" : ""}`;
+};
+function renderFee() {
+  if (!selected) return;
+  const network = $("#purchase").elements.network.value, quote = quoteFor(selected, network), note = $("#providerFee");
+  const wallet = network === "orange" ? "Orange Money" : "MTN MoMo";
+  note.textContent = quote
+    ? `${wallet} fee: ${money(quote.fee)}. Total to approve: ${money(quote.total)}. Your balance must cover the total, or the payment fails and no money is taken.`
+    : `Plus the Mobile Money fee shown in your approval prompt. Your balance must cover ${money(selected.price)} plus that fee, or the payment fails and no money is taken.`;
+  note.hidden = !quote && paymentProvider !== "mesomb";
+  if (!paymentInProgress && !creatingPayment && purchaseAccess.allowed) $("#requestPayment").textContent = requestLabel();
+}
+// A network suggested from the number is set without an event: read it after the form updates.
+for (const type of ["change", "input", "focusin"]) $("#purchase").addEventListener(type, () => setTimeout(renderFee));
 function renderCheckoutReview() {
   if (!selected) {
     $("#selected").textContent = "Choose another package";
@@ -445,8 +463,9 @@ function renderCheckoutReview() {
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
   $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;
-  $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+  $("#requestPayment").textContent = purchaseAccess.allowed ? requestLabel() : "Connect to NDAHI Wi-Fi";
   $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
+  renderFee();
 }
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
@@ -771,7 +790,7 @@ $("#purchase").onsubmit = async (event) => {
     if (!paymentInProgress) {
       $("#purchaseFields").disabled = false;
       if (selected) {
-        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+        $("#requestPayment").textContent = purchaseAccess.allowed ? requestLabel() : "Connect to NDAHI Wi-Fi";
         $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
       }
     } else $("#requestPayment").textContent = "Payment requested";

@@ -153,7 +153,7 @@ try {
     await page.getByLabel("Full name").fill("Guest browser buyer");
     await page.getByLabel("Contact phone").fill("670000099");
     await page.getByLabel("Mobile Money number").fill("690000099");
-    await page.getByRole("button", { name: "Pay with Mobile Money" }).click();
+    await page.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
     await page.waitForURL(/#order\//);
     await page.getByRole("button", { name: "Check payment" }).click();
     await page.getByText("Preparing your order", { exact: true }).waitFor();
@@ -497,14 +497,14 @@ try {
     },
     { times: 1 },
   );
-  await recovery.getByRole("button", { name: "Pay with Mobile Money" }).click();
+  await recovery.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
   await recovery
     .locator("#checkoutError")
     .filter({ hasText: /fetch/i })
     .waitFor();
   await recovery.reload();
   await recovery.getByRole("button", { name: "Resume checkout" }).click();
-  await recovery.getByRole("button", { name: "Pay with Mobile Money" }).click();
+  await recovery.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
   await recovery.waitForURL(/#order\//);
   await recovery.getByRole("button", { name: "Check payment" }).click();
   await recovery.getByText("Preparing your order", { exact: true }).waitFor();

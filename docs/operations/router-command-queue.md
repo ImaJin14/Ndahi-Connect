@@ -21,7 +21,7 @@ single write lock the store uses for every request.
 - `mark_inactive`: tell the router to drop sessions it considers stale.
 - `sync_usage`: pull usage readings and apply them to vouchers monotonically
   (a reading is only ever used to raise `usedBytes`, matching the previous
-  admin-triggered behavior).
+  admin-triggered behavior). See [Router counter restarts](#router-counter-restarts).
 
 A command's ID is derived from its action and target (`router:<action>:<target>`),
 so enqueuing the same action for the same target while an attempt is already
@@ -42,12 +42,17 @@ timing are unchanged from before this change.
 - `queued`: durable command awaiting processing.
 - `processing`: claimed with a lease (router timeout + 15 seconds).
 - `retry`: last attempt failed. Backoff is 30, 60, 120, 240... seconds,
-  doubling per attempt and capped at one hour.
+  doubling per attempt and capped at one hour (five minutes for `sync_usage`,
+  which keeps usage counting and quotas enforced).
 - `dead_letter`: the attempt limit (`NETWORK_QUEUE_MAX_ATTEMPTS`, default 8 —
   roughly an hour of retrying) was reached, or the failure was permanent (a
   `sync_voucher` command whose voucher no longer exists dead-letters on its
   first attempt rather than retrying pointlessly). See NET-003
-  (`router-command-dead-letter.md`) for review, alerting, and replay.
+  (`router-command-dead-letter.md`) for review, alerting, and replay. A
+  dead-lettered `sync_usage` (about 22 minutes of failed reads) alerts as usual,
+  then the usage scheduler queues it again after a 15-minute cool-down
+  (`network.usage_read_resumed` event); before 18 November 2026 usage stopped
+  counting until an operator replayed it.
 - `processed`: the router accepted the command.
 
 Voucher-affecting commands (`sync_voucher`, `disconnect_voucher`) set
@@ -58,6 +63,26 @@ completion and the voucher's status commit atomically, so a crash between the
 router call and the completion transaction leaves the command `processing`
 with a lease that expires and is safely reclaimed — it does not leave a
 voucher's router status stuck on a lie.
+
+## Router counter restarts
+
+A reading is the hotspot user's own counters plus its live sessions, i.e. what
+the router has counted since those counters last started. RouterOS restarts
+them from zero when the router reboots (for example after a power cut) or the
+hotspot user is re-created. Since 18 November 2026 the worker notices this when
+a user's own counters (`counterBytes`) go down, or when a voucher's total stays
+below its recorded usage for 45 seconds or more (one lower reading is normal: a
+session ending between the router's two reads is missed once). It then:
+
+- keeps the usage counted so far in `routerUsageOffset` and adds new readings to it;
+- records `routerCountersRestartedAt` and a `network.usage_counters_restarted` event;
+- re-syncs an active fixed-quota voucher, so the router's `limit-bytes-total`
+  becomes the data actually left instead of the whole quota again.
+
+Before this, recorded usage froze until the new counters passed it, and the
+router allowed the full quota again. Admin voucher detail shows when usage was
+last read from the router, and warns when an active bundle has not been read for
+ten minutes.
 
 ## Verification and limits
 

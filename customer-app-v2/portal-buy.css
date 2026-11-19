@@ -39,6 +39,28 @@
 .packages-page #checkoutSummary { margin: 0 0 var(--nd-space-10); padding: var(--nd-space-12) var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
 .packages-page #checkoutSummary p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 .packages-page #checkoutSummary p strong { color: var(--nd-forest); font-size: var(--nd-fs-body); }
+/* What you'll pay (canvas: PhoneBuyBundle, #297): the bundle and its price, the
+   Mobile Money fee for the chosen network, and the total to approve. */
+.buy-cost { display: flex; flex-direction: column; gap: var(--nd-space-8); }
+.packages-page #checkoutSummary table + .buy-cost { margin-top: var(--nd-space-12); padding-top: var(--nd-space-12); border-top: 1px solid var(--nd-line); }
+.buy-cost__row { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); }
+.buy-cost__plan > span:first-child { min-width: 0; }
+.buy-cost__plan strong { display: block; color: var(--nd-ink); font-size: 15px; }
+.buy-cost__plan > span:first-child > span { color: var(--nd-muted); font-size: 13px; }
+.buy-cost__plan > span:last-child { flex: none; color: var(--nd-ink); font-size: 15px; }
+.buy-cost__fee { color: var(--nd-ink-soft); font-size: 14px; }
+.buy-cost__fee > span:last-child { flex: none; text-align: right; }
+.buy-cost__total { padding-top: var(--nd-space-8); border-top: 1px solid var(--nd-line); color: var(--nd-ink); }
+.buy-cost__total strong:last-child { font-size: 18px; }
+.packages-page #checkoutSummary .buy-cost__plus { color: var(--nd-ink-soft); font-size: 14px; }
+/* The balance has to cover the total, or the payment fails and nothing is taken. */
+.buy-balance-note { display: flex; gap: var(--nd-space-10); align-items: flex-start; margin: var(--nd-space-12) 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-card); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; line-height: 1.45; }
+.buy-balance-note[hidden] { display: none; }
+.buy-balance-note svg { flex-shrink: 0; margin-top: 1px; }
+/* The request that was sent: its total, and the amount to check in the prompt. */
+.packages-page .buy-wait { margin: var(--nd-space-12) 0 var(--nd-space-4); color: var(--nd-ink-soft); font-size: 15px; line-height: 1.55; }
+.packages-page .buy-wait strong { color: var(--nd-ink); }
+.packages-page .buy-wait__check { margin: 0 0 var(--nd-space-12); color: var(--nd-ink-soft); font-size: 14px; }
 .packages-page #checkoutPolicy, .packages-page #checkout .card > p { color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
 .packages-page #purchase label { color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
 .packages-page #purchase input:not([type="checkbox"]), .packages-page #purchase select { min-height: 48px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }

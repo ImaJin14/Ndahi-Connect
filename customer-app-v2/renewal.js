@@ -32,11 +32,20 @@ function lastPayment(payments) {
   return (payments || []).filter((p) => p.status === 'paid' && p.payerPhone && METHODS[p.network]).sort((a, b) => at(b) - at(a))[0];
 }
 
-function buyAgain(snapshot, payments) {
+// "1 530 FCFA incl. fee": the server's total for the plan on that network (#297),
+// from the catalogue the new purchase uses. Without one, the price "+ fee".
+function amount(plan, catalogue, network) {
+  const number = (value) => value.toLocaleString(currentLanguage() === 'fr' ? 'fr-FR' : 'en-GB');
+  const current = (catalogue || []).find((item) => item.id === plan.id), quote = network && current?.paymentQuotes?.[network];
+  return Number.isFinite(quote?.total) ? L('homeRenewTotal', { total: number(quote.total) })
+    : L('homeRenewPriceNoFee', { price: number(Number.isFinite(current?.price) ? current.price : plan.price) });
+}
+
+function buyAgain(snapshot, payments, plans) {
   const plan = snapshot.bundle.plan;
   if (snapshot.purchase.allowed !== true || !plan || plan.discontinued || !Number.isFinite(plan.price)) return bundlePurchaseContent(snapshot);
-  const paid = lastPayment(payments), price = L('homeRenewPrice', { price: plan.price.toLocaleString(currentLanguage() === 'fr' ? 'fr-FR' : 'en-GB') });
-  const sub = paid ? L('homeRenewBuySub', { price, method: L(METHODS[paid.network]), number: maskedPayer(paid.payerPhone) }) : price;
+  const paid = lastPayment(payments), price = amount(plan, plans, paid?.network);
+  const sub = paid ? L('homeRenewBuySub', { amount: price, method: L(METHODS[paid.network]), number: maskedPayer(paid.payerPhone) }) : price;
   return `<button type="button" class="home-renew__buy" data-quick-renew="${h(plan.id)}"${paid ? ` data-renew-payer="${h(paid.id)}"` : ''}>${h(L('homeRenewBuyAgain', { plan: plan.name }))}<span>${h(sub)}</span></button>
     <a class="home-renew__other" href="/dashboard#bundles">${h(L('homeRenewOtherPlan'))}</a>`;
 }
@@ -63,7 +72,7 @@ async function mountRemind(input, call) {
 const drawn = new WeakMap();
 // Called with each new bundle snapshot. null (updates paused or failing) keeps
 // the moment on screen but takes away buying until the bundle is confirmed again.
-export function showRenewal(snapshot, { payments, call, now = Date.now() } = {}) {
+export function showRenewal(snapshot, { payments, plans, call, now = Date.now() } = {}) {
   const actions = document.getElementById('renewActions');
   if (!actions) return;
   if (snapshot === null) {
@@ -86,7 +95,7 @@ export function showRenewal(snapshot, { payments, call, now = Date.now() } = {})
     }
   }
   if (more) more.hidden = !moment;
-  const markup = moment === 'ended' ? buyAgain(snapshot, payments)
+  const markup = moment === 'ended' ? buyAgain(snapshot, payments, plans)
     : moment ? `<label class="home-renew__remind"><input type="checkbox" data-renew-remind checked disabled><span>${h(L('homeRenewRemind'))}</span></label>` : '';
   // The switch is drawn once per moment so a poll never undoes a change.
   const key = moment === 'ended' ? markup : moment;
