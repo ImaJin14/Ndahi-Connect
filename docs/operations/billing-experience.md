@@ -73,6 +73,32 @@ paid, a receipt is retained, and activation is marked `needs_review`. It does no
 replace the newer voucher or invite a second payment. Support must review the
 transaction and, where appropriate, refund it.
 
+## Low Mobile Money balance (18 November 2026)
+
+No provider lets NDAHI read a payer's balance before a request (MeSomb's balance
+endpoint is the merchant's own; MTN's is the same), so a low balance cannot be
+detected before the charge is asked for. Instead:
+
+- **When the operator refuses the request for its balance**, the payment closes at
+  once as a confirmed failure (`creationState: "refused"`, `status: "failed"`, no
+  money taken) and the customer sees why straight away, instead of waiting out the
+  five-minute approval window. They can pay again immediately. MeSomb answers with
+  HTTP 400 `subscriber-insufficient-balance` (reason `low_balance`) or an answer
+  that also covers account limits, such as `CUSTOMER_BALANCE_INVALID` (reason
+  `check_balance`, kept for support records). The portal shows the canvas "Not
+  enough Mobile Money" screen for both; the design has no separate view, and no
+  pre-payment reminder (owner decision, 18 November). MeSomb's catch-all
+  `subscriber-internal-error` names no single cause and is not treated as a
+  balance refusal.
+- A balance failure reported later (webhook, status check or reconciliation)
+  gets the same reasons.
+- Any other submission error still leaves the payment uncertain and checked with
+  the provider; it is never closed on a guess.
+- Refusals are counted as `outcome="refused"` in `ndahi_dependency_calls_total`, so
+  customers with low balances do not set off the payment-provider failure alerts.
+- The device store checkout is unchanged: a refusal there is still verified as
+  uncertain.
+
 ## Receipts
 
 The paid payment contains an immutable receipt snapshot: receipt ID, paid date,

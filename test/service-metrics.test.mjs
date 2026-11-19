@@ -56,17 +56,21 @@ test("instrumented adapters record dependency outcomes without changing behaviou
     async createPayment(p) { return { providerReference: `ref-${p.id}` }; }
     async verifyPayment() { throw Error("Provider unavailable"); }
     async handleWebhook() { throw Error("bad signature"); }
+    async refundPayment() { throw Object.assign(Error("insufficient"), { refusal: { failureCode: "low_balance" } }); }
   }
   const adapter = metrics.instrument(new Provider(), "payment", "mesomb");
   assert.equal(adapter.configured(), true, "private fields still work through the wrapper");
   assert.deepEqual(await adapter.createPayment({ id: 7 }), { providerReference: "ref-7" });
   await assert.rejects(adapter.verifyPayment(), /Provider unavailable/);
   await assert.rejects(adapter.handleWebhook(), /bad signature/);
+  await assert.rejects(adapter.refundPayment(), /insufficient/);
   assert.ok(adapter instanceof Provider);
   const labels = { dependency: "payment", provider: "mesomb" };
   assert.equal(await value(registry, "ndahi_dependency_calls_total", { ...labels, operation: "createPayment", outcome: "success" }), 1);
   assert.equal(await value(registry, "ndahi_dependency_calls_total", { ...labels, operation: "verifyPayment", outcome: "failure" }), 1);
   assert.equal(await value(registry, "ndahi_dependency_calls_total", { operation: "handleWebhook" }), undefined, "caller errors are not provider failures");
+  assert.equal(await value(registry, "ndahi_dependency_calls_total", { ...labels, operation: "refundPayment", outcome: "refused" }), 1, "a payer's refusal is not a provider failure");
+  assert.equal(await value(registry, "ndahi_dependency_calls_total", { ...labels, operation: "refundPayment", outcome: "failure" }), undefined);
 
   const disabled = createServiceMetrics({ registry: new client.Registry() }), raw = new Provider();
   assert.equal(disabled.instrument(raw, "payment", "mesomb"), raw);
