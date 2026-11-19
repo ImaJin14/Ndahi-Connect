@@ -57,12 +57,16 @@ function render(host, data, context) {
   // Usage: data (data used for unlimited bundles), time left, devices.
   const usedBytes = Number(v.usedBytes) || 0, quota = Number(v.quotaBytes) || 0, share = unlimited || !quota ? 0 : Math.min(100, Math.round(usedBytes / quota * 100));
   const hoursLeft = Math.max(0, (Date.parse(v.expiresAt) - Date.now()) / 36e5);
+  // When the router last reported usage: an active bundle not read for ten minutes may be behind.
+  const readAt = Date.parse(d.usageReadAt), readBehind = v.status === "active" && Number.isFinite(readAt) && Date.now() - readAt > 600000;
+  const readLine = Number.isFinite(readAt) ? L(readBehind ? "adminUsageBehind" : "adminUsageReadAt", { time: when(d.usageReadAt) })
+    : v.status === "active" ? L("adminUsageNotRead") : "";
   const usage = ["active", "exhausted", "expired"].includes(v.status) ? `<section class="nd-panel admin-voucher__panel" aria-labelledby="voucherUsage"><h2 class="admin-voucher__h2" id="voucherUsage">${h(L("adminUsage"))}</h2>
     <div class="admin-voucher__stats">
       <div class="admin-voucher__stat"><b>${h(unlimited ? gb(usedBytes) : gb(data.remainingBytes))}</b><span>${h(unlimited ? L("adminDataUsedUnlimited") : L("adminOfLeft", { total: gb(quota), used: gb(usedBytes) }))}</span></div>
       <div class="admin-voucher__stat"><b>${h(v.status === "active" ? (hoursLeft >= 24 ? L("adminDays", { count: Math.floor(hoursLeft / 24) }) : L("adminHours", { count: Math.max(1, Math.floor(hoursLeft)) })) : L("adminEnded"))}</b><span>${h(v.status === "active" ? L("adminEndsOn", { date: when(v.expiresAt) }) : v.status === "exhausted" ? L("adminDataRanOut", { date: when(d.exhaustedAt || v.expiresAt) }) : L("adminValidityRanOut", { date: when(v.expiresAt) }))}</span></div>
       <div class="admin-voucher__stat"><b>${h(L("adminDevicesOf", { used: d.activeDevices || 0, limit: v.deviceLimit || 0 }))}</b><span>${h(L("adminDevicesConnected"))}</span></div>
-    </div>${unlimited ? "" : `<div class="admin-voucher__bar" role="img" aria-label="${h(L("adminUsedOf", { used: gb(usedBytes), total: gb(quota) }))}"><i data-share="${share}"></i></div>`}</section>` : "";
+    </div>${unlimited ? "" : `<div class="admin-voucher__bar" role="img" aria-label="${h(L("adminUsedOf", { used: gb(usedBytes), total: gb(quota) }))}"><i data-share="${share}"></i></div>`}${readLine ? `<p class="admin-voucher__note" data-usage-read>${h(readLine)}</p>` : ""}</section>` : "";
   const daysLeft = waiting ? Math.max(0, Math.ceil((Date.parse(r.expiresAt) - Date.now()) / 864e5)) : 0;
   const reserved = waiting ? `<section class="nd-panel admin-voucher__panel admin-voucher__reserved" aria-labelledby="voucherReserved"><h2 class="admin-voucher__h2" id="voucherReserved">${h(L("adminReservedTitle"))}</h2>
     ${reservedPhone ? `<p class="admin-voucher__reserved-for"><strong>${h(reservedPhone)}</strong> · ${h(L("adminNoAccountYet"))}</p>` : ""}

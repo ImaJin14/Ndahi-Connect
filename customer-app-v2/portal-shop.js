@@ -73,6 +73,22 @@ function productView(data, p) {
   </div>`;
 }
 
+// The item, the Mobile Money fee for the chosen network and the total to approve
+// (#297, canvas: PhoneCheckout). The fee and total are the server's quote for this
+// quantity (paymentQuotes[network][quantity - 1]); without one, the fee is "in the prompt".
+const METHOD_NAMES = { mtn: "MTN MoMo", orange: "Orange Money" };
+const shopQuote = (p, network, quantity) => { const q = p.paymentQuotes && p.paymentQuotes[network] && p.paymentQuotes[network][quantity - 1]; return q && Number.isFinite(q.total) ? q : null; };
+function costView(p, quantity, network) {
+  const q = shopQuote(p, network, quantity), price = q ? q.price : p.price * quantity;
+  return `<div class="portal-shop__cost" id="shopCost">
+    <div class="portal-shop__cost-row"><span>${h(L("shopItem"))}</span><span>${h(money(price))}</span></div>
+    <div class="portal-shop__cost-row"><span>${h(L("shopFee", { method: METHOD_NAMES[network] }))}</span><span>${h(q ? money(q.fee) : L("shopFeeInPrompt"))}</span></div>
+    ${q ? `<div class="portal-shop__total"><span>${h(L("shopTotalToApprove"))}</span><strong>${h(money(q.total))}</strong></div>` : ""}
+    <p class="portal-shop__balance">${h(q ? L("shopBalanceNote", { amount: money(q.total) }) : L("shopBalanceNoteNoFee", { amount: money(price) }))}</p>
+  </div>`;
+}
+const payLabel = (p, quantity, network) => { const q = shopQuote(p, network, quantity); return q ? L("shopPay", { amount: money(q.total) }) : L("shopPayNoFee", { amount: money(p.price * quantity) }); };
+
 function checkoutView(data, p, quantity, who) {
   const total = p.price * quantity, pickup = text(data.settings && data.settings.pickup);
   return `${bar(`/dashboard#product/${encodeURIComponent(p.id)}`, L("shopBackProduct"), L("shopCheckout"))}
@@ -82,8 +98,8 @@ function checkoutView(data, p, quantity, who) {
     ${pickup ? `<section aria-labelledby="shopPickup"><h3 id="shopPickup">${h(L("shopCollection"))}</h3><p><strong>${h(pickup)}</strong><br><span class="nd-meta">${h(L("shopCodeNote"))}</span></p></section>` : ""}
     <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${[["mtn", "MTN Mobile Money"], ["orange", "Orange Money"]].map(([value, label], i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
       <label class="portal-shop__field">${h(L("shopPayNumber"))}<input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required></label></fieldset>
-    <div class="portal-shop__total"><span>${h(L("shopTotal"))}</span><strong>${h(money(total))}</strong></div>
-    <button type="submit" class="nd-btn nd-btn--block">${h(L("shopPay", { amount: money(total) }))}</button>
+    ${costView(p, quantity, "mtn")}
+    <button type="submit" class="nd-btn nd-btn--block">${h(payLabel(p, quantity, "mtn"))}</button>
     <p class="nd-meta portal-shop__fine">${h(L("shopApproveNote"))}</p>
     <div id="shopCheckoutMessage" role="alert"></div>
   </form>`;
@@ -96,7 +112,9 @@ function orderView(o) {
   const pickup = place(o.pickup);
   return `${bar("/dashboard#activity", L("shopBackActivity"), L("shopOrderTitle", { reference: o.reference }))}
   <div class="portal-shop__line">${photo(o.product || {}, "portal-shop__thumb")}<span><strong>${h(text(o.product && o.product.name))} × ${h(o.quantity)}</strong><span class="nd-meta">${h(money(o.amount))}</span><span class="nd-pill portal-shop__status">${h(statusWord(o))}</span></span></div>
-  ${waiting ? `<section class="portal-shop__waiting" aria-labelledby="shopWaitTitle"><h3 id="shopWaitTitle">${h(L("shopApproveTitle"))}</h3><p>${h(L("shopApproveBody", { amount: money(o.amount) }))}</p></section>` : ""}
+  ${waiting ? `<section class="portal-shop__waiting" aria-labelledby="shopWaitTitle"><h3 id="shopWaitTitle">${h(L("shopApproveTitle"))}</h3><p>${h(Number.isFinite(o.total) && Number.isFinite(o.fee)
+    ? L("shopApproveBody", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.total), fee: money(o.fee) })
+    : L("shopApproveBodyNoFee", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.amount) }))}</p></section>` : ""}
   ${o.collectionCode ? `<section class="portal-shop__code" aria-labelledby="shopCodeTitle"><h3 id="shopCodeTitle">${h(L("shopCollectionCode"))}</h3><p class="portal-shop__code-value">${h(o.collectionCode)}</p>${pickup ? `<p>${h(L("shopShowCode", { place: pickup }))}</p>` : ""}</section>` : ""}
   ${o.paymentStatus === "paid" ? `<ol class="portal-shop__steps" aria-label="${h(L("shopProgress"))}">${STEPS.map((step, i) => `<li class="${i < at ? "is-done" : i === at ? "is-current" : ""}"${i === at ? ' aria-current="step"' : ""}><span class="portal-shop__dot" aria-hidden="true">${i < at ? icon(CHECK, 14) : ""}</span><strong>${h(L(`shopStep_${step}`))}</strong></li>`).join("")}</ol>` : ""}
   <div class="portal-shop__actions">${waiting || o.paymentStatus !== "paid" ? `<button type="button" class="nd-btn nd-btn--block" data-shop-verify>${h(L("shopCheckStatus"))}</button>` : ""}${o.receiptAvailable ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-receipt>${h(L("shopReceipt"))}</button>` : ""}<a class="portal-shop__help" href="/help#support">${h(L("shopHelp"))}</a></div>
@@ -143,6 +161,11 @@ function wireProduct(p) {
 }
 function wireCheckout(p, quantity, who) {
   const form = document.getElementById("shopCheckout"), message = document.getElementById("shopCheckoutMessage");
+  // The breakdown and the Pay button follow the chosen network.
+  form.querySelectorAll('input[name="network"]').forEach((radio) => { radio.onchange = () => {
+    document.getElementById("shopCost").outerHTML = costView(p, quantity, form.elements.network.value);
+    form.querySelector('[type="submit"]').textContent = payLabel(p, quantity, form.elements.network.value);
+  }; });
   form.onsubmit = async (event) => {
     event.preventDefault();
     message.textContent = "";

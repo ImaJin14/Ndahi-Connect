@@ -190,6 +190,10 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
 .checkout-summary { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nd-space-12); margin: 0 0 var(--nd-space-8); padding: var(--nd-space-12) 0; border-top: 1px solid var(--nd-line); border-bottom: 1px solid var(--nd-line); }
 .checkout-summary span { color: var(--nd-ink-soft); font-weight: 600; }
 .checkout-summary strong { color: var(--nd-forest); font-size: 20px; }
+/* Item, Mobile Money fee and total to approve (canvas: PhoneGuestCheckout, #297). */
+.checkout-cost__row { display: flex; justify-content: space-between; gap: var(--nd-space-12); margin: 0 0 4px; color: var(--nd-ink-soft); font-size: 14px; }
+.checkout-cost .checkout-summary { margin-top: var(--nd-space-6); }
+.checkout-cost__balance { margin: 0 0 var(--nd-space-8); color: var(--nd-warning-fg, #6b3a00); font-size: 12px; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-10); margin: var(--nd-space-16) 0 0; }
 .actions > button, .actions > .button { flex: 1 1 200px; min-height: 52px; font-size: var(--nd-fs-body); }
 

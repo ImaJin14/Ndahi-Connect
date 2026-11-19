@@ -39,11 +39,12 @@ const suspendButton = (c, block) => {
   return `<button type="button" class="nd-btn ${block ? "nd-btn--block" : "nd-btn--compact"} nd-btn--secondary${suspended ? "" : " admin-btn--danger"}" data-customer="${h(c.id)}" data-suspended="${suspended}">${h(L(suspended ? (block ? "adminRestoreCustomer" : "adminRestore") : (block ? "adminSuspendCustomer" : "adminSuspend")))}</button>`;
 };
 
-// "[PLAN 2] · 3.2 GB left", "Payment waiting", "[PLAN 1] · expired" or "None".
+// "[PLAN 2] · 1.8 GB used · 3.2 GB left", "Payment waiting", "[PLAN 1] · expired" or "None".
 function bundleText(summary) {
   const bundle = summary && summary.bundle;
   // Unlimited bundles show data used, never data left.
-  if (bundle && bundle.status === "active") return `${bundle.name || "—"} · ${bundle.quotaBytes == null ? L("adminDataUsed", { amount: gb(bundle.usedBytes) }) : L("adminDataLeft", { amount: gb(bundle.remainingBytes) })}`;
+  // Staff see what was actually used on every plan; fixed plans also show what is left.
+  if (bundle && bundle.status === "active") return `${bundle.name || "—"} · ${L("adminDataUsed", { amount: gb(bundle.usedBytes) })}${bundle.quotaBytes == null ? "" : ` · ${L("adminDataLeft", { amount: gb(bundle.remainingBytes) })}`}`;
   if (summary && summary.paymentWaiting) return L("adminPaymentWaiting");
   if (bundle) return `${bundle.name || "—"} · ${L(VOUCHER_WORDS[bundle.status] || "adminVoucherExpired").toLowerCase()}`;
   return L("adminFieldNone");
