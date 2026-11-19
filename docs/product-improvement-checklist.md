@@ -1468,7 +1468,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested (in-memory & Chromium): `node scripts/check-api-surface.mjs --strict` reports 0 unmatched `/api/*` paths, 0 broken HTML links, and 0 findings across 18 `customer-app-v2`, 15 `customer-app`, 4 `admin-app-v2`, 4 `admin-app`, and 1 `store-app` HTML pages (147 frontend endpoints, 161 backend literals, 67 `customerCsrfPaths`). Added [`test/api-contract-matrix.test.mjs`](../test/api-contract-matrix.test.mjs) (8 tests, including PostgreSQL contract matrix guarded by `TEST_DATABASE_URL`) and [`test/redesign-browser/api-smoke-actions.test.mjs`](../test/redesign-browser/api-smoke-actions.test.mjs) (Playwright Chromium flows covering customer/store/admin cold routes, simulated `503` recovery, 5-tab mobile nav + profile edit, admin operator password/PIN change + re-login, and owner 12-view sweep + bundle create/delete). Local `npm test`, `npm run check`, `npm run check:ui-v2`, and `npm run check:providers` pass after code changes (`55` PostgreSQL tests skipped locally because `TEST_DATABASE_URL` is unset; CI runs them against `postgres:17`).
 - Live smoke (not yet deployed from this branch): `check-deployment.mjs` against production (`portal`, `admin`, `store`, `api`) passed all 6 checks prior to committing; staging (`staging-portal`, `staging-admin`, `staging-api`) failed with `ENOTFOUND` (staging services not yet provisioned). Live real-router / live Mobile Money / physical handset verification remains unexercised by this audit.
 
-### Mobile Money fee and total before paying — draft PR #299, issue #297 (19 November 2026)
+### Mobile Money fee and total before paying — PR #299, issue #297 (19 November 2026)
 
 - Problem: MeSomb is asked with `fees: false`, so customers approve the price plus a fee they were never shown. A balance that covered the price but not the fee failed with a message that named only the price.
 - Fee source: MeSomb has no fee quote before a charge (SDK 3.0.2 and its API schema: `getPricing()` documents only the application key and name). It reports `fees` and `trxamount` on a transaction. The owner chose a per-network rule on the API (`PAYMENT_FEE_MTN`, `PAYMENT_FEE_ORANGE`), checked against MeSomb's real fees with the read-only `scripts/check-payment-fees.mjs`.
@@ -1484,6 +1484,35 @@ Owner requested all unknown business details remain blank for now. Review this l
   - browser test `test/redesign-browser/payment-fee-disclosure.test.mjs` at 390 px in English and French;
   - updated gift, renewal and payment-failed browser tests.
   - Full results are in the PR.
-- Not deployed. Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. The checker must run in the Render shell before the rules are set. A staging payment with a balance between the price and the total is still to be done.
+- Deployed: merged as `ebb67c8` (with the designs, #298 `d23dada`) and live on 19 November; CI, redesign regressions and deployment smoke checks pass. No fee rule is set, so screens show "plus the Mobile Money fee shown in your prompt".
+- Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. Run `node scripts/check-payment-fees.mjs` in the API's Render shell before setting `PAYMENT_FEE_MTN` and `PAYMENT_FEE_ORANGE`. A staging payment with a balance between the price and the total is still to be done.
 - Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
+
+### Open PRs taken over and merged (19 November 2026)
+
+The owner asked for every open PR to be made ready and merged. The four Codex drafts came from the other PC; their claims were reclaimed on the owner's instruction. Owner decisions are recorded in `docs/redesign/decisions.md`: outage time back, shared speed limits, early-redeemed reseller codes, and issue price and commission.
+
+- **#284, logger privacy test (#243, closed).**
+  - Implemented: the test no longer fails when a request ID happens to contain the PIN digits.
+  - Merged as `e45fcf1` after an update from `main`; CI passes.
+- **#288, Insights API (#262, first slice).**
+  - Implemented: `GET /api/admin/insights`, owner only, registered in the admin router. It returns recorded daily collections. Device counts, AP load and the funnel are reported unavailable, never estimated.
+  - Tested: an end-to-end role test.
+  - Deployed: merged as `bd23962`; live and answers 401 without a session.
+  - Not done: the AdminInsights screen and the three missing data series. #262 stays open.
+- **#285, reseller cash sales (#261, server).**
+  - Implemented: reseller home data, audited and idempotent "Cash received" and "Ask for more codes" actions, and the owner's view of stock requests. Early-redeemed codes count as sold at their issue price.
+  - Tested: the decision tests; `npm test` with PostgreSQL passes, 1,434 of 1,434.
+  - Merged as `f2ae6a5`.
+  - Not done: the draft screen, which revealed the code only after cash was recorded, contrary to the design. It is saved on `feat/reseller-home-screen` and must be rebuilt to ResellerHome exactly. #261 stays open.
+- **#287, outages (#259, server).**
+  - Implemented: the outage server built on 14 November (post, update, close, public notice, notifications, time back with fresh proof), merged with the review's fix. Time back never revives an old bundle beside a newer one: ambiguous customers are held for staff review. Time back is the full outage length, rounded up to the hour.
+  - Tested: `npm test` with PostgreSQL passes, 1,442 of 1,442.
+  - Deployed: merged as `0185f3b`; live; `/api/outage` answers.
+  - Not done: the PhoneOutage and AdminOutage screens, which exist on `feat/outages-screens` (14 Nov) but are unmerged and 121 commits behind. #259 stays open.
+- **#286, bundle speed limits (#263, server).**
+  - Implemented: vouchers record the plan's speed at issue. One RouterOS simple queue per bundle is shared by its devices and kept current by the usage sync. It is off unless `ROUTER_SPEED_LIMITS=on`.
+  - Tested: `npm test` with PostgreSQL on the combined code passes, 1,462 of 1,462.
+  - Merged as `bcb6488`.
+  - Not physically verified: run the RB5009 check in `docs/operations/router-command-queue.md`, including FastTrack, before turning it on. The AdminBundleEdit fields are still to do. #263 stays open.
 
