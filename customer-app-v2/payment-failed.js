@@ -35,25 +35,33 @@ export function maskedNumber(value) {
   return /^6\d{8}$/.test(digits) ? `${digits[0]}•• •• ${digits.slice(5, 7)} ${digits.slice(7)}` : "";
 }
 
-// The words for one reason; `money` formats the amount ("1 500 FCFA").
-export function failureContent(payment, reason, { money = (value) => `${value} FCFA`, checks = 1 } = {}) {
+// The words for one reason; `money` formats the amount ("1 500 FCFA"). The fee
+// and total come from the server (#297); without them the body says the fee was
+// in the prompt. apiReason check_balance keeps the low-balance view with softer words.
+export function failureContent(payment, reason, { money = (value) => `${value} FCFA`, checks = 1, apiReason = reason } = {}) {
   const network = payment.network === "orange" ? "orange" : "mtn", other = network === "mtn" ? "orange" : "mtn";
-  const n = NETWORKS[network], o = NETWORKS[other];
+  const n = NETWORKS[network], o = NETWORKS[other], hasFee = Number.isFinite(payment.fee) && Number.isFinite(payment.total);
   const values = { brand: n.brand, wallet: n.wallet, balance: n.balance, otherBrand: o.brand, otherWallet: o.wallet,
-    price: money(payment.amount), number: payment.payerPhoneMasked || maskedNumber(payment.payerPhone) };
+    price: money(payment.amount), number: payment.payerPhoneMasked || maskedNumber(payment.payerPhone),
+    ...(hasFee ? { fee: money(payment.fee), total: money(payment.total) } : {}) };
   const key = { declined: "Declined", low_balance: "LowBalance", timeout: "Timeout", wrong_network: "WrongNetwork" }[reason];
+  const bodyKey = reason === "low_balance" ? `payFailed${apiReason === "check_balance" ? "CheckBalance" : "LowBalance"}Body${hasFee ? "" : "NoFee"}`
+    : `payFailed${key}Body`;
   const timeout = reason === "timeout";
   return {
     reason, network, other, timeout,
     tone: timeout ? "warning" : "danger",
     icon: ICONS[reason],
     title: L(`payFailed${key}Title`, values),
-    body: L(`payFailed${key}Body`, values),
+    body: L(bodyKey, values),
     money: L(timeout ? "payFailedTimeoutMoney" : "payFailedNoMoney", values),
     primary: timeout ? L("payFailedCheckAgain", values) : L(`payFailed${key}Primary`, values),
     secondary: L(`payFailed${key}Secondary`, values),
     checks: timeout ? L(checks === 1 ? "payFailedCheckedOne" : "payFailedCheckedMany", { count: checks }) : "",
     bundle: [payment.plan?.name, money(payment.amount)].filter(Boolean).join(" · "),
+    feeName: L("payFailedFee", values),
+    fee: hasFee ? values.fee : L("payFailedFeeInPrompt"),
+    total: hasFee ? values.total : "",
     method: [n.wallet, values.number].filter(Boolean).join(" · "),
     reference: String(payment.id || ""),
   };
@@ -68,7 +76,7 @@ let open = null;
 export function showPaymentFailed(payment, apiReason, actions = {}, options = {}) {
   const view = $("#paymentFailed"), reason = shownReason(apiReason);
   if (!view || !failureReasons.includes(reason)) return false;
-  const content = failureContent(payment, reason, options);
+  const content = failureContent(payment, reason, { ...options, apiReason });
   const set = (id, text) => { $(id).textContent = text; };
   view.dataset.reason = reason;
   view.dataset.tone = content.tone;
@@ -77,6 +85,13 @@ export function showPaymentFailed(payment, apiReason, actions = {}, options = {}
   set("#paymentFailedBody", content.body);
   set("#paymentFailedMoney", content.money);
   set("#paymentFailedBundle", content.bundle);
+  // The fee and total asked (#297); the total row only when the server knows it.
+  if ($("#paymentFailedFee")) {
+    set("#paymentFailedFeeName", content.feeName);
+    set("#paymentFailedFee", content.fee);
+    set("#paymentFailedTotal", content.total);
+    $("#paymentFailedTotalRow").hidden = !content.total;
+  }
   set("#paymentFailedMethod", content.method);
   set("#paymentFailedReference", content.reference);
   $("#paymentFailedChecks").hidden = !content.timeout;

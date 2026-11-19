@@ -258,6 +258,12 @@ body[data-portal-sub] .portal-shop__bar .portal-sub__back { display: grid; }
 .portal-shop__field input { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
 .portal-shop__total { display: flex; align-items: baseline; justify-content: space-between; padding-top: var(--nd-space-10); border-top: 1px solid var(--nd-line); }
 .portal-shop__total strong { color: var(--nd-forest); font-size: 20px; }
+/* Item, Mobile Money fee and the total to approve (canvas: PhoneCheckout, #297). */
+.portal-shop__cost { display: flex; flex-direction: column; gap: 4px; }
+.portal-shop__cost-row { display: flex; justify-content: space-between; gap: var(--nd-space-12); color: var(--nd-ink-soft); font-size: 14px; }
+.portal-shop__cost .portal-shop__total { margin-top: 2px; padding-top: 6px; }
+.portal-shop__cost .portal-shop__total span { color: var(--nd-ink); font-size: 14px; font-weight: 700; }
+.portal-shop__balance { margin: 0 0 var(--nd-space-4); color: var(--nd-warning-fg); font-size: 12px; }
 .portal-shop__fine { margin: -6px 0 0; text-align: center; }
 #shopCheckoutMessage:empty, #shopOrderMessage:empty { display: none; }
 #shopCheckoutMessage, #shopOrderMessage { padding: var(--nd-space-10) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-danger-bg); color: var(--nd-danger-fg); font-size: var(--nd-fs-small); }

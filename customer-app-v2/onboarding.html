@@ -55,7 +55,7 @@
           </label>
           <p id="paymentNetworkHint" class="trust" role="status" aria-live="polite">Enter the payment number to suggest its network. You can change the selection.</p>
           <label id="acknowledgement" class="acknowledgement" hidden><input name="acknowledge" type="checkbox"><span id="acknowledgementText"></span></label>
-          <p id="providerFee" class="trust" hidden>The payment provider's service fee is added separately to the package price and shown in your Mobile Money approval prompt.</p>
+          <p id="balanceNote" class="buy-balance-note" role="note" hidden><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01"></path></svg><span></span></p>
           <button type="submit" id="requestPayment">Request payment</button>
         </fieldset>
       </form>
@@ -71,6 +71,8 @@
       <p class="pay-failed__money" id="paymentFailedMoney"></p>
       <section class="pay-failed__details" aria-label="Payment details" data-i18n-aria-label="payFailedDetails">
         <div class="pay-failed__row"><span data-i18n="payFailedBundle">Bundle</span><strong id="paymentFailedBundle"></strong></div>
+        <div class="pay-failed__row"><span id="paymentFailedFeeName">Mobile Money fee</span><strong id="paymentFailedFee"></strong></div>
+        <div class="pay-failed__row" id="paymentFailedTotalRow"><span data-i18n="payFailedTotal">Total asked</span><strong id="paymentFailedTotal"></strong></div>
         <div class="pay-failed__row"><span data-i18n="payFailedPaidWith">Paid with</span><strong id="paymentFailedMethod"></strong></div>
         <div class="pay-failed__row"><span data-i18n="payFailedReference">Reference</span><strong class="pay-failed__ref" id="paymentFailedReference"></strong></div>
       </section>

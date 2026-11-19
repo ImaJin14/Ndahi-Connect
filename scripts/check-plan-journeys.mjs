@@ -90,10 +90,10 @@ try {
       page.on("request", (request) => { if (request.url().endsWith("/api/account/plan/purchase")) requests.push(request.postDataJSON()); });
       await page.getByRole("button", { name: "Review renewal" }).click();
       assert.equal(await page.locator('input[name="email"]').getAttribute("readonly"), "");
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       assert.equal(requests.length, 0, "Replacement consent is required");
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       assert.equal(requests.length, 1);
       assert.equal(requests[0].email, "preview@example.test");
@@ -137,7 +137,7 @@ try {
       assert.equal(await page.locator('[data-plan="monthly"]').evaluate((el) => el === document.activeElement), true);
       await page.locator('[data-plan="monthly"]').click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL(/\/voucher-ready\.html/);
       await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
@@ -188,7 +188,7 @@ try {
       await page.route(`${api}/api/account/plan/purchase`, async (route) => { await gate; await route.continue(); });
       await page.locator('[data-plan="monthly"]').click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Back to packages" }).click();
       assert.equal(await page.locator('[data-plan="family"]').isDisabled(), true);
       release();
@@ -205,7 +205,7 @@ try {
       await load(page);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       const id = (await store.snapshot()).payments[0].id;
       await page.reload();
@@ -229,7 +229,7 @@ try {
       await page.goto(`${portal}/onboarding.html?action=renew`);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       assert.notEqual((await store.snapshot()).payments[0].id, id);
     });
@@ -243,7 +243,7 @@ try {
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
       const pollingResponse = page.waitForResponse((response) => /\/api\/account\/payments\/[^/]+\/status$/.test(response.url()));
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       assert.equal((await pollingResponse).status(), 200);
       const id = (await store.snapshot()).payments[0].id;
       await post(`/api/payments/${id}/confirm`, {});
@@ -262,7 +262,7 @@ try {
       });
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.locator("#message [role=alert]").waitFor();
       assert.equal(await page.locator("#requestPayment").isEnabled(), true);
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
@@ -277,7 +277,7 @@ try {
       await load(page);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       const id = (await store.snapshot()).payments[0].id;
       await page.goto(`${portal}/dashboard`);
@@ -288,7 +288,7 @@ try {
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await page.getByRole("button", { name: "Review renewal" }).click();
       await page.locator('input[name="acknowledge"]').check();
-      await page.getByRole("button", { name: /Request payment/ }).click();
+      await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).waitFor();
       assert.notEqual((await store.snapshot()).payments[0].id, id);
     });
