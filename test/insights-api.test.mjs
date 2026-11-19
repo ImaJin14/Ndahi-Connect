@@ -12,14 +12,14 @@ async function call(path, role = "owner", method = "GET") {
 }
 
 test("insights limits financial data to permitted staff and marks availability", async () => {
-  for (const role of ["owner", "operator", "auditor"]) {
+  for (const role of ["owner"]) {
     const { res } = await call(`/api/admin/insights${query}`, role);
     assert.equal(res.status, 200);
     assert.equal(res.headers["cache-control"], "no-store");
     assert.equal(res.body.collections.coverage, "partial-older-offline-sales-may-not-be-recorded");
     assert.equal(res.body.availability.funnel.status, "unavailable");
   }
-  for (const role of ["reseller", "unknown", undefined]) {
+  for (const role of ["operator", "auditor", "reseller", "unknown", undefined]) {
     const { res } = await call(`/api/admin/insights${query}`, role === undefined ? null : role);
     assert.equal(res.status, 403);
     assert.equal(res.body.collections, undefined);
