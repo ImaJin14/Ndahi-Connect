@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin promotions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:21px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.hint{margin:6px 0 0;color:#5c6963;font-size:12px;line-height:1.4}
+.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+textarea.in{min-height:64px;padding:10px 12px;line-height:1.45}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.go{min-height:44px;padding:0 18px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+td,th{text-align:left;padding:11px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.bf{display:inline-block;padding:3px 9px;border-radius:6px;background:#10241c;color:#b9ee2e;font-size:11px;font-weight:700;letter-spacing:.12em}
+.metric b{display:block;font-size:24px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="promotions" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Promotions.</h1>
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">A sale price for a set time, with an optional free bundle.</p>
+      </div>
+      <div role="tablist" aria-label="View" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+          <button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{isEdit}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+        <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+          <section aria-labelledby="p1" class="panel">
+            <h2 id="p1" class="h2">The offer</h2>
+            <div class="grid">
+              <div><label class="lbl" for="pn">Name customers see</label><input class="in" id="pn" value="Black Friday"></div>
+              <div><label class="lbl" for="pp">Product</label><select class="in" id="pp"><option selected="">TP-Link AX1500 Travel Router</option><option>TP-Link CPE210</option><option>Wavlink AC1200</option></select></div>
+            </div>
+            <div class="grid">
+              <div><label class="lbl" for="sp">Sale price (FCFA)</label><input class="in" id="sp" value="100000"><p class="hint">Regular price: [PRICE] FCFA</p></div>
+              <div style="display: flex; flex-direction: column; justify-content: center">
+                <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer"><input type="checkbox" checked="{{showWas}}" onChange="{{flipWas}}" style="width: 20px; height: 20px; accent-color: #003b2b; margin-top: 1px"><span><strong>Show the regular price crossed out</strong><span class="hint" style="display: block; margin-top: 2px">Only if it really sold at that price in the last 30 days.</span></span></label>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="p2" class="panel">
+            <h2 id="p2" class="h2">Free bundle with it</h2>
+            <label style="display: flex; gap: 10px; align-items: center; min-height: 40px; font-size: 14px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{hasBonus}}" onChange="{{flipBonus}}" style="width: 20px; height: 20px; accent-color: #003b2b">Include a free bundle</label>
+            <sc-if value="{{hasBonus}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <div class="grid">
+                  <div><label class="lbl" for="bb">Bundle</label><select class="in" id="bb"><option selected="">[PLAN 4] · Unlimited · 30 days · fair use</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                  <div><label class="lbl" for="bw">Must be started within</label><select class="in" id="bw"><option>30 days</option><option selected="">60 days</option><option>90 days</option></select><p class="hint">Counted from when it's given. The 30 days of Unlimited start when they press Start.</p></div>
+                </div>
+                <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                  <legend class="lbl">Give it</legend>
+                  <sc-for list="{{whens}}" as="w" hint-placeholder-count="2">
+                    <label style="{{w.style}}"><input type="radio" name="when" checked="{{w.on}}" onChange="{{w.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{w.label}}</strong><span style="font-size: 13px; color: #5c6963">{{w.hint}}</span></span></label>
+                  </sc-for>
+                </fieldset>
+                <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px">Signed-in buyers get it in their account. Guests get it reserved for the Mobile Money number that paid, and claim it with that number and the code. Recorded as a gift, not revenue. If the order is refunded, an unstarted free bundle is cancelled.</p>
+              </div>
+            </sc-if>
+          </section>
+
+          <section aria-labelledby="p3" class="panel">
+            <h2 id="p3" class="h2">When and how many</h2>
+            <div class="grid">
+              <div><label class="lbl" for="ps">Starts</label><input class="in" id="ps" value="Fri 27 Nov · 00:00"></div>
+              <div><label class="lbl" for="pe">Ends</label><input class="in" id="pe" value="Mon 30 Nov · 23:59"></div>
+              <div><label class="lbl" for="pq">Units at this price</label><input class="in" id="pq" type="number" value="20"><p class="hint">10 in stock now. Sale stops when either runs out.</p></div>
+              <div><label class="lbl" for="pl">Per customer</label><select class="in" id="pl"><option selected="">1 per phone number</option><option>2 per phone number</option><option>No limit</option></select></div>
+            </div>
+            <div class="grid">
+              <div><label class="lbl" for="te">Terms (English)</label><textarea class="in" id="te">1 per customer. While stocks last. Free month: [PLAN 4], start within 60 days of collecting the router. Not exchangeable for cash.</textarea></div>
+              <div><label class="lbl" for="tf">Terms (French)</label><textarea class="in" id="tf">1 par client. Dans la limite des stocks. Mois offert : [FORFAIT 4], à activer dans les 60 jours après le retrait du routeur. Non échangeable contre de l'argent.</textarea></div>
+            </div>
+          </section>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+            <button type="button" class="go" onClick="{{schedule}}">{{scheduleLabel}}</button>
+            <button type="button" class="go2">Save as draft</button>
+            <sc-if value="{{scheduled}}" hint-placeholder-val="{{ false }}"><span role="status" style="color: #345000; font-weight: 700; font-size: 14px">Scheduled — goes live Fri 27 Nov at 00:00. Logged in the audit trail.</span></sc-if>
+          </div>
+        </div>
+
+        <aside aria-labelledby="pv" style="flex: 1 1 280px; min-width: 0; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 10px">
+          <h2 id="pv" style="margin: 0; font-size: 14px; font-weight: 700; color: #5c6963">What customers see</h2>
+          <article style="background: #fffef9; border: 2px solid #10241c; border-radius: 16px; overflow: hidden">
+            <div style="position: relative; aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">Product photo<span class="bf" style="position: absolute; top: 12px; left: 12px">BLACK FRIDAY</span></div>
+            <div style="padding: 16px; display: flex; flex-direction: column; gap: 6px">
+              <h3 style="margin: 0; font-size: 17px">TP-Link AX1500 Travel Router</h3>
+              <p style="margin: 0; display: flex; gap: 8px; align-items: baseline"><strong style="font-size: 20px">100,000 FCFA</strong><sc-if value="{{showWas}}" hint-placeholder-val="{{ true }}"><s style="color: #5c6963; font-size: 14px">[PRICE]</s></sc-if></p>
+              <sc-if value="{{hasBonus}}" hint-placeholder-val="{{ true }}">
+                <p style="margin: 0; padding: 8px 10px; border-radius: 9px; background: #eaf6d5; color: #2b4200; font-size: 13px; font-weight: 700">+ 1 month Unlimited internet free</p>
+              </sc-if>
+              <p style="margin: 0; color: #8a4a00; font-size: 13px; font-weight: 600">Ends Mon 30 Nov · 20 at this price</p>
+            </div>
+          </article>
+          <p style="margin: 0; color: #5c6963; font-size: 12px">Shown on the public store, in the portal Shop tab, and on the Wi-Fi sign-in page while it's live.</p>
+        </aside>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isLive}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <section class="panel" style="flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px 24px; border: 2px solid #10241c">
+          <span class="bf">BLACK FRIDAY</span>
+          <strong style="font-size: 17px; flex: 1 1 280px">AX1500 for 100,000 FCFA + 1 month Unlimited free</strong>
+          <span class="pill" style="background: #eaf6d5; color: #345000">Live · ends in 2 days 14 h</span>
+          <button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4">End early</button>
+        </section>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>13 / 20</b><span>units sold at this price</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>[XAF]</b><span>promotion revenue</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>8</b><span>free months given</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>5</b><span>free months started</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>4</b><span>new customers from it</span></div>
+        </div>
+        <section aria-labelledby="po" class="panel" style="gap: 6px">
+          <h2 id="po" class="h2">Orders in this promotion</h2>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; border-collapse: collapse">
+              <thead><tr><th scope="col">Order</th><th scope="col">Buyer</th><th scope="col">Order status</th><th scope="col">Free month</th></tr></thead>
+              <tbody>
+                <tr><td><a href="AdminStore.dc.html" style="font-weight: 700">NS-2711-0104</a></td><td>Amina N.</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Collected</span></td><td><span class="pill" style="background: #eaf6d5; color: #345000">Started 28 Nov</span></td></tr>
+                <tr><td><a href="AdminStore.dc.html" style="font-weight: 700">NS-2711-0109</a></td><td>6•• •• 88 02 · guest</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Collected</span></td><td><span class="pill" style="background: #f1e8fb; color: #5b2d86">Waiting for claim</span></td></tr>
+                <tr><td><a href="AdminStore.dc.html" style="font-weight: 700">NS-2811-0117</a></td><td>J. Fon</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Ready to collect</span></td><td><span class="pill" style="background: #fff4e0; color: #6b3a00">Given at collection</span></td></tr>
+                <tr><td><a href="AdminStore.dc.html" style="font-weight: 700">NS-2811-0121</a></td><td>6•• •• 31 77 · guest</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Refunded</span></td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Cancelled · never given</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <section aria-labelledby="pa" class="panel" style="gap: 6px">
+      <h2 id="pa" class="h2">All promotions</h2>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Name</th><th scope="col">Offer</th><th scope="col">When</th><th scope="col">Sold</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Black Friday</strong></td><td>AX1500 · 100,000 FCFA + [PLAN 4] free</td><td>27 – 30 Nov</td><td>{{soldCell}}</td><td><span style="{{statusPill}}">{{statusText}}</span></td></tr>
+            <tr><td><strong>Back to school</strong></td><td>Wavlink Mini · [PRICE] FCFA</td><td>1 – 15 Sep</td><td>9 / 10</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Ended</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["edit","live"],"default":"edit"},"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: props.view ?? 'edit', when: 'collect', bonus: true, was: true, scheduled: false }; }
+  renderVals() {
+    const s = this.state;
+    const tb = 'min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const tabs = [['edit', 'Set up'], ['live', 'While it runs']].map(([id, label]) => ({ label, sel: id === s.view ? 'true' : 'false', style: tb + (id === s.view ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ view: id }) }));
+    const row = 'display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 12px; border-radius: 10px; cursor: pointer; ';
+    const whens = [
+      ['collect', 'When the router is collected (recommended)', 'Staff hand it over with the router. Nothing to undo if the order is refunded before pickup.'],
+      ['paid', 'As soon as payment is confirmed', "Faster for the customer, but a refund has to cancel it, and it can't be cancelled once started."]
+    ].map(([id, label, hint]) => ({ label, hint, on: s.when === id, style: row + (s.when === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'), pick: () => this.setState({ when: id }) }));
+    const live = s.view === 'live';
+    return {
+      tabs, whens, isEdit: s.view === 'edit', isLive: live,
+      hasBonus: s.bonus, flipBonus: () => this.setState({ bonus: !s.bonus }),
+      showWas: s.was, flipWas: () => this.setState({ was: !s.was }),
+      scheduled: s.scheduled, schedule: () => this.setState({ scheduled: true }),
+      scheduleLabel: s.scheduled ? 'Scheduled' : 'Schedule promotion',
+      soldCell: live ? '13 / 20' : '0 / 20',
+      statusText: live ? 'Live' : (s.scheduled ? 'Scheduled · 27 Nov' : 'Draft'),
+      statusPill: 'padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (live ? 'background: #eaf6d5; color: #345000;' : s.scheduled ? 'background: #e3f0ff; color: #1d4f86;' : 'background: #fff4e0; color: #6b3a00;')
+    };
+  }
+}
+</script>
+</body>
+</html>

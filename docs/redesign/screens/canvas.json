@@ -621,6 +621,32 @@
       "w": 2400,
       "x": -2700,
       "y": 1300
+    },
+    "StorePromo.dc.html": {
+      "expand": "fill",
+      "h": 1560,
+      "is_interactive": true,
+      "title": "Public store during Black Friday \u2014 desktop",
+      "w": 1280,
+      "x": 0,
+      "y": 16400
+    },
+    "PhonePromoBuy.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Black Friday deal: product \u2192 checkout \u2192 order (account or guest)",
+      "w": 390,
+      "x": 1360,
+      "y": 16400
+    },
+    "AdminPromotions.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "Promotions (set up \u00b7 while it runs)",
+      "w": 1280,
+      "x": 1830,
+      "y": 16400
     }
   },
   "createdOnFiles": {
@@ -645,7 +671,9 @@
     "row9",
     "added",
     "claim",
-    "flow"
+    "flow",
+    "row11",
+    "promo"
   ],
   "notes": {
     "guest": {
@@ -759,6 +787,22 @@
       "w": 240,
       "x": -2700,
       "y": 1000
+    },
+    "row11": {
+      "kind": "title1",
+      "maxW": 3200,
+      "text": "Promotions \u2014 Black Friday: AX1500 for 100,000 FCFA + 1 month Unlimited free",
+      "w": 240,
+      "x": 0,
+      "y": 16100
+    },
+    "promo": {
+      "fill": "yellow",
+      "size": 24,
+      "text": "Promotion rules in this design:\n\n\u2022 Sale price for a set window, capped units, 1 per customer.\n\u2022 Free bundle given when the router is collected (option: at payment). Signed-in: added to account. Guest: reserved for the paying number, code on a slip.\n\u2022 Free month starts when they press Start, within 60 days \u2014 works even with a bundle running.\n\u2022 Refund before collection \u2192 free month never given. Gift, not revenue.\n\u2022 Crossed-out price only if it's the real recent price.",
+      "w": 380,
+      "x": 3190,
+      "y": 16400
     }
   },
   "order": [
@@ -834,6 +878,9 @@
     "AdminInsights.dc.html",
     "AdminOutage.dc.html",
     "PhoneClaimGift.dc.html",
+    "StorePromo.dc.html",
+    "PhonePromoBuy.dc.html",
+    "AdminPromotions.dc.html",
     "TabBar.dc.html",
     "AdminSide.dc.html"
   ],
