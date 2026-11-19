@@ -23,6 +23,7 @@ import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 import { mountResellerLedger } from "/reseller-ledger.js";
+import { mountResellerHome } from "/reseller-home.js";
 import { format, t } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { updateHomeRouterMenu } from "/home-entry.js";
@@ -169,6 +170,7 @@ async function loadHomePayments() {
 async function load() {
   const x = await call("/api/admin/dashboard");
   adminRole = x.profile.role;
+  if (adminRole === "reseller") resellerHome ||= mountResellerHome({ call, logout: signOut });
   adminAuthenticatorRetired = x.profile.authenticatorRetired === true;
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
@@ -608,6 +610,12 @@ $("#app").onclick = async (e) => {
     await load();
   });
 };
+// A reseller's Home is the ResellerHome phone screen (#261), mounted once.
+let resellerHome;
+async function signOut() {
+  await call("/api/admin/logout", { method: "POST", body: "{}" });
+  location.href = "/login";
+}
 $("#logout").onclick = async (event) => {
   await runAction(event.currentTarget, "Logging out…", async () => {
     await call("/api/admin/logout", { method: "POST", body: "{}" });
