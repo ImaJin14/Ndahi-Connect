@@ -1516,3 +1516,11 @@ The owner asked for every open PR to be made ready and merged. The four Codex dr
   - Merged as `bcb6488`.
   - Not physically verified: run the RB5009 check in `docs/operations/router-command-queue.md`, including FastTrack, before turning it on. The AdminBundleEdit fields are still to do. #263 stays open.
 
+### On-site checks still to do after closing #116, #143 and #178 (19 November 2026)
+
+On 19 November the owner closed these issues as implemented: their code is merged and deployed, and only on-site or owner checks remain. Those checks are tracked here and are not yet verified:
+
+- [ ] **Thermal slips (#116):** print 58 mm and 80 mm slips on the real thermal printer, adjust its settings until the code and QR come out sharp, and confirm a phone scans the printed QR. Code: #182, #209, #210, #211, #241.
+- [ ] **Release acceptance (#143):** on real devices, confirm a router-confirmed connection with genuine internet browsing, a real Mobile Money payment with its email receipt, a closed-app push notification, and captive-portal and installed-PWA behaviour. Then write the final completion matrix. Production deployment was recorded on 13 November (`docs/releases/production-redesign-deployment-2026-11-13.md`).
+- [ ] **Home pilot (#178):** run the real pilot on the named WISP router + EAP650 + RB5009, using the pilot template and evaluator, including the 100 quota and activation trials, IPv6 bypass, API outage, expiry and quota cut, restart and signal loss, renewal from mobile data and replacement. Home stays disabled until an independently reviewed pilot passes.
+
