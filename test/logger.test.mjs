@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import crypto from "node:crypto";
+import { syncBuiltinESMExports } from "node:module";
 import { createServer, createStore } from "../server.mjs";
 import { createLogger, errorFields, logRecord } from "../lib/logger.mjs";
 import { routeLabel } from "../lib/api/http.mjs";
@@ -108,9 +110,24 @@ test("API requests get a request ID header and one access log without query data
 
 test("malformed bodies and unhandled errors never log request data", async (t) => {
   const { lines, call } = await api(t);
-  const invalid = await call("/api/account/login/pin", { method: "POST", headers: { "content-type": "application/json" }, body: '{"phone":"677123456","pin":"8642"' });
-  assert.equal(invalid.status, 400);
+  // Force the collision only around this request. Legitimate opaque IDs may
+  // contain the PIN digits; that must not weaken checks on the other fields.
+  const collisionId = "00000000-0000-4000-8642-000000000001";
+  const uuid = t.mock.method(crypto, "randomUUID", () => collisionId);
+  syncBuiltinESMExports();
+  try {
+    const invalid = await call("/api/account/login/pin", { method: "POST", headers: { "content-type": "application/json" }, body: '{"phone":"677123456","pin":"8642"' });
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.headers.get("x-request-id"), collisionId);
+    await invalid.arrayBuffer();
+  } finally {
+    uuid.mock.restore();
+    syncBuiltinESMExports();
+  }
   assert.ok(!lines.some((line) => line.event === "http.unhandled_error"));
+  const invalidAccess = lines.find((line) => line.event === "http.request");
+  assert.equal(invalidAccess.requestId, collisionId);
+  assert.equal(invalidAccess.correlationId, collisionId);
 
   const real = createStore({ persistent: false });
   const failing = await api(t, { store: { ...real, transaction: async () => { throw Error("write failed for 677123456 <owner@example.cm> NC-7KQ9-M2XP"); } } });
@@ -120,6 +137,9 @@ test("malformed bodies and unhandled errors never log request data", async (t) =
   const error = failing.lines.find((line) => line.event === "http.unhandled_error");
   assert.equal(error.requestId, purchase.headers.get("x-request-id"));
   assert.equal(error.errorMessage, undefined);
-  const logged = JSON.stringify([...lines, ...failing.lines]);
-  for (const secret of ["677123456", "8642", "owner@example.cm", "7KQ9", "Test Customer"]) assert.ok(!logged.includes(secret), secret);
+  for (const { requestId, correlationId, ...fields } of [...lines, ...failing.lines]) {
+    for (const id of [requestId, correlationId].filter(Boolean)) assert.match(id, /^[0-9a-f-]{36}$/);
+    const logged = JSON.stringify(fields);
+    for (const secret of ["677123456", "8642", "owner@example.cm", "7KQ9", "Test Customer"]) assert.ok(!logged.includes(secret), secret);
+  }
 });
