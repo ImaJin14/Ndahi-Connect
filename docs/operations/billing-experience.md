@@ -86,8 +86,10 @@ detected before the charge is asked for. Instead:
   HTTP 400 `subscriber-insufficient-balance` (reason `low_balance`) or an answer
   that also covers account limits, such as `CUSTOMER_BALANCE_INVALID` (reason
   `check_balance`, kept for support records). The portal shows the canvas "Not
-  enough Mobile Money" screen for both; the design has no separate view, and no
-  pre-payment reminder (owner decision, 18 November). MeSomb's catch-all
+  enough Mobile Money" screen for both; the design has no separate view. Since
+  19 November every payment screen also says, before paying, that the balance must
+  cover the total including the Mobile Money fee (see "Mobile Money fee and total
+  before paying" below), and the failure names that total. MeSomb's catch-all
   `subscriber-internal-error` names no single cause and is not treated as a
   balance refusal.
 - A balance failure reported later (webhook, status check or reconciliation)
@@ -98,6 +100,66 @@ detected before the charge is asked for. Instead:
   customers with low balances do not set off the payment-provider failure alerts.
 - The device store checkout is unchanged: a refusal there is still verified as
   uncertain.
+
+## Mobile Money fee and total before paying (19 November 2026, #297)
+
+MeSomb is asked with `fees: false` (`lib/payments.mjs`), so the payer approves the
+price plus MeSomb's fee. The customer now sees the price, the fee for their network
+and the total before paying, and a low-balance failure names that total. Who pays
+the fee is unchanged.
+
+- **Where the fee comes from.** MeSomb has no call that quotes its fee before a
+  charge. Its `getPricing()` response is undocumented beyond the application's key
+  and name. It reports the fee it charged (`fees`, and `trxamount` = price + fee)
+  on a transaction. So the quote comes from one rule per network on the API
+  service, set from the MeSomb contract:
+
+  ```text
+  PAYMENT_FEE_MTN="percent=…,on=price|gross,fixed=…,min=…,max=…,round=up|down|nearest"
+  PAYMENT_FEE_ORANGE="…"
+  ```
+
+  `percent` is 0–50 with up to 4 decimals. `on=price` takes that share of the
+  price; `on=gross` takes it of the total collected (total = price / (1 − percent)).
+  `fixed`, `min` and `max` are whole FCFA. Rounding defaults to `up`, so "your
+  balance needs at least {total}" stays true. Any invalid rule counts as not set.
+  The rules apply only with `PAYMENT_MODE=mesomb` (or `mock` in tests).
+- **No rule, no number.** Without a rule the fee is `null` and every screen shows
+  the price "plus the Mobile Money fee shown in your prompt". The front ends never
+  work a fee out.
+- **One quote, kept.** `lib/payment-fees.mjs` `quotePayment(price, network)`
+  returns `{ price, fee, total, network }`. `GET /api/plans` and the dashboard's
+  `availablePlans` carry `paymentQuotes` per network, and the store catalogue
+  carries one per quantity. The quote is saved on the payment or store order as
+  `fee` and `total` when the charge starts; `amount` stays the price sent to
+  MeSomb.
+- **What MeSomb reports.** When a transaction succeeds, MeSomb's `fees` and
+  `trxamount` are saved as `providerFee` and `providerTotal`. They replace the quote
+  on the payment view and the receipt, since they are what was taken. A pending
+  request's fee is not trusted (it may not be set yet). A difference from the quote
+  is logged once as `payment.fee_mismatch` or `store.fee_mismatch`.
+- **Screens.**
+  - v2 buy a bundle, buy for someone else, renew, both store checkouts and the
+    failure screen follow `docs/redesign/screens/`: a breakdown, "Pay {total}",
+    the amber balance note, a waiting screen that shows the total, and failure
+    details with the fee and the total.
+  - `check_balance` keeps the softer "check your balance covers {total}" wording.
+  - v1 replaces its old fee note with the fee and the total.
+- **Receipts.** Bundle receipts (email, PDF, portal) and store receipts list the
+  price, the fee and the total paid when a fee is known. Older payments keep their
+  original receipt.
+- **Setting or checking the rule.** In the API service's shell on Render, run:
+
+  ```sh
+  node scripts/check-payment-fees.mjs [--limit 30]
+  ```
+
+  It is read-only. It prints MeSomb's pricing answer with the key removed, and for
+  recent paid MeSomb payments the fee MeSomb charged as a share of the price and of
+  the total, then whether the configured rule reproduces every fee. No phone
+  numbers, names or keys are printed. Set `PAYMENT_FEE_MTN` and
+  `PAYMENT_FEE_ORANGE` on `ndahi-api` once the rule matches, and run it again
+  after a contract change.
 
 ## Receipts
 

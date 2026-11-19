@@ -320,9 +320,9 @@ async function load() {
   $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
   if (active) mountInstallCard($("#installApp"));
   loadHomeShop();
-  showRenewal(result.bundleStatus, { payments: result.payments, call });
+  showRenewal(result.bundleStatus, { payments: result.payments, plans: result.availablePlans, call });
   mountDataBalance({ call, initial: result.bundleStatus, onSnapshot: snapshot => {
-    showRenewal(snapshot, { payments: result.payments, call });
+    showRenewal(snapshot, { payments: result.payments, plans: result.availablePlans, call });
     const actions = $("#bundlePurchaseActions");
     const markup = bundlePurchaseContent(snapshot);
     if (actions && actions.innerHTML !== markup) actions.innerHTML = markup;

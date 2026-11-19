@@ -28,9 +28,12 @@ const reservePort = async () => {
 const secret = "redesign-payment-failed-secret";
 const REASONS = {
   declined: { phone: "670001245", title: "Payment not approved", primary: "Try again", secondary: "Pay with Orange Money instead" },
-  low_balance: { phone: "670011245", title: "Not enough Mobile Money", primary: "Try again", secondary: "Choose a smaller bundle" },
-  // The API's balance-or-limit answer shows the canvas low-balance view.
-  check_balance: { phone: "670031245", title: "Not enough Mobile Money", primary: "Try again", secondary: "Choose a smaller bundle", shown: "low_balance" },
+  // No fee rule is set here, so the words say the fee was in the prompt and give no number (#297).
+  low_balance: { phone: "670011245", title: "Not enough Mobile Money", primary: "Try again", secondary: "Choose a smaller bundle",
+    body: "Your MoMo balance is below the bundle (1,000 FCFA) plus the Mobile Money fee shown in your prompt. Add money at any MoMo agent, then try again — or pick a smaller bundle." },
+  // The API's balance-or-limit answer shows the canvas low-balance view, with softer words.
+  check_balance: { phone: "670031245", title: "Not enough Mobile Money", primary: "Try again", secondary: "Choose a smaller bundle", shown: "low_balance",
+    body: "MTN MoMo didn't approve this payment, which usually means the balance is too low. Check your MoMo balance covers the bundle (1,000 FCFA) plus the Mobile Money fee shown in your prompt. Then try again — or pick a smaller bundle." },
   timeout: { phone: "670021245", title: "Still waiting for MTN", primary: "Check again", secondary: "Get help with this payment" },
   wrong_network: { phone: "699001245", title: "This number isn't on MTN MoMo", primary: "Pay with Orange Money", secondary: "Use a different number" },
 };
@@ -94,6 +97,9 @@ test("a guest sees why a payment didn't go through and the next step, on phone a
         assert.equal(await page.locator("#paymentFailedMoney").textContent(), reason === "timeout"
           ? "Please don't pay again yet — you could be charged twice." : "No money was taken.");
         assert.equal(await page.locator("#paymentFailedBundle").textContent(), "Weekly · 1,000 FCFA");
+        if (expected.body) assert.equal(await page.locator("#paymentFailedBody").textContent(), expected.body);
+        assert.deepEqual([await page.locator("#paymentFailedFeeName").textContent(), await page.locator("#paymentFailedFee").textContent()], ["MTN MoMo fee", "Shown in your prompt"]);
+        assert.equal(await page.locator("#paymentFailedTotalRow").isHidden(), true, "no total without a fee");
         assert.equal(await page.locator("#paymentFailedMethod").textContent(), "MTN MoMo · 6•• •• 12 45");
         assert.equal(await page.locator("#paymentFailedPrimary").textContent(), expected.primary);
         assert.equal(await view.getByText(expected.secondary, { exact: true }).isVisible(), true);

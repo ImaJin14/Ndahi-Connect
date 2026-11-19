@@ -38,7 +38,9 @@ test("every static customer and admin button belongs to a handled form or click 
   assert.match(files.onboardingJs, /ndahi-payment/);
   assert.match(files.onboardingJs, /paymentProvider === "flutterwave"/);
   assert.match(files.onboardingJs, /Payment confirmed/);
-  assert.match(files.onboarding, /service fee is added separately/);
+  // The Mobile Money fee and total come from the server's quote (#297).
+  assert.match(files.onboarding, /id="providerFee"/);
+  assert.match(files.onboardingJs, /paymentQuotes/);
   assert.match(files.onboardingJs, /confirm\.onclick/);
   assert.match(files.adminLoginJs, /#login"\)\.onsubmit/);
   for (const id of ["bundle", "bundleEdit", "generate"]) assert.match(files.adminApp, new RegExp(`#${id}.*\\.onsubmit`));

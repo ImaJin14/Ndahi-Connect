@@ -68,7 +68,8 @@ test("a balance refusal closes the payment at once: failed, nothing taken, free 
   await f.billing.startPayment("pay-1");
   const p = (await f.store.snapshot()).payments[0], view = paymentView(p, { now: f.now() });
   assert.deepEqual([p.status, p.creationState, p.failureCode], ["failed", "refused", "low_balance"]);
-  assert.match(p.failureReason, /balance was too low.*no money was taken/i);
+  // No fee rule here, so the sentence names the bundle and says the fee was in the prompt (#297).
+  assert.match(p.failureReason, /balance was below the bundle \(FCFA\s1,000\) plus the Mobile Money fee shown in your prompt, so no money was taken/i);
   assert.deepEqual([view.failureCode, view.moneyTaken, view.blocksNewCheckout], ["low_balance", false, false]);
   // A later provider read without a reason keeps the balance reason.
   recordGatewayFailure(p, { status: "failed", failureCode: null }, f.now());

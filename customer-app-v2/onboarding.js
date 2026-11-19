@@ -15,6 +15,8 @@ import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
 import { didntGoThroughButton, hidePaymentFailed, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -33,6 +35,52 @@ let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePla
   paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false,
   purchaseAccess = { allowed: false }, accessReady = false, checkingAccess = null, coverageError = false;
 let subscriptionAccess = { allowed: true };
+// Price, Mobile Money fee and total (#297, canvas: PhoneBuyBundle). The fee and the
+// total always come from the server: each plan's paymentQuotes for the chosen
+// network, then the payment record. Without them the page says the fee is in the
+// prompt; it never works one out.
+const L = (key, values) => format(key, values || {}, currentLanguage()),
+  fcfa = (value) => new Intl.NumberFormat(currentLanguage() === "fr" ? "fr-CM" : "en-CM").format(value) + " FCFA",
+  WALLETS = { mtn: { method: "MTN MoMo", balance: "MoMo" }, orange: { method: "Orange Money", balance: "Orange Money" } },
+  quoteFor = (plan, network) => (Number.isFinite(plan?.paymentQuotes?.[network]?.total) ? plan.paymentQuotes[network] : null);
+const chosenNetwork = () => $("#purchase").elements.network.value;
+function payLabel() {
+  const quote = quoteFor(selected, chosenNetwork());
+  return quote ? L("buyPay", { total: fcfa(quote.total) }) : L("buyPayNoFee", { price: fcfa(selected.price) });
+}
+function costSection() {
+  const network = chosenNetwork(), wallet = WALLETS[network], quote = quoteFor(selected, network);
+  const detail = `${dataLabel(selected.quotaGb)} data · ${durationLabel(selected.validityHours)} · ${selected.deviceLimit} device${selected.deviceLimit === 1 ? "" : "s"}`;
+  return `<section class="buy-cost" id="checkoutCost" aria-label="${h(L("buyCostLabel"))}">
+    <div class="buy-cost__row buy-cost__plan"><span><strong>${h(selected.name)}</strong><span>${h(detail)}</span></span><span>${h(fcfa(selected.price))}</span></div>
+    ${wallet ? `<div class="buy-cost__row buy-cost__fee"><span>${h(L("buyFee", { method: wallet.method }))}</span><span>${h(quote ? fcfa(quote.fee) : L("buyFeeInPrompt"))}</span></div>` : ""}
+    ${quote ? `<div class="buy-cost__row buy-cost__total"><strong>${h(L("buyTotal"))}</strong><strong>${h(fcfa(quote.total))}</strong></div>`
+      : wallet ? `<p class="buy-cost__plus">${h(L("buyPlusFee", { price: fcfa(selected.price) }))}</p>` : ""}
+  </section>`;
+}
+// The breakdown, the balance note and the Pay button follow the chosen network.
+function renderCost() {
+  if (!selected) return;
+  const cost = $("#checkoutCost"), network = chosenNetwork(), wallet = WALLETS[network], quote = quoteFor(selected, network);
+  if (cost) cost.outerHTML = costSection();
+  const note = $("#balanceNote");
+  note.querySelector("span").textContent = !wallet ? L("buyChooseNetwork")
+    : quote ? L("buyBalanceNote", { balance: wallet.balance, total: fcfa(quote.total) })
+    : L("buyBalanceNoteNoFee", { balance: wallet.balance, price: fcfa(selected.price) });
+  note.hidden = false;
+  if (!paymentInProgress && !creatingPayment && purchaseAccess.allowed) $("#requestPayment").textContent = payLabel();
+}
+// The request that was sent, with the amounts recorded on the payment.
+function waitingText(payment) {
+  const wallet = WALLETS[payment.network] || { method: "Mobile Money" }, number = payment.payerPhoneMasked || payment.payerPhone || "";
+  const known = Number.isFinite(payment.fee) && Number.isFinite(payment.total), values = known
+    ? { method: wallet.method, total: fcfa(payment.total), price: fcfa(payment.amount), fee: fcfa(payment.fee), number }
+    : { method: wallet.method, price: fcfa(payment.amount), number };
+  // The total is bold, as on the canvas; everything else is text.
+  const body = h(L(known ? "buyWaitBody" : "buyWaitBodyNoFee", { ...values, [known ? "total" : "price"]: "\u0000" }))
+    .replace("\u0000", `<strong>${h(known ? values.total : values.price)}</strong>`);
+  return `<p class="buy-wait" id="paymentRequestSummary">${body}</p><p class="buy-wait__check">${h(L(known ? "buyWaitCheck" : "buyWaitCheckNoFee", values))}</p>`;
+}
 function showSubscriptionProtection() {
   notice(subscriptionAccess.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.", false);
   $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", subscriptionAccess.code === "ACCOUNT_SUSPENDED"
@@ -76,7 +124,7 @@ async function recheckPurchaseAccess() {
       renderPlans();
       if (selected && !paymentInProgress && !creatingPayment) {
         $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
-        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+        $("#requestPayment").textContent = purchaseAccess.allowed ? payLabel() : "Connect to NDAHI Wi-Fi";
       }
     }
   })();
@@ -219,7 +267,6 @@ async function initialize() {
     $("#emailLabel").textContent = "Payment contact email";
     $("#emailHint").textContent = "Flutterwave requires an email for this payment. Confirm an address in Account to enable email notifications.";
   }
-  $("#providerFee").hidden = paymentProvider !== "mesomb";
   try {
     account = await call("/api/account/dashboard");
     subscriptionAccess = account.subscriptionPurchaseAccess || { allowed: !account.activeBundle && account.customer.status !== "suspended" && !account.customer.suspended };
@@ -460,14 +507,15 @@ function renderCheckoutReview() {
     return;
   }
   $("#selected").textContent = checkoutTitle();
-  $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
-    : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
+  $("#checkoutSummary").innerHTML = (accountAction === "switch" && account.currentPlan?.plan ? comparison(selected) : "") + costSection();
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
   $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;
-  $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+  $("#requestPayment").textContent = purchaseAccess.allowed ? payLabel() : "Connect to NDAHI Wi-Fi";
   $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
+  renderCost();
 }
+for (const type of ["change", "networkchange"]) $("#purchase").elements.network.addEventListener(type, renderCost);
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
   if (account && !paymentInProgress) fillAccountPayer();
@@ -592,7 +640,7 @@ function showFailure(payment, reason = payment.failureCode) {
   const same = failedPayment?.id === payment.id;
   if (!same) failedPaymentChecks = 0;
   failedPayment = same ? { ...failedPayment, ...payment } : { ...payment };
-  return showPaymentFailed(failedPayment, reason, paymentFailedActions, { money, checks: Math.max(1, failedPaymentChecks) });
+  return showPaymentFailed(failedPayment, reason, paymentFailedActions, { money: fcfa, checks: Math.max(1, failedPaymentChecks) });
 }
 function retryCheckout(payment, change) {
   hidePaymentFailed();
@@ -758,7 +806,7 @@ $("#purchase").onsubmit = async (event) => {
     $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
-    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}${didntGoThrough}`;
+    }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : waitingText(created.payment)}${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}${didntGoThrough}`;
     if (created.checkout.url && created.checkout.provider === "flutterwave") {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
@@ -813,7 +861,7 @@ $("#purchase").onsubmit = async (event) => {
           if (!$("#message").contains(currentMessage) || paymentInProgress || creatingPayment) return;
           $("#message").innerHTML = '<p role="status">The previous request window has ended. You can request a new payment. Any late confirmation will still be recorded.</p>';
           $("#requestPayment").disabled = false;
-          $("#requestPayment").textContent = "Start new payment - " + money(selected.price);
+          $("#requestPayment").textContent = payLabel();
         }, seconds * 1000);
       }
       return;
@@ -846,7 +894,7 @@ $("#purchase").onsubmit = async (event) => {
     if (!paymentInProgress) {
       $("#purchaseFields").disabled = false;
       if (selected) {
-        $("#requestPayment").textContent = purchaseAccess.allowed ? `Request payment - ${money(selected.price)}` : "Connect to NDAHI Wi-Fi";
+        $("#requestPayment").textContent = purchaseAccess.allowed ? payLabel() : "Connect to NDAHI Wi-Fi";
         $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed;
       }
     } else $("#requestPayment").textContent = "Payment requested";
