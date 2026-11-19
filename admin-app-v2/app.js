@@ -170,10 +170,10 @@ async function loadHomePayments() {
 async function load() {
   const x = await call("/api/admin/dashboard");
   adminRole = x.profile.role;
-  if (adminRole === "reseller") resellerHome ||= mountResellerHome({ call, logout: signOut });
   adminAuthenticatorRetired = x.profile.authenticatorRetired === true;
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
+  if (adminRole === "reseller") { resellerHome ||= mountResellerHome({ call, logout: signOut }); resellerHome.setView(activeAdminTab); }
   csrfToken = x.csrfToken;
   mountNotifications({ apiUrl: api, path: "/api/admin/notifications", csrf: () => csrfToken, admin: true });
   const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
@@ -299,7 +299,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
   let customerVoucher;
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; resellerHome?.setView(view); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
     if (view === "voucher") void openVoucher(); else { $("#adminTitle")?.classList.remove("admin-title--code"); $("#adminTitle")?.parentElement?.classList.remove("admin-head-title--inline"); } if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.

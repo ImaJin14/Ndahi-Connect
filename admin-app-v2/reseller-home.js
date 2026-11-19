@@ -27,12 +27,11 @@ export function mountResellerHome({ call, logout }) {
     view.setAttribute("aria-label", "Reseller home");
     document.body.append(view);
   }
-  let data = null, error = "", planId = "", selling = null, sold = null, message = "", busy = false, asked = false, storageKey = "";
-  const onHome = () => ["", "#", "#home"].includes(location.hash);
+  let data = null, error = "", planId = "", selling = null, sold = null, message = "", busy = false, asked = false, storageKey = "", onHome = true;
+  // The admin navigation decides the view (a blocked page resolves to Home).
   const show = () => {
-    const on = onHome();
-    view.hidden = !on;
-    document.body.classList.toggle("reseller-home-on", on);
+    view.hidden = !onHome;
+    document.body.classList.toggle("reseller-home-on", onHome);
   };
   const saved = () => { try { return JSON.parse(sessionStorage.getItem(storageKey) || "null"); } catch { return null; } };
   const save = (value) => { try { if (value) sessionStorage.setItem(storageKey, JSON.stringify(value)); else sessionStorage.removeItem(storageKey); } catch { /* best effort */ } };
@@ -165,11 +164,11 @@ export function mountResellerHome({ call, logout }) {
     busy = false; render();
   }
 
-  window.addEventListener("hashchange", show);
   show();
-  return load().then(() => {
+  void load().then(() => {
     // A sale whose answer was lost: show the same code again, ready to confirm.
     const pending = saved();
     if (pending && !selling) { selling = pending; message = L("resellerResume"); render(); }
   });
+  return { setView(name) { onHome = name === "home"; show(); } };
 }
