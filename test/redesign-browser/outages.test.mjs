@@ -91,6 +91,13 @@ test("staff post an outage, customers see it, and time is given back", { timeout
   assert.match(await text(phone.locator("#dataBalance .nd-meter-legend")), /\+ lost time/);
   await check(phone, "home-down");
 
+  // A customer whose old bundle ended during the outage and who bought another
+  // since is held for review (#287): no time automatically, and staff are told.
+  await store.transaction((s) => {
+    s.customers.push({ id: "c-held", name: "Held Two", phone: "670004020" });
+    s.vouchers.push({ id: "v-held-old", customerId: "c-held", planId: "daily", code: "NC-HELD-0001", status: "expired", activatedAt: at(-1500), expiresAt: at(-60), quotaBytes: 1e9, usedBytes: 1e8, deviceLimit: 1 },
+      { id: "v-held-new", customerId: "c-held", planId: "daily", code: "NC-HELD-0002", status: "active", activatedAt: at(-30), expiresAt: at(1410), quotaBytes: 1e9, usedBytes: 0, deviceLimit: 1, routerSyncStatus: "synchronized" });
+  });
   // Fixed: 2 h 25 min rounds up to 3 hours, with fresh PIN proof.
   await desk.getByRole("button", { name: "Mark as fixed…" }).click();
   const back = desk.getByRole("form", { name: "Back online — give time back?" });
@@ -106,7 +113,7 @@ test("staff post an outage, customers see it, and time is given back", { timeout
   await dialog.getByLabel("Current administrator PIN").fill(pin);
   await dialog.getByRole("button", { name: "Verify PIN", exact: true }).click();
   await desk.getByText("Outage closed.").waitFor();
-  assert.equal(await text(desk.locator(".admin-outage__done")), 'Outage closed. +3 hours added to 2 bundles. Customers now see "We’re back online".');
+  assert.equal(await text(desk.locator(".admin-outage__done")), 'Outage closed. +3 hours added to 2 bundles. Customers now see "We’re back online". Held for review: 1. These customers had more than one bundle around the outage, so no time was added for them. Find them in the audit log (outage.credit_needs_review) and settle by hand.');
   assert.match(await text(desk.getByRole("region", { name: "Past outages" })), /All sites 2 h 2[4-9] min — \+3 h · 2 customers/);
   await check(desk, "admin-closed");
 

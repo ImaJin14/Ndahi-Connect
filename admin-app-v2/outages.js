@@ -117,7 +117,9 @@ function bind(host, data, context, step) {
         const result = await call("/api/admin/outages/close", { method: "POST", body: JSON.stringify({ ...input, ...proof }) });
         const given = result.outage.compensation;
         const fresh = await call("/api/admin/outages");
-        render(host, fresh, { call, closed: given && given.hours ? L("adminOutageClosedAdded", { amount: gift(given.hours), count: result.outage.affected }) : L("adminOutageClosedNone") });
+        // Customers with an unclear history get no time automatically (#287): staff settle them by hand.
+        const held = given && given.needsReview ? " " + L("adminOutageHeld", { count: given.needsReview }) : "";
+        render(host, fresh, { call, closed: (given && given.hours ? L("adminOutageClosedAdded", { amount: gift(given.hours), count: result.outage.affected }) : L("adminOutageClosedNone")) + held });
       });
     };
   }
