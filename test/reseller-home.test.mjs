@@ -93,3 +93,28 @@ test("reseller home shows only own saleable stock and owner can review idempoten
   assert.equal(owner.body.requests.length, 1);
   assert.equal(owner.body.requests[0].resellerId, "r1");
 });
+
+// Owner decisions, 19 November (#261): a reseller's code redeemed before "Cash
+// received" counts as sold and the reseller owes it; the price and commission
+// are those recorded when the code was issued, whatever the bundle costs later.
+test("a code redeemed before cash is recorded counts as sold at its issue price, and cannot be sold again", async () => {
+  const s = fixture();
+  s.bundles.push({ id: "daily", name: "Daily", price: 900, validityHours: 24, quotaGb: 1, deviceLimit: 1 });
+  Object.assign(s.vouchers[0], { activatedAt: time.toISOString(), status: "active" });
+  const row = computeResellerRow(s, s.adminUsers[0]);
+  assert.deepEqual([row.redeemedVouchers, row.unsoldVouchers, row.cashCollected, row.commissionEarned], [1, 0, 500, 50],
+    "owed at the 500 FCFA issue price and 10% issue rate, not today's 900 FCFA");
+  const again = await call(s, "r1", "/api/admin/resellers/cash-sale", { voucherId: "v1", operationKey: key });
+  assert.deepEqual([again.status, again.body.code], [409, "VOUCHER_NOT_SELLABLE"]);
+  assert.equal(computeResellerRow(s, s.adminUsers[0]).cashCollected, 500, "never counted twice");
+});
+
+test("cash received after a price or commission change uses the price and rate recorded at issue", async () => {
+  const s = fixture();
+  s.bundles.push({ id: "daily", name: "Daily", price: 900, validityHours: 24, quotaGb: 1, deviceLimit: 1 });
+  s.adminUsers[0].commissionPercent = 25;
+  const sale = await call(s, "r1", "/api/admin/resellers/cash-sale", { voucherId: "v1", operationKey: key });
+  assert.equal(sale.status, 201);
+  assert.deepEqual([sale.body.sale.amount, sale.body.sale.commissionPercent], [500, 10]);
+  assert.deepEqual([sale.body.reseller.cashCollected, sale.body.reseller.commissionEarned], [500, 50]);
+});
