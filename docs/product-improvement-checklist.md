@@ -1490,7 +1490,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 
 ### Insights data recording (#262, 20 November 2026)
 
-- **Implemented** (branch `feat/insights-recording-262`, draft PR):
+- **Implemented** (PR #308, merged as `69f665a`):
   - **Hourly devices online:** each completed router usage sync records the devices online.
   - **Funnel:** the v2 portal counts anonymous Wi-Fi page → signed in → payment started → paid steps by design variant.
   - **Insights API:** `GET /api/admin/insights` now returns `devices` (the average and peak for each hour of the day) and `funnel` (counts per variant).
@@ -1499,7 +1499,8 @@ Owner requested all unknown business details remain blank for now. Review this l
   - `npm test` with PostgreSQL: 1,468 of 1,468, including 20 concurrent beacons on PostgreSQL with no count lost.
   - The redesign browser suite, including a new-buyer visit from the Wi-Fi page to paid.
   - Hotspot, billing, portal, admin app and admin authorization journeys on v2 and v1.
-- **Not deployed.** Data starts collecting once it is deployed, so the AdminInsights screen (the rest of #262) can show real busy-evening data.
+- **Deployed** on 20 November; the production smoke check passed on `b44a8f9` at 18:47 UTC. Data collects from then on.
+- **Still to do:** the AdminInsights screen, the rest of #262, once a few busy evenings are recorded.
 
 ### Open PRs taken over and merged (19 November 2026)
 
@@ -1531,7 +1532,7 @@ The owner asked for every open PR to be made ready and merged. The four Codex dr
 
 ### Reseller home screen (#261, 20 November 2026)
 
-- **Implemented** (branch `feat/reseller-home-261`, draft PR):
+- **Implemented** (PR #306, merged as `b44a8f9`; #261 closed):
   - On a phone, a reseller's Home in admin v2 is the ResellerHome screen: codes in hand, sales this week, what they owe NDAHI, and Your money.
   - "Sell a code" shows the code and its QR first; "Cash received" then records the sale once. A sale whose answer was lost comes back with the same code, and the retry cannot record it twice.
   - "Ask for more codes" now reaches the owner as a notification that opens Resellers.
@@ -1542,8 +1543,8 @@ The owner asked for every open PR to be made ready and merged. The four Codex dr
   - The redesign browser suite, including keyboard order, focus rings and contrast.
   - Admin app, cash and admin authorization journeys on v2 and v1.
   - Captures are in `docs/reviews/reseller-home-2026-11-19`.
-- **Not deployed, and not checked on a reseller's phone.**
-- **Owner check:** compare the captures with the design, then merge. #261 closes on merge.
+- **Deployed** on 20 November; the production smoke check passed on `b44a8f9` at 18:47 UTC.
+- **Not yet checked on a reseller's real phone.**
 
 ### On-site checks still to do after closing #116, #143 and #178 (19 November 2026)
 
@@ -1556,7 +1557,7 @@ On 19 November the owner closed these issues as implemented: their code is merge
 
 ### Bundle speed editor (#263, 20 November 2026)
 
-- **Implemented** (branch `feat/bundle-speed-editor-263`, draft PR):
+- **Implemented** (PR #307, merged as `cfe514e`):
   - Edit bundle in admin v2 has "Speed limit per customer", with Download and Upload in Mbps. A blank field means no limit, and the preview reads "up to N Mbps".
   - While `ROUTER_SPEED_LIMITS` is off, the form says the router does not apply limits yet. The dashboard reports the setting as `integrations.speedLimits`.
   - The rest of the form uses the updated design's wording: "Unlimited data (fair use applies)", "Data (GB)" and the new-purchases note.
@@ -1565,6 +1566,41 @@ On 19 November the owner closed these issues as implemented: their code is merge
   - The redesign browser suite: saving, clearing a limit, keyboard, contrast, and 390 and 1280 px.
   - Admin app, network UI and payment network journeys on v2 and v1.
   - Captures are in `docs/reviews/bundle-speed-2026-11-20`.
-- **Not deployed.**
+- **Deployed** on 20 November; the production smoke check passed on `b44a8f9` at 18:47 UTC.
 - **Not physically verified:** see the on-site check below. #263 stays open until it passes.
 - [ ] **Speed limits on the RB5009 (#263):** run the check in `docs/operations/router-command-queue.md`, including FastTrack, with a limited bundle on two devices. Then set `ROUTER_SPEED_LIMITS=on` and confirm the shared queue holds both devices to the limit.
+
+### Merges and production fix (20 November 2026)
+
+On 20 November the owner asked for ready PRs to be merged as work goes on, each PR linked to its issue, and production problems fixed.
+
+- **#304, QR proof controls (#213, closed).**
+  - Implemented:
+    - the PIN and passkey buttons on the voucher QR page work before NDAHI Wi-Fi has identified the device: the proof signs in to the account, but no router grant is issued until the device is identified;
+    - the buttons come back after a wrong PIN, a cancelled passkey or a network error, and after the wait a lock gives;
+    - the Orange Money badge passes contrast.
+  - Merged as `a21e546`. Deployed: the smoke check passed on `b44a8f9`.
+  - Not yet tried with a real phone scanning a printed QR off the hotspot.
+- **#305, outage screens (#259, closed).**
+  - Implemented: the admin Outages page (post, update, mark fixed, give time back with PIN proof, and a note on customers held for review) and the outage notice on the customer Home.
+  - Merged as `b1d2050`. Deployed: the smoke check passed on `b44a8f9`.
+  - No real outage has been posted, and no real notification has been delivered.
+- **#309, admin v2 polish (#232, open).**
+  - Implemented:
+    - Audit: newest first; "10 Nov 17:25"; Who as "Owner", "Operator · Brenda" or "System"; On by name, never a voucher code; wording for 27 actions;
+    - the Home date line ("FRIDAY 20 NOVEMBER");
+    - an empty list says so once, and a single page has no Previous or Next;
+    - router checks in plain words;
+    - Network setup in one 810px column.
+  - Merged as `1654d64`. Deployed: Render deployed `1654d64` to all four services. Of its smoke checks, some passed and some timed out on slow signed-out requests (#313, fixed in #314).
+  - #232 stays open: Home routers' readiness callout and the file picker need a capture with NDAHI Home on.
+- **#312, production fix (#311, closed).**
+  - Found on production: during the 20 November deploys, the portal and admin loaded without scripts and styles. Pages from the outgoing release asked for `/static/*.<old revision>.*` and got 404.
+  - Fix: a well-formed name with another revision now gets this release's file for the same path, with `no-store`. The v2 kill switch, pages and malformed names still return 404.
+  - The deployment smoke check now retries a service that is still restarting, and names the request that failed.
+  - Merged as `1d34d91`. Deployed: Render deployed `1654d64` to all four services. Of its smoke checks, some passed and some timed out on slow signed-out requests (#313, fixed in #314).
+- **#314, signed-out requests (#313).**
+  - Found on production: signed-out requests took the store's global lock and read the whole state just to answer 401.
+  - Effect: 2–10 s per request, and the smoke check timed out.
+  - Fix: without a session cookie, these requests answer the same 401 straight away.
+  - Open at the time of writing.
