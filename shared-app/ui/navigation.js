@@ -97,13 +97,13 @@ export function renderPortalHeader(options) {
 // Item ids follow the admin canvas (AdminSide.dc.html).
 export const ADMIN_MENU = [
   { group: null, items: ["home"] },
-  { group: "uiAdminGroupNetwork", items: ["devices", "connections", "homerouters", "setup"] },
+  { group: "uiAdminGroupNetwork", items: ["devices", "connections", "outages", "homerouters", "setup"] },
   { group: "uiAdminGroupSales", items: ["bundles", "vouchers", "payments", "store", "products", "cash"] },
   { group: "uiAdminGroupPeople", items: ["customers", "resellers"] },
   { group: "uiAdminGroupSystem", items: ["audit", "profile"] },
 ];
 const ADMIN_LABELS = {
-  home: "uiAdminHome", devices: "uiAdminDevices", connections: "uiAdminConnections", homerouters: "uiAdminHomeRouters",
+  home: "uiAdminHome", devices: "uiAdminDevices", connections: "uiAdminConnections", outages: "uiAdminOutages", homerouters: "uiAdminHomeRouters",
   setup: "uiAdminNetworkSetup", bundles: "uiAdminBundles", vouchers: "uiAdminVouchers", payments: "uiAdminPayments",
   store: "uiAdminStore", products: "uiAdminProducts", cash: "uiAdminCash", customers: "uiAdminCustomers",
   resellers: "uiAdminResellers", audit: "uiAdminAudit", profile: "uiAdminProfile",
