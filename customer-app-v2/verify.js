@@ -1,6 +1,7 @@
 import { ApiError, showError } from "./errors.js";
 import { purchaseVoucherDestination } from "./voucher-delivery.js";
 import { withWifiHint, afterSignInPath } from "./hotspot-path.js";
+import { funnelStep } from "./funnel.js";
 import { formValues, sessionStore, markReady, requestJson } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { completeSignIn } from "./sign-in-request.js";
@@ -39,6 +40,8 @@ $("#verify").onsubmit = async event => {
       await completeSignIn(api, "/api/account/setup/pin", input, challenge.phone);
       sessionStore.remove("ndahi-login-challenge");
       sessionStore.set("ndahi-email-setup-prompt", "1");
+      // Signed up after paying; afterSignInPath counts every other sign-in.
+      if (checkoutSetup && challenge?.paymentId) funnelStep("signed_in");
       location.replace(checkoutSetup && challenge && challenge.paymentId ? withWifiHint(purchaseVoucherDestination(challenge.paymentId)) : await afterSignInPath());
     });
   } catch (error) { showError($("#message"), error); }

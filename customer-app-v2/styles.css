@@ -98,10 +98,10 @@
 .payment-methods-badges{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
 .momo-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;letter-spacing:.02em}
 .momo-badge-mtn{background:#ffcc00;color:#1a1a1a;border:1px solid #e6b800}
-.momo-badge-orange{background:#ff7900;color:#fff;border:1px solid #e66d00}
+.momo-badge-orange{background:#ff7900;color:#1a1a1a;border:1px solid #e66d00}
 .momo-badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
 .momo-badge-mtn .momo-badge-dot{background:#1a1a1a}
-.momo-badge-orange .momo-badge-dot{background:#fff}
+.momo-badge-orange .momo-badge-dot{background:#1a1a1a}
 
 /* --- QR Dialog --- */
 .qr-dialog{max-width:440px;text-align:center}

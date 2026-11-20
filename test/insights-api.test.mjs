@@ -17,7 +17,9 @@ test("insights limits financial data to permitted staff and marks availability",
     assert.equal(res.status, 200);
     assert.equal(res.headers["cache-control"], "no-store");
     assert.equal(res.body.collections.coverage, "partial-older-offline-sales-may-not-be-recorded");
-    assert.equal(res.body.availability.funnel.status, "unavailable");
+    assert.equal(res.body.availability.funnel.status, "collecting");
+    assert.equal(res.body.devices.status, "collecting");
+    assert.equal(res.body.availability.accessPointLoad.status, "unavailable");
   }
   for (const role of ["operator", "auditor", "reseller", "unknown", undefined]) {
     const { res } = await call(`/api/admin/insights${query}`, role === undefined ? null : role);

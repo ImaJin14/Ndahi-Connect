@@ -33,6 +33,10 @@ export function homeExpiryCountdown(expiresAt, now = Date.now()) {
   const minutes = Math.floor((diff % 36e5) / 6e4);
   return hours ? L('homeEndsHours', { count: hours, minutes }) : L('homeEndsMinutes', { count: Math.max(1, minutes) });
 }
+// While an outage is live (#259) the card says "No internet" and the time
+// lost will be added back ("+ lost time"). Set from the dashboard.
+let outageState = null;
+export function setOutage(outage) { outageState = outage ? outage.state : null; }
 const STATUS = { active: ['homeStatusActive', 'success'], expired: ['homeStatusExpired', ''], exhausted: ['homeStatusExhausted', 'danger'], suspended: ['homeStatusSuspended', 'danger'] };
 const METER_TONE = { 'fuel-warning': ' nd-meter-bar--warning', 'fuel-danger': ' nd-meter-bar--danger' };
 
@@ -119,7 +123,8 @@ export function activeBundleContent(snapshot, { now = Date.now(), unavailable = 
     return `<div class="home-card__top"><div>${heading(L('noActiveBundle'))}</div><p class="nd-pill" data-bundle-status role="status">${h(L('homeStatusExpired'))}</p></div><p class="nd-meta">${h(L('homeNoBundleBody'))}</p><p class="nd-meta">${h(L('homeExpiredBody'))}</p>`;
   }
   const awaiting = v.status === 'active' && Number.isFinite(Date.parse(v.expiresAt)) && Date.parse(v.expiresAt) <= now;
-  const [statusKey, tone] = awaiting ? ['homeStatusConfirming', 'warning'] : STATUS[v.status] || ['unavailable', ''];
+  const down = outageState === 'down' && v.status === 'active' && !awaiting;
+  const [statusKey, tone] = awaiting ? ['homeStatusConfirming', 'warning'] : down ? ['homeOutagePill', ''] : STATUS[v.status] || ['unavailable', ''];
   const known = Number.isFinite(v.usedBytes), limited = Number.isFinite(v.quotaBytes);
   const percent = limited && known && v.quotaBytes > 0 ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : null;
   const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
@@ -145,7 +150,7 @@ export function activeBundleContent(snapshot, { now = Date.now(), unavailable = 
   return `<div class="home-card__top"><div>${heading(v.plan.name)}</div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''}" data-bundle-status role="status">${h(L(statusKey))}</p></div>
     <p class="nd-figure home-card__figure"><span data-remaining-data>${h(fmt(remaining))}</span> <span class="nd-figure__unit">${h(unlimited ? L('homeUnlimitedData') : L('homeLeftOf', { quota: quotaLabel }))}</span></p>
     ${percent === null ? '' : `<progress class="nd-meter-bar${meterTone}" max="100" value="${(100 - percent).toFixed(1)}" aria-hidden="true"></progress>`}
-    <div class="nd-meter-legend"><span data-expiry-countdown>${h(homeExpiryCountdown(v.expiresAt, now) || L('homeExpiryUnavailable'))}</span>${v.accessMode === 'home' ? `<span>${h(L('homeHomeAccessValue'))}</span>` : `<span><span data-bundle-devices>${h(devices)}</span>${counted ? ' ' + h(L('homeDevicesSuffix')) : ''}</span>`}</div>
+    <div class="nd-meter-legend"><span><span data-expiry-countdown>${h(homeExpiryCountdown(v.expiresAt, now) || L('homeExpiryUnavailable'))}</span>${down ? ` ${h(L('homeOutageLost'))}` : ''}</span>${v.accessMode === 'home' ? `<span>${h(L('homeHomeAccessValue'))}</span>` : `<span><span data-bundle-devices>${h(devices)}</span>${counted ? ' ' + h(L('homeDevicesSuffix')) : ''}</span>`}</div>
     <dl class="home-card__facts"><div><dt>${h(L('homeConsumed'))}</dt><dd data-used-data>${h(known ? fmt(v.usedBytes) : L('homeValueUnavailable'))}${percent === null ? '' : ` (${h(percent.toFixed(1))}%)`}</dd></div><div><dt>${h(L('homeAllowance'))}</dt><dd>${h(quotaLabel)}</dd></div><div><dt>${h(L('homeExpires'))}</dt><dd>${expires}</dd></div></dl>
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${v.usage.observedAt ? `<p class="nd-meta home-card__recorded">${h(L('homeUsageRecorded', { time: new Date(v.usage.observedAt).toLocaleTimeString(currentLanguage()) }))}</p>` : ''}${provisioning}`;
 }

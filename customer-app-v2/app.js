@@ -23,6 +23,8 @@ import { activeBundleContent, bundlePurchaseContent } from "./active-bundle.js";
 import { mountDataBalance } from "./data-balance.js";
 import { renewalExtras, showRenewal } from "./renewal.js";
 import { mountVoucherHistory } from "./voucher-history.js";
+import { outageBanner, outageLine } from "./outage.js";
+import { setOutage } from "./active-bundle.js";
 import { internetBundle, internetSwitch } from "./portal-internet.js";
 import { activityDay, activityFilters, activityIcon, mountActivity, paymentPill, waitingBanner } from "./portal-activity.js";
 import { accountHub, mountAccountHub } from "./portal-account.js";
@@ -265,9 +267,12 @@ async function load() {
   stopConnectivity();
   const lang = currentLanguage();
   // Redesign: network notices sit in the page head (the Home hero on phones).
-  $("#portalNotices").innerHTML = `${netBannerMarkup}${purchaseNotice}`;
+  // During an outage (#259) the hero's network line names it instead.
+  $("#portalNotices").innerHTML = `${result.outage?.state === "down" ? outageLine(result.outage) : netBannerMarkup}${purchaseNotice}`;
+  setOutage(result.outage);
   const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
+    ${outageBanner(result.outage)}
     <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
     <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPaymentContent(pendingPayment)}</section>
     ${wifiConnect}

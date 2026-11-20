@@ -168,8 +168,10 @@ async function begin() {
       !result.passkeyAvailable || !window.PublicKeyCredential;
     document.querySelector("#wifiGuidance").hidden = result.wifiReady;
     if (!result.wifiReady) {
+      // #213: the PIN or passkey still signs in to the account here; connecting
+      // this device waits until Wi-Fi sign-in identifies it.
       message.textContent =
-        "NDAHI Wi-Fi has not identified this device yet. Open Wi-Fi sign-in before entering your PIN.";
+        "NDAHI Wi-Fi has not identified this device yet. You can sign in with your PIN now, then open Wi-Fi sign-in to connect this device.";
       const login = routerLoginUrl(window.NDAHI_CONFIG.hotspotLoginUrl),
         link = document.querySelector("#openWifi");
       if (login) {
@@ -181,6 +183,7 @@ async function begin() {
         link.href = login.href;
         link.hidden = false;
       }
+      buttons(true);
       return;
     }
     if (attempt.requestId) {
@@ -201,6 +204,9 @@ async function authorize(passkey = false) {
   if (busy || !context) return;
   busy = true;
   buttons(false);
+  // Once the account proof succeeds the attempt is used up; before that, a
+  // wrong PIN or a cancelled passkey leaves it ready for another try.
+  let verifiedProof = false;
   try {
     const input = { ...attempt, context };
     if (passkey) {
@@ -212,7 +218,16 @@ async function authorize(passkey = false) {
       });
     } else input.pin = document.querySelector("#accountPin").value;
     const verified = await request("/api/account/qr-connect/verify", input);
+    verifiedProof = true;
     document.querySelector("#accountPin").value = "";
+    // Signed in, but Wi-Fi has not identified this device: no connection yet.
+    if (verified.wifiRequired) {
+      context = null;
+      document.querySelector("#wifiGuidance").hidden = false;
+      message.textContent =
+        "You're signed in. Open Wi-Fi sign-in on this device to connect it, then confirm with your PIN again.";
+      return;
+    }
     const account = await request("/api/account/dashboard");
     csrf = account.csrfToken;
     const connected = await request(
@@ -234,6 +249,13 @@ async function authorize(passkey = false) {
         "The passkey prompt was cancelled or unavailable. Check again and try your account PIN.",
       );
     show(error);
+    const cancelled = passkey && /cancelled or unavailable/.test(error.message);
+    if (!verifiedProof && context) {
+      // A locked PIN can be tried again after the wait the API gives.
+      if (error.status === 429)
+        setTimeout(() => { if (context && !busy) buttons(true); }, error.retryAfter * 1000);
+      else if (cancelled || error.code === "VERIFICATION_FAILED" || !error.status) buttons(true);
+    }
   } finally {
     busy = false;
     document.querySelector("#accountPin").value = "";

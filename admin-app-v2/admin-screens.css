@@ -605,6 +605,43 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 /* Vouchers row (#253 + #258): inline Details beside the Actions menu. */
 .voucher-record-cell { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-8); }
 .voucher-record-cell > [data-voucher-details-slot]:empty { display: none; }
+/* Outages (#259, canvas: AdminOutage). */
+.admin-outage { display: flex; flex-direction: column; gap: 20px; }
+.admin-outage__panel { display: grid; align-content: start; gap: 14px; max-width: 720px; padding: 22px; border-radius: 16px; }
+.admin-outage__past { max-width: none; gap: 6px; }
+.admin-outage__h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-family: var(--nd-font-display); font-size: 22px; font-weight: 600; }
+.admin-outage__h2:focus { outline: none; }
+.admin-outage label:not(.admin-outage__check):not(.admin-outage__choice), .admin-outage legend { display: block; margin: 0 0 6px; padding: 0; font-size: 13px; font-weight: 600; }
+.admin-outage .admin-outage__panel input:not([type=checkbox]):not([type=radio]), .admin-outage select, .admin-outage textarea { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #b8c7bd; border-radius: 9px; background: #ffffff; color: var(--nd-ink); font: 14px var(--nd-font-body); }
+.admin-outage textarea { min-height: 84px; padding: 10px 12px; line-height: 1.5; resize: vertical; }
+.admin-outage__fields { flex: none; align-content: start; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.admin-outage__detected { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; max-width: 720px; margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; box-sizing: border-box; }
+.admin-outage__check { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; font-size: 14px; cursor: pointer; }
+.admin-outage__check input { width: 20px; height: 20px; min-width: 0; margin: 1px 0 0; accent-color: var(--nd-forest); }
+.admin-outage__buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.admin-outage__go { min-height: 46px; padding: 0 18px; border: 0; border-radius: 9px; background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-outage__go2 { min-height: 44px; padding: 0 16px; border: 1px solid #b8c7bd; border-radius: 9px; background: var(--nd-paper); color: var(--nd-forest); font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-outage__live { border: 2px solid #e3b4b4; }
+.admin-outage__live-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.admin-outage__dot { width: 12px; height: 12px; border-radius: 50%; background: #c0392b; }
+.admin-outage__down { padding: 4px 12px; border-radius: 999px; background: #fbe4e4; color: #8a2a2a; font-size: 13px; font-weight: 700; }
+.admin-outage__line { margin: 0; color: var(--nd-neutral-fg); font-size: 14px; }
+.admin-outage__choices { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; }
+.admin-outage__choice { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 8px 12px; border: 1px solid var(--nd-line); border-radius: 10px; background: #ffffff; cursor: pointer; box-sizing: border-box; }
+.admin-outage__choice--on { border: 2px solid var(--nd-forest); background: #f3f9e8; }
+.admin-outage__choice input { width: 18px; height: 18px; min-width: 0; margin: 0; accent-color: var(--nd-forest); }
+.admin-outage__choice strong { display: block; font-size: 14px; }
+.admin-outage__choice span span { color: var(--nd-muted); font-size: 13px; }
+.admin-outage__note { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-sage); color: var(--nd-neutral-fg); font-size: 14px; }
+.admin-outage__message { margin: 0; font-size: 14px; }
+.admin-outage__message:empty { display: none; }
+.admin-outage__done { max-width: 720px; margin: 0; padding: 14px 16px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; box-sizing: border-box; }
+.admin-outage__table { overflow-x: auto; }
+.admin-outage__table table { width: 100%; border-collapse: collapse; }
+.admin-outage__table th, .admin-outage__table td { padding: 11px 10px; border-bottom: 1px solid var(--nd-line); font-size: 14px; text-align: left; white-space: nowrap; }
+.admin-outage__table th { color: var(--nd-muted); font-size: 13px; font-weight: 600; }
+.admin-outage__none { color: var(--nd-muted); }
+.admin-outage__form { display: grid; gap: 14px; margin: 0; }
 /* Speed limit per customer (#263, canvas: AdminBundleEdit). */
 .admin-bundle-edit__speed { margin: 0; padding: 14px; border: 1px solid #dfe5dc; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
 .admin-bundle-edit__speed legend { padding: 0 6px; font-size: 14px; font-weight: 700; }

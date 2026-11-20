@@ -184,3 +184,24 @@ body[data-renew-moment] #bundlePurchaseActions { display: none; }
   .home-view > .home-renew-more { grid-column: 1; }
   .home-bundle .home-renew__note { color: var(--nd-on-forest-soft); }
 }
+/* ---------- Outage (#259, canvas: PhoneOutage) ----------
+   The notice above the bundle card while the internet is down, and "We're
+   back online" for a day after; the hero's network line names the outage. */
+.home-outage { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 18px; box-shadow: 0 16px 40px rgba(4, 42, 31, .12); }
+.home-outage--down { border: 1px solid #efc2c2; background: #fbe4e4; color: #6e1f1f; }
+.home-outage--restored { border: 1px solid #cfe6a8; background: #eaf6d5; color: #2b4200; }
+.home-outage__icon { display: grid; flex: 0 0 36px; place-items: center; height: 36px; border-radius: 50%; background: #ffffff; }
+.home-outage--down .home-outage__icon { color: #a73535; }
+.home-outage--restored .home-outage__icon { color: #345000; }
+.home-outage__text { flex: 1; min-width: 0; }
+.home-outage__text strong { display: block; font-size: 16px; }
+.home-outage__text > span { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; }
+.home-outage__text .home-outage__meta { margin-top: 8px; font-size: 12px; line-height: normal; opacity: .8; }
+.home-outage-line { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--nd-muted); font-size: 13px; }
+.home-outage-line__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #ff8a7a; }
+@media (max-width: 767.98px) {
+  body[data-current-tab="home"]:not([data-portal-sub]) .home-outage-line { color: var(--nd-on-forest-soft); }
+}
+@media (min-width: 768px) {
+  .home-view > .home-outage { grid-column: 1; }
+}
