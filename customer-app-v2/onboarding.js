@@ -1,3 +1,4 @@
+import { funnelStep } from "./funnel.js";
 import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
 redirectLegacyVoucherScan();
 import { purchaseVoucherDestination } from "./voucher-delivery.js";
@@ -678,6 +679,8 @@ document.addEventListener("click", (event) => {
   showFailure(paymentInProgress, paymentInProgress.failureCode || "timeout");
 });
 async function beginAccountSecurity(paid, phone) {
+  // Money received counts as paid, even when activation needs review.
+  funnelStep("paid");
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
   if (account) {
     clearRequestKey();
@@ -791,6 +794,7 @@ $("#purchase").onsubmit = async (event) => {
       body: JSON.stringify(input),
     });
     paymentInProgress = created.payment;
+    funnelStep("payment_started");
     showPaymentDeadline(created.payment);
     if (!action) bindCheckoutDeadline(created.payment);
     renderPlans();

@@ -35,7 +35,10 @@ test("invalid evidence never becomes a plausible chart and unavailable data stay
   assert.equal(result.days, null);
   assert.throws(() => recordedCollectionsByDay({}, { from: period.to, to: period.from }), RangeError);
   assert.throws(() => recordedCollectionsByDay({}, { from: "2026-01-01T00:00:00Z", to: "2026-12-01T00:00:00Z" }), RangeError);
-  for (const value of Object.values(insightsDataAvailability())) assert.equal(value.status, "unavailable");
+  // Nothing recorded yet: device counts and the funnel are collecting, and
+  // access-point load has no measured source.
+  const nothing = insightsDataAvailability();
+  assert.deepEqual([nothing.hourlyDeviceCounts.status, nothing.funnel.status, nothing.accessPointLoad.status], ["collecting", "collecting", "unavailable"]);
 });
 
 test("an unrecognised confirmed provider does not silently produce a zero collection", () => {

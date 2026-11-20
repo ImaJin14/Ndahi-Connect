@@ -38,6 +38,12 @@ With metrics enabled in production, startup validation requires the token. When 
 
 - `GET /api/metrics` returns Prometheus text and requires `Authorization: Bearer <METRICS_BEARER_TOKEN>`.
 - `POST /api/telemetry/vitals` accepts browser measurements from the customer and admin origins only. It accepts LCP, INP, and CLS with fixed page, device (`mobile`/`desktop`), and network (`slow`/`fast`/`unknown`) categories. URLs, query strings, identifiers, and attribution data are never sent or stored. Requests are limited to 2 KB, and measurements to 10,000 per minute per API instance.
+- `POST /api/telemetry/funnel` feeds the Insights funnel (#262). It accepts only the customer origin, and the body is `{ step, variant }`, at most 256 bytes.
+  - `step` is one of `wifi_page`, `signed_in`, `payment_started` or `paid`; `variant` is `v1` or `v2`.
+  - The v2 portal sends a step once per visit. A visit starts when the Wi-Fi page opens for someone not signed in, lives in that tab's `sessionStorage`, and ends after six hours.
+  - The API adds one to that day's count for the variant (`insightCounters`, Africa/Douala days). It keeps no identifier, IP address, account, phone number or URL.
+  - Writes are capped at 600 per minute per API instance. The cap is global because hotspot visitors share the gateway's address. The beacon is not affected by `PERFORMANCE_METRICS_ENABLED`.
+- Each completed router usage sync also records the number of devices online, once per MAC address and without Home bundles, in that Douala hour's `insightCounters` row (samples, total and peak). These aggregates are kept for 548 days.
 
 Metrics are held in memory per API instance and reset on restart; Prometheus retains the history.
 
