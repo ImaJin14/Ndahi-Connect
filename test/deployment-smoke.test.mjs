@@ -38,7 +38,8 @@ for (const [name, health] of [
 });
 test('deployment rejects unavailable API', async t => {
   const options = await fixture(t, { '/api/health': () => new Response('{}', { status: 503 }) });
-  await assert.rejects(checkDeployment(options), /expected HTTP 200/);
+  // A 503 that lasts through the retries still fails the check.
+  await assert.rejects(checkDeployment({ ...options, retryDelayMs: 0 }), /expected HTTP 200, received 503/);
 });
 test('deployment rejects wrong payment provider', async t => {
   const options = await fixture(t, { '/api/plans': () => Response.json({ plans: [{}], paymentProvider: 'mock' }) });
@@ -51,4 +52,23 @@ test('retirement deployment smoke validates the effective runtime policy', async
  assert.equal((await checkDeployment({...options,expectAuthenticatorRetired:true})).length,6);
  policy.authenticatorRetired=false;
  await assert.rejects(checkDeployment({...options,expectAuthenticatorRetired:true}),/sign-in must be disabled/);
+});
+
+// A service still restarting during a deploy: connection errors and 502/503
+// are retried, a wrong answer is not, and a lasting failure names the request.
+test('deployment retries a service that is still restarting, never a wrong answer', async t => {
+  let health = 0, plans = 0;
+  const flaky = await fixture(t, {
+    '/api/health': () => { if (++health < 3) throw new TypeError('fetch failed', { cause: { code: 'ECONNRESET' } }); return Response.json({ status: 'ready', database: 'postgresql' }); },
+  });
+  assert.equal((await checkDeployment({ ...flaky, retryDelayMs: 0 })).length, 5);
+  assert.equal(health, 3);
+  const starting = await fixture(t, { '/api/health': () => (++plans < 2 ? new Response('', { status: 503 }) : Response.json({ status: 'ready', database: 'postgresql' })) });
+  assert.equal((await checkDeployment({ ...starting, retryDelayMs: 0 })).length, 5);
+  const down = await fixture(t, { '/api/health': () => { throw new TypeError('fetch failed', { cause: { code: 'ECONNREFUSED' } }); } });
+  await assert.rejects(checkDeployment({ ...down, retryDelayMs: 0 }), /GET http:\/\/127\.0\.0\.1:9999\/api\/health failed after 4 attempts: ECONNREFUSED/);
+  let wrong = 0;
+  const unavailable = await fixture(t, { '/api/health': () => { wrong++; return new Response('{}', { status: 500 }); } });
+  await assert.rejects(checkDeployment({ ...unavailable, retryDelayMs: 0 }), /expected HTTP 200, received 500/);
+  assert.equal(wrong, 1, 'an error answer is reported at once');
 });

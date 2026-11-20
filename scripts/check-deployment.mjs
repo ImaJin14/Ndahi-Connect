@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { pathToFileURL } from 'node:url';
 
-export async function checkDeployment({ customerUrl, adminUrl, storeUrl = '', apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', expectAuthenticatorRetired = false, extended = Boolean(storeUrl), request = fetch }) {
+export async function checkDeployment({ customerUrl, adminUrl, storeUrl = '', apiUrl, allowBootstrap = false, expectedProvider = 'mesomb', expectAuthenticatorRetired = false, extended = Boolean(storeUrl), request = fetch, attempts = 4, retryDelayMs = 5000 }) {
   const rawUrls = storeUrl ? [customerUrl, adminUrl, apiUrl, storeUrl] : [customerUrl, adminUrl, apiUrl];
   const bases = rawUrls.map(value => {
     const url = new URL(value);
@@ -12,10 +12,26 @@ export async function checkDeployment({ customerUrl, adminUrl, storeUrl = '', ap
   assert.equal(new Set(bases).size, bases.length, 'Each service must have a distinct origin');
   const [customer, admin, api, store] = bases;
   const passed = [];
+  // This check starts when one service finishes deploying, often while another
+  // is still restarting: a reset or timed-out connection, or a 502/503 from a
+  // service coming up, is retried. A wrong answer never is.
   const get = async (base, path, status = 200, headers = {}) => {
-    const response = await request(`${base}${path}`, { headers, redirect: 'manual', signal: AbortSignal.timeout(10000) });
-    assert.equal(response.status, status, `${path}: expected HTTP ${status}, received ${response.status}`);
-    return response;
+    for (let attempt = 1; ; attempt++) {
+      let response;
+      try {
+        response = await request(`${base}${path}`, { headers, redirect: 'manual', signal: AbortSignal.timeout(10000) });
+      } catch (error) {
+        if (attempt >= attempts) throw new Error(`GET ${base}${path} failed after ${attempts} attempts: ${error.cause?.code || error.name || 'network error'}`, { cause: error });
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+        continue;
+      }
+      if (response.status >= 502 && response.status <= 504 && status < 500 && attempt < attempts) {
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+        continue;
+      }
+      assert.equal(response.status, status, `${path}: expected HTTP ${status}, received ${response.status}`);
+      return response;
+    }
   };
   const health = await (await get(api, '/api/health')).json();
   assert.ok(health.status === 'ready' || (allowBootstrap && health.status === 'bootstrap'), 'API must be ready; bootstrap requires explicit opt-in');
@@ -112,7 +128,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     });
     for (const check of checks) console.log(`PASS ${check}`);
   } catch (error) {
-    console.error(`Deployment smoke check failed: ${error instanceof assert.AssertionError ? error.message : 'Request failed or service URL is invalid'}`);
+    console.error(`Deployment smoke check failed: ${error instanceof assert.AssertionError || /^GET \S+ failed after/.test(error.message) ? error.message : 'Request failed or service URL is invalid'}`);
     process.exitCode = 1;
   }
 }
