@@ -237,7 +237,7 @@ try {
     assert.equal(await edit.getByLabel("Unlimited data").isChecked(), true);
     assert.equal(await page.locator("#bundleQuotaField").isVisible(), false);
     await edit.getByLabel("Unlimited data").uncheck();
-    await edit.getByLabel("Data allowance (GB)", { exact: true }).fill("2");
+    await edit.getByLabel("Data (GB)", { exact: true }).fill("2");
     await edit.getByLabel("Device limit", { exact: true }).fill("3");
     assert.equal(await preview.locator("[data-preview-detail]").textContent(), "2 GB · 2 days · 3 devices");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
