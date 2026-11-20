@@ -231,8 +231,16 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
     <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
     <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" required></label>
   </div>
-  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedData"))}</label>
-  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedFairUse"))}</label>
+  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminBundleDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <fieldset class="admin-bundle-edit__speed"><legend>${h(L("adminSpeedLimit"))}</legend>
+    <div class="admin-bundle-edit__speed-grid">
+      <label class="nd-field"><span class="nd-label">${h(L("adminSpeedDown"))}</span><input class="nd-input" name="downloadMbps" type="number" min="0.001" max="10000" step="0.001" placeholder="${h(L("adminSpeedNoLimit"))}"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminSpeedUp"))}</span><input class="nd-input" name="uploadMbps" type="number" min="0.001" max="10000" step="0.001" placeholder="${h(L("adminSpeedNoLimit"))}"></label>
+    </div>
+    <p class="admin-bundle-edit__speed-help">${h(L("adminSpeedHelp"))}</p>
+    ${x.integrations?.speedLimits === "on" ? "" : `<p class="admin-bundle-edit__speed-off" id="speedLimitsOff">${h(L("adminSpeedOff"))}</p>`}
+  </fieldset>
   <p class="nd-callout nd-callout--warning admin-callout">${h(L("adminBundleEditNote"))}</p>
   <div class="admin-form__actions"><button type="submit" class="nd-btn">${h(L("adminSaveBundle"))}</button><span id="bundleEditMessage" class="admin-saved" role="status" aria-live="polite"></span></div>
 </form></section>

@@ -643,3 +643,9 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-outage__table th { color: var(--nd-muted); font-size: 13px; font-weight: 600; }
 .admin-outage__none { color: var(--nd-muted); }
 .admin-outage__form { display: grid; gap: 14px; margin: 0; }
+/* Speed limit per customer (#263, canvas: AdminBundleEdit). */
+.admin-bundle-edit__speed { margin: 0; padding: 14px; border: 1px solid #dfe5dc; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; }
+.admin-bundle-edit__speed legend { padding: 0 6px; font-size: 14px; font-weight: 700; }
+.admin-bundle-edit__speed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.admin-bundle-edit__speed-help { margin: 0; color: #5c6963; font-size: 13px; }
+.admin-bundle-edit__speed-off { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 13px; }
