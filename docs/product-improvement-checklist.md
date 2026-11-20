@@ -1524,3 +1524,18 @@ On 19 November the owner closed these issues as implemented: their code is merge
 - [ ] **Release acceptance (#143):** on real devices, confirm a router-confirmed connection with genuine internet browsing, a real Mobile Money payment with its email receipt, a closed-app push notification, and captive-portal and installed-PWA behaviour. Then write the final completion matrix. Production deployment was recorded on 13 November (`docs/releases/production-redesign-deployment-2026-11-13.md`).
 - [ ] **Home pilot (#178):** run the real pilot on the named WISP router + EAP650 + RB5009, using the pilot template and evaluator, including the 100 quota and activation trials, IPv6 bypass, API outage, expiry and quota cut, restart and signal loss, renewal from mobile data and replacement. Home stays disabled until an independently reviewed pilot passes.
 
+
+### Bundle speed editor (#263, 20 November 2026)
+
+- **Implemented** (branch `feat/bundle-speed-editor-263`, draft PR):
+  - Edit bundle in admin v2 has "Speed limit per customer", with Download and Upload in Mbps. A blank field means no limit, and the preview reads "up to N Mbps".
+  - While `ROUTER_SPEED_LIMITS` is off, the form says the router does not apply limits yet. The dashboard reports the setting as `integrations.speedLimits`.
+  - The rest of the form uses the updated design's wording: "Unlimited data (fair use applies)", "Data (GB)" and the new-purchases note.
+- **Tested:**
+  - `npm test` with PostgreSQL: 1,462 of 1,462.
+  - The redesign browser suite: saving, clearing a limit, keyboard, contrast, and 390 and 1280 px.
+  - Admin app, network UI and payment network journeys on v2 and v1.
+  - Captures are in `docs/reviews/bundle-speed-2026-11-20`.
+- **Not deployed.**
+- **Not physically verified:** see the on-site check below. #263 stays open until it passes.
+- [ ] **Speed limits on the RB5009 (#263):** run the check in `docs/operations/router-command-queue.md`, including FastTrack, with a limited bundle on two devices. Then set `ROUTER_SPEED_LIMITS=on` and confirm the shared queue holds both devices to the limit.
