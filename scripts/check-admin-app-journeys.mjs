@@ -324,7 +324,8 @@ try {
     await page.getByRole("heading", { name: "Audit log.", exact: true }).waitFor();
     const rows = page.locator("#auditRecords tbody tr");
     await rows.filter({ hasText: "Revoked a voucher" }).waitFor();
-    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /fixture-owner[\s\S]*Revoked a voucher[\s\S]*v1/);
+    // Who reads as designed: the role, not the account name (#232).
+    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /Owner[\s\S]*Revoked a voucher[\s\S]*v1/);
     await page.getByRole("button", { name: "Money", exact: true }).click();
     await page.waitForFunction(() => [...document.querySelectorAll("#auditRecords tbody tr")].every((row) => !row.textContent.includes("Revoked a voucher")));
     await rows.filter({ hasText: "Approved a full refund" }).waitFor();
