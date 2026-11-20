@@ -483,14 +483,23 @@ try {
     assert.equal((await store.snapshot()).vouchers[0].wifiDevices[0].sessionId, "*B");
   });
   for (const role of ["operator", "auditor", "reseller"]) await scenario(`navigation preserves ${role} access and hides owner setup`, async (page) => {
+    // v2 on a phone: a reseller's Home is the reseller screen (#261, canvas:
+    // ResellerHome), which has no admin menu; Print my codes opens the shell.
+    const resellerHome = uiV2 && role === "reseller";
+    const atHome = () => resellerHome ? page.locator("#resellerHome .reseller-home__title").waitFor() : page.locator('[data-admin-nav="home"][aria-current]').waitFor();
     await page.goto(`${admin}/dashboard#network-setup`);
-    await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    await atHome();
     assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
     await page.goto(`${admin}/dashboard#store`);
-    await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
+    if (role === "operator") await page.locator('[data-admin-nav="store"][aria-current]').waitFor();
+    else await atHome();
     if (uiV2 && role === "auditor") {
       await page.goto(`${admin}/dashboard#voucher-print`);
       await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    }
+    if (resellerHome) {
+      await page.locator("#resellerHome").getByRole("link", { name: "Print my codes", exact: true }).click();
+      await page.locator(".nd-admin-shell").waitFor();
     }
     assert.equal(await adminMoreCount(page, "Network setup"), 0);
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();

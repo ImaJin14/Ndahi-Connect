@@ -173,7 +173,12 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
         }]);
         try {
           await page.goto(`${admin}/dashboard?${variant.query}#home`);
-          if (variant.name === "v2") {
+          // A reseller's v2 Home is the ResellerHome phone screen (#261), not the shell.
+          const resellerHome = variant.name === "v2" && role === "reseller" && width < 768;
+          if (resellerHome) {
+            await page.locator("#resellerHome .reseller-home__title").waitFor({ state: "visible" });
+            assert.equal(await page.locator(".nd-admin-shell").isVisible(), false);
+          } else if (variant.name === "v2") {
             await page.locator("#adminSideMenu [data-admin-nav]").first().waitFor({ state: "visible" });
             await page.locator("#panel-home:not([hidden])").waitFor({ state: "visible" });
             await page.waitForFunction(() => Boolean(document.querySelector("#homeAttention")?.textContent.trim()), null, { timeout: 10000 });
@@ -181,7 +186,7 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
             await page.locator("#adminNav:not([hidden])").waitFor({ state: "visible" });
             await page.locator("#activeSessionsMetric").waitFor({ state: "visible" });
           }
-          await page.locator("#adminTitle").waitFor({ state: "visible" });
+          if (!resellerHome) await page.locator("#adminTitle").waitFor({ state: "visible" });
           const restricted = role === "auditor" || role === "reseller";
           if (restricted && variant.name === "v1") {
             const checks = await page.evaluate(async (apiUrl) => Promise.all([
@@ -208,15 +213,24 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
           if (restricted) {
             if (variant.name === "v2") {
               assert.doesNotMatch(body, /Export CSV|Export for accountant|Approve full refund|Refund payment/i);
+              if (resellerHome) {
+                // Staff-only views send a reseller back to their Home screen.
+                for (const href of ["#payments", "#customers", "#customer/permission-customer", "#audit"]) {
+                  await page.goto(`${admin}/dashboard?${variant.query}${href}`);
+                  await page.locator("#resellerHome:not([hidden]) .reseller-home__title").waitFor({ state: "visible" });
+                }
+              }
               const metrics = page.locator(".admin-home__metrics .nd-metric");
+              if (!resellerHome) {
               await metrics.nth(1).waitFor({ state: "visible" });
               assert.equal(await metrics.nth(1).locator(".nd-metric__value").innerText(), "Unavailable");
               assert.equal(await metrics.nth(0).locator(".nd-metric__value").innerText(), "0");
               assert.equal(await page.locator("#cashCollectedMetric").innerText(), "Unavailable");
+              }
               for (const nav of ["payments", "customers", "audit"]) {
                 assert.equal(await page.locator(`[data-admin-nav="${nav}"]`).count(), 0);
               }
-              for (const href of ["#payments", "#customers", "#customer/permission-customer", "#audit"]) {
+              if (!resellerHome) for (const href of ["#payments", "#customers", "#customer/permission-customer", "#audit"]) {
                 await page.goto(`${admin}/dashboard?${variant.query}${href}`);
                 await page.locator("#panel-home:not([hidden])").waitFor({ state: "visible" });
                 assert.equal(await page.locator("[data-admin-nav=\"home\"]").getAttribute("aria-current"), "page");
