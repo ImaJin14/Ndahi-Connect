@@ -1516,6 +1516,22 @@ The owner asked for every open PR to be made ready and merged. The four Codex dr
   - Merged as `bcb6488`.
   - Not physically verified: run the RB5009 check in `docs/operations/router-command-queue.md`, including FastTrack, before turning it on. The AdminBundleEdit fields are still to do. #263 stays open.
 
+### Reseller home screen (#261, 20 November 2026)
+
+- **Implemented** (branch `feat/reseller-home-261`, draft PR):
+  - On a phone, a reseller's Home in admin v2 is the ResellerHome screen: codes in hand, sales this week, what they owe NDAHI, and Your money.
+  - "Sell a code" shows the code and its QR first; "Cash received" then records the sale once. A sale whose answer was lost comes back with the same code, and the retry cannot record it twice.
+  - "Ask for more codes" now reaches the owner as a notification that opens Resellers.
+  - All amounts come from the server.
+  - Wider screens keep the admin shell, because the design is phone-only.
+- **Tested:**
+  - `npm test` with PostgreSQL: 1,463 of 1,463.
+  - The redesign browser suite, including keyboard order, focus rings and contrast.
+  - Admin app, cash and admin authorization journeys on v2 and v1.
+  - Captures are in `docs/reviews/reseller-home-2026-11-19`.
+- **Not deployed, and not checked on a reseller's phone.**
+- **Owner check:** compare the captures with the design, then merge. #261 closes on merge.
+
 ### On-site checks still to do after closing #116, #143 and #178 (19 November 2026)
 
 On 19 November the owner closed these issues as implemented: their code is merged and deployed, and only on-site or owner checks remain. Those checks are tracked here and are not yet verified:

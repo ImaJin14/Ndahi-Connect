@@ -1,10 +1,12 @@
-/* Reseller home (#261, canvas: ResellerHome). A reseller's Home replaces the
-   admin shell with this phone screen; wider screens show the same column
-   centred (the canvas has no desktop artboard). Values from the artboard. */
-body.reseller-home-on .nd-admin-shell { display: none; }
+/* Reseller home (#261, canvas: ResellerHome). On phones a reseller's Home
+   is this screen in place of the admin shell. The canvas is phone-only, so
+   wider screens keep the admin shell and its menu to the reseller's other
+   views. Values from the artboard. */
+@media (max-width: 767.98px) { body.reseller-home-on .nd-admin-shell { display: none; } }
+@media (min-width: 768px) { .reseller-home { display: none !important; } }
 .reseller-home[hidden] { display: none; }
 .reseller-home { min-height: 100vh; background: #fbfaf5; color: #10241c; font-family: "DM Sans", var(--nd-font-body), system-ui, sans-serif; }
-.reseller-home__screen { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh; max-width: 480px; margin: 0 auto; background: #fbfaf5; }
+.reseller-home__screen { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh; background: #fbfaf5; }
 /* The admin stylesheet sizes every <header> as its sticky bar; this one is the canvas's block header. */
 .reseller-home .reseller-home__head { display: block; height: auto; position: static; margin: 0; background: #003b2b; color: #ffffff; padding: 16px 18px 20px; }
 .reseller-home__top { display: flex; justify-content: space-between; align-items: center; }
@@ -13,7 +15,7 @@ body.reseller-home-on .nd-admin-shell { display: none; }
 .reseller-home__word { display: flex; flex-direction: column; }
 .reseller-home__word strong { font-family: "Playfair Display", var(--nd-font-display), serif; font-size: 19px; }
 .reseller-home__word small { color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700; }
-.reseller-home__out { color: #dce8e2; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; text-decoration: none; }
+.reseller-home__out { color: #dce8e2; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
 .reseller-home__title { margin: 16px 0 2px; font-family: "Playfair Display", var(--nd-font-display), serif; font-weight: 600; font-size: 26px; }
 .reseller-home__sub { margin: 0; color: #c8d8d0; font-size: 13px; }
 .reseller-home__main { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -47,3 +49,6 @@ body.reseller-home-on .nd-admin-shell { display: none; }
 .reseller-home__row--last span { color: #10241c; font-weight: 700; }
 .reseller-home__row--last strong { color: #6b3a00; }
 .reseller-home__foot { margin-top: auto; }
+/* Keyboard focus: the admin rings, lime on the dark header and green on the page. */
+.reseller-home .reseller-home__out:focus-visible { outline: 3px solid #b9ee2e; outline-offset: 2px; border-radius: 4px; }
+.reseller-home a.reseller-home__btn2:focus-visible { outline: 3px solid #6f9500; outline-offset: 3px; }

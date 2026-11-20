@@ -174,7 +174,7 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
         try {
           await page.goto(`${admin}/dashboard?${variant.query}#home`);
           // A reseller's v2 Home is the ResellerHome phone screen (#261), not the shell.
-          const resellerHome = variant.name === "v2" && role === "reseller";
+          const resellerHome = variant.name === "v2" && role === "reseller" && width < 768;
           if (resellerHome) {
             await page.locator("#resellerHome .reseller-home__title").waitFor({ state: "visible" });
             assert.equal(await page.locator(".nd-admin-shell").isVisible(), false);

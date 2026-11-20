@@ -141,7 +141,7 @@ export const SCREENS = [
     ["outage", "Outage notice", "PhoneOutage", null, "/dashboard#home", NOT_BUILT(259), { tab: "home" }],
     ["home-fr", "Home in French", "PhoneHomeFR", null, "/dashboard#home", "Redesigned; optional French", { tab: "home", lang: "fr", expect: ['html[lang="fr"]', '[data-remaining-data]'] }],
     ["reseller-home", "Reseller home", "ResellerHome", null, "/login", "Redesigned (#261) in the admin app", { signedOut: true,
-      blocked: "The preview has no reseller account to sign in as, so this shows the admin sign-in; test/redesign-browser/reseller-home.test.mjs captures the reseller's Home at 390 and 1280 px (code and QR, cash recorded, request sent)", expect: ["#login"] }],
+      blocked: "The preview has no reseller account to sign in as, so this shows the admin sign-in; test/redesign-browser/reseller-home.test.mjs captures the reseller's Home at 390 px (code and QR, cash recorded, request sent); at 1280 px a reseller keeps the admin shell (the design is phone-only)", expect: ["#login"] }],
     ["connect-flow", "Get-connected flow board", null, "ConnectFlow", "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "A board of every path, each built on its own screen (walked in #250); this capture is the Wi-Fi landing it starts from",
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],

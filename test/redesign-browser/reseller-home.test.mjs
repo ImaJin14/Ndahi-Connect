@@ -73,18 +73,35 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
   assert.equal(await text(home.locator(".reseller-home__money")), "Your money Collected this week 300 FCFA Your commission 30 FCFA Paid to NDAHI · 10 Nov 100 FCFA Still to pay NDAHI 170 FCFA");
   assert.deepEqual(await home.locator("#resellerPlan option").allTextContents(), ["Weekly · 3 in hand", "Daily · 2 in hand"]);
   await check(page, "reseller-home-390");
+  // Keyboard: Tab reaches every control in order, each with a 3px ring.
+  const stops = [];
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press("Tab");
+    stops.push(await page.evaluate(() => { const el = document.activeElement, cs = getComputedStyle(el);
+      return [(el.innerText || "").trim().split("\n")[0], cs.outlineStyle === "solid" && parseFloat(cs.outlineWidth) >= 3]; }));
+  }
+  assert.deepEqual(stops, [["Sign out", true], ["Weekly · 3 in hand", true], ["Sell a code", true], ["Ask for more codes", true], ["Print my codes", true]]);
+  const focused = () => page.evaluate(() => (document.activeElement.innerText || "").trim());
 
-  // Sell a code: the code and its QR first, then Cancel.
-  await home.getByRole("button", { name: "Sell a code" }).click();
+  // Sell a code from the keyboard: the code and its QR first, with focus on the code.
+  await page.keyboard.press("Shift+Tab"); await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Enter");
   const sell = home.getByRole("region", { name: "Sell a code" });
   await sell.waitFor();
+  await page.waitForFunction(() => document.activeElement?.matches("[data-sell-code]"));
   assert.equal(await text(sell.locator(".reseller-home__eyebrow")), "SHOW THE CUSTOMER · WEEKLY");
   assert.equal(await text(sell.locator("[data-sell-code]")), "NC-KS00-WKLY");
   assert.match(await sell.locator("img.reseller-home__qr").getAttribute("src"), /^data:image\/png;base64,/);
   assert.equal(await text(sell.locator(".reseller-home__take")), "They scan it, or type it on the Wi-Fi page. Take 1,000 FCFA cash.");
+  // The capture shows the screen as a touch user sees it (no focus ring).
+  await page.evaluate(() => document.activeElement.blur());
   await check(page, "reseller-selling-390");
-  await sell.getByRole("button", { name: "Cancel" }).click();
+  await sell.locator("[data-sell-code]").focus();
+  await page.keyboard.press("Tab");
+  assert.equal(await focused(), "Cancel");
+  await page.keyboard.press("Enter");
   await home.getByRole("button", { name: "Sell a code" }).waitFor();
+  assert.equal(await focused(), "Sell a code", "focus returns to Sell a code");
   assert.equal((await store.snapshot()).vouchers.find((v) => v.id === "v-weekly-0").cashSale, undefined, "cancelling records nothing");
 
   // Sell again, then Cash received: recorded once at the issue price.
@@ -92,6 +109,7 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
   await sell.getByRole("button", { name: "Cash received" }).click();
   await home.locator(".reseller-home__sold").waitFor();
   assert.equal(await text(home.locator(".reseller-home__sold")), "Sold NC-KS00-WKLY · 1,000 FCFA added to what you collected");
+  await page.waitForFunction(() => document.activeElement?.matches(".reseller-home__sold"));
   assert.equal(await text(home.locator("[data-stock-count]")), "4");
   assert.equal(await text(home.locator("[data-sold-count]")), "2");
   const sale = (await store.snapshot()).vouchers.find((v) => v.id === "v-weekly-0").cashSale;
@@ -103,24 +121,25 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
   // Ask for more codes reaches the owner, once.
   await home.getByRole("button", { name: "Ask for more codes" }).click();
   await home.getByRole("button", { name: "Request sent" }).waitFor();
-  assert.equal(await home.getByRole("button", { name: "Request sent" }).isDisabled(), true);
+  assert.equal(await home.getByRole("button", { name: "Request sent" }).getAttribute("aria-disabled"), "true");
+  assert.equal(await focused(), "Request sent", "focus stays on the request button");
+  await home.getByRole("button", { name: "Request sent" }).click({ force: true });
   assert.equal((await store.snapshot()).adminUsers.find((u) => u.id === "r-kiosk").stockRequests.length, 1);
 
   // Print my codes opens the admin print page in the shell.
   await home.getByRole("link", { name: "Print my codes" }).click();
-  await page.waitForURL(/#voucher-print$/);
+  await page.waitForFunction(() => location.hash === "#voucher-print");
   await page.locator(".nd-admin-shell").waitFor();
   assert.equal(await home.isHidden(), true);
   assert.deepEqual(errors, []);
   await context.close();
 
-  // Desktop: the same phone column, centred.
+  // Desktop keeps the admin shell and its menu (the canvas is phone-only).
   const wide = await open(1280);
   await wide.page.goto(`${admin}/dashboard`);
-  await wide.page.locator("#resellerHome .reseller-home__title").waitFor();
-  const box = await wide.page.locator(".reseller-home__screen").boundingBox();
-  assert.ok(box.width <= 480 && Math.abs(box.x + box.width / 2 - 640) < 2, "a centred phone column");
-  await check(wide.page, "reseller-home-1280");
+  await wide.page.locator("#adminSideMenu [data-admin-nav]").first().waitFor({ state: "visible" });
+  assert.equal(await wide.page.locator("#resellerHome").isVisible(), false);
+  await check(wide.page, "reseller-shell-1280");
   assert.deepEqual(wide.errors, []);
   await wide.context.close();
 });

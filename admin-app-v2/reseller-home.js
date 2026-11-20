@@ -5,7 +5,8 @@
 // before the cash is recorded still counts as sold, so the code may be shown
 // first, as designed. Every amount comes from the server
 // (GET /api/admin/resellers/ledger?view=home); the browser never works out a
-// price, commission or balance. Other views (print, cash) keep the admin shell.
+// price, commission or balance. Other views (print, cash) keep the admin shell,
+// and so do wider screens: the canvas is phone-only (reseller-home.css).
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
@@ -28,6 +29,10 @@ export function mountResellerHome({ call, logout }) {
     document.body.append(view);
   }
   let data = null, error = "", planId = "", selling = null, sold = null, message = "", busy = false, asked = false, storageKey = "", onHome = true;
+  // Each render replaces the screen, so keyboard focus is put back on what the
+  // last action changed: the code to show, the sale, an error, or its button.
+  let focusAfter = "";
+  const settle = (target) => { focusAfter = message ? "[data-message]" : target; busy = false; render(); };
   // The admin navigation decides the view (a blocked page resolves to Home).
   const show = () => {
     view.hidden = !onHome;
@@ -73,7 +78,7 @@ export function mountResellerHome({ call, logout }) {
     </div>
     ${selling ? `<section class="reseller-home__sell" aria-label="${h(L("resellerSellLabel"))}">
       <p class="reseller-home__eyebrow">${h(L("resellerShowCustomer", { plan: selling.planName }))}</p>
-      <p class="reseller-home__code" data-sell-code>${h(selling.code)}</p>
+      <p class="reseller-home__code" data-sell-code tabindex="-1">${h(selling.code)}</p>
       ${selling.qr ? `<img class="reseller-home__qr" src="${h(selling.qr)}" alt="${h(L("resellerQrFor", { code: selling.code }))}" width="128" height="128">` : ""}
       <p class="reseller-home__take">${h(L("resellerTakeCash", { price: Number(selling.price || 0).toLocaleString(locale()) }))}</p>
       <div class="reseller-home__pair">
@@ -81,14 +86,14 @@ export function mountResellerHome({ call, logout }) {
         <button type="button" class="reseller-home__received" data-received ${busy ? "disabled" : ""}>${h(L("resellerCashReceived"))}</button>
       </div>
     </section>` : `<div class="reseller-home__choose">
-      ${sold ? `<p class="reseller-home__sold" role="status">${h(L("resellerSold", { code: sold.code, price: Number(sold.amount || 0).toLocaleString(locale()) }))}</p>` : ""}
+      ${sold ? `<p class="reseller-home__sold" role="status" tabindex="-1">${h(L("resellerSold", { code: sold.code, price: Number(sold.amount || 0).toLocaleString(locale()) }))}</p>` : ""}
       <label for="resellerPlan" class="reseller-home__label">${h(L("resellerBundleToSell"))}</label>
       <select id="resellerPlan" class="reseller-home__select" ${list.length ? "" : "disabled"}>${list.length
         ? list.map((g) => `<option value="${h(g.planId)}" ${g === current ? "selected" : ""}>${h(L("resellerPlanInHand", { plan: g.name, count: g.vouchers.length }))}</option>`).join("")
         : `<option>${h(L("resellerNoStock"))}</option>`}</select>
       <button type="button" class="reseller-home__btn" data-sell ${list.length && !busy ? "" : "disabled"}>${h(L("resellerSellCode"))}</button>
     </div>`}
-    <p class="reseller-home__message" role="status" aria-live="polite">${h(message)}</p>
+    <p class="reseller-home__message" role="status" aria-live="polite" tabindex="-1" data-message>${h(message)}</p>
     <section aria-labelledby="resellerMoney" class="reseller-home__money">
       <h2 id="resellerMoney">${h(L("resellerYourMoney"))}</h2>
       <div class="reseller-home__row"><span>${h(L("resellerCollectedWeek"))}</span><strong data-collected>${h(fcfa(data.weeklyCollected))}</strong></div>
@@ -97,17 +102,18 @@ export function mountResellerHome({ call, logout }) {
       <div class="reseller-home__row reseller-home__row--last"><span>${h(L("resellerStillToPay"))}</span><strong data-still>${h(fcfa(r.outstandingBalance))}</strong></div>
     </section>
     <div class="reseller-home__pair reseller-home__foot">
-      <button type="button" class="reseller-home__btn2" data-ask ${asked || busy ? "disabled" : ""}>${h(L(asked ? "resellerRequestSent" : "resellerAskMore"))}</button>
+      <button type="button" class="reseller-home__btn2" data-ask ${busy ? "disabled" : ""} ${asked ? 'aria-disabled="true"' : ""}>${h(L(asked ? "resellerRequestSent" : "resellerAskMore"))}</button>
       <a class="reseller-home__btn2" href="/dashboard#voucher-print">${h(L("resellerPrintCodes"))}</a>
     </div>
   </main>
 </div>`;
     view.querySelector("#resellerPlan")?.addEventListener("change", (event) => { planId = event.target.value; sold = null; message = ""; render(); });
     view.querySelector("[data-sell]")?.addEventListener("click", () => sell(current));
-    view.querySelector("[data-cancel]")?.addEventListener("click", () => { selling = null; message = ""; save(null); render(); });
+    view.querySelector("[data-cancel]")?.addEventListener("click", () => { selling = null; message = ""; save(null); settle("[data-sell]"); });
     view.querySelector("[data-received]")?.addEventListener("click", received);
     view.querySelector("[data-ask]")?.addEventListener("click", ask);
     view.querySelector("[data-sign-out]")?.addEventListener("click", (event) => { event.preventDefault(); void logout(); });
+    if (focusAfter) { const target = view.querySelector(focusAfter); focusAfter = ""; target?.focus(); }
   }
 
   async function load() {
@@ -131,7 +137,7 @@ export function mountResellerHome({ call, logout }) {
       selling = { voucherId: v.id, code: detail?.code || v.code, qr: detail?.qr || "", price: v.faceValue ?? v.plan?.price, planName: group.name };
       save({ ...selling, key: operationKey() });
     } catch (e) { message = e.message || L("resellerFailed"); }
-    busy = false; render();
+    settle("[data-sell-code]");
   }
 
   // Records the sale once. The saved key makes a retry after a lost answer
@@ -150,9 +156,11 @@ export function mountResellerHome({ call, logout }) {
       if (FINAL.includes(e.code)) { selling = null; save(null); message = `${e.message} ${L("resellerNotRecorded")}`; }
       else message = e.message || L("resellerRetrySale");
     }
-    busy = false; render();
+    settle(sold ? ".reseller-home__sold" : "[data-received]");
   }
 
+  // "Request sent" looks as designed (no faded state); aria-disabled marks it
+  // done while keeping it focusable, and a second press does nothing.
   async function ask() {
     if (busy || asked) return;
     busy = true; render();
@@ -161,7 +169,7 @@ export function mountResellerHome({ call, logout }) {
       await call("/api/admin/resellers/stock-requests", { method: "POST", headers: { "idempotency-key": key }, body: JSON.stringify({ operationKey: key }) });
       asked = true; message = "";
     } catch (e) { message = e.message || L("resellerFailed"); }
-    busy = false; render();
+    settle("[data-ask]");
   }
 
   show();
