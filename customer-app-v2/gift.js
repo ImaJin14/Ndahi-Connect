@@ -1,3 +1,4 @@
+import { funnelStep } from "./funnel.js";
 // Buy a bundle for someone else's number (#255, canvas: PhoneBuyForOther).
 // Step 1: their number (and name); the matching case shows under it. Step 2:
 // the bundle and a note, paid with the buyer's own Mobile Money. Step 3: approve
@@ -170,6 +171,7 @@ function bind(step) {
         const made = await call("/api/account/plan/purchase", { action: "gift", planId: state.plan.id, recipientPhone: state.phone, recipientName: state.name, note: state.note,
           payerPhone: state.buyer.phone, network: network(), requestKey: crypto.randomUUID().replaceAll("-", "") });
         state.payment = made.payment;
+        funnelStep("payment_started");
         // The provider can refuse straight away (for example, a low balance).
         if (["failed", "expired", "cancelled"].includes(made.payment.status)) { fail({ message: failedMessage(made.payment) }); button.disabled = false; return; }
         show("wait");
@@ -192,7 +194,7 @@ function bind(step) {
 async function check(now) {
   try {
     const result = await call(`/api/account/payments/${encodeURIComponent(state.payment.id)}/status`);
-    if (result.payment.status === "paid" && result.access) { state.result = result; show("done"); return true; }
+    if (result.payment.status === "paid" && result.access) { funnelStep("paid"); state.result = result; show("done"); return true; }
     if (["failed", "expired", "cancelled"].includes(result.payment.status)) { fail({ message: failedMessage(result.payment) }); return true; }
   } catch (error) { if (now) fail(error); }
   return false;

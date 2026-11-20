@@ -1488,6 +1488,19 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. Run `node scripts/check-payment-fees.mjs` in the API's Render shell before setting `PAYMENT_FEE_MTN` and `PAYMENT_FEE_ORANGE`. A staging payment with a balance between the price and the total is still to be done.
 - Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
 
+### Insights data recording (#262, 20 November 2026)
+
+- **Implemented** (branch `feat/insights-recording-262`, draft PR):
+  - **Hourly devices online:** each completed router usage sync records the devices online.
+  - **Funnel:** the v2 portal counts anonymous Wi-Fi page → signed in → payment started → paid steps by design variant.
+  - **Insights API:** `GET /api/admin/insights` now returns `devices` (the average and peak for each hour of the day) and `funnel` (counts per variant).
+  - **Access-point load:** stays unavailable. The EAPs run standalone (`OMADA_MODE=standalone`), so no measured load reaches the API, and none is estimated.
+- **Tested:**
+  - `npm test` with PostgreSQL: 1,468 of 1,468, including 20 concurrent beacons on PostgreSQL with no count lost.
+  - The redesign browser suite, including a new-buyer visit from the Wi-Fi page to paid.
+  - Hotspot, billing, portal, admin app and admin authorization journeys on v2 and v1.
+- **Not deployed.** Data starts collecting once it is deployed, so the AdminInsights screen (the rest of #262) can show real busy-evening data.
+
 ### Open PRs taken over and merged (19 November 2026)
 
 The owner asked for every open PR to be made ready and merged. The four Codex drafts came from the other PC; their claims were reclaimed on the owner's instruction. Owner decisions are recorded in `docs/redesign/decisions.md`: outage time back, shared speed limits, early-redeemed reseller codes, and issue price and commission.
