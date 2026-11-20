@@ -74,7 +74,8 @@ function eyebrow(view, lang) {
   const config = VIEWS[view];
   if (config.back) return "";
   if (view === "home") {
-    const date = new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
+    // "Friday 20 November" on the network's clock, not "Friday, November 20" (#232).
+    const date = new Date().toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Douala" });
     return ROLES[currentRole] ? t(ROLES[currentRole], lang) + " · " + date : date;
   }
   return t(config.group, lang) + (config.ownerOnly ? " · " + t("adminOwnerOnly", lang) : "");
