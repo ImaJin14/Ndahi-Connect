@@ -23,6 +23,7 @@ import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 import { mountResellerLedger } from "/reseller-ledger.js";
+import { mountResellerHome } from "/reseller-home.js";
 import { format, t } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { updateHomeRouterMenu } from "/home-entry.js";
@@ -173,6 +174,7 @@ async function load() {
   adminAuthenticatorRetired = x.profile.authenticatorRetired === true;
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
+  if (adminRole === "reseller") { resellerHome ||= mountResellerHome({ call, logout: signOut }); resellerHome.setView(activeAdminTab); }
   csrfToken = x.csrfToken;
   mountNotifications({ apiUrl: api, path: "/api/admin/notifications", csrf: () => csrfToken, admin: true });
   const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
@@ -307,7 +309,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
   let customerVoucher;
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "outages") void showOutages($("#outagesHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
     if (view === "voucher") void openVoucher(); else { $("#adminTitle")?.classList.remove("admin-title--code"); $("#adminTitle")?.parentElement?.classList.remove("admin-head-title--inline"); } if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
@@ -618,6 +620,12 @@ $("#app").onclick = async (e) => {
     await load();
   });
 };
+// A reseller's Home is the ResellerHome phone screen (#261), mounted once.
+let resellerHome;
+async function signOut() {
+  await call("/api/admin/logout", { method: "POST", body: "{}" });
+  location.href = "/login";
+}
 $("#logout").onclick = async (event) => {
   await runAction(event.currentTarget, "Logging out…", async () => {
     await call("/api/admin/logout", { method: "POST", body: "{}" });

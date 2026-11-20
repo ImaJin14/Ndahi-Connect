@@ -100,6 +100,11 @@ try {
       assert.equal(await page.locator("#generate").isVisible(), false);
       assert.equal(await page.getByRole("button", { name: adminGenerateName("resale") }).count(), 0);
     } else {
+      if (uiV2 && role === "reseller" && width < 768) {
+        // On a phone the reseller's Home is the reseller screen (#261); Print my codes opens the shell.
+        await page.locator("#resellerHome").getByRole("link", { name: "Print my codes", exact: true }).click();
+        await page.locator(".nd-admin-shell").waitFor();
+      }
       await openAdminMore(page, "Generate voucher");
       const generateButton = page.getByRole("button", { name: adminGenerateName("resale") });
       await generateButton.waitFor();

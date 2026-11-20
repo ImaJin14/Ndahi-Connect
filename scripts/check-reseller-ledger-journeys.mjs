@@ -246,7 +246,8 @@ try {
     await page.locator("#generated .generated-codes code").first().waitFor({ state: "attached" });
 
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
-    assert.match(await row.locator('[data-cell="stock"]').textContent(), /3 unsold \/ 2 sold \/ 5 total/);
+    // A hash change keeps the old row on screen until the ledger refreshes.
+    await row.locator('[data-cell="stock"]').filter({ hasText: /3 unsold \/ 2 sold \/ 5 total/ }).waitFor();
     const adjustment = page.locator("[data-reseller-adjustment-form]");
     if (uiV2) await page.locator("[data-reseller-advanced] > summary").click();
     await adjustment.locator('[name="resellerId"]').selectOption("staff-reseller-1");
