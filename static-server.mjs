@@ -140,6 +140,24 @@ export function createStaticServer(
       // A page already open in the other variant, or a browser that refuses cookies,
       // may still request that variant's versioned files.
       if (!entry && versioned && rollout && !rollout.off) entry = (await getAssets(variant === "v2" ? "v1" : "v2")).catalog.get(path);
+      // A page from another release (an instance still answering during a
+      // deploy, or a copy kept by the browser) asks for the files of its own
+      // revision. Serve this release's file for the same path instead of a 404
+      // that leaves the page without its scripts and styles; no-store keeps
+      // it from being cached under the other release's name. Never while the
+      // v2 kill switch is on, and never for the other variant's own revision:
+      // a page of one variant must not get the other variant's files.
+      const previous = !entry && versioned && !(rollout && rollout.off) && /^\/static(\/.+)\.([0-9a-f]{20})(\.[a-z0-9]+)$/.exec(path);
+      const otherVariant = previous && rollout ? (await getAssets(variant === "v2" ? "v1" : "v2")).revision : null;
+      if (previous && previous[2] !== otherVariant) {
+        const logical = previous[1] + previous[3];
+        entry = (await getAssets(variant)).catalog.get(logical);
+        if (entry && entry.type.startsWith("text/html")) entry = undefined;
+        if (entry) {
+          logger.info("static.other_revision_served", { kind, path: logical });
+          return sendAsset(req, res, entry, headers, { immutable: "no-store", revalidate: "no-store" });
+        }
+      }
       if (!entry) {
         res.writeHead(404, { ...headers, "cache-control": "no-store" });
         return res.end("Not found");
