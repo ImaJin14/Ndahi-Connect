@@ -111,7 +111,9 @@ function accountFixture(routeEnv = env) {
     state,
     async call(path, input) {
       const res = { writeHead(status) { this.status = status; }, end(value) { this.body = JSON.parse(value); } },
-        req = input === undefined ? { method: "GET" } : { method: "POST", async *[Symbol.asyncIterator]() { yield JSON.stringify(input); } };
+        // A signed-in browser sends its session cookie (auth itself is stubbed above).
+        headers = { cookie: "customer_session=fixture" },
+        req = input === undefined ? { method: "GET", headers } : { method: "POST", headers, async *[Symbol.asyncIterator]() { yield JSON.stringify(input); } };
       await route(req, res, new URL(`http://api.test${path}`));
       return res;
     },
