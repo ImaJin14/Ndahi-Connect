@@ -1603,4 +1603,66 @@ On 20 November the owner asked for ready PRs to be merged as work goes on, each 
   - Found on production: signed-out requests took the store's global lock and read the whole state just to answer 401.
   - Effect: 2–10 s per request, and the smoke check timed out.
   - Fix: without a session cookie, these requests answer the same 401 straight away.
-  - Open at the time of writing.
+  - Merged as `f25b071`; #313 closed. Deployed. On 21 November, signed-out requests on production answered 401 in 0.74–1.44 s.
+
+### Black Friday store offer (#302, 21 November 2026)
+
+The owner's rules (20 November):
+- any TP-Link AX1500 for 100,000 FCFA, 27–30 November, Cameroon time;
+- 45 days of Unlimited Home (fair use, 6 devices), starting when the payment is confirmed;
+- a running bundle is paused, then resumes with its remaining time;
+- one per phone number (payer, contact or account);
+- a guest's days are reserved for the paying number;
+- a refund ends them.
+
+On 21 November the owner also asked for the countdown in the customer portal.
+
+- **Implemented:**
+  - **#316, server** (merged as `4d3ae9d`):
+    - the sale price is set on the server;
+    - one per number;
+    - the free bundle at payment, or reserved with a code for a guest;
+    - pausing the running bundle and resuming it after the 45 days;
+    - a refund ends the free days and resumes the paused bundle;
+    - the receipt shows "Included free";
+    - an offer with a setup error never sells at the regular price.
+  - **#317, Admin → Promotions** (merged as `5338c66`):
+    - setup with a preview;
+    - Schedule;
+    - while it runs: sales, free bundles, orders, and End early.
+  - **#318, public store and customer portal** (merged as `13ad5ad`):
+    - a countdown on the portal Home and the store hero, first to the start, then to the end, on the server's clock;
+    - the sale price, the free bundle and what's left on cards and product pages;
+    - quantity locked at 1;
+    - a checkout line for the free bundle;
+    - on the order, the free bundle's status and a guest's claim code.
+  - **#303, designs and decisions** (merged as `6a5c05f`).
+- **Tested:**
+  - `npm test` with PostgreSQL 17: 1,494 of 1,495. The one failure is the known timing test `record queries stay fast`, which passes on its own.
+  - `test/black-friday-store.test.mjs` runs through the real API:
+    - one per number;
+    - an account's paused Weekly bundle resuming after the 45 days;
+    - a guest claiming 10 days later and still ending 45 days after payment;
+    - refunds;
+    - End early;
+    - the catalogue's announcements.
+  - Redesign browser tests: all 22 pass, including Admin Promotions and the store and portal at 390 and 1280 px.
+  - Journeys: store on v2 and v1, portal on v2 and v1, admin app on v2 and v1.
+  - Captures are in `docs/reviews/promotions-2026-11-21` and `docs/reviews/black-friday-shop-2026-11-21`.
+- **Deployed** on 21 November:
+  - #316 (`4d3ae9d`), #317 and #303 (`6a5c05f`): the production smoke checks passed.
+  - #318 (`13ad5ad`) went live at 02:10 UTC:
+    - the store and the portal serve the promotion and countdown scripts;
+    - the catalogue returns `serverTime`;
+    - the smoke checks passed at 02:10.
+  - An earlier Render deploy of the same commit was reported successful at 02:03 while the old release was still serving, and the smoke checks passed against it (#319).
+- **Not physically verified:**
+  - no real purchase, refund or guest claim;
+  - no bundle paused and resumed on the RB5009.
+  - On 21 November the production store was closed, and its catalogue listed no products.
+- Before the sale, the owner does these, following `docs/operations/black-friday-offer.md`:
+  - [ ] **Store settings:** WhatsApp +237671493902, pickup at Bandja Street, opening hours, and the terms in English and French. Then open the store.
+  - [ ] **Stock:** count the AX1500s and check their regular prices.
+  - [ ] **The offer:** create it in Admin → Promotions, from 27 Nov 00:00 to 30 Nov 23:59.
+  - [ ] **Staging, by 25 November:** a guest purchase, an account purchase with a running bundle (paused, then resumed on the router), and a refund.
+    - On 21 November the staging hostnames (`staging-api`, `staging-portal`, `staging-admin`) did not resolve. Staging must be brought up first, or the owner must agree another way to test.
