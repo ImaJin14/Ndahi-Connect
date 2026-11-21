@@ -242,6 +242,12 @@ services:
         sync: false
       - key: MIKROTIK_PASSWORD
         sync: false
+      # Bundle speed limits (#263): one RouterOS simple queue per bundle, shared
+      # by its devices. Unset or "off" changes nothing on the router. Set it to
+      # "on" in Render only after the RB5009 check in
+      # docs/operations/router-command-queue.md (FastTrack excluded).
+      - key: ROUTER_SPEED_LIMITS
+        sync: false
       - key: OMADA_MODE
         value: standalone
       - key: OMADA_API_URL

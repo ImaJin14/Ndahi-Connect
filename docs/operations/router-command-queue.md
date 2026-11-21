@@ -111,10 +111,71 @@ A bundle can carry a download and upload limit in Mbps (`downloadMbps`, `uploadM
 - **Unmanaged queues:** a queue with the same name but another comment is never touched.
 - **Timing:** a newly connected device is limited from the next usage read.
 
-**Off by default.** Nothing changes on the router until the API service has `ROUTER_SPEED_LIMITS=on`. Turn it on only after this check on the RB5009:
+**Off by default.** Nothing changes on the router until the API service has `ROUTER_SPEED_LIMITS=on`.
+- **Where it's set:** `render.yaml` declares it with `sync: false`. Set it in Render → `ndahi-api` → Environment; it's never committed as on.
+- **Allowed values:** unset and `off` change nothing. Any value other than `on` or `off` fails `npm run check:environment -- ndahi-api`, which stops the deploy.
+- **When:** turn it on only after the check below.
 
-1. Give a test bundle a low limit (for example 2 Mbps down, 1 Mbps up) and issue a voucher from it.
-2. Connect two devices with that voucher. Within a minute, `/queue simple print where name~"ndahi-speed"` shows one queue with both addresses and `max-limit=1000000/2000000`.
-3. Run a speed test on both devices at once. Together they stay near the limit.
-4. **FastTrack check:** if a FastTrack rule covers the hotspot subnet, fast-tracked traffic skips simple queues, so exclude the hotspot subnet from FastTrack. Default configurations have a `fasttrack-connection` rule in the forward chain.
+**1. Know which path reaches the router.**
+- **Saved router:** Admin → Network setup shows "Use saved router for vouchers" switched on. The API calls RouterOS itself (`lib/router-hotspot.mjs`, deployed with the API), so there is nothing to update on site.
+- **Bridge:** if that switch is off, the API posts to the on-site bridge at `MIKROTIK_API_URL`, which runs `npm run start:bridge` (`scripts/network-bridge.mjs`).
+  - The bridge must run a version with `POST /ndahi/syncSpeedQueue`: commit `a610005` (#307) or later.
+  - An older bridge answers 404 "Unknown bridge action", so every `sync_speed` command would fail and be dead-lettered.
+  - Update the bridge first (see *Updating the bridge* below).
+
+**2. The RouterOS service user.** It needs read and write on `/queue/simple`, which the `write` policy covers; that user already writes hotspot users. Check with:
+
+```routeros
+/user print detail where name=<ROUTER_REST_USER>
+/user group print detail where name=<that user's group>
+```
+
+**3. Exclude the hotspot network from FastTrack.**
+- Fast-tracked traffic skips simple queues, and the default configuration has a `fasttrack-connection` rule in the forward chain.
+- At the time of writing the hotspot network is 10.20.0.0/24 on `vlan20-hotspot`. Confirm with `/ip address print where interface=vlan20-hotspot`.
+
+```routeros
+/ip firewall filter print where action=fasttrack-connection
+# If exactly one rule is listed, accept hotspot traffic before it, both ways:
+/ip firewall filter add chain=forward action=accept connection-state=established,related src-address=10.20.0.0/24 place-before=[find where action=fasttrack-connection] comment="ndahi: no fasttrack for hotspot (upload)"
+/ip firewall filter add chain=forward action=accept connection-state=established,related dst-address=10.20.0.0/24 place-before=[find where action=fasttrack-connection] comment="ndahi: no fasttrack for hotspot (download)"
+/ip firewall filter print where comment~"ndahi: no fasttrack"
+```
+
+Both new rules must sit above the fasttrack rule. Connections already fast-tracked keep skipping queues until they close, so reconnect the test devices after adding the rules.
+
+**4. Check on the RB5009, with only a test bundle limited.** The switch covers every bundle with a limit, so in Admin → Bundles make sure no other bundle has one during the check.
+1. In Admin → Bundles → Edit, give a test bundle a low limit (for example 2 Mbps down, 1 Mbps up), and issue a voucher from it.
+2. Turn the switch on (step 5), connect two devices with that voucher, and wait a minute.
+   - `/queue simple print where name~"ndahi-speed"` shows one queue with both addresses and `max-limit=1000000/2000000`.
+   - Simple queues are matched in order and the first match takes the traffic. If `/queue simple print` lists other queues above it that match the same addresses (for example dynamic hotspot queues, flag `D`), the bundle queue never sees the traffic. Stop, and turn the switch off again.
+3. Run a speed test on both devices at once. Together they stay near the limit. The queue's counters (`/queue simple print stats where name~"ndahi-speed"`) rise while the tests run.
+4. Run `/ip firewall filter print stats where comment~"ndahi: no fasttrack"`: both rules count packets, and the fasttrack rule's counter stops rising for hotspot traffic.
 5. Disconnect both devices. The queue is removed after the next usage read.
+
+**5. Turn it on, or back off.**
+- **On:** Render → `ndahi-api` → Environment → `ROUTER_SPEED_LIMITS` = `on` → Save, rebuild and deploy. The deploy's environment check accepts only `on` or `off`.
+  - Admin → Bundles → Edit no longer says "Not applied on the router yet".
+  - Admin → Router commands shows `sync_speed` commands completing, none failing.
+- **Off:** set `off` and deploy. The API stops changing queues but doesn't remove the ones already on the router, so remove them:
+
+  ```routeros
+  /queue simple remove [find where comment~"^ndahi:speed:"]
+  ```
+
+  Remove the FastTrack exceptions only if you want FastTrack back for the hotspot, and only after the queues are gone.
+
+**Updating the bridge.**
+- Only for the bridge path in step 1. The bridge host needs Node 22 (`node -v`). On the bridge host, in its checkout of this repository:
+  ```sh
+  git fetch origin && git checkout <tag or commit at or after a610005>
+  npm ci --omit=dev
+  ```
+  Then restart the service that runs `npm run start:bridge` with its existing environment (`ROUTER_REST_*`, `BRIDGE_*`, `MIKROTIK_USER`, `MIKROTIK_PASSWORD`).
+- **Confirm the new action from the host.** An authenticated empty request must reach the router code, not 404:
+  ```sh
+  curl -sk -u "$MIKROTIK_USER:$MIKROTIK_PASSWORD" -X POST "https://$BRIDGE_HOST:$BRIDGE_PORT/ndahi/syncSpeedQueue" -d '{}' -o /dev/null -w '%{http_code}\n'
+  ```
+  It prints `502`: "Invalid bundle speed queue." is rejected as a failed operation. `404` means the bridge is still the old version.
+  - `-k` only skips verification of the bridge's own certificate on this local check.
+  - Run the command with `set +o history`, or read the password from the service's environment file, so it doesn't stay in shell history.
