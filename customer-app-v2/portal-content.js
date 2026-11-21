@@ -52,7 +52,10 @@ export function homeShopItems(catalogue) {
   const name = (value) => (value && typeof value === "object" ? value[lang] || value.en || "" : value || "");
   return (catalogue.products || []).filter((product) => product.available > 0).slice(0, 3).map((product) => {
     const price = product.price == null ? L("homePriceTbc") : `${Number(product.price).toLocaleString(lang === "fr" ? "fr-CM" : "en-CM")} FCFA`;
-    const image = product.images && product.images[0] && /^data:image\//.test(product.images[0].data) ? `<img src="${h(product.images[0].data)}" alt="" loading="lazy">` : svg("shop");
+    // Photos come from the API by path; an older photo may be a data URL.
+    const src = product.images && product.images[0] && typeof product.images[0].src === "string" ? product.images[0].src : "";
+    const url = src.startsWith("/api/store/photos/") ? String(window.NDAHI_CONFIG.apiUrl).replace(/\/$/, "") + src : /^data:image\//.test(src) ? src : "";
+    const image = url ? `<img src="${h(url)}" alt="" loading="lazy">` : svg("shop");
     return `<a class="nd-media-row home-shop__item" href="/dashboard#product/${encodeURIComponent(product.id)}"><span class="nd-thumb">${image}</span><span class="nd-media-row__body"><span class="nd-media-row__title">${h(name(product.name))}</span><span class="nd-meta nd-narrow-only">${h(L("homeShopMeta", { price }))}</span><span class="nd-meta nd-wide-only${product.available <= 2 ? " home-shop__few" : ""}">${h(L(product.available <= 2 ? "homeShopFew" : "homeShopStock", { price, count: product.available }))}</span></span><span class="nd-chevron" aria-hidden="true">›</span></a>`;
   }).join("");
 }

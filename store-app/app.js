@@ -2,6 +2,9 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { createPromo } from "./promo.js";
 const $ = (s) => document.querySelector(s),
   api = window.NDAHI_CONFIG.apiUrl;
+// A product photo's address: the API serves photos by path; a photo saved
+// before photos were stored on their own is a data URL.
+const photoSrc = (image) => (image?.src?.startsWith("/") ? api.replace(/\/$/, "") + image.src : image?.src || "");
 // Language switching is temporarily disabled; retain translations for later.
 const lang = "en";
 let data,
@@ -153,6 +156,7 @@ const words = {
     paymentReview:
       "Payment verification needs another check. Do not start a second payment.",
     gallery: "Product image",
+    photoOf: "Show photo {n} of {count}",
     banner: "Store update",
   },
   fr: {
@@ -296,6 +300,7 @@ const words = {
     paymentReview:
       "La vérification du paiement nécessite un nouveau contrôle. Ne lancez pas un second paiement.",
     gallery: "Image du produit",
+    photoOf: "Afficher la photo {n} sur {count}",
     banner: "Actualité boutique",
   },
 };
@@ -352,7 +357,7 @@ async function action(button, task) {
   }
 }
 function visual(p) {
-  return `<div class="product-visual">${p.images?.[0] ? `<img src="${h(p.images[0].data)}" alt="${h(l(p.images[0].alt))}" loading="lazy">` : '<svg viewBox="0 0 120 100" fill="none" aria-hidden="true"><path d="M60 15 100 35 60 55 20 35 60 15Z" stroke="currentColor" stroke-width="2"/><path d="M20 35v35l40 20 40-20V35M60 55v35M40 25l40 20" stroke="currentColor" stroke-width="2"/></svg>'}${p.featured ? `<span class="badge">${h(t("featured"))}</span>` : ""}</div>`;
+  return `<div class="product-visual">${p.images?.[0] ? `<img src="${h(photoSrc(p.images[0]))}" alt="${h(l(p.images[0].alt))}" loading="lazy">` : '<svg viewBox="0 0 120 100" fill="none" aria-hidden="true"><path d="M60 15 100 35 60 55 20 35 60 15Z" stroke="currentColor" stroke-width="2"/><path d="M20 35v35l40 20 40-20V35M60 55v35M40 25l40 20" stroke="currentColor" stroke-width="2"/></svg>'}${p.featured ? `<span class="badge">${h(t("featured"))}</span>` : ""}</div>`;
 }
 function pendingCheckout() {
   try {
@@ -486,7 +491,7 @@ function renderProduct(id) {
     max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)),
     pp = promo.product(p);
   $("#view").innerHTML =
-    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}</div>${pp.strip}` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-label="${h(t("gallery"))} ${i + 1}"><img src="${h(im.data)}" alt=""></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}<div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button></div>${pp ? `<p class="form-help promo-limit">${h(pp.limit)}</p>` : ""}<p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p)}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
+    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}</div>${pp.strip}` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery" role="group" aria-label="${h(t("gallery"))}">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-pressed="${i === 0}" aria-label="${h(t("photoOf").replace("{n}", i + 1).replace("{count}", p.images.length))}"><img src="${h(photoSrc(im))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}<div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button></div>${pp ? `<p class="form-help promo-limit">${h(pp.limit)}</p>` : ""}<p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p)}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
   document.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => {
     qty = Math.min(max, Math.max(1, qty + Number(b.dataset.step)));
     $("#qty").textContent = qty;
@@ -497,8 +502,8 @@ function renderProduct(id) {
   document.querySelectorAll("[data-image]").forEach((b) => (b.onclick = () => {
     const image = p.images[Number(b.dataset.image)];
     const main = document.querySelector(".detail-media .product-visual img");
-    if (main) { main.src = image.data; main.alt = l(image.alt); }
-    document.querySelectorAll("[data-image]").forEach((x) => x.classList.toggle("is-current", x === b));
+    if (main) { main.src = photoSrc(image); main.alt = l(image.alt); }
+    document.querySelectorAll("[data-image]").forEach((x) => { x.classList.toggle("is-current", x === b); x.setAttribute("aria-pressed", String(x === b)); });
   }));
   $("#buy").onclick = () => showCheckout();
   bindResume();

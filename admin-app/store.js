@@ -1,4 +1,8 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
+const MAX_PRODUCT_IMAGES = 30;
+// A product photo's address: the API serves photos by path; a photo saved
+// before photos were stored on their own carries its data URL.
+const photoSrc = (image) => (image?.src?.startsWith("/") ? String(window.NDAHI_CONFIG.apiUrl).replace(/\/$/, "") + image.src : image?.src || image?.data || "");
 const loc = (en = "", fr = "") => ({ en, fr });
 const emptyProduct = () => ({
   name: loc(),
@@ -249,14 +253,15 @@ export function mountStore(root, { call, role, csrf }) {
   function editProduct(p) {
     images = structuredClone(p.images);
     $("#storeEditor").innerHTML =
-      `<h3>${p.id ? "Edit product" : "New product"}</h3><form id="storeProductForm"><div class="form-grid">${bilingual("name", "Name", p.name)}${field("sku", "SKU / model", p.sku, "text", 'required maxlength="80"')}${field("price", "Selling price (FCFA)", p.price, "number", 'min="1" max="100000000" placeholder="Price to be confirmed"')}${role === "owner" ? field("cost", "Internal cost (FCFA)", p.cost, "number", 'min="0" max="100000000"') : ""}<label>Category<select name="categoryId"><option value="">Uncategorized</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(c.name.en)}</option>`).join("")}</select></label><label>Status<select name="status">${["draft", "published", "archived"].map((status) => `<option ${p.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>${checkbox("featured", "Featured product", p.featured)}${["description", "specifications", "compatibility", "contents", "warranty", "setup"].map((key) => bilingual(key, key[0].toUpperCase() + key.slice(1), p[key], true)).join("")}</div><h4>Product images</h4><p class="form-help">Up to four images. Uploads are resized to a maximum of 960px and saved with the product. Add alternative text in both languages.</p><label>Upload image<input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp"></label><div id="storeImages"></div><div class="action-row"><button type="submit">Save product</button><button type="button" id="cancelProduct">Cancel</button></div></form>`;
+      `<h3>${p.id ? "Edit product" : "New product"}</h3><form id="storeProductForm"><div class="form-grid">${bilingual("name", "Name", p.name)}${field("sku", "SKU / model", p.sku, "text", 'required maxlength="80"')}${field("price", "Selling price (FCFA)", p.price, "number", 'min="1" max="100000000" placeholder="Price to be confirmed"')}${role === "owner" ? field("cost", "Internal cost (FCFA)", p.cost, "number", 'min="0" max="100000000"') : ""}<label>Category<select name="categoryId"><option value="">Uncategorized</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(c.name.en)}</option>`).join("")}</select></label><label>Status<select name="status">${["draft", "published", "archived"].map((status) => `<option ${p.status === status ? "selected" : ""}>${status}</option>`).join("")}</select></label>${checkbox("featured", "Featured product", p.featured)}${["description", "specifications", "compatibility", "contents", "warranty", "setup"].map((key) => bilingual(key, key[0].toUpperCase() + key.slice(1), p[key], true)).join("")}</div><h4>Product images</h4><p class="form-help">Up to ${MAX_PRODUCT_IMAGES} images. Uploads are resized to a maximum of 960px; each photo is uploaded when you choose it. Add alternative text in both languages.</p><label>Upload image<input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp"></label><div id="storeImages"></div><div class="action-row"><button type="submit">Save product</button><button type="button" id="cancelProduct">Cancel</button></div></form>`;
     renderImages();
     $("#cancelProduct").onclick = () => $("#storeEditor").replaceChildren();
     $("#storeImageUpload").onchange = (e) =>
       run(null, async () => {
         const file = e.target.files[0];
         if (!file) return;
-        if (images.length >= 4) throw Error("Use at most four images.");
+        const editImages = images;
+        if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(`Use at most ${MAX_PRODUCT_IMAGES} images.`);
         if (
           !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
           file.size > 8e6
@@ -275,7 +280,14 @@ export function mountStore(root, { call, role, csrf }) {
         if (data.length > 230000) data = canvas.toDataURL("image/webp", 0.4);
         if (data.length > 230000)
           throw Error("Image is too detailed; upload a smaller image.");
-        images.push({ data, alt: loc() });
+        // Each photo is uploaded on its own; the product refers to it when saved.
+        message.textContent = "Uploading photo…";
+        const { photo } = await call("/api/admin/store/photos", { method: "POST", body: JSON.stringify({ data }) });
+        message.textContent = "";
+        // The editor or image count may have changed while the photo uploaded.
+        if (!e.target.isConnected || images !== editImages) return;
+        if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(`Use at most ${MAX_PRODUCT_IMAGES} images.`);
+        editImages.push({ id: photo.id, src: photo.src, alt: loc() });
         renderImages();
         e.target.value = "";
       });
@@ -290,7 +302,8 @@ export function mountStore(root, { call, role, csrf }) {
           price: input.price === "" ? null : Number(input.price),
           cost: Number(input.cost || 0),
           featured: e.target.elements.featured.checked,
-          images,
+          // Stored photos by id; a photo saved inside the product before stays as it is.
+          images: images.map(({ id, data, alt }) => (id ? { id, alt } : { data, alt })),
         });
       });
     };
@@ -301,7 +314,7 @@ export function mountStore(root, { call, role, csrf }) {
     wrap.innerHTML = images
       .map(
         (im, index) =>
-          `<fieldset><legend>Image ${index + 1}</legend><img src="${h(im.data)}" alt="${h(im.alt.en)}" width="120" height="90">${bilingual(`image${index}`, "Alternative text", im.alt)}<div class="action-row"><button type="button" data-image-up="${index}" ${index === 0 ? "disabled" : ""}>Move up</button><button type="button" data-image-delete="${index}">Remove</button></div></fieldset>`,
+          `<fieldset><legend>Image ${index + 1}</legend><img src="${h(photoSrc(im))}" alt="${h(im.alt.en)}" width="120" height="90" loading="lazy">${bilingual(`image${index}`, "Alternative text", im.alt)}<div class="action-row"><button type="button" data-image-up="${index}" ${index === 0 ? "disabled" : ""}>Move up</button><button type="button" data-image-delete="${index}">Remove</button></div></fieldset>`,
       )
       .join("");
     wrap.querySelectorAll("input").forEach(

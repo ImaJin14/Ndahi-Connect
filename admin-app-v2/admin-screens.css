@@ -480,6 +480,8 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-photos__add:focus-within { outline: 3px solid var(--nd-focus, #6f9500); outline-offset: 2px; }
 .admin-photos__add { position: relative; display: grid; place-items: center; min-height: 80px; border: 2px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); color: var(--nd-forest); font-weight: 600; font-size: var(--nd-fs-small); cursor: pointer; }
 .admin-photos__add input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+/* At 30 photos the picker says so and waits for one to be removed. */
+.admin-photos__add.is-full { border-style: solid; color: var(--nd-muted); cursor: default; }
 .admin-store__danger { margin: 0; }
 @media (max-width: 767.98px) { .admin-store__catalogue .nd-input, .admin-store__listhead .nd-input { width: 100%; } }
 .admin-store__bannertext .store-state { padding: 0; background: none; font-size: var(--nd-fs-small); font-weight: 600; }

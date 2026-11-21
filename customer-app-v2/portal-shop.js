@@ -16,10 +16,23 @@ const text = (value) => (value && typeof value === "object" ? value[currentLangu
 const money = (value) => (value == null ? L("homePriceTbc") : `${Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM")} FCFA`);
 const icon = (d, size = 22) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${d}"></path></svg>`;
 const BACK = icon("M15 18 9 12l6-6"), SHOP = "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7", CHECK = "m5 12 5 5 9-10";
-const photo = (product, cls) => {
-  const image = product.images && product.images[0];
-  return `<span class="${cls}">${image && /^data:image\//.test(image.data) ? `<img src="${h(image.data)}" alt="${h(text(image.alt))}" loading="lazy">` : icon(SHOP, 28)}</span>`;
+// A product photo's address: the API serves photos by path; a photo saved
+// before photos were stored on their own is a data URL.
+const photoSrc = (image) => {
+  const src = image && typeof image.src === "string" ? image.src : "";
+  return src.startsWith("/api/store/photos/") ? api.replace(/\/$/, "") + src : /^data:image\/(png|jpeg|webp);base64,/.test(src) ? src : "";
 };
+const photo = (product, cls) => {
+  const image = product.images && product.images[0], src = photoSrc(image);
+  return `<span class="${cls}">${src ? `<img src="${h(src)}" alt="${h(text(image.alt))}" loading="lazy">` : icon(SHOP, 28)}</span>`;
+};
+// A product's photos (up to 30): the first one large, then a row of
+// thumbnails to show another, as on the public store's product page.
+function productPhotos(product) {
+  const images = (product.images || []).filter(photoSrc);
+  return `<div class="portal-shop__media">${photo({ images }, "portal-shop__photo")}${images.length > 1 ? `<div class="portal-shop__shots" role="group" aria-label="${h(L("shopPhotos"))}">${images.map((image, index) =>
+    `<button type="button" class="portal-shop__shot" data-shop-photo="${index}" aria-pressed="${index === 0}" aria-label="${h(L("shopShowPhoto", { n: index + 1, count: images.length }))}"><img src="${h(photoSrc(image))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div>`;
+}
 const bar = (href, label, title) => `<div class="portal-shop__bar"><a class="portal-sub__back portal-shop__back" href="${href}" aria-label="${h(label)}">${BACK}</a><h2 class="portal-shop__bar-title" id="shopTitle" tabindex="-1">${h(title)}</h2></div>`;
 // Order progress, in the order a customer meets it.
 const STEPS = ["paid", "preparing", "ready", "collected"];
@@ -69,7 +82,7 @@ function productView(data, p) {
   const max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)), closed = data.settings && data.settings.open === false, x = promo.productExtras(p);
   const facts = [[L("shopSpecifications"), text(p.specifications)], [L("shopContents"), text(p.contents)], [L("shopCompatibility"), text(p.compatibility)], [L("shopSetup"), text(p.setup)], [L("shopWarranty"), text(p.warranty) || text(data.settings && data.settings.warranty)], [L("shopReturns"), text(data.settings && data.settings.returns)]].filter(([, v]) => v);
   return `${bar("/dashboard#shop", L("shopBack"), L("uiTabShop"))}
-  <div class="portal-shop__product">${x ? x.top : ""}${photo(p, "portal-shop__photo")}
+  <div class="portal-shop__product">${x ? x.top : ""}${productPhotos(p)}
     <p class="nd-meta">${h(category$(data, p))}</p><h1 class="portal-shop__name">${h(text(p.name))}</h1>
     <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : stock(p))}</span></p>
     ${x ? x.bonus : ""}
@@ -161,6 +174,16 @@ function wireList() {
   panel.querySelectorAll("[data-shop-category]").forEach((button) => { button.onclick = () => { category = button.dataset.shopCategory; render(); }; });
 }
 function wireProduct(p) {
+  const images = (p.images || []).filter(photoSrc);
+  panel.querySelectorAll("[data-shop-photo]").forEach((button) => {
+    button.onclick = () => {
+      const image = images[Number(button.dataset.shopPhoto)], main = panel.querySelector(".portal-shop__photo img");
+      if (!image || !main) return;
+      main.src = photoSrc(image);
+      main.alt = text(image.alt);
+      panel.querySelectorAll("[data-shop-photo]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    };
+  });
   const output = document.getElementById("shopQty"), buy = document.getElementById("shopBuy");
   panel.querySelectorAll("[data-shop-qty]").forEach((button) => {
     button.onclick = () => {
