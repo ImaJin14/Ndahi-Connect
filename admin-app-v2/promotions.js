@@ -13,6 +13,8 @@ import { currentLanguage } from "/shared/ui/dom.js";
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr-FR" : "en-GB"), ZONE = "Africa/Douala";
 const fcfa = (n) => `${Number(n || 0).toLocaleString(locale())} FCFA`;
+// A product photo: a path on the API, or an older photo's data URL.
+const photoSrc = (image) => (image?.src?.startsWith("/") ? String(window.NDAHI_CONFIG.apiUrl).replace(/\/$/, "") + image.src : image?.src || "");
 const day = (at) => new Date(at).toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "short", timeZone: ZONE });
 const shortDay = (at) => new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: ZONE });
 const clock = (at) => new Date(at).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ZONE });
@@ -86,7 +88,7 @@ function render(host, data, context) {
     <p class="admin-promo__message" role="status" aria-live="polite">${h(context.notice || "")}</p>
   </form>`;
   const preview = `<aside class="admin-promo__aside" aria-labelledby="promoPreviewTitle"><h2 class="admin-promo__aside-title" id="promoPreviewTitle">${h(L("adminPromoPreview"))}</h2>
-    <div class="admin-promo__card"><div class="admin-promo__photo">${firstProduct?.images?.[0]?.data ? `<img src="${h(firstProduct.images[0].data)}" alt="">` : `<span>${h(L("adminPromoPhoto"))}</span>`}<span class="admin-promo__badge">${h(draft.nameEn || L("adminPromoOffer"))}</span></div>
+    <div class="admin-promo__card"><div class="admin-promo__photo">${photoSrc(firstProduct?.images?.[0]) ? `<img src="${h(photoSrc(firstProduct.images[0]))}" alt="">` : `<span>${h(L("adminPromoPhoto"))}</span>`}<span class="admin-promo__badge">${h(draft.nameEn || L("adminPromoOffer"))}</span></div>
       <div class="admin-promo__card-body"><strong class="admin-promo__card-name">${h(firstProduct ? name(firstProduct.name) : L("adminPromoChooseProduct"))}</strong>
         <p class="admin-promo__card-price"><strong>${h(fcfa(draft.salePrice))}</strong></p>
         ${draft.hasBonus && plan ? `<p class="admin-promo__card-bonus">${h(L("adminPromoCardBonus", { days: draft.days, plan: plan.name }))}</p>` : ""}

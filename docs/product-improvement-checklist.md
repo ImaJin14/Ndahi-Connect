@@ -1666,3 +1666,29 @@ On 21 November the owner also asked for the countdown in the customer portal.
   - [ ] **The offer:** create it in Admin → Promotions, from 27 Nov 00:00 to 30 Nov 23:59.
   - [ ] **Staging, by 25 November:** a guest purchase, an account purchase with a running bundle (paused, then resumed on the router), and a refund.
     - On 21 November the staging hostnames (`staging-api`, `staging-portal`, `staging-admin`) did not resolve. Staging must be brought up first, or the owner must agree another way to test.
+
+### Product photos up to 30 (#321, 21 November 2026)
+
+On 21 November the owner asked for products to take up to 30 photos instead of 4. Codex had raised the limits; Claude took the work over.
+
+Photos stored inside product rows would have added up to about 5 MB per product to every full-state read and every catalogue load. So photos now live outside the product rows.
+
+- **Implemented:**
+  - **Upload:** each photo is uploaded on its own when chosen (`POST /api/admin/store/photos`, under the usual 1 MB request limit).
+  - **Storage:** photos are kept as `store_photo` rows beside the state, named by the SHA-256 of their bytes. Products keep only `{ id, mime, bytes, alt }`.
+  - **Delivery:**
+    - the catalogue lists photo addresses;
+    - `GET /api/store/photos/<id>` serves each photo with a year's caching;
+    - the static pages' CSP allows images from the API.
+  - **Admin v1 and v2:** up to 30 photos. At 30, the picker says so and waits for one to be removed.
+  - **Store and portal:** the product pages show the main photo and a row of thumbnails (canvas: ProductDesktop), lazily loaded.
+  - **Retention:** photos no product uses are removed two days after their last upload.
+  - **Older photos:** photos saved inside a product before this (at most four) keep working until removed.
+- **Tested:**
+  - `npm test` with PostgreSQL 17: 1,506 of 1,506. This includes the API test (30 photos, 31 refused, unknown and new inline photos refused, the catalogue and state free of image data, caching, roles and CSRF) and the PostgreSQL test (full reads skip photos, API on PostgreSQL, the retention sweep).
+  - Redesign browser tests: all 23 pass, including `product-photos`:
+    - the owner reaches 30 photos and saves;
+    - the store and portal load the photos from the API under the CSP and switch between them;
+    - contrast and overflow are checked at 390 and 1280 px.
+  - Journeys: store and admin app on v2 and v1, portal on v2.
+- **Not yet deployed or physically verified.**

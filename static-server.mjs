@@ -49,7 +49,8 @@ export function createStaticServer(
       `connect-src 'self' ${apiUrl}${kind === 'customer' ? ' https://www.cloudflare.com' : ''}`,
       "style-src 'self' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data:",
+      // Product photos are served by the API (/api/store/photos/<id>).
+      `img-src 'self' data: ${apiUrl}`,
       "script-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",

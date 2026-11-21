@@ -42,8 +42,10 @@ const knownBackendMatchers = [
   /^\/api\/admin\/network\/setup\/(?:status|connection|discover|purchase-access|assisted-connections|preview|apply|confirm|rollback|refresh|recovery|resolve|activate|cancel)$/,
   // Order actions (ready, collect, cancel, contact, notes, rotate-link, refund,
   // refund-reference, verify) are an `action` sent to orders/update, not paths.
-  /^\/api\/admin\/store(?:\/(?:receipt|products\/save|products\/delete|categories\/save|categories\/delete|settings\/save|stock\/adjust|orders\/update))?$/,
+  /^\/api\/admin\/store(?:\/(?:receipt|photos|products\/save|products\/delete|categories\/save|categories\/delete|settings\/save|stock\/adjust|orders\/update))?$/,
   /^\/api\/admin\/resellers\/(?:ledger|commission|remittances|adjustments)$/,
+  // Product photos by the SHA-256 of their bytes (lib/api/store.mjs).
+  /^\/api\/store\/photos(?:\/[0-9a-f]{64})?\/?$/,
 ];
 
 export async function checkApiSurface({ strict = false } = {}) {

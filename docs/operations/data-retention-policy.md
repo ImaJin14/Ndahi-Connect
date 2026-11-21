@@ -14,6 +14,7 @@ payment records.
 | Customer/admin sessions | Expiry + 7 days | Permanently delete | None |
 | Authentication challenges | Expiry + 7 days | Permanently delete; never archive secrets | None |
 | Rate-limit events | 7 days | Permanently delete | None |
+| Store product photos no product uses | 2 days after last upload | Permanently delete | None |
 | Inactive network sessions | 90 days | Archive, then remove online row | 2 years |
 | Application events | 1 year | Archive, then remove online row | 2 years |
 | Security events | 1 year | Archive, then remove online row | 2 years |

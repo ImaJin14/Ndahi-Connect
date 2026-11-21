@@ -858,6 +858,8 @@ export const TRANSLATIONS = {
     shopBack: "Back to shop",
     shopBackActivity: "Back to activity",
     shopBackProduct: "Back to product",
+    shopPhotos: "Product photos",
+    shopShowPhoto: "Show photo {n} of {count}",
     shopBuyNow: "Buy now",
     // Store promotions in the portal (#302): Home banner with countdown, Shop.
     portalPromo_days: "days",
@@ -2549,6 +2551,8 @@ export const TRANSLATIONS = {
     shopBack: "Retour à la boutique",
     shopBackActivity: "Retour à l'activité",
     shopBackProduct: "Retour au produit",
+    shopPhotos: "Photos du produit",
+    shopShowPhoto: "Afficher la photo {n} sur {count}",
     shopBuyNow: "Acheter",
     portalPromo_days: "jours",
     portalPromo_hours: "heures",

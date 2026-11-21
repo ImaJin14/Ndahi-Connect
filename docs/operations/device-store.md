@@ -24,7 +24,16 @@ Sign in as owner or operator, open **More → Store**, then **Open store managem
 
 1. Create categories, including EN/FR names, sort position and visibility. Hidden categories hide their products from the public catalogue.
 2. Create products with unique SKUs, EN/FR names and descriptions, specifications, compatibility, contents, warranty and setup guidance. Set the selling price in whole FCFA. Only owners can view/edit internal costs.
-3. Upload up to four PNG/JPEG/WebP images. The admin browser resizes uploads to at most 960px; saved images must be under 175 KB each. Images and EN/FR alternative text can be reordered, replaced or removed. SVG/remote image URLs are not accepted.
+3. Add up to 30 PNG, JPEG or WebP photos per product. Each photo:
+   - is resized in the admin browser to at most 960px, and must be under 175 KB once saved;
+   - is uploaded as soon as you choose it (`POST /api/admin/store/photos`), and saving the product then records which photos it uses, in order, with alternative text in English and French;
+   - can be reordered or removed. SVG files and photos from other websites are not accepted.
+
+   **Storage and delivery.**
+   - Photos are kept beside the store data, not inside it: rows of kind `store_photo` in `events`, named by the SHA-256 of their bytes. So reading the store data never loads image bytes, however many photos products have.
+   - The catalogue lists each photo's address. The API serves it at `/api/store/photos/<id>` with a year's browser caching, since that address never shows anything else.
+   - Photos that no product uses are removed by the daily retention job two days after their last upload (`docs/operations/data-retention-policy.md`).
+   - Photos saved inside a product before 21 November 2026 (at most four) keep working until removed. New photos can no longer be saved that way.
 4. Record stock receipts or removals in Inventory with a reason. The operation key makes retries safe. Stock cannot be removed below currently reserved quantities.
 5. Publish products when ready. Products start with zero stock; stock changes use the ledger rather than product editing.
 6. Configure store name, EN/FR introduction and announcement, contact details, pickup location/instructions/hours, and EN/FR warranty and returns terms. Open checkout only after these required details are complete.

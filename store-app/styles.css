@@ -119,8 +119,10 @@ footer .policy p { margin-bottom: var(--nd-space-8); }
 /* ---------- Product page ---------- */
 .crumbs { margin: var(--nd-space-24) 0 var(--nd-space-16); color: var(--nd-muted); font-size: var(--nd-fs-small); }
 .crumbs a { color: var(--nd-forest); font-weight: 700; }
-.detail-grid { display: grid; gap: var(--nd-space-14); }
-.detail-media { margin: 0 calc(-1 * var(--nd-space-10)); }
+/* minmax(0, …) and min-width: 0 keep a long row of thumbnails (up to 30
+   photos) scrolling inside its column instead of widening the page. */
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--nd-space-14); }
+.detail-media { min-width: 0; margin: 0 calc(-1 * var(--nd-space-10)); }
 .detail-media .product-visual { aspect-ratio: auto; height: 150px; border-radius: 0; }
 .detail-media .product-visual svg { width: auto; height: 70%; }
 .gallery { display: flex; gap: var(--nd-space-10); margin-top: var(--nd-space-10); padding: 0 var(--nd-space-10); overflow-x: auto; }
