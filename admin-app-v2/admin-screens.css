@@ -649,3 +649,60 @@ body.admin-login { min-height: 100vh; margin: 0; padding: 0; background: var(--n
 .admin-bundle-edit__speed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 .admin-bundle-edit__speed-help { margin: 0; color: #5c6963; font-size: 13px; }
 .admin-bundle-edit__speed-off { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 13px; }
+/* Promotions (#302, canvas: AdminPromotions). Values from the artboard. */
+.admin-promo { display: flex; flex-direction: column; gap: 20px; }
+.admin-promo__layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+/* The admin base styles make every form a wrapping row; this one is a column of panels at their own height. */
+.admin-promo__form { flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; flex-wrap: nowrap; gap: 20px; margin: 0; }
+.admin-promo__panel { flex: none; display: flex; flex-direction: column; gap: 14px; min-width: 0; box-sizing: border-box; padding: 22px; border-radius: 16px; }
+.admin-promo__h2 { margin: 0; font-family: var(--nd-font-display); font-weight: 600; font-size: 21px; }
+.admin-promo__label { display: block; margin: 0 0 6px; padding: 0; font-size: 13px; font-weight: 600; }
+.admin-promo__hint { margin: 6px 0 0; color: #5c6963; font-size: 12px; line-height: 1.4; }
+.admin-promo__muted { color: #5c6963; font-weight: 400; }
+.admin-promo .admin-promo__in { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px var(--nd-font-body); color: #10241c; }
+.admin-promo textarea.admin-promo__in { min-height: 64px; padding: 10px 12px; line-height: 1.45; resize: vertical; }
+.admin-promo__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.admin-promo__grid[hidden], .admin-promo__note[hidden] { display: none; }
+.admin-promo__products { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px; }
+.admin-promo__check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer; }
+.admin-promo__check input { width: 20px; height: 20px; min-width: 0; margin: 0; flex: none; accent-color: #003b2b; }
+.admin-promo__check--strong { align-items: center; min-height: 40px; font-weight: 600; }
+.admin-promo__note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.45; }
+.admin-promo__buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.admin-promo .admin-promo__go { min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-promo .admin-promo__go2 { min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-promo__message { margin: 0; color: #345000; font-size: 14px; font-weight: 700; }
+.admin-promo__message:empty { display: none; }
+.admin-promo__aside { flex: 1 1 280px; min-width: 0; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.admin-promo__aside-title { margin: 0; font-size: 14px; font-weight: 700; color: #5c6963; }
+.admin-promo__card { border: 2px solid #10241c; border-radius: 16px; overflow: hidden; background: #fffef9; }
+.admin-promo__photo { position: relative; aspect-ratio: 4 / 3; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px; }
+.admin-promo__photo img { width: 100%; height: 100%; object-fit: cover; }
+.admin-promo__photo .admin-promo__badge { position: absolute; top: 12px; left: 12px; }
+.admin-promo__badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #10241c; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.admin-promo__card-body { padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.admin-promo__card-name { font-size: 17px; }
+.admin-promo__card-price { margin: 0; display: flex; gap: 8px; align-items: baseline; font-size: 20px; }
+.admin-promo__card-bonus { margin: 0; padding: 8px 10px; border-radius: 9px; background: #eaf6d5; color: #2b4200; font-size: 13px; font-weight: 700; }
+.admin-promo__card-ends { margin: 0; color: #8a4a00; font-size: 13px; font-weight: 600; }
+.admin-promo__live { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 22px; border: 2px solid #10241c; border-radius: 16px; }
+.admin-promo__live-line { font-size: 17px; flex: 1 1 280px; }
+.admin-promo .admin-promo__end { min-height: 44px; padding: 0 16px; border-radius: 9px; border: 1px solid #e3b4b4; background: #fffef9; color: #a73535; font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-promo__pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.admin-promo__pill--live { background: #eaf6d5; color: #345000; }
+.admin-promo__pill--scheduled { background: #e5eefb; color: #1f4b8f; }
+.admin-promo__pill--waiting { background: #efe8fb; color: #4a2b86; }
+.admin-promo__pill--quiet { background: #eef0ee; color: #3d4a44; }
+.admin-promo__pill--danger { background: #fbe9e9; color: #a73535; }
+.admin-promo__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.admin-promo__metric { display: flex; flex-direction: column; gap: 2px; padding: 18px; border-radius: 16px; }
+.admin-promo__metric b { display: block; font-size: 24px; color: #003b2b; }
+.admin-promo__metric span { color: #5c6963; font-size: 13px; }
+.admin-promo__table { overflow-x: auto; }
+.admin-promo__table table { width: 100%; border-collapse: collapse; }
+.admin-promo__table td, .admin-promo__table th { text-align: left; padding: 11px 10px; border-bottom: 1px solid #dfe5dc; font-size: 14px; white-space: nowrap; }
+.admin-promo__table th { color: #5c6963; font-weight: 600; font-size: 13px; }
+.admin-promo__table tr[aria-current] td { background: #f3f9e8; }
+.admin-promo .admin-promo__link { min-height: 32px; padding: 0 4px; border: 0; background: none; color: #003b2b; font: 700 14px var(--nd-font-body); text-decoration: underline; cursor: pointer; }
+.admin-promo .admin-promo__go:focus-visible, .admin-promo .admin-promo__go2:focus-visible, .admin-promo .admin-promo__end:focus-visible, .admin-promo .admin-promo__link:focus-visible { outline: 3px solid #6f9500; outline-offset: 3px; }
+.admin-promo__table a { color: #003b2b; font-weight: 700; }

@@ -98,14 +98,14 @@ export function renderPortalHeader(options) {
 export const ADMIN_MENU = [
   { group: null, items: ["home"] },
   { group: "uiAdminGroupNetwork", items: ["devices", "connections", "outages", "homerouters", "setup"] },
-  { group: "uiAdminGroupSales", items: ["bundles", "vouchers", "payments", "store", "products", "cash"] },
+  { group: "uiAdminGroupSales", items: ["bundles", "vouchers", "payments", "store", "products", "promotions", "cash"] },
   { group: "uiAdminGroupPeople", items: ["customers", "resellers"] },
   { group: "uiAdminGroupSystem", items: ["audit", "profile"] },
 ];
 const ADMIN_LABELS = {
   home: "uiAdminHome", devices: "uiAdminDevices", connections: "uiAdminConnections", outages: "uiAdminOutages", homerouters: "uiAdminHomeRouters",
   setup: "uiAdminNetworkSetup", bundles: "uiAdminBundles", vouchers: "uiAdminVouchers", payments: "uiAdminPayments",
-  store: "uiAdminStore", products: "uiAdminProducts", cash: "uiAdminCash", customers: "uiAdminCustomers",
+  store: "uiAdminStore", products: "uiAdminProducts", promotions: "uiAdminPromotions", cash: "uiAdminCash", customers: "uiAdminCustomers",
   resellers: "uiAdminResellers", audit: "uiAdminAudit", profile: "uiAdminProfile",
 };
 

@@ -28,6 +28,8 @@ const VIEWS = {
   products: { menu: "products", panels: ["store"], title: "adminTitleProducts", group: "adminGroupStore" },
   // #product/<id> or #product/new; the store module names the product in the title.
   product: { menu: "products", panels: ["store"], title: "adminTitleProductEdit", back: { href: "/dashboard#products", label: "adminTitleProductsShort" } },
+  // Store promotions (#302, canvas: AdminPromotions).
+  promotions: { menu: "promotions", panels: ["promotions"], title: "adminTitlePromotions", group: "uiAdminGroupSales", lede: "adminPromotionsLede" },
   cash: { menu: "cash", panels: ["cash"], title: "adminTitleCash", group: "uiAdminGroupSales" },
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
   // #customer/<id>; app.js puts the customer's name in the title.
@@ -54,7 +56,7 @@ let mounted = false, currentRole, changed, homeRouters = false, badges = {};
 function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
   if (menu === "setup") return who === "owner";
-  if (menu === "store" || menu === "products") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "store" || menu === "products" || menu === "promotions") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "payments" || menu === "customers" || menu === "audit") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
