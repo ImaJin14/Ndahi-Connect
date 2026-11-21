@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Black Friday deal on phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:#10241c;border:0;background:transparent;cursor:pointer;text-decoration:none}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:26px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc}
+.bf{display:inline-block;padding:4px 10px;border-radius:6px;background:#10241c;color:#b9ee2e;font-size:11px;font-weight:700;letter-spacing:.14em}
+.ln{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 14px 26px;font-size:14px}
+.tl li:before{content:"";position:absolute;left:6px;top:18px;bottom:-2px;width:2px;background:#dfe5dc}
+.tl li:last-child{padding-bottom:0}.tl li:last-child:before{display:none}
+.dot{position:absolute;left:0;top:3px;width:14px;height:14px;border-radius:50%;box-sizing:border-box}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <sc-if value="{{isProduct}}" hint-placeholder-val="{{ true }}"><a class="back" href="{{shopHref}}" aria-label="Back to shop"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a></sc-if>
+    <sc-if value="{{isCheckout}}" hint-placeholder-val="{{ false }}"><button type="button" class="back" aria-label="Back" onClick="{{toProduct}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button></sc-if>
+    <span style="font-weight: 700; font-size: 15px; flex: 1; padding-left: 4px">{{title}}</span>
+  </div>
+
+  <sc-if value="{{isProduct}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; display: flex; flex-direction: column">
+      <div style="position: relative; height: 220px; background: #eef3e9; display: grid; place-items: center; color: #5c6963; font-size: 13px">
+        Product photo
+        <span class="bf" style="position: absolute; top: 14px; left: 14px">BLACK FRIDAY</span>
+        <span style="position: absolute; bottom: 12px; left: 14px; right: 14px; display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: rgba(16,36,28,.88); color: #ffffff; font-size: 13px"><span>Ends Mon 30 Nov</span><strong style="color: #b9ee2e">2 d 14 h left</strong></span>
+      </div>
+      <div style="padding: 16px 18px 0; display: flex; flex-direction: column; gap: 10px">
+        <h1 class="h1">TP-Link AX1500 Travel Router</h1>
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <p style="margin: 0; display: flex; gap: 10px; align-items: baseline"><strong style="font-size: 24px">100,000 FCFA</strong><s style="color: #5c6963; font-size: 15px" aria-label="Regular price [PRICE] FCFA">[PRICE]</s></p>
+          <span style="color: #8a4a00; font-size: 13px; font-weight: 700">7 left at this price</span>
+        </div>
+        <section aria-label="Included free" style="display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 14px; background: #003b2b; color: #ffffff">
+          <span style="flex: 0 0 44px; height: 44px; border-radius: 12px; background: #b9ee2e; color: #15210c; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2ZM12 22V7M12 7S10.5 2 7.5 3.5 9 7 12 7ZM12 7s1.5-5 4.5-3.5S15 7 12 7Z"></path></svg></span>
+          <span style="flex: 1"><strong style="display: block; font-size: 16px">+ 1 month Unlimited internet, free</strong><span style="font-size: 13px; color: #c8d8d0">[PLAN 4] · worth [PRICE] FCFA · start it when you like</span></span>
+        </section>
+        <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">Dual-band Wi-Fi 6 travel router. Share one bundle across your home.</p>
+        <details style="border-top: 1px solid #dfe5dc">
+          <summary style="min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; cursor: pointer">Offer terms</summary>
+          <p style="margin: 0 0 8px; font-size: 13px; color: #3d4a44; line-height: 1.5">1 per customer. While stocks last. The free month is given when you collect the router; start it within 60 days. Not exchangeable for cash.</p>
+        </details>
+      </div>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toCheckout}}">Get the deal · 100,000 FCFA</button><p style="margin: 8px 0 0; text-align: center; color: #5c6963; font-size: 12px">Limit 1 per customer</p></div>
+  </sc-if>
+
+  <sc-if value="{{isCheckout}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+      <section aria-label="Your order" style="padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 8px">
+        <div class="ln"><span><strong>TP-Link AX1500</strong> <span class="bf" style="font-size: 9px; padding: 2px 6px">BLACK FRIDAY</span></span><span>100,000 FCFA</span></div>
+        <div class="ln" style="color: #345000"><span>+ 1 month Unlimited ([PLAN 4])</span><strong>Free</strong></div>
+        <div class="ln" style="color: #3d4a44"><span>{{methodName}} fee</span><span>[FEE] FCFA</span></div>
+        <div class="ln" style="padding-top: 8px; border-top: 1px solid #dfe5dc"><strong>Total to approve</strong><strong style="font-size: 18px">[TOTAL] FCFA</strong></div>
+      </section>
+      <section aria-label="Your free month" style="padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #2b4200; font-size: 14px; line-height: 1.5">
+        <strong style="display: block">How you get your free month</strong>{{bonusHow}}
+      </section>
+      <div style="padding: 10px 12px; border-radius: 12px; border: 2px solid #003b2b; background: #fffef9; font-size: 14px"><strong style="display: block">Collect at [PICKUP LOCATION]</strong><span style="color: #5c6963">{{whoLine}}</span></div>
+      <p style="margin: 0; color: #6b3a00; font-size: 13px">Your {{balanceName}} balance needs at least [TOTAL] FCFA, or the payment fails and nothing is taken.</p>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Pay [TOTAL] FCFA</button></div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="width: 52px; height: 52px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span>
+        <h1 class="h1">Order placed</h1>
+      </div>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px">Order <strong>NS-2711-0109</strong> is paid. We'll let you know when it's ready to collect.</p>
+      <section aria-labelledby="fm" style="padding: 16px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
+        <h2 id="fm" style="margin: 0 0 12px; font-size: 16px">Your router and free month</h2>
+        <ol class="tl">
+          <li><span class="dot" style="background: #003b2b"></span><strong>Paid</strong> · [TOTAL] FCFA</li>
+          <li><span class="dot" style="border: 2px solid #b8c7bd; background: #ffffff"></span><strong>Collect your router</strong><br><span style="color: #5c6963; font-size: 13px">Show your collection code at [PICKUP LOCATION]</span></li>
+          <li><span class="dot" style="border: 2px solid #b8c7bd; background: #ffffff"></span><strong>Get your free month</strong><br><span style="color: #5c6963; font-size: 13px">{{doneBonus}}</span></li>
+          <li><span class="dot" style="border: 2px solid #b8c7bd; background: #ffffff"></span><strong>Start it when you're ready</strong><br><span style="color: #5c6963; font-size: 13px">Within 60 days · 30 days of Unlimited from then</span></li>
+        </ol>
+      </section>
+    </main>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <a class="btn" href="{{trackHref}}">Track my order</a>
+      <sc-if value="{{isGuest}}" hint-placeholder-val="{{ false }}"><a class="btn2" href="PhoneLogin.dc.html">Create an account to keep it together</a></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"buyer":{"editor":"enum","options":["account","guest"],"default":"account"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'product' }; }
+  renderVals() {
+    const s = this.state;
+    const guest = (this.props.buyer ?? 'account') === 'guest';
+    const go = (step) => () => this.setState({ step });
+    return {
+      isProduct: s.step === 'product', isCheckout: s.step === 'checkout', isDone: s.step === 'done', isGuest: guest,
+      title: { product: guest ? 'NDAHI Store' : 'Shop', checkout: 'Checkout', done: 'Order confirmed' }[s.step],
+      shopHref: guest ? 'StorePromo.dc.html' : 'PhoneShop.dc.html',
+      methodName: 'MTN MoMo', balanceName: 'MoMo',
+      bonusHow: guest
+        ? " It's reserved for the Mobile Money number that pays (6•• •• 88 02). When you collect the router you get a slip with a code — claim it with that number and the code."
+        : " It's added to your account when you collect the router. It waits there until you press Start — even if you still have a bundle running.",
+      whoLine: guest ? 'Paul T. · 6•• •• 88 02 · guest' : 'Amina N. · 6•• •• 12 45 · from your account',
+      doneBonus: guest ? 'On a slip with your router · reserved for 6•• •• 88 02' : 'Added to your account when you collect',
+      trackHref: guest ? 'PhoneGuestOrder.dc.html' : 'PhoneOrder.dc.html',
+      toProduct: go('product'), toCheckout: go('checkout'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>
