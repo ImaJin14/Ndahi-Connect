@@ -36,6 +36,8 @@ const knownBackendMatchers = [
   /^\/api\/account\/authentication-migration\/(?:options|confirm|pin\/start|pin\/confirm|pin\/cancel)$/,
   /^\/api\/admin\/authentication-migration\/(?:options|confirm|review)$/,
   /^\/api\/admin\/vouchers\/[^/]+\/details$/,
+  // Store promotions (#302): lib/api/admin-store.mjs matches its actions after /api/admin/store/.
+  /^\/api\/admin\/store\/promotions\/(?:save|end)$/,
   /^\/api\/admin\/network\/incidents\/[^/]+$/,
   /^\/api\/admin\/network\/setup\/(?:status|connection|discover|purchase-access|assisted-connections|preview|apply|confirm|rollback|refresh|recovery|resolve|activate|cancel)$/,
   // Order actions (ready, collect, cancel, contact, notes, rotate-link, refund,
