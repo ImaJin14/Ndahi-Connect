@@ -1568,12 +1568,14 @@ On 19 November the owner closed these issues as implemented: their code is merge
   - Captures are in `docs/reviews/bundle-speed-2026-11-20`.
 - **Deployed** on 20 November; the production smoke check passed on `b44a8f9` at 18:47 UTC.
 - **Not physically verified:** see the on-site check below. #263 stays open until it passes.
-- [ ] **Speed limits on the RB5009 (#263):** run the check in `docs/operations/router-command-queue.md`, including FastTrack, with a limited bundle on two devices. Then set `ROUTER_SPEED_LIMITS=on` and confirm the shared queue holds both devices to the limit.
+- [x] **Speed limits on the RB5009 (#263):** run the check in `docs/operations/router-command-queue.md`, including FastTrack, with a limited bundle on two devices. Then set `ROUTER_SPEED_LIMITS=on` and confirm the shared queue holds both devices to the limit.
   - 21 November, ready for deployment:
     - `render.yaml` and `render.staging.yaml` declare `ROUTER_SPEED_LIMITS` with `sync: false`, to be set in Render after the check;
     - the deploy's environment check refuses any value other than `on` or `off`;
     - the runbook now covers which path reaches the router (saved router or bridge), updating the bridge to a version with `/ndahi/syncSpeedQueue`, the FastTrack exclusion commands, the check, turning it on, and turning it off and removing the queues.
     - Tested (environment-drift, staging and speed enforcement tests). PR #323 merged as `89d8284` and deployed to all four services by 03:28 UTC; the API's pre-deploy environment check passed with the new rule. `ROUTER_SPEED_LIMITS` is not set in Render, and nothing has been verified on the RB5009.
+  - **Physically verified** on 21 November: the owner tested on the RB5009, and download limits work. #263 is closed.
+    - The owner reported that upload doesn't follow the bundle's upload limit and appears to follow the download speed. The code sends upload separately (`max-limit=<upload>/<download>`). Follow-up #326 lists the checks: the test voucher's speed as issued, the upload FastTrack exception, and the queue's upload counters.
 
 ### Merges and production fix (20 November 2026)
 
@@ -1723,4 +1725,5 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
   - `test/bundle-speed-description.test.mjs`: the wording, the comparison, receipts, slips, the claim view and the promotion bonus.
   - `test/redesign-browser/bundle-speed-description.test.mjs`: plan cards and the checkout summary at 390 and 1280 px, including contrast and overflow.
   - The full suite and journeys are listed in the PR.
+- **Deployed:** PR #325 merged as `ce1875d`. By 07:37 UTC on 21 November the portal, store and admin served `shared-app/bundle-speed.js`.
 - Limits are enforced on the router only once `ROUTER_SPEED_LIMITS=on` (see the #263 item above). Until then, a bundle's description states a limit the router doesn't yet apply, so set a bundle's speed only when the switch is going on.
