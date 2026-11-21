@@ -1756,3 +1756,4 @@ On 21 November the owner asked to "auto arrange bundles based on monthly, weekly
     - admin counts;
     - contrast and overflow.
   - The full suite and journeys are in the PR.
+- **Deployed** on 21 November: PR #328 merged as `169dc30`. By 09:10 UTC the portal and admin served `shared-app/bundle-period.js`, and the production smoke checks passed. Not yet seen by a customer.
