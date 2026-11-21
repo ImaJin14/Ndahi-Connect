@@ -234,3 +234,23 @@ test("an invalid enabled promotion never sells at the regular price by mistake",
   // Other products sell normally.
   assert.equal((await f.call("/api/store/catalogue")).body.products.find((p) => p.id === "cable").price, 2000);
 });
+
+test("the catalogue announces the offer to count down to, on the server's clock", async (t) => {
+  const f = await fixture(t);
+  // Six days before: announced as scheduled, the regular price still charged.
+  f.at("2026-11-21T10:00:00Z");
+  let body = (await f.call("/api/store/catalogue")).body;
+  assert.equal(body.serverTime, "2026-11-21T10:00:00.000Z");
+  assert.deepEqual(body.promotions.map((p) => [p.id, p.status, p.startsAt, p.endsAt, p.salePrice, p.productIds.join(","), p.bonus.days]),
+    [["black-friday", "scheduled", "2026-11-26T23:00:00.000Z", "2026-11-30T23:00:00.000Z", 100000, "ax1500,ax1500-outdoor", 45]]);
+  assert.equal(body.products.find((p) => p.id === "ax1500").price, 120000);
+  // Live: the same offer, and the products carry it.
+  f.at("2026-11-28T10:00:00Z");
+  body = (await f.call("/api/store/catalogue")).body;
+  assert.equal(body.promotions[0].status, "live");
+  // Weeks ahead it isn't announced; ended it's gone.
+  f.at("2026-11-01T10:00:00Z");
+  assert.deepEqual((await f.call("/api/store/catalogue")).body.promotions, []);
+  f.at("2026-12-01T10:00:00Z");
+  assert.deepEqual((await f.call("/api/store/catalogue")).body.promotions, []);
+});

@@ -388,3 +388,35 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
   .portal-page .dashboard-shell { max-width: 1280px; padding-left: 40px; padding-right: 40px; }
   .portal-page .nd-topnav .nd-topnav__inner { max-width: 1280px; padding-left: 40px; padding-right: 40px; }
 }
+/* Store promotions in the portal (#302): the Home banner with its countdown
+   and the Shop's extras. Colours from the StorePromo and PhonePromoBuy artboards. */
+.home-promo[hidden] { display: none; }
+.portal-promo { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 18px; background: #10241c; color: #ffffff; }
+.portal-promo__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.portal-promo__badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #b9ee2e; color: #15210c; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.portal-promo__badge--small { align-self: flex-start; background: #10241c; color: #b9ee2e; font-size: 10px; }
+.portal-promo__when { color: #b9ee2e; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.portal-promo__title { margin: 0; font-family: var(--nd-font-display); font-size: 24px; font-weight: 600; line-height: 1.15; color: #ffffff; }
+.portal-promo__products { margin: 0; color: #d6e2da; font-size: 14px; }
+.portal-promo__count { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.portal-promo__cell { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 12px; background: #23382f; }
+.portal-promo__cell strong { color: #b9ee2e; font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.portal-promo__cell span { color: #b8c7bd; font-size: 12px; }
+.portal-promo__fine { margin: 0; color: #b8c7bd; font-size: 12px; }
+.portal-promo .portal-promo__go { align-self: flex-start; background: #b9ee2e; color: #15210c; }
+.portal-promo__chip { display: inline-block; margin: 2px 0; padding: 4px 8px; border-radius: 8px; background: #eaf6d5; color: #2b4200; font-size: 12px; font-weight: 700; }
+.portal-promo__left { color: #8a4a00; font-weight: 600; }
+.portal-shop__item--promo { border-color: #10241c; }
+.portal-promo__strip { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: #23382f; color: #ffffff; font-size: 14px; }
+.portal-promo__strip strong { color: #b9ee2e; }
+.portal-promo__gift { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0; padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; }
+.portal-promo__gift-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #b9ee2e; color: #15210c; }
+.portal-promo__gift strong { display: block; font-size: 16px; }
+.portal-promo__gift span span { display: block; color: #c8d8d0; font-size: 13px; line-height: 1.45; }
+.portal-promo__limit { text-align: center; }
+.portal-promo__line strong { color: #345000; }
+.portal-promo__note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #2b4200; font-size: 13px; line-height: 1.45; }
+.portal-promo__order { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; padding: 14px; border-radius: 14px; background: #eaf6d5; color: #2b4200; }
+.portal-promo__order p { margin: 0; }
+.portal-promo__code { display: flex; align-items: baseline; gap: 10px; }
+.portal-promo__code strong { font-family: ui-monospace, Menlo, monospace; font-size: 18px; letter-spacing: .08em; color: #10241c; }
