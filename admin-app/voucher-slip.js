@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 const h = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -140,6 +141,8 @@ export function sanitizePrintableVoucher(
     allowanceLabel: formatAllowanceLabel(quotaGb, voucher.quotaBytes),
     validityLabel: formatValidityLabel(validityHours),
     deviceLabel: formatDeviceLabel(deviceLimit, voucher.accessMode),
+    // The speed the router applies to this voucher, as it was issued (#263).
+    speedLabel: speedText(voucher.speedSnapshot, { devices: deviceLimit }),
     expiryNote:
       status === "available"
         ? "Starts on first redemption"
@@ -189,6 +192,7 @@ export function voucherSlipRows(item) {
       item.deviceLabel === "All home devices" ? "Home access" : "Devices",
       item.deviceLabel,
     ],
+    ...(item.speedLabel ? [["Speed", item.speedLabel]] : []),
     ["Activation", item.expiryNote],
     [item.statusHeading, item.statusLabel],
   ];

@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 import { funnelStep } from "./funnel.js";
 import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
 redirectLegacyVoucherScan();
@@ -51,7 +52,8 @@ function payLabel() {
 }
 function costSection() {
   const network = chosenNetwork(), wallet = WALLETS[network], quote = quoteFor(selected, network);
-  const detail = `${dataLabel(selected.quotaGb)} data · ${durationLabel(selected.validityHours)} · ${selected.deviceLimit} device${selected.deviceLimit === 1 ? "" : "s"}`;
+  const speed = speedText(selected, { devices: selected.deviceLimit });
+  const detail = `${dataLabel(selected.quotaGb)} data · ${durationLabel(selected.validityHours)} · ${selected.deviceLimit} device${selected.deviceLimit === 1 ? "" : "s"}${speed ? ` · ${speed}` : ""}`;
   return `<section class="buy-cost" id="checkoutCost" aria-label="${h(L("buyCostLabel"))}">
     <div class="buy-cost__row buy-cost__plan"><span><strong>${h(selected.name)}</strong><span>${h(detail)}</span></span><span>${h(fcfa(selected.price))}</span></div>
     ${wallet ? `<div class="buy-cost__row buy-cost__fee"><span>${h(L("buyFee", { method: wallet.method }))}</span><span>${h(quote ? fcfa(quote.fee) : L("buyFeeInPrompt"))}</span></div>` : ""}
@@ -178,7 +180,7 @@ function renderPlans() {
     return `<article class="plan" data-card="${h(plan.id)}" aria-labelledby="plan-title-${h(plan.id)}">${badge ? `<div class="plan-badge${badgeClass}">${h(badge)}</div>` : ""}
       <h3 id="plan-title-${h(plan.id)}">${h(plan.name)}</h3><div class="plan-price">${h(money(plan.price))}</div>
       ${unitRate}
-      ${accountAction === "switch" && account && account.currentPlan && account.currentPlan.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li></ul>`}
+      ${accountAction === "switch" && account && account.currentPlan && account.currentPlan.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li>${speedText(plan, { devices: plan.deviceLimit }) ? `<li class="plan-speed">${h(speedText(plan, { devices: plan.deviceLimit }))}</li>` : ""}</ul>`}
       ${accountAction === "switch" && (plan.quotaGb === null || (account && account.currentPlan && account.currentPlan.plan && account.currentPlan.plan.quotaGb === null)) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
       ${accountAction ? `<p class="plan-policy">${h(policy(plan))}</p>` : ""}
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}

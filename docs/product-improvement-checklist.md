@@ -1700,3 +1700,27 @@ Photos stored inside product rows would have added up to about 5 MB per product 
   - `/api/store/photos/<unknown id>` answers "Photo not found.";
   - the store page's CSP allows images from `https://api.ndahiconnect.net`.
 - **Not physically verified:** no real product photo has been uploaded yet, and the production store was still closed.
+
+### Bundle speed in plan descriptions (#263, 21 November 2026)
+
+On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
+
+- **Implemented:**
+  - **Wording:** "Up to 2 Mbps download, 1 Mbps upload", or download or upload alone. A bundle for more than one device adds "shared by all devices", since one limit covers them all. French is "Jusqu'à … Mbit/s".
+  - **Bundles without a limit say nothing about speed.**
+  - **One helper,** `shared-app/bundle-speed.js`, used:
+    - on the buy page's plan cards and checkout summary (v2 and v1);
+    - in the plan comparison (a Speed row when either package has a limit);
+    - on the portal's package cards;
+    - in gift purchase and gift claim;
+    - on the "voucher ready" screen;
+    - on receipts (portal, PDF and email);
+    - on voucher slips (printed, PDF and email);
+    - in admin voucher details;
+    - for the Black Friday free bundle, in the portal and the store.
+  - **Which speed:** a voucher, slip, claim or receipt shows the speed it was issued or bought with (`speedSnapshot` or the payment's plan snapshot), so a later edit to the bundle never changes what a customer was promised.
+- **Tested:**
+  - `test/bundle-speed-description.test.mjs`: the wording, the comparison, receipts, slips, the claim view and the promotion bonus.
+  - `test/redesign-browser/bundle-speed-description.test.mjs`: plan cards and the checkout summary at 390 and 1280 px, including contrast and overflow.
+  - The full suite and journeys are listed in the PR.
+- Limits are enforced on the router only once `ROUTER_SPEED_LIMITS=on` (see the #263 item above). Until then, a bundle's description states a limit the router doesn't yet apply, so set a bundle's speed only when the switch is going on.

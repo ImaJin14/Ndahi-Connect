@@ -4,6 +4,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { showError, responseError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { durationLabel } from "./plan-presentation.js";
+import { speedText } from "../shared-app/bundle-speed.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { ICONS } from "/shared/ui/icons.js";
@@ -72,7 +73,7 @@ export function bundleCatalogue(result) {
   const current = result.currentPlan, blocked = Boolean(result.activeBundle) || result.subscriptionPurchaseAccess?.allowed === false;
   return `<section class="surface full" data-portal-view="bundles"><h2>Available packages</h2>${blocked ? `<p role="status">${h(result.subscriptionPurchaseAccess?.message || "Use your existing bundle. You can buy again after expiry or data exhaustion.")}</p>` : ""}<div class="voucher-grid">${(result.availablePlans || []).filter((plan) => !plan.discontinued).map((plan) => {
     const renew = current && current.planId === plan.id;
-    return `<article class="voucher-card"><h3>${h(plan.name)}</h3><p><strong>${h(plan.price.toLocaleString())} FCFA</strong><br>${plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(plan.quotaGb)} GB data`} · ${h(durationLabel(plan.validityHours))}<br>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</p>${blocked ? "" : `<a class="button secondary-action" href="/onboarding.html?action=${renew ? "renew" : "switch"}&amp;plan=${h(encodeURIComponent(plan.id))}">${renew ? "Review renewal" : "Review package"}</a>`}</article>`;
+    return `<article class="voucher-card"><h3>${h(plan.name)}</h3><p><strong>${h(plan.price.toLocaleString())} FCFA</strong><br>${plan.quotaGb === null ? "Unlimited data (fair use applies)" : `${h(plan.quotaGb)} GB data`} · ${h(durationLabel(plan.validityHours))}<br>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}${speedText(plan, { devices: plan.deviceLimit }) ? `<br>${h(speedText(plan, { devices: plan.deviceLimit }))}` : ""}</p>${blocked ? "" : `<a class="button secondary-action" href="/onboarding.html?action=${renew ? "renew" : "switch"}&amp;plan=${h(encodeURIComponent(plan.id))}">${renew ? "Review renewal" : "Review package"}</a>`}</article>`;
   }).join("")}</div></section>`;
 }
 function showQrModal(data) {

@@ -1,3 +1,4 @@
+import { hasSpeedLimit, speedLimits, speedText } from "../shared-app/bundle-speed.js";
 const number = new Intl.NumberFormat("en-CM", { maximumFractionDigits: 8 });
 const rateNumber = new Intl.NumberFormat("en-CM", { maximumFractionDigits: 2 });
 const nonnegative = (value) => Number.isFinite(value) && value >= 0;
@@ -71,7 +72,22 @@ export function comparePlans(currentPlan, nextPlan) {
       key: "devices", label: "Simultaneous devices", current: devices(current.deviceLimit), next: devices(next.deviceLimit),
       ...difference(current.deviceLimit, next.deviceLimit, devices, "more", "fewer", "Same device limit"),
     },
+    // A bundle's speed limit (#263), when either package has one.
+    ...(hasSpeedLimit(current) || hasSpeedLimit(next) ? [speedComparison(current, next)] : []),
   ];
+}
+
+function speedComparison(current, next) {
+  const label = (plan) => speedText(plan, { devices: plan.deviceLimit }) || "No speed limit";
+  const before = speedLimits(current).down, after = speedLimits(next).down;
+  const mbps = (value) => `${number.format(value)} Mbps`;
+  const result = speedText(current) === speedText(next) ? { change: "Same speed", direction: "same" }
+    : before !== null && after !== null && before !== after
+      ? { change: `${mbps(Math.abs(after - before))} ${after > before ? "faster" : "slower"} download`, direction: after > before ? "increase" : "decrease" }
+      : before !== null && after === null ? { change: "No download speed limit", direction: "increase" }
+        : before === null && after !== null ? { change: `Download limited to ${mbps(after)}`, direction: "decrease" }
+          : { change: "Different upload speed", direction: "unknown" };
+  return { key: "speed", label: "Speed", current: label(current), next: label(next), ...result };
 }
 
 function rateLabel(value, unit) {

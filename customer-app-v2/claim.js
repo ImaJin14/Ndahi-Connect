@@ -2,6 +2,7 @@
 // and the code are both needed (no SMS: the code is the proof). Step 1 checks
 // them; step 2 creates the account with a PIN (or signs an existing account
 // in); step 3 starts the bundle on this phone now or keeps it for later.
+import { speedText } from "../shared-app/bundle-speed.js";
 import { requestJson } from "./compat.js";
 import { responseError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -37,7 +38,8 @@ function terms(plan) {
   const days = Math.round(plan.validityHours / 24), duration = days === 1 ? L("claimOneDay") : L("claimDays", { count: days });
   const data = plan.quotaBytes === null ? L("claimUnlimitedData") : `${+(plan.quotaBytes / 1e9).toFixed(1)} GB`;
   const devices = plan.deviceLimit === 1 ? L("claimOneDevice") : L("claimDevices", { count: plan.deviceLimit });
-  return `${data} · ${duration} · ${devices}. ${days === 1 ? L("claimStartsOne") : L("claimStarts", { duration })}`;
+  const speed = speedText(plan, { lang: currentLanguage(), devices: plan.deviceLimit });
+  return `${data} · ${duration} · ${devices}${speed ? ` · ${speed}` : ""}. ${days === 1 ? L("claimStartsOne") : L("claimStarts", { duration })}`;
 }
 
 function show(step) {

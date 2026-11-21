@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
 redirectLegacyVoucherScan();
 import { purchaseVoucherDestination } from "./voucher-delivery.js";
@@ -128,7 +129,7 @@ function renderPlans() {
     return `<article class="plan" data-card="${h(plan.id)}" aria-labelledby="plan-title-${h(plan.id)}">${badge ? `<div class="plan-badge${badgeClass}">${h(badge)}</div>` : ""}
       <h3 id="plan-title-${h(plan.id)}">${h(plan.name)}</h3><div class="plan-price">${h(money(plan.price))}</div>
       ${unitRate}
-      ${accountAction === "switch" && account && account.currentPlan && account.currentPlan.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li></ul>`}
+      ${accountAction === "switch" && account && account.currentPlan && account.currentPlan.plan ? comparison(plan) : `<ul class="plan-details"><li>${h(dataLabel(plan.quotaGb))} data${plan.quotaGb === null ? " (fair use applies)" : ""}</li><li>${h(durationLabel(plan.validityHours))} validity</li><li>${h(plan.deviceLimit)} simultaneous device${plan.deviceLimit === 1 ? "" : "s"}</li>${speedText(plan, { devices: plan.deviceLimit }) ? `<li class="plan-speed">${h(speedText(plan, { devices: plan.deviceLimit }))}</li>` : ""}</ul>`}
       ${accountAction === "switch" && (plan.quotaGb === null || (account && account.currentPlan && account.currentPlan.plan && account.currentPlan.plan.quotaGb === null)) ? '<p class="trust">Unlimited data is subject to fair use.</p>' : ""}
       ${accountAction ? `<p class="plan-policy">${h(policy(plan))}</p>` : ""}
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}
@@ -459,7 +460,7 @@ function renderCheckoutReview() {
   }
   $("#selected").textContent = checkoutTitle();
   $("#checkoutSummary").innerHTML = accountAction === "switch" && account.currentPlan?.plan ? comparison(selected)
-    : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}</p>`;
+    : `<p><strong>${h(money(selected.price))}</strong> / ${h(durationLabel(selected.validityHours))}</p><p>${h(dataLabel(selected.quotaGb))} data${selected.quotaGb === null ? " (fair use applies)" : ""} · ${h(selected.deviceLimit)} device${selected.deviceLimit === 1 ? "" : "s"}${speedText(selected, { devices: selected.deviceLimit }) ? ` · ${h(speedText(selected, { devices: selected.deviceLimit }))}` : ""}</p>`;
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
   $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;

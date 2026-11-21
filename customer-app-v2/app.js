@@ -86,6 +86,8 @@ function receiptPreview(receipt) {
     ["portalReceiptData", receipt.dataLabel || L("portalNotRecorded")],
     ["portalReceiptValidity", receipt.validityLabel || L("portalNotRecorded")],
     ["portalReceiptDevices", receipt.deviceLabel || L("portalNotRecorded")],
+    // The bundle's speed limit, when it had one (#263).
+    ...(receipt.speedLabel ? [["portalReceiptSpeed", receipt.speedLabel]] : []),
     ["portalReceiptPaidWith", receipt.methodLabel || "Mobile Money"],
     ["portalReceiptNumber", receipt.payerPhone || L("portalNotRecorded")],
     ["portalReceiptReference", receipt.providerReference || L("portalReceiptNoReference")],
