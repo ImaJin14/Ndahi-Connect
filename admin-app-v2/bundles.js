@@ -5,6 +5,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { fcfa } from "/payments.js";
+import { groupBundles, chosenPeriod, PERIOD_LABELS } from "../shared-app/bundle-period.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const number = (value) => Number(value).toLocaleString(currentLanguage() === "fr" ? "fr" : "en-GB", { maximumFractionDigits: 1 });
@@ -30,6 +31,26 @@ export function bundleCards(bundles, usage = {}) {
   <div class="admin-bundle__actions"><a class="nd-btn nd-btn--compact nd-btn--secondary" href="/dashboard#bundle/${encodeURIComponent(b.id)}" aria-label="${h(L("adminEditNamed", { name: b.name }))}">${h(L("adminEdit"))}</a>${b.custom ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary admin-btn--danger" data-delete-bundle="${h(b.id)}" aria-label="${h(L("adminDeleteNamed", { name: b.name }))}">${h(L("adminDelete"))}</button>` : ""}</div>
 </article>`;
   }).join("");
+}
+
+// Bundles under Daily, Weekly and Monthly with filter chips and counts (owner,
+// 21 Nov), when they span more than one period. The filter is kept across
+// refreshes of the dashboard.
+let period = "all";
+export function bundleGroups(bundles, usage = {}) {
+  const groups = groupBundles(bundles);
+  if (groups.length < 2) return `<div class="admin-bundles__grid">${bundleCards(bundles, usage)}</div>`;
+  period = chosenPeriod(period, groups);
+  const count = (value) => value === "all" ? bundles.length : groups.find((group) => group.period === value).plans.length;
+  return `<div class="nd-chips admin-bundles__chips" role="group" aria-label="${h(L("bundlePeriodFilter"))}">${["all", ...groups.map((group) => group.period)].map((value) =>
+    `<button type="button" class="nd-chip admin-bundles__chip" data-bundle-period="${value}" aria-pressed="${value === period}">${h(L(PERIOD_LABELS[value]))} <span class="admin-bundles__count">${count(value)}</span></button>`).join("")}</div>
+${groups.map((group) => `<section class="admin-bundles__group" data-bundle-group="${group.period}" aria-labelledby="bundleGroup-${group.period}"${period !== "all" && period !== group.period ? " hidden" : ""}>
+  <h2 class="nd-h3 admin-bundles__group-title" id="bundleGroup-${group.period}">${h(L(PERIOD_LABELS[group.period]))}</h2><div class="admin-bundles__grid">${bundleCards(group.plans, usage)}</div></section>`).join("")}`;
+}
+export function showBundlePeriod(root, value) {
+  period = value;
+  root.querySelectorAll("[data-bundle-period]").forEach((chip) => chip.setAttribute("aria-pressed", String(chip.dataset.bundlePeriod === period)));
+  root.querySelectorAll("[data-bundle-group]").forEach((group) => { group.hidden = period !== "all" && group.dataset.bundleGroup !== period; });
 }
 
 // Fills the edit screen for one bundle; returns false when it doesn't exist.
