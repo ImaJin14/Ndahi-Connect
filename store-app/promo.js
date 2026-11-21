@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 // Store promotions on the public store (#302, canvas: StorePromo,
 // PhonePromoBuy). Everything shown comes from the catalogue: the sale price,
 // the free bundle, the window and the stock. Countdowns run on the server's
@@ -115,7 +116,7 @@ export function createPromo({ lang, money, l }) {
         strip: `<div class="promo-strip"><span>${h(w("endsStrip", { day: day(lastMinute(pr.endsAt)) }))}</span><strong data-countdown-inline="${h(pr.endsAt)}"></strong></div>`,
         stock: w("left", { n: p.available }),
         bonus: b ? `<div class="promo-gift"><span class="promo-gift__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg></span>
-          <div><strong>${h(w("bonusCardTitle", { days: b.days, plan: b.planName }))}</strong><span>${h(w("bonusCardHint", { data: bonusData(b), devices: b.deviceLimit }))}</span></div></div>` : "",
+          <div><strong>${h(w("bonusCardTitle", { days: b.days, plan: b.planName }))}</strong><span>${h(w("bonusCardHint", { data: [bonusData(b), speedText(b, { lang, devices: b.deviceLimit })].filter(Boolean).join(" · "), devices: b.deviceLimit }))}</span></div></div>` : "",
         terms: `<details class="policy promo-terms"><summary>${h(w("terms"))}</summary><p>${h(l(pr.terms))}</p></details>`,
         button: w("dealButton", { price: money(pr.salePrice) }), limit: w("limit", { n: pr.perNumberLimit }),
       };

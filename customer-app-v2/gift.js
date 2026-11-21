@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 import { funnelStep } from "./funnel.js";
 // Buy a bundle for someone else's number (#255, canvas: PhoneBuyForOther).
 // Step 1: their number (and name); the matching case shows under it. Step 2:
@@ -36,6 +37,8 @@ async function call(path, data) {
 const who = () => state.name || masked(state.phone);
 const duration = (hours) => hours % 24 === 0 ? (hours === 24 ? L("giftOneDay") : L("giftDays", { count: hours / 24 })) : L("giftHours", { count: hours });
 const data = (plan) => plan.quotaGb === null ? L("giftUnlimited") : `${plan.quotaGb} GB`;
+// A bundle's speed limit, if it has one (#263).
+const speed = (plan) => speedText(plan, { lang: currentLanguage(), devices: plan.deviceLimit });
 const network = () => suggestedPaymentNetwork(state.buyer.phone) || "mtn";
 // The bundle's price, Mobile Money fee and total for the buyer's network, from the
 // server (#297): the plan's quote before paying, the payment's record after.
@@ -72,7 +75,7 @@ function show(step) {
     body.innerHTML = `<form class="gift__form" id="giftPlan" novalidate><main class="gift__main gift__main--plans">
       <h1 class="gift__h1" id="giftHeading">${h(state.name ? L("giftPlanTitle", { name: state.name }) : L("giftPlanTitleAnon"))}</h1>
       <div class="gift__plans" role="radiogroup" aria-labelledby="giftHeading">${state.plans.map((p) => `<button type="button" class="gift__card${p.id === state.plan?.id ? " gift__card--on" : ""}" role="radio" aria-checked="${p.id === state.plan?.id}" data-plan="${h(p.id)}">
-        <span><strong class="gift__plan-name">${h(p.name)}</strong><span>${h(`${data(p)} · ${duration(p.validityHours)}`)}</span></span><strong>${h(L("giftPrice", { price: price(p.price) }))}</strong></button>`).join("")}</div>
+        <span><strong class="gift__plan-name">${h(p.name)}</strong><span>${h([data(p), duration(p.validityHours), speed(p)].filter(Boolean).join(" · "))}</span></span><strong>${h(L("giftPrice", { price: price(p.price) }))}</strong></button>`).join("")}</div>
       <div class="gift__note-field"><label class="gift__label" for="giftNote">${h(L("giftNote"))} <span class="gift__label-note">${h(L("giftOptional"))}</span></label><input class="gift__input" id="giftNote" name="note" maxlength="140" autocomplete="off" value="${h(state.note)}"></div>
       <p class="gift__alert" id="giftError" role="alert" hidden></p>
     </main><div class="gift__foot">${state.plan ? costLine(net) : ""}<button class="gift__btn" type="submit"${state.plan ? "" : " disabled"}>${h(!state.plan ? L("giftChoose")

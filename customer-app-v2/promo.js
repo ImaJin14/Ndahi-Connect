@@ -5,6 +5,7 @@
 // what is left, terms, the checkout line and the free bundle on the order.
 // Everything comes from the store catalogue; the countdown runs on the
 // server's clock (catalogue.serverTime).
+import { speedText } from "../shared-app/bundle-speed.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
@@ -63,7 +64,7 @@ export function productExtras(p) {
     top: `<div class="portal-promo__strip"><span class="portal-promo__badge">${h(text(pr.name))}</span><span>${h(L("portalPromoEnds", { day: day(lastMinute(pr.endsAt)) }))} · <strong data-countdown-inline="${h(pr.endsAt)}"></strong></span></div>`,
     stock: L("portalPromoLeft", { count: p.available }),
     bonus: b ? `<div class="portal-promo__gift"><span class="portal-promo__gift-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg></span>
-      <span><strong>${h(L("portalPromoGiftTitle", { days: b.days, plan: b.planName }))}</strong><span>${h(L("portalPromoGiftHint", { data: b.quotaGb == null ? L("portalPromoUnlimited") : L("portalPromoData", { gb: b.quotaGb }), devices: b.deviceLimit }))}</span></span></div>` : "",
+      <span><strong>${h(L("portalPromoGiftTitle", { days: b.days, plan: b.planName }))}</strong><span>${h(L("portalPromoGiftHint", { data: [b.quotaGb == null ? L("portalPromoUnlimited") : L("portalPromoData", { gb: b.quotaGb }), speedText(b, { lang: currentLanguage(), devices: b.deviceLimit })].filter(Boolean).join(" · "), devices: b.deviceLimit }))}</span></span></div>` : "",
     terms: `<details class="portal-rule"><summary><span>${h(L("portalPromoTerms"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary><p>${h(text(pr.terms))}</p></details>`,
     button: L("portalPromoDeal", { price: money(pr.salePrice) }), limit: L("portalPromoLimit", { count: pr.perNumberLimit }),
   };

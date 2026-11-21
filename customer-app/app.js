@@ -69,6 +69,7 @@ function receiptPreview(receipt) {
     ["Data allowance", receipt.dataLabel || "Not recorded"],
     ["Validity", receipt.validityLabel || "Not recorded"],
     ["Device limit", receipt.deviceLabel || "Not recorded"],
+    ...(receipt.speedLabel ? [["Speed", receipt.speedLabel]] : []),
   ];
   if (receipt.refundStatus) details.push(["Refund status", receipt.refundStatus]);
   return `<div class="receipt-brand"><span class="brand-mark">NC</span><span><strong>NDAHI</strong><small>CONNECT</small></span></div><p class="receipt-number">Receipt ${h(receipt.number)}</p><div class="receipt-total"><span>Amount paid</span><strong>${h(receipt.amountLabel)}</strong></div><p class="receipt-paid-at">Paid ${h(receipt.paidAtLabel)}</p><p class="receipt-customer"><strong>Customer</strong><br>${h(receipt.customerName || "Customer")}</p><dl class="receipt-details">${details.map(([name, value]) => `<div><dt>${h(name)}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>${receipt.refundMessage ? `<p class="receipt-note">${h(receipt.refundMessage)}</p>` : ""}<p class="receipt-note">Keep this receipt as proof of payment.</p>`;

@@ -1,3 +1,4 @@
+import { speedText } from "../shared-app/bundle-speed.js";
 import { escapeHtml as h } from '/shared/safe-html.js';
 import { requestJson } from './compat.js';
 import { saveReturnPath, consumeReturnPath } from './errors.js';
@@ -31,7 +32,9 @@ async function load() {
     voucher = purchasedVoucher(body, requestedPayment);
     if (!voucher) throw Error('No confirmed voucher was found for this purchase in this account. Check Payments or Vouchers; do not pay again to recover it.');
     // Canvas (PhoneVoucherReady): plan and its facts, the code, its QR and validity on a forest card.
-    const plan = voucher.plan || {}, facts = [plan.name || voucher.planId, plan.quotaGb === null ? 'Unlimited' : plan.quotaGb ? `${plan.quotaGb} GB` : '', plan.validityHours ? (plan.validityHours === 24 ? '1 day' : `${Math.round(plan.validityHours / 24)} days`) : ''].filter(Boolean).join(' · ');
+    // The speed is the one the router applies to this voucher, as it was issued (#263).
+    const plan = voucher.plan || {}, facts = [plan.name || voucher.planId, plan.quotaGb === null ? 'Unlimited' : plan.quotaGb ? `${plan.quotaGb} GB` : '', plan.validityHours ? (plan.validityHours === 24 ? '1 day' : `${Math.round(plan.validityHours / 24)} days`) : '',
+      speedText(voucher.speedSnapshot, { devices: voucher.deviceLimit ?? plan.deviceLimit })].filter(Boolean).join(' · ');
     $('#voucherDetails').innerHTML = `<h2>${h(facts)}</h2><label><span class="nd-visually-hidden">Voucher code</span><input readonly value="${h(voucher.code)}"></label><img class="voucher-ready__qr" data-voucher-qr alt="QR code for voucher ${h(voucher.code)}" hidden><p>${voucher.expiresAt ? `Valid until ${h(new Date(voucher.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }))}` : 'Saved in your account'}. Keep this code private.</p>`;
     $('#copyVoucher').hidden = false;
     $('#voucherStatus').classList.add('nd-visually-hidden');

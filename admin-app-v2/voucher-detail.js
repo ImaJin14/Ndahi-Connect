@@ -8,6 +8,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { maskPhone } from "/payments.js";
+import { speedText } from "../shared-app/bundle-speed.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB"), ZONE = "Africa/Douala";
@@ -50,7 +51,8 @@ function render(host, data, context) {
   if (statusHost && heading && statusHost.previousElementSibling !== heading) heading.after(statusHost);
   if (statusHost) statusHost.innerHTML = `<span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L(statusKey))}</span>${code ? `<button type="button" class="admin-voucher__copy" data-voucher-copy>${h(L("adminCopyCode"))}</button>` : ""}`;
   const created = (d.history || []).find((e) => e.kind === "created"), customer = data.ownership || {};
-  const facts = [unlimited ? L("adminUnlimitedData") : `${plan.quotaGb ?? Math.round((v.quotaBytes || 0) / 1e8) / 10} GB`, plan.validityHours ? duration(plan.validityHours) : "", v.deviceLimit === 1 ? L("adminOneDevice") : v.deviceLimit ? L("adminUpToDevices", { count: v.deviceLimit }) : ""].filter(Boolean).join(" · ");
+  const facts = [unlimited ? L("adminUnlimitedData") : `${plan.quotaGb ?? Math.round((v.quotaBytes || 0) / 1e8) / 10} GB`, plan.validityHours ? duration(plan.validityHours) : "", v.deviceLimit === 1 ? L("adminOneDevice") : v.deviceLimit ? L("adminUpToDevices", { count: v.deviceLimit }) : "",
+    speedText(v.speedSnapshot, { lang: currentLanguage(), devices: v.deviceLimit })].filter(Boolean).join(" · ");
   const validLine = waiting ? (r.phone ? L("adminOnlyFor", { phone: maskPhone(r.phone), date: dateOnly(r.expiresAt, true) }) : L("adminClaimBy", { date: dateOnly(r.expiresAt, true) }))
     : v.status === "active" ? L("adminEndsOn", { date: when(v.expiresAt, true) }) : v.status === "available" ? L("adminStartsWhenRedeemed")
     : v.status === "revoked" ? L("adminVoucherRevoked") : v.expiresAt ? L("adminVoucherEndedOn", { date: when(d.exhaustedAt || v.expiresAt) }) : "";
