@@ -91,6 +91,8 @@ domain verified before committing `BOOTSTRAP_MODE: "false"`. The API sends only 
 Flutterwave verification and records delivery status on the voucher; a failed
 email does not reverse payment or deactivate access.
 
+Bundle speed limits (#263) stay off until `ROUTER_SPEED_LIMITS=on` is set on the API service. `render.yaml` declares it with `sync: false`. Set it only after the RB5009 check in `docs/operations/router-command-queue.md`, including the FastTrack exclusion. The deploy's environment check refuses any value other than `on` or `off`.
+
 MikroTik and Omada endpoints on a private on-site LAN are not directly reachable from Render. Route them through the restricted on-site management bridge, a VPN, or a mutually authenticated tunnel. Never expose the router administration UI directly.
 
 ## 4. Verify the temporary deployment

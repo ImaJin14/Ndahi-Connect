@@ -7,6 +7,7 @@ import { parse } from "yaml";
 import { blueprintServices, environmentDrift } from "../lib/environment-drift.mjs";
 
 const text = await readFile(new URL("../render.yaml", import.meta.url), "utf8");
+const staging = await readFile(new URL("../render.staging.yaml", import.meta.url), "utf8");
 // Check both phases whichever one render.yaml currently commits.
 const bootstrapPin = /(key: BOOTSTRAP_MODE\n\s+value: )"(?:true|false)"/;
 const bootstrapText = text.replace(bootstrapPin, '$1"true"'), launchedText = text.replace(bootstrapPin, '$1"false"');
@@ -31,6 +32,7 @@ function apiEnv(overrides = {}, services = bootstrapBlueprint) {
     EMAIL_FROM: "NDAHI Connect <connect@updates.ndahiconnect.net>",
     COVERAGE_ACCESS_ENABLED: "true",
     COVERAGE_ALLOWED_IPS: "203.0.113.10",
+    ROUTER_SPEED_LIMITS: "off",
     ...overrides,
   };
 }
@@ -51,6 +53,19 @@ test("push settings that would leave usage alerts silently off block deployment"
   assert.ok(has(errors({ WEB_PUSH_PRIVATE_KEY: "" }), /^WEB_PUSH_PRIVATE_KEY is missing/));
   assert.deepEqual(errors({ WEB_PUSH_PUBLIC_KEY: "", WEB_PUSH_PRIVATE_KEY: "", WEB_PUSH_SUBJECT: "" }), []);
   assert.deepEqual(errors({ WEB_PUSH_SUBJECT: "https://ndahiconnect.net/contact" }), []);
+});
+
+test("the bundle speed-limit switch is declared for Render and accepts only on or off", () => {
+  for (const file of ["render.yaml", "render.staging.yaml"]) {
+    const name = file === "render.yaml" ? "ndahi-api" : "ndahi-staging-api";
+    const blueprint = blueprintServices(file === "render.yaml" ? text : staging);
+    assert.deepEqual(blueprint.get(name).env.get("ROUTER_SPEED_LIMITS"), { source: "operator", value: undefined }, `${file}: set in Render, never committed on`);
+  }
+  const errors = (value) => environmentDrift("ndahi-api", launchedBlueprint, launchedEnv({ ROUTER_SPEED_LIMITS: value })).errors;
+  for (const value of ["on", "off", "", undefined]) assert.deepEqual(errors(value), [], String(value));
+  for (const value of ["true", "On", "1", "yes"]) {
+    assert.deepEqual(errors(value), ['ROUTER_SPEED_LIMITS must be exactly "on" or "off" (unset is off)'], value);
+  }
 });
 
 test("a BOOTSTRAP_MODE change outside render.yaml is drift", () => {

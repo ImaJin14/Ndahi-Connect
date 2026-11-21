@@ -58,7 +58,13 @@ Each read also records the voucher's devices as RouterOS reports them: MAC addre
 
 Browser device IDs are not trusted MAC addresses, and disconnecting one still fails explicitly. Reconciliation still reports session mapping as unavailable, so it does not mark browser sessions offline. Quota behavior across router reboots needs field validation. Voucher-wide revocation is supported independently of device mapping.
 
-For an on-site bridge deployment, `npm run start:bridge` implements the existing `/ndahi/syncVoucher`, `/ndahi/disconnectDevice`, `/ndahi/disconnectVoucher`, `/ndahi/readUsage`, `/ndahi/readState`, and `/ndahi/markInactive` contract over HTTPS. Configure:
+For an on-site bridge deployment, `npm run start:bridge` implements the `/ndahi/*` contract over HTTPS (`scripts/network-bridge.mjs`):
+- vouchers: `syncVoucher`, `disconnectVoucher`, `markInactive`;
+- bundle speed queues: `syncSpeedQueue` (#263, from commit `a610005`; see `router-command-queue.md` before turning `ROUTER_SPEED_LIMITS` on);
+- devices: `disconnectDevice`, `disconnectWifiDevice`, `connectWifiDevice`, `revokeWifiDevice`, `readGuestDevice`;
+- reads: `readUsage`, `readState`.
+
+An older bridge answers 404 for actions it doesn't know, so update the bridge before enabling a feature that uses a new action. Configure:
 
 ```dotenv
 ROUTER_REST_URL=https://router.management.example
