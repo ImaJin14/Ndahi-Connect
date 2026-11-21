@@ -1573,7 +1573,7 @@ On 19 November the owner closed these issues as implemented: their code is merge
     - `render.yaml` and `render.staging.yaml` declare `ROUTER_SPEED_LIMITS` with `sync: false`, to be set in Render after the check;
     - the deploy's environment check refuses any value other than `on` or `off`;
     - the runbook now covers which path reaches the router (saved router or bridge), updating the bridge to a version with `/ndahi/syncSpeedQueue`, the FastTrack exclusion commands, the check, turning it on, and turning it off and removing the queues.
-    - Tested (environment-drift, staging and speed enforcement tests). Not yet set in Render or verified on the RB5009.
+    - Tested (environment-drift, staging and speed enforcement tests). PR #323 merged as `89d8284` and deployed to all four services by 03:28 UTC; the API's pre-deploy environment check passed with the new rule. `ROUTER_SPEED_LIMITS` is not set in Render, and nothing has been verified on the RB5009.
 
 ### Merges and production fix (20 November 2026)
 
@@ -1696,4 +1696,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - the store and portal load the photos from the API under the CSP and switch between them;
     - contrast and overflow are checked at 390 and 1280 px.
   - Journeys: store and admin app on v2 and v1, portal on v2.
-- **Not yet deployed or physically verified.**
+- **Deployed** on 21 November. PR #322 merged as `cba63b7`, and Render deployed it to all four services by 03:18 UTC. On production:
+  - `/api/store/photos/<unknown id>` answers "Photo not found.";
+  - the store page's CSP allows images from `https://api.ndahiconnect.net`.
+- **Not physically verified:** no real product photo has been uploaded yet, and the production store was still closed.
