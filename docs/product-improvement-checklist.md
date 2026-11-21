@@ -1727,3 +1727,32 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
   - The full suite and journeys are listed in the PR.
 - **Deployed:** PR #325 merged as `ce1875d`. By 07:37 UTC on 21 November the portal, store and admin served `shared-app/bundle-speed.js`.
 - Limits are enforced on the router only once `ROUTER_SPEED_LIMITS=on` (see the #263 item above). Until then, a bundle's description states a limit the router doesn't yet apply, so set a bundle's speed only when the switch is going on.
+
+### Bundles arranged Daily, Weekly and Monthly (21 November 2026)
+
+On 21 November the owner asked to "auto arrange bundles based on monthly, weekly and daily plans with filters on the bundle page", on both the customer buy page and Admin → Bundles.
+
+- **Implemented:**
+  - **The rule** (`shared-app/bundle-period.js`):
+    - Daily is up to a day;
+    - Weekly is up to 7 days;
+    - Monthly is longer (30 or 45 days);
+    - within each period, the cheapest comes first.
+  - **The buy page (v2):**
+    - headings for Daily, Weekly and Monthly;
+    - All / Daily / Weekly / Monthly chips that show one period without reloading;
+    - `?period=weekly` opens one period, and a link to one plan (`?plan=`) starts on All;
+    - a renewal still shows its single plan.
+  - **Admin → Bundles (v2):** the same headings, with chips that show counts. The filter is kept when the dashboard refreshes.
+  - **Only when needed:** chips appear only for periods that have bundles, and a list within a single period stays as before.
+  - **Styling:** the buy page's global button styles (lime hover, animated background) no longer apply to its chips.
+  - **Not covered:** no design covers this; it uses the kit's chips. v1 is unchanged.
+- **Tested:**
+  - `test/bundle-period.test.mjs`: the periods, order and filter fallback.
+  - `test/redesign-browser/bundle-periods.test.mjs` on both pages at 390 and 1280 px:
+    - the chips, group order and filtering, by mouse and keyboard;
+    - a `?period=` link;
+    - buying from a filtered list;
+    - admin counts;
+    - contrast and overflow.
+  - The full suite and journeys are in the PR.

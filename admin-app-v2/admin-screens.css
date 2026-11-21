@@ -207,6 +207,13 @@
 .admin-bundles, .admin-bundle-edit { display: flex; flex-direction: column; gap: var(--nd-space-22); }
 .admin-bundles > #bundleMessage:empty { display: none; }
 .admin-bundles__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--nd-space-14); }
+/* Bundles under Daily, Weekly and Monthly with filter chips (owner, 21 Nov). */
+.admin-bundles__group { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.admin-bundles__group[hidden] { display: none; }
+.admin-bundles__group-title { margin: 0; }
+.admin-bundles__chip { display: inline-flex; align-items: center; gap: var(--nd-space-6); }
+.admin-bundles__count { min-width: 22px; padding: 1px 7px; box-sizing: border-box; border-radius: var(--nd-radius-pill); background: var(--nd-sage); color: var(--nd-ink-soft); font-size: var(--nd-fs-caption); text-align: center; }
+.admin-bundles__chip[aria-pressed="true"] .admin-bundles__count { background: var(--nd-lime); color: var(--nd-lime-ink); }
 .admin-bundle { display: flex; flex-direction: column; gap: var(--nd-space-8); min-height: 210px; padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
 .admin-bundle--off { border-style: dashed; border-color: var(--nd-line-strong); background: #f4f5f2; }
 .admin-bundle__head { display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-8); }

@@ -1,3 +1,4 @@
+import { groupBundles, chosenPeriod, PERIOD_LABELS } from "../shared-app/bundle-period.js";
 import { speedText } from "../shared-app/bundle-speed.js";
 import { funnelStep } from "./funnel.js";
 import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
@@ -164,8 +165,18 @@ function policy(plan) {
 function notice(message, links = true) {
   $("#planNotice").innerHTML = `<div class="plan-notice"><p>${h(message)}</p>${links ? '<a href="/dashboard">Back to dashboard</a><a href="/onboarding.html?action=switch">Change plan</a>' : ""}</div>`;
 }
+// Bundles under Daily, Weekly and Monthly with filters (owner, 21 Nov), when
+// they span more than one period; a renewal shows its one plan as before.
+// The filter can start from a link (?period=weekly); a link to one plan
+// (?plan=) starts on All so that plan is in view.
+let planPeriod = pageParams.get("plan") ? "all" : pageParams.get("period") || "all";
+function showPlanPeriod(value) {
+  planPeriod = value;
+  document.querySelectorAll("#plans [data-plan-period]").forEach((chip) => chip.setAttribute("aria-pressed", String(chip.dataset.planPeriod === planPeriod)));
+  document.querySelectorAll("#plans [data-plan-group]").forEach((group) => { group.hidden = planPeriod !== "all" && group.dataset.planGroup !== planPeriod; });
+}
 function renderPlans() {
-  $("#plans").innerHTML = plans.map((plan) => {
+  const card = (plan) => {
     const blocked = !subscriptionAccess.allowed || (accountAction === "renew" && (!renewal || !renewal.eligible));
     const eligibility = !subscriptionAccess.allowed ? "Your existing bundle is protected from replacement." : blocked
       ? renewal?.reason || "This package cannot be renewed."
@@ -186,7 +197,18 @@ function renderPlans() {
       ${eligibility ? `<p class="eligibility">${h(eligibility)}</p>` : ""}
       <button data-plan="${h(plan.id)}" aria-describedby="plan-title-${h(plan.id)}${purchaseAccess.allowed ? "" : " purchaseAccessMessage"}" ${!accessReady || blocked || !purchaseAccess.allowed || paymentInProgress || creatingPayment ? "disabled" : ""}>${!purchaseAccess.allowed ? "Connect to NDAHI Wi-Fi" : blocked ? "Currently unavailable" : accountAction === "renew" ? "Review renewal" : accountAction === "switch" ? "Switch to this plan" : "Choose plan"}</button>
     </article>`;
-  }).join("");
+  };
+  const groups = accountAction === "renew" ? [] : groupBundles(plans);
+  if (groups.length < 2) {
+    $("#plans").innerHTML = plans.map(card).join("");
+  } else {
+    planPeriod = chosenPeriod(planPeriod, groups);
+    const label = (period) => L(PERIOD_LABELS[period]);
+    $("#plans").innerHTML = `<div class="nd-chips plan-filters" role="group" aria-label="${h(L("bundlePeriodFilter"))}">${["all", ...groups.map((group) => group.period)].map((period) =>
+      `<button type="button" class="nd-chip" data-plan-period="${period}" aria-pressed="${period === planPeriod}">${h(label(period))}</button>`).join("")}</div>
+      ${groups.map((group) => `<section class="plan-group" data-plan-group="${group.period}" aria-labelledby="planGroup-${group.period}"${planPeriod !== "all" && planPeriod !== group.period ? " hidden" : ""}>
+        <h2 class="nd-eyebrow plan-group__title" id="planGroup-${group.period}">${h(label(group.period))}</h2>${group.plans.map(card).join("")}</section>`).join("")}`;
+  }
   $("#plans").setAttribute("aria-busy", "false");
 }
 function renderAccount() {
@@ -535,6 +557,8 @@ function showCheckout() {
   $("#closeCheckout").focus();
 }
 $("#plans").onclick = (event) => {
+  const chip = event.target.closest("button[data-plan-period]");
+  if (chip) return showPlanPeriod(chip.dataset.planPeriod);
   const button = event.target.closest("button[data-plan]");
   if (button && !button.disabled && choose(button.dataset.plan)) openCheckout(button);
 };

@@ -12,6 +12,15 @@
 .packages-page #plans.grid { display: flex !important; flex-direction: column; gap: var(--nd-space-10) !important; max-width: 640px; margin: var(--nd-space-12) 0 0 !important; padding: 0 !important; overflow: visible !important; scroll-snap-type: none !important; }
 .packages-page #plans .plan, .packages-page #plans .plan:nth-child(n) { position: relative; display: flex; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px var(--nd-space-8); flex: none !important; width: auto; min-width: 0 !important; max-width: none !important; min-height: 0; margin: 0; padding: var(--nd-space-14) var(--nd-space-16); border: 1px solid var(--nd-line) !important; border-radius: var(--nd-radius-card) !important; background: var(--nd-paper); box-shadow: none; transform: none; scroll-snap-align: none !important; }
 .packages-page #plans .plan:hover { border-color: var(--nd-line-strong); }
+/* Bundles under Daily, Weekly and Monthly, with filter chips (owner, 21 Nov). */
+.packages-page #plans .plan-filters { margin: 0 0 var(--nd-space-4); }
+/* The page's global button styles (lime hover, lift, animated background) are
+   not the kit's chip: a chip changes at once and keeps its colours on hover. */
+.packages-page #plans .plan-filters .nd-chip { transition: none; transform: none; box-shadow: none; }
+.packages-page #plans .plan-filters .nd-chip:hover:not([aria-pressed="true"]) { background: var(--nd-paper); border-color: var(--nd-forest); }
+.packages-page #plans .plan-group { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.packages-page #plans .plan-group[hidden] { display: none; }
+.packages-page #plans .plan-group__title { margin: var(--nd-space-8) 0 0; }
 .packages-page #plans .plan:focus-within { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
 .packages-page #plans .plan > * { flex-basis: 100%; order: 6; margin: 0; }
 .packages-page #plans .plan h3 { flex: 0 1 auto; order: 1; color: var(--nd-ink); font: 700 var(--nd-fs-body) var(--nd-font-body); }

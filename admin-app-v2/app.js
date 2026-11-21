@@ -3,7 +3,7 @@ import { mountCustomerVoucher, voucherPlanDetail } from "/customer-voucher.js";
 import { mountVoucherRecords } from "/vouchers.js";
 import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
 import { showVoucherDetail } from "/voucher-detail.js";
-import { bundleCards, showBundleEdit } from "/bundles.js";
+import { bundleGroups, showBundlePeriod, showBundleEdit } from "/bundles.js";
 import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
@@ -218,7 +218,7 @@ ${storeRole ? `<section class="tab-panel admin-promotions" id="panel-promotions"
 <section class="nd-panel admin-security" aria-labelledby="adminSecurityTitle"><h2 class="nd-h2" id="adminSecurityTitle">${h(L("adminSecurityTitle"))}</h2>${adminSecurity(x)}</section>
 <section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminVoucher"))}</th><th>${h(L("adminColFinding"))}</th><th>${h(L("adminColLastChecked"))}</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${shortId(v.voucherId)}</td><td>${h(sentence(v.issue))}</td><td>${h(stamp(v.checkedAt))}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminColCommand"))}</th><th>${h(L("adminColOn"))}</th><th>${h(L("adminColStatus"))}</th><th>${h(L("adminColTries"))}</th><th>${h(L("adminColReason"))}</th><th><span class="nd-visually-hidden">${h(L("adminColCommandActions"))}</span></th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(sentence(c.action))}</td><td>${shortId(c.targetId)}</td><td>${h(commandStatus(c.status))}</td><td>${h(c.totalAttempts)}</td><td>${h(sentence(c.lastError || ""))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">${h(L("adminRefreshDevicesLink"))}</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">${h(L("adminMarkObsolete"))}</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></section>
 ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel-network-setup" aria-labelledby="adminTitle" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
-<section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><div class="admin-bundles__grid">${bundleCards(x.bundles, x.usageByBundle)}</div><p id="bundleMessage" class="nd-meta" role="status" aria-live="polite"></p>
+<section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}>${bundleGroups(x.bundles, x.usageByBundle)}<p id="bundleMessage" class="nd-meta" role="status" aria-live="polite"></p>
 <section class="nd-panel" aria-labelledby="bundleCreateTitle"><h2 class="nd-h2" id="bundleCreateTitle">${h(L("adminNewBundle"))}</h2><form id="bundle" class="admin-form admin-form--row">
   <label class="nd-field"><span class="nd-label">${h(L("adminFieldName"))}</span><input class="nd-input" name="name" maxlength="80" placeholder="${h(L("adminBundleNameHint"))}" required></label>
   <label class="nd-field"><span class="nd-label">${h(L("adminFieldPrice"))}</span><input class="nd-input" name="price" type="number" min="0" required></label>
@@ -526,6 +526,10 @@ function mountRecordViews(canManagePayments) {
 $("#app").onclick = async (e) => {
   const button = e.target.closest("button");
   if (!button || button.disabled) return;
+  if (button.dataset.bundlePeriod) {
+    showBundlePeriod($("#panel-bundles"), button.dataset.bundlePeriod);
+    return;
+  }
   if (button.dataset.replaceBundle) {
     prefillAssignedVoucher(button.dataset.replaceBundle);
     return;
