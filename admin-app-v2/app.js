@@ -23,9 +23,11 @@ import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
 import { mountGeneratedVoucherPrint } from "/voucher-print.js";
 import { mountResellerLedger } from "/reseller-ledger.js";
+import { mountResellerHome } from "/reseller-home.js";
 import { format, t } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { updateHomeRouterMenu } from "/home-entry.js";
+import { showOutages } from "./outages.js";
 
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (s) => document.querySelector(s),
@@ -126,6 +128,15 @@ async function runAction(button, text, task, message = "#actionMessage") {
   }
 }
 const L = (key, values) => format(key, values || {}, currentLanguage());
+// Router checks tables (#232): "sync_voucher" → "Sync voucher"; a long id
+// shortened with the full one on hover; times as "10 Nov 17:25" in Douala.
+const sentence = (value) => { const text = String(value || "").replaceAll("_", " ").trim(); return text ? text[0].toUpperCase() + text.slice(1) : ""; };
+const shortId = (value) => { const id = String(value || ""); return id.length > 14 ? `<span title="${h(id)}">${h(id.slice(0, 8))}…</span>` : h(id || "—"); };
+const stamp = (value) => {
+  const at = new Date(value), loc = currentLanguage() === "fr" ? "fr-FR" : "en-GB";
+  return Number.isFinite(+at) ? `${at.toLocaleDateString(loc, { day: "numeric", month: "short", timeZone: "Africa/Douala" })} ${at.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Africa/Douala" })}` : "—";
+};
+const commandStatus = (status) => (format(`adminCommandStatus_${status}`, {}, "en") !== `adminCommandStatus_${status}` ? L(`adminCommandStatus_${status}`) : sentence(status));
 
 // Needs attention: only real signals, each linking to where it is handled.
 async function loadHomeAttention(x, storeSnapshot, contacts) {
@@ -172,6 +183,7 @@ async function load() {
   adminAuthenticatorRetired = x.profile.authenticatorRetired === true;
   wifiLive = x.wifi.live;
   activeAdminTab = activeAdminView(adminRole);
+  if (adminRole === "reseller") { resellerHome ||= mountResellerHome({ call, logout: signOut }); resellerHome.setView(activeAdminTab); }
   csrfToken = x.csrfToken;
   mountNotifications({ apiUrl: api, path: "/api/admin/notifications", csrf: () => csrfToken, admin: true });
   const canManagePayments = ["owner", "operator"].includes(x.profile?.role),
@@ -199,9 +211,10 @@ ${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="homeOrders
 ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
 <section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><section class="nd-panel admin-devices__list" aria-label="${h(L("adminDevicesList"))}"><div id="wifiRecords"></div></section></section>
 <section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
+<section class="tab-panel admin-outages" id="panel-outages" aria-labelledby="adminTitle" data-tab-panel="outages" ${activeAdminTab === "outages" ? "" : "hidden"}><div id="outagesHost"></div></section>
 <section class="tab-panel admin-connections" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="admin-connections__grid">${serviceCards(x)}</div><p id="integrationMessage" class="nd-meta" role="status" aria-live="polite"></p>
 <section class="nd-panel admin-security" aria-labelledby="adminSecurityTitle"><h2 class="nd-h2" id="adminSecurityTitle">${h(L("adminSecurityTitle"))}</h2>${adminSecurity(x)}</section>
-<section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>Voucher</th><th>Finding</th><th>Last checked</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${h(v.voucherId)}</td><td>${h(String(v.issue).replaceAll("_", " "))}</td><td>${h(new Date(v.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>Action</th><th>Target</th><th>Status</th><th>Attempts</th><th>Reason</th><th>Action</th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(c.action.replaceAll("_", " "))}</td><td>${h(c.targetId)}</td><td>${h(c.status.replaceAll("_", " "))}</td><td>${h(c.totalAttempts)}</td><td>${h((c.lastError || "").replaceAll("_", " "))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">Refresh devices</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">Mark obsolete</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></section>
+<section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminVoucher"))}</th><th>${h(L("adminColFinding"))}</th><th>${h(L("adminColLastChecked"))}</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${shortId(v.voucherId)}</td><td>${h(sentence(v.issue))}</td><td>${h(stamp(v.checkedAt))}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminColCommand"))}</th><th>${h(L("adminColOn"))}</th><th>${h(L("adminColStatus"))}</th><th>${h(L("adminColTries"))}</th><th>${h(L("adminColReason"))}</th><th><span class="nd-visually-hidden">${h(L("adminColCommandActions"))}</span></th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(sentence(c.action))}</td><td>${shortId(c.targetId)}</td><td>${h(commandStatus(c.status))}</td><td>${h(c.totalAttempts)}</td><td>${h(sentence(c.lastError || ""))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">${h(L("adminRefreshDevicesLink"))}</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">${h(L("adminMarkObsolete"))}</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></section>
 ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel-network-setup" aria-labelledby="adminTitle" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><div class="admin-bundles__grid">${bundleCards(x.bundles, x.usageByBundle)}</div><p id="bundleMessage" class="nd-meta" role="status" aria-live="polite"></p>
 <section class="nd-panel" aria-labelledby="bundleCreateTitle"><h2 class="nd-h2" id="bundleCreateTitle">${h(L("adminNewBundle"))}</h2><form id="bundle" class="admin-form admin-form--row">
@@ -220,8 +233,16 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
     <label class="nd-field"><span class="nd-label">${h(L("adminFieldValidityShort"))}</span><input class="nd-input" name="validityHours" type="number" min="1" required></label>
     <label class="nd-field"><span class="nd-label">${h(L("adminFieldDeviceLimit"))}</span><input class="nd-input" name="deviceLimit" type="number" min="1" required></label>
   </div>
-  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedData"))}</label>
-  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminFieldDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <label class="admin-check admin-check--lg"><input type="checkbox" name="unlimited"> ${h(L("adminUnlimitedFairUse"))}</label>
+  <label class="nd-field admin-bundle-edit__quota" id="bundleQuotaField"><span class="nd-label">${h(L("adminBundleDataGb"))}</span><input class="nd-input" name="quotaGb" type="number" min="0.1" step="0.1"></label>
+  <fieldset class="admin-bundle-edit__speed"><legend>${h(L("adminSpeedLimit"))}</legend>
+    <div class="admin-bundle-edit__speed-grid">
+      <label class="nd-field"><span class="nd-label">${h(L("adminSpeedDown"))}</span><input class="nd-input" name="downloadMbps" type="number" min="0.001" max="10000" step="0.001" placeholder="${h(L("adminSpeedNoLimit"))}"></label>
+      <label class="nd-field"><span class="nd-label">${h(L("adminSpeedUp"))}</span><input class="nd-input" name="uploadMbps" type="number" min="0.001" max="10000" step="0.001" placeholder="${h(L("adminSpeedNoLimit"))}"></label>
+    </div>
+    <p class="admin-bundle-edit__speed-help">${h(L("adminSpeedHelp"))}</p>
+    ${x.integrations?.speedLimits === "on" ? "" : `<p class="admin-bundle-edit__speed-off" id="speedLimitsOff">${h(L("adminSpeedOff"))}</p>`}
+  </fieldset>
   <p class="nd-callout nd-callout--warning admin-callout">${h(L("adminBundleEditNote"))}</p>
   <div class="admin-form__actions"><button type="submit" class="nd-btn">${h(L("adminSaveBundle"))}</button><span id="bundleEditMessage" class="admin-saved" role="status" aria-live="polite"></span></div>
 </form></section>
@@ -297,7 +318,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   }
   if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
   let customerVoucher;
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
     if (view === "voucher") void openVoucher(); else { $("#adminTitle")?.classList.remove("admin-title--code"); $("#adminTitle")?.parentElement?.classList.remove("admin-head-title--inline"); } if (view === "bundle" && !showBundleEdit(bundleIndex.get(adminViewParam()), { setHead: setAdminHead })) location.replace("/dashboard#bundles"); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
@@ -608,6 +629,12 @@ $("#app").onclick = async (e) => {
     await load();
   });
 };
+// A reseller's Home is the ResellerHome phone screen (#261), mounted once.
+let resellerHome;
+async function signOut() {
+  await call("/api/admin/logout", { method: "POST", body: "{}" });
+  location.href = "/login";
+}
 $("#logout").onclick = async (event) => {
   await runAction(event.currentTarget, "Logging out…", async () => {
     await call("/api/admin/logout", { method: "POST", body: "{}" });

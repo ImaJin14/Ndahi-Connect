@@ -14,6 +14,8 @@ const VIEWS = {
   home: { menu: "home", panels: ["home"], title: "adminTitleHome" },
   devices: { menu: "devices", panels: ["devices"], title: "adminTitleDevices", group: "uiAdminGroupNetwork" },
   connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork", lede: "adminConnectionsLede" },
+  // Outages (#259, canvas: AdminOutage): staff read; owners and operators manage.
+  outages: { menu: "outages", panels: ["outages"], title: "adminTitleOutages", group: "uiAdminGroupNetwork", lede: "adminOutagesLede" },
   "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
   bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede" },
   // #bundle/<id>; app.js names the bundle in the title.
@@ -57,6 +59,7 @@ function canAccess(menu, role) {
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
   if (menu === "homerouters") return homeRouters;
+  if (menu === "outages") return who !== "reseller";
   return true;
 }
 
@@ -71,7 +74,8 @@ function eyebrow(view, lang) {
   const config = VIEWS[view];
   if (config.back) return "";
   if (view === "home") {
-    const date = new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
+    // "Friday 20 November" on the network's clock, not "Friday, November 20" (#232).
+    const date = new Date().toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Douala" });
     return ROLES[currentRole] ? t(ROLES[currentRole], lang) + " · " + date : date;
   }
   return t(config.group, lang) + (config.ownerOnly ? " · " + t("adminOwnerOnly", lang) : "");

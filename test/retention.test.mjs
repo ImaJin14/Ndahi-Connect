@@ -8,7 +8,7 @@ test("retention policy covers required sensitive record classes", () => {
     expiredSessionsDays: 7, expiredChallengesDays: 7, rateLimitEventsDays: 7,
     inactiveNetworkSessionsDays: 90, applicationEventsDays: 365,
     securityEventsDays: 365, securityAlertsDays: 90, auditLogsDays: 730, providerEventsDays: 730,
-    routerCommandsDays: 90, networkSetupJobsDays: 90,
+    routerCommandsDays: 90, networkSetupJobsDays: 90, insightCountersDays: 548,
     paymentsOnlineDays: 2555, dormantCustomerReviewDays: 730,
     operationalArchiveDays: 730, auditAndPaymentArchiveDays: 2555,
   });

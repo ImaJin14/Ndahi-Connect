@@ -1,3 +1,4 @@
+import { funnelStep } from "./funnel.js";
 import { consumeReturnPath } from "./errors.js";
 import { customerDestination, customerEntry } from "./customer-destination.js";
 import { fetchConnectivity } from "./connectivity.js";
@@ -21,6 +22,7 @@ export function hotspotPath(next = "/dashboard") {
 }
 
 export async function afterSignInPath(accountOnly = new URLSearchParams(location.search).get("account") === "1") {
+  funnelStep("signed_in");
   const params = new URLSearchParams(location.search);
   // account=1 is emitted by explicit account-settings/recovery links. Ordinary
   // sign-in has no intended destination and opens Dashboard.

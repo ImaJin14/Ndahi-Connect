@@ -10,16 +10,22 @@ import { saveFile } from "/payments.js";
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
 const ZONE = "Africa/Douala";
+// "10 Nov 17:25", as designed (no comma between the date and the time).
 const when = (value) => {
   const at = Date.parse(value);
-  return Number.isFinite(at) ? new Date(at).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONE }) : "—";
+  if (!Number.isFinite(at)) return "—";
+  const date = new Date(at);
+  return `${date.toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: ZONE })} ${date.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ZONE })}`;
 };
 
 // "voucher.resale_batch_generated" → "Created a resale voucher batch" (EN/FR),
-// or the action spelled out when there is no wording for it yet.
+// or the action spelled out, starting with a capital, when there is no
+// wording for it yet.
 export function auditAction(action) {
   const key = "adminAudit_" + String(action || "").replace(/[^a-z0-9]/gi, "_");
-  return TRANSLATIONS.en[key] ? L(key) : String(action || "—").replace(/[._]/g, " ");
+  if (TRANSLATIONS.en[key]) return L(key);
+  const words = String(action || "—").replace(/[._]/g, " ").trim();
+  return words[0].toUpperCase() + words.slice(1);
 }
 
 // What the action was on, from its details: a name, a count or a short id.
@@ -30,6 +36,17 @@ export function auditTarget(meta) {
   if (Array.isArray(m.voucherIds) && m.voucherIds.length > 1) return L("adminAuditVouchers", { count: m.voucherIds.length });
   const id = m.orderReference || m.customerId || m.paymentId || m.voucherId || (Array.isArray(m.voucherIds) && m.voucherIds[0]) || m.bundleId || m.resellerId || m.commandId || m.userId || m.mac;
   return id ? (String(id).length > 14 ? String(id).slice(0, 8) + "…" : String(id)) : "—";
+}
+
+// Who, as designed (AdminAudit): "Owner", or the role and name ("Operator ·
+// Brenda"); automatic work ("system", deployment scripts) reads "System". A
+// removed account keeps its recorded username.
+const ROLE_LABELS = { owner: "adminRoleOwner", operator: "adminRoleOperator", auditor: "adminRoleAuditor", reseller: "adminRoleReseller" };
+export function auditWho(a) {
+  if (a.actorRole === "owner") return L("adminRoleOwner");
+  if (ROLE_LABELS[a.actorRole]) return `${L(ROLE_LABELS[a.actorRole])} · ${a.actorName || a.actor}`;
+  if (!a.actor || a.actor === "system" || /^deployment:/.test(a.actor)) return L("adminAuditSystem");
+  return a.actor;
 }
 
 export const AUDIT_AREAS = [["", "adminAuditAll"], ["payment", "adminAuditMoney"], ["store", "adminAuditStore"], ["voucher", "adminAuditVouchersArea"], ["customer", "adminAuditCustomers"], ["admin", "adminAuditStaff"], ["network", "adminAuditNetwork"]];
@@ -57,7 +74,7 @@ export function mountAuditRecords(container, { call }) {
         summary: (page, pages, total) => L("adminPageSummary", { page, pages, total }),
       },
     },
-    row: (a) => `<tr><td>${h(when(a.at))}</td><td>${h(a.actor || "system")}</td><td><strong>${h(auditAction(a.action))}</strong></td><td>${h(auditTarget(a.meta))}</td></tr>`,
+    row: (a) => `<tr><td>${h(when(a.at))}</td><td>${h(auditWho(a))}</td><td><strong>${h(auditAction(a.action))}</strong></td><td>${h(a.target || auditTarget(a.meta))}</td></tr>`,
   });
 }
 

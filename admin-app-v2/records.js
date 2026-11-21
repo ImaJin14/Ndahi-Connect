@@ -67,6 +67,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
     status = form.elements.status,
     chips = container.querySelectorAll("[data-status-chip]"),
     body = container.querySelector("tbody"),
+    pager = container.querySelector(".records-pager"),
     summary = container.querySelector(".records-pager span"),
     previous = container.querySelector('[data-page="prev"]'),
     next = container.querySelector('[data-page="next"]');
@@ -98,10 +99,17 @@ export function mountRecords(container, { call, collection, title, headers, row,
       summary.textContent = result.total ? say.summary(result.page, result.pages, result.total) : say.none;
       previous.disabled = result.page <= 1;
       next.disabled = result.page >= result.pages;
+      // #232: an empty list already says so in the table, and one page needs
+      // no Previous/Next; the count stays for filtered results.
+      if (kit) {
+        pager.hidden = !result.total;
+        previous.hidden = next.hidden = result.pages <= 1;
+      }
       loaded = true;
     } catch (error) {
       if (current !== request || !container.isConnected) return;
       details?.clear();
+      pager.hidden = false;
       if (!background || !loaded || details) body.innerHTML = `<tr><td colspan="${headers.length}">${h(say.failed)}</td></tr>`;
       summary.textContent = error.message || "Please try again.";
       const retry = document.createElement("button");

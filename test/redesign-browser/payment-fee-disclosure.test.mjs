@@ -78,11 +78,9 @@ test("customers see the price, the Mobile Money fee and the total before they pa
   };
   // The plan list behind the checkout carries deliberately invisible overlay
   // buttons, so it is hidden for the contrast check (as payment-failed.test does).
-  // The decorative MTN/Orange badges above the network list (aria-hidden) predate
-  // #297 and fail contrast on their own; they are reported separately.
   const check = async (page, label) => {
     await page.evaluate(() => { const behind = document.getElementById("pageContent"); if (behind && !document.getElementById("checkout")?.hidden) behind.style.display = "none"; });
-    assert.deepEqual((await lowContrastText(page)).filter((item) => !/momo-badge/.test(item)), [], `contrast: ${label}`);
+    assert.deepEqual(await lowContrastText(page), [], `contrast: ${label}`);
     await page.evaluate(() => { const behind = document.getElementById("pageContent"); if (behind) behind.style.display = ""; });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow: ${label}`);
     await page.screenshot({ path: `${screenshots}/${label}.png` });

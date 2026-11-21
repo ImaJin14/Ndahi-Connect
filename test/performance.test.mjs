@@ -60,6 +60,21 @@ test("static assets are versioned, compressed and immutable while pages revalida
   assert.equal((await fetch(base + "/login", { method: "POST" })).status, 405);
   assert.equal((await fetch(base + "/static/styles.0000000000.css")).status, 404);
   assert.equal((await fetch(base + "/../server.mjs")).status, 404);
+  // A page from another release (during a deploy, or kept by the browser) asks
+  // for its own revision's names: it gets this release's file, never kept
+  // under that name, instead of a 404 that leaves it unstyled and without scripts.
+  const other = "0123456789abcdef0123";
+  const oldCss = await fetch(base + `/static/styles.${other}.css`);
+  assert.equal(oldCss.status, 200);
+  assert.equal(oldCss.headers.get("cache-control"), "no-store");
+  assert.match(oldCss.headers.get("content-type"), /^text\/css/);
+  assert.equal(await oldCss.text(), text);
+  const oldScript = await fetch(base + `/static/login.${other}.js`);
+  assert.equal(oldScript.status, 200);
+  assert.match(await oldScript.text(), /from "\/static\/errors\.[0-9a-f]{20}\.js"/, "its imports name this release's files");
+  assert.equal((await fetch(base + `/static/shared/safe-html.${other}.js`)).status, 200);
+  for (const missing of [`/static/nothing.${other}.js`, `/static/login.${other}.html`, `/static/styles.${other.slice(1)}.css`])
+    assert.equal((await fetch(base + missing)).status, 404, missing);
 });
 
 test("browser telemetry is injected only when enabled", async (t) => {

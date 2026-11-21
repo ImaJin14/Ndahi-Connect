@@ -102,7 +102,9 @@ try {
       // v2 gives the cash report its own screen (Cash and settlements).
       const cashView = uiV2 && role === "owner";
       if (uiV2 && role === "reseller") {
-        await page.locator('#admin-nav-home[aria-current="page"]').waitFor();
+        // On a phone the reseller's Home is the reseller screen (#261).
+        if (width < 768) await page.locator("#resellerHome .reseller-home__title").waitFor();
+        else await page.locator('#admin-nav-home[aria-current="page"]').waitFor();
         assert.equal(await page.locator("#admin-nav-payments").count(), 0);
         assert.equal(await page.locator("#admin-nav-cash").count(), 0);
       } else {

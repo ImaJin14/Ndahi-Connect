@@ -1,3 +1,4 @@
+import { funnelStep } from "./funnel.js";
 import { resumeVoucherScanFromWifi } from "./voucher-qr-context.js";
 import { customerDestination } from "./customer-destination.js";
 import { fetchConnectivity } from "./connectivity.js";
@@ -273,6 +274,7 @@ else if (params.has("router-error")) {
   try {
     const evidence = await fetchConnectivity(config.apiUrl);
     if (evidence.account.state !== "authenticated") {
+      funnelStep("wifi_page");
       saveReturnPath(destination.pathname + destination.search + destination.hash);
       // A plain visit gets the landing's choices (canvas: PhoneHotspot); a
       // requested destination keeps today's direct sign-in.

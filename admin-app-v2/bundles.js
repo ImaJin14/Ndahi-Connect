@@ -10,11 +10,13 @@ const L = (key, values) => format(key, values || {}, currentLanguage());
 const number = (value) => Number(value).toLocaleString(currentLanguage() === "fr" ? "fr" : "en-GB", { maximumFractionDigits: 1 });
 
 // "5 GB · 7 days · 3 devices", "Unlimited · 30 days · 1 device".
-export function bundleDetail(b) {
+// The edit preview (AdminBundleEdit) reads "Unlimited · fair use"; the cards keep "Unlimited".
+export function bundleDetail(b, { fairUse = false } = {}) {
   const hours = Number(b.validityHours) || 0, devices = Number(b.deviceLimit) || 0;
-  const data = b.quotaGb == null || b.quotaGb === "" ? L("adminBundleUnlimited") : `${number(b.quotaGb)} GB`;
+  const data = b.quotaGb == null || b.quotaGb === "" ? L(fairUse ? "adminBundleUnlimitedFairUse" : "adminBundleUnlimited") : `${number(b.quotaGb)} GB`;
   const time = hours % 24 === 0 && hours >= 24 ? (hours === 24 ? L("adminOneDay") : L("adminDays", { count: hours / 24 })) : hours === 1 ? L("adminOneHour") : L("adminHours", { count: hours });
-  return [data, time, devices === 1 ? L("adminOneDevice") : L("adminDevices", { count: devices })].join(" · ");
+  const speed = Number(b.downloadMbps) > 0 ? L("adminUpToMbps", { speed: number(b.downloadMbps) }) : "";
+  return [data, time, devices === 1 ? L("adminOneDevice") : L("adminDevices", { count: devices }), speed].filter(Boolean).join(" · ");
 }
 
 export function bundleCards(bundles, usage = {}) {
@@ -43,6 +45,8 @@ export function showBundleEdit(bundle, { setHead }) {
   fields.deviceLimit.value = bundle.deviceLimit;
   fields.unlimited.checked = bundle.quotaGb == null;
   fields.quotaGb.value = bundle.quotaGb == null ? "" : bundle.quotaGb;
+  fields.downloadMbps.value = bundle.downloadMbps ?? "";
+  fields.uploadMbps.value = bundle.uploadMbps ?? "";
   const message = document.getElementById("bundleEditMessage");
   if (message && message.dataset.forBundle !== bundle.id) message.textContent = "";
   const sync = () => {
@@ -52,7 +56,7 @@ export function showBundleEdit(bundle, { setHead }) {
     if (unlimited) fields.quotaGb.value = "";
     const preview = document.getElementById("bundlePreview");
     preview.querySelector("[data-preview-name]").textContent = fields.name.value || bundle.name;
-    preview.querySelector("[data-preview-detail]").textContent = bundleDetail({ quotaGb: unlimited ? null : fields.quotaGb.value || 0, validityHours: fields.validityHours.value, deviceLimit: fields.deviceLimit.value });
+    preview.querySelector("[data-preview-detail]").textContent = bundleDetail({ quotaGb: unlimited ? null : fields.quotaGb.value || 0, validityHours: fields.validityHours.value, deviceLimit: fields.deviceLimit.value, downloadMbps: fields.downloadMbps.value }, { fairUse: true });
     preview.querySelector("[data-preview-price]").textContent = fcfa(fields.price.value);
   };
   form.oninput = sync;

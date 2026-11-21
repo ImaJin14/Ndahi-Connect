@@ -11,7 +11,9 @@ test("normalized PostgreSQL schema covers every state collection", async () => {
   for (const table of tables) {
     assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS ${table} \\(`));
   }
-  assert.equal(normalizedCollections.length, 40);
+  assert.equal(normalizedCollections.length, 41);
+  // Insights aggregates (#262).
+  assert.deepEqual(normalizedCollections.find((c) => c.stateKey === "insightCounters"), { stateKey: "insightCounters", table: "events", kind: "insight_counter" });
   // Staff messages to customers (#257).
   assert.deepEqual(normalizedCollections.find((c) => c.stateKey === "customerMessages"),
     { stateKey: "customerMessages", table: "events", kind: "customer_message" });

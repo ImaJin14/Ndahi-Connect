@@ -237,7 +237,7 @@ try {
     assert.equal(await edit.getByLabel("Unlimited data").isChecked(), true);
     assert.equal(await page.locator("#bundleQuotaField").isVisible(), false);
     await edit.getByLabel("Unlimited data").uncheck();
-    await edit.getByLabel("Data allowance (GB)", { exact: true }).fill("2");
+    await edit.getByLabel("Data (GB)", { exact: true }).fill("2");
     await edit.getByLabel("Device limit", { exact: true }).fill("3");
     assert.equal(await preview.locator("[data-preview-detail]").textContent(), "2 GB · 2 days · 3 devices");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
@@ -324,7 +324,8 @@ try {
     await page.getByRole("heading", { name: "Audit log.", exact: true }).waitFor();
     const rows = page.locator("#auditRecords tbody tr");
     await rows.filter({ hasText: "Revoked a voucher" }).waitFor();
-    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /fixture-owner[\s\S]*Revoked a voucher[\s\S]*v1/);
+    // Who reads as designed: the role, not the account name (#232).
+    assert.match(await rows.filter({ hasText: "Revoked a voucher" }).innerText(), /Owner[\s\S]*Revoked a voucher[\s\S]*v1/);
     await page.getByRole("button", { name: "Money", exact: true }).click();
     await page.waitForFunction(() => [...document.querySelectorAll("#auditRecords tbody tr")].every((row) => !row.textContent.includes("Revoked a voucher")));
     await rows.filter({ hasText: "Approved a full refund" }).waitFor();
@@ -482,14 +483,23 @@ try {
     assert.equal((await store.snapshot()).vouchers[0].wifiDevices[0].sessionId, "*B");
   });
   for (const role of ["operator", "auditor", "reseller"]) await scenario(`navigation preserves ${role} access and hides owner setup`, async (page) => {
+    // v2 on a phone: a reseller's Home is the reseller screen (#261, canvas:
+    // ResellerHome), which has no admin menu; Print my codes opens the shell.
+    const resellerHome = uiV2 && role === "reseller";
+    const atHome = () => resellerHome ? page.locator("#resellerHome .reseller-home__title").waitFor() : page.locator('[data-admin-nav="home"][aria-current]').waitFor();
     await page.goto(`${admin}/dashboard#network-setup`);
-    await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    await atHome();
     assert.equal(await page.locator('[data-admin-nav="store"]').count(), role === "operator" ? 1 : 0);
     await page.goto(`${admin}/dashboard#store`);
-    await page.locator(`[data-admin-nav="${role === "operator" ? "store" : "home"}"][aria-current]`).waitFor();
+    if (role === "operator") await page.locator('[data-admin-nav="store"][aria-current]').waitFor();
+    else await atHome();
     if (uiV2 && role === "auditor") {
       await page.goto(`${admin}/dashboard#voucher-print`);
       await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
+    }
+    if (resellerHome) {
+      await page.locator("#resellerHome").getByRole("link", { name: "Print my codes", exact: true }).click();
+      await page.locator(".nd-admin-shell").waitFor();
     }
     assert.equal(await adminMoreCount(page, "Network setup"), 0);
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
