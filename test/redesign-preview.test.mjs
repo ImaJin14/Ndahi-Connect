@@ -97,7 +97,7 @@ test("hook names are matched literally, backslashes and pattern characters inclu
 test("the guest store selectors match the full-page store (product page, checkout dialog, order page)", async () => {
   const source = (await read("store-app/index.html")) + (await read("store-app/app.js"));
   const store = SCREENS.filter((s) => s.app === "store");
-  assert.deepEqual(store.map((s) => s.id), ["guest-shop", "guest-product", "guest-checkout", "guest-order"]);
+  assert.deepEqual(store.map((s) => s.id), ["guest-shop", "guest-product", "guest-checkout", "guest-order", "promo-store"]);
   for (const screen of store) {
     for (const selector of [...expectations(screen), ...rejections(screen), ...[].concat(screen.open || []).filter((s) => typeof s === "string")]) {
       for (const hook of hooks(selector)) assert.ok(rendered(source, hook), `${screen.id}: ${hook.kind} "${hook.name}" (from ${selector}) is rendered by store-app`);

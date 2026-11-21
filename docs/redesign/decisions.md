@@ -94,27 +94,36 @@ Front-end phases stay front-end. These are separate, small server tasks, each it
 - `[FEE]` and `[TOTAL]` come from the server for the chosen network, never computed or hard-coded in the front end.
 - Open: whether the fee is shown to the customer (current setup, `fees: false` in `lib/payments.mjs`), or absorbed by NDAHI so the customer pays exactly the price.
 
-## Store promotions (19 Nov)
+## Store promotions (19 Nov, rules updated 20 Nov)
 
-Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout → order, as an account holder or a guest), `AdminPromotions` (set up, and the view while it runs). `AdminSide` gains Promotions under Sales. First use: **Black Friday, 27–30 Nov: TP-Link AX1500 for 100,000 FCFA plus 1 month of Unlimited ([PLAN 4]) free.**
+Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout → order, as an account holder or a guest), `AdminPromotions` (set up, and the view while it runs). `AdminSide` gains Promotions under Sales.
+
+**Black Friday, 27–30 Nov (owner, 20 Nov):** any AX1500 router for **100,000 FCFA**, with **45 days of Unlimited Home** free. These rules replace the 19 Nov draft, which offered one month starting when the customer pressed Start.
 
 - **A promotion holds:**
-  - one product and its sale price;
-  - a start and end date and time;
-  - a cap on units at that price;
+  - its products, chosen one by one, so every AX1500 model can be included; products are never matched by name;
+  - a sale price;
+  - a start and an end;
   - a limit per phone number;
   - terms in English and French;
-  - optionally, a free bundle.
-- **The server decides the price.** The sale price applies only between start and end and while units remain under the cap. It applies on the public store, in the portal Shop tab, and on the Wi-Fi page banner. The fee and total quote (#297) uses the sale price.
-- **Crossed-out price:** the regular price is shown crossed out only if the owner ticks "show regular price" and the product really sold at that price in the last 30 days. The server checks this; the UI never invents a "was" price.
-- **When the free bundle is given:** **at collection** by default, with an option to give it when payment is confirmed.
-  - **Signed-in buyer:** it's added to their account, saved, not started.
-  - **Guest:** it's reserved for the Mobile Money number that paid, using the #254 reservations, and the code is printed on a slip at collection.
-  - It starts when the customer presses Start, within the start window (default 60 days). That works even while another bundle is active, so the no-buying-while-active rule is unaffected.
-  - It's recorded as a gift, not revenue, and linked to the order.
-- **Refunds:** a refund before the free bundle is given means it's never given. After it's given, an unstarted free bundle is cancelled. A started one stays and is noted on the refund.
-- **Ending:** the sale ends at the end time, when the cap is reached, or with "End early". Orders already reserved keep their price.
-- **Audited:** creating, scheduling, ending early, and every free bundle given or cancelled.
+  - optionally, a free bundle and how long it lasts.
+- **The server decides the price.**
+  - The sale price applies only between the start and the end, and while stock lasts.
+  - It applies on the public store and in the portal Shop tab.
+  - The fee and total quote (#297) uses it.
+  - A misconfigured offer blocks its products rather than selling them at the regular price.
+- **One per phone number:** the paying number, the contact number and a signed-in account count as the same buyer. Stock is the overall cap.
+- **Crossed-out price:** the regular price is never shown crossed out until the store has really sold at it.
+- **The free bundle's days start when the payment is confirmed.**
+  - **An account** (the signed-in buyer, else the account of the paying number) gets it running at once. A bundle already running is **paused**, and resumes with the time it had left when the free one ends.
+  - **A guest** gets it reserved for the paying number (#254). The code is on the order page and the collection slip. Claiming starts it, and the days count from payment either way.
+  - It is a gift linked to the order, never revenue.
+- **Refunds:** a refund ends the free bundle and resumes any bundle paused for it.
+- **Ending:** the sale ends at the end time, when stock runs out, or with "End early". Orders already placed keep their price and free bundle.
+- **Countdown:** the public store and the portal (Home banner and Shop) count down to the start, then to the end, on the server's clock (owner, 21 Nov).
+- **Audited:** creating, editing and ending a promotion, and every free bundle given, paused, resumed, claimed or ended.
+
+Built in #316 (server), #317 (Admin → Promotions) and #318 (store and portal). Operations: `docs/operations/black-friday-offer.md`.
 
 ## Scan to connect
 

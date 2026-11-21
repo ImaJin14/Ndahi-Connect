@@ -1,5 +1,7 @@
 # Prompt — store promotions with a free bundle (Black Friday)
 
+> **Replaced.** The owner's rules of 20 Nov (45 days of Unlimited Home starting at payment, a running bundle paused, one per number, any AX1500) replaced this draft, and the feature is built in #316, #317 and #318. See the "Store promotions" section of `docs/redesign/decisions.md`. This prompt is kept as a record.
+
 Paste into Claude Code from the repo root after the designs PR is merged. It builds the feature described in the "Store promotions" section of `docs/redesign/decisions.md`.
 
 ---

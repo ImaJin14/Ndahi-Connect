@@ -178,6 +178,11 @@ export const SCREENS = [
     // A guest's paid order, opened from its private tracking link.
     ["guest-order", "Guest order", "PhoneGuestOrder", null, "/#order/{guestOrderId}/{guestOrderToken}", "Redesigned",
       { hash: "^#order/[^/]+/[^/]+$", expect: ["body[data-view=\"order\"] .order-page", ".code-card__code", "#privateLink"] }],
+    // Store promotions (#302): the preview seeds no promotion, so these show the
+    // shop; test/redesign-browser/black-friday-shop.test.mjs captures the offer.
+    ["promo-store", "Black Friday offer", "PhonePromoBuy", "StorePromo", "/", "Redesigned (#302)", { hash: "^(#shop)?$",
+      blocked: "The preview seeds no promotion, so this shows the shop; test/redesign-browser/black-friday-shop.test.mjs captures the countdown, the offer card, product, checkout and the guest order at 390 and 1280 px",
+      expect: ["body[data-view=\"shop\"] .products [data-product]"] }],
   ].map(([id, title, phone, desktop, path, status, options]) => ({ id, app: "store", title, status, phone, ...(desktop ? { desktop } : {}), path, signedOut: true, ...(options || {}) })),
   // Admin artboards are desktop (1280px) only.
   ...[
@@ -209,6 +214,7 @@ export const SCREENS = [
     ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#outages", "Redesigned (#259; the live and fixed stages are in test/redesign-browser/outages.test.mjs)", { panel: "outages", menu: "outages", design: "stage=detected",
       state: "no outage: the form to post a notice (the \"detected automatically\" hint needs an open router incident, which the preview has none of)", expect: ["#outagePost"] }],
+    ["admin-promotions", "Promotions", "AdminPromotions", "/dashboard#promotions", "Redesigned (#302; a running offer is in test/redesign-browser/promotions.test.mjs)", { panel: "promotions", menu: "promotions" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
   ].map(([id, title, desktop, path, status, options]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(options || {}) })),
