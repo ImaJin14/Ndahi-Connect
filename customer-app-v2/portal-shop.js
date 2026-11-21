@@ -7,6 +7,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { runButton } from "/shared/pending.js";
+import * as promo from "./promo.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 // Places are written by staff and may end in a full stop; sentences add their own.
@@ -28,9 +29,12 @@ const statusWord = (o) => { const word = L(`portalOrder_${o.status}`); return wo
 let catalogue, account, category = "all", checkout = null, panel, call, api;
 
 function load(force = false) {
-  if (!catalogue || force) catalogue = fetch(api + "/api/store/catalogue", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  if (!catalogue || force) catalogue = fetch(api + "/api/store/catalogue", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null))
+    .then((data) => { if (data) promo.setServerTime(data.serverTime); return data; }).catch(() => null);
   return catalogue;
 }
+// A store promotion (#302) starting or ending: read the catalogue again.
+const refresh = () => { load(true); render(); if (homeHost) void showHomePromo(homeHost); };
 // Store POSTs that need the response body (checkout says whether an order was created).
 async function post(path, input) {
   const csrf = (await context()).csrfToken;
@@ -51,25 +55,29 @@ function list(data) {
   const products = (data.products || []).filter((p) => category === "all" || p.categoryId === category);
   const closed = data.settings && data.settings.open === false;
   const place$ = place(data.settings && data.settings.pickup);
-  return `<div class="portal-shop__head"><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
+  return `${promo.banner(data, "shopPromoTitle")}<div class="portal-shop__head"><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
   <ul class="portal-shop__trust nd-wide-only"><li>${h(L("shopTrustPay"))}</li>${place$ ? `<li>${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${h(L("shopTrustSigned"))}</li></ul>
   ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", L("shopAll")], ...cats.map((c) => [c.id, text(c.name)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${h(label)}</button>`).join("")}</div>` : ""}
   ${closed ? `<p class="portal-shop__note" role="status">${h(L("shopClosed"))}</p>` : ""}
-  <div class="portal-shop__list">${products.length ? products.map((p) => `<a class="portal-shop__item" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body"><span class="nd-meta">${h(category$(data, p))}</span><strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span><span class="nd-meta${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
+  <div class="portal-shop__list">${products.length ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta${p.available > 0 ? "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : stock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
   ${place$ ? `<p class="portal-shop__note portal-shop__pickup nd-narrow-only">${h(L("shopPickupNote", { place: place$ }))}</p>` : ""}
   <div class="portal-shop__friends nd-wide-only"><p><strong>${h(L("shopFriendsTitle"))}</strong> ${h(L("shopFriendsBody"))}</p><a class="nd-btn nd-btn--sm" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">${h(L("shopFriendsLink"))}</a></div>`;
 }
 
 function productView(data, p) {
-  const max = Math.max(1, Math.min(20, p.available || 1)), closed = data.settings && data.settings.open === false;
+  // An offer limits how many one phone number may buy (#302).
+  const max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)), closed = data.settings && data.settings.open === false, x = promo.productExtras(p);
   const facts = [[L("shopSpecifications"), text(p.specifications)], [L("shopContents"), text(p.contents)], [L("shopCompatibility"), text(p.compatibility)], [L("shopSetup"), text(p.setup)], [L("shopWarranty"), text(p.warranty) || text(data.settings && data.settings.warranty)], [L("shopReturns"), text(data.settings && data.settings.returns)]].filter(([, v]) => v);
   return `${bar("/dashboard#shop", L("shopBack"), L("uiTabShop"))}
-  <div class="portal-shop__product">${photo(p, "portal-shop__photo")}
+  <div class="portal-shop__product">${x ? x.top : ""}${photo(p, "portal-shop__photo")}
     <p class="nd-meta">${h(category$(data, p))}</p><h1 class="portal-shop__name">${h(text(p.name))}</h1>
-    <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}">${h(stock(p))}</span></p>
+    <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : stock(p))}</span></p>
+    ${x ? x.bonus : ""}
     ${text(p.description) ? `<p class="portal-shop__desc">${h(text(p.description))}</p>` : ""}
+    ${x ? x.terms : ""}
     ${facts.length ? `<details class="portal-rule"><summary><span>${h(L("shopDetailsAll"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary>${facts.map(([k, v]) => `<p><strong>${h(k)}:</strong> ${h(v)}</p>`).join("")}</details>` : ""}
-  <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}">+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>
+  <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}"${max <= 1 ? " disabled" : ""}>+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(x ? x.button : L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>
+  ${x && p.available > 0 && !closed ? `<p class="nd-meta portal-promo__limit">${h(x.limit)}</p>` : ""}
   </div>`;
 }
 
@@ -82,6 +90,7 @@ function costView(p, quantity, network) {
   const q = shopQuote(p, network, quantity), price = q ? q.price : p.price * quantity;
   return `<div class="portal-shop__cost" id="shopCost">
     <div class="portal-shop__cost-row"><span>${h(L("shopItem"))}</span><span>${h(money(price))}</span></div>
+    ${promo.checkoutExtras(p).line}
     <div class="portal-shop__cost-row"><span>${h(L("shopFee", { method: METHOD_NAMES[network] }))}</span><span>${h(q ? money(q.fee) : L("shopFeeInPrompt"))}</span></div>
     ${q ? `<div class="portal-shop__total"><span>${h(L("shopTotalToApprove"))}</span><strong>${h(money(q.total))}</strong></div>` : ""}
     <p class="portal-shop__balance">${h(q ? L("shopBalanceNote", { amount: money(q.total) }) : L("shopBalanceNoteNoFee", { amount: money(price) }))}</p>
@@ -99,6 +108,7 @@ function checkoutView(data, p, quantity, who) {
     <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${[["mtn", "MTN Mobile Money"], ["orange", "Orange Money"]].map(([value, label], i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
       <label class="portal-shop__field">${h(L("shopPayNumber"))}<input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required></label></fieldset>
     ${costView(p, quantity, "mtn")}
+    ${promo.checkoutExtras(p).note}
     <button type="submit" class="nd-btn nd-btn--block">${h(payLabel(p, quantity, "mtn"))}</button>
     <p class="nd-meta portal-shop__fine">${h(L("shopApproveNote"))}</p>
     <div id="shopCheckoutMessage" role="alert"></div>
@@ -116,6 +126,7 @@ function orderView(o) {
     ? L("shopApproveBody", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.total), fee: money(o.fee) })
     : L("shopApproveBodyNoFee", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.amount) }))}</p></section>` : ""}
   ${o.collectionCode ? `<section class="portal-shop__code" aria-labelledby="shopCodeTitle"><h3 id="shopCodeTitle">${h(L("shopCollectionCode"))}</h3><p class="portal-shop__code-value">${h(o.collectionCode)}</p>${pickup ? `<p>${h(L("shopShowCode", { place: pickup }))}</p>` : ""}</section>` : ""}
+  ${promo.orderExtras(o)}
   ${o.paymentStatus === "paid" ? `<ol class="portal-shop__steps" aria-label="${h(L("shopProgress"))}">${STEPS.map((step, i) => `<li class="${i < at ? "is-done" : i === at ? "is-current" : ""}"${i === at ? ' aria-current="step"' : ""}><span class="portal-shop__dot" aria-hidden="true">${i < at ? icon(CHECK, 14) : ""}</span><strong>${h(L(`shopStep_${step}`))}</strong></li>`).join("")}</ol>` : ""}
   <div class="portal-shop__actions">${waiting || o.paymentStatus !== "paid" ? `<button type="button" class="nd-btn nd-btn--block" data-shop-verify>${h(L("shopCheckStatus"))}</button>` : ""}${o.receiptAvailable ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-receipt>${h(L("shopReceipt"))}</button>` : ""}<a class="portal-shop__help" href="/help#support">${h(L("shopHelp"))}</a></div>
   <div id="shopOrderMessage" role="status" aria-live="polite"></div>`;
@@ -134,12 +145,12 @@ async function render() {
     const data = await load();
     if (!data) return; // the static fallback (link to the public store) stays
     const product = (data.products || []).find((p) => p.id === id);
-    if (route === "product" && product) { panel.innerHTML = productView(data, product); wireProduct(product); }
+    if (route === "product" && product) { panel.innerHTML = productView(data, product); wireProduct(product); promo.tick(panel, refresh); }
     else if (route === "checkout" && product && product.available > 0) {
-      const quantity = Math.max(1, Math.min(Number(extra) || 1, product.available, 20)), who = (await context()).customer || {};
+      const quantity = Math.max(1, Math.min(Number(extra) || 1, product.available, product.promotion ? product.promotion.perNumberLimit : 20)), who = (await context()).customer || {};
       if (!checkout || checkout.productId !== product.id || checkout.quantity !== quantity) checkout = { productId: product.id, quantity, key: crypto.randomUUID() };
       panel.innerHTML = checkoutView(data, product, quantity, who); wireCheckout(product, quantity, who);
-    } else { panel.innerHTML = list(data); wireList(); }
+    } else { panel.innerHTML = list(data); wireList(); promo.tick(panel, refresh); }
   } catch (error) {
     panel.innerHTML = `${bar("/dashboard#shop", L("shopBack"), L("uiTabShop"))}<p class="error" role="alert">${h(error.message)}</p>`;
   }
@@ -202,6 +213,17 @@ function wireOrder(o) {
       setTimeout(() => URL.revokeObjectURL(url), 30000);
     } catch (error) { message.textContent = error.message; }
   });
+}
+
+// The Home banner (#302): the offer and its countdown, from the same catalogue.
+let homeHost;
+export async function showHomePromo(host) {
+  homeHost = host;
+  if (!host || !api) return;
+  const data = await load();
+  host.innerHTML = data ? promo.banner(data, "homePromoTitle") : "";
+  host.hidden = !host.innerHTML;
+  promo.tick(host, refresh);
 }
 
 export function mountShop(options) {
