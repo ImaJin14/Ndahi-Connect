@@ -98,7 +98,7 @@ Front-end phases stay front-end. These are separate, small server tasks, each it
 
 Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout → order, as an account holder or a guest), `AdminPromotions` (set up, and the view while it runs). `AdminSide` gains Promotions under Sales.
 
-**Black Friday, 27–30 Nov (owner, 20 Nov):** any AX1500 router for **100,000 FCFA**, with **45 days of Unlimited Home** free. These rules replace the 19 Nov draft, which offered one month starting when the customer pressed Start.
+**Black Friday, 27–30 Nov (owner, 20 Nov; free bundle length changed 23 Nov):** any AX1500 router for **100,000 FCFA**, with **one month of Unlimited** free. The owner kept "a month of Unlimited" on 23 Nov, replacing the 45 days set on 20 Nov; the promotion's free-bundle length is set to one month (30 days) in Admin → Promotions. These rules replace the 19 Nov draft, which offered one month starting when the customer pressed Start.
 
 - **A promotion holds:**
   - its products, chosen one by one, so every AX1500 model can be included; products are never matched by name;
@@ -170,3 +170,14 @@ Spec: `specs/unlimited-catalog-and-device-locking.md` (owner, verbatim). Designs
 - **Personal bundles "restrict sharing"** (TTL=1 on forwarded replies). Never promise sharing is impossible.
 - **Home WISP sharing** applies only to an authenticated session matching an active subscription and its registered upstream MAC — never to a MAC or vendor prefix alone — and is withheld if entitlement can't be verified. Customer wording: "up to 60 household devices on supported routers".
 - **Speed limits stay optional** on the bundle editor, collapsed, using the existing `lib/bundle-speed-policy.mjs` rules.
+
+## Custom bundles given by an admin (23 Nov)
+
+Design: `AdminVouchers` → For one customer → Bundle → **Custom bundle** (renders `AdminVouchers--custom-*.png`).
+
+- In "For one customer", the admin chooses **From the catalogue** or **Custom bundle**. Custom works for an existing account and for a number with no account (reserved for the number, claimed with number + code, as above).
+- A custom bundle sets: access type (Personal Unlimited or Home WISP Unlimited), validity (1 hour to 365 days), device slots (1, 2, 4, 6 or 1–10; Home WISP is one router with sharing on). Data is always unlimited.
+- **A reason is required** and kept in the audit log.
+- **Always a gift:** no revenue, no price, not added to the catalogue, never shown for sale and can't be bought again. The customer sees "Gift from NDAHI · [terms]".
+- The terms are snapshotted when it's given, exactly like a catalogue voucher: time starts at first connection, slots bind to RouterOS-observed MACs, Home WISP needs router registration. Replacing an active bundle needs the same confirmation as any voucher.
+- Same permission as giving any voucher (owners and operators), enforced by the server, which validates every field.
