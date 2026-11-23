@@ -22,18 +22,18 @@
     },
     "AdminBundleEdit.dc.html": {
       "expand": "fill",
-      "h": 1020,
+      "h": 1460,
       "is_interactive": true,
-      "title": "Edit bundle",
+      "title": "Add / edit bundle (access type \u00b7 price \u00b7 validity \u00b7 device slots)",
       "w": 1280,
       "x": 6800,
       "y": 7796
     },
     "AdminBundles.dc.html": {
       "expand": "fill",
-      "h": 1020,
+      "h": 1560,
       "is_interactive": true,
-      "title": "Bundles",
+      "title": "Bundle catalogue (Personal Unlimited grid \u00b7 Home WISP \u00b7 order, publish, archive)",
       "w": 1280,
       "x": 4080,
       "y": 7796
@@ -85,9 +85,9 @@
     },
     "AdminHomeRouters.dc.html": {
       "expand": "fill",
-      "h": 1020,
+      "h": 1100,
       "is_interactive": true,
-      "title": "Home router connections",
+      "title": "Home WISP routers (sharing exceptions \u00b7 reconcile \u00b7 revoke)",
       "w": 1280,
       "x": 0,
       "y": 10076
@@ -252,7 +252,7 @@
     "PhoneBuyBundle.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "4 \u00b7 Buy a bundle (plan \u2192 pay \u2192 active)",
+      "title": "4 \u00b7 Buy a bundle (Personal or Home WISP \u2192 pay \u2192 active)",
       "w": 390,
       "x": 1410,
       "y": 1600
@@ -276,7 +276,7 @@
     "PhoneDevices.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Devices",
+      "title": "Device slots (tied to Wi-Fi address \u00b7 replace \u00b7 remove)",
       "w": 390,
       "x": 940,
       "y": 2864
@@ -348,7 +348,7 @@
     "PhoneHomeRouter.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "NDAHI Home router",
+      "title": "Home WISP router (register \u00b7 sharing \u00b7 withheld)",
       "w": 390,
       "x": 6110,
       "y": 2864
@@ -551,7 +551,7 @@
     "PhoneRenew.dc.html": {
       "h": 844,
       "is_interactive": true,
-      "title": "Renewal moments (80% used \u00b7 ends tomorrow \u00b7 ended \u2192 buy again)",
+      "title": "Renewal moments (ends tomorrow \u00b7 ended \u2192 buy again)",
       "w": 390,
       "x": 470,
       "y": 13200
@@ -647,6 +647,47 @@
       "w": 1280,
       "x": 1830,
       "y": 16400
+    },
+    "PhoneStarterKit.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Home starter kit (setup option \u00b7 pay in full or in 3)",
+      "w": 390,
+      "x": 0,
+      "y": 18600
+    },
+    "PhoneInstallBooking.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Book an installation (day + slot \u2192 where \u2192 booked)",
+      "w": 390,
+      "x": 470,
+      "y": 18600
+    },
+    "PhoneInstalments.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Pay in 3 (choose \u2192 paying \u2192 fully paid)",
+      "w": 390,
+      "x": 940,
+      "y": 18600
+    },
+    "AdminStoreServices.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "is_interactive": true,
+      "title": "Kits, installations and payment plans (admin)",
+      "w": 1280,
+      "x": 1410,
+      "y": 18600
+    },
+    "PhoneReplaceDevice.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Replace a device (choose \u2192 old one off first \u2192 this one on)",
+      "w": 390,
+      "x": 5170,
+      "y": 4128
     }
   },
   "createdOnFiles": {
@@ -673,7 +714,10 @@
     "claim",
     "flow",
     "row11",
-    "promo"
+    "promo",
+    "row12",
+    "svc",
+    "catalog"
   ],
   "notes": {
     "guest": {
@@ -803,6 +847,30 @@
       "w": 380,
       "x": 3190,
       "y": 16400
+    },
+    "row12": {
+      "kind": "title1",
+      "maxW": 3200,
+      "text": "Store \u2014 starter kits, installation booking, pay in instalments",
+      "w": 240,
+      "x": 0,
+      "y": 18300
+    },
+    "svc": {
+      "fill": "yellow",
+      "size": 24,
+      "text": "Rules in this design (to confirm):\n\n\u2022 Home kit = router set up for the buyer's account + first bundle, one price. Needs an account.\n\u2022 Installation: pick day + morning/afternoon slot, landmark directions, area travel fee. Free to move/cancel up to 24 h before; weak signal \u2192 no install, fee refunded.\n\u2022 Pay in 3: 40% today, rest within 30 days, no interest; each payment has its own MoMo fee. 7 days late \u2192 cancelled, refund minus MoMo fees, stock released. Items from 50,000 FCFA.",
+      "w": 400,
+      "x": 2770,
+      "y": 18600
+    },
+    "catalog": {
+      "fill": "blue",
+      "size": 24,
+      "text": "Unlimited catalogue (23 Nov):\n\n\u2022 Personal Unlimited: 5 h / 24 h / 7 d / 30 d \u00d7 1, 2, 4, 6 device slots. Home WISP Unlimited: 30 days, 40,000 FCFA, one router.\n\u2022 All data unlimited; time starts at first connection.\n\u2022 Device slots are tied to the Wi-Fi address seen at sign-in. Full = new devices refused, even if one is offline. Replacing never restarts the bundle.\n\u2022 Personal bundles restrict sharing. Home WISP shares only through its registered router, while active.\n\u2022 Gig Standard retired: existing purchases keep their terms.",
+      "w": 420,
+      "x": 5640,
+      "y": 4128
     }
   },
   "order": [
@@ -828,6 +896,7 @@
     "PhoneHome.dc.html",
     "PhoneInternet.dc.html",
     "PhoneDevices.dc.html",
+    "PhoneReplaceDevice.dc.html",
     "PhoneActivity.dc.html",
     "PhoneReceipt.dc.html",
     "PhoneAccount.dc.html",
@@ -881,6 +950,10 @@
     "StorePromo.dc.html",
     "PhonePromoBuy.dc.html",
     "AdminPromotions.dc.html",
+    "PhoneStarterKit.dc.html",
+    "PhoneInstallBooking.dc.html",
+    "PhoneInstalments.dc.html",
+    "AdminStoreServices.dc.html",
     "TabBar.dc.html",
     "AdminSide.dc.html"
   ],

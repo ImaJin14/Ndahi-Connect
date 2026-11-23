@@ -100,7 +100,7 @@ class Component extends DCLogic {
       ['hasAccount', 'Mama Ngum · NDAHI customer', "It goes straight to her account and she gets a notification. No code to pass on."],
       ['activeBundle', 'Mama Ngum · bundle active until 18 Nov', "She can only use it once her current bundle ends. It's saved in her account until then."]
     ].map(([id, title, sub]) => ({ title, sub, pressed: s.who === id ? 'true' : 'false', style: s.who === id ? on : off, pick: () => this.setState({ who: id }) }));
-    const plans = [['p1', '[PLAN 1]', '1 GB · 1 day'], ['p2', '[PLAN 2]', '5 GB · 7 days'], ['p3', '[PLAN 3]', '15 GB · 30 days']]
+    const plans = [['p1', '[PLAN 1]', 'Unlimited · 24 h · 1 device'], ['p2', '[PLAN 2]', 'Unlimited · 7 days · 2 devices'], ['p3', '[PLAN 3]', 'Unlimited · 30 days · 4 devices']]
       .map(([id, name, detail]) => ({ name, detail, pressed: s.plan === id ? 'true' : 'false', style: s.plan === id ? on : off, pick: () => this.setState({ plan: id }) }));
     const done = {
       noAccount: ['Paid — now send it', "Send Mama Ngum the code on WhatsApp or show her the QR. She claims it with the code and her number 6•• •• 88 21, and the 7 days start when she chooses."],

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>NDAHI Home</title>
+<title>Home WISP router</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -13,63 +13,92 @@
 body{margin:0}
 a{color:#003b2b}a:hover{color:#062a20}
 .btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
 .back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
-.mode{box-sizing:border-box;width:100%;display:flex;gap:12px;align-items:center;min-height:72px;padding:12px 14px;border-radius:14px;font-family:inherit;color:#10241c;text-align:left;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:26px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.st{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.st li{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.45}
+.n{flex:0 0 26px;height:26px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-size:13px;font-weight:700}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.14);font-size:14px}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
   <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
     <a class="back" href="PhoneAccount.dc.html" aria-label="Back to account"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
-    <span style="font-weight: 700; font-size: 15px">NDAHI Home</span>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Home WISP router</span>
+    <span style="font-size: 12px; color: #5c6963; padding-right: 8px">Ends 22 Dec</span>
   </div>
-  <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
-    <sc-if value="{{linked}}" hint-placeholder-val="{{ true }}">
-      <section aria-label="Router status" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff">
-        <div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Home router linked</p><span style="padding: 3px 9px; border-radius: 999px; background: rgba(185,238,46,.18); color: #b9ee2e; font-size: 12px; font-weight: 700">Online</span></div>
-        <p style="margin: 8px 0 2px; font-size: 20px; font-weight: 700">[ROUTER NAME]</p>
-        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Linked 3 Nov · uses your [PLAN 3] bundle</p>
-      </section>
-      <fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
-        <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px; padding: 0">Who uses your bundle</legend>
-        <sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
-          <button type="button" class="mode" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="{{m.style}}">
-            <span style="flex: 1"><strong style="display: block; font-size: 15px">{{m.label}}</strong><span style="font-size: 13px; color: #5c6963">{{m.hint}}</span></span>
-          </button>
-        </sc-for>
-      </fieldset>
-      <sc-if value="{{changing}}" hint-placeholder-val="{{ false }}">
-        <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Access mode is changing. This takes about a minute — keep the router on.</p>
-      </sc-if>
-    </sc-if>
-    <sc-if value="{{unlinked}}" hint-placeholder-val="{{ false }}">
-      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px">Share your bundle with the whole home</h1>
-      <ol style="margin: 0; padding: 14px 14px 14px 34px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; font-size: 14px; line-height: 1.7; color: #3d4a44">
-        <li>Plug your router into the NDAHI receiver</li>
-        <li>Join the router's Wi-Fi on this phone</li>
-        <li>Tap Link and confirm on the router's page</li>
+
+  <sc-if value="{{isSetup}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">Register your home router</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">Your Home WISP Unlimited shares through one router. We recognise it by the address it uses to reach NDAHI Wi-Fi.</p>
+      <ol class="st">
+        <li><span class="n">1</span><span>Set your router to connect to <strong>NDAHI</strong> Wi-Fi (WISP or client mode). <a href="PhoneHelp.dc.html" style="font-weight: 700">How?</a></span></li>
+        <li><span class="n">2</span><span>Connect this phone to <strong>your router's</strong> Wi-Fi.</span></li>
+        <li><span class="n">3</span><span>Open <strong>portal.ndahiconnect.net</strong> and sign in. NDAHI Wi-Fi sees your router and we show it here.</span></li>
       </ol>
-    </sc-if>
-    <button type="button" class="btn" onClick="{{toggleLink}}" style="margin-top: auto">{{linkLabel}}</button>
-  </main>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px">Up to 60 household devices on supported routers. Your own router decides how many devices it lets on.</p>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{detect}}">I've done this — find my router</button></div>
+  </sc-if>
+
+  <sc-if value="{{isFound}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">Router found</h1>
+      <section aria-label="Detected router" style="padding: 16px; border-radius: 14px; background: #fffef9; border: 2px solid #003b2b; display: flex; flex-direction: column; gap: 6px">
+        <strong style="font-size: 16px">Router reaching NDAHI Wi-Fi</strong>
+        <span class="mono" style="font-size: 13px; color: #3d4a44">Upstream address ••:••:••:9C:31:E4</span>
+        <span style="font-size: 13px; color: #5c6963">Seen just now · AP-Market</span>
+      </section>
+      <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">Register this router to your Home WISP Unlimited? Only this router will be able to share your connection. Another router can't use it.</p>
+      <div><label for="hp" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">Confirm with your PIN</label><input id="hp" type="password" inputmode="numeric" value="2468" style="box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #b8c7bd; font: 18px 'DM Sans', sans-serif; letter-spacing: .3em"></div>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{register}}">Register this router</button><button type="button" class="btn2" onClick="{{toSetup}}">That's not my router</button></div>
+  </sc-if>
+
+  <sc-if value="{{isOn}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <section aria-label="Router status" style="{{statusCard}}">
+        <div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #b9ee2e">{{statusKicker}}</p><span style="{{statusPill}}">{{statusPillText}}</span></div>
+        <p style="margin: 8px 0 4px; font-size: 20px; font-weight: 700">{{statusTitle}}</p>
+        <div class="row"><span style="color: #c8d8d0">Router</span><span class="mono">••:9C:31:E4</span></div>
+        <div class="row"><span style="color: #c8d8d0">Household devices</span><span>Up to 60 on supported routers</span></div>
+        <div class="row" style="border-bottom: 0"><span style="color: #c8d8d0">Subscription</span><span>Ends Tue 22 Dec · 18:03</span></div>
+      </section>
+      <sc-if value="{{isWithheld}}" hint-placeholder-val="{{ false }}">
+        <p role="alert" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.5"><strong>Sharing is paused.</strong> We couldn't confirm your subscription with NDAHI Wi-Fi, so devices behind your router can't get online right now. We keep retrying automatically — last try 2 min ago. You don't need to pay again.</p>
+      </sc-if>
+      <sc-if value="{{replacing}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; line-height: 1.5">To use a new router: set it up the same way and sign in through it. We disconnect this router and stop its sharing first, then register the new one. Your subscription's end date doesn't change.</p>
+      </sc-if>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">Sharing works only through this router and only while your Home WISP Unlimited is active.</p>
+    </main>
+    <div class="foot">
+      <button type="button" class="btn2" onClick="{{toggleReplace}}">{{replaceLabel}}</button>
+      <a class="btn2" href="PhoneHelp.dc.html">Get help</a>
+    </div>
+  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["setup","found","sharing","withheld"],"default":"setup"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { linked: true, mode: 'home', changing: false }; }
+  constructor(props) { super(props); const st = props.state ?? 'setup'; this.state = { step: st, replacing: false }; }
   renderVals() {
     const s = this.state;
-    const modes = [
-      ['home', 'Whole home, through my router', 'Every device on your router shares the bundle'],
-      ['direct', 'Only devices I add', 'Phones and laptops join NDAHI Wi-Fi directly']
-    ].map(([id, label, hint]) => ({
-      label, hint, pressed: id === s.mode ? 'true' : 'false',
-      style: id === s.mode ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #fffef9;',
-      pick: () => this.setState({ mode: id, changing: id !== s.mode })
-    }));
+    const withheld = s.step === 'withheld';
+    const go = (step) => () => this.setState({ step });
     return {
-      linked: s.linked, unlinked: !s.linked, modes, changing: s.changing,
-      linkLabel: s.linked ? 'Unlink this router' : 'Link my router',
-      toggleLink: () => this.setState({ linked: !s.linked, changing: false })
+      isSetup: s.step === 'setup', isFound: s.step === 'found', isOn: s.step === 'sharing' || withheld, isWithheld: withheld,
+      detect: go('found'), register: go('sharing'), toSetup: go('setup'),
+      statusCard: 'padding: 16px; border-radius: 16px; color: #ffffff; ' + (withheld ? 'background: #4a3a1a;' : 'background: #003b2b;'),
+      statusKicker: 'Registered router', statusTitle: withheld ? 'Sharing paused' : 'Sharing with your household',
+      statusPill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (withheld ? 'background: #fff4e0; color: #6b3a00;' : 'background: rgba(185,238,46,.18); color: #b9ee2e;'),
+      statusPillText: withheld ? 'Checking' : 'Online',
+      replacing: s.replacing, replaceLabel: s.replacing ? 'Keep this router' : 'Replace this router',
+      toggleReplace: () => this.setState({ replacing: !s.replacing })
     };
   }
 }

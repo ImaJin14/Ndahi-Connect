@@ -156,3 +156,17 @@ Needed before the phase that uses them. Until then, keep the placeholder and pul
 - **Speed limit per bundle (#263):** one limit shared by all of a customer's devices on that bundle; two devices on a 10 Mbps bundle share 10 Mbps. Verified on the RB5009 before it counts as done.
 - **Reseller codes redeemed before "Cash received" (#261):** they count as sold, and the reseller owes their price. The screen therefore shows the code and QR first, then "Cash received", as designed.
 - **Reseller price and commission (#261):** the price and commission rate recorded when the code was issued apply, even if the bundle's price or the reseller's rate changes later.
+
+## Unlimited catalogue and device locking (23 Nov)
+
+Spec: `specs/unlimited-catalog-and-device-locking.md` (owner, verbatim). Designs: the screens below, rendered in `screens/png/`. This replaces data-capped bundles and the "speed limit per customer" note in the 13 Nov table.
+
+- **The catalogue lives in the database.** Admins create, edit, publish, unpublish, reorder and delete bundles. Each has a name, a whole-FCFA price, a validity in hours or days, a display order, a publication status and an access type.
+- **Two access types.** *Personal Unlimited*: a number of device slots (1, 2, 4, 6 or a custom value). *Home WISP Unlimited*: one registered WISP router, sharing on. Data is always unlimited.
+- **Starting catalogue** (FCFA): 5 hours 250 (1 device); 24 hours 500 / 900 / 1,700 / 2,500; 7 days 2,000 / 3,500 / 7,000 / 10,000; 30 days 6,000 / 10,000 / 20,000 / 30,000 (1 / 2 / 4 / 6 devices); Home WISP 30 days 40,000. Gig Standard is retired: archived, existing purchases honoured. Seed scripts never recreate a deleted bundle.
+- **Time starts at first activation** and is never restarted or extended by replacing a device or router.
+- **The server prices every checkout** and stores an immutable snapshot of the terms. Retries are idempotent. Unpublishing or deleting blocks new checkout at once. A bundle with orders is archived, never cascade-deleted. Ending one customer's access is an explicit "Revoke subscription".
+- **Device slots bind to the MAC RouterOS sees at authenticated HotSpot sign-in.** A stable per-network private MAC is fine. Never trust a MAC the client sends. Full slots refuse a new device even if a registered one is offline. Replacing a device revokes the old one, kills its session, clears its saved login, confirms revocation, then authorises the new one — serialised per slot and retryable.
+- **Personal bundles "restrict sharing"** (TTL=1 on forwarded replies). Never promise sharing is impossible.
+- **Home WISP sharing** applies only to an authenticated session matching an active subscription and its registered upstream MAC — never to a MAC or vendor prefix alone — and is withheld if entitlement can't be verified. Customer wording: "up to 60 household devices on supported routers".
+- **Speed limits stay optional** on the bundle editor, collapsed, using the existing `lib/bundle-speed-policy.mjs` rules.

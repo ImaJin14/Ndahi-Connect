@@ -84,7 +84,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                       <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
                     </div>
                     <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #e3f0ff; color: #1d4f86; font-size: 14px; line-height: 1.5">The voucher is <strong>reserved for this number</strong>. To claim it they need the number <em>and</em> the code, so give them the slip or read them the code. If they later pay with Mobile Money from this number, it's added to their account automatically.</p>
-                    <div><label class="lbl" for="vb2">Bundle</label><select class="in" id="vb2"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                    <div><label class="lbl" for="vb2">Bundle</label><select class="in" id="vb2"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select></div>
                     <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
                       <legend class="lbl">How it was paid</legend>
                       <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
@@ -103,7 +103,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                       <span style="flex: 1"><strong style="display: block">{{who}}</strong><span style="font-size: 13px; color: #5c6963">{{whoLine}}</span></span>
                       <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
                     </div>
-                    <div><label class="lbl" for="vb1">Bundle</label><select class="in" id="vb1"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+                    <div><label class="lbl" for="vb1">Bundle</label><select class="in" id="vb1"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select></div>
                     <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
                       <legend class="lbl">How it was paid</legend>
                       <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
@@ -112,7 +112,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                     </fieldset>
                     <sc-if value="{{hasActive}}" hint-placeholder-val="{{ false }}">
                       <div style="padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; display: flex; flex-direction: column; gap: 10px">
-                        <span><strong>Amina already has [PLAN 2] active</strong> (3.2 GB left, ends 12 Nov). This voucher replaces it straight away: the old bundle ends and its 2 devices are disconnected.</span>
+                        <span><strong>Amina already has [PLAN 2] active</strong> (ends 25 Nov). This voucher replaces it straight away: the old bundle ends and its 2 devices are disconnected.</span>
                         <label style="display: flex; gap: 10px; align-items: center; min-height: 40px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{confirmed}}" onChange="{{flipConfirm}}" style="width: 20px; height: 20px; accent-color: #6b3a00">Yes, replace her current bundle</label>
                       </div>
                     </sc-if>
@@ -128,7 +128,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
         <sc-if value="{{isBatch}}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-direction: column; gap: 14px">
             <p style="margin: 0; color: #5c6963; font-size: 14px">Unassigned codes to print and sell. Each one starts on whichever account redeems it.</p>
-            <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+            <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select></div>
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
               <div><label class="lbl" for="vq">How many</label><input class="in" id="vq" type="number" value="20"></div>
               <div><label class="lbl" for="vr">For reseller</label><select class="in" id="vr"><option>None</option><option selected="">[RESELLER]</option></select></div>
@@ -218,7 +218,7 @@ class Component extends DCLogic {
       doneFor: s.pick === 'unknown' ? '6•• •• 99 10 · no account yet' : p.who,
       doneStatus: s.pick === 'unknown' ? 'Waiting for claim' : 'In use',
       donePill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (s.pick === 'unknown' ? 'background: #f1e8fb; color: #5b2d86;' : 'background: #eaf6d5; color: #345000;'),
-      doneTag: (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · 5 GB · 7 days',
+      doneTag: (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · Unlimited · 7 days · 2 devices',
       doneType: s.kind === 'gift' ? 'Gift' : 'Sold',
       reset: set({ done: false, pick: null, confirmed: false, kind: 'sold' })
     };

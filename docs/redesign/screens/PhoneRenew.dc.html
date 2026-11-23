@@ -33,7 +33,7 @@ a{color:#003b2b}a:hover{color:#062a20}
   <main style="flex: 1; overflow: hidden; padding: 0 16px; margin-top: -54px; display: flex; flex-direction: column; gap: 14px">
     <section aria-label="Your bundle" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 18px; padding: 18px; box-shadow: 0 16px 40px rgba(4,42,31,.12); display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; justify-content: space-between; align-items: center">
-        <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">[PLAN 2]</p>
+        <p style="margin: 0; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Personal Unlimited · 7 days · 2 devices</p>
         <span style="{{pill}}">{{pillText}}</span>
       </div>
       <p style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -.02em">{{big}} <span style="font-size: 14px; font-weight: 500; color: #5c6963">{{bigSub}}</span></p>
@@ -42,7 +42,7 @@ a{color:#003b2b}a:hover{color:#062a20}
 
       <sc-if value="{{isEnded}}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; flex-direction: column; gap: 10px">
-          <a class="btn" href="PhoneBuyBundle.dc.html">Buy [PLAN 2] again<span style="font-size: 13px; font-weight: 600">[TOTAL] FCFA incl. fee · MTN MoMo 6•• •• 12 45</span></a>
+          <a class="btn" href="PhoneBuyBundle.dc.html">Buy the same bundle again<span style="font-size: 13px; font-weight: 600">[TOTAL] FCFA incl. fee · MTN MoMo 6•• •• 12 45</span></a>
           <a class="btn2" href="PhoneBuyBundle.dc.html">Choose a different plan</a>
         </div>
       </sc-if>
@@ -64,26 +64,22 @@ a{color:#003b2b}a:hover{color:#062a20}
   <dc-import name="TabBar" current="home" hint-size="390px,74px"></dc-import>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"moment":{"editor":"enum","options":["lowData","endsSoon","ended"],"default":"lowData"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"moment":{"editor":"enum","options":["endsSoon","ended"],"default":"endsSoon"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { push: true, remind: true }; }
   renderVals() {
-    const m = this.props.moment ?? 'lowData';
+    const m = this.props.moment ?? 'endsSoon';
     const s = this.state;
     const amber = 'background: #fff4e0; color: #6b3a00;', grey = 'background: #eef0ee; color: #3d4a44;';
     const v = {
-      lowData: { hello: 'Running low.', pushT: '80% of your data used', pushB: '1 GB left on [PLAN 2]. It ends when the data or the 7 days run out.',
-        pillText: '1 GB left', pill: amber, big: '1.0 GB', bigSub: 'of 5 GB left', w: 20, color: '#c47a00',
-        note: 'Ends 15 Nov, or sooner when the data runs out.',
-        tipTitle: 'Make it last', tip: 'Videos and app updates use the most data. Turn off auto-updates on mobile data, or set videos to 480p.' },
       endsSoon: { hello: 'Ends tomorrow.', pushT: '[PLAN 2] ends tomorrow at 18:03', pushB: "You'll be able to buy your next bundle in one tap once it ends.",
-        pillText: 'Ends tomorrow', pill: amber, big: '2.4 GB', bigSub: 'left · ends 18:03 tomorrow', w: 48, color: '#c47a00',
-        note: "Unused data doesn't carry over. Use it before 18:03 tomorrow.",
+        pillText: 'Ends tomorrow', pill: amber, big: '1 day 2 h', bigSub: 'left · ends 18:03 tomorrow', w: 88, color: '#c47a00',
+        note: 'Data is unlimited until then. Your next bundle can be bought the moment this one ends.',
         tipTitle: 'Next bundle', tip: "When it ends we'll show a one-tap button to buy [PLAN 2] again with the same Mobile Money number." },
       ended: { hello: 'Your bundle ended.', pushT: 'Your [PLAN 2] has ended', pushB: 'Tap to buy it again in one step.',
-        pillText: 'Ended', pill: grey, big: '0 GB', bigSub: 'ended today at 18:03', w: 0, color: '#b8c7bd',
+        pillText: 'Ended', pill: grey, big: 'Ended', bigSub: 'today at 18:03', w: 100, color: '#b8c7bd',
         note: "Buy again and you're back online straight away on this device.",
-        tipTitle: 'Buying for the family?', tip: 'A bundle covers up to 3 devices. Or buy one for someone else from the Internet tab.' }
+        tipTitle: 'Buying for the family?', tip: 'Personal Unlimited comes with 1, 2, 4 or 6 device slots. For a home router, choose Home WISP Unlimited.' }
     }[m];
     return {
       hello: v.hello, pushTitle: v.pushT, pushBody: v.pushB, showPush: s.push, hidePush: () => this.setState({ push: false }),

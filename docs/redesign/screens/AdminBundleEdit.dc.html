@@ -12,66 +12,180 @@
 <style>
 body{margin:0;background:#fbfaf5}
 a{color:#003b2b}a:hover{color:#062a20}
-.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:20px}
 .lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.hint{margin:6px 0 0;color:#5c6963;font-size:12px;line-height:1.4}
+.err{margin:6px 0 0;color:#a73535;font-size:12px;font-weight:700}
 .in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.in.bad{border:2px solid #a73535}
+.lock{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:9px;background:#eef3e9;font-size:14px;font-weight:600}
+.type{display:flex;gap:12px;align-items:flex-start;width:100%;box-sizing:border-box;padding:14px;border-radius:12px;font:14px 'DM Sans',sans-serif;color:#10241c;text-align:left;cursor:pointer}
+.seg{display:flex;gap:4px;padding:4px;border-radius:10px;background:#eef3e9}
+.chip{min-width:44px;min-height:36px;padding:0 10px;border-radius:999px;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #dfe5dc;font-size:13px}
 </style>
 </helmet>
-<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1460px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
-    <dc-import name="AdminSide" current="bundles" hint-size="240px,860px"></dc-import>
+    <dc-import name="AdminSide" current="bundles" hint-size="240px,900px"></dc-import>
   </aside>
-  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
-    <a href="AdminBundles.dc.html" style="font-size: 14px; font-weight: 700">← Bundles</a>
-    <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 34px">Edit [PLAN 2]</h1>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
+    <a href="AdminBundles.dc.html" style="font-size: 14px; font-weight: 700">← Bundle catalogue</a>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 32px">{{titleName}}</h1>
+      <span style="{{statusPill}}">{{statusText}}</span>
+    </div>
     <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
-      <section aria-label="Bundle settings" class="panel" style="flex: 999 1 420px; min-width: 0">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
-          <div><label class="lbl" for="bn">Name</label><input class="in" id="bn" value="[PLAN 2]"></div>
-          <div><label class="lbl" for="bp">Price (FCFA)</label><input class="in" id="bp" placeholder="[PRICE]"></div>
-          <div><label class="lbl" for="bv">Validity (hours)</label><input class="in" id="bv" type="number" value="168"></div>
-          <div><label class="lbl" for="bdl">Device limit</label><input class="in" id="bdl" type="number" value="3"></div>
-        </div>
-        <label style="display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{unlimited}}" onChange="{{flipUnl}}" style="width: 20px; height: 20px; accent-color: #003b2b">Unlimited data (fair use applies)</label>
-        <sc-if value="{{limited}}" hint-placeholder-val="{{ true }}">
-          <div style="max-width: 240px"><label class="lbl" for="bd">Data (GB)</label><input class="in" id="bd" type="number" value="5"></div>
-        </sc-if>
-        <fieldset style="margin: 0; padding: 14px; border: 1px solid #dfe5dc; border-radius: 12px; display: flex; flex-direction: column; gap: 10px">
-          <legend style="padding: 0 6px; font-size: 14px; font-weight: 700">Speed limit per customer</legend>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
-            <div><label class="lbl" for="sd">Download (Mbps)</label><input class="in" id="sd" type="number" value="{{down}}" onInput="{{setDown}}" placeholder="No limit"></div>
-            <div><label class="lbl" for="su">Upload (Mbps)</label><input class="in" id="su" type="number" value="3" placeholder="No limit"></div>
+      <div style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <section aria-labelledby="t1" class="panel">
+          <h2 id="t1" class="h2">Access type</h2>
+          <div role="radiogroup" aria-label="Access type" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px">
+            <sc-for list="{{types}}" as="t" hint-placeholder-count="2">
+              <button type="button" role="radio" aria-checked="{{t.sel}}" class="type" onClick="{{t.pick}}" style="{{t.style}}"><span style="{{t.dot}}"></span><span><strong style="display: block; font-size: 15px">{{t.label}}</strong><span style="font-size: 13px; color: #5c6963">{{t.hint}}</span></span></button>
+            </sc-for>
           </div>
-          <p style="margin: 0; color: #5c6963; font-size: 13px">Shared by all of a customer's devices. Applied on the MikroTik as a queue for this bundle. Leave blank for no limit.</p>
-        </fieldset>
-        <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px">Changes apply to new purchases only. Customers with this bundle keep what they paid for.</p>
-        <div style="display: flex; gap: 10px; align-items: center">
-          <button type="button" onClick="{{save}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save bundle</button>
-          <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><span role="status" style="color: #345000; font-weight: 700; font-size: 14px">Saved — logged in the audit trail</span></sc-if>
+          <p class="hint" style="margin: 0">Network rules follow the access type a customer paid for, not this setting later. Changing it only affects new purchases.</p>
+        </section>
+
+        <section aria-labelledby="t2" class="panel">
+          <h2 id="t2" class="h2">Terms</h2>
+          <div><label class="lbl" for="bn">Name customers see</label><input class="in" id="bn" value="{{nameValue}}"><p class="hint">Suggested from the terms: {{suggested}}</p></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
+            <div>
+              <label class="lbl" for="bp">Price (FCFA, whole number)</label>
+              <input class="{{priceClass}}" id="bp" inputmode="numeric" value="{{price}}" onInput="{{setPrice}}">
+              <sc-if value="{{priceBad}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert">Use a whole number of FCFA, 1 or more — no decimals.</p></sc-if>
+            </div>
+            <div>
+              <span class="lbl" id="vl">Validity</span>
+              <div style="display: flex; gap: 8px" role="group" aria-labelledby="vl">
+                <input class="in" aria-label="Validity amount" inputmode="numeric" value="{{validity}}" onInput="{{setValidity}}" style="flex: 1">
+                <div class="seg" role="radiogroup" aria-label="Unit">
+                  <sc-for list="{{units}}" as="u" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{u.sel}}" onClick="{{u.pick}}" style="{{u.style}}">{{u.label}}</button></sc-for>
+                </div>
+              </div>
+              <sc-if value="{{validityBad}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert">Between 1 hour and 365 days.</p></sc-if>
+              <p class="hint">Starts at the first successful connection and runs without pausing.</p>
+            </div>
+          </div>
+          <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
+            <div>
+              <span class="lbl" id="dl">Registered device slots</span>
+              <div role="group" aria-labelledby="dl" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+                <sc-for list="{{slots}}" as="c" hint-placeholder-count="4"><button type="button" class="chip" aria-pressed="{{c.pressed}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button></sc-for>
+                <span style="font-size: 13px; color: #5c6963">or</span>
+                <input class="in" aria-label="Other number of device slots" inputmode="numeric" value="{{slotsValue}}" onInput="{{setSlots}}" style="width: 80px">
+              </div>
+              <sc-if value="{{slotsBad}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert">Between 1 and 10 device slots.</p></sc-if>
+              <p class="hint">Each slot is bound to one device's Wi-Fi address when it signs in. When all slots are used, new devices are refused, even if a registered one is offline.</p>
+            </div>
+          </sc-if>
+          <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
+            <div><span class="lbl">Router</span><div class="lock">1 registered WISP router · sharing on</div><p class="hint">Customers see: "Up to 60 household devices on supported routers". The 60-client cap applies only on NDAHI-managed routers that support it.</p></div>
+          </sc-if>
+          <div><span class="lbl">Data</span><div class="lock">Unlimited</div></div>
+        </section>
+
+        <section aria-labelledby="t3" class="panel">
+          <h2 id="t3" class="h2">On sale</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: start">
+            <div><label class="lbl" for="do">Display order</label><input class="in" id="do" inputmode="numeric" value="3"><p class="hint">Or drag it in the catalogue list.</p></div>
+            <div>
+              <span class="lbl" id="pl">Publication</span>
+              <div class="seg" role="radiogroup" aria-labelledby="pl">
+                <sc-for list="{{pubs}}" as="p" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{p.sel}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button></sc-for>
+              </div>
+            </div>
+          </div>
+          <sc-if value="{{unpublished}}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef0ee; color: #3d4a44; font-size: 14px">Unpublished: off the store and refused at checkout now, including from old links. Pending orders keep their terms until checkout expires, and active bundles keep working.</p>
+          </sc-if>
+          <details style="border-top: 1px solid #dfe5dc">
+            <summary style="min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; cursor: pointer">Speed limit (optional)</summary>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding-bottom: 6px">
+              <div><label class="lbl" for="sd">Download (Mbps)</label><input class="in" id="sd" inputmode="decimal" placeholder="No limit"></div>
+              <div><label class="lbl" for="su">Upload (Mbps)</label><input class="in" id="su" inputmode="decimal" placeholder="No limit"></div>
+            </div>
+          </details>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <button type="button" onClick="{{save}}" disabled="{{invalid}}" style="{{saveStyle}}">Save bundle</button>
+          <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><span role="status" style="color: #345000; font-weight: 700; font-size: 14px">Saved. New checkouts use these terms now. Logged in the audit trail.</span></sc-if>
         </div>
-      </section>
-      <section aria-labelledby="pv" style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+
+        <section aria-labelledby="t4" class="panel" style="border-color: #e3b4b4">
+          <h2 id="t4" class="h2" style="color: #8a2a2a">Remove from the catalogue</h2>
+          <p style="margin: 0; font-size: 14px; color: #3d4a44">This bundle has <strong>178 orders</strong> and <strong>37 active subscriptions</strong>, so it will be <strong>archived</strong>, not deleted. It goes off sale and out of checkout straight away; receipts, payment history and active access stay. To end one customer's access, revoke their subscription from their customer page.</p>
+          <div><button type="button" onClick="{{archive}}" style="min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #c9a7e6; background: #fffef9; color: #5b2d86; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">{{archiveLabel}}</button></div>
+        </section>
+      </div>
+
+      <aside aria-labelledby="pv" style="flex: 1 1 290px; min-width: 0; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 12px">
         <h2 id="pv" style="margin: 0; font-size: 14px; font-weight: 700; color: #5c6963">What customers see</h2>
-        <div style="padding: 16px; border-radius: 14px; border: 2px solid #003b2b; background: #f3f9e8; display: flex; justify-content: space-between; gap: 12px; align-items: center">
-          <span><strong style="display: block; font-size: 16px">[PLAN 2]</strong><span style="font-size: 13px; color: #5c6963">{{preview}}</span></span>
-          <strong>[PRICE]</strong>
+        <div style="padding: 16px; border-radius: 14px; border: 2px solid #003b2b; background: #f3f9e8; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline"><strong style="font-size: 16px">{{suggested}}</strong><strong style="white-space: nowrap">{{priceShown}}</strong></div>
+          <span style="font-size: 13px; color: #3d4a44">{{cardLine}}</span>
+          <span style="font-size: 12px; font-weight: 700; color: #003b2b">{{cardTag}}</span>
         </div>
-      </section>
+        <section aria-label="Who this change affects" style="padding: 14px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
+          <strong style="display: block; font-size: 14px; margin-bottom: 4px">Who a change affects</strong>
+          <div class="row"><span>New checkouts</span><strong>New terms</strong></div>
+          <div class="row"><span>3 pending orders</span><strong>Keep 3,500 FCFA</strong></div>
+          <div class="row" style="border-bottom: 0"><span>37 active subscriptions</span><strong>Unchanged</strong></div>
+          <p class="hint" style="margin-top: 4px">The server prices every checkout from the catalogue. Prices or terms sent by a browser are ignored.</p>
+        </section>
+      </aside>
     </div>
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"type":{"editor":"enum","options":["personal","wisp"],"default":"personal"},"$preview":{"width":1280,"height":1460}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { unl: false, saved: false, down: '10' }; }
+  constructor(props) {
+    super(props);
+    const wisp = (props.type ?? 'personal') === 'wisp';
+    this.state = { type: wisp ? 'wisp' : 'personal', price: wisp ? '40000' : '3500', validity: wisp ? '30' : '7', unit: 'days', slots: '2', pub: 'pub', saved: false, archived: false };
+  }
   renderVals() {
     const s = this.state;
+    const wisp = s.type === 'wisp';
+    const on = 'border: 2px solid #003b2b; background: #f3f9e8;', off = 'border: 1px solid #dfe5dc; background: #ffffff;';
+    const segOn = 'min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);';
+    const segOff = 'min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: transparent; color: #3d4a44;';
+    const set = (o) => this.setState({ ...o, saved: false });
+    const types = [['personal', 'Personal Unlimited', 'Registered device slots. Restricts sharing.'], ['wisp', 'Home WISP Unlimited', 'One registered WISP router. Sharing on.']].map(([id, label, hint]) => ({ label, hint, sel: s.type === id ? 'true' : 'false', style: s.type === id ? on : off,
+      dot: 'flex: 0 0 18px; height: 18px; margin-top: 1px; border-radius: 50%; box-sizing: border-box; ' + (s.type === id ? 'border: 6px solid #003b2b;' : 'border: 2px solid #b8c7bd;'), pick: () => set({ type: id }) }));
+    const units = [['hours', 'hours'], ['days', 'days']].map(([id, label]) => ({ label, sel: s.unit === id ? 'true' : 'false', style: s.unit === id ? segOn : segOff, pick: () => set({ unit: id }) }));
+    const pubs = [['pub', 'Published'], ['unpub', 'Unpublished']].map(([id, label]) => ({ label, sel: s.pub === id ? 'true' : 'false', style: s.pub === id ? segOn : segOff, pick: () => set({ pub: id }) }));
+    const slots = ['1', '2', '4', '6'].map((n) => ({ label: n, pressed: s.slots === n ? 'true' : 'false', style: s.slots === n ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;', pick: () => set({ slots: n }) }));
+    const priceBad = !/^[1-9]\d{0,8}$/.test(s.price.trim());
+    const v = Number(s.validity), hours = s.unit === 'days' ? v * 24 : v;
+    const validityBad = !/^\d+$/.test(s.validity.trim()) || hours < 1 || hours > 8760;
+    const slotsBad = !wisp && (!/^\d+$/.test(s.slots) || Number(s.slots) < 1 || Number(s.slots) > 10);
+    const vText = `${s.validity} ${s.unit === 'days' ? (v === 1 ? 'day' : 'days') : (v === 1 ? 'hour' : 'hours')}`;
+    const n = Number(s.slots);
+    const suggested = wisp ? `Home WISP Unlimited · ${vText}` : `Personal Unlimited · ${vText} · ${n} device${n === 1 ? '' : 's'}`;
+    const invalid = priceBad || validityBad || slotsBad;
+    const unpub = s.pub === 'unpub' || s.archived;
     return {
-      unlimited: s.unl, limited: !s.unl,
-      preview: (s.unl ? 'Unlimited · fair use' : '5 GB') + ' · 7 days · 3 devices' + (s.down ? ` · up to ${s.down} Mbps` : ''),
-      down: s.down, setDown: (e) => this.setState({ down: e.target.value }),
-      flipUnl: () => this.setState({ unl: !s.unl }),
-      saved: s.saved, save: () => this.setState({ saved: true })
+      types, units, pubs, slots,
+      isPersonal: !wisp, isWisp: wisp,
+      titleName: s.archived ? suggested + ' (archived)' : suggested, nameValue: suggested, suggested,
+      price: s.price, setPrice: (e) => set({ price: e.target.value }), priceBad, priceClass: priceBad ? 'in bad' : 'in',
+      validity: s.validity, setValidity: (e) => set({ validity: e.target.value }), validityBad,
+      slotsValue: s.slots, setSlots: (e) => set({ slots: e.target.value }), slotsBad,
+      priceShown: priceBad ? '— FCFA' : Number(s.price).toLocaleString('en-US') + ' FCFA',
+      cardLine: wisp ? `Unlimited data · ${vText} · one registered router` : `Unlimited data · ${vText} · ${n} registered device${n === 1 ? '' : 's'}`,
+      cardTag: wisp ? 'Up to 60 household devices on supported routers' : 'Restricts sharing — works on your registered devices',
+      unpublished: s.pub === 'unpub',
+      statusText: s.archived ? 'Archived' : (unpub ? 'Unpublished' : 'Published'),
+      statusPill: 'padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; ' + (s.archived ? 'background: #f1e8fb; color: #5b2d86;' : unpub ? 'background: #eef0ee; color: #3d4a44;' : 'background: #eaf6d5; color: #345000;'),
+      invalid, saved: s.saved, save: () => { if (!invalid) this.setState({ saved: true }); },
+      saveStyle: 'min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; ' + (invalid ? 'background: #e4e9e1; color: #5c6963; cursor: not-allowed;' : 'background: #b9ee2e; color: #15210c; cursor: pointer;'),
+      archiveLabel: s.archived ? 'Archived — off sale, history kept' : 'Archive this bundle',
+      archive: () => this.setState({ archived: true })
     };
   }
 }

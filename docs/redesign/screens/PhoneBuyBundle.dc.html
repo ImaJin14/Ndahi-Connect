@@ -34,20 +34,38 @@ a{color:#003b2b}a:hover{color:#062a20}
   </div>
 
   <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
-    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 12px">
-      <h1 class="h1">Choose the plan that fits you</h1>
-      <p style="margin: 0 0 4px; color: #5c6963; font-size: 14px">You can buy once your current bundle has ended or run out of data.</p>
-      <sc-for list="{{plans}}" as="p" hint-placeholder-count="4">
-        <button type="button" onClick="{{p.pick}}" aria-pressed="{{p.pressed}}" style="{{p.style}}">
-          <span style="flex: 1; text-align: left">
-            <span style="display: flex; align-items: center; gap: 8px"><strong style="font-size: 16px">{{p.name}}</strong><sc-if value="{{p.tag}}" hint-placeholder-val="{{ false }}"><span style="padding: 2px 8px; border-radius: 999px; background: #b9ee2e; color: #15210c; font-size: 11px; font-weight: 700">{{p.tag}}</span></sc-if></span>
-            <span style="display: block; margin-top: 3px; color: #5c6963; font-size: 13px">{{p.detail}}</span>
-          </span>
-          <strong style="font-size: 16px; white-space: nowrap">{{p.price}}</strong>
-        </button>
-      </sc-for>
+    <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">Choose your bundle</h1>
+      <div role="tablist" aria-label="Bundle type" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+          <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <fieldset style="border: 0; margin: 0; padding: 0">
+            <legend style="font-size: 14px; font-weight: 700; margin-bottom: 8px; padding: 0">How long?</legend>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+              <sc-for list="{{durations}}" as="d" hint-placeholder-count="4"><button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button></sc-for>
+            </div>
+          </fieldset>
+          <fieldset style="border: 0; margin: 0; padding: 0">
+            <legend style="font-size: 14px; font-weight: 700; margin-bottom: 8px; padding: 0">How many devices?</legend>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
+              <sc-for list="{{devices}}" as="d" hint-placeholder-count="4"><button type="button" aria-pressed="{{d.pressed}}" disabled="{{d.off}}" onClick="{{d.pick}}" style="{{d.style}}"><strong style="display: block; font-size: 16px">{{d.label}}</strong><span style="font-size: 11px">{{d.price}}</span></button></sc-for>
+            </div>
+          </fieldset>
+        </div>
+      </sc-if>
+      <section aria-label="Selected bundle" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><strong style="font-size: 16px">{{planName}}</strong><strong style="font-size: 24px; color: #b9ee2e; white-space: nowrap">{{planPriceShort}}</strong></div>
+        <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #dce8e2">
+          <sc-for list="{{perks}}" as="x" hint-placeholder-count="4"><li>{{x.t}}</li></sc-for>
+        </ul>
+      </section>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">You can buy once your current bundle has ended. <a href="PhoneBillingTerms.dc.html" style="font-weight: 700">Rules</a></p>
     </main>
-    <div class="foot"><button type="button" class="btn" onClick="{{toPay}}">Continue with {{planName}}</button></div>
+    <div class="foot"><button type="button" class="btn" onClick="{{toPay}}">Continue · {{planPriceShort}}</button></div>
   </sc-if>
 
   <sc-if value="{{isPay}}" hint-placeholder-val="{{ false }}">
@@ -116,32 +134,43 @@ a{color:#003b2b}a:hover{color:#062a20}
     <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
       <a class="btn" href="PhoneHome.dc.html">Go to my home</a>
       <a class="btn2" href="PhoneReceipt.dc.html">View receipt</a>
+      <sc-if value="{{isWispPlan}}" hint-placeholder-val="{{ false }}"><a class="btn2" href="PhoneHomeRouter.dc.html">Register my home router</a></sc-if>
     </div>
   </sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { step: 'plan', plan: 'p2', method: 'mtn' }; }
+  constructor(props) { super(props); this.state = { step: 'plan', kind: 'personal', dur: '7d', dev: 2, method: 'mtn' }; }
   renderVals() {
     const s = this.state;
     const go = (step) => () => this.setState({ step });
-    const card = 'box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 14px; border-radius: 14px; background: #fffef9; font-family: inherit; color: #10241c; cursor: pointer; ';
-    const raw = [
-      { id: 'p1', name: '[PLAN 1]', detail: '1 GB · 1 day · 1 device', price: '[PRICE]', tag: '' },
-      { id: 'p2', name: '[PLAN 2]', detail: '5 GB · 7 days · 3 devices', price: '[PRICE]', tag: 'Popular' },
-      { id: 'p3', name: '[PLAN 3]', detail: '15 GB · 30 days · 3 devices', price: '[PRICE]', tag: '' },
-      { id: 'p4', name: '[PLAN 4]', detail: 'Unlimited · 30 days · fair use', price: '[PRICE]', tag: '' }
-    ];
-    const plans = raw.map((p) => ({ ...p, pressed: p.id === s.plan ? 'true' : 'false', style: card + (p.id === s.plan ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc;'), pick: () => this.setState({ plan: p.id }) }));
-    const plan = raw.find((p) => p.id === s.plan);
+    const P = { '5h': [250, null, null, null], '24h': [500, 900, 1700, 2500], '7d': [2000, 3500, 7000, 10000], '30d': [6000, 10000, 20000, 30000] };
+    const dur = { '5h': '5 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+    const devs = [1, 2, 4, 6];
+    const fmt = (n) => n.toLocaleString('en-US') + ' FCFA';
+    const on = 'border: 2px solid #003b2b; background: #f3f9e8; color: #10241c;', offS = 'border: 1px solid #dfe5dc; background: #fffef9; color: #10241c;';
+    const chip = 'min-height: 48px; border-radius: 12px; font: 600 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const wisp = s.kind === 'wisp';
+    const tb = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const kinds = [['personal', 'For my devices'], ['wisp', 'For my home router']].map(([id, label]) => ({ label, sel: s.kind === id ? 'true' : 'false', style: tb + (s.kind === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ kind: id }) }));
+    const durations = Object.keys(P).map((id) => ({ label: dur[id], pressed: s.dur === id ? 'true' : 'false', style: chip + (s.dur === id ? on : offS), pick: () => this.setState({ dur: id, dev: P[id][devs.indexOf(s.dev)] ? s.dev : 1 }) }));
+    const devices = devs.map((n, i) => { const price = P[s.dur][i]; return { label: n, price: price ? price.toLocaleString('en-US') : '—', off: !price, pressed: s.dev === n ? 'true' : 'false',
+      style: chip + (!price ? 'border: 1px dashed #dfe5dc; background: transparent; color: #9aa5a0; cursor: not-allowed;' : (s.dev === n ? on : offS)), pick: () => { if (price) this.setState({ dev: n }); } }; });
+    const price = wisp ? 40000 : P[s.dur][devs.indexOf(s.dev)];
+    const plan = wisp
+      ? { name: 'Home WISP Unlimited · 30 days', detail: 'Unlimited data · one registered home router · 30 days' }
+      : { name: `Personal Unlimited · ${dur[s.dur]} · ${s.dev} device${s.dev > 1 ? 's' : ''}`, detail: `Unlimited data · ${dur[s.dur]} · ${s.dev} registered device${s.dev > 1 ? 's' : ''}` };
+    const perks = (wisp
+      ? ['Unlimited data for 30 days', 'Share with your household through one registered router', 'Up to 60 household devices on supported routers', 'Register your router after paying']
+      : ['Unlimited data', `${s.dev} device slot${s.dev > 1 ? 's' : ''}, tied to your devices when they sign in`, 'Restricts sharing: hotspot and router sharing won\u2019t work', 'Time starts when you first connect']).map((t) => ({ t }));
     const mBase = 'min-height: 52px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
     const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, pressed: id === s.method ? 'true' : 'false', style: mBase + (id === s.method ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
     const labels = { plan: 'Step 1 of 3', pay: 'Step 2 of 3', wait: 'Step 3 of 3', done: 'Done' };
     return {
       isPlan: s.step === 'plan', isPay: s.step === 'pay', isWait: s.step === 'wait', isDone: s.step === 'done',
-      stepLabel: labels[s.step], plans, methods,
-      planName: plan.name, planDetail: plan.detail, planPrice: plan.price + ' FCFA',
+      stepLabel: labels[s.step], kinds, durations, devices, perks, methods, isPersonal: !wisp, isWispPlan: wisp,
+      planName: plan.name, planDetail: plan.detail, planPrice: fmt(price), planPriceShort: fmt(price),
       methodName: s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money',
       balanceName: s.method === 'mtn' ? 'MoMo' : 'Orange Money',
       toPlan: go('plan'), toPay: go('pay'), toWait: go('wait'), toDone: go('done')
