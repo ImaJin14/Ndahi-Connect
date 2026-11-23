@@ -114,11 +114,11 @@ Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout →
   - A misconfigured offer blocks its products rather than selling them at the regular price.
 - **One per phone number:** the paying number, the contact number and a signed-in account count as the same buyer. Stock is the overall cap.
 - **Crossed-out price:** the regular price is never shown crossed out until the store has really sold at it.
-- **The free bundle's days start when the payment is confirmed.**
-  - **An account** (the signed-in buyer, else the account of the paying number) gets it running at once. A bundle already running is **paused**, and resumes with the time it had left when the free one ends.
-  - **A guest** gets it reserved for the paying number (#254). The code is on the order page and the collection slip. Claiming starts it, and the days count from payment either way.
+- **The free month starts when the customer chooses** (owner, 23 Nov; replaces the 20 Nov rule that started it at payment). It is given when the router is collected, and the customer starts it any time within **60 days of collecting**; unstarted after 60 days, it expires. Once started it runs for one month (30 days).
+  - **An account** (the signed-in buyer, else the account of the paying number) sees "Start your free month" in the portal. Starting it while another bundle runs **pauses** that bundle, which resumes with the time it had left when the free month ends.
+  - **A guest** gets it reserved for the paying number (#254). The code is on the order page and the collection slip; claiming it adds it to the account, and the customer then starts it within the same 60 days.
   - It is a gift linked to the order, never revenue.
-- **Refunds:** a refund ends the free bundle and resumes any bundle paused for it.
+- **Refunds:** a refund before collection or before the free month starts cancels it; after it starts, the refund ends it and resumes any bundle paused for it.
 - **Ending:** the sale ends at the end time, when stock runs out, or with "End early". Orders already placed keep their price and free bundle.
 - **Countdown:** the public store and the portal (Home banner and Shop) count down to the start, then to the end, on the server's clock (owner, 21 Nov).
 - **Audited:** creating, editing and ending a promotion, and every free bundle given, paused, resumed, claimed or ended.
@@ -147,7 +147,6 @@ Needed before the phase that uses them. Until then, keep the placeholder and pul
 | Support phone and WhatsApp number | Phase 3 (Help) | `[SUPPORT NUMBER]` |
 | Pickup location and opening hours | Phase 4 | `[PICKUP LOCATION]` |
 | Product photos and warranty wording | Phase 4 | image slots, `[WARRANTY]` |
-| Restyle the public store in Phase 4, or later? | Phase 4 | — |
 | Reseller commission rate shown on the ledger | Phase 5 | `[RATE]` |
 
 ## Owner decisions for the Phase 5 drafts (19 Nov)
@@ -181,3 +180,15 @@ Design: `AdminVouchers` → For one customer → Bundle → **Custom bundle** (r
 - **Always a gift:** no revenue, no price, not added to the catalogue, never shown for sale and can't be bought again. The customer sees "Gift from NDAHI · [terms]".
 - The terms are snapshotted when it's given, exactly like a catalogue voucher: time starts at first connection, slots bind to RouterOS-observed MACs, Home WISP needs router registration. Replacing an active bundle needs the same confirmation as any voucher.
 - **Owners only** (owner, 23 Nov). Operators can still give catalogue vouchers but don't see the Custom bundle tab, and the server rejects a custom bundle from anyone but an owner. The server validates every field.
+
+## Public store restyle (23 Nov)
+
+The owner decided to restyle the public store (`store-app/`) now, alongside everything else, instead of waiting. The store screens (StoreGuest, StorePromo, PhoneGuestShop, PhoneGuestProduct, PhoneGuestCheckout, PhoneGuestOrder, ProductDesktop) are built now under the Phase 4 rules: `store-app/` keeps serving store.ndahiconnect.net, guests still check out with a Mobile Money number and an optional email, and no SMS. Black Friday code paths (27–30 Nov) are not changed until 1 Dec.
+
+## Kits, installations and payment plans (23 Nov)
+
+Screens: `AdminStoreServices` (Kits · Installations · Payment plans), `PhoneStarterKit`, `PhoneInstallBooking`, `PhoneInstalments`. Prices and fees come from the server (`[KIT PRICE]`, `[INSTALL PRICE]`, `[TRAVEL FEE]`, `[DEPOSIT]`).
+
+- **Kits** bundle store products (e.g. an AX1500 router) with a first bundle chosen from the catalogue (the Home kit uses Home WISP Unlimited, 30 days) at one kit price. Optional: "Set up for the buyer's account before collection" (the router is linked as their Home WISP router; the first bundle starts when it first connects), installation as an add-on, and Pay in 3.
+- **Installations:** the customer picks a day and a morning (8:00–12:00) or afternoon (13:00–17:00) slot within the capacity set per slot, an area (with its travel fee) and directions from a landmark. Free to move or cancel up to 24 h before. The technician calls 30 minutes before arriving; someone over 18 must be home. If the signal is too weak, the technician chooses "Couldn't install": the installation fee is refunded and the kit can be returned unopened. "Mark installed" records the signal and a photo.
+- **Pay in 3:** deposit today (the admin sets 30, 40 or 50%; the Home kit design uses 40%), the rest in two payments within 30, 45 or 60 days. No interest; each payment carries its own Mobile Money fee. Paying early or paying everything at once is allowed. The kit is held and collected only once fully paid. Reminders 3 days and 1 day before each date. After the grace period (7 or 14 days) a late plan is cancelled: the item goes back on sale and everything paid is refunded except the Mobile Money fees. A customer with a late or cancelled plan in the last 6 months can't start a new one. Plans are offered only on items above a price the admin sets.
