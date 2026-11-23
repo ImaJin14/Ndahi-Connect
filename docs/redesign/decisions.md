@@ -180,4 +180,4 @@ Design: `AdminVouchers` → For one customer → Bundle → **Custom bundle** (r
 - **A reason is required** and kept in the audit log.
 - **Always a gift:** no revenue, no price, not added to the catalogue, never shown for sale and can't be bought again. The customer sees "Gift from NDAHI · [terms]".
 - The terms are snapshotted when it's given, exactly like a catalogue voucher: time starts at first connection, slots bind to RouterOS-observed MACs, Home WISP needs router registration. Replacing an active bundle needs the same confirmation as any voucher.
-- Same permission as giving any voucher (owners and operators), enforced by the server, which validates every field.
+- **Owners only** (owner, 23 Nov). Operators can still give catalogue vouchers but don't see the Custom bundle tab, and the server rejects a custom bundle from anyone but an owner. The server validates every field.
