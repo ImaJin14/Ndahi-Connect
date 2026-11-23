@@ -161,7 +161,7 @@ Every PR meets the same bar before merge. Most of it already exists in the repo.
 
 - [ ] `npm run check` and `npm test` pass; new files are added to the `check` list
 - [ ] Affected browser journeys pass on **both** v1 and v2
-- [ ] Screens compared against the matching screen in `docs/redesign/screens/` at 390 px and 1280 px; differences either fixed or noted in the PR
+- [ ] Every state of every screen matches its design in `docs/redesign/screens/` (renders in `screens/png/`) at 390 px and 1280 px, shown with design-vs-build captures in the PR's Design fidelity section. Differences are fixed, or approved by the owner on the issue and linked (AGENTS.md rule 10). CI checks the section.
 - [ ] English and French both checked
 - [ ] Keyboard-only run-through and contrast check on new components
 - [ ] Zero browser console errors and no new CSP reports

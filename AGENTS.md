@@ -19,6 +19,12 @@ Read `docs/redesign/README.md` first, then the phase you're working on in `docs/
 7. **Verification is PIN or passkey only.** Never add SMS codes, authenticator apps or recovery codes.
 8. **No buying while a bundle is active.** Never add top-up or queued-bundle UI.
 9. **No new dependencies** without the owner's approval.
+10. **Build exactly the design.** The design canvas is the specification. Its copy in `docs/redesign/screens/` (`*.dc.html`, with renders of every state in `screens/png/`) is what you build, state by state, at 390 px and 1280 px.
+    - Match layout, copy, order, components, colours and states. Don't add, remove, reorder, reword or "improve" anything, and don't add states the design doesn't have.
+    - The only allowed differences: real API data in place of sample data and `[PLACEHOLDERS]`; text wrapping caused by real data; browser font rendering.
+    - If something can't be built as drawn, or the design conflicts with `decisions.md`, stop and ask on the issue. Build the change only after the owner approves it there, and link that comment in the PR.
+    - Implementers never edit `docs/redesign/screens/`. Design changes are made on the canvas first, then committed there by Claude Code with fresh renders, and the screen's issue is reopened or a new one opened so the built screen is brought back in line.
+    - Every PR that changes a screen fills in the **Design fidelity** section of the PR template with design-vs-build captures. CI (`design-fidelity.yml`) fails the PR without it.
 
 ## Commands
 
@@ -41,7 +47,7 @@ Run the journeys that touch your area on **both** variants (normally, then with 
 ## Pull requests
 
 - Open as a draft. Never merge your own PR; the owner merges.
-- Include 390 px and 1280 px screenshots for any screen change, and list the journeys you ran.
+- Use the PR template. For any screen change, fill in **Design fidelity**: the screens built, design-vs-build captures of every state at 390 px and 1280 px, and "Differences: none" (or each difference with the owner's approval link). List the journeys you ran.
 - Fill in the checklist from "Testing and quality bar" in the execution plan.
 
 ## Review guidelines
@@ -54,5 +60,8 @@ Reviewers (Codex automatic review, Claude Code on Codex/Copilot PRs) treat these
 - Changes that alter what production serves by default (v1 must stay the default until the owner ramps).
 - Edits to v1 folders that aren't bug fixes, or to another agent's owned folder.
 - New dependencies, inline scripts that break the CSP, or new console errors.
+- **Any visible difference from the design** that isn't in the PR's approved Differences list: layout, copy, order, components, colours, spacing that doesn't match a design token, or missing or extra states. Compare the PR's captures with `docs/redesign/screens/png/`, not with memory.
+- A screen PR with no Design fidelity section, unticked fidelity boxes, or no capture for a state the design has.
+- Edits to `docs/redesign/screens/` in an implementation PR.
 
-Non-blocking, mention briefly: copy tone, minor spacing differences from the design, missing French strings (open a follow-up).
+Non-blocking, mention briefly: missing French strings (open a follow-up). Differences from the design are never non-blocking.
