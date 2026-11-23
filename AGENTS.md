@@ -26,6 +26,18 @@ Read `docs/redesign/README.md` first, then the phase you're working on in `docs/
     - Implementers never edit `docs/redesign/screens/`. Design changes are made on the canvas first, then committed there by Claude Code with fresh renders, and the screen's issue is reopened or a new one opened so the built screen is brought back in line.
     - Every PR that changes a screen fills in the **Design fidelity** section of the PR template with design-vs-build captures. CI (`design-fidelity.yml`) fails the PR without it.
 
+## Merge batches
+
+All redesign issues are done in **batches of 5**, in the order in `docs/redesign/merge-batches.json`. The tracking issue (#429) shows live status, rewritten by the `Merge batches` workflow (`scripts/batch-status.mjs`).
+
+- Work on an issue only when its batch is the one under review or the next one. Never open a PR for a later batch; the check flags it as "too early".
+- One PR per issue. Name the branch `batch-<NN>/<issue>-<short-name>` and start the description with `Closes #<issue>` and `Batch <N>`. Start from `main`, or from the branch of an earlier PR in the same batch when the plan says it builds on it.
+- A PR is **correct** when it is marked ready for review (not a draft), every check is green (Design fidelity included), no review asks for changes, and it has no conflicts. Mark it ready only when you believe it is complete.
+- The owner merges a batch only when all its PRs are correct, in the order listed. Then the next batch goes under review and work starts on the one after it.
+- If review on the current batch asks for changes, fix those before continuing with the next batch.
+- Batches with a "not before" date (Black Friday screens: 1 Dec) are not merged before that date.
+- To change the plan, edit `merge-batches.json` in its own PR; `test/batch-status.test.mjs` checks that every issue appears once and no PR builds on a later one.
+
 ## Commands
 
 ```bash

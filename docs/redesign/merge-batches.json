@@ -1,0 +1,529 @@
+{
+ "trackingIssue": 429,
+ "size": 5,
+ "maxOpenBatches": 2,
+ "batches": [
+  {
+   "batch": 0,
+   "name": "Black Friday rule — merge alone, before 27 Nov",
+   "items": [
+    {
+     "issue": 423,
+     "title": "URGENT before 27 Nov: Black Friday free month starts within 60 days of collecting"
+    }
+   ]
+  },
+  {
+   "batch": 1,
+   "name": "Foundations · Navigation",
+   "items": [
+    {
+     "issue": 330,
+     "title": "docs(redesign): Unlimited catalogue and device-locking screens"
+    },
+    {
+     "issue": 422,
+     "title": "docs: build exactly the design (rule 10), enforced in CI"
+    },
+    {
+     "issue": 428,
+     "title": "Preparatory: translations per area and automatic syntax check (batch 1)"
+    },
+    {
+     "issue": 420,
+     "title": "Redesign: TabBar — Phone tab bar"
+    },
+    {
+     "issue": 346,
+     "title": "Unlimited redesign: AdminSide — Admin side menu"
+    }
+   ]
+  },
+  {
+   "batch": 2,
+   "name": "Unlimited server",
+   "items": [
+    {
+     "issue": 332,
+     "title": "Unlimited: database-driven bundle catalogue, migration and admin API"
+    },
+    {
+     "issue": 333,
+     "title": "Unlimited: server-priced checkout with immutable terms snapshot",
+     "base": "#332"
+    },
+    {
+     "issue": 421,
+     "title": "Unlimited: custom gift bundles given by an admin (server)",
+     "base": "#333"
+    },
+    {
+     "issue": 334,
+     "title": "Unlimited: Personal device slots bound to RouterOS-observed MAC, replace and revoke",
+     "base": "#333"
+    },
+    {
+     "issue": 335,
+     "title": "Unlimited: anti-sharing TTL rule for Personal HotSpot clients (RouterOS)",
+     "base": "#334"
+    }
+   ]
+  },
+  {
+   "batch": 3,
+   "name": "Unlimited server · Unlimited admin",
+   "items": [
+    {
+     "issue": 336,
+     "title": "Unlimited: Home WISP router registration, sharing exception and reconcile"
+    },
+    {
+     "issue": 337,
+     "title": "Unlimited: rollout, rollback and hardware test report",
+     "base": "#336"
+    },
+    {
+     "issue": 338,
+     "title": "Unlimited redesign: AdminBundles — Bundle catalogue"
+    },
+    {
+     "issue": 339,
+     "title": "Unlimited redesign: AdminBundleEdit — Create/edit a bundle"
+    },
+    {
+     "issue": 342,
+     "title": "Unlimited redesign: AdminCustomers — Customer list"
+    }
+   ]
+  },
+  {
+   "batch": 4,
+   "name": "Admin screens",
+   "items": [
+    {
+     "issue": 377,
+     "title": "Redesign: Admin — Admin home"
+    },
+    {
+     "issue": 386,
+     "title": "Redesign: AdminPayments — Admin payments"
+    },
+    {
+     "issue": 379,
+     "title": "Redesign: AdminCash — Admin cash and settlements"
+    },
+    {
+     "issue": 390,
+     "title": "Redesign: AdminResellers — Admin resellers"
+    },
+    {
+     "issue": 416,
+     "title": "Redesign: ResellerHome — Reseller home"
+    }
+   ]
+  },
+  {
+   "batch": 5,
+   "name": "Admin screens",
+   "items": [
+    {
+     "issue": 391,
+     "title": "Redesign: AdminStore — Admin store orders"
+    },
+    {
+     "issue": 388,
+     "title": "Redesign: AdminProducts — Admin products"
+    },
+    {
+     "issue": 387,
+     "title": "Redesign: AdminProductEdit — Admin edit product"
+    },
+    {
+     "issue": 392,
+     "title": "Redesign: AdminVoucherPrint — Admin voucher print"
+    },
+    {
+     "issue": 381,
+     "title": "Redesign: AdminDevices — Admin live devices"
+    }
+   ]
+  },
+  {
+   "batch": 6,
+   "name": "Admin screens",
+   "items": [
+    {
+     "issue": 380,
+     "title": "Redesign: AdminConnections — Admin connections"
+    },
+    {
+     "issue": 384,
+     "title": "Redesign: AdminNetworkSetup — Admin network setup"
+    },
+    {
+     "issue": 385,
+     "title": "Redesign: AdminOutage — Admin outages"
+    },
+    {
+     "issue": 378,
+     "title": "Redesign: AdminAudit — Admin audit log"
+    },
+    {
+     "issue": 382,
+     "title": "Redesign: AdminInsights — Admin insights"
+    }
+   ]
+  },
+  {
+   "batch": 7,
+   "name": "Customer screens",
+   "items": [
+    {
+     "issue": 395,
+     "title": "Redesign: PhoneActivity — Activity on phone"
+    },
+    {
+     "issue": 394,
+     "title": "Redesign: DesktopActivity — Activity desktop"
+    },
+    {
+     "issue": 414,
+     "title": "Redesign: PhoneShop — Shop"
+    },
+    {
+     "issue": 410,
+     "title": "Redesign: PhoneProduct — Product on phone"
+    },
+    {
+     "issue": 397,
+     "title": "Redesign: PhoneCheckout — Checkout on phone"
+    }
+   ]
+  },
+  {
+   "batch": 8,
+   "name": "Customer screens",
+   "items": [
+    {
+     "issue": 406,
+     "title": "Redesign: PhoneOrder — Order tracking"
+    },
+    {
+     "issue": 417,
+     "title": "Redesign: Shop — Shop"
+    },
+    {
+     "issue": 409,
+     "title": "Redesign: PhonePaymentFailed — Payment did not go through"
+    },
+    {
+     "issue": 398,
+     "title": "Redesign: PhoneEditProfile — Edit profile"
+    },
+    {
+     "issue": 404,
+     "title": "Redesign: PhoneHotspot — Connect to Wi-Fi"
+    }
+   ]
+  },
+  {
+   "batch": 9,
+   "name": "Customer screens · Public store",
+   "items": [
+    {
+     "issue": 412,
+     "title": "Redesign: PhoneScanNoBundle — Scan to connect without a bundle"
+    },
+    {
+     "issue": 418,
+     "title": "Redesign: StoreGuest — NDAHI Store public"
+    },
+    {
+     "issue": 403,
+     "title": "Redesign: PhoneGuestShop — NDAHI Store"
+    },
+    {
+     "issue": 402,
+     "title": "Redesign: PhoneGuestProduct — Product for guests"
+    },
+    {
+     "issue": 415,
+     "title": "Redesign: ProductDesktop — Product desktop"
+    }
+   ]
+  },
+  {
+   "batch": 10,
+   "name": "Public store · Sign-in",
+   "items": [
+    {
+     "issue": 400,
+     "title": "Redesign: PhoneGuestCheckout — Guest checkout"
+    },
+    {
+     "issue": 401,
+     "title": "Redesign: PhoneGuestOrder — Guest order tracking"
+    },
+    {
+     "issue": 405,
+     "title": "Redesign: PhoneLogin — Sign in"
+    },
+    {
+     "issue": 408,
+     "title": "Redesign: PhonePasskey — Passkey sign-in"
+    },
+    {
+     "issue": 399,
+     "title": "Redesign: PhoneForgotPin — Forgot PIN"
+    }
+   ]
+  },
+  {
+   "batch": 11,
+   "name": "Sign-in · Unlimited admin",
+   "items": [
+    {
+     "issue": 396,
+     "title": "Redesign: PhoneChangePin — Change PIN"
+    },
+    {
+     "issue": 413,
+     "title": "Redesign: PhoneSessions — Signed-in devices"
+    },
+    {
+     "issue": 383,
+     "title": "Redesign: AdminLogin — Admin sign in"
+    },
+    {
+     "issue": 389,
+     "title": "Redesign: AdminProfile — Admin profile and security"
+    },
+    {
+     "issue": 343,
+     "title": "Unlimited redesign: AdminVouchers — Vouchers, including custom gift bundles"
+    }
+   ]
+  },
+  {
+   "batch": 12,
+   "name": "Unlimited admin · Unlimited customer",
+   "items": [
+    {
+     "issue": 344,
+     "title": "Unlimited redesign: AdminVoucherDetail — Voucher detail"
+    },
+    {
+     "issue": 368,
+     "title": "Unlimited redesign: VoucherSlip — Printed voucher slip"
+    },
+    {
+     "issue": 341,
+     "title": "Unlimited redesign: AdminCustomerDetail — Customer detail updated for Unlimited"
+    },
+    {
+     "issue": 340,
+     "title": "Unlimited redesign: AdminHomeRouters — Home WISP routers"
+    },
+    {
+     "issue": 348,
+     "title": "Unlimited redesign: PhoneBuyBundle — Buy a bundle"
+    }
+   ]
+  },
+  {
+   "batch": 13,
+   "name": "Unlimited customer",
+   "items": [
+    {
+     "issue": 364,
+     "title": "Unlimited redesign: PhoneBuyForOther — Buy for someone else"
+    },
+    {
+     "issue": 359,
+     "title": "Unlimited redesign: PhoneRenew — Bundle ending / ended"
+    },
+    {
+     "issue": 369,
+     "title": "Unlimited redesign: PhoneReceipt — Receipt"
+    },
+    {
+     "issue": 365,
+     "title": "Unlimited redesign: PhoneClaimGift — Claim a gift"
+    },
+    {
+     "issue": 366,
+     "title": "Unlimited redesign: PhoneVoucher — Use a voucher"
+    }
+   ]
+  },
+  {
+   "batch": 14,
+   "name": "Unlimited customer · Customer screens",
+   "items": [
+    {
+     "issue": 367,
+     "title": "Unlimited redesign: PhoneVoucherReady — Saved voucher"
+    },
+    {
+     "issue": 349,
+     "title": "Unlimited redesign: PhoneDevices — Device slots"
+    },
+    {
+     "issue": 350,
+     "title": "Unlimited redesign: PhoneReplaceDevice — Replace a device"
+    },
+    {
+     "issue": 370,
+     "title": "Unlimited redesign: PhonePairReview — Review Wi-Fi access"
+    },
+    {
+     "issue": 407,
+     "title": "Redesign: PhonePairRequest — Request Wi-Fi access"
+    }
+   ]
+  },
+  {
+   "batch": 15,
+   "name": "Unlimited customer",
+   "items": [
+    {
+     "issue": 371,
+     "title": "Unlimited redesign: PhoneScanConnect — Scan to connect"
+    },
+    {
+     "issue": 372,
+     "title": "Unlimited redesign: PhoneWifiConnected — Finish Wi-Fi sign-in"
+    },
+    {
+     "issue": 351,
+     "title": "Unlimited redesign: PhoneHomeRouter — Home WISP router"
+    },
+    {
+     "issue": 357,
+     "title": "Unlimited redesign: PhoneAccount — Account"
+    },
+    {
+     "issue": 358,
+     "title": "Unlimited redesign: DesktopAccount — Desktop Account"
+    }
+   ]
+  },
+  {
+   "batch": 16,
+   "name": "Unlimited customer",
+   "items": [
+    {
+     "issue": 352,
+     "title": "Unlimited redesign: PhoneHome — Home"
+    },
+    {
+     "issue": 353,
+     "title": "Unlimited redesign: PhoneHomeFR — French Home layout check"
+    },
+    {
+     "issue": 354,
+     "title": "Unlimited redesign: Main — Desktop/customer home"
+    },
+    {
+     "issue": 355,
+     "title": "Unlimited redesign: PhoneInternet — Internet tab"
+    },
+    {
+     "issue": 356,
+     "title": "Unlimited redesign: DesktopInternet — Desktop Internet"
+    }
+   ]
+  },
+  {
+   "batch": 17,
+   "name": "Unlimited customer · Kits server",
+   "items": [
+    {
+     "issue": 363,
+     "title": "Unlimited redesign: PhoneOutage — Outage Home"
+    },
+    {
+     "issue": 362,
+     "title": "Unlimited redesign: PhoneNotifications — Notifications"
+    },
+    {
+     "issue": 361,
+     "title": "Unlimited redesign: PhoneHelp — Help FAQ"
+    },
+    {
+     "issue": 360,
+     "title": "Unlimited redesign: PhoneBillingTerms — Package rules"
+    },
+    {
+     "issue": 424,
+     "title": "Kits: kit catalogue, admin API and kit checkout (server)"
+    }
+   ]
+  },
+  {
+   "batch": 18,
+   "name": "Kits server · Kit screens",
+   "items": [
+    {
+     "issue": 425,
+     "title": "Kits: installation bookings, capacity and technicians (server)"
+    },
+    {
+     "issue": 426,
+     "title": "Kits: Pay in 3 payment plans (server)"
+    },
+    {
+     "issue": 427,
+     "title": "Kits: one order flow for kit, installation and payment plan",
+     "base": "#425"
+    },
+    {
+     "issue": 347,
+     "title": "Unlimited redesign: AdminStoreServices — Kits & installs (admin)",
+     "base": "#426"
+    },
+    {
+     "issue": 373,
+     "title": "Unlimited redesign: PhoneStarterKit — Home starter kit in Shop"
+    }
+   ]
+  },
+  {
+   "batch": 19,
+   "name": "Kit screens · Black Friday screens (from 1 Dec)",
+   "items": [
+    {
+     "issue": 374,
+     "title": "Unlimited redesign: PhoneInstallBooking — Book an installation"
+    },
+    {
+     "issue": 375,
+     "title": "Unlimited redesign: PhoneInstalments — Pay in instalments"
+    },
+    {
+     "issue": 345,
+     "title": "Unlimited redesign: AdminPromotions — Promotions"
+    },
+    {
+     "issue": 411,
+     "title": "Redesign: PhonePromoBuy — Black Friday deal on phone"
+    },
+    {
+     "issue": 419,
+     "title": "Redesign: StorePromo — NDAHI Store during Black Friday"
+    }
+   ],
+   "notBefore": "2026-12-01"
+  },
+  {
+   "batch": 20,
+   "name": "Get-connected flow check",
+   "items": [
+    {
+     "issue": 393,
+     "title": "Redesign: ConnectFlow — Get connected flow"
+    }
+   ]
+  }
+ ]
+}
