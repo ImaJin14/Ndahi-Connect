@@ -59,7 +59,7 @@ export const fr = {
   uiAdminOutages: "Pannes",
 
   // Design kit (shared-app/ui).
-  uiNavMain: "Navigation principale",
+  uiNavMain: "Principal",
   uiTabHome: "Accueil",
   uiTabInternet: "Internet",
   uiTabShop: "Boutique",
