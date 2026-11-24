@@ -43,15 +43,16 @@ a{color:#003b2b}a:hover{color:#062a20}
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start">
         <section aria-label="Bundle" class="panel">
           <div class="row"><span style="color: #5c6963">Active bundle</span><strong>[PLAN 2]</strong></div>
-          <div class="row"><span style="color: #5c6963">Data left</span><strong>3.2 of 5 GB</strong></div>
-          <div class="row"><span style="color: #5c6963">Ends</span><strong>12 Nov</strong></div>
-          <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Home router</span><strong>Not linked</strong></div>
+          <div class="row"><span style="color: #5c6963">Time left</span><strong>2 days 14 h</strong></div><div class="row"><span style="color: #5c6963">Device slots</span><strong>2 of 2 used</strong></div>
+          <div class="row"><span style="color: #5c6963">Ends</span><strong>25 Nov · 18:03</strong></div>
+          <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Home WISP router</span><strong>None registered</strong></div>
         </section>
         <section aria-label="Support actions" class="panel" style="display: flex; flex-direction: column; gap: 10px">
           <h2 style="margin: 0 0 4px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 20px">Support actions</h2>
           <button type="button" class="go2">Send PIN reset email</button>
           <button type="button" class="go2">Remove lost passkeys</button>
           <a class="go2" href="AdminVouchers.dc.html" style="display: flex; align-items: center; justify-content: center; text-decoration: none">Give a voucher (sold or gift)</a>
+          <button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4">Revoke current subscription</button>
           <button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4">Suspend customer</button>
           <p style="margin: 0; color: #5c6963; font-size: 13px">Each action asks you to confirm and is written to the audit log.</p>
         </section>
@@ -67,8 +68,10 @@ a{color:#003b2b}a:hover{color:#062a20}
     </sc-if>
     <sc-if value="{{isDevices}}" hint-placeholder-val="{{ false }}">
       <section aria-label="Devices" class="panel">
-        <div class="row"><span><strong>Android phone</strong> · AP-Market · online since 08:12</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Disconnect</button></div>
-        <div class="row" style="border-bottom: 0"><span><strong>HP laptop</strong> · AP-Market · online since 09:40</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Disconnect</button></div>
+        <p style="margin: 0 0 6px; font-size: 14px; color: #3d4a44"><strong>Personal Unlimited · 7 days · 2 devices</strong> · 2 of 2 slots used · ends Wed 25 Nov 18:03</p>
+        <div class="row"><span><strong>Slot 1 · Android phone</strong> · <span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">••:••:••:4F:A2:10</span> · online at AP-Market since 08:12</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Revoke device</button></div>
+        <div class="row"><span><strong>Slot 2 · HP laptop</strong> · <span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">••:••:••:19:C7:5E</span> · offline, last seen 09:40</span><button type="button" class="go2" style="min-height: 36px; color: #a73535">Revoke device</button></div>
+        <p style="margin: 10px 0 0; font-size: 13px; color: #5c6963">Revoking a device ends its session, clears its saved sign-in and frees the slot. The bundle's end date doesn't change. Replacements made by the customer: 1 this bundle (19 Nov, tablet → phone).</p>
       </section>
     </sc-if>
   </main>
