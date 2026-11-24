@@ -7,6 +7,10 @@
 // and generated output (coverage, dist, build). The repository has no
 // vendored scripts; the two the apps serve are read from node_modules.
 //
+// The repository's package.json says "type": "module", so .js files are
+// checked as ES modules. (Outside such a package, Node 22's --check passes a
+// broken file that uses import or export: it tries both module kinds.)
+//
 //   node scripts/check-syntax.mjs              # the repository
 //   node scripts/check-syntax.mjs --root DIR   # another tree (tests)
 import { readdirSync } from "node:fs";

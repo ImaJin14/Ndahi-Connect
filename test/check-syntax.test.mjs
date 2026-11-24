@@ -22,7 +22,9 @@ function tree(files) {
 }
 
 test("a broken new file in admin-app-v2/ fails the check, with no list to edit", (t) => {
-  const root = tree({ "admin-app-v2/fine.js": "export const ok = 1;\n", "admin-app-v2/new-screen.js": "export function broken( {\n", "server.mjs": "export {};\n" });
+  // "type": "module" as in the repository: outside such a package, Node 22's
+  // --check passes a broken file that uses export (module syntax detection).
+  const root = tree({ "package.json": '{"type":"module"}', "admin-app-v2/fine.js": "export const ok = 1;\n", "admin-app-v2/new-screen.js": "export function broken( {\n", "server.mjs": "export {};\n" });
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const run = spawnSync(process.execPath, [script, "--root", root], { encoding: "utf8" });
   assert.equal(run.status, 1);
