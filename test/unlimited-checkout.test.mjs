@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { hashSecret } from "../lib/security.mjs";
 import { seedCatalogue } from "../lib/catalogue.mjs";
+import { redeemVoucher } from "../lib/domain/vouchers.mjs";
 
 const secret = "unlimited-checkout-tests", MIN = 60000, HOUR = 36e5;
 
@@ -65,10 +66,9 @@ test("the terms and quote are fixed at checkout: an admin edit changes new check
   assert.deepEqual([next.amount, next.planSnapshot.deviceSlots], [12000, 3]);
 });
 
-// Today the bundle starts when the payment is confirmed (never at checkout);
-// starting Unlimited bundles at the first connection comes with the device
-// binding at HotSpot sign-in (#334), where that connection is observed.
-test("validity starts when the payment is confirmed, not at checkout; retries and duplicate confirmations never charge twice or restart it", async (t) => {
+// Time starts at the first connection (owner, #333; built in #334): after
+// payment a Personal Unlimited bundle waits, and its first connection starts it.
+test("validity starts at the first connection, not at payment; retries and duplicate confirmations never charge twice or restart it", async (t) => {
   const f = await fixture(t);
   const input = order("unlimited-24h-1");
   const first = await f.call("/api/purchase", input);
@@ -76,15 +76,23 @@ test("validity starts when the payment is confirmed, not at checkout; retries an
   const retry = await f.call("/api/purchase", input);
   assert.equal(retry.body.payment.id, first.body.payment.id);
   assert.equal((await f.store.snapshot()).payments.length, 1, "one order, one charge");
-  // Approved four minutes after checkout: the 24 hours start then, not at checkout.
   f.at(+f.now() + 4 * MIN);
-  const activatedAt = f.now().toISOString();
   await f.call(`/api/payments/${first.body.payment.id}/confirm`, {});
   f.at(+f.now() + 10 * MIN);
   await f.call(`/api/payments/${first.body.payment.id}/confirm`, {});
-  const s = await f.store.snapshot(), vouchers = s.vouchers.filter((v) => v.paymentId === first.body.payment.id);
+  let s = await f.store.snapshot(), vouchers = s.vouchers.filter((v) => v.paymentId === first.body.payment.id);
   assert.equal(vouchers.length, 1, "a duplicate confirmation activates nothing more");
-  assert.deepEqual([vouchers[0].activatedAt, vouchers[0].expiresAt], [activatedAt, new Date(Date.parse(activatedAt) + 24 * HOUR).toISOString()]);
+  assert.deepEqual([vouchers[0].status, vouchers[0].activatedAt, vouchers[0].expiresAt, vouchers[0].validityHours], ["available", null, null, 24], "paid, waiting for its first connection");
+  // The first connection, half an hour later (its code at the HotSpot): the 24 hours start then, once.
+  f.at(+f.now() + 30 * MIN);
+  const startedAt = f.now().toISOString(), code = vouchers[0].code;
+  const enter = (at) => f.store.transaction((st) => redeemVoucher(st, { phone: "699112233", code, deviceId: "phone-a" }, { clock: () => new Date(at), requester: { ip: "10.20.0.5" }, generic: "Invalid code." }).status);
+  assert.equal(await enter(startedAt), 200);
+  assert.equal(await enter(+f.now() + 60 * MIN), 200);
+  s = await f.store.snapshot();
+  const v = s.vouchers.find((x) => x.id === vouchers[0].id);
+  assert.deepEqual([v.status, v.activatedAt, v.expiresAt], ["active", startedAt, new Date(Date.parse(startedAt) + 24 * HOUR).toISOString()]);
+  assert.equal(s.auditLogs.filter((a) => a.action === "voucher.started_on_first_connection").length, 1);
 });
 
 test("a bundle taken off sale: a quote still on screen gets a clear error, a pending order keeps its terms", async (t) => {
@@ -97,7 +105,7 @@ test("a bundle taken off sale: a quote still on screen gets a clear error, a pen
   // Paid before checkout expiry: activated at the price and terms recorded.
   assert.equal((await f.call(`/api/payments/${pending.body.payment.id}/confirm`, {})).status, 200);
   const v = (await f.store.snapshot()).vouchers.find((x) => x.paymentId === pending.body.payment.id);
-  assert.deepEqual([v.status, v.deviceSlots, v.planId], ["active", 1, "unlimited-7d-1"]);
+  assert.deepEqual([v.status, v.startsOnFirstConnection, v.deviceSlots, v.planId], ["available", true, 1, "unlimited-7d-1"], "bought at the recorded terms, waiting for its first connection");
 });
 
 test("Revoke subscription ends one customer's access, at the router, audited", async (t) => {
