@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { linkedIssues, checksState, changesRequested, itemStatus, batchVerdict, summarise, render, PLAN_FILE } from "../scripts/batch-status.mjs";
+import { linkedIssues, checksState, changesRequested, itemStatus, batchVerdict, summarise, render, tableCell, PLAN_FILE } from "../scripts/batch-status.mjs";
 
 const plan = JSON.parse(readFileSync(PLAN_FILE, "utf8"));
 
@@ -72,4 +72,10 @@ test("render names the current batch", () => {
   const { markdown, summary } = render(plan, rows, new Date("2026-11-24"));
   assert.equal(summary.current, 1);
   assert.match(markdown, /\*\*Now:\*\* batch 1/);
+});
+
+test("titles in the status table escape backslashes before pipes", () => {
+  assert.equal(tableCell("a | b"), "a \\| b");
+  assert.equal(tableCell("ends with \\"), "ends with \\\\", "a trailing backslash can't escape the cell's closing pipe");
+  assert.equal(tableCell("x \\| y"), "x \\\\\\| y");
 });

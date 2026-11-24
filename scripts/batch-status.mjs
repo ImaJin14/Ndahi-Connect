@@ -123,6 +123,10 @@ async function allPulls(repo) {
 
 // ---------- report ----------
 
+// A title inside a Markdown table cell: backslashes first, then pipes, so a
+// title ending in "\\" can't escape the cell's closing pipe.
+export const tableCell = (text) => String(text).replace(/\\/g, "\\\\").replace(/\|/g, "\\|");
+
 const ICON = { merged: "✅ merged", ready: "🟢 correct", working: "🟡 in progress", todo: "⚪ not started", closed: "🔴 closed" };
 
 export async function collect(plan, repo) {
@@ -177,7 +181,7 @@ export function render(plan, rows, today = new Date()) {
     lines.push("| Issue | PR | Status | Notes |");
     lines.push("| --- | --- | --- | --- |");
     for (const r of rows.filter((x) => x.batch === b.batch)) {
-      lines.push(`| #${r.issue} ${r.title.replace(/\|/g, "\\|")} | ${r.pr ? "#" + r.pr : "—"} | ${ICON[r.status]} | ${[r.why, r.base ? `builds on ${r.base}` : ""].filter(Boolean).join("; ")} |`);
+      lines.push(`| #${r.issue} ${tableCell(r.title)} | ${r.pr ? "#" + r.pr : "—"} | ${ICON[r.status]} | ${[r.why, r.base ? `builds on ${r.base}` : ""].filter(Boolean).join("; ")} |`);
     }
     lines.push("");
   }
@@ -191,7 +195,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const { markdown, summary } = render(plan, rows);
   console.log(markdown);
   if (process.argv.includes("--update-issue")) {
-    if (!plan.trackingIssue) throw new Error("trackingIssue is not set in merge-batches.json");
+    if (!Number.isSafeInteger(plan.trackingIssue) || plan.trackingIssue < 1) throw new Error("trackingIssue in merge-batches.json must be an issue number");
     await api(`repos/${repo}/issues/${plan.trackingIssue}`, { method: "PATCH", body: { body: markdown } });
     console.error(`Updated #${plan.trackingIssue}.`);
   }
