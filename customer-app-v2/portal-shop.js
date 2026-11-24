@@ -222,6 +222,11 @@ function wireCheckout(p, quantity, who) {
 }
 function wireOrder(o) {
   const message = document.getElementById("shopOrderMessage"), verify = panel.querySelector("[data-shop-verify]"), receipt = panel.querySelector("[data-shop-receipt]");
+  // Start the free month from its order (#423), then show the order again.
+  promo.bindFreeMonth(panel, call, async () => {
+    try { const { order } = await call("/api/account/store/order", { method: "POST", body: JSON.stringify({ orderId: o.id }) }); panel.innerHTML = orderView(order); wireOrder(order); }
+    catch (_) { /* The order shows its new state next time it opens. */ }
+  });
   if (verify) verify.onclick = () => runButton(verify, L("shopChecking"), async () => {
     try { const { order } = await call("/api/account/store/verify", { method: "POST", body: JSON.stringify({ orderId: o.id }) }); panel.innerHTML = orderView(order); wireOrder(order); }
     catch (error) { message.textContent = error.message; }

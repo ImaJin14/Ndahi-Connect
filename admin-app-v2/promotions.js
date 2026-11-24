@@ -27,8 +27,14 @@ const left = (ms) => {
   return days ? L("adminPromoDaysHours", { days, hours: hours % 24 }) : L("adminPromoHours", { hours });
 };
 const PILL = { live: "admin-promo__pill--live", scheduled: "admin-promo__pill--scheduled", draft: "admin-promo__pill--quiet", ended: "admin-promo__pill--quiet" };
-const BONUS_PILL = { active: "admin-promo__pill--live", reserved: "admin-promo__pill--waiting", pending: "admin-promo__pill--quiet",
-  ended: "admin-promo__pill--danger", not_given: "admin-promo__pill--quiet", expired: "admin-promo__pill--quiet", needs_review: "admin-promo__pill--danger" };
+const BONUS_PILL = { active: "admin-promo__pill--live", reserved: "admin-promo__pill--waiting", given: "admin-promo__pill--waiting", pending: "admin-promo__pill--quiet",
+  ended: "admin-promo__pill--danger", cancelled: "admin-promo__pill--danger", not_given: "admin-promo__pill--quiet", expired: "admin-promo__pill--quiet", needs_review: "admin-promo__pill--danger" };
+// The free bundle's length in words: "1 month" for 30 days, else its days.
+const months = (days) => (days > 0 && days % 30 === 0 ? days / 30 : 0);
+const length = (days) => { const m = months(days); return m === 1 ? L("adminPromoMonth") : m ? L("adminPromoMonths", { count: m }) : L("adminPromoDays", { days }); };
+const freeWord = (days) => L(months(days) === 1 ? "adminPromoFreeOne" : "adminPromoFreeMany");
+// How long the customer has to start it (canvas: AdminPromotions).
+const START_WITHIN = [30, 60, 90];
 
 export async function showPromotions(host, context) {
   host.innerHTML = `<p class="nd-meta">${h(L("adminLoading"))}</p>`;
@@ -71,7 +77,9 @@ function render(host, data, context) {
       <div class="admin-promo__grid"${draft.hasBonus ? "" : " hidden"} data-bonus-fields>
         <div><label class="admin-promo__label" for="promoPlan">${h(L("adminPromoBundle"))}</label><select class="admin-promo__in" id="promoPlan" name="planId">${plans.map((x) => `<option value="${h(x.id)}"${x.id === draft.planId ? " selected" : ""}>${h(planLabel(x))}</option>`).join("")}</select></div>
         <div><label class="admin-promo__label" for="promoDays">${h(L("adminPromoLasts"))}</label><input class="admin-promo__in" id="promoDays" name="days" type="number" min="1" max="365" step="1" inputmode="numeric" value="${h(draft.days)}">
-          <p class="admin-promo__hint">${h(L("adminPromoLastsHint"))}</p></div></div>
+          <p class="admin-promo__hint">${h(L("adminPromoLastsHint"))}</p></div>
+        <div><label class="admin-promo__label" for="promoWithin">${h(L("adminPromoStartWithin"))}</label><select class="admin-promo__in" id="promoWithin" name="within">${START_WITHIN.map((n) => `<option value="${n}"${n === draft.within ? " selected" : ""}>${h(L("adminPromoDays", { days: n }))}</option>`).join("")}</select>
+          <p class="admin-promo__hint">${h(L("adminPromoStartWithinHint", { days: draft.days, data: plan && plan.quotaGb != null ? `${plan.quotaGb} GB` : L("adminPromoUnlimited") }))}</p></div></div>
       <p class="admin-promo__note"${draft.hasBonus ? "" : " hidden"} data-bonus-fields>${h(L("adminPromoBonusNote"))}</p>
     </section>
     <section class="nd-panel admin-promo__panel" aria-labelledby="promoWhenTitle"><h2 class="admin-promo__h2" id="promoWhenTitle">${h(L("adminPromoWhen"))}</h2>
@@ -91,7 +99,7 @@ function render(host, data, context) {
     <div class="admin-promo__card"><div class="admin-promo__photo">${photoSrc(firstProduct?.images?.[0]) ? `<img src="${h(photoSrc(firstProduct.images[0]))}" alt="">` : `<span>${h(L("adminPromoPhoto"))}</span>`}<span class="admin-promo__badge">${h(draft.nameEn || L("adminPromoOffer"))}</span></div>
       <div class="admin-promo__card-body"><strong class="admin-promo__card-name">${h(firstProduct ? name(firstProduct.name) : L("adminPromoChooseProduct"))}</strong>
         <p class="admin-promo__card-price"><strong>${h(fcfa(draft.salePrice))}</strong></p>
-        ${draft.hasBonus && plan ? `<p class="admin-promo__card-bonus">${h(L("adminPromoCardBonus", { days: draft.days, plan: plan.name }))}</p>` : ""}
+        ${draft.hasBonus && plan ? `<p class="admin-promo__card-bonus">${h(L("adminPromoCardBonus", { length: length(draft.days), data: plan.quotaGb == null ? L("adminPromoUnlimited") : `${plan.quotaGb} GB`, free: freeWord(draft.days) }))}</p>` : ""}
         ${draft.endsAt ? `<p class="admin-promo__card-ends">${h(L("adminPromoCardEnds", { day: day(fromLocal(draft.endsAt)), count: stock }))}</p>` : ""}</div></div>
     <p class="admin-promo__hint">${h(L("adminPromoPreviewHint"))}</p></aside>`;
   const running = p && ["live", "scheduled"].includes(p.status) ? p : null;
@@ -100,7 +108,7 @@ function render(host, data, context) {
       <span class="admin-promo__pill ${PILL[running.status]}">${h(running.status === "live" ? L("adminPromoLiveEnds", { left: left(Date.parse(running.endedEarlyAt || running.endsAt) - now) }) : L("adminPromoScheduledStarts", { day: day(running.startsAt), time: clock(running.startsAt) }))}</span>
       <button type="button" class="admin-promo__end" data-promo-end="${h(running.id)}">${h(L("adminPromoEndEarly"))}</button></section>` : "";
   const figures = p ? `<div class="admin-promo__metrics">${[[p.figures.unitsSold, "adminPromoUnitsSold"], [fcfa(p.figures.revenue), "adminPromoRevenue"],
-    [p.figures.bonusActive, "adminPromoBonusRunning"], [p.figures.bonusReserved, "adminPromoBonusWaiting"], [p.figures.bonusEnded, "adminPromoBonusEnded"]]
+    [p.figures.bonusGiven ?? 0, "adminPromoBonusGiven"], [p.figures.bonusActive, "adminPromoBonusRunning"], [p.figures.bonusReserved, "adminPromoBonusWaiting"], [p.figures.bonusEnded, "adminPromoBonusEnded"]]
     .map(([value, key]) => `<div class="nd-panel admin-promo__metric"><b>${h(value)}</b><span>${h(L(key))}</span></div>`).join("")}</div>
     <section class="nd-panel admin-promo__panel" aria-labelledby="promoOrdersTitle"><h2 class="admin-promo__h2" id="promoOrdersTitle">${h(L("adminPromoOrders"))}</h2>
       ${p.orders.length ? `<div class="admin-promo__table"><table><thead><tr><th scope="col">${h(L("adminPromoColOrder"))}</th><th scope="col">${h(L("adminPromoColBuyer"))}</th><th scope="col">${h(L("adminPromoColStatus"))}</th><th scope="col">${h(L("adminPromoColBonus"))}</th></tr></thead><tbody>
@@ -122,7 +130,8 @@ function summary(p, products, plans) {
   const what = names.length > 1 ? L("adminPromoProductsCount", { count: names.length }) : names[0] || "—";
   const plan = p.bonus && plans.find((x) => x.id === p.bonus.planId);
   const offer = L("adminPromoSummary", { what, price: fcfa(p.salePrice) });
-  return plan ? `${offer} ${L("adminPromoSummaryBonus", { days: Math.round(p.bonus.validityHours / 24), plan: plan.name })}` : offer;
+  const days = p.bonus ? Math.round(p.bonus.validityHours / 24) : 0;
+  return plan ? `${offer} ${L("adminPromoSummaryBonus", { length: length(days), plan: plan.name, free: freeWord(days) })}` : offer;
 }
 
 // The order's status in words; an unknown one is shown as recorded.
@@ -131,17 +140,24 @@ function orderStatus(status) {
   return text === key ? String(status).replaceAll("_", " ") : text;
 }
 
+// Orders placed under the 20 Nov rule (days from payment) keep its wording.
 function bonusText(o) {
   if (o.bonus === "active" && o.bonusEndsAt) return L("adminPromoBonus_activeUntil", { day: shortDay(o.bonusEndsAt) });
+  if (o.bonus === "given" && o.bonusStartBy) return L("adminPromoBonus_given", { day: shortDay(o.bonusStartBy) });
+  const legacy = o.bonusRule === "payment_confirmation";
+  if (o.bonus === "pending" && legacy) return L("adminPromoBonus_pendingPaid");
+  if (o.bonus === "expired" && !legacy) return L("adminPromoBonus_expiredUnstarted");
   return L(`adminPromoBonus_${o.bonus}`);
 }
 
 function formValues(p, plans) {
   const unlimited = plans.find((x) => x.id === "unlimited") || plans[0];
-  if (!p) return { nameEn: "", nameFr: "", productIds: [], salePrice: "", hasBonus: true, planId: unlimited?.id || "", days: 45,
+  // A free month (owner, 23 Nov): 30 days, started within 60 days of collection.
+  if (!p) return { nameEn: "", nameFr: "", productIds: [], salePrice: "", hasBonus: true, planId: unlimited?.id || "", days: 30, within: 60,
     startsAt: "", endsAt: "", perNumberLimit: 1, termsEn: "", termsFr: "" };
   return { nameEn: p.name.en, nameFr: p.name.fr, productIds: [...p.productIds], salePrice: p.salePrice, hasBonus: Boolean(p.bonus),
-    planId: p.bonus?.planId || unlimited?.id || "", days: p.bonus ? Math.round(p.bonus.validityHours / 24) : 45,
+    planId: p.bonus?.planId || unlimited?.id || "", days: p.bonus ? Math.round(p.bonus.validityHours / 24) : 30,
+    within: START_WITHIN.includes(p.bonus?.startWithinDays) ? p.bonus.startWithinDays : 60,
     startsAt: localInput(p.startsAt), endsAt: localInput(p.endsAt), perNumberLimit: p.perNumberLimit || 1, termsEn: p.terms.en, termsFr: p.terms.fr };
 }
 
@@ -149,7 +165,7 @@ function read(form) {
   const f = form.elements;
   return { nameEn: f.nameEn.value.trim(), nameFr: f.nameFr.value.trim(), productIds: [...form.querySelectorAll("input[name=productIds]:checked")].map((x) => x.value),
     salePrice: f.salePrice.value === "" ? "" : Number(f.salePrice.value), hasBonus: f.hasBonus.checked, planId: f.planId?.value || "",
-    days: Number(f.days?.value || 0), startsAt: f.startsAt.value, endsAt: f.endsAt.value, perNumberLimit: Number(f.perNumberLimit.value),
+    days: Number(f.days?.value || 0), within: Number(f.within?.value || 60), startsAt: f.startsAt.value, endsAt: f.endsAt.value, perNumberLimit: Number(f.perNumberLimit.value),
     termsEn: f.termsEn.value.trim(), termsFr: f.termsFr.value.trim() };
 }
 
@@ -173,7 +189,8 @@ function bind(host, data, context) {
         ...(p ? { id: p.id, version: p.version } : {}), enabled, name: { en: draft.nameEn, fr: draft.nameFr }, terms: { en: draft.termsEn, fr: draft.termsFr },
         productIds: draft.productIds, salePrice: draft.salePrice, perNumberLimit: draft.perNumberLimit,
         startsAt: fromLocal(draft.startsAt), endsAt: fromLocal(draft.endsAt),
-        bonus: draft.hasBonus ? { planId: draft.planId, validityHours: draft.days * 24, startsAt: "payment_confirmation" } : null }) });
+        // Given at collection, started by the customer within `within` days (#423).
+        bonus: draft.hasBonus ? { planId: draft.planId, validityHours: draft.days * 24, startsAt: "customer_start", givenAt: "collection", startWithinDays: draft.within } : null }) });
       const saved = (result.promotions || []).find((x) => x.name.en === draft.nameEn && x.startsAt === fromLocal(draft.startsAt)) || null;
       await showPromotions(host, { ...context, selectedId: saved?.id || p?.id, notice: L(enabled ? "adminPromoScheduled" : "adminPromoDraftSaved") });
     } catch (error) {
