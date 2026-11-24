@@ -78,7 +78,7 @@
    "expand": "fill",
    "h": 1020,
    "is_interactive": true,
-   "title": "Live Wi-Fi devices",
+   "title": "Live Wi-Fi devices (one row per customer \u00b7 pop-up lists every connected device)",
    "w": 1280,
    "x": 0,
    "y": 8936
