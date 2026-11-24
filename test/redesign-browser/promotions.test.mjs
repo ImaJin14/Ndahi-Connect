@@ -127,4 +127,25 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   assert.equal(catalogue.products.find((p) => p.id === "ax1500").price, 120000, "the regular price is back");
   assert.deepEqual(errors, []);
   await context.close();
+
+  // Collected: staff see the guest's free-month code on the order in Admin → Store (#423).
+  for (const action of ["ready", "collect"]) {
+    const o = (await store.snapshot()).storeOrders.find((x) => x.id === placed.order.id);
+    const r = await fetch(`${api}/api/admin/store/orders/update`, { method: "POST", headers: { "content-type": "application/json", cookie: "admin_session=owner-token", "x-csrf-token": "csrf" },
+      body: JSON.stringify({ id: o.id, version: o.version, action, collectionCode: o.collectionCode }) });
+    assert.equal(r.status, 200, await r.text());
+  }
+  const code = (await store.snapshot()).storeOrders.find((x) => x.id === placed.order.id).bonus.code;
+  ({ context, page, errors } = await open(1280));
+  await page.goto(`${admin}/dashboard#store`);
+  // Open orders are shown first; a collected one is under "all".
+  await page.locator("#storeOrderStatus").selectOption("all");
+  await page.locator(`[data-order-pick="${placed.order.id}"]`).click();
+  const fact = page.locator(".admin-store__bonus");
+  await fact.waitFor();
+  assert.equal(await text(fact), `Code ${code} · reserved for 6•• •• 22 33 · start by 27 Jan`);
+  assert.equal(await text(fact.locator("xpath=preceding-sibling::dt")), "Free month");
+  await check(page, "store-order-free-month", 1280);
+  assert.deepEqual(errors, []);
+  await context.close();
 });
