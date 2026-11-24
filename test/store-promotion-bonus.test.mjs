@@ -205,3 +205,41 @@ test("resuming acts only when the free bundle is loaded and over", () => {
   assert.equal(s.vouchers[0].expiresAt, new Date(+now + 3 * DAY).toISOString());
   assert.ok(s.routerCommands.some((c) => c.action === "sync_voucher" && c.targetId === "weekly"));
 });
+
+test("a legacy bundle is unaffected: only the customer's own Start pauses it, and it resumes with its own terms and time left", () => {
+  // A fixed-data bundle bought before the change, and a 20 Nov free bundle still waiting for its number.
+  const legacyFree = { id: "old-free", planId: "unlimited", code: "NC-OLD-0001", status: "available", customerId: null, quotaBytes: null, deviceLimit: 6,
+    promotion: { id: "black-friday", orderId: "old-order", endsAt: later(40).toISOString(), validityHours: 1080 },
+    reservation: { phone: "699000777", status: "waiting", expiresAt: later(40).toISOString() } };
+  const s = state({ vouchers: [weekly(), legacyFree] });
+  s.storeOrders.push({ id: "old-order", promotion: { bonus: { startsAt: "payment_confirmation" } }, bonus: { status: "reserved", voucherId: "old-free" } });
+  const untouched = () => structuredClone(s.vouchers.filter((v) => ["weekly", "old-free"].includes(v.id)));
+  const before = untouched();
+  // Given at collection, claimed, expired unstarted, refunded before the start: none of it touches them.
+  const o = order();
+  give(s, o);
+  const guestOrder = order({ id: "o2", payment: { status: "paid", confirmedAt: now.toISOString(), payerPhone: "699111222" } });
+  give(s, guestOrder);
+  const guest = { id: "guest", phone: "699111222" };
+  s.customers.push(guest);
+  const reserved = s.vouchers.find((v) => v.promotion?.orderId === "o2");
+  claimReservation(reserved, guest, later(1), "code");
+  claimBonus(s, reserved, guest, later(1));
+  endPromotionBonus(s, guestOrder, later(1), "refund");
+  assert.deepEqual(expireUnstartedBonuses(s, later(1)), []);
+  assert.deepEqual(untouched(), before, "nothing changed on the legacy bundles");
+  // The 20 Nov free bundle is never expired by the 23 Nov window, whatever the date.
+  expireUnstartedBonuses(s, later(70));
+  assert.deepEqual(s.vouchers.find((v) => v.id === "old-free"), before[1]);
+  // The customer presses Start: the Weekly bundle pauses with its terms, then resumes with exactly its time left.
+  const s2 = state({ vouchers: [weekly()] }), o3 = order();
+  const { voucherId } = give(s2, o3);
+  const was = structuredClone(s2.vouchers.find((v) => v.id === "weekly"));
+  startPromotionBonus(s2, voucherId, s2.customers[1], later(1));
+  const end = later(31);
+  s2.vouchers.find((v) => v.id === voucherId).status = "expired";
+  resumePausedBundles(s2, end);
+  const after = s2.vouchers.find((v) => v.id === "weekly");
+  for (const key of ["planId", "quotaBytes", "usedBytes", "deviceLimit", "speedSnapshot", "activatedAt", "customerId"]) assert.deepEqual(after[key], was[key], key);
+  assert.equal(Date.parse(after.expiresAt) - +end, Date.parse(was.expiresAt) - +later(1), "the same time left: validity is never restarted");
+});
