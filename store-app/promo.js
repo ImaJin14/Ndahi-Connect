@@ -18,7 +18,7 @@ const WORDS = {
     ledeNoBonus: "{products}, at a {name} price.",
     or: " or ",
     getDeal: "Get the deal", startsOn: "Starts {day}", left: "{n} left at this price", limit: "{n} per phone number",
-    fine: "Ends {day} at {time} or when stock runs out.",
+    fine: "Ends {day} at {time} or when stock runs out.", fineBonus: "{Gift} given when you collect the router; start within {within} days.",
     bonusChip: "+ {length} {data} {free}", bonusCardTitle: "+ {length} {data} internet, {free}",
     bonusCardHint: "{facts} · start it when you like", worth: "worth {price}",
     unlimited: "Unlimited data, fair use", data: "{gb} GB",
@@ -55,7 +55,7 @@ const WORDS = {
     ledeNoBonus: "{products}, à prix {name}.",
     or: " ou ",
     getDeal: "J’en profite", startsOn: "Commence le {day}", left: "Plus que {n} à ce prix", limit: "{n} par numéro de téléphone",
-    fine: "Se termine le {day} à {time} ou à épuisement du stock.",
+    fine: "Se termine le {day} à {time} ou à épuisement du stock.", fineBonus: "{Gift} donné au retrait du routeur ; à démarrer dans les {within} jours.",
     bonusChip: "+ {length} {data} {free}", bonusCardTitle: "+ {length} d’internet {data}, {free}",
     bonusCardHint: "{facts} · à démarrer quand vous voulez", worth: "d’une valeur de {price}",
     unlimited: "Données illimitées, usage raisonnable", data: "{gb} Go",
@@ -130,7 +130,8 @@ export function createPromo({ lang, money, l }) {
         <div class="promo-hero__cta">${live ? `<a class="button promo-hero__go" href="#product/${h(encodeURIComponent(first?.id || ""))}">${h(w("getDeal"))}</a>` : `<span class="promo-hero__soon">${h(w("startsOn", { day: `${day(p.startsAt)} · ${time(p.startsAt)}` }))}</span>`}
           <span class="promo-hero__left">${h([live ? w("left", { n: left }) : "", w("limit", { n: p.perNumberLimit })].filter(Boolean).join(" · "))}</span></div></div>
         <div class="promo-hero__side"><p class="promo-hero__when">${h(w(live ? "endsIn" : "upcoming"))}</p>${blocks(live ? p.endsAt : p.startsAt)}
-          <p class="promo-hero__fine">${h(w("fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)) }))} ${h(l(p.terms))}</p></div></section>`;
+          <p class="promo-hero__fine">${h([w("fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)) }),
+            b && b.startsAt === "customer_start" ? w("fineBonus", { Gift: giftWord(b.days, true), within: b.startWithinDays }) : "", l(p.terms)].filter(Boolean).join(" "))}</p></div></section>`;
     },
     // A product card's extras: the badge on the photo, the free-bundle chip and
     // what is left at the price.
