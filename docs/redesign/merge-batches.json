@@ -84,11 +84,11 @@
     },
     {
      "issue": 338,
-     "title": "Unlimited redesign: AdminBundles — Bundle catalogue: fixed-data plans, 20 unlimited offers (1–6 devices), Home WISP 50,000"
+     "title": "Unlimited redesign: AdminBundles — Bundle catalogue: 20 unlimited offers (1–6 devices), Home WISP 50,000"
     },
     {
      "issue": 339,
-     "title": "Unlimited redesign: AdminBundleEdit — Edit bundle: Personal Unlimited, Home WISP or Fixed data"
+     "title": "Unlimited redesign: AdminBundleEdit — Edit bundle: Personal Unlimited or Home WISP (Home WISP 50,000)"
     },
     {
      "issue": 342,
@@ -345,7 +345,7 @@
     },
     {
      "issue": 348,
-     "title": "Unlimited redesign: PhoneBuyBundle — Buy a bundle: data plans, Personal Unlimited 1–6 devices, Home WISP; 2% fee"
+     "title": "Unlimited redesign: PhoneBuyBundle — Buy a bundle: Personal Unlimited 1–6 devices, Home WISP; 2% fee"
     }
    ]
   },
@@ -415,7 +415,7 @@
     },
     {
      "issue": 351,
-     "title": "Unlimited redesign: PhoneHomeRouter — Home WISP router (no device count; 60-device claim gated)"
+     "title": "Unlimited redesign: PhoneHomeRouter — Home WISP router (no device count or 60-device claim)"
     },
     {
      "issue": 357,
