@@ -40,7 +40,7 @@ class Component extends DCLogic {
   renderVals() {
     const tone = { warn: 'background: #fff4e0; color: #6b3a00;', info: 'background: #e3f0ff; color: #1d4f86;', ok: 'background: #eaf6d5; color: #345000;', neutral: 'background: #eef3e9; color: #003b2b;' };
     const items = [
-      { title: 'Data running low', body: '1 GB left on [PLAN 2]. Once it runs out you can buy your next bundle.', when: '12 min ago', tone: 'warn', icon: 'M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', href: 'PhoneInternet.dc.html', unread: true },
+      { title: 'Bundle ends tomorrow', body: '[PLAN 2] ends tomorrow at 18:03. You can buy your next bundle once it ends.', when: '12 min ago', tone: 'warn', icon: 'M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z', href: 'PhoneInternet.dc.html', unread: true },
       { title: 'Order ready to collect', body: 'TP-Link CPE210 is waiting at [PICKUP LOCATION].', when: 'Yesterday', tone: 'info', icon: 'M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7', href: 'PhoneOrder.dc.html', unread: true },
       { title: 'New device request', body: 'A laptop asked to use your bundle. Reference PR-7Q4.', when: 'Yesterday', tone: 'neutral', icon: 'M4 5h16v11H4ZM2 19h20', href: 'PhonePairReview.dc.html', unread: false },
       { title: 'Payment received', body: '[PLAN 2] paid with MTN MoMo. Receipt ready.', when: '5 Nov', tone: 'ok', icon: 'm5 12 5 5 9-10', href: 'PhoneReceipt.dc.html', unread: false },
