@@ -196,3 +196,51 @@ test("a legacy bundle is unaffected: seeding and switching leave every voucher, 
   await f.call("/api/admin/catalogue/mode", { mode: "legacy" }, "owner");
   assert.equal(keep(await f.store.snapshot()), before);
 });
+
+// Admin → Bundles (#338, canvas AdminBundles): "Used by", "Most bought", the
+// delete dialog's choice and the earlier plans' place in the list, all from the API.
+test("the admin list says how each bundle is used, which sells most, and whether it can be deleted", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    // 7 days · 2 devices: two paid checkouts (one still running) and a gift waiting for its first connection.
+    s.payments.push({ id: "p1", planId: "unlimited-7d-2", status: "paid" }, { id: "p2", planId: "unlimited-7d-2", status: "pending" });
+    s.vouchers.push({ id: "u1", planId: "unlimited-7d-2", paymentId: "p1", status: "active" },
+      { id: "u2", planId: "unlimited-7d-2", status: "available", startsOnFirstConnection: true, generatedByAdmin: true, saleType: "gift" },
+      { id: "u3", planId: "unlimited-24h-1", status: "expired", generatedByAdmin: true, saleType: "gift" });
+  });
+  const list = (await f.call("/api/admin/catalogue", null, "operator")).body;
+  const row = (id) => list.bundles.find((b) => b.id === id);
+  assert.deepEqual([row("unlimited-7d-2").orders, row("unlimited-7d-2").active, row("unlimited-7d-2").inUse, row("unlimited-7d-2").mostBought], [3, 2, true, true]);
+  assert.deepEqual([row("unlimited-24h-1").orders, row("unlimited-24h-1").active, row("unlimited-24h-1").mostBought], [1, 0, false]);
+  assert.deepEqual([row("unlimited-7d-3").orders, row("unlimited-7d-3").inUse], [0, false], "never bought: the dialog offers a permanent delete");
+  assert.equal(list.bundles.filter((b) => b.mostBought).length, 1);
+  const weekly = list.legacy.find((p) => p.id === "weekly");
+  assert.deepEqual([weekly.orders, weekly.active, weekly.inUse, weekly.status], [1, 1, true, "published"]);
+  assert.ok(list.legacy.every((p) => p.displayOrder > Math.max(...list.bundles.map((b) => b.displayOrder))), "earlier plans list after the Unlimited bundles");
+});
+
+test("reordering can place an earlier plan anywhere in the list without changing it or what is on sale", async (t) => {
+  const f = await fixture(t);
+  const before = await f.call("/api/plans");
+  const { bundles, legacy } = (await f.call("/api/admin/catalogue", null, "owner")).body;
+  const ids = [bundles[0].id, "weekly", ...bundles.slice(1).map((b) => b.id), ...legacy.filter((p) => p.id !== "weekly").map((p) => p.id)];
+  const moved = await f.call("/api/admin/catalogue/reorder", { ids }, "owner");
+  assert.equal(moved.status, 200, JSON.stringify(moved.body));
+  const order = [...moved.body.bundles, ...moved.body.legacy].sort((a, b) => a.displayOrder - b.displayOrder).map((b) => b.id);
+  assert.deepEqual(order, ids);
+  assert.deepEqual(await f.call("/api/plans"), before, "the legacy checkout is unchanged while the switch is legacy");
+  const s = await f.store.snapshot();
+  assert.deepEqual(s.catalogue.legacyOrder.weekly, 20);
+  assert.equal(findPlan(s, "weekly").displayOrder, undefined, "the plan itself is untouched");
+  assert.equal((await f.call("/api/admin/catalogue/reorder", { ids: ["weekly", "no-such-plan"] }, "owner")).status, 400);
+});
+
+test("the earlier bundle endpoints refuse Unlimited bundles: the catalogue manages them", async (t) => {
+  const f = await fixture(t);
+  for (const path of ["/api/admin/bundles/update", "/api/admin/bundles/delete"]) {
+    const r = await f.call(path, { bundleId: "unlimited-7d-1", name: "Changed", price: 1, quotaGb: 5, validityHours: 1, deviceLimit: 1 }, "owner");
+    assert.deepEqual([r.status, r.body.error], [409, "Unlimited bundles are managed in the bundle catalogue."], path);
+  }
+  const b = (await f.store.snapshot()).bundles.find((x) => x.id === "unlimited-7d-1");
+  assert.deepEqual([b.name, b.price, b.quotaGb], ["Personal Unlimited", 2500, null]);
+});

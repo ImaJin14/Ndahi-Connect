@@ -211,44 +211,47 @@ try {
     assert.equal(await page.locator('#customerVoucherForm [name="replaceActive"]').isChecked(), false);
     assert.equal(await page.locator("[data-give-submit]").isDisabled(), true);
   }, { width });
-  // Redesigned Bundles and Edit bundle (v2 only; canvas: AdminBundles, AdminBundleEdit).
-  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Bundles creates, edits and deletes a custom bundle at ${width}px`, async (page) => {
+  // Redesigned Bundles (v2 only; canvas: AdminBundles, #338): the catalogue from the API.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Bundles shows the catalogue, reorders, publishes and removes at ${width}px`, async (page) => {
+    // The reset keeps settings the baseline lacks; start from an unseeded catalogue.
+    await store.transaction((s) => { delete s.catalogue; });
     await page.goto(`${admin}/dashboard#bundles`);
-    await page.getByRole("heading", { name: "Your bundles.", exact: true }).waitFor();
-    const weekly = page.locator('[data-bundle-card="weekly"]');
-    assert.match(await weekly.innerText(), /Weekly[\s\S]*On sale[\s\S]*1,000 FCFA[\s\S]*5 GB · 7 days · 1 device[\s\S]*1 voucher issued/);
-    const form = page.locator("#bundle");
-    await form.getByLabel("Name", { exact: true }).fill("Weekend");
-    await form.getByLabel("Price (FCFA)", { exact: true }).fill("500");
-    await form.getByLabel("Validity (hours)", { exact: true }).fill("48");
-    await form.getByRole("button", { name: "Create bundle", exact: true }).click();
-    const card = page.locator(".admin-bundle").filter({ hasText: "Weekend" });
-    await card.waitFor();
-    // A blank data allowance is unlimited, not 0 GB.
-    assert.match(await card.innerText(), /500 FCFA[\s\S]*Unlimited · 2 days · 1 device/);
+    await page.getByRole("heading", { name: "Bundle catalogue.", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminEyebrow").textContent(), "Sales · catalogue managers only");
+    const grid = page.getByRole("table", { name: "Personal Unlimited prices in FCFA by validity and device slots" });
+    await grid.waitFor();
+    assert.equal(await grid.getByRole("link", { name: "Personal Unlimited 7 days, 2 devices: 4,000 XAF, published" }).count(), 1);
+    assert.equal(await grid.getByRole("link", { name: "Not offered: create Personal Unlimited 5 hours for 2 devices" }).getAttribute("href"),
+      "/dashboard#bundle/new?accessType=personal_unlimited&validityValue=5&validityUnit=hours&deviceSlots=2");
+    assert.match(await page.locator("[data-home]").innerText(), /30 days[\s\S]*0 active subscriptions[\s\S]*50,000[\s\S]*Published/);
+    // The earlier plans are read-only rows until the switch (owner, #338).
+    const weekly = page.locator('[data-cat-row="weekly"]');
+    assert.match(await weekly.innerText(), /Weekly[\s\S]*5 GB · 7 days · 1 device[\s\S]*1,000[\s\S]*Published[\s\S]*1 order · 1 active/);
+    assert.equal(await weekly.getByRole("button").filter({ hasText: /Edit|Unpublish|Delete/ }).count(), 0);
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/bundles-${width}.png`, fullPage: true });
-
-    await card.getByRole("link", { name: "Edit Weekend", exact: true }).click();
-    await page.getByRole("heading", { name: "Edit Weekend", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Back to Bundles", exact: true }).waitFor();
-    const edit = page.locator("#bundleEdit"), preview = page.locator("#bundlePreview");
-    assert.equal(await edit.getByLabel("Unlimited data").isChecked(), true);
-    assert.equal(await page.locator("#bundleQuotaField").isVisible(), false);
-    await edit.getByLabel("Unlimited data").uncheck();
-    await edit.getByLabel("Data (GB)", { exact: true }).fill("2");
-    await edit.getByLabel("Device limit", { exact: true }).fill("3");
-    assert.equal(await preview.locator("[data-preview-detail]").textContent(), "2 GB · 2 days · 3 devices");
-    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
-    await page.screenshot({ path: `${screenshots}/bundle-edit-${width}.png`, fullPage: true });
-    await edit.getByRole("button", { name: "Save bundle", exact: true }).click();
-    await page.getByText("Saved — logged in the audit trail", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("heading", { name: "Edit Weekend", exact: true }).count(), 1, "saving keeps the edit screen");
-    await page.getByRole("link", { name: "Back to Bundles", exact: true }).click();
-    assert.match(await card.innerText(), /2 GB · 2 days · 3 devices/);
-    await card.getByRole("button", { name: "Delete Weekend", exact: true }).click();
-    await card.waitFor({ state: "detached" });
+    // Reorder: the second bundle moves to the top, and the store follows.
+    const rows = () => page.locator("[data-cat-row]").evaluateAll((list) => list.map((row) => row.dataset.catRow));
+    const [first, second] = await rows();
+    await page.locator(`[data-cat-row="${second}"]`).getByRole("button", { name: /^Move .* up$/ }).click();
+    await page.getByText("New order saved — the store shows it now.", { exact: true }).waitFor();
+    assert.deepEqual((await rows()).slice(0, 2), [second, first]);
+    // Unpublish, then the Unpublished filter shows only it.
+    const row = page.locator('[data-cat-row="unlimited-7d-3"]');
+    await row.getByRole("button", { name: "Unpublish Personal Unlimited · 7 days · 3 devices", exact: true }).click();
+    await page.getByText("Personal Unlimited · 7 days · 3 devices unpublished — new checkouts stopped.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Unpublished · 1", exact: true }).click();
+    assert.deepEqual(await rows(), ["unlimited-7d-3"]);
+    await page.getByRole("button", { name: /^All · / }).click();
+    // Never bought: deleted for good, after the dialog.
+    await row.getByRole("button", { name: "Delete Personal Unlimited · 7 days · 3 devices", exact: true }).click();
+    const dialog = page.getByRole("alertdialog", { name: "Remove bundle" });
+    assert.match(await dialog.innerText(), /Delete Personal Unlimited · 7 days · 3 devices\? It has never been bought\./);
+    await dialog.getByRole("button", { name: "Delete permanently", exact: true }).click();
+    await page.getByText("Personal Unlimited deleted permanently.", { exact: true }).waitFor();
+    assert.equal(await row.count(), 0);
+    assert.equal(await grid.getByRole("link", { name: "Not offered: create Personal Unlimited 7 days for 3 devices" }).count(), 1);
     // An unknown bundle address falls back to the list.
     await page.evaluate(() => { location.hash = "bundle/missing"; });
     await page.waitForFunction(() => location.hash === "#bundles");
@@ -541,15 +544,17 @@ try {
   }, { apple: true });
   await scenario("admin updates preserve edits and pending network setup, then refresh when idle", async (page) => {
     await page.clock.install();
-    await page.goto(`${admin}/dashboard#bundles`); await page.locator('#bundle [name="name"]').waitFor();
+    // An unsaved form: v1's new-bundle form; in v2 (where Bundles is the catalogue, #338) the profile email.
+    const draft = uiV2 ? { view: "profile", form: "#adminEmailForm", field: '#adminEmailForm [name="email"]' } : { view: "bundles", form: "#bundle", field: '#bundle [name="name"]' };
+    await page.goto(`${admin}/dashboard#${draft.view}`); await page.locator(draft.field).waitFor();
     const baseline = await page.locator('meta[name="ndahi-release"]').getAttribute("content");
     let available = true, reloads = 0;
     page.on("load", () => { reloads++; });
     await page.route("**/version.json", (route) => route.fulfill({ json: { revision: available ? "fixture-new-release" : baseline } }));
-    await page.locator('#bundle [name="name"]').fill("Unsaved bundle");
+    await page.locator(draft.field).fill("unsaved@example.test");
     await page.clock.fastForward(61000); await page.getByText("A new version is ready.", { exact: false }).waitFor();
-    assert.equal(reloads, 0); assert.equal(await page.locator('#bundle [name="name"]').inputValue(), "Unsaved bundle");
-    await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "true"; document.querySelector("#bundle").reset(); });
+    assert.equal(reloads, 0); assert.equal(await page.locator(draft.field).inputValue(), "unsaved@example.test");
+    await page.evaluate((form) => { document.querySelector("#networkSetup").dataset.setupPending = "true"; document.querySelector(form).reset(); }, draft.form);
     await page.clock.fastForward(61000); assert.equal(reloads, 0);
     await openAdminMore(page, "Generate voucher");
     await page.getByRole("button", { name: adminGenerateName("resale") }).click();

@@ -17,7 +17,8 @@ const VIEWS = {
   // Outages (#259, canvas: AdminOutage): staff read; owners and operators manage.
   outages: { menu: "outages", panels: ["outages"], title: "adminTitleOutages", group: "uiAdminGroupNetwork", lede: "adminOutagesLede" },
   "network-setup": { menu: "setup", panels: ["network-setup"], title: "adminTitleSetup", group: "uiAdminGroupNetwork", ownerOnly: true },
-  bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede" },
+  // Bundle catalogue (#338, canvas: AdminBundles): owners and operators manage it.
+  bundles: { menu: "bundles", panels: ["bundles"], title: "adminTitleBundles", group: "uiAdminGroupSales", lede: "adminBundlesLede", scope: "adminCatalogueManagersOnly" },
   // #bundle/<id>; app.js names the bundle in the title.
   bundle: { menu: "bundles", panels: ["bundle-edit"], title: "adminTitleBundleEdit", back: { href: "/dashboard#bundles", label: "adminTitleBundlesShort" } },
   vouchers: { menu: "vouchers", panels: ["vouchers"], title: "adminTitleVouchers", group: "uiAdminGroupSales" },
@@ -57,7 +58,7 @@ function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
   if (menu === "setup") return who === "owner";
   if (menu === "store" || menu === "products" || menu === "promotions") return STORE_ROLES.indexOf(who) >= 0;
-  if (menu === "payments" || menu === "customers" || menu === "audit") return STORE_ROLES.indexOf(who) >= 0;
+  if (menu === "payments" || menu === "customers" || menu === "audit" || menu === "bundles") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
   if (menu === "homerouters") return homeRouters;
@@ -80,7 +81,7 @@ function eyebrow(view, lang) {
     const date = new Date().toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Douala" });
     return ROLES[currentRole] ? t(ROLES[currentRole], lang) + " · " + date : date;
   }
-  return t(config.group, lang) + (config.ownerOnly ? " · " + t("adminOwnerOnly", lang) : "");
+  return t(config.group, lang) + (config.ownerOnly ? " · " + t("adminOwnerOnly", lang) : config.scope ? " · " + t(config.scope, lang) : "");
 }
 
 function renderMenu(view) {
