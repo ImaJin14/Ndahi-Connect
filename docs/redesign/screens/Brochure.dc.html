@@ -79,7 +79,6 @@ td:first-child,th:first-child{text-align:left;font-weight:700;color:#10241c}
       <p class="p">{{t.chooseIntro}}</p>
       <div style="display: flex; gap: 22px; align-items: flex-start">
         <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0">
-          <div class="card"><strong style="font-size: 17px">{{t.dataT}}</strong><p class="p" style="font-size: 14px; margin-top: 4px">{{t.dataD}}</p></div>
           <div class="card">
             <strong style="font-size: 17px">Personal Unlimited</strong>
             <p class="p" style="font-size: 14px; margin: 4px 0 8px">{{t.puD}}</p>
@@ -142,8 +141,7 @@ class Component extends DCLogic {
       intro: "Tout ce qu'il faut pour vous connecter au Wi-Fi NDAHI, choisir un forfait, payer avec MTN MoMo ou Orange Money et rester en ligne.",
       s1: 'Rejoindre le Wi-Fi officiel NDAHI', scan: 'Scannez pour ouvrir le portail',
       official: "Connectez-vous uniquement au réseau officiel NDAHI. NDAHI ne vous demandera jamais votre code PIN Mobile Money, ni par appel, ni par SMS, ni sur une page web.",
-      s2: 'Choisir votre forfait', chooseIntro: "Trois types de forfaits. Le portail affiche toujours les offres en vente et leur prix.",
-      dataT: 'Forfaits data', dataD: "Une quantité de data pour une durée donnée, comme aujourd'hui. Les prix sont affichés sur le portail.",
+      s2: 'Choisir votre forfait', chooseIntro: "Deux types de forfaits, tous avec données illimitées. Le portail affiche toujours les offres en vente et leur prix.",
       puD: "Données illimitées sur vos appareils enregistrés. Chaque appareil prend une place. Le partage de connexion est limité.",
       wispD: "30 jours de données illimitées pour votre foyer, via un routeur WISP compatible enregistré à votre compte.",
       priceNote: "Prix en XAF. « — » : non proposé. Le temps démarre à la première connexion.",
@@ -155,8 +153,7 @@ class Component extends DCLogic {
       intro: 'Everything you need to join NDAHI Wi-Fi, choose a bundle, pay with MTN MoMo or Orange Money, and stay online.',
       s1: 'Join the official NDAHI Wi-Fi', scan: 'Scan to open the portal',
       official: 'Only join the official NDAHI network. NDAHI will never ask for your Mobile Money PIN — not by call, not by text, not on a web page.',
-      s2: 'Choose your bundle', chooseIntro: 'Three kinds of bundle. The portal always shows the offers on sale and their prices.',
-      dataT: 'Data plans', dataD: 'A set amount of data for a set time, as today. Prices are shown on the portal.',
+      s2: 'Choose your bundle', chooseIntro: 'Two kinds of bundle, both with unlimited data. The portal always shows the offers on sale and their prices.',
       puD: 'Unlimited data on your registered devices. Each device takes one slot. Sharing is restricted.',
       wispD: '30 days of unlimited data for your household, through a supported WISP router registered to your account.',
       priceNote: 'Prices in XAF. "—" means not offered. Time starts at your first connection.',
@@ -195,12 +192,12 @@ class Component extends DCLogic {
     ]).map((t, i) => ({ n: i + 1, t }));
     const online = (fr ? [
       ['Reçu et référence :', 'dans Activité. Copiez la référence si vous contactez le support.'],
-      ['Temps ou data restant :', "sur l'Accueil du portail."],
+      ['Temps restant :', "sur l'Accueil du portail."],
       ['Ajouter un appareil :', "Compte → Appareils. Un forfait Personal Unlimited a un nombre fixe de places ; s'il est plein, remplacez un appareil."],
       ['Home WISP :', 'après le paiement, réglez votre routeur compatible en mode WISP sur le réseau NDAHI, puis enregistrez-le depuis Compte → Routeur Home WISP.']
     ] : [
       ['Receipt and reference:', 'in Activity. Copy the reference if you contact support.'],
-      ['Time or data left:', 'on the portal Home.'],
+      ['Time left:', 'on the portal Home.'],
       ['Add a device:', 'Account → Devices. A Personal Unlimited bundle has a set number of slots; when they are full, replace a device.'],
       ['Home WISP:', 'after paying, set your supported router to WISP mode on the NDAHI network, then register it from Account → Home WISP router.']
     ]).map(([h, t]) => ({ h, t }));

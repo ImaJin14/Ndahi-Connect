@@ -18,6 +18,6 @@ Check the guide against the tested portal, then confirm and fill in:
 - [ ] Official network name, if the guide should name it.
 - [ ] The Mobile Money fee: the guide says "plus the Mobile Money fee" until the 2% is verified for MTN and Orange (#432). Then the numeric fee may be added.
 - [ ] Short codes for pending prompts (`*126#` MTN, `#150#` Orange): not in the guide until verified for Cameroon.
-- [ ] Router claims: "up to 60 household devices" stays out until validated on supported routers.
+- [ ] No device-count claim for Home WISP (owner, 24 Nov).
 - [ ] Prices match the published catalogue on the day of printing.
 - [ ] QR code scanned from the printed page on an Android and an iPhone.

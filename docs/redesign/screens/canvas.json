@@ -24,16 +24,16 @@
    "expand": "fill",
    "h": 1460,
    "is_interactive": true,
-   "title": "Add / edit bundle (access type \u00b7 price \u00b7 validity \u00b7 device slots)",
+   "title": "Add / edit bundle (Personal Unlimited or Home WISP \u00b7 price \u00b7 validity \u00b7 device slots)",
    "w": 1280,
    "x": 6800,
    "y": 7796
   },
   "AdminBundles.dc.html": {
    "expand": "fill",
-   "h": 2060,
+   "h": 1640,
    "is_interactive": true,
-   "title": "Bundle catalogue (fixed-data plans \u00b7 20 unlimited offers \u00b7 reorder \u00b7 archive)",
+   "title": "Bundle catalogue (20 unlimited offers \u00b7 Home WISP 50,000 \u00b7 reorder \u00b7 archive)",
    "w": 1280,
    "x": 4080,
    "y": 7796
@@ -252,7 +252,7 @@
   "PhoneBuyBundle.dc.html": {
    "h": 844,
    "is_interactive": true,
-   "title": "4 \u00b7 Buy a bundle (data plans \u00b7 Personal Unlimited 1\u20136 devices \u00b7 Home WISP \u2192 pay with 2% fee \u2192 payment confirmed \u2192 activating \u2192 online)",
+   "title": "4 \u00b7 Buy a bundle (Personal Unlimited 1\u20136 devices \u00b7 Home WISP \u2192 pay with 2% fee \u2192 payment confirmed \u2192 activating \u2192 online)",
    "w": 390,
    "x": 1410,
    "y": 1600

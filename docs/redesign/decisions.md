@@ -217,3 +217,11 @@ Brief: `specs/catalogue-and-payment-update-2026-11-24.md` (owner, verbatim), wit
 - **Cheaper bundle:** the highest-priced eligible published bundle strictly below the attempted price, of the same kind (fixed-data, Personal Unlimited, Home WISP). Ties go to the device count closest to the one asked for, then the longer validity, then display order.
 - **Currency label:** the bundle payment screens say XAF, as the brief does.
 - **Brochure:** `docs/brochure/` (EN and FR PDFs, QR code), source on the design canvas (`Brochure`, `BrochureEN`, `BrochureFR`). Only confirmed fees, short codes and router claims go into a public release.
+
+## No fixed-data plans, no 60-device claim (owner, 24 Nov, later the same day)
+
+This replaces the matching lines of the section above.
+
+- **Fixed-data plans are removed from sale.** The catalogue is unlimited only: the 19 Personal Unlimited offers and Home WISP Unlimited (50,000 XAF). Fixed-data bundles, Gig Standard included, are archived: customers who already have one keep it on its original terms until it ends ("Current customers keep their terms until their bundle ends"), and their receipts and history stay.
+- **No "up to 60 household devices" claim anywhere**, in customer or admin copy. Home WISP is described only as household sharing through a supported WISP router, with no device or router count.
+- The brochure covers the two unlimited plans only.

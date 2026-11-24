@@ -39,19 +39,10 @@ a{color:#003b2b}a:hover{color:#062a20}
     <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
       <h1 class="h1">{{t.choose}}</h1>
       <div role="tablist" aria-label="{{t.kindLabel}}" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
-        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="3">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
           <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button>
         </sc-for>
       </div>
-
-      <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
-        <div style="display: flex; flex-direction: column; gap: 8px">
-          <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.dataIntro}}</p>
-          <sc-for list="{{dataPlans}}" as="d" hint-placeholder-count="3">
-            <button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}"><span style="flex: 1; text-align: left"><strong style="display: block; font-size: 15px">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.terms}}</span></span><strong style="font-size: 15px">{{d.price}}</strong></button>
-          </sc-for>
-        </div>
-      </sc-if>
 
       <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; flex-direction: column; gap: 12px">
@@ -161,7 +152,7 @@ a{color:#003b2b}a:hover{color:#062a20}
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["plan","pay","wait","activating","done"],"default":"plan"},"kind":{"editor":"enum","options":["personal","data","wisp"],"default":"personal"},"fee":{"editor":"enum","options":["verified","unverified"],"default":"verified"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["plan","pay","wait","activating","done"],"default":"plan"},"kind":{"editor":"enum","options":["personal","wisp"],"default":"personal"},"fee":{"editor":"enum","options":["verified","unverified"],"default":"verified"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { step: props.step ?? 'plan', kind: props.kind ?? 'personal', dur: '7d', dev: 2, data: 1, method: 'mtn' }; }
   renderVals() {
@@ -169,8 +160,8 @@ class Component extends DCLogic {
     const fr = (this.props.lang ?? 'en') === 'fr';
     const verified = (this.props.fee ?? 'verified') === 'verified';
     const T = fr ? {
-      back: 'Retour', title: 'Acheter un forfait', choose: 'Choisissez votre forfait', kindLabel: 'Type de forfait', data: 'Forfaits data', unl: 'Illimité', wisp: 'Home WISP',
-      dataIntro: 'Une quantité de data pour une durée donnée. Prix inchangés.', howLong: 'Pour combien de temps ?', howMany: "Combien d'appareils ?", notOffered: 'Non proposé', selected: 'Forfait choisi',
+      back: 'Retour', title: 'Acheter un forfait', choose: 'Choisissez votre forfait', kindLabel: 'Type de forfait', unl: 'Illimité', wisp: 'Home WISP',
+      howLong: 'Pour combien de temps ?', howMany: "Combien d'appareils ?", notOffered: 'Non proposé', selected: 'Forfait choisi',
       rule: "Vous pourrez acheter quand votre forfait actuel sera terminé.", rules: 'Règles', cont: 'Continuer', review: 'Vérifier et payer', payWith: 'Payer avec', number: 'Numéro Mobile Money',
       whatPay: 'Ce que vous allez payer', bundlePrice: 'Prix du forfait', feeLabel: 'Frais de paiement mobile (2 %)', total: 'Total à payer',
       feeInPrompt: "Les frais Mobile Money s'afficheront dans la demande de l'opérateur, avant que vous ne validiez.",
@@ -179,8 +170,8 @@ class Component extends DCLogic {
       activating: 'Activation de votre Wi-Fi…', activatingLine: 'Cela prend souvent quelques secondes. Ne payez pas à nouveau.', refLabel: 'Référence :', keepOpen: 'Voir le reçu du paiement',
       online: 'Vous êtes en ligne', onlineLine: 'est actif sur cet appareil. Votre reçu est dans Activité.', activeBundle: 'Forfait actif', goHome: "Aller à l'accueil", viewReceipt: 'Voir le reçu', register: 'Enregistrer mon routeur'
     } : {
-      back: 'Back', title: 'Buy a bundle', choose: 'Choose your bundle', kindLabel: 'Bundle type', data: 'Data plans', unl: 'Unlimited', wisp: 'Home WISP',
-      dataIntro: 'A set amount of data for a set time. Prices unchanged.', howLong: 'How long?', howMany: 'How many devices?', notOffered: 'Not offered', selected: 'Selected bundle',
+      back: 'Back', title: 'Buy a bundle', choose: 'Choose your bundle', kindLabel: 'Bundle type', unl: 'Unlimited', wisp: 'Home WISP',
+      howLong: 'How long?', howMany: 'How many devices?', notOffered: 'Not offered', selected: 'Selected bundle',
       rule: 'You can buy once your current bundle has ended.', rules: 'Rules', cont: 'Continue', review: 'Review and pay', payWith: 'Pay with', number: 'Mobile Money number',
       whatPay: "What you'll pay", bundlePrice: 'Bundle Price', feeLabel: 'Mobile Payment Fee (2%)', total: 'Total to Pay',
       feeInPrompt: 'The Mobile Money fee will appear in the operator prompt, before you approve.',
@@ -200,24 +191,19 @@ class Component extends DCLogic {
     const on = 'border: 2px solid #003b2b; background: #f3f9e8; color: #10241c;', offS = 'border: 1px solid #dfe5dc; background: #fffef9; color: #10241c;';
     const chip = 'min-height: 46px; border-radius: 12px; font: 600 14px "DM Sans", sans-serif; cursor: pointer; ';
     const tb = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ';
-    const kinds = [['data', T.data], ['personal', T.unl], ['wisp', T.wisp]].map(([id, label]) => ({ label, sel: s.kind === id ? 'true' : 'false', style: tb + (s.kind === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ kind: id }) }));
+    const kinds = [['personal', 'Personal Unlimited'], ['wisp', 'Home WISP Unlimited']].map(([id, label]) => ({ label, sel: s.kind === id ? 'true' : 'false', style: tb + (s.kind === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ kind: id }) }));
     const durations = Object.keys(P).map((id) => ({ label: dur[id], pressed: s.dur === id ? 'true' : 'false', style: chip + (s.dur === id ? on : offS), pick: () => this.setState({ dur: id, dev: P[id][s.dev - 1] ? s.dev : 1 }) }));
     const devices = devs.map((n) => { const price = P[s.dur][n - 1]; return { label: devWord(n), price: price ? xaf(price) : T.notOffered, off: !price, offAria: price ? 'false' : 'true', pressed: s.dev === n ? 'true' : 'false',
       aria: price ? `${devWord(n)}, ${xaf(price)}` : `${devWord(n)}, ${T.notOffered}`,
       style: 'min-height: 52px; border-radius: 12px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ' + (!price ? 'border: 1px dashed #dfe5dc; background: transparent; color: #8a948f; cursor: not-allowed;' : (s.dev === n ? on : offS)), pick: () => { if (price) this.setState({ dev: n }); } }; });
-    const DP = [['[PLAN 1]', fr ? '[DATA] Go · 24 heures' : '[DATA] GB · 24 hours'], ['[PLAN 2]', fr ? '[DATA] Go · 7 jours' : '[DATA] GB · 7 days'], ['[PLAN 3]', fr ? '[DATA] Go · 30 jours' : '[DATA] GB · 30 days']];
-    const dataPlans = DP.map(([name, terms], i) => ({ name, terms, price: '[PRICE] XAF', pressed: s.data === i ? 'true' : 'false', pick: () => this.setState({ data: i }),
-      style: 'display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px; border-radius: 12px; font: 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ' + (s.data === i ? on : offS) }));
-    const wisp = s.kind === 'wisp', data = s.kind === 'data';
-    const price = wisp ? 50000 : data ? null : P[s.dur][s.dev - 1];
+    const wisp = s.kind === 'wisp';
+    const price = wisp ? 50000 : P[s.dur][s.dev - 1];
     const plan = wisp
       ? { name: 'Home WISP Unlimited · ' + (fr ? '30 jours' : '30 days'), detail: fr ? 'Données illimitées · partage avec le foyer · 30 jours' : 'Unlimited data · household sharing · 30 days' }
-      : data ? { name: DP[s.data][0], detail: DP[s.data][1] }
       : { name: `Personal Unlimited · ${dur[s.dur]} · ${devWord(s.dev)}`, detail: fr ? `Données illimitées · ${dur[s.dur]} · ${devWord(s.dev)} enregistré${s.dev > 1 ? 's' : ''}` : `Unlimited data · ${dur[s.dur]} · ${s.dev} registered device${s.dev > 1 ? 's' : ''}` };
     const perks = (wisp
       ? (fr ? ['Données illimitées pendant 30 jours', 'Partage avec votre foyer via un routeur WISP compatible', 'Enregistrez votre routeur après le paiement', 'Le temps démarre à la première connexion']
             : ['Unlimited data for 30 days', 'Share with your household through a supported WISP router', 'Register your router after paying', 'Time starts when you first connect'])
-      : data ? (fr ? ['[DATA] Go pour la durée du forfait', 'Comme aujourd’hui : mêmes règles et mêmes prix'] : ['[DATA] GB for the length of the plan', 'Same rules and prices as today'])
       : (fr ? ['Données illimitées', `${devWord(s.dev)}, lié${s.dev > 1 ? 's' : ''} à vos appareils quand ils se connectent`, 'Partage limité : le partage de connexion et les routeurs ne fonctionnent pas', 'Le temps démarre à la première connexion']
             : ['Unlimited data', `${s.dev} device slot${s.dev > 1 ? 's' : ''}, tied to your devices when they sign in`, 'Restricts sharing: hotspot and router sharing won’t work', 'Time starts when you first connect'])).map((t) => ({ t }));
     const fee = price === null ? null : Math.round(price * 0.02);
@@ -238,7 +224,7 @@ class Component extends DCLogic {
     const amount = feeKnown ? totalText : priceText;
     return {
       t: T, isPlan: s.step === 'plan', isPay: s.step === 'pay', isWait: s.step === 'wait', isActivating: s.step === 'activating', isDone: s.step === 'done',
-      stepLabel: labels[s.step], kinds, durations, devices, dataPlans, perks, methods, isPersonal: s.kind === 'personal', isData: data, isWispPlan: wisp,
+      stepLabel: labels[s.step], kinds, durations, devices, perks, methods, isPersonal: s.kind === 'personal', isWispPlan: wisp,
       planName: plan.name, planDetail: plan.detail, planPrice: priceText,
       feeKnown, feeUnknown: !feeKnown, feeText, totalText,
       notice1: notice[0], noticeAmount: notice[1], notice2: notice[2],

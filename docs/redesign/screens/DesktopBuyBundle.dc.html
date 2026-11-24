@@ -59,17 +59,10 @@ th{color:#5c6963;font-weight:600;font-size:13px}
           <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.puNote}}</p>
         </section>
         <div style="display: flex; flex-wrap: wrap; gap: 22px">
-          <section aria-labelledby="hw" class="panel" style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 10px">
+          <section aria-labelledby="hw" class="panel" style="flex: 1 1 100%; display: flex; flex-direction: column; gap: 10px">
             <h2 id="hw" class="h2">Home WISP Unlimited</h2>
             <p style="margin: 0; color: #5c6963; font-size: 14px">{{t.wispSub}}</p>
             <button type="button" aria-pressed="{{wispPressed}}" onClick="{{pickWisp}}" style="{{wispStyle}}"><span style="text-align: left"><strong style="display: block">{{t.wispTerms}}</strong><span style="font-size: 13px; color: #5c6963">{{t.wispLine}}</span></span><strong style="font-size: 18px; white-space: nowrap">{{wispPrice}}</strong></button>
-          </section>
-          <section aria-labelledby="fd" class="panel" style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 8px">
-            <h2 id="fd" class="h2">{{t.dataTitle}}</h2>
-            <p style="margin: 0; color: #5c6963; font-size: 14px">{{t.dataSub}}</p>
-            <sc-for list="{{dataPlans}}" as="d" hint-placeholder-count="3">
-              <button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}"><span style="text-align: left"><strong style="display: block">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.terms}}</span></span><strong>{{d.price}}</strong></button>
-            </sc-for>
           </section>
         </div>
       </div>
@@ -98,11 +91,11 @@ class Component extends DCLogic {
   constructor(props) { super(props); this.state = { kind: 'personal', dur: '7d', dev: 2, data: 0, method: 'mtn' }; }
   renderVals() {
     const s = this.state, fr = (this.props.lang ?? 'en') === 'fr';
-    const T = fr ? { back: '← Internet', title: 'Acheter un forfait.', sub: 'Tous les forfaits en vente. Choisissez-en un, puis payez avec MTN MoMo ou Orange Money.', puSub: 'Données illimitées sur vos appareils enregistrés. Partage limité.', caption: 'Prix Personal Unlimited par durée et nombre d’appareils', howLong: 'Durée',
-        puNote: '« Non proposé » : cette combinaison ne peut pas être achetée. Prix en XAF.', wispSub: 'Un routeur WISP compatible, partagé avec votre foyer.', wispTerms: '30 jours', wispLine: 'Données illimitées · partage avec le foyer', dataTitle: 'Forfaits data', dataSub: 'Une quantité de data pour une durée donnée. Prix inchangés.',
+    const T = fr ? { back: '← Internet', title: 'Acheter un forfait.', sub: 'Tous les forfaits en vente, tous avec données illimitées. Choisissez-en un, puis payez avec MTN MoMo ou Orange Money.', puSub: 'Données illimitées sur vos appareils enregistrés. Partage limité.', caption: 'Prix Personal Unlimited par durée et nombre d’appareils', howLong: 'Durée',
+        puNote: '« Non proposé » : cette combinaison ne peut pas être achetée. Prix en XAF.', wispSub: 'Un routeur WISP compatible, partagé avec votre foyer.', wispTerms: '30 jours', wispLine: 'Données illimitées · partage avec le foyer',
         review: 'Votre choix', payWith: 'Payer avec', number: 'Numéro Mobile Money', bundlePrice: 'Prix du forfait', feeLabel: 'Frais de paiement mobile (2 %)', total: 'Total à payer', payNow: 'Payer maintenant', rule: 'Vous pourrez acheter quand votre forfait actuel sera terminé.', notOffered: 'Non proposé' }
-      : { back: '← Internet', title: 'Buy a bundle.', sub: 'Every bundle on sale. Pick one, then pay with MTN MoMo or Orange Money.', puSub: 'Unlimited data on your registered devices. Restricts sharing.', caption: 'Personal Unlimited prices by validity and number of devices', howLong: 'Validity',
-        puNote: '"Not offered" means that combination can’t be bought. Prices in XAF.', wispSub: 'A supported WISP router, shared with your household.', wispTerms: '30 days', wispLine: 'Unlimited data · household sharing', dataTitle: 'Data plans', dataSub: 'A set amount of data for a set time. Prices unchanged.',
+      : { back: '← Internet', title: 'Buy a bundle.', sub: 'Every bundle on sale, all with unlimited data. Pick one, then pay with MTN MoMo or Orange Money.', puSub: 'Unlimited data on your registered devices. Restricts sharing.', caption: 'Personal Unlimited prices by validity and number of devices', howLong: 'Validity',
+        puNote: '"Not offered" means that combination can’t be bought. Prices in XAF.', wispSub: 'A supported WISP router, shared with your household.', wispTerms: '30 days', wispLine: 'Unlimited data · household sharing',
         review: 'Your choice', payWith: 'Pay with', number: 'Mobile Money number', bundlePrice: 'Bundle Price', feeLabel: 'Mobile Payment Fee (2%)', total: 'Total to Pay', payNow: 'Pay Now', rule: 'You can buy once your current bundle has ended.', notOffered: 'Not offered' };
     const P = { '5h': [250, null, null, null, null, null], '24h': [500, 900, 1300, 1700, 2100, 2500], '7d': [2500, 4000, 5500, 7000, 8500, 10000], '30d': [6000, 10000, 15000, 20000, 25000, 30000] };
     const dur = fr ? { '5h': '5 heures', '24h': '24 heures', '7d': '7 jours', '30d': '30 jours' } : { '5h': '5 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
@@ -115,18 +108,16 @@ class Component extends DCLogic {
       text: p ? xaf(p) : T.notOffered, off: !p, pressed: sel ? 'true' : 'false', aria: `${dur[d]}, ${devWord(i + 1)}: ${p ? xaf(p) : T.notOffered}`,
       pick: () => { if (p) this.setState({ kind: 'personal', dur: d, dev: i + 1 }); },
       style: 'width: 100%; min-height: 48px; border-radius: 10px; font: 700 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ' + (!p ? 'border: 1px dashed #dfe5dc; background: transparent; color: #8a948f; font-weight: 600; font-size: 12px; cursor: not-allowed;' : sel ? on : off) }; }) }));
-    const DP = [['[PLAN 1]', fr ? '[DATA] Go · 24 heures' : '[DATA] GB · 24 hours'], ['[PLAN 2]', fr ? '[DATA] Go · 7 jours' : '[DATA] GB · 7 days'], ['[PLAN 3]', fr ? '[DATA] Go · 30 jours' : '[DATA] GB · 30 days']];
     const row = 'display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-radius: 12px; font: 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
-    const dataPlans = DP.map(([name, terms], i) => ({ name, terms, price: '[PRICE] XAF', pressed: s.kind === 'data' && s.data === i ? 'true' : 'false', pick: () => this.setState({ kind: 'data', data: i }), style: row + (s.kind === 'data' && s.data === i ? on : off) }));
-    const price = s.kind === 'wisp' ? 50000 : s.kind === 'data' ? null : P[s.dur][s.dev - 1];
+    const price = s.kind === 'wisp' ? 50000 : P[s.dur][s.dev - 1];
     const fee = price === null ? null : Math.round(price * 0.02);
     const net = s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money';
-    const plan = s.kind === 'wisp' ? ['Home WISP Unlimited · ' + dur['30d'], T.wispLine] : s.kind === 'data' ? DP[s.data] : [`Personal Unlimited · ${dur[s.dur]} · ${devWord(s.dev)}`, fr ? 'Données illimitées · partage limité' : 'Unlimited data · restricts sharing'];
+    const plan = s.kind === 'wisp' ? ['Home WISP Unlimited · ' + dur['30d'], T.wispLine] : [`Personal Unlimited · ${dur[s.dur]} · ${devWord(s.dev)}`, fr ? 'Données illimitées · partage limité' : 'Unlimited data · restricts sharing'];
     const mb = 'min-height: 46px; border-radius: 10px; font: 600 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
     const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, sel: s.method === id ? 'true' : 'false', style: mb + (s.method === id ? on : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
     const totalText = price === null ? '[TOTAL] XAF' : xaf(price + fee);
     return {
-      t: T, devHeads, rows, dataPlans, methods,
+      t: T, devHeads, rows, methods,
       wispPressed: s.kind === 'wisp' ? 'true' : 'false', pickWisp: () => this.setState({ kind: 'wisp' }), wispPrice: xaf(50000), wispStyle: row + (s.kind === 'wisp' ? on : off),
       planName: plan[0], planDetail: plan[1],
       priceText: price === null ? '[PRICE] XAF' : xaf(price), feeText: fee === null ? '[FEE] XAF' : xaf(fee), totalText,
