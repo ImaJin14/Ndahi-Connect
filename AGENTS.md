@@ -14,7 +14,7 @@ Read `docs/redesign/README.md` first, then the phase you're working on in `docs/
 2. **v1 is frozen, not deleted.** New screens go in `customer-app-v2/` and `admin-app-v2/`. Bug fixes still go to v1 and must also be applied to v2 (or the PR says why not).
 3. **One area per PR**, one issue per task, one agent per task. Issues are labelled `agent:claude`, `agent:antigravity`, `agent:codex` or `agent:copilot`.
 4. **Folder ownership.** Two agents never work in the same folder at the same time. During Phase 2 Antigravity owns `customer-app-v2/`; during Phase 5 Codex owns `admin-app-v2/`. After Phase 1, only Claude Code changes `shared-app/ui/` — others open an issue asking for a component or token.
-5. **Use the design kit.** Build screens from `shared-app/ui/` tokens and components (Phase 1). Every user-facing string goes through `shared-app/i18n.js` in English and French.
+5. **Use the design kit.** Build screens from `shared-app/ui/` tokens and components (Phase 1). Every user-facing string goes through `shared-app/i18n.js` in English and French; a new screen adds its strings in its own module under `shared-app/i18n/` (listed in `AREAS`) rather than editing a shared one.
 6. **No hard-coded data.** Placeholders in the designs (`[PRICE]`, `[PLAN 2]`, `[PICKUP LOCATION]`…) come from the API.
 7. **Verification is PIN or passkey only.** Never add SMS codes, authenticator apps or recovery codes.
 8. **No buying while a bundle is active.** Never add top-up or queued-bundle UI.
@@ -24,7 +24,7 @@ Read `docs/redesign/README.md` first, then the phase you're working on in `docs/
 
 ```bash
 npm ci
-npm run check        # syntax checks; add every new .js/.mjs file to this list
+npm run check        # syntax of every .js/.mjs file (found automatically) and the API surface
 npm test             # unit tests
 npm run test:browser # all browser journeys
 ```
