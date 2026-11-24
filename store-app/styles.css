@@ -338,7 +338,9 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
 .promo-gift span { color: #c8d8d0; font-size: 13px; line-height: 1.45; }
 .promo-limit { margin-top: 6px; text-align: center; }
 .promo-line strong { color: #345000; }
-.promo-note { padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #2b4200; }
+/* "How you get your free month" (PhonePromoBuy, checkout). */
+.promo-note { padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #2b4200; font-size: 14px; line-height: 1.5; }
+.promo-note__title { display: block; }
 .promo-order { display: flex; flex-direction: column; gap: 8px; margin: var(--nd-space-12) 0; padding: 16px; border-radius: 16px; background: #eaf6d5; color: #2b4200; }
 .promo-order p { margin: 0; }
 .promo-order__code { display: flex; align-items: baseline; gap: 10px; }
