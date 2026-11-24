@@ -4,6 +4,7 @@ Everything an agent needs to build the redesign is in this folder. It was assemb
 
 | File | What it is |
 | --- | --- |
+| [`merge-batches.json`](merge-batches.json) | The order every issue is built in, batches of 5. Live status: the tracking issue #429. |
 | [`execution-plan.md`](execution-plan.md) | The eight phases, done-when criteria, testing bar, risks, and which agent leads each phase. **Start here.** |
 | [`decisions.md`](decisions.md) | Product decisions already made, and the open questions the owner still has to answer. |
 | [`screens/`](screens/) | Source of all 74 canvas screens (`*.dc.html`) and the canvas index (`canvas.json`). |
@@ -27,7 +28,11 @@ Screens are 390 × 844 (phone, `Phone*`), 1280 wide (desktop, `Desktop*`, `Shop`
 
 ## Visual references
 
-PNG exports of each screen can be added to `screens/png/`, named like the artboards (`PhoneHome.png`). Until then, ask the owner for a screenshot of the screen you're building, or a link to the canvas. Agents with a browser (Antigravity) should compare their result against the PNG at 390 px and 1280 px.
+`screens/png/` has a render of every screen, plus one per design state, named `<Screen>.png` and `<Screen>--<prop>-<value>.png` (for example `PhoneHomeRouter--state-withheld.png`). These are the pictures to match. Each screen's GitHub issue embeds them.
+
+## The design is the specification
+
+AGENTS.md rule 10 applies to every screen: build exactly what the design shows, in every state. Differences are allowed only for real data in place of sample data, or when the owner approves them on the issue. Each screen PR shows design-vs-build captures in its **Design fidelity** section, and the `Design fidelity` workflow fails PRs that change a screen without it. When the design changes, the canvas is updated first, then `screens/` and `screens/png/` are re-committed, and the affected screens' issues are reopened.
 
 ## Local preview and design-vs-build captures
 

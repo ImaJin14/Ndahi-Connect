@@ -1,894 +1,1004 @@
 {
-  "v": 3,
-  "attachments": {},
-  "boards": {
-    "Admin.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Admin home",
-      "w": 1280,
-      "x": 1360,
-      "y": 6656
-    },
-    "AdminAudit.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Audit log",
-      "w": 1280,
-      "x": 1360,
-      "y": 10076
-    },
-    "AdminBundleEdit.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Edit bundle",
-      "w": 1280,
-      "x": 6800,
-      "y": 7796
-    },
-    "AdminBundles.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Bundles",
-      "w": 1280,
-      "x": 4080,
-      "y": 7796
-    },
-    "AdminCash.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Cash & settlements",
-      "w": 1280,
-      "x": 5440,
-      "y": 8936
-    },
-    "AdminConnections.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Connections + router health",
-      "w": 1280,
-      "x": 1360,
-      "y": 8936
-    },
-    "AdminCustomerDetail.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Customer detail",
-      "w": 1280,
-      "x": 2720,
-      "y": 8936
-    },
-    "AdminCustomers.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Customers (All \u00b7 Active \u00b7 Stale \u00b7 Suspended)",
-      "w": 1280,
-      "x": 2720,
-      "y": 7796
-    },
-    "AdminDevices.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Live Wi-Fi devices",
-      "w": 1280,
-      "x": 0,
-      "y": 8936
-    },
-    "AdminHomeRouters.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Home router connections",
-      "w": 1280,
-      "x": 0,
-      "y": 10076
-    },
-    "AdminLogin.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Admin sign in",
-      "w": 1280,
-      "x": 0,
-      "y": 6656
-    },
-    "AdminNetworkSetup.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Network setup (owner only)",
-      "w": 1280,
-      "x": 6800,
-      "y": 8936
-    },
-    "AdminPayments.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Payments",
-      "w": 1280,
-      "x": 2720,
-      "y": 6656
-    },
-    "AdminProductEdit.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Add / edit product",
-      "w": 1280,
-      "x": 5440,
-      "y": 7796
-    },
-    "AdminProducts.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Products + stock",
-      "w": 1280,
-      "x": 0,
-      "y": 7796
-    },
-    "AdminProfile.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Profile & security",
-      "w": 1280,
-      "x": 2720,
-      "y": 10076
-    },
-    "AdminResellers.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Resellers ledger",
-      "w": 1280,
-      "x": 4080,
-      "y": 8936
-    },
-    "AdminSide.dc.html": {
-      "h": 860,
-      "title": "Component \u00b7 admin side menu",
-      "w": 240,
-      "x": 470,
-      "y": 11696
-    },
-    "AdminStore.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Store orders + collection check + refund",
-      "w": 1280,
-      "x": 4080,
-      "y": 6656
-    },
-    "AdminVoucherPrint.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Print a voucher batch",
-      "w": 1280,
-      "x": 4080,
-      "y": 10076
-    },
-    "AdminVouchers.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Vouchers (one customer \u00b7 unregistered number \u00b7 batch)",
-      "w": 1280,
-      "x": 1360,
-      "y": 7796
-    },
-    "DesktopAccount.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Account \u2014 desktop",
-      "w": 1280,
-      "x": 6800,
-      "y": 0
-    },
-    "DesktopActivity.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Activity \u2014 desktop",
-      "w": 1280,
-      "x": 5440,
-      "y": 0
-    },
-    "DesktopInternet.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Internet \u2014 desktop",
-      "w": 1280,
-      "x": 4080,
-      "y": 0
-    },
-    "Main.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Customer home \u2014 desktop",
-      "w": 1280,
-      "x": 0,
-      "y": 0
-    },
-    "PhoneAccount.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Account",
-      "w": 390,
-      "x": 2350,
-      "y": 2864
-    },
-    "PhoneActivity.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Activity: payments + orders",
-      "w": 390,
-      "x": 1410,
-      "y": 2864
-    },
-    "PhoneBillingTerms.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Payment and package rules",
-      "w": 390,
-      "x": 6580,
-      "y": 2864
-    },
-    "PhoneBuyBundle.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "4 \u00b7 Buy a bundle (plan \u2192 pay \u2192 active)",
-      "w": 390,
-      "x": 1410,
-      "y": 1600
-    },
-    "PhoneChangePin.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Change PIN",
-      "w": 390,
-      "x": 3760,
-      "y": 2864
-    },
-    "PhoneCheckout.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Checkout (signed in)",
-      "w": 390,
-      "x": 940,
-      "y": 4128
-    },
-    "PhoneDevices.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Devices",
-      "w": 390,
-      "x": 940,
-      "y": 2864
-    },
-    "PhoneEditProfile.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Edit profile",
-      "w": 390,
-      "x": 5170,
-      "y": 2864
-    },
-    "PhoneForgotPin.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Forgot PIN \u2192 reset by email",
-      "w": 390,
-      "x": 2350,
-      "y": 1600
-    },
-    "PhoneGuestCheckout.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Guest checkout (details \u2192 pay \u2192 tracking link)",
-      "w": 390,
-      "x": 940,
-      "y": 5392
-    },
-    "PhoneGuestOrder.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Order tracking via private link",
-      "w": 390,
-      "x": 1410,
-      "y": 5392
-    },
-    "PhoneGuestProduct.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Product \u2014 guest",
-      "w": 390,
-      "x": 470,
-      "y": 5392
-    },
-    "PhoneGuestShop.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Public storefront \u2014 guest",
-      "w": 390,
-      "x": 0,
-      "y": 5392
-    },
-    "PhoneHelp.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Help",
-      "w": 390,
-      "x": 2820,
-      "y": 2864
-    },
-    "PhoneHome.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Home",
-      "w": 390,
-      "x": 0,
-      "y": 2864
-    },
-    "PhoneHomeRouter.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "NDAHI Home router",
-      "w": 390,
-      "x": 6110,
-      "y": 2864
-    },
-    "PhoneHotspot.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "1 \u00b7 Hotspot: connect to Wi-Fi",
-      "w": 390,
-      "x": 0,
-      "y": 1600
-    },
-    "PhoneInternet.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Internet: bundles + vouchers",
-      "w": 390,
-      "x": 470,
-      "y": 2864
-    },
-    "PhoneLogin.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "2 \u00b7 Sign in",
-      "w": 390,
-      "x": 470,
-      "y": 1600
-    },
-    "PhoneNotifications.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Notifications",
-      "w": 390,
-      "x": 3290,
-      "y": 2864
-    },
-    "PhoneOrder.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Order tracking (account or private link)",
-      "w": 390,
-      "x": 1410,
-      "y": 4128
-    },
-    "PhonePairRequest.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "New device: request access",
-      "w": 390,
-      "x": 3290,
-      "y": 1600
-    },
-    "PhonePairReview.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Review a device request",
-      "w": 390,
-      "x": 5640,
-      "y": 2864
-    },
-    "PhonePasskey.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Passkey sign-in",
-      "w": 390,
-      "x": 4230,
-      "y": 2864
-    },
-    "PhoneProduct.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Product",
-      "w": 390,
-      "x": 470,
-      "y": 4128
-    },
-    "PhoneReceipt.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Receipt",
-      "w": 390,
-      "x": 1878,
-      "y": 2864
-    },
-    "PhoneScanConnect.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Scan to connect (active bundle \u2192 PIN or passkey)",
-      "w": 390,
-      "x": 4260,
-      "y": 1600
-    },
-    "PhoneScanNoBundle.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Scan to connect \u2014 no active bundle \u2192 buy",
-      "w": 390,
-      "x": 4730,
-      "y": 1600
-    },
-    "PhoneSessions.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Signed-in devices",
-      "w": 390,
-      "x": 4700,
-      "y": 2864
-    },
-    "PhoneShop.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Shop (signed in)",
-      "w": 390,
-      "x": 0,
-      "y": 4128
-    },
-    "PhoneVoucher.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "5 \u00b7 Use a voucher",
-      "w": 390,
-      "x": 1880,
-      "y": 1600
-    },
-    "PhoneVoucherReady.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Your saved voucher",
-      "w": 390,
-      "x": 2820,
-      "y": 1600
-    },
-    "PhoneWifiConnected.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "3 \u00b7 Finish Wi-Fi sign-in",
-      "w": 390,
-      "x": 940,
-      "y": 1600
-    },
-    "ProductDesktop.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Product page \u2014 desktop",
-      "w": 1280,
-      "x": 8160,
-      "y": 0
-    },
-    "Shop.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Shop inside the portal \u2014 desktop",
-      "w": 1280,
-      "x": 1360,
-      "y": 0
-    },
-    "StoreGuest.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Public storefront for guests \u2014 desktop",
-      "w": 1280,
-      "x": 2720,
-      "y": 0
-    },
-    "TabBar.dc.html": {
-      "h": 74,
-      "title": "Component \u00b7 phone tab bar",
-      "w": 390,
-      "x": 0,
-      "y": 11696
-    },
-    "VoucherSlip.dc.html": {
-      "h": 595,
-      "print": "flow",
-      "title": "Printed voucher slip (A6)",
-      "w": 420,
-      "x": 3760,
-      "y": 1600
-    },
-    "AdminVoucherDetail.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Voucher detail (in use \u00b7 not used \u00b7 used up \u00b7 waiting for claim)",
-      "w": 1280,
-      "x": 5440,
-      "y": 10076
-    },
-    "PhonePaymentFailed.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Payment didn't go through (declined \u00b7 low balance \u00b7 timeout \u00b7 wrong network)",
-      "w": 390,
-      "x": 0,
-      "y": 13200
-    },
-    "PhoneRenew.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Renewal moments (80% used \u00b7 ends tomorrow \u00b7 ended \u2192 buy again)",
-      "w": 390,
-      "x": 470,
-      "y": 13200
-    },
-    "PhoneBuyForOther.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Buy a bundle for someone else",
-      "w": 390,
-      "x": 940,
-      "y": 13200
-    },
-    "PhoneOutage.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Home during an outage (down \u00b7 restored)",
-      "w": 390,
-      "x": 1410,
-      "y": 13200
-    },
-    "PhoneHomeFR.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Accueil \u2014 French layout check",
-      "w": 390,
-      "x": 1880,
-      "y": 13200
-    },
-    "ResellerHome.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Reseller home (sell a code \u00b7 what you owe)",
-      "w": 390,
-      "x": 2350,
-      "y": 13200
-    },
-    "AdminInsights.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Insights + new-design funnel",
-      "w": 1280,
-      "x": 0,
-      "y": 14644
-    },
-    "AdminOutage.dc.html": {
-      "expand": "fill",
-      "h": 1020,
-      "is_interactive": true,
-      "title": "Outages (notice \u2192 live \u2192 give time back)",
-      "w": 1280,
-      "x": 1360,
-      "y": 14644
-    },
-    "PhoneClaimGift.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Claim a bundle someone gave you (number + code \u2192 PIN \u2192 start)",
-      "w": 390,
-      "x": 3290,
-      "y": 13200
-    },
-    "ConnectFlow.dc.html": {
-      "h": 2780,
-      "is_interactive": true,
-      "title": "Get connected \u2014 full flow (5 paths + recoveries)",
-      "w": 2400,
-      "x": -2700,
-      "y": 1300
-    },
-    "StorePromo.dc.html": {
-      "expand": "fill",
-      "h": 1560,
-      "is_interactive": true,
-      "title": "Public store during Black Friday \u2014 desktop",
-      "w": 1280,
-      "x": 0,
-      "y": 16400
-    },
-    "PhonePromoBuy.dc.html": {
-      "h": 844,
-      "is_interactive": true,
-      "title": "Black Friday deal: product \u2192 checkout \u2192 order (account or guest)",
-      "w": 390,
-      "x": 1360,
-      "y": 16400
-    },
-    "AdminPromotions.dc.html": {
-      "expand": "fill",
-      "h": 1180,
-      "is_interactive": true,
-      "title": "Promotions (set up \u00b7 while it runs)",
-      "w": 1280,
-      "x": 1830,
-      "y": 16400
-    }
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Admin.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Admin home",
+   "w": 1280,
+   "x": 1360,
+   "y": 6656
   },
-  "createdOnFiles": {
-    "at": "2026-11-10T16:40:00Z",
-    "v": 1
+  "AdminAudit.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Audit log",
+   "w": 1280,
+   "x": 1360,
+   "y": 10076
   },
-  "designSystems": [],
-  "launch": {
-    "view": "canvas"
+  "AdminBundleEdit.dc.html": {
+   "expand": "fill",
+   "h": 1460,
+   "is_interactive": true,
+   "title": "Add / edit bundle (Personal Unlimited or Home WISP \u00b7 price \u00b7 validity \u00b7 device slots)",
+   "w": 1280,
+   "x": 6800,
+   "y": 7796
   },
-  "noteOrder": [
-    "row1",
-    "row2",
-    "row3",
-    "row4",
-    "row5",
-    "row6",
-    "row7",
-    "nav",
-    "guest",
-    "row8",
-    "row9",
-    "added",
-    "claim",
-    "flow",
-    "row11",
-    "promo"
-  ],
-  "notes": {
-    "guest": {
-      "fill": "blue",
-      "size": 24,
-      "text": "Guest purchases stay.\n\nstore.ndahiconnect.net remains a public storefront. Guests pay with a phone number and get a private tracking link, which opens the same Order tracking screen as signed-in customers.\n\nSigned-in customers shop from the Shop tab and see orders in Activity.",
-      "w": 360,
-      "x": 1880,
-      "y": 5392
-    },
-    "nav": {
-      "fill": "green",
-      "size": 24,
-      "text": "How to try it: press Play on any screen and tap through.\n\nCustomer tabs: Home \u00b7 Internet \u00b7 Shop \u00b7 Activity \u00b7 Account.\nInternet = bundles + vouchers. Activity = bundle payments and shop orders together.\n\nSign-in uses only a PIN or a passkey \u2014 no SMS codes, no authenticator app.\n\nPrices, plan names and the pickup location are placeholders.",
-      "w": 360,
-      "x": 5200,
-      "y": 1600
-    },
-    "row1": {
-      "kind": "title1",
-      "maxW": 8000,
-      "text": "Desktop \u2014 customer portal with the shop inside, plus the public storefront",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "row2": {
-      "kind": "title1",
-      "maxW": 5120,
-      "text": "Phone \u2014 get connected, sign in and recover",
-      "w": 240,
-      "x": 0,
-      "y": 1300
-    },
-    "row3": {
-      "kind": "title1",
-      "maxW": 6970,
-      "text": "Phone \u2014 everyday use and account",
-      "w": 240,
-      "x": 0,
-      "y": 2564
-    },
-    "row4": {
-      "kind": "title1",
-      "maxW": 1800,
-      "text": "Phone \u2014 shop, signed in",
-      "w": 240,
-      "x": 0,
-      "y": 3828
-    },
-    "row5": {
-      "kind": "title1",
-      "maxW": 1800,
-      "text": "Phone \u2014 shop as a guest (no account)",
-      "w": 240,
-      "x": 0,
-      "y": 5092
-    },
-    "row6": {
-      "kind": "title1",
-      "maxW": 8000,
-      "text": "Admin \u2014 separate app, same design system",
-      "w": 240,
-      "x": 0,
-      "y": 6356
-    },
-    "row7": {
-      "kind": "title1",
-      "maxW": 1200,
-      "text": "Shared components",
-      "w": 240,
-      "x": 0,
-      "y": 11396
-    },
-    "row8": {
-      "kind": "title1",
-      "maxW": 3200,
-      "text": "Added \u2014 payment failures, renewals, gifting, outages, French, resellers",
-      "w": 240,
-      "x": 0,
-      "y": 12900
-    },
-    "row9": {
-      "kind": "title1",
-      "maxW": 2700,
-      "text": "Added \u2014 admin insights and outages",
-      "w": 240,
-      "x": 0,
-      "y": 14344
-    },
-    "added": {
-      "fill": "yellow",
-      "size": 24,
-      "text": "What changed elsewhere:\n\n\u2022 Customers: tick rows (or select all stale) \u2192 give a gift voucher or send a message in bulk.\n\u2022 Edit bundle: speed limit per customer (MikroTik queue).\n\u2022 Admin menu: Insights and Outages.\n\u2022 Buy a bundle: \"Payment didn't go through?\" link.\n\u2022 Tab bar: lang = fr.\n\nFrench check: watch button labels and the bundle card \u2014 French runs ~25% longer.",
-      "w": 380,
-      "x": 2820,
-      "y": 13200
-    },
-    "claim": {
-      "fill": "blue",
-      "size": 24,
-      "text": "Unregistered numbers:\n\n1. Admin \u2192 Vouchers \u2192 search a number with no account \u2192 Reserve for this number.\n2. They claim it with their number + the code (Sign in \u2192 \"Someone gave you a bundle?\").\n3. Voucher detail \u2192 Waiting for claim: change number, revoke, 90-day expiry.\n\nNo SMS: the code is the proof. Paying with Mobile Money from that number also claims it automatically.",
-      "w": 380,
-      "x": 3760,
-      "y": 13200
-    },
-    "flow": {
-      "kind": "title1",
-      "maxW": 2400,
-      "text": "Flow \u2014 get connected, end to end",
-      "w": 240,
-      "x": -2700,
-      "y": 1000
-    },
-    "row11": {
-      "kind": "title1",
-      "maxW": 3200,
-      "text": "Promotions \u2014 Black Friday: AX1500 for 100,000 FCFA + 1 month Unlimited free",
-      "w": 240,
-      "x": 0,
-      "y": 16100
-    },
-    "promo": {
-      "fill": "yellow",
-      "size": 24,
-      "text": "Promotion rules in this design:\n\n\u2022 Sale price for a set window, capped units, 1 per customer.\n\u2022 Free bundle given when the router is collected (option: at payment). Signed-in: added to account. Guest: reserved for the paying number, code on a slip.\n\u2022 Free month starts when they press Start, within 60 days \u2014 works even with a bundle running.\n\u2022 Refund before collection \u2192 free month never given. Gift, not revenue.\n\u2022 Crossed-out price only if it's the real recent price.",
-      "w": 380,
-      "x": 3190,
-      "y": 16400
-    }
+  "AdminBundles.dc.html": {
+   "expand": "fill",
+   "h": 1640,
+   "is_interactive": true,
+   "title": "Bundle catalogue (20 unlimited offers \u00b7 Home WISP 50,000 \u00b7 reorder \u00b7 archive)",
+   "w": 1280,
+   "x": 4080,
+   "y": 7796
   },
-  "order": [
-    "Main.dc.html",
-    "Shop.dc.html",
-    "StoreGuest.dc.html",
-    "DesktopInternet.dc.html",
-    "DesktopActivity.dc.html",
-    "DesktopAccount.dc.html",
-    "ProductDesktop.dc.html",
-    "ConnectFlow.dc.html",
-    "PhoneHotspot.dc.html",
-    "PhoneLogin.dc.html",
-    "PhoneWifiConnected.dc.html",
-    "PhoneBuyBundle.dc.html",
-    "PhoneVoucher.dc.html",
-    "PhoneForgotPin.dc.html",
-    "PhoneVoucherReady.dc.html",
-    "PhonePairRequest.dc.html",
-    "VoucherSlip.dc.html",
-    "PhoneScanConnect.dc.html",
-    "PhoneScanNoBundle.dc.html",
-    "PhoneHome.dc.html",
-    "PhoneInternet.dc.html",
-    "PhoneDevices.dc.html",
-    "PhoneActivity.dc.html",
-    "PhoneReceipt.dc.html",
-    "PhoneAccount.dc.html",
-    "PhoneHelp.dc.html",
-    "PhoneNotifications.dc.html",
-    "PhoneChangePin.dc.html",
-    "PhonePasskey.dc.html",
-    "PhoneSessions.dc.html",
-    "PhoneEditProfile.dc.html",
-    "PhonePairReview.dc.html",
-    "PhoneHomeRouter.dc.html",
-    "PhoneBillingTerms.dc.html",
-    "PhoneShop.dc.html",
-    "PhoneProduct.dc.html",
-    "PhoneCheckout.dc.html",
-    "PhoneOrder.dc.html",
-    "PhoneGuestShop.dc.html",
-    "PhoneGuestProduct.dc.html",
-    "PhoneGuestCheckout.dc.html",
-    "PhoneGuestOrder.dc.html",
-    "AdminLogin.dc.html",
-    "Admin.dc.html",
-    "AdminPayments.dc.html",
-    "AdminStore.dc.html",
-    "AdminProducts.dc.html",
-    "AdminVouchers.dc.html",
-    "AdminVoucherDetail.dc.html",
-    "AdminCustomers.dc.html",
-    "AdminBundles.dc.html",
-    "AdminProductEdit.dc.html",
-    "AdminBundleEdit.dc.html",
-    "AdminDevices.dc.html",
-    "AdminConnections.dc.html",
-    "AdminCustomerDetail.dc.html",
-    "AdminResellers.dc.html",
-    "AdminCash.dc.html",
-    "AdminNetworkSetup.dc.html",
-    "AdminHomeRouters.dc.html",
-    "AdminAudit.dc.html",
-    "AdminProfile.dc.html",
-    "AdminVoucherPrint.dc.html",
-    "PhonePaymentFailed.dc.html",
-    "PhoneRenew.dc.html",
-    "PhoneBuyForOther.dc.html",
-    "PhoneOutage.dc.html",
-    "PhoneHomeFR.dc.html",
-    "ResellerHome.dc.html",
-    "AdminInsights.dc.html",
-    "AdminOutage.dc.html",
-    "PhoneClaimGift.dc.html",
-    "StorePromo.dc.html",
-    "PhonePromoBuy.dc.html",
-    "AdminPromotions.dc.html",
-    "TabBar.dc.html",
-    "AdminSide.dc.html"
-  ],
-  "pages": [
-    {
-      "id": "page-1",
-      "name": "Page 1"
-    }
-  ],
-  "title": "NDAHI Connect Redesign"
+  "AdminCash.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Cash & settlements",
+   "w": 1280,
+   "x": 5440,
+   "y": 8936
+  },
+  "AdminConnections.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Connections + router health",
+   "w": 1280,
+   "x": 1360,
+   "y": 8936
+  },
+  "AdminCustomerDetail.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Customer detail",
+   "w": 1280,
+   "x": 2720,
+   "y": 8936
+  },
+  "AdminCustomers.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Customers (All \u00b7 Active \u00b7 Stale \u00b7 Suspended)",
+   "w": 1280,
+   "x": 2720,
+   "y": 7796
+  },
+  "AdminDevices.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Live Wi-Fi devices (one row per customer \u00b7 pop-up lists every connected device)",
+   "w": 1280,
+   "x": 0,
+   "y": 8936
+  },
+  "AdminHomeRouters.dc.html": {
+   "expand": "fill",
+   "h": 1100,
+   "is_interactive": true,
+   "title": "Home WISP routers (sharing exceptions \u00b7 reconcile \u00b7 revoke)",
+   "w": 1280,
+   "x": 0,
+   "y": 10076
+  },
+  "AdminLogin.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Admin sign in",
+   "w": 1280,
+   "x": 0,
+   "y": 6656
+  },
+  "AdminNetworkSetup.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Network setup (owner only)",
+   "w": 1280,
+   "x": 6800,
+   "y": 8936
+  },
+  "AdminPayments.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Payments",
+   "w": 1280,
+   "x": 2720,
+   "y": 6656
+  },
+  "AdminProductEdit.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Add / edit product",
+   "w": 1280,
+   "x": 5440,
+   "y": 7796
+  },
+  "AdminProducts.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Products + stock",
+   "w": 1280,
+   "x": 0,
+   "y": 7796
+  },
+  "AdminProfile.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Profile & security",
+   "w": 1280,
+   "x": 2720,
+   "y": 10076
+  },
+  "AdminResellers.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Resellers ledger",
+   "w": 1280,
+   "x": 4080,
+   "y": 8936
+  },
+  "AdminSide.dc.html": {
+   "h": 860,
+   "title": "Component \u00b7 admin side menu",
+   "w": 240,
+   "x": 470,
+   "y": 11696
+  },
+  "AdminStore.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Store orders + collection check + refund",
+   "w": 1280,
+   "x": 4080,
+   "y": 6656
+  },
+  "AdminVoucherPrint.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Print a voucher batch",
+   "w": 1280,
+   "x": 4080,
+   "y": 10076
+  },
+  "AdminVouchers.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Vouchers (one customer \u00b7 unregistered number \u00b7 batch)",
+   "w": 1280,
+   "x": 1360,
+   "y": 7796
+  },
+  "DesktopAccount.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Account \u2014 desktop",
+   "w": 1280,
+   "x": 6800,
+   "y": 0
+  },
+  "DesktopActivity.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Activity \u2014 desktop",
+   "w": 1280,
+   "x": 5440,
+   "y": 0
+  },
+  "DesktopInternet.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Internet \u2014 desktop",
+   "w": 1280,
+   "x": 4080,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Customer home \u2014 desktop",
+   "w": 1280,
+   "x": 0,
+   "y": 0
+  },
+  "PhoneAccount.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Account",
+   "w": 390,
+   "x": 2350,
+   "y": 2864
+  },
+  "PhoneActivity.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Activity: payments + orders",
+   "w": 390,
+   "x": 1410,
+   "y": 2864
+  },
+  "PhoneBillingTerms.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payment and package rules",
+   "w": 390,
+   "x": 6580,
+   "y": 2864
+  },
+  "PhoneBuyBundle.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "4 \u00b7 Buy a bundle (Personal Unlimited 1\u20136 devices \u00b7 Home WISP \u2192 pay with 2% fee \u2192 payment confirmed \u2192 activating \u2192 online)",
+   "w": 390,
+   "x": 1410,
+   "y": 1600
+  },
+  "PhoneChangePin.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Change PIN",
+   "w": 390,
+   "x": 3760,
+   "y": 2864
+  },
+  "PhoneCheckout.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Checkout (signed in)",
+   "w": 390,
+   "x": 940,
+   "y": 4128
+  },
+  "PhoneDevices.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Device slots (tied to Wi-Fi address \u00b7 replace \u00b7 remove)",
+   "w": 390,
+   "x": 940,
+   "y": 2864
+  },
+  "PhoneEditProfile.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Edit profile",
+   "w": 390,
+   "x": 5170,
+   "y": 2864
+  },
+  "PhoneForgotPin.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Forgot PIN \u2192 reset by email",
+   "w": 390,
+   "x": 2350,
+   "y": 1600
+  },
+  "PhoneGuestCheckout.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Guest checkout (details \u2192 pay \u2192 tracking link)",
+   "w": 390,
+   "x": 940,
+   "y": 5392
+  },
+  "PhoneGuestOrder.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Order tracking via private link",
+   "w": 390,
+   "x": 1410,
+   "y": 5392
+  },
+  "PhoneGuestProduct.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Product \u2014 guest",
+   "w": 390,
+   "x": 470,
+   "y": 5392
+  },
+  "PhoneGuestShop.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Public storefront \u2014 guest",
+   "w": 390,
+   "x": 0,
+   "y": 5392
+  },
+  "PhoneHelp.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Help",
+   "w": 390,
+   "x": 2820,
+   "y": 2864
+  },
+  "PhoneHome.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home",
+   "w": 390,
+   "x": 0,
+   "y": 2864
+  },
+  "PhoneHomeRouter.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home WISP router (register \u00b7 sharing \u00b7 withheld)",
+   "w": 390,
+   "x": 6110,
+   "y": 2864
+  },
+  "PhoneHotspot.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "1 \u00b7 Hotspot: connect to Wi-Fi",
+   "w": 390,
+   "x": 0,
+   "y": 1600
+  },
+  "PhoneInternet.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Internet: bundles + vouchers",
+   "w": 390,
+   "x": 470,
+   "y": 2864
+  },
+  "PhoneLogin.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "2 \u00b7 Sign in",
+   "w": 390,
+   "x": 470,
+   "y": 1600
+  },
+  "PhoneNotifications.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Notifications",
+   "w": 390,
+   "x": 3290,
+   "y": 2864
+  },
+  "PhoneOrder.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Order tracking (account or private link)",
+   "w": 390,
+   "x": 1410,
+   "y": 4128
+  },
+  "PhonePairRequest.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "New device: request access",
+   "w": 390,
+   "x": 3290,
+   "y": 1600
+  },
+  "PhonePairReview.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Review a device request",
+   "w": 390,
+   "x": 5640,
+   "y": 2864
+  },
+  "PhonePasskey.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Passkey sign-in",
+   "w": 390,
+   "x": 4230,
+   "y": 2864
+  },
+  "PhoneProduct.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Product",
+   "w": 390,
+   "x": 470,
+   "y": 4128
+  },
+  "PhoneReceipt.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Receipt (payment vs Wi-Fi activation \u00b7 confirmed fee \u00b7 copyable reference)",
+   "w": 390,
+   "x": 1878,
+   "y": 2864
+  },
+  "PhoneScanConnect.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Scan to connect (active bundle \u2192 PIN or passkey)",
+   "w": 390,
+   "x": 4260,
+   "y": 1600
+  },
+  "PhoneScanNoBundle.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Scan to connect \u2014 no active bundle \u2192 buy",
+   "w": 390,
+   "x": 4730,
+   "y": 1600
+  },
+  "PhoneSessions.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Signed-in devices",
+   "w": 390,
+   "x": 4700,
+   "y": 2864
+  },
+  "PhoneShop.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Shop (signed in)",
+   "w": 390,
+   "x": 0,
+   "y": 4128
+  },
+  "PhoneVoucher.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "5 \u00b7 Use a voucher",
+   "w": 390,
+   "x": 1880,
+   "y": 1600
+  },
+  "PhoneVoucherReady.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Your saved voucher",
+   "w": 390,
+   "x": 2820,
+   "y": 1600
+  },
+  "PhoneWifiConnected.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "3 \u00b7 Finish Wi-Fi sign-in",
+   "w": 390,
+   "x": 940,
+   "y": 1600
+  },
+  "ProductDesktop.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Product page \u2014 desktop",
+   "w": 1280,
+   "x": 8160,
+   "y": 0
+  },
+  "Shop.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Shop inside the portal \u2014 desktop",
+   "w": 1280,
+   "x": 1360,
+   "y": 0
+  },
+  "StoreGuest.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Public storefront for guests \u2014 desktop",
+   "w": 1280,
+   "x": 2720,
+   "y": 0
+  },
+  "TabBar.dc.html": {
+   "h": 74,
+   "title": "Component \u00b7 phone tab bar",
+   "w": 390,
+   "x": 0,
+   "y": 11696
+  },
+  "VoucherSlip.dc.html": {
+   "h": 595,
+   "print": "flow",
+   "title": "Printed voucher slip (A6)",
+   "w": 420,
+   "x": 3760,
+   "y": 1600
+  },
+  "AdminVoucherDetail.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Voucher detail (in use \u00b7 not used \u00b7 used up \u00b7 waiting for claim)",
+   "w": 1280,
+   "x": 5440,
+   "y": 10076
+  },
+  "PhonePaymentFailed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payment problems (insufficient balance + cheaper switch \u00b7 expired \u00b7 cancelled/PIN \u00b7 wrong network \u00b7 pending \u00b7 unclear)",
+   "w": 390,
+   "x": 0,
+   "y": 13200
+  },
+  "PhoneRenew.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Renewal moments (ends tomorrow \u00b7 ended \u2192 buy again)",
+   "w": 390,
+   "x": 470,
+   "y": 13200
+  },
+  "PhoneBuyForOther.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Buy a bundle for someone else",
+   "w": 390,
+   "x": 940,
+   "y": 13200
+  },
+  "PhoneOutage.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home during an outage (down \u00b7 restored)",
+   "w": 390,
+   "x": 1410,
+   "y": 13200
+  },
+  "PhoneHomeFR.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Accueil \u2014 French layout check",
+   "w": 390,
+   "x": 1880,
+   "y": 13200
+  },
+  "ResellerHome.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Reseller home (sell a code \u00b7 what you owe)",
+   "w": 390,
+   "x": 2350,
+   "y": 13200
+  },
+  "AdminInsights.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Insights + new-design funnel",
+   "w": 1280,
+   "x": 0,
+   "y": 14644
+  },
+  "AdminOutage.dc.html": {
+   "expand": "fill",
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Outages (notice \u2192 live \u2192 give time back)",
+   "w": 1280,
+   "x": 1360,
+   "y": 14644
+  },
+  "PhoneClaimGift.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Claim a bundle someone gave you (number + code \u2192 PIN \u2192 start)",
+   "w": 390,
+   "x": 3290,
+   "y": 13200
+  },
+  "ConnectFlow.dc.html": {
+   "h": 2780,
+   "is_interactive": true,
+   "title": "Get connected \u2014 full flow (5 paths + recoveries)",
+   "w": 2400,
+   "x": -2700,
+   "y": 1300
+  },
+  "StorePromo.dc.html": {
+   "expand": "fill",
+   "h": 1560,
+   "is_interactive": true,
+   "title": "Public store during Black Friday \u2014 desktop",
+   "w": 1280,
+   "x": 0,
+   "y": 16400
+  },
+  "PhonePromoBuy.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Black Friday deal: product \u2192 checkout \u2192 order (account or guest)",
+   "w": 390,
+   "x": 1360,
+   "y": 16400
+  },
+  "AdminPromotions.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Promotions (set up \u00b7 while it runs)",
+   "w": 1280,
+   "x": 1830,
+   "y": 16400
+  },
+  "PhoneStarterKit.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home starter kit (setup option \u00b7 pay in full or in 3)",
+   "w": 390,
+   "x": 0,
+   "y": 18600
+  },
+  "PhoneInstallBooking.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Book an installation (day + slot \u2192 where \u2192 booked)",
+   "w": 390,
+   "x": 470,
+   "y": 18600
+  },
+  "PhoneInstalments.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Pay in 3 (choose \u2192 paying \u2192 fully paid)",
+   "w": 390,
+   "x": 940,
+   "y": 18600
+  },
+  "AdminStoreServices.dc.html": {
+   "expand": "fill",
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Kits, installations and payment plans (admin)",
+   "w": 1280,
+   "x": 1410,
+   "y": 18600
+  },
+  "PhoneReplaceDevice.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Replace a device (choose \u2192 old one off first \u2192 this one on)",
+   "w": 390,
+   "x": 5170,
+   "y": 4128
+  },
+  "DesktopBuyBundle.dc.html": {
+   "expand": "fill",
+   "h": 1100,
+   "is_interactive": true,
+   "title": "Buy a bundle \u2014 desktop (all six device counts, 2% fee breakdown)",
+   "w": 1280,
+   "x": 9600,
+   "y": 0
+  },
+  "BrochureEN.dc.html": {
+   "h": 4588,
+   "is_interactive": false,
+   "title": "Brochure \u2014 Connect, Pay & Get Online (English, 4 \u00d7 A4)",
+   "w": 794,
+   "x": 11000,
+   "y": 0
+  },
+  "BrochureFR.dc.html": {
+   "h": 4588,
+   "is_interactive": false,
+   "title": "Brochure \u2014 Se connecter, payer et naviguer (fran\u00e7ais, 4 \u00d7 A4)",
+   "w": 794,
+   "x": 11900,
+   "y": 0
+  },
+  "Brochure.dc.html": {
+   "h": 4588,
+   "is_interactive": false,
+   "title": "Brochure source (shared by EN and FR; lang switch)",
+   "w": 794,
+   "x": 12800,
+   "y": 0
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-11-10T16:40:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "noteOrder": [
+  "row1",
+  "row2",
+  "row3",
+  "row4",
+  "row5",
+  "row6",
+  "row7",
+  "nav",
+  "guest",
+  "row8",
+  "row9",
+  "added",
+  "claim",
+  "flow",
+  "row11",
+  "promo",
+  "row12",
+  "svc",
+  "catalog"
+ ],
+ "notes": {
+  "guest": {
+   "fill": "blue",
+   "size": 24,
+   "text": "Guest purchases stay.\n\nstore.ndahiconnect.net remains a public storefront. Guests pay with a phone number and get a private tracking link, which opens the same Order tracking screen as signed-in customers.\n\nSigned-in customers shop from the Shop tab and see orders in Activity.",
+   "w": 360,
+   "x": 1880,
+   "y": 5392
+  },
+  "nav": {
+   "fill": "green",
+   "size": 24,
+   "text": "How to try it: press Play on any screen and tap through.\n\nCustomer tabs: Home \u00b7 Internet \u00b7 Shop \u00b7 Activity \u00b7 Account.\nInternet = bundles + vouchers. Activity = bundle payments and shop orders together.\n\nSign-in uses only a PIN or a passkey \u2014 no SMS codes, no authenticator app.\n\nPrices, plan names and the pickup location are placeholders.",
+   "w": 360,
+   "x": 5200,
+   "y": 1600
+  },
+  "row1": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Desktop \u2014 customer portal with the shop inside, plus the public storefront",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "row2": {
+   "kind": "title1",
+   "maxW": 5120,
+   "text": "Phone \u2014 get connected, sign in and recover",
+   "w": 240,
+   "x": 0,
+   "y": 1300
+  },
+  "row3": {
+   "kind": "title1",
+   "maxW": 6970,
+   "text": "Phone \u2014 everyday use and account",
+   "w": 240,
+   "x": 0,
+   "y": 2564
+  },
+  "row4": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Phone \u2014 shop, signed in",
+   "w": 240,
+   "x": 0,
+   "y": 3828
+  },
+  "row5": {
+   "kind": "title1",
+   "maxW": 1800,
+   "text": "Phone \u2014 shop as a guest (no account)",
+   "w": 240,
+   "x": 0,
+   "y": 5092
+  },
+  "row6": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Admin \u2014 separate app, same design system",
+   "w": 240,
+   "x": 0,
+   "y": 6356
+  },
+  "row7": {
+   "kind": "title1",
+   "maxW": 1200,
+   "text": "Shared components",
+   "w": 240,
+   "x": 0,
+   "y": 11396
+  },
+  "row8": {
+   "kind": "title1",
+   "maxW": 3200,
+   "text": "Added \u2014 payment failures, renewals, gifting, outages, French, resellers",
+   "w": 240,
+   "x": 0,
+   "y": 12900
+  },
+  "row9": {
+   "kind": "title1",
+   "maxW": 2700,
+   "text": "Added \u2014 admin insights and outages",
+   "w": 240,
+   "x": 0,
+   "y": 14344
+  },
+  "added": {
+   "fill": "yellow",
+   "size": 24,
+   "text": "What changed elsewhere:\n\n\u2022 Customers: tick rows (or select all stale) \u2192 give a gift voucher or send a message in bulk.\n\u2022 Edit bundle: speed limit per customer (MikroTik queue).\n\u2022 Admin menu: Insights and Outages.\n\u2022 Buy a bundle: \"Payment didn't go through?\" link.\n\u2022 Tab bar: lang = fr.\n\nFrench check: watch button labels and the bundle card \u2014 French runs ~25% longer.",
+   "w": 380,
+   "x": 2820,
+   "y": 13200
+  },
+  "claim": {
+   "fill": "blue",
+   "size": 24,
+   "text": "Unregistered numbers:\n\n1. Admin \u2192 Vouchers \u2192 search a number with no account \u2192 Reserve for this number.\n2. They claim it with their number + the code (Sign in \u2192 \"Someone gave you a bundle?\").\n3. Voucher detail \u2192 Waiting for claim: change number, revoke, 90-day expiry.\n\nNo SMS: the code is the proof. Paying with Mobile Money from that number also claims it automatically.",
+   "w": 380,
+   "x": 3760,
+   "y": 13200
+  },
+  "flow": {
+   "kind": "title1",
+   "maxW": 2400,
+   "text": "Flow \u2014 get connected, end to end",
+   "w": 240,
+   "x": -2700,
+   "y": 1000
+  },
+  "row11": {
+   "kind": "title1",
+   "maxW": 3200,
+   "text": "Promotions \u2014 Black Friday: AX1500 for 100,000 FCFA + 1 month Unlimited free",
+   "w": 240,
+   "x": 0,
+   "y": 16100
+  },
+  "promo": {
+   "fill": "yellow",
+   "size": 24,
+   "text": "Promotion rules in this design:\n\n\u2022 Sale price for a set window, capped units, 1 per customer.\n\u2022 Free bundle given when the router is collected (option: at payment). Signed-in: added to account. Guest: reserved for the paying number, code on a slip.\n\u2022 Free month starts when they press Start, within 60 days \u2014 works even with a bundle running.\n\u2022 Refund before collection \u2192 free month never given. Gift, not revenue.\n\u2022 Crossed-out price only if it's the real recent price.",
+   "w": 380,
+   "x": 3190,
+   "y": 16400
+  },
+  "row12": {
+   "kind": "title1",
+   "maxW": 3200,
+   "text": "Store \u2014 starter kits, installation booking, pay in instalments",
+   "w": 240,
+   "x": 0,
+   "y": 18300
+  },
+  "svc": {
+   "fill": "yellow",
+   "size": 24,
+   "text": "Rules in this design (to confirm):\n\n\u2022 Home kit = router set up for the buyer's account + first bundle, one price. Needs an account.\n\u2022 Installation: pick day + morning/afternoon slot, landmark directions, area travel fee. Free to move/cancel up to 24 h before; weak signal \u2192 no install, fee refunded.\n\u2022 Pay in 3: 40% today, rest within 30 days, no interest; each payment has its own MoMo fee. 7 days late \u2192 cancelled, refund minus MoMo fees, stock released. Items from 50,000 FCFA.",
+   "w": 400,
+   "x": 2770,
+   "y": 18600
+  },
+  "catalog": {
+   "fill": "blue",
+   "size": 24,
+   "text": "Unlimited catalogue (23 Nov):\n\n\u2022 Personal Unlimited: 5 h / 24 h / 7 d / 30 d \u00d7 1, 2, 4, 6 device slots. Home WISP Unlimited: 30 days, 40,000 FCFA, one router.\n\u2022 All data unlimited; time starts at first connection.\n\u2022 Device slots are tied to the Wi-Fi address seen at sign-in. Full = new devices refused, even if one is offline. Replacing never restarts the bundle.\n\u2022 Personal bundles restrict sharing. Home WISP shares only through its registered router, while active.\n\u2022 Gig Standard retired: existing purchases keep their terms.",
+   "w": 420,
+   "x": 5640,
+   "y": 4128
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Shop.dc.html",
+  "StoreGuest.dc.html",
+  "DesktopInternet.dc.html",
+  "DesktopBuyBundle.dc.html",
+  "DesktopActivity.dc.html",
+  "DesktopAccount.dc.html",
+  "ProductDesktop.dc.html",
+  "ConnectFlow.dc.html",
+  "PhoneHotspot.dc.html",
+  "PhoneLogin.dc.html",
+  "PhoneWifiConnected.dc.html",
+  "PhoneBuyBundle.dc.html",
+  "PhoneVoucher.dc.html",
+  "PhoneForgotPin.dc.html",
+  "PhoneVoucherReady.dc.html",
+  "PhonePairRequest.dc.html",
+  "VoucherSlip.dc.html",
+  "PhoneScanConnect.dc.html",
+  "PhoneScanNoBundle.dc.html",
+  "PhoneHome.dc.html",
+  "PhoneInternet.dc.html",
+  "PhoneDevices.dc.html",
+  "PhoneReplaceDevice.dc.html",
+  "PhoneActivity.dc.html",
+  "PhoneReceipt.dc.html",
+  "PhoneAccount.dc.html",
+  "PhoneHelp.dc.html",
+  "PhoneNotifications.dc.html",
+  "PhoneChangePin.dc.html",
+  "PhonePasskey.dc.html",
+  "PhoneSessions.dc.html",
+  "PhoneEditProfile.dc.html",
+  "PhonePairReview.dc.html",
+  "PhoneHomeRouter.dc.html",
+  "PhoneBillingTerms.dc.html",
+  "PhoneShop.dc.html",
+  "PhoneProduct.dc.html",
+  "PhoneCheckout.dc.html",
+  "PhoneOrder.dc.html",
+  "PhoneGuestShop.dc.html",
+  "PhoneGuestProduct.dc.html",
+  "PhoneGuestCheckout.dc.html",
+  "PhoneGuestOrder.dc.html",
+  "AdminLogin.dc.html",
+  "Admin.dc.html",
+  "AdminPayments.dc.html",
+  "AdminStore.dc.html",
+  "AdminProducts.dc.html",
+  "AdminVouchers.dc.html",
+  "AdminVoucherDetail.dc.html",
+  "AdminCustomers.dc.html",
+  "AdminBundles.dc.html",
+  "AdminProductEdit.dc.html",
+  "AdminBundleEdit.dc.html",
+  "AdminDevices.dc.html",
+  "AdminConnections.dc.html",
+  "AdminCustomerDetail.dc.html",
+  "AdminResellers.dc.html",
+  "AdminCash.dc.html",
+  "AdminNetworkSetup.dc.html",
+  "AdminHomeRouters.dc.html",
+  "AdminAudit.dc.html",
+  "AdminProfile.dc.html",
+  "AdminVoucherPrint.dc.html",
+  "PhonePaymentFailed.dc.html",
+  "PhoneRenew.dc.html",
+  "PhoneBuyForOther.dc.html",
+  "PhoneOutage.dc.html",
+  "PhoneHomeFR.dc.html",
+  "ResellerHome.dc.html",
+  "AdminInsights.dc.html",
+  "AdminOutage.dc.html",
+  "PhoneClaimGift.dc.html",
+  "StorePromo.dc.html",
+  "PhonePromoBuy.dc.html",
+  "AdminPromotions.dc.html",
+  "PhoneStarterKit.dc.html",
+  "PhoneInstallBooking.dc.html",
+  "PhoneInstalments.dc.html",
+  "AdminStoreServices.dc.html",
+  "TabBar.dc.html",
+  "AdminSide.dc.html",
+  "BrochureEN.dc.html",
+  "BrochureFR.dc.html",
+  "Brochure.dc.html"
+ ],
+ "pages": [
+  {
+   "id": "page-1",
+   "name": "Page 1"
+  }
+ ],
+ "title": "NDAHI Connect Redesign"
 }

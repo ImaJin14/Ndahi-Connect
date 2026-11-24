@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Buy a bundle desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.nl{display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;border-radius:8px;color:#dce8e2;text-decoration:none;font-weight:600;font-size:14px}
+.nl:hover{color:#ffffff;background:rgba(255,255,255,.08)}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:18px;padding:24px}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:22px}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.code{font:700 15px ui-monospace,Menlo,monospace;letter-spacing:.06em}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1100px">
+  <header style="background: #003b2b; color: #ffffff">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 14px 28px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #ffffff"><span style="width: 40px; height: 40px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 13px">NC</span><span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 22px">NDAHI</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">CONNECT</small></span></a>
+      <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 auto">
+        <a class="nl" href="Main.dc.html">Home</a>
+        <a class="nl" href="DesktopInternet.dc.html" aria-current="page" style="background: rgba(185,238,46,.14); color: #b9ee2e">Internet</a>
+        <a class="nl" href="Shop.dc.html">Shop</a>
+        <a class="nl" href="DesktopActivity.dc.html">Activity</a>
+        <a class="nl" href="DesktopAccount.dc.html">Account</a>
+      </nav>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #dce8e2"><span style="width: 8px; height: 8px; border-radius: 50%; background: #b9ee2e"></span>Network online</span>
+    </div>
+  </header>
+  <main style="max-width: 1200px; margin: 0 auto; padding: 32px 28px 56px; display: flex; flex-direction: column; gap: 22px">
+    <div>
+      <a href="DesktopInternet.dc.html" style="font-size: 14px; font-weight: 700">{{t.back}}</a>
+      <h1 style="margin: 10px 0 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 40px">{{t.title}}</h1>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">{{t.sub}}</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+      <div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+        <section aria-labelledby="pu" class="panel" style="display: flex; flex-direction: column; gap: 14px">
+          <div><h2 id="pu" class="h2">Personal Unlimited</h2><p style="margin: 4px 0 0; color: #5c6963; font-size: 14px">{{t.puSub}}</p></div>
+          <table style="width: 100%; border-collapse: separate; border-spacing: 6px">
+            <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">{{t.caption}}</caption>
+            <thead><tr><th scope="col" style="border: 0; padding: 0 4px"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">{{t.howLong}}</span></th><sc-for list="{{devHeads}}" as="h" hint-placeholder-count="6"><th scope="col" style="border: 0; padding: 0 4px; text-align: center">{{h.l}}</th></sc-for></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+                <tr><th scope="row" style="border: 0; padding: 0 4px; font-size: 14px; color: #10241c; font-weight: 700">{{r.label}}</th>
+                  <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="6"><td style="border: 0; padding: 0"><button type="button" aria-pressed="{{c.pressed}}" disabled="{{c.off}}" aria-label="{{c.aria}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.text}}</button></td></sc-for>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.puNote}}</p>
+        </section>
+        <div style="display: flex; flex-wrap: wrap; gap: 22px">
+          <section aria-labelledby="hw" class="panel" style="flex: 1 1 100%; display: flex; flex-direction: column; gap: 10px">
+            <h2 id="hw" class="h2">Home WISP Unlimited</h2>
+            <p style="margin: 0; color: #5c6963; font-size: 14px">{{t.wispSub}}</p>
+            <button type="button" aria-pressed="{{wispPressed}}" onClick="{{pickWisp}}" style="{{wispStyle}}"><span style="text-align: left"><strong style="display: block">{{t.wispTerms}}</strong><span style="font-size: 13px; color: #5c6963">{{t.wispLine}}</span></span><strong style="font-size: 18px; white-space: nowrap">{{wispPrice}}</strong></button>
+          </section>
+        </div>
+      </div>
+      <aside aria-labelledby="sum" style="flex: 1 1 340px; min-width: 0; position: sticky; top: 20px; display: flex; flex-direction: column; gap: 14px; padding: 22px; border-radius: 18px; background: #fffef9; border: 1px solid #dfe5dc">
+        <h2 id="sum" class="h2">{{t.review}}</h2>
+        <div style="padding: 14px; border-radius: 14px; background: #003b2b; color: #ffffff"><strong style="display: block; font-size: 16px">{{planName}}</strong><span style="font-size: 13px; color: #c8d8d0">{{planDetail}}</span></div>
+        <div role="radiogroup" aria-label="{{t.payWith}}" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+          <sc-for list="{{methods}}" as="m" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{m.sel}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button></sc-for>
+        </div>
+        <div><label for="dn" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">{{t.number}}</label><input id="dn" type="tel" value="6•• •• 12 45" style="box-sizing: border-box; width: 100%; min-height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid #b8c7bd; background: #ffffff; font: 16px 'DM Sans', sans-serif"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: #3d4a44">
+          <div style="display: flex; justify-content: space-between"><span>{{t.bundlePrice}}</span><span style="color: #10241c">{{priceText}}</span></div>
+          <div style="display: flex; justify-content: space-between"><span>{{t.feeLabel}}</span><span style="color: #10241c">{{feeText}}</span></div>
+          <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid #dfe5dc"><strong style="color: #10241c">{{t.total}}</strong><strong style="color: #10241c; font-size: 20px">{{totalText}}</strong></div>
+        </div>
+        <p role="note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45">{{n1}}<strong>{{totalText}}</strong>{{n2}}</p>
+        <a href="PhoneBuyBundle.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 10px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 16px; text-decoration: none">{{t.payNow}}</a>
+        <p style="margin: 0; color: #5c6963; font-size: 12px">{{t.rule}}</p>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { kind: 'personal', dur: '7d', dev: 2, data: 0, method: 'mtn' }; }
+  renderVals() {
+    const s = this.state, fr = (this.props.lang ?? 'en') === 'fr';
+    const T = fr ? { back: '← Internet', title: 'Acheter un forfait.', sub: 'Tous les forfaits en vente, tous avec données illimitées. Choisissez-en un, puis payez avec MTN MoMo ou Orange Money.', puSub: 'Données illimitées sur vos appareils enregistrés. Partage limité.', caption: 'Prix Personal Unlimited par durée et nombre d’appareils', howLong: 'Durée',
+        puNote: '« Non proposé » : cette combinaison ne peut pas être achetée. Prix en XAF.', wispSub: 'Un routeur WISP compatible, partagé avec votre foyer.', wispTerms: '30 jours', wispLine: 'Données illimitées · partage avec le foyer',
+        review: 'Votre choix', payWith: 'Payer avec', number: 'Numéro Mobile Money', bundlePrice: 'Prix du forfait', feeLabel: 'Frais de paiement mobile (2 %)', total: 'Total à payer', payNow: 'Payer maintenant', rule: 'Vous pourrez acheter quand votre forfait actuel sera terminé.', notOffered: 'Non proposé' }
+      : { back: '← Internet', title: 'Buy a bundle.', sub: 'Every bundle on sale, all with unlimited data. Pick one, then pay with MTN MoMo or Orange Money.', puSub: 'Unlimited data on your registered devices. Restricts sharing.', caption: 'Personal Unlimited prices by validity and number of devices', howLong: 'Validity',
+        puNote: '"Not offered" means that combination can’t be bought. Prices in XAF.', wispSub: 'A supported WISP router, shared with your household.', wispTerms: '30 days', wispLine: 'Unlimited data · household sharing',
+        review: 'Your choice', payWith: 'Pay with', number: 'Mobile Money number', bundlePrice: 'Bundle Price', feeLabel: 'Mobile Payment Fee (2%)', total: 'Total to Pay', payNow: 'Pay Now', rule: 'You can buy once your current bundle has ended.', notOffered: 'Not offered' };
+    const P = { '5h': [250, null, null, null, null, null], '24h': [500, 900, 1300, 1700, 2100, 2500], '7d': [2500, 4000, 5500, 7000, 8500, 10000], '30d': [6000, 10000, 15000, 20000, 25000, 30000] };
+    const dur = fr ? { '5h': '5 heures', '24h': '24 heures', '7d': '7 jours', '30d': '30 jours' } : { '5h': '5 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+    const num = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/\u202f/g, ' ');
+    const xaf = (n) => num(n) + ' XAF';
+    const devWord = (n) => fr ? `${n} appareil${n > 1 ? 's' : ''}` : `${n} device${n > 1 ? 's' : ''}`;
+    const on = 'border: 2px solid #003b2b; background: #f3f9e8;', off = 'border: 1px solid #dfe5dc; background: #ffffff;';
+    const devHeads = [1, 2, 3, 4, 5, 6].map((n) => ({ l: devWord(n) }));
+    const rows = Object.keys(P).map((d) => ({ label: dur[d], cells: P[d].map((p, i) => { const sel = s.kind === 'personal' && s.dur === d && s.dev === i + 1; return {
+      text: p ? xaf(p) : T.notOffered, off: !p, pressed: sel ? 'true' : 'false', aria: `${dur[d]}, ${devWord(i + 1)}: ${p ? xaf(p) : T.notOffered}`,
+      pick: () => { if (p) this.setState({ kind: 'personal', dur: d, dev: i + 1 }); },
+      style: 'width: 100%; min-height: 48px; border-radius: 10px; font: 700 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ' + (!p ? 'border: 1px dashed #dfe5dc; background: transparent; color: #8a948f; font-weight: 600; font-size: 12px; cursor: not-allowed;' : sel ? on : off) }; }) }));
+    const row = 'display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-radius: 12px; font: 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+    const price = s.kind === 'wisp' ? 50000 : P[s.dur][s.dev - 1];
+    const fee = price === null ? null : Math.round(price * 0.02);
+    const net = s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money';
+    const plan = s.kind === 'wisp' ? ['Home WISP Unlimited · ' + dur['30d'], T.wispLine] : [`Personal Unlimited · ${dur[s.dur]} · ${devWord(s.dev)}`, fr ? 'Données illimitées · partage limité' : 'Unlimited data · restricts sharing'];
+    const mb = 'min-height: 46px; border-radius: 10px; font: 600 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+    const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, sel: s.method === id ? 'true' : 'false', style: mb + (s.method === id ? on : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
+    const totalText = price === null ? '[TOTAL] XAF' : xaf(price + fee);
+    return {
+      t: T, devHeads, rows, methods,
+      wispPressed: s.kind === 'wisp' ? 'true' : 'false', pickWisp: () => this.setState({ kind: 'wisp' }), wispPrice: xaf(50000), wispStyle: row + (s.kind === 'wisp' ? on : off),
+      planName: plan[0], planDetail: plan[1],
+      priceText: price === null ? '[PRICE] XAF' : xaf(price), feeText: fee === null ? '[FEE] XAF' : xaf(fee), totalText,
+      n1: fr ? "Assurez-vous d'avoir au moins " : 'Ensure you have at least ',
+      n2: fr ? ` sur votre compte ${net} (frais de paiement mobile de 2 % inclus). Gardez votre écran déverrouillé pour saisir votre code PIN.` : ` in your ${net} wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.`
+    };
+  }
+}
+</script>
+</body>
+</html>

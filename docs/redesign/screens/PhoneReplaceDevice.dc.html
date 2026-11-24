@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Replace a device</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn[disabled]{background:#e4e9e1;color:#5c6963;cursor:not-allowed}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:26px;line-height:1.15}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;width:100%;box-sizing:border-box;min-height:64px;padding:10px 14px;border-radius:12px;font:14px 'DM Sans',sans-serif;color:#10241c;text-align:left;cursor:pointer}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5c6963}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.steps li{display:flex;gap:12px;align-items:center;font-size:14px}
+.mk{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <header style="background: #003b2b; color: #ffffff; padding: 14px 18px; display: flex; align-items: center; gap: 10px">
+    <span style="width: 32px; height: 32px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 10px">NC</span>
+    <span style="flex: 1"><strong style="display: block; font-size: 15px">Replace a device</strong><span style="font-size: 12px; color: #c8d8d0">Signed in as Amina N. on NDAHI Wi-Fi</span></span>
+  </header>
+
+  <sc-if value="{{isPick}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">Both device slots are in use</h1>
+      <div style="padding: 12px 14px; border-radius: 12px; background: #eef3e9; font-size: 14px; line-height: 1.45"><strong>This device</strong> · Android phone<br><span class="mono">Wi-Fi address ••:••:••:8B:03:D1 · seen by NDAHI Wi-Fi</span></div>
+      <p style="margin: 0; color: #3d4a44; font-size: 14px">Choose the device this one replaces. That device is disconnected first and can't use your bundle any more.</p>
+      <div role="radiogroup" aria-label="Device to replace" style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{olds}}" as="o" hint-placeholder-count="2">
+          <button type="button" role="radio" aria-checked="{{o.sel}}" class="opt" onClick="{{o.pick}}" style="{{o.style}}"><span style="flex: 1"><strong style="display: block">{{o.name}}</strong><span class="mono">{{o.meta}}</span></span></button>
+        </sc-for>
+      </div>
+      <div><label for="rp" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">Confirm with your PIN</label><input id="rp" type="password" inputmode="numeric" value="2468" style="box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #b8c7bd; font: 18px 'DM Sans', sans-serif; letter-spacing: .3em"></div>
+    </main>
+    <div class="foot"><button type="button" class="btn" disabled="{{noPick}}" onClick="{{start}}">Replace {{oldName}}</button><a class="btn2" href="PhoneDevices.dc.html">Cancel</a></div>
+  </sc-if>
+
+  <sc-if value="{{isWork}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 26px 20px; display: flex; flex-direction: column; gap: 18px">
+      <h1 class="h1" role="status">{{workTitle}}</h1>
+      <ol class="steps">
+        <sc-for list="{{steps}}" as="t" hint-placeholder-count="4"><li><span class="mk" style="{{t.mk}}">{{t.icon}}</span><span style="{{t.text}}">{{t.label}}</span></li></sc-for>
+      </ol>
+      <sc-if value="{{failed}}" hint-placeholder-val="{{ false }}">
+        <p role="alert" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px; line-height: 1.5"><strong>We couldn't confirm {{oldName}} is disconnected.</strong> Nothing changed: it still holds the slot and this phone isn't connected. It's safe to try again.</p>
+      </sc-if>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">The new device only gets access after the router confirms the old one is off. One change per slot at a time.</p>
+    </main>
+    <div class="foot">
+      <sc-if value="{{failed}}" hint-placeholder-val="{{ false }}"><button type="button" class="btn" onClick="{{retry}}">Try again</button></sc-if>
+      <sc-if value="{{working}}" hint-placeholder-val="{{ true }}"><button type="button" class="btn" onClick="{{advance}}">{{advanceLabel}}</button></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
+      <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+      <h1 class="h1">This phone is connected</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">It took {{oldName}}'s slot. {{oldName}} is disconnected and its saved sign-in was cleared.</p>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; align-self: stretch">Your bundle still ends <strong>Wed 25 Nov at 18:03</strong>. Replacing a device never restarts or extends it.</p>
+    </main>
+    <div class="foot"><a class="btn" href="PhoneHome.dc.html">Done</a></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"outcome":{"editor":"enum","options":["success","oldDeviceStillOn"],"default":"success"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'pick', old: 'b', n: 0, failed: false, tried: false }; }
+  renderVals() {
+    const s = this.state;
+    const failCase = (this.props.outcome ?? 'success') === 'oldDeviceStillOn' && !s.tried;
+    const list = { a: ['Samsung tablet', 'Slot 1 · ••:••:••:4F:A2:10 · online now'], b: ['HP laptop', 'Slot 2 · ••:••:••:19:C7:5E · offline 2 h'] };
+    const olds = Object.entries(list).map(([id, [name, meta]]) => ({ name, meta, sel: s.old === id ? 'true' : 'false',
+      style: s.old === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #fffef9;', pick: () => this.setState({ old: id }) }));
+    const oldName = s.old ? list[s.old][0] : 'the device';
+    const labels = [`Disconnecting ${oldName}`, 'Clearing its saved sign-in', 'Router confirms it’s off', 'Connecting this phone'];
+    const steps = labels.map((label, i) => {
+      const done = i < s.n, cur = i === s.n, bad = s.failed && i === 2;
+      return { label, icon: bad ? '!' : done ? '✓' : String(i + 1),
+        mk: bad ? 'background: #fbe4e4; color: #8a2a2a;' : done ? 'background: #eaf6d5; color: #345000;' : cur ? 'background: #003b2b; color: #b9ee2e;' : 'background: #eef0ee; color: #5c6963;',
+        text: (cur || done || bad) ? 'font-weight: 700;' : 'color: #5c6963;' };
+    });
+    return {
+      isPick: s.step === 'pick', isWork: s.step === 'work', isDone: s.step === 'done',
+      olds, oldName, noPick: !s.old, steps,
+      start: () => this.setState({ step: 'work', n: 0, failed: false }),
+      failed: s.failed, working: !s.failed,
+      workTitle: s.failed ? 'Replacement paused' : 'Moving the slot to this phone…',
+      advanceLabel: s.n < 3 ? 'Next step (preview)' : 'Finish',
+      advance: () => {
+        if (s.n === 2 && failCase) return this.setState({ failed: true });
+        if (s.n >= 3) return this.setState({ step: 'done' });
+        this.setState({ n: s.n + 1 });
+      },
+      retry: () => this.setState({ failed: false, tried: true, n: 0 })
+    };
+  }
+}
+</script>
+</body>
+</html>

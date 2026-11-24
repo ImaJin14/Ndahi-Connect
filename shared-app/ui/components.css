@@ -496,6 +496,9 @@ a.nd-brand { min-height: var(--nd-touch); }
   z-index: 20;
   display: flex;
   margin: 0;
+  /* TabBar artboard: 74 px tall, border-box (plus the phone's safe area). */
+  box-sizing: border-box;
+  height: calc(74px + env(safe-area-inset-bottom, 0px));
   padding: var(--nd-space-4) var(--nd-space-4) 14px;
   padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--nd-line);
@@ -538,7 +541,7 @@ a.nd-topnav__link[aria-current="page"]:hover, .nd-page a.nd-topnav__link[aria-cu
 }
 @media (min-width: 768px) {
   .nd-topnav__inner { flex-wrap: wrap; justify-content: flex-start; gap: var(--nd-space-16) var(--nd-space-28); min-height: 0; padding: var(--nd-space-14) var(--nd-space-28); }
-  .nd-topnav__links { position: static; flex: 1 1 auto; flex-wrap: wrap; gap: var(--nd-space-4); padding: 0; border: 0; background: transparent; --nd-focus-color: var(--nd-lime); }
+  .nd-topnav__links { position: static; flex: 1 1 auto; flex-wrap: wrap; gap: var(--nd-space-4); height: auto; padding: 0; border: 0; background: transparent; --nd-focus-color: var(--nd-lime); }
   .nd-topnav__link { flex: 0 0 auto; flex-direction: row; gap: var(--nd-space-8); min-height: 0; height: var(--nd-touch); padding: 0 var(--nd-space-14); border-radius: var(--nd-radius-sm); color: var(--nd-on-forest-soft); font-size: var(--nd-fs-small); }
   .nd-page a.nd-topnav__link, a.nd-topnav__link:hover { color: var(--nd-on-forest-soft); }
   .nd-page a.nd-topnav__link:hover, a.nd-topnav__link:hover { background: rgba(255, 255, 255, 0.08); color: var(--nd-white); }
@@ -575,10 +578,20 @@ a.nd-topnav__link[aria-current="page"]:hover, .nd-page a.nd-topnav__link[aria-cu
 .nd-page a.nd-sidemenu__item { color: var(--nd-on-forest-soft); }
 .nd-page a.nd-sidemenu__item:hover { background: rgba(255, 255, 255, 0.08); color: var(--nd-white); }
 .nd-sidemenu__item[aria-current="page"], .nd-page a.nd-sidemenu__item[aria-current="page"] { background: rgba(185, 238, 46, 0.16); color: var(--nd-lime); }
-.nd-sidemenu__item .nd-badge { margin-left: auto; }
+/* AdminSide artboard: the pill is 22 px wide plus its padding (content-box). */
+.nd-sidemenu__item .nd-badge { margin-left: auto; box-sizing: content-box; }
 .nd-sidemenu__signout { display: flex; align-items: center; width: 100%; min-height: 40px; margin-top: var(--nd-space-18); padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-on-forest); border-radius: var(--nd-radius-sm); background: transparent; color: var(--nd-on-forest-soft); font: 600 var(--nd-fs-small)/1 var(--nd-font-body); text-align: left; text-decoration: none; cursor: pointer; }
 .nd-page a.nd-sidemenu__signout { color: var(--nd-on-forest-soft); }
 .nd-sidemenu__signout:hover { background: rgba(255, 255, 255, 0.08); color: var(--nd-white); }
+/* AdminSide artboard (the 240 px panel): a 36 px mark inside its 2 px ring
+   (40 px in all), the brand words at their natural line height, and the
+   brand link 52 px tall with its own padding (still a 44 px+ target). */
+@media (min-width: 768px) {
+  .nd-sidemenu__brand .nd-brand__mark { box-sizing: content-box; }
+  .nd-sidemenu__brand .nd-brand__words { line-height: normal; }
+  .nd-sidemenu__brand { padding: 0; }
+  .nd-sidemenu__brand a.nd-brand { display: flex; min-height: 0; padding: var(--nd-space-4) var(--nd-space-12) var(--nd-space-8); }
+}
 @media (pointer: coarse) {
   .nd-sidemenu__item, .nd-sidemenu__signout { min-height: var(--nd-touch); }
 }
