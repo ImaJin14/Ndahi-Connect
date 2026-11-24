@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin kits installations and plans</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:21px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:42px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.go{min-height:42px;padding:0 16px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.go2{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+td,th{text-align:left;padding:11px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.metric b{display:block;font-size:22px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1180px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="services" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Store</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Kits, installations and payment plans.</h1>
+      </div>
+      <div role="tablist" aria-label="Section" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+          <button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}} <span style="{{t.badgeStyle}}">{{t.badge}}</span></button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-if value="{{isKits}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+        <section aria-labelledby="kl" class="panel" style="flex: 1 1 340px">
+          <h2 id="kl" class="h2">Kits on sale</h2>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <div style="padding: 14px; border-radius: 12px; border: 2px solid #003b2b; background: #f3f9e8; display: flex; flex-direction: column; gap: 4px"><div style="display: flex; justify-content: space-between"><strong>Home kit</strong><span class="pill" style="background: #eaf6d5; color: #345000">On sale</span></div><span style="font-size: 13px; color: #5c6963">AX1500 + Home WISP Unlimited first month · [KIT PRICE] FCFA · 14 sold this month</span></div>
+            <div style="padding: 14px; border-radius: 12px; border: 1px solid #dfe5dc; background: #ffffff; display: flex; flex-direction: column; gap: 4px"><div style="display: flex; justify-content: space-between"><strong>Outdoor link kit</strong><span class="pill" style="background: #eef0ee; color: #3d4a44">Draft</span></div><span style="font-size: 13px; color: #5c6963">CPE210 + installation + [PLAN 2] · install required</span></div>
+          </div>
+          <button type="button" class="go" style="align-self: flex-start">New kit</button>
+        </section>
+        <section aria-labelledby="ke" class="panel" style="flex: 999 1 460px">
+          <h2 id="ke" class="h2">Edit Home kit</h2>
+          <div class="grid">
+            <div><label class="lbl" for="kn">Kit name</label><input class="in" id="kn" value="Home kit"></div>
+            <div><label class="lbl" for="kr">Router</label><select class="in" id="kr"><option selected="">TP-Link AX1500 · 10 in stock</option><option>Wavlink AC1200 · 2 in stock</option></select></div>
+            <div><label class="lbl" for="kb">First bundle</label><select class="in" id="kb"><option>[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option><option selected="">Home WISP Unlimited · 30 days</option></select></div>
+            <div><label class="lbl" for="kp">Kit price (FCFA)</label><input class="in" id="kp" placeholder="[KIT PRICE]"><p style="margin: 6px 0 0; color: #345000; font-size: 12px; font-weight: 600">Bought separately: [XAF] · saving shown: [XAF]</p></div>
+          </div>
+          <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer"><input type="checkbox" checked="" style="width: 20px; height: 20px; accent-color: #003b2b; margin-top: 1px"><span><strong>Set up for the buyer's account before collection</strong><br><span style="color: #5c6963; font-size: 13px">Adds a "Set up" step to the order: link the router as their NDAHI Home router. The first bundle starts when it first connects.</span></span></label>
+          <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer"><input type="checkbox" checked="" style="width: 20px; height: 20px; accent-color: #003b2b; margin-top: 1px"><span><strong>Offer installation</strong> <span style="color: #5c6963">(optional add-on)</span></span></label>
+          <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; cursor: pointer"><input type="checkbox" checked="" style="width: 20px; height: 20px; accent-color: #003b2b; margin-top: 1px"><span><strong>Allow Pay in 3</strong></span></label>
+          <div style="display: flex; gap: 10px"><button type="button" class="go">Save kit</button></div>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isInstalls}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div role="group" aria-label="Day" style="display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{days}}" as="d" hint-placeholder-count="5">
+            <button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}} · {{d.count}}</button>
+          </sc-for>
+        </div>
+        <section aria-labelledby="jl" class="panel" style="gap: 6px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+            <h2 id="jl" class="h2">Jobs · {{dayLabel}}</h2>
+            <span style="font-size: 13px; color: #5c6963">Capacity: 2 morning · 2 afternoon · 2 technicians</span>
+          </div>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; border-collapse: collapse">
+              <thead><tr><th scope="col">Slot</th><th scope="col">Customer</th><th scope="col">Area · directions</th><th scope="col">Device</th><th scope="col">Technician</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+              <tbody>
+                <tr><td>Morning</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">Amina N.</a><br><span style="font-size: 12px; color: #5c6963">6•• •• 12 45</span></td><td>[AREA 2]<br><span style="font-size: 12px; color: #5c6963">Behind the Total station, blue gate</span></td><td>Home kit · AX1500</td><td><select class="in" style="min-height: 36px; width: 130px"><option selected="">Eric</option><option>Brenda</option></select></td><td><span style="{{j1Pill}}">{{j1}}</span></td><td><button type="button" class="go2" onClick="{{done1}}">{{j1Action}}</button></td></tr>
+                <tr><td>Morning</td><td><strong>Paul T.</strong><br><span style="font-size: 12px; color: #5c6963">6•• •• 88 02</span></td><td>[AREA 1]<br><span style="font-size: 12px; color: #5c6963">Opposite the primary school</span></td><td>CPE210 · outdoor</td><td><select class="in" style="min-height: 36px; width: 130px"><option>Eric</option><option selected="">Brenda</option></select></td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Booked</span></td><td><button type="button" class="go2">Done…</button></td></tr>
+                <tr><td>Afternoon</td><td><strong>Grace T.</strong><br><span style="font-size: 12px; color: #5c6963">6•• •• 03 66</span></td><td>[AREA 2]<br><span style="font-size: 12px; color: #5c6963">Near the market, yellow shop</span></td><td>Home kit · AX1500</td><td><select class="in" style="min-height: 36px; width: 130px"><option selected="">Eric</option><option>Brenda</option></select></td><td><span class="pill" style="background: #fff4e0; color: #6b3a00">Moved by customer</span></td><td><button type="button" class="go2">Done…</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <sc-if value="{{doneForm}}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top: 10px; padding: 14px; border-radius: 12px; background: #eef3e9; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end">
+              <div style="flex: 1 1 160px"><label class="lbl" for="sg">Signal at the customer</label><input class="in" id="sg" value="−58 dBm · 42 Mbps"></div>
+              <div style="flex: 1 1 160px"><label class="lbl" for="ph">Photo of the install</label><input class="in" id="ph" value="install-amina.jpg"></div>
+              <button type="button" class="go" onClick="{{confirm1}}">Mark installed</button>
+            </div>
+          </sc-if>
+          <p style="margin: 8px 0 0; font-size: 13px; color: #5c6963">If the signal is too weak, choose "Couldn't install": the installation fee is refunded and the customer can return the kit unopened.</p>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isPlans}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>11</b><span>plans running</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>[XAF]</b><span>still to be paid</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>2</b><span>late payments</span></div>
+          <div class="panel metric" style="padding: 18px; gap: 2px"><b>91%</b><span>of plans completed</span></div>
+        </div>
+        <section aria-labelledby="pl" class="panel" style="gap: 6px">
+          <h2 id="pl" class="h2">Payment plans</h2>
+          <div style="overflow-x: auto">
+            <table style="width: 100%; border-collapse: collapse">
+              <thead><tr><th scope="col">Customer</th><th scope="col">Item</th><th scope="col">Paid</th><th scope="col">Next due</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+              <tbody>
+                <tr><td><strong>Amina N.</strong></td><td>Home kit</td><td>40%</td><td>Sat 5 Dec</td><td><span class="pill" style="background: #eaf6d5; color: #345000">On track</span></td><td><button type="button" class="go2">Send reminder</button></td></tr>
+                <tr><td><strong>K. Nji</strong></td><td>AX1500</td><td>70%</td><td>Tue 17 Nov</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">2 days late</span></td><td style="display: flex; gap: 6px"><button type="button" class="go2" onClick="{{extend}}">{{extendLabel}}</button><button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4">Cancel and refund</button></td></tr>
+                <tr><td><strong>J. Fon</strong></td><td>Home kit</td><td>100%</td><td>—</td><td><span class="pill" style="background: #e3f0ff; color: #1d4f86">Paid · to collect</span></td><td></td></tr>
+                <tr><td><strong>M. Ekane</strong></td><td>Wavlink AC1200</td><td>40%</td><td>—</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Cancelled · refunded</span></td><td></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section aria-labelledby="ps" class="panel">
+          <h2 id="ps" class="h2">Plan rules</h2>
+          <div class="grid">
+            <div><label class="lbl" for="d1">Deposit</label><select class="in" id="d1"><option>30%</option><option selected="">40%</option><option>50%</option></select></div>
+            <div><label class="lbl" for="d2">Pay the rest within</label><select class="in" id="d2"><option selected="">30 days</option><option>45 days</option><option>60 days</option></select></div>
+            <div><label class="lbl" for="d3">Grace before cancelling</label><select class="in" id="d3"><option selected="">7 days</option><option>14 days</option></select></div>
+            <div><label class="lbl" for="d4">Available on items from</label><input class="in" id="d4" value="50000"></div>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #5c6963">Cancelled plans refund everything paid except the Mobile Money fees, and the stock goes back on sale. Customers with a late or cancelled plan in the last 6 months can't start a new one.</p>
+        </section>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["kits","installs","plans"],"default":"kits"},"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: props.tab ?? 'kits', day: 0, form: false, done: false, extended: false }; }
+  renderVals() {
+    const s = this.state;
+    const tb = 'display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const tabs = [['kits', 'Kits', ''], ['installs', 'Installations', '3'], ['plans', 'Payment plans', '2']].map(([id, label, badge]) => ({
+      label, badge, sel: id === s.tab ? 'true' : 'false',
+      style: tb + (id === s.tab ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'),
+      badgeStyle: badge ? 'padding: 0 7px; border-radius: 999px; background: #b9ee2e; color: #15210c; font-size: 12px;' : 'display: none;',
+      pick: () => this.setState({ tab: id }) }));
+    const dl = [['Today, Thu 19', 3], ['Fri 20', 2], ['Sat 21', 4], ['Mon 23', 1], ['Tue 24', 4]];
+    const days = dl.map(([label, count], i) => ({ label, count: count + (count === 1 ? ' job' : ' jobs'), pressed: s.day === i ? 'true' : 'false',
+      style: 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ' + (s.day === i ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
+      pick: () => this.setState({ day: i }) }));
+    return {
+      tabs, days, dayLabel: dl[s.day][0],
+      isKits: s.tab === 'kits', isInstalls: s.tab === 'installs', isPlans: s.tab === 'plans',
+      doneForm: s.form && !s.done,
+      j1: s.done ? 'Installed' : 'On the way', j1Action: s.done ? 'View report' : 'Done…',
+      j1Pill: 'padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (s.done ? 'background: #eaf6d5; color: #345000;' : 'background: #fff4e0; color: #6b3a00;'),
+      done1: () => this.setState({ form: true }), confirm1: () => this.setState({ done: true }),
+      extendLabel: s.extended ? 'Extended to 24 Nov' : 'Give 7 more days', extend: () => this.setState({ extended: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

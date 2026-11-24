@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Admin home routers</title>
+<title>Admin Home WISP routers</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,58 +12,101 @@
 <style>
 body{margin:0;background:#fbfaf5}
 a{color:#003b2b}a:hover{color:#062a20}
-td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:21px}
+td,th{text-align:left;padding:11px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
 th{color:#5c6963;font-weight:600;font-size:13px}
 .go{min-height:44px;padding:0 16px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
-.go2{min-height:44px;padding:0 16px;border-radius:9px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
-.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.go2{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.metric b{display:block;font-size:24px;color:#003b2b}
+.metric span{color:#5c6963;font-size:13px}
 </style>
 </helmet>
-<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1100px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
-    <dc-import name="AdminSide" current="homerouters" hint-size="240px,860px"></dc-import>
+    <dc-import name="AdminSide" current="homerouters" hint-size="240px,900px"></dc-import>
   </aside>
-  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
       <div>
-        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network · NDAHI Home pilot</p>
-        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Home router connections.</h1>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Home WISP routers.</h1>
+        <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">Routers allowed to share an NDAHI connection with a household.</p>
       </div>
-      <div style="display: flex; gap: 10px"><button type="button" class="go2">Refresh</button><button type="button" class="go" onClick="{{check}}">Check gateway readiness</button></div>
+      <button type="button" class="go" onClick="{{reconcile}}">Reconcile now</button>
     </div>
-    <sc-if value="{{checked}}" hint-placeholder-val="{{ false }}">
-      <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 600">Database and gateway are ready for Home access. Checked just now.</p>
-    </sc-if>
+    <p role="status" style="{{recStyle}}">{{recText}}</p>
 
-    <section aria-label="Linked routers" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 18px">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+      <div class="panel metric" style="padding: 18px; gap: 2px"><b>12</b><span>registered routers</span></div>
+      <div class="panel metric" style="padding: 18px; gap: 2px"><b>{{sharing}}</b><span>sharing now</span></div>
+      <div class="panel metric" style="padding: 18px; gap: 2px"><b>{{withheld}}</b><span>sharing withheld</span></div>
+      <div class="panel metric" style="padding: 18px; gap: 2px"><b>0</b><span>stale exceptions found</span></div>
+    </div>
+
+    <section aria-labelledby="rl" class="panel" style="gap: 6px">
+      <h2 id="rl" class="h2">Routers</h2>
       <div style="overflow-x: auto">
         <table style="width: 100%; border-collapse: collapse">
-          <thead><tr><th scope="col">Customer</th><th scope="col">Router</th><th scope="col">Mode</th><th scope="col">Bundle</th><th scope="col">Status</th><th scope="col">Linked</th></tr></thead>
+          <thead><tr><th scope="col">Customer</th><th scope="col">Subscription</th><th scope="col">Registered router</th><th scope="col">Router</th><th scope="col">Sharing</th><th scope="col"></th></tr></thead>
           <tbody>
-            <tr><td><strong>J. Fon</strong></td><td>[ROUTER NAME]</td><td>Whole home</td><td>[PLAN 3]</td><td><span class="pill" style="background: #eaf6d5; color: #345000">Online</span></td><td>3 Nov</td></tr>
-            <tr><td><strong>Amina N.</strong></td><td>[ROUTER NAME]</td><td>Devices only</td><td>[PLAN 2]</td><td><span class="pill" style="background: #fff4e0; color: #6b3a00">Changing mode</span></td><td>6 Nov</td></tr>
-            <tr><td><strong>K. Nji</strong></td><td>[ROUTER NAME]</td><td>Whole home</td><td>None</td><td><span class="pill" style="background: #fbe4e4; color: #8a2a2a">Usage review</span></td><td>28 Oct</td></tr>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <tr>
+                <td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">{{r.who}}</a></td>
+                <td>{{r.sub}}</td>
+                <td class="mono">{{r.mac}}</td>
+                <td><span style="{{r.onPill}}">{{r.on}}</span></td>
+                <td><span style="{{r.sharePill}}">{{r.share}}</span><br><span style="font-size: 12px; color: #5c6963">{{r.why}}</span></td>
+                <td style="text-align: right"><sc-if value="{{r.canRevoke}}" hint-placeholder-val="{{ true }}"><button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4" onClick="{{r.revoke}}">Revoke</button></sc-if></td>
+              </tr>
+            </sc-for>
           </tbody>
         </table>
       </div>
-      <p style="margin: 10px 0 0; color: #5c6963; font-size: 13px">“Usage review” means payment and remaining allowance are kept while the team checks usage continuity — the customer must not pay again.</p>
     </section>
 
-    <section aria-labelledby="pe" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
-      <h2 id="pe" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">Pilot evidence</h2>
-      <label for="pr" style="font-size: 13px; font-weight: 600">Pilot report notes</label>
-      <textarea id="pr" rows="4" style="box-sizing: border-box; width: 100%; padding: 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif; resize: vertical">3 homes linked. 1 mode change took 70 s. 1 usage review opened and resolved.</textarea>
-      <div style="display: flex; flex-wrap: wrap; gap: 10px"><button type="button" class="go2">Download empty template</button><button type="button" class="go" onClick="{{submit}}">{{submitLabel}}</button></div>
+    <section aria-labelledby="hi" class="panel" style="gap: 8px">
+      <h2 id="hi" class="h2">Recent changes</h2>
+      <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: #3d4a44">
+        <li><strong>J. Fon</strong> replaced router <span class="mono">••:9C:31:E4</span> → <span class="mono">••:7E:10:2B</span>. Old session ended and sharing removed 14:02:11; new router authorised 14:02:14.</li>
+        <li><strong>K. Nji</strong> subscription expired 08:00. Router disconnected and sharing removed 08:00:03.</li>
+        <li>Router restart at AP-Junction 06:12. Reconciled 06:13: 4 routers re-checked, 0 stale exceptions.</li>
+      </ul>
     </section>
+
+    <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.5">Sharing is allowed only when a signed-in session matches an active Home WISP subscription <strong>and</strong> its registered router. An address or vendor prefix alone never allows it. If entitlement can't be checked, sharing is withheld until it can. Revoking disconnects the router and removes sharing straight away; the customer's other records stay.</p>
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { checked: false, sent: false }; }
+  constructor(props) { super(props); this.state = { revoked: [], rec: false }; }
   renderVals() {
     const s = this.state;
-    return { checked: s.checked, check: () => this.setState({ checked: true }), submitLabel: s.sent ? 'Sent for review' : 'Record pilot report for review', submit: () => this.setState({ sent: true }) };
+    const base = [
+      { id: 'a', who: 'J. Fon', sub: 'Ends 22 Dec', mac: '••:••:••:7E:10:2B', on: 'Online', share: 'Sharing', why: 'Entitlement checked 1 min ago' },
+      { id: 'b', who: 'Grace T.', sub: 'Ends 9 Dec', mac: '••:••:••:44:A0:9F', on: 'Online', share: 'Sharing', why: 'Entitlement checked 1 min ago' },
+      { id: 'c', who: 'P. Mbah', sub: 'Ends 30 Nov', mac: '••:••:••:12:6C:D8', on: 'Online', share: 'Withheld', why: "Couldn't verify — retrying" },
+      { id: 'd', who: 'S. Tabe', sub: 'Ends 15 Dec', mac: '••:••:••:B3:51:07', on: 'Offline', share: 'Sharing (idle)', why: 'Applies when the router reconnects' },
+      { id: 'e', who: 'K. Nji', sub: 'Expired 23 Nov', mac: '••:••:••:0D:E2:66', on: 'Disconnected', share: 'Removed', why: 'Expired 08:00' }
+    ];
+    const pill = (bg, c) => `padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: ${bg}; color: ${c};`;
+    const rows = base.map((r) => {
+      const rev = s.revoked.includes(r.id);
+      const share = rev ? 'Removed' : r.share, on = rev ? 'Disconnected' : r.on;
+      return { ...r, share, on, why: rev ? 'Revoked by Owner just now' : r.why,
+        sharePill: share.startsWith('Sharing') ? pill('#eaf6d5', '#345000') : share === 'Withheld' ? pill('#fff4e0', '#6b3a00') : pill('#eef0ee', '#3d4a44'),
+        onPill: on === 'Online' ? pill('#eaf6d5', '#345000') : on === 'Offline' ? pill('#eef0ee', '#3d4a44') : pill('#fbe4e4', '#8a2a2a'),
+        canRevoke: !rev && share !== 'Removed', revoke: () => this.setState({ revoked: [...s.revoked, r.id] }) };
+    });
+    return {
+      rows, sharing: rows.filter((r) => r.share.startsWith('Sharing')).length, withheld: rows.filter((r) => r.share === 'Withheld').length,
+      recText: s.rec ? 'Reconciled just now: 12 subscriptions and routers checked, 0 stale sessions or exceptions removed.' : 'Last reconciled 2 min ago (runs every 5 minutes and after any router restart or failed change).',
+      recStyle: 'margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; ' + (s.rec ? 'background: #eaf6d5; color: #345000; font-weight: 700;' : 'background: #eef3e9; color: #3d4a44;'),
+      reconcile: () => this.setState({ rec: true })
+    };
   }
 }
 </script>

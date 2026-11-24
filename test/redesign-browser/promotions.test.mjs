@@ -75,14 +75,19 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   await form.getByLabel(/TP-Link AX1500 Outdoor/).check();
   await form.getByLabel("Sale price (FCFA)").fill("100000");
   assert.equal(await form.getByLabel("Bundle", { exact: true }).inputValue(), "unlimited");
-  assert.equal(await form.getByLabel("Lasts (days)").inputValue(), "45");
+  // A free month (owner, 23 Nov, #423): 30 days, given at collection, started within 60 days.
+  assert.equal(await form.getByLabel("Lasts (days)").inputValue(), "30");
+  assert.equal(await form.getByLabel("Must be started within").inputValue(), "60");
+  assert.deepEqual(await form.getByLabel("Must be started within").locator("option").allInnerTexts(), ["30 days", "60 days", "90 days"]);
+  assert.match(await text(form.locator(".admin-promo__hint").filter({ hasText: "Counted from" })), /^Counted from when it's given\. The 30 days of Unlimited start when they press Start\.$/);
+  assert.equal(await text(form.locator(".admin-promo__note")), "Signed-in buyers get it in their account. Guests get it reserved for the Mobile Money number that paid, and claim it with that number and the code. Recorded as a gift, not revenue. If the order is refunded, an unstarted free bundle is cancelled.");
   await form.getByLabel("Starts").fill("2026-11-27T00:00");
   await form.getByLabel("Ends").fill("2026-11-30T23:59");
-  await form.getByLabel("Terms (English)").fill("One per phone number. 45 days of Unlimited Home from payment.");
-  await form.getByLabel("Terms (French)").fill("Un par numéro de téléphone. 45 jours d’Unlimited Home dès le paiement.");
+  await form.getByLabel("Terms (English)").fill("1 per customer. While stocks last. Free month: Unlimited Home, start within 60 days of collecting the router. Not exchangeable for cash.");
+  await form.getByLabel("Terms (French)").fill("1 par client. Dans la limite des stocks. Mois offert : Unlimited Home, à démarrer dans les 60 jours après le retrait du routeur. Non échangeable contre de l’argent.");
   const card = page.locator(".admin-promo__card");
   assert.equal(await text(card.locator(".admin-promo__card-price")), "100,000 FCFA");
-  assert.equal(await text(card.locator(".admin-promo__card-bonus")), "+ 45 days Unlimited Home free");
+  assert.equal(await text(card.locator(".admin-promo__card-bonus")), "+ 1 month Unlimited internet free");
   assert.match(await text(card.locator(".admin-promo__card-ends")), /^Ends Mon 30 Nov · 10 at this price$/);
   assert.match(await text(form.locator(".admin-promo__hint").filter({ hasText: "Stock is the limit" })), /10 in stock now/);
   await check(page, "promotions-setup", 390);
@@ -90,7 +95,8 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   await page.getByText("Saved — logged in the audit trail.").waitFor();
   let saved = (await store.snapshot()).storeSettings.promotions[0];
   assert.deepEqual([saved.enabled, saved.salePrice, saved.productIds, saved.perNumberLimit, saved.startsAt, saved.endsAt, saved.bonus],
-    [true, 100000, ["ax1500", "ax1500-outdoor"], 1, "2026-11-26T23:00:00.000Z", "2026-11-30T22:59:00.000Z", { planId: "unlimited", validityHours: 1080, startsAt: "payment_confirmation" }]);
+    [true, 100000, ["ax1500", "ax1500-outdoor"], 1, "2026-11-26T23:00:00.000Z", "2026-11-30T22:59:00.000Z",
+      { planId: "unlimited", validityHours: 720, startsAt: "customer_start", givenAt: "collection", startWithinDays: 60 }]);
   assert.match(await text(page.locator(".admin-promo__live")), /Scheduled · starts Fri 27 Nov at 00:00/);
   assert.deepEqual(errors, []);
   await context.close();
@@ -104,9 +110,11 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   await page.goto(`${admin}/dashboard#promotions`);
   const live = page.locator(".admin-promo__live");
   await live.waitFor();
-  assert.match(await text(live), /^BLACK FRIDAY 2 products for 100,000 FCFA \+ 45 days Unlimited Home free Live · ends in 2 d 13 h End early$/, "server time, not the browser's");
-  assert.deepEqual(await page.locator(".admin-promo__metric b").allInnerTexts(), ["1", "100,000 FCFA", "0", "1", "0"]);
-  assert.equal(await text(page.locator("#promoOrdersTitle").locator("xpath=..").locator("tbody tr")), `${placed.order.reference} 6•• •• 22 33 · guest Preparing Waiting for claim`);
+  assert.match(await text(live), /^BLACK FRIDAY 2 products for 100,000 FCFA \+ 1 month Unlimited Home free Live · ends in 2 d 13 h End early$/, "server time, not the browser's");
+  // Paid, not yet collected: nothing given yet.
+  assert.deepEqual(await page.locator(".admin-promo__metric b").allInnerTexts(), ["1", "100,000 FCFA", "0", "0", "0", "0"]);
+  assert.deepEqual(await page.locator(".admin-promo__metric span").allInnerTexts(), ["units sold at this price", "promotion revenue", "given, not started yet", "free bundles running", "waiting for claim", "free bundles ended"]);
+  assert.equal(await text(page.locator("#promoOrdersTitle").locator("xpath=..").locator("tbody tr")), `${placed.order.reference} 6•• •• 22 33 · guest Preparing Given at collection`);
   await check(page, "promotions-live", 1280);
   // End early.
   await live.getByRole("button", { name: "End early" }).click();
@@ -117,6 +125,27 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   assert.match(await text(page.locator("#promoAllTitle").locator("xpath=..").locator("tbody tr")), /Black Friday .* Ended Edit$/);
   const catalogue = await (await fetch(`${api}/api/store/catalogue`)).json();
   assert.equal(catalogue.products.find((p) => p.id === "ax1500").price, 120000, "the regular price is back");
+  assert.deepEqual(errors, []);
+  await context.close();
+
+  // Collected: staff see the guest's free-month code on the order in Admin → Store (#423).
+  for (const action of ["ready", "collect"]) {
+    const o = (await store.snapshot()).storeOrders.find((x) => x.id === placed.order.id);
+    const r = await fetch(`${api}/api/admin/store/orders/update`, { method: "POST", headers: { "content-type": "application/json", cookie: "admin_session=owner-token", "x-csrf-token": "csrf" },
+      body: JSON.stringify({ id: o.id, version: o.version, action, collectionCode: o.collectionCode }) });
+    assert.equal(r.status, 200, await r.text());
+  }
+  const code = (await store.snapshot()).storeOrders.find((x) => x.id === placed.order.id).bonus.code;
+  ({ context, page, errors } = await open(1280));
+  await page.goto(`${admin}/dashboard#store`);
+  // Open orders are shown first; a collected one is under "all".
+  await page.locator("#storeOrderStatus").selectOption("all");
+  await page.locator(`[data-order-pick="${placed.order.id}"]`).click();
+  const fact = page.locator(".admin-store__bonus");
+  await fact.waitFor();
+  assert.equal(await text(fact), `Code ${code} · reserved for 6•• •• 22 33 · start by 27 Jan`);
+  assert.equal(await text(fact.locator("xpath=preceding-sibling::dt")), "Free month");
+  await check(page, "store-order-free-month", 1280);
   assert.deepEqual(errors, []);
   await context.close();
 });

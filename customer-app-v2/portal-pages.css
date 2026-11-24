@@ -423,7 +423,9 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
 .portal-promo__gift span span { display: block; color: #c8d8d0; font-size: 13px; line-height: 1.45; }
 .portal-promo__limit { text-align: center; }
 .portal-promo__line strong { color: #345000; }
-.portal-promo__note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #2b4200; font-size: 13px; line-height: 1.45; }
+/* "How you get your free month" (PhonePromoBuy, checkout). */
+.portal-promo__note { margin: 0; padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #2b4200; font-size: 14px; line-height: 1.5; }
+.portal-promo__note-title { display: block; }
 .portal-promo__order { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; padding: 14px; border-radius: 14px; background: #eaf6d5; color: #2b4200; }
 .portal-promo__order p { margin: 0; }
 .portal-promo__code { display: flex; align-items: baseline; gap: 10px; }

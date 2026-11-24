@@ -2,29 +2,43 @@ import { speedText } from "../shared-app/bundle-speed.js";
 // Store promotions on the public store (#302, canvas: StorePromo,
 // PhonePromoBuy). Everything shown comes from the catalogue: the sale price,
 // the free bundle, the window and the stock. Countdowns run on the server's
-// clock (catalogue.serverTime). Black Friday rules (owner, 20 Nov): the free
-// days start when the payment is confirmed; a guest's are reserved for the
-// number that pays and claimed with the code on the order.
+// clock (catalogue.serverTime). The free month (owner, 23 Nov, #423): given
+// when the router is collected, started by the customer whenever they like
+// within 60 days; a guest's is reserved for the number that pays and claimed
+// with the code on the collection slip. Orders placed under the 20 Nov rule
+// (days from payment) keep their wording.
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { clockOffset, remaining, keepTicking, pad } from "/shared/countdown.js";
 
 const WORDS = {
   en: {
     upcoming: "Starts in", endsIn: "Ends in", days: "days", hours: "hours", minutes: "minutes",
-    headline: "{price} + {days} days of {plan} free.", headlineNoBonus: "{price}, for a short time.",
-    lede: "{products}, at a {name} price, with {days} days of {plan} internet free. The days start when your payment is confirmed.",
+    headline: "{products} + {length} of {data}, for {price}.", headlineNoBonus: "{price}, for a short time.",
+    lede: "Get the router at a {name} price, plus {length} of {data} internet ({plan}) {free}. Start the {gift} whenever you like.",
     ledeNoBonus: "{products}, at a {name} price.",
     or: " or ",
     getDeal: "Get the deal", startsOn: "Starts {day}", left: "{n} left at this price", limit: "{n} per phone number",
-    fine: "Ends {day} at {time} or when stock runs out.",
-    bonusChip: "+ {days} days {plan} free", bonusCardTitle: "+ {days} days of {plan}, free",
-    bonusCardHint: "{data} · up to {devices} devices · starts when your payment is confirmed",
+    fine: "Ends {day} at {time} or when stock runs out.", fineBonus: "{Gift} given when you collect the router; start within {within} days.",
+    bonusChip: "+ {length} {data} {free}", bonusCardTitle: "+ {length} {data} internet, {free}",
+    bonusCardHint: "{facts} · start it when you like", worth: "worth {price}",
     unlimited: "Unlimited data, fair use", data: "{gb} GB",
     endsStrip: "Ends {day}", leftStrip: "{left} left",
     terms: "Offer terms", dealButton: "Get the deal · {price}",
-    lineBonus: "+ {days} days {plan}", free: "Free",
-    deliveryAccount: "The {days} days start on your NDAHI account when your payment is confirmed. A bundle already running pauses and carries on after them.",
-    deliveryGuest: "The {days} days are reserved for the Mobile Money number that pays, and start when the payment is confirmed. Claim them in the NDAHI portal with that number and the code on your order.",
+    lineBonus: "+ {length} {data} ({plan})", free: "Free",
+    howTitle: "How you get your {gift}",
+    deliveryAccount: "It's added to your account when you collect the router. It waits there until you press Start — even if you still have a bundle running.",
+    deliveryGuest: "It's reserved for the Mobile Money number that pays. When you collect the router you get a slip with a code — claim it with that number and the code.",
+    month: "1 month", monthA: "a month", monthOne: "one month", months: "{count} months", daysN: "{count} days", unlimitedWord: "Unlimited",
+    freeOne: "free", freeMany: "free", giftMonth: "free month", giftMonthCap: "Free month", giftBundle: "free bundle", giftBundleCap: "Free bundle",
+    orderCollect: "{Gift}: given when you collect.",
+    orderGiven: "{Gift}: in your NDAHI account. Start it in the portal by {day} — {length} of {data} from then.",
+    orderOpenPortal: "Open the NDAHI portal",
+    orderReservedStart: "{Gift}: reserved for {phone}. Start it by {day}.",
+    orderReservedStartHow: "Claim it in the NDAHI portal with this number and the code, then start it whenever you like.",
+    orderClaimGift: "Claim my {gift}",
+    orderRunning: "{Gift}: running on your NDAHI account until {day}.",
+    orderExpiredUnstarted: "{Gift}: not started by {day}, so it has expired.",
+    orderCancelled: "{Gift}: cancelled with the refund.", orderEndedRefund: "{Gift}: ended with the refund.",
     orderActive: "{days} days of {plan}: running on your NDAHI account until {day}.",
     orderReserved: "{days} days of {plan}: reserved for {phone} until {day}.",
     orderReservedHow: "Claim them in the NDAHI portal with this number and code. The days are already counting.",
@@ -36,20 +50,32 @@ const WORDS = {
   },
   fr: {
     upcoming: "Commence dans", endsIn: "Se termine dans", days: "jours", hours: "heures", minutes: "minutes",
-    headline: "{price} + {days} jours de {plan} offerts.", headlineNoBonus: "{price}, pour peu de temps.",
-    lede: "{products}, à prix {name}, avec {days} jours d’internet {plan} offerts. Les jours commencent quand votre paiement est confirmé.",
+    headline: "{products} + {length} d’internet {data}, pour {price}.", headlineNoBonus: "{price}, pour peu de temps.",
+    lede: "Le routeur à prix {name}, plus {length} d’internet {data} ({plan}) {free}. Démarrez votre {gift} quand vous voulez.",
     ledeNoBonus: "{products}, à prix {name}.",
     or: " ou ",
     getDeal: "J’en profite", startsOn: "Commence le {day}", left: "Plus que {n} à ce prix", limit: "{n} par numéro de téléphone",
-    fine: "Se termine le {day} à {time} ou à épuisement du stock.",
-    bonusChip: "+ {days} jours {plan} offerts", bonusCardTitle: "+ {days} jours de {plan}, offerts",
-    bonusCardHint: "{data} · jusqu’à {devices} appareils · commence quand votre paiement est confirmé",
+    fine: "Se termine le {day} à {time} ou à épuisement du stock.", fineBonus: "{Gift} donné au retrait du routeur ; à démarrer dans les {within} jours.",
+    bonusChip: "+ {length} {data} {free}", bonusCardTitle: "+ {length} d’internet {data}, {free}",
+    bonusCardHint: "{facts} · à démarrer quand vous voulez", worth: "d’une valeur de {price}",
     unlimited: "Données illimitées, usage raisonnable", data: "{gb} Go",
     endsStrip: "Se termine le {day}", leftStrip: "encore {left}",
     terms: "Conditions de l’offre", dealButton: "J’en profite · {price}",
-    lineBonus: "+ {days} jours {plan}", free: "Offert",
-    deliveryAccount: "Les {days} jours commencent sur votre compte NDAHI quand votre paiement est confirmé. Un forfait déjà en cours est mis en pause et reprend après.",
-    deliveryGuest: "Les {days} jours sont réservés au numéro Mobile Money qui paie, et commencent quand le paiement est confirmé. Réclamez-les dans le portail NDAHI avec ce numéro et le code de votre commande.",
+    lineBonus: "+ {length} {data} ({plan})", free: "Offert",
+    howTitle: "Comment obtenir votre {gift}",
+    deliveryAccount: "Il est ajouté à votre compte quand vous récupérez le routeur. Il y attend jusqu’à ce que vous appuyiez sur Démarrer — même si un forfait est encore en cours.",
+    deliveryGuest: "Il est réservé au numéro Mobile Money qui paie. Au retrait du routeur, vous recevez un ticket avec un code — réclamez-le avec ce numéro et ce code.",
+    month: "1 mois", monthA: "un mois", monthOne: "un mois", months: "{count} mois", daysN: "{count} jours", unlimitedWord: "Illimité",
+    freeOne: "offert", freeMany: "offerts", giftMonth: "mois offert", giftMonthCap: "Mois offert", giftBundle: "forfait offert", giftBundleCap: "Forfait offert",
+    orderCollect: "{Gift} : donné quand vous récupérez le routeur.",
+    orderGiven: "{Gift} : dans votre compte NDAHI. Démarrez-le dans le portail avant le {day} — {length} d’internet {data} à partir de là.",
+    orderOpenPortal: "Ouvrir le portail NDAHI",
+    orderReservedStart: "{Gift} : réservé pour le {phone}. Démarrez-le avant le {day}.",
+    orderReservedStartHow: "Réclamez-le dans le portail NDAHI avec ce numéro et ce code, puis démarrez-le quand vous voulez.",
+    orderClaimGift: "Réclamer mon {gift}",
+    orderRunning: "{Gift} : en cours sur votre compte NDAHI jusqu’au {day}.",
+    orderExpiredUnstarted: "{Gift} : non démarré avant le {day}, il a expiré.",
+    orderCancelled: "{Gift} : annulé avec le remboursement.", orderEndedRefund: "{Gift} : terminé avec le remboursement.",
     orderActive: "{days} jours de {plan} : en cours sur votre compte NDAHI jusqu’au {day}.",
     orderReserved: "{days} jours de {plan} : réservés pour le {phone} jusqu’au {day}.",
     orderReservedHow: "Réclamez-les dans le portail NDAHI avec ce numéro et ce code. Les jours sont déjà comptés.",
@@ -69,7 +95,13 @@ export function createPromo({ lang, money, l }) {
   // The last minute of the offer, as people read an end time ("23:59", not "00:00").
   const lastMinute = (at) => new Date(Date.parse(at) - 60000).toISOString();
   let offset = 0;
-  const bonusData = (b) => (b.quotaGb == null ? w("unlimited") : w("data", { gb: b.quotaGb }));
+  // The free bundle's length in words ("1 month", "a month" or "one month" in
+  // a sentence, else its days), what it gives, and its noun ("free month").
+  const monthsOf = (days) => (days > 0 && days % 30 === 0 ? days / 30 : 0);
+  const length = (days, form = "month") => { const m = monthsOf(days); return m === 1 ? w(form) : m ? w("months", { count: m }) : w("daysN", { count: days }); };
+  const dataWord = (b) => (b.quotaGb == null ? w("unlimitedWord") : w("data", { gb: b.quotaGb }));
+  const freeWord = (days) => w(monthsOf(days) === 1 ? "freeOne" : "freeMany");
+  const giftWord = (days, cap = false) => w(monthsOf(days) === 1 ? (cap ? "giftMonthCap" : "giftMonth") : (cap ? "giftBundleCap" : "giftBundle"));
 
   // The offer to count down to: one that's live first, else the next to start.
   const announced = (data) => (data.promotions || []).find((p) => p.status === "live") || (data.promotions || [])[0] || null;
@@ -89,13 +121,17 @@ export function createPromo({ lang, money, l }) {
       if (!p) return "";
       const live = p.status === "live", first = data.products.find((x) => x.id === p.productIds[0]);
       const left = p.productIds.reduce((n, id) => n + (data.products.find((x) => x.id === id)?.available || 0), 0);
-      const values = { price: money(p.salePrice), days: p.bonus?.days, plan: p.bonus?.planName, name: l(p.name), products: productNames(data, p) };
+      const b = p.bonus, values = { price: money(p.salePrice), name: l(p.name), products: productNames(data, p),
+        ...(b ? { plan: b.planName, data: dataWord(b), free: freeWord(b.days), gift: giftWord(b.days) } : {}) };
+      const headline = b ? w("headline", { ...values, length: length(b.days, "monthA") }) : w("headlineNoBonus", values);
+      const lede = b ? w("lede", { ...values, length: length(b.days, "monthOne") }) : w("ledeNoBonus", values);
       return `<section class="promo-hero" aria-labelledby="promoHeroTitle"><div class="promo-hero__main"><span class="promo-badge">${h(l(p.name))} · ${h(`${new Date(p.startsAt).toLocaleDateString(locale, { day: "numeric", timeZone: ZONE })} – ${new Date(lastMinute(p.endsAt)).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: ZONE })}`)}</span>
-        <h1 id="promoHeroTitle">${h(w(p.bonus ? "headline" : "headlineNoBonus", values))}</h1><p>${h(w(p.bonus ? "lede" : "ledeNoBonus", values))}</p>
+        <h1 id="promoHeroTitle">${h(headline)}</h1><p>${h(lede)}</p>
         <div class="promo-hero__cta">${live ? `<a class="button promo-hero__go" href="#product/${h(encodeURIComponent(first?.id || ""))}">${h(w("getDeal"))}</a>` : `<span class="promo-hero__soon">${h(w("startsOn", { day: `${day(p.startsAt)} · ${time(p.startsAt)}` }))}</span>`}
           <span class="promo-hero__left">${h([live ? w("left", { n: left }) : "", w("limit", { n: p.perNumberLimit })].filter(Boolean).join(" · "))}</span></div></div>
         <div class="promo-hero__side"><p class="promo-hero__when">${h(w(live ? "endsIn" : "upcoming"))}</p>${blocks(live ? p.endsAt : p.startsAt)}
-          <p class="promo-hero__fine">${h(w("fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)) }))} ${h(l(p.terms))}</p></div></section>`;
+          <p class="promo-hero__fine">${h([w("fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)) }),
+            b && b.startsAt === "customer_start" ? w("fineBonus", { Gift: giftWord(b.days, true), within: b.startWithinDays }) : "", l(p.terms)].filter(Boolean).join(" "))}</p></div></section>`;
     },
     // A product card's extras: the badge on the photo, the free-bundle chip and
     // what is left at the price.
@@ -103,7 +139,7 @@ export function createPromo({ lang, money, l }) {
       if (!p.promotion) return null;
       return { badge: `<span class="promo-badge promo-badge--photo">${h(l(p.promotion.name))}</span>`,
         // Phone rows show the name here; cards show it on the photo.
-        chip: `<span class="promo-badge narrow">${h(l(p.promotion.name))}</span>${p.promotion.bonus ? `<p class="promo-chip">${h(w("bonusChip", { days: p.promotion.bonus.days, plan: p.promotion.bonus.planName }))}</p>` : ""}`,
+        chip: `<span class="promo-badge narrow">${h(l(p.promotion.name))}</span>${p.promotion.bonus ? `<p class="promo-chip">${h(w("bonusChip", { length: length(p.promotion.bonus.days), data: dataWord(p.promotion.bonus), free: freeWord(p.promotion.bonus.days) }))}</p>` : ""}`,
         stock: w("left", { n: p.available }), button: w("getDeal") };
     },
     // Product page (canvas: PhonePromoBuy, product).
@@ -116,7 +152,8 @@ export function createPromo({ lang, money, l }) {
         strip: `<div class="promo-strip"><span>${h(w("endsStrip", { day: day(lastMinute(pr.endsAt)) }))}</span><strong data-countdown-inline="${h(pr.endsAt)}"></strong></div>`,
         stock: w("left", { n: p.available }),
         bonus: b ? `<div class="promo-gift"><span class="promo-gift__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg></span>
-          <div><strong>${h(w("bonusCardTitle", { days: b.days, plan: b.planName }))}</strong><span>${h(w("bonusCardHint", { data: [bonusData(b), speedText(b, { lang, devices: b.deviceLimit })].filter(Boolean).join(" · "), devices: b.deviceLimit }))}</span></div></div>` : "",
+          <div><strong>${h(w("bonusCardTitle", { length: length(b.days), data: dataWord(b), free: freeWord(b.days) }))}</strong><span>${h(w("bonusCardHint", { facts: [b.planName,
+            Number.isFinite(b.worth) ? w("worth", { price: money(b.worth) }) : "", speedText(b, { lang, devices: b.deviceLimit })].filter(Boolean).join(" · ") }))}</span></div></div>` : "",
         terms: `<details class="policy promo-terms"><summary>${h(w("terms"))}</summary><p>${h(l(pr.terms))}</p></details>`,
         button: w("dealButton", { price: money(pr.salePrice) }), limit: w("limit", { n: pr.perNumberLimit }),
       };
@@ -125,17 +162,27 @@ export function createPromo({ lang, money, l }) {
     checkout(p, signedIn) {
       const b = p.promotion?.bonus;
       if (!b) return { line: "", note: "" };
-      return { line: `<div class="checkout-cost__row promo-line"><span>${h(w("lineBonus", { days: b.days, plan: b.planName }))}</span><strong>${h(w("free"))}</strong></div>`,
-        note: `<p class="form-help promo-note">${h(w(signedIn ? "deliveryAccount" : "deliveryGuest", { days: b.days }))}</p>` };
+      return { line: `<div class="checkout-cost__row promo-line"><span>${h(w("lineBonus", { length: length(b.days), data: dataWord(b), plan: b.planName }))}</span><strong>${h(w("free"))}</strong></div>`,
+        note: `<p class="form-help promo-note"><strong class="promo-note__title">${h(w("howTitle", { gift: giftWord(b.days) }))}</strong> ${h(w(signedIn ? "deliveryAccount" : "deliveryGuest"))}</p>` };
     },
-    // The free bundle on the order page.
+    // The free bundle on the order page. Under the 23 Nov rule it is given at
+    // collection and started in the portal; 20 Nov orders keep their wording.
     order(o, portalUrl) {
       const b = o.bonus;
       if (!b) return "";
-      const values = { days: b.days, plan: b.planName || "", day: b.endsAt ? day(b.endsAt) : "", phone: b.phone || "" };
-      const key = { active: "orderActive", reserved: "orderReserved", ended: "orderEnded", expired: "orderExpired", needs_review: "orderReview", not_given: "orderEnded" }[b.status] || "orderPending";
-      return `<section class="promo-order" aria-label="${h(w("gift"))}"><p>${h(w(key, values))}</p>${b.status === "reserved" && b.code
-        ? `<p class="promo-order__code"><span>${h(w("orderCode"))}</span><strong>${h(b.code)}</strong></p><p class="form-help">${h(w("orderReservedHow"))}</p><a class="button" href="${h(portalUrl)}/login?claim=${h(encodeURIComponent(b.code))}" target="_blank" rel="noopener">${h(w("orderClaim"))}</a>` : ""}</section>`;
+      if (b.rule !== "customer_start") {
+        const values = { days: b.days, plan: b.planName || "", day: b.endsAt ? day(b.endsAt) : "", phone: b.phone || "" };
+        const key = { active: "orderActive", reserved: "orderReserved", ended: "orderEnded", expired: "orderExpired", needs_review: "orderReview", not_given: "orderEnded" }[b.status] || "orderPending";
+        return `<section class="promo-order" aria-label="${h(w("gift"))}"><p>${h(w(key, values))}</p>${b.status === "reserved" && b.code
+          ? `<p class="promo-order__code"><span>${h(w("orderCode"))}</span><strong>${h(b.code)}</strong></p><p class="form-help">${h(w("orderReservedHow"))}</p><a class="button" href="${h(portalUrl)}/login?claim=${h(encodeURIComponent(b.code))}" target="_blank" rel="noopener">${h(w("orderClaim"))}</a>` : ""}</section>`;
+      }
+      const values = { Gift: giftWord(b.days, true), gift: giftWord(b.days), length: length(b.days), data: b.planName || "", phone: b.phone || "", days: b.days,
+        day: day(b.status === "active" ? b.endsAt : b.startBy || b.endsAt || Date.now()) };
+      const key = { given: "orderGiven", reserved: "orderReservedStart", active: "orderRunning", expired: "orderExpiredUnstarted", cancelled: "orderCancelled",
+        not_given: "orderCancelled", ended: "orderEndedRefund", needs_review: "orderReview" }[b.status] || "orderCollect";
+      return `<section class="promo-order" aria-label="${h(values.Gift)}"><p>${h(w(key, values))}</p>${b.status === "reserved" && b.code
+        ? `<p class="promo-order__code"><span>${h(w("orderCode"))}</span><strong>${h(b.code)}</strong></p><p class="form-help">${h(w("orderReservedStartHow"))}</p><a class="button" href="${h(portalUrl)}/login?claim=${h(encodeURIComponent(b.code))}" target="_blank" rel="noopener">${h(w("orderClaimGift", values))}</a>`
+        : b.status === "given" ? `<a class="button" href="${h(portalUrl)}/dashboard#home" target="_blank" rel="noopener">${h(w("orderOpenPortal"))}</a>` : ""}</section>`;
     },
     // Fills every countdown under `root` each second; reloads when one ends.
     tick(root, onEnd) {

@@ -84,14 +84,48 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                       <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
                     </div>
                     <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #e3f0ff; color: #1d4f86; font-size: 14px; line-height: 1.5">The voucher is <strong>reserved for this number</strong>. To claim it they need the number <em>and</em> the code, so give them the slip or read them the code. If they later pay with Mobile Money from this number, it's added to their account automatically.</p>
-                    <div><label class="lbl" for="vb2">Bundle</label><select class="in" id="vb2"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
-                    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                    <div style="display: flex; flex-direction: column; gap: 10px">
+                      <span class="lbl" style="margin: 0">Bundle</span>
+                      <div role="tablist" aria-label="Bundle source" style="display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #eef3e9">
+                        <sc-for list="{{srcTabs}}" as="t" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+                      </div>
+                      <sc-if value="{{isCatalogue}}" hint-placeholder-val="{{ true }}">
+                        <select class="in" id="vb2" aria-label="Catalogue bundle"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select>
+                      </sc-if>
+                      <sc-if value="{{isCustom}}" hint-placeholder-val="{{ false }}">
+                        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid #dfe5dc; background: #ffffff">
+                          <fieldset style="margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                            <legend class="lbl">Access type</legend>
+                            <sc-for list="{{access}}" as="a" hint-placeholder-count="2">
+                              <label style="{{a.style}}"><input type="radio" name="cat2" checked="{{a.on}}" onChange="{{a.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b; margin: 2px 0 0"><span><strong style="display: block; font-size: 14px">{{a.label}}</strong><span style="font-size: 12px; color: #5c6963">{{a.hint}}</span></span></label>
+                            </sc-for>
+                          </fieldset>
+                          <div><label class="lbl" for="cv2">Validity</label>
+                            <div style="display: flex; gap: 8px"><input class="in" id="cv2" type="number" min="1" value="10" style="flex: 1"><div role="radiogroup" aria-label="Unit" style="display: flex; gap: 4px; padding: 4px; border-radius: 9px; background: #eef3e9"><span style="display: grid; place-items: center; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #3d4a44">hours</span><span style="display: grid; place-items: center; padding: 0 12px; border-radius: 7px; background: #ffffff; font-size: 13px; font-weight: 700; color: #003b2b">days</span></div></div>
+                            <p style="margin: 6px 0 0; color: #5c6963; font-size: 12px">1 hour to 365 days. Starts at their first connection.</p>
+                          </div>
+                          <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
+                            <div><span class="lbl">Device slots</span>
+                              <div style="display: flex; gap: 6px; align-items: center"><sc-for list="{{slots}}" as="d" hint-placeholder-count="4"><span style="{{d.style}}">{{d.n}}</span></sc-for><span style="color: #5c6963; font-size: 13px; padding: 0 4px">or</span><input class="in" aria-label="Custom number of slots" type="number" min="1" max="10" value="3" style="width: 64px; min-height: 38px"></div>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
+                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">Supported WISP router · household sharing on</p>
+                          </sc-if>
+                          <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #f6f7f2; font-size: 13px"><span style="color: #5c6963">Data</span><strong>Unlimited</strong></div>
+                          <div><label class="lbl" for="cr2">Reason (required, kept in the audit log)</label><input class="in" id="cr2" value="Compensation for the 18 Nov outage at AP-Market"></div>
+                          <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #003b2b; color: #ffffff; font-size: 13px; line-height: 1.45"><span style="color: #b9ee2e; font-weight: 700">They'll see:</span> {{customName}}</p>
+                          <p style="margin: 0; color: #5c6963; font-size: 12px; line-height: 1.5"><strong style="color: #3d4a44">Owners only</strong> — operators don't see the Custom bundle tab. Custom bundles are always gifts: no revenue, not added to the catalogue, can't be bought again. Terms are fixed when you give it.</p>
+                        </div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{isCatalogue}}" hint-placeholder-val="{{ true }}"><fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
                       <legend class="lbl">How it was paid</legend>
                       <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
                         <label style="{{k.style}}"><input type="radio" name="sk2" checked="{{k.on}}" onChange="{{k.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{k.label}}</strong><span style="font-size: 13px; color: #5c6963">{{k.hint}}</span></span></label>
                       </sc-for>
-                    </fieldset>
-                    <button type="button" class="go" onClick="{{give}}">Reserve [PLAN 2] for this number</button>
+                    </fieldset></sc-if>
+                    <button type="button" class="go" onClick="{{give}}">{{reserveLabel}}</button>
                     <p style="margin: 0; color: #5c6963; font-size: 13px">Unclaimed after 90 days, it expires. You can change the number or revoke it any time before it's claimed.</p>
                   </div>
                 </sc-if>
@@ -103,16 +137,50 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                       <span style="flex: 1"><strong style="display: block">{{who}}</strong><span style="font-size: 13px; color: #5c6963">{{whoLine}}</span></span>
                       <button type="button" onClick="{{unpick}}" style="min-height: 40px; padding: 0 10px; border: 0; background: transparent; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Change</button>
                     </div>
-                    <div><label class="lbl" for="vb1">Bundle</label><select class="in" id="vb1"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
-                    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+                    <div style="display: flex; flex-direction: column; gap: 10px">
+                      <span class="lbl" style="margin: 0">Bundle</span>
+                      <div role="tablist" aria-label="Bundle source" style="display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #eef3e9">
+                        <sc-for list="{{srcTabs}}" as="t" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+                      </div>
+                      <sc-if value="{{isCatalogue}}" hint-placeholder-val="{{ true }}">
+                        <select class="in" id="vb1" aria-label="Catalogue bundle"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select>
+                      </sc-if>
+                      <sc-if value="{{isCustom}}" hint-placeholder-val="{{ false }}">
+                        <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid #dfe5dc; background: #ffffff">
+                          <fieldset style="margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                            <legend class="lbl">Access type</legend>
+                            <sc-for list="{{access}}" as="a" hint-placeholder-count="2">
+                              <label style="{{a.style}}"><input type="radio" name="cat1" checked="{{a.on}}" onChange="{{a.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b; margin: 2px 0 0"><span><strong style="display: block; font-size: 14px">{{a.label}}</strong><span style="font-size: 12px; color: #5c6963">{{a.hint}}</span></span></label>
+                            </sc-for>
+                          </fieldset>
+                          <div><label class="lbl" for="cv1">Validity</label>
+                            <div style="display: flex; gap: 8px"><input class="in" id="cv1" type="number" min="1" value="10" style="flex: 1"><div role="radiogroup" aria-label="Unit" style="display: flex; gap: 4px; padding: 4px; border-radius: 9px; background: #eef3e9"><span style="display: grid; place-items: center; padding: 0 12px; border-radius: 7px; font-size: 13px; font-weight: 600; color: #3d4a44">hours</span><span style="display: grid; place-items: center; padding: 0 12px; border-radius: 7px; background: #ffffff; font-size: 13px; font-weight: 700; color: #003b2b">days</span></div></div>
+                            <p style="margin: 6px 0 0; color: #5c6963; font-size: 12px">1 hour to 365 days. Starts at their first connection.</p>
+                          </div>
+                          <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
+                            <div><span class="lbl">Device slots</span>
+                              <div style="display: flex; gap: 6px; align-items: center"><sc-for list="{{slots}}" as="d" hint-placeholder-count="4"><span style="{{d.style}}">{{d.n}}</span></sc-for><span style="color: #5c6963; font-size: 13px; padding: 0 4px">or</span><input class="in" aria-label="Custom number of slots" type="number" min="1" max="10" value="3" style="width: 64px; min-height: 38px"></div>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
+                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">Supported WISP router · household sharing on</p>
+                          </sc-if>
+                          <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #f6f7f2; font-size: 13px"><span style="color: #5c6963">Data</span><strong>Unlimited</strong></div>
+                          <div><label class="lbl" for="cr1">Reason (required, kept in the audit log)</label><input class="in" id="cr1" value="Compensation for the 18 Nov outage at AP-Market"></div>
+                          <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #003b2b; color: #ffffff; font-size: 13px; line-height: 1.45"><span style="color: #b9ee2e; font-weight: 700">They'll see:</span> {{customName}}</p>
+                          <p style="margin: 0; color: #5c6963; font-size: 12px; line-height: 1.5"><strong style="color: #3d4a44">Owners only</strong> — operators don't see the Custom bundle tab. Custom bundles are always gifts: no revenue, not added to the catalogue, can't be bought again. Terms are fixed when you give it.</p>
+                        </div>
+                      </sc-if>
+                    </div>
+                    <sc-if value="{{isCatalogue}}" hint-placeholder-val="{{ true }}"><fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
                       <legend class="lbl">How it was paid</legend>
                       <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
                         <label style="{{k.style}}"><input type="radio" name="sk" checked="{{k.on}}" onChange="{{k.pick}}" style="width: 18px; height: 18px; accent-color: #003b2b"><span><strong style="display: block; font-size: 14px">{{k.label}}</strong><span style="font-size: 13px; color: #5c6963">{{k.hint}}</span></span></label>
                       </sc-for>
-                    </fieldset>
+                    </fieldset></sc-if>
                     <sc-if value="{{hasActive}}" hint-placeholder-val="{{ false }}">
                       <div style="padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; display: flex; flex-direction: column; gap: 10px">
-                        <span><strong>Amina already has [PLAN 2] active</strong> (3.2 GB left, ends 12 Nov). This voucher replaces it straight away: the old bundle ends and its 2 devices are disconnected.</span>
+                        <span><strong>Amina already has [PLAN 2] active</strong> (ends 25 Nov). This voucher replaces it straight away: the old bundle ends and its 2 devices are disconnected.</span>
                         <label style="display: flex; gap: 10px; align-items: center; min-height: 40px; font-weight: 600; cursor: pointer"><input type="checkbox" checked="{{confirmed}}" onChange="{{flipConfirm}}" style="width: 20px; height: 20px; accent-color: #6b3a00">Yes, replace her current bundle</label>
                       </div>
                     </sc-if>
@@ -128,7 +196,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
         <sc-if value="{{isBatch}}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-direction: column; gap: 14px">
             <p style="margin: 0; color: #5c6963; font-size: 14px">Unassigned codes to print and sell. Each one starts on whichever account redeems it.</p>
-            <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · 1 GB · 1 day</option><option selected="">[PLAN 2] · 5 GB · 7 days</option><option>[PLAN 3] · 15 GB · 30 days</option></select></div>
+            <div><label class="lbl" for="vb">Bundle</label><select class="in" id="vb"><option>[PLAN 1] · Unlimited · 24 h · 1 device</option><option selected="">[PLAN 2] · Unlimited · 7 days · 2 devices</option><option>[PLAN 3] · Unlimited · 30 days · 4 devices</option></select></div>
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
               <div><label class="lbl" for="vq">How many</label><input class="in" id="vq" type="number" value="20"></div>
               <div><label class="lbl" for="vr">For reseller</label><select class="in" id="vr"><option>None</option><option selected="">[RESELLER]</option></select></div>
@@ -155,8 +223,9 @@ th{color:#5c6963;font-weight:600;font-size:13px}
             <thead><tr><th scope="col">Code</th><th scope="col">Bundle</th><th scope="col">For</th><th scope="col">Type</th><th scope="col">Status</th></tr></thead>
             <tbody>
               <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
-                <tr><td class="code"><a href="AdminVoucherDetail.dc.html">{{doneCode}}</a></td><td>[PLAN 2]</td><td>{{doneFor}}</td><td>{{doneType}}</td><td><span style="{{donePill}}">{{doneStatus}}</span></td></tr>
+                <tr><td class="code"><a href="AdminVoucherDetail.dc.html">{{doneCode}}</a></td><td>{{doneBundle}}</td><td>{{doneFor}}</td><td>{{doneType}}</td><td><span style="{{donePill}}">{{doneStatus}}</span></td></tr>
               </sc-if>
+              <tr><td class="code"><a href="AdminVoucherDetail.dc.html">C6GF-8RTE</a></td><td>Custom · 10 days · 3 devices</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">Grace T.</a></td><td>Gift</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">M3VX-7KQD</a></td><td>[PLAN 1]</td><td>6•• •• 57 03 · no account yet</td><td>Gift</td><td><span class="pill" style="background: #f1e8fb; color: #5b2d86">Waiting for claim</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">K7PM-42XQ</a></td><td>[PLAN 2]</td><td><a href="AdminCustomerDetail.dc.html" style="font-weight: 700">J. Fon</a></td><td>Gift</td><td><span class="pill" style="background: #eaf6d5; color: #345000">In use</span></td></tr>
               <tr><td class="code"><a href="AdminVoucherDetail.dc.html">B2RT-9WNA</a></td><td>[PLAN 1]</td><td>Batch B-1029-01</td><td>Sold</td><td><span class="pill" style="background: #eef0ee; color: #3d4a44">Used up</span></td></tr>
@@ -171,11 +240,12 @@ th{color:#5c6963;font-weight:600;font-size:13px}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["customer","batch"],"default":"customer"},"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["customer","batch"],"default":"customer"},"pick":{"editor":"enum","options":["none","amina","grace","unknown"],"default":"none"},"bundle":{"editor":"enum","options":["catalogue","custom","customWisp"],"default":"catalogue"},"$preview":{"width":1280,"height":1180}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { mode: props.mode ?? 'customer', made: false, pick: null, kind: 'sold', confirmed: false, done: false };
+    const b = props.bundle ?? 'catalogue'; const pk = props.pick ?? 'none';
+    this.state = { mode: props.mode ?? 'customer', made: false, pick: pk === 'none' ? null : pk, kind: 'sold', confirmed: false, done: false, src: b === 'catalogue' ? 'catalogue' : 'custom', ctype: b === 'customWisp' ? 'wisp' : 'personal' };
   }
   renderVals() {
     const s = this.state;
@@ -186,7 +256,7 @@ class Component extends DCLogic {
       pick: () => this.setState({ mode: id })
     }));
     const people = {
-      amina: { who: 'Amina N.', initial: 'A', line: '+237 6•• •• 12 45 · [PLAN 2] active, ends 12 Nov', active: true },
+      amina: { who: 'Amina N.', initial: 'A', line: '+237 6•• •• 12 45 · [PLAN 2] active, ends 25 Nov', active: true },
       grace: { who: 'Grace T.', initial: 'G', line: '+237 6•• •• 03 66 · no active bundle', active: false }
     };
     const p = people[s.pick] || { who: '', initial: '', line: '', active: false };
@@ -199,9 +269,18 @@ class Component extends DCLogic {
       style: rowBase + (s.kind === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'),
       pick: () => this.setState({ kind: id })
     }));
+    const custom = s.src === 'custom'; const wisp = custom && s.ctype === 'wisp';
+    const srcTabs = [['catalogue', 'From the catalogue'], ['custom', 'Custom bundle']].map(([id, label]) => ({ label, sel: id === s.src ? 'true' : 'false', style: 'flex: 1; min-height: 36px; border: 0; border-radius: 7px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ' + (id === s.src ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ src: id }) }));
+    const access = [['personal', 'Personal Unlimited', 'Device slots · restricts sharing'], ['wisp', 'Home WISP Unlimited', 'Supported router · sharing on']].map(([id, label, hint]) => ({ label, hint, on: s.ctype === id, pick: () => this.setState({ ctype: id }), style: 'display: flex; gap: 8px; align-items: flex-start; padding: 10px; border-radius: 10px; cursor: pointer; ' + (s.ctype === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;') }));
+    const slots = [1, 2, 4, 6].map((n) => ({ n, style: 'display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; font-size: 13px; font-weight: 700; ' + 'border: 1px solid #b8c7bd; color: #10241c; background: #ffffff;' }));
+    const terms = wisp ? 'Home WISP Unlimited · 10 days' : 'Unlimited · 10 days · 3 devices';
+    const customName = 'Gift from NDAHI · ' + terms;
+    const bname = custom ? 'Custom · ' + terms.replace('Unlimited · ', '') : '[PLAN 2]';
     const blocked = p.active && !s.confirmed;
     const set = (o) => () => this.setState(o);
     return {
+      srcTabs, access, slots, customName, isCatalogue: !custom, isCustom: custom, isPersonal: !wisp, isWisp: wisp, doneBundle: bname,
+      reserveLabel: custom ? 'Reserve this custom gift for this number' : 'Reserve [PLAN 2] for this number',
       modes, isCustomer: s.mode === 'customer', isBatch: s.mode === 'batch',
       made: s.made, create: set({ made: true }),
       isDone: s.done, notDone: !s.done,
@@ -210,7 +289,7 @@ class Component extends DCLogic {
       unpick: set({ pick: null, confirmed: false }),
       who: p.who, initial: p.initial, whoLine: p.line, hasActive: p.active,
       kinds, confirmed: s.confirmed, flipConfirm: set({ confirmed: !s.confirmed }),
-      blocked, giveLabel: s.kind === 'gift' ? 'Give [PLAN 2] as a gift' : 'Give [PLAN 2] — sold',
+      blocked, giveLabel: custom ? 'Give custom bundle as a gift' : (s.kind === 'gift' ? 'Give [PLAN 2] as a gift' : 'Give [PLAN 2] — sold'),
       give: () => { if (!blocked) this.setState({ done: true }); },
       replaced: p.active && s.pick !== 'unknown',
       doneCode: s.pick === 'unknown' ? 'P4NE-2WJH' : 'R8TW-3MXK',
@@ -218,9 +297,9 @@ class Component extends DCLogic {
       doneFor: s.pick === 'unknown' ? '6•• •• 99 10 · no account yet' : p.who,
       doneStatus: s.pick === 'unknown' ? 'Waiting for claim' : 'In use',
       donePill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (s.pick === 'unknown' ? 'background: #f1e8fb; color: #5b2d86;' : 'background: #eaf6d5; color: #345000;'),
-      doneTag: (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · 5 GB · 7 days',
-      doneType: s.kind === 'gift' ? 'Gift' : 'Sold',
-      reset: set({ done: false, pick: null, confirmed: false, kind: 'sold' })
+      doneTag: custom ? 'Gift · Custom · ' + terms : (s.kind === 'gift' ? 'Gift' : 'Sold') + ' · [PLAN 2] · Unlimited · 7 days · 2 devices',
+      doneType: custom || s.kind === 'gift' ? 'Gift' : 'Sold',
+      reset: set({ done: false, pick: null, confirmed: false, kind: 'sold', src: 'catalogue' })
     };
   }
 }

@@ -55,7 +55,7 @@ a{color:#003b2b}a:hover{color:#062a20}
               <span style="color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{kindTag}}</span>
             </div>
             <p style="margin: 18px 0 2px; font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 600">[PLAN 2]</p>
-            <p style="margin: 0; color: #c8d8d0; font-size: 14px">5 GB · 7 days · up to 3 devices</p>
+            <p style="margin: 0; color: #c8d8d0; font-size: 14px">Unlimited data · 7 days · 2 device slots</p>
           </div>
           <div aria-hidden="true" style="position: relative; height: 0; border-top: 2px dashed rgba(255,255,255,.28); margin: 0 14px">
             <span style="position: absolute; left: -26px; top: -12px; width: 24px; height: 24px; border-radius: 50%; background: #fbfaf5"></span>
@@ -84,7 +84,7 @@ a{color:#003b2b}a:hover{color:#062a20}
             <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px">
               <div class="stat"><b>{{dataLeft}}</b><span>{{dataSub}}</span></div>
               <div class="stat"><b>{{timeLeft}}</b><span>{{timeSub}}</span></div>
-              <div class="stat"><b>2 of 3</b><span>devices connected</span></div>
+              <div class="stat"><b>2 of 2</b><span>device slots used</span></div>
             </div>
             <div class="bar" role="img" aria-label="{{barLabel}}"><i style="{{barW}}"></i></div>
           </section>
@@ -197,13 +197,13 @@ class Component extends DCLogic {
       validLine: w ? 'Only for 6•• •• 57 03 · claim by 11 Feb 2027' : 'Valid until 5 Feb 2027 if not used',
       createdLine: w ? 'for +237 6•• •• 57 03 by Owner' : 'in batch B-1029-01 by Owner',
       createdWhen: w ? '13 Nov · 16:02' : '29 Oct · 10:12',
-      endsTitle: w ? 'Expires' : 'Ends', endsLine: w ? '11 Feb 2027 if not claimed' : '15 Nov · 18:03, or when the data runs out',
+      endsTitle: w ? 'Expires' : 'Ends', endsLine: w ? '11 Feb 2027 if not claimed' : '15 Nov · 18:03',
       batchLabel: w ? 'Reserved for' : 'Batch', batchLine: w ? 'Phone number · given in person' : 'B-1029-01 · 20 codes',
       editing: !!s.editing && !s.numberSaved, numberSaved: !!s.numberSaved,
       editNumber: set({ editing: true }), saveNumber: set({ numberSaved: true }),
-      dataLeft: used ? '0 GB' : '3.2 GB', dataSub: used ? 'of 5 GB left' : 'of 5 GB left · 1.8 used',
-      timeLeft: used ? 'Ended' : '2 days', timeSub: used ? '12 Nov · data ran out' : 'ends 15 Nov · 18:03',
-      barW: 'width: ' + (used ? '100%' : '36%'), barLabel: used ? '5 of 5 GB used' : '1.8 of 5 GB used',
+      dataLeft: used ? '6.4 GB' : '1.8 GB', dataSub: 'used · unlimited data',
+      timeLeft: used ? 'Ended' : '2 days', timeSub: used ? '12 Nov · validity ended' : 'ends 15 Nov · 18:03',
+      barW: 'width: ' + (used ? '100%' : '64%'), barLabel: used ? '7 of 7 days used' : '4.5 of 7 days used',
       emailLine: (st === 'notUsed' || st === 'waitingClaim') ? 'Sent when redeemed' : 'Delivered 8 Nov · 18:04',
       routerLine: st === 'revoked' ? 'Disconnect sent · confirmed' : (st === 'notUsed' || st === 'waitingClaim') ? 'Waiting for redemption' : 'Synced to MikroTik · 40 s ago',
       revokeWarn: (st === 'notUsed' || st === 'waitingClaim') ? 'The code stops working. This can’t be undone.' : 'J. Fon’s 2 devices are disconnected now and the rest of the bundle is lost. This can’t be undone.',

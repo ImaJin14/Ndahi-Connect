@@ -15,7 +15,11 @@ labels: redesign
 ## Scope
 <!-- Screens or changes in this PR. What stays untouched (v1 folders, lib/api, store-app unless Phase 4). -->
 
+## Design — implement exactly this
+<!-- Screen name(s) from docs/redesign/screens/ and the PNG of every state from docs/redesign/screens/png/. -->
+
 ## Rules
+- **Build exactly the design** (AGENTS.md rule 10): same layout, copy, order, components and states. Any change needs the owner's approval on this issue first.
 - Use only `shared-app/ui/` tokens and components; strings through `shared-app/i18n.js` (EN + FR).
 - No new dependencies. No hard-coded prices, plans or contact details.
 - Follow `AGENTS.md`.
@@ -23,7 +27,7 @@ labels: redesign
 ## Proof
 - [ ] `npm run check` and `npm test` pass
 - [ ] Journeys: <!-- name them --> pass on v1 and with `?ui=new`
-- [ ] Screenshots at 390 px and 1280 px attached
+- [ ] Design fidelity section filled in: design-vs-build captures of every state at 390 px and 1280 px, "Differences: none" or owner-approved
 - [ ] Keyboard and contrast checked on new components
 
 ## Stop

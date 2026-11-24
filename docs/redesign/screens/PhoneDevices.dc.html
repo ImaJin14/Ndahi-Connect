@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Devices</title>
+<title>Device slots</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -14,58 +14,82 @@ body{margin:0}
 a{color:#003b2b}a:hover{color:#062a20}
 .btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
 .back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
-.dev{display:flex;gap:12px;align-items:center;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
+.slot{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:#fffef9;border:1px solid #dfe5dc}
 .ic{width:42px;height:42px;flex-shrink:0;border-radius:10px;background:#eef3e9;display:grid;place-items:center}
+.sm{min-height:40px;padding:0 12px;border-radius:9px;border:1px solid #dfe5dc;background:#ffffff;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
   <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
     <a class="back" href="PhoneHome.dc.html" aria-label="Back to home"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
-    <span style="font-weight: 700; font-size: 15px; flex: 1">Devices</span>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Device slots</span>
     <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{countLabel}}</span>
   </div>
 
-  <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
-    <p style="margin: 0 0 4px; color: #5c6963; font-size: 14px">Your bundle can be used on up to 3 devices at once.</p>
-    <sc-for list="{{devices}}" as="d" hint-placeholder-count="2">
-      <div class="dev">
-        <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.icon}}"></path></svg></span>
-        <span style="flex: 1; min-width: 0"><strong style="display: block; font-size: 15px">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.meta}}</span></span>
-        <button type="button" onClick="{{d.remove}}" aria-label="{{d.removeLabel}}" style="min-height: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid #dfe5dc; background: #ffffff; color: #a73535; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Disconnect</button>
+  <main style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+    <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.45"><strong>Personal Unlimited · 7 days · 2 devices.</strong> Each slot is tied to one device's Wi-Fi address when it signs in.</p>
+
+    <sc-for list="{{slots}}" as="d" hint-placeholder-count="2">
+      <div class="slot" style="{{d.cardStyle}}">
+        <div style="display: flex; gap: 12px; align-items: center">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#003b2b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{d.icon}}"></path></svg></span>
+          <span style="flex: 1; min-width: 0"><span style="display: block; font-size: 11px; font-weight: 700; color: #5c6963; letter-spacing: .1em; text-transform: uppercase">{{d.slot}}</span><strong style="display: block; font-size: 15px">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.meta}}</span></span>
+          <span style="{{d.dot}}" aria-hidden="true"></span>
+        </div>
+        <sc-if value="{{d.filled}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span class="mono" style="flex: 1; color: #5c6963">Wi-Fi address {{d.mac}}</span>
+            <a class="sm" href="PhoneReplaceDevice.dc.html" style="color: #003b2b">Replace</a>
+            <button type="button" class="sm" style="color: #a73535" onClick="{{d.ask}}" aria-label="{{d.removeLabel}}">Remove</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{d.asking}}" hint-placeholder-val="{{ false }}">
+          <div role="alertdialog" aria-label="{{d.removeLabel}}" style="padding: 10px 12px; border-radius: 10px; background: #fbe4e4; color: #8a2a2a; font-size: 13px; line-height: 1.45; display: flex; flex-direction: column; gap: 8px">
+            <span>Remove {{d.name}}? It's disconnected now and its saved sign-in is cleared. The slot becomes free. Your bundle's time keeps running.</span>
+            <span style="display: flex; gap: 8px; justify-content: flex-end"><button type="button" class="sm" onClick="{{d.cancel}}">Keep it</button><button type="button" class="sm" style="background: #a73535; color: #ffffff; border-color: #a73535" onClick="{{d.remove}}">Remove</button></span>
+          </div>
+        </sc-if>
+        <sc-if value="{{d.empty}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 13px; color: #3d4a44; line-height: 1.45">To fill it, connect the new device to NDAHI Wi-Fi and sign in on it. Or show it a pairing code from here.</p>
+        </sc-if>
       </div>
     </sc-for>
 
-    <div style="padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45"><strong>Tip:</strong> turn off “Private Wi-Fi address” for NDAHI on your phone so it stays recognised after a restart.</div>
-
-    <sc-if value="{{pairing}}" hint-placeholder-val="{{ false }}">
-      <section aria-labelledby="pairT" style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; text-align: center">
-        <h2 id="pairT" style="margin: 0; font-size: 15px; font-weight: 700">On the new device, open the portal and enter</h2>
-        <p style="margin: 10px 0 6px; font: 700 36px ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .14em; color: #b9ee2e">482 913</p>
-        <p style="margin: 0; color: #c8d8d0; font-size: 13px">Code expires in 10 minutes. You'll approve the device here.</p>
-        <a href="PhonePairReview.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; padding: 0 14px; border-radius: 9px; background: #b9ee2e; color: #15210c; font-weight: 700; font-size: 14px; text-decoration: none">A request came in — review it</a>
-      </section>
+    <sc-if value="{{full}}" hint-placeholder-val="{{ true }}">
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45"><strong>All slots are in use.</strong> A new device can't connect, even while one of yours is off. Replace a device to move its slot. Your bundle's end date never changes.</p>
     </sc-if>
+    <details style="border-top: 1px solid #dfe5dc">
+      <summary style="min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 14px; cursor: pointer">Private Wi-Fi address on my phone?</summary>
+      <p style="margin: 0 0 8px; font-size: 13px; color: #3d4a44; line-height: 1.5">That's fine as long as it stays the same for NDAHI Wi-Fi. Turn off any option that changes it each time you connect (often called "rotating" or "randomise every time"), or your phone will look like a new device.</p>
+    </details>
   </main>
   <div style="padding: 12px 16px 18px; background: #fffef9; border-top: 1px solid #dfe5dc">
-    <button type="button" class="btn" onClick="{{togglePair}}">{{pairLabel}}</button>
+    <sc-if value="{{full}}" hint-placeholder-val="{{ true }}"><a class="btn" href="PhoneReplaceDevice.dc.html">Replace a device</a></sc-if>
+    <sc-if value="{{hasFree}}" hint-placeholder-val="{{ false }}"><a class="btn" href="PhonePairRequest.dc.html">Show a pairing code</a></sc-if>
   </div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { removed: [], pairing: false }; }
+  constructor(props) { super(props); this.state = { removed: [], asking: null }; }
   renderVals() {
     const s = this.state;
-    const all = [
-      { id: 'a', name: 'This phone', meta: 'Connected now · 1.2 GB this week', icon: 'M7 2h10v20H7ZM11 18h2' },
-      { id: 'b', name: 'HP laptop', meta: 'Last seen 2 h ago · 0.6 GB this week', icon: 'M4 5h16v11H4ZM2 19h20' }
+    const devs = [
+      { id: 'a', slot: 'Slot 1', name: 'This phone', meta: 'Online now', mac: '••:••:••:4F:A2:10', online: true, icon: 'M7 2h10v20H7ZM11 18h2' },
+      { id: 'b', slot: 'Slot 2', name: 'HP laptop', meta: 'Offline · last seen 2 h ago', mac: '••:••:••:19:C7:5E', online: false, icon: 'M4 5h16v11H4ZM2 19h20' }
     ];
-    const devices = all.filter((d) => !s.removed.includes(d.id)).map((d) => ({ ...d, removeLabel: 'Disconnect ' + d.name, remove: () => this.setState({ removed: [...s.removed, d.id] }) }));
-    return {
-      devices, countLabel: devices.length + ' of 3 in use', pairing: s.pairing,
-      pairLabel: s.pairing ? 'Done' : 'Add another device',
-      togglePair: () => this.setState({ pairing: !s.pairing })
-    };
+    const slots = devs.map((d) => {
+      const gone = s.removed.includes(d.id);
+      if (gone) return { slot: d.slot, name: 'Empty slot', meta: 'Free for a new device', filled: false, empty: true, asking: false, icon: 'M12 5v14M5 12h14',
+        cardStyle: 'border: 1px dashed #b8c7bd; background: transparent;', dot: 'display: none', mac: '', removeLabel: '' };
+      return { ...d, filled: true, empty: false, asking: s.asking === d.id, removeLabel: 'Remove ' + d.name,
+        cardStyle: '', dot: 'width: 10px; height: 10px; border-radius: 50%; background: ' + (d.online ? '#6f9500' : '#b8c7bd'),
+        ask: () => this.setState({ asking: d.id }), cancel: () => this.setState({ asking: null }),
+        remove: () => this.setState({ removed: [...s.removed, d.id], asking: null }) };
+    });
+    const used = devs.length - s.removed.length;
+    return { slots, countLabel: `${used} of 2 used`, full: used === 2, hasFree: used < 2 };
   }
 }
 </script>
