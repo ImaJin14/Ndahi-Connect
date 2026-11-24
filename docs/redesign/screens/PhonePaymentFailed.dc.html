@@ -12,79 +12,113 @@
 <style>
 body{margin:0}
 a{color:#003b2b}a:hover{color:#062a20}
-.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
-.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
-.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer;text-align:center}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer;text-align:center}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:26px;line-height:1.15}
 .foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
-.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.in{box-sizing:border-box;width:100%;min-height:46px;padding:0 14px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:16px 'DM Sans',sans-serif;color:#10241c}
+.copy{min-height:32px;padding:0 10px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
   <div style="display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #dfe5dc; min-height: 44px">
-    <span style="font-weight: 700; font-size: 15px; flex: 1">Buy a bundle</span>
-    <a href="PhoneHelp.dc.html" style="font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center">Help</a>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">{{t.top}}</span>
+    <a href="PhoneHelp.dc.html" style="font-size: 14px; font-weight: 700; min-height: 44px; display: flex; align-items: center">{{t.help}}</a>
   </div>
-  <main style="flex: 1; padding: 28px 22px 18px; display: flex; flex-direction: column; gap: 14px">
+  <main style="flex: 1; overflow: hidden; padding: 22px 20px 14px; display: flex; flex-direction: column; gap: 12px">
     <div style="{{iconWrap}}">
-      <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="{{iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{iconPath}}"></path></svg>
+      <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="{{iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{iconPath}}"></path></svg>
     </div>
     <h1 class="h1" role="status">{{title}}</h1>
-    <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">{{body}}</p>
-    <sc-if value="{{money}}" hint-placeholder-val="{{ true }}">
-      <p style="{{moneyStyle}}">{{moneyLine}}</p>
+    <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.5">{{bodyA}}<strong>{{bodyAmount}}</strong>{{bodyB}}</p>
+    <p style="{{moneyStyle}}">{{moneyLine}}</p>
+    <sc-if value="{{isWrong}}" hint-placeholder-val="{{ false }}">
+      <div><label for="num" style="display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600">{{t.number}}</label><input class="in" id="num" type="tel" value="6•• •• 12 45"></div>
     </sc-if>
-    <section aria-label="Payment details" style="padding: 4px 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
-      <div class="row"><span style="color: #5c6963">Bundle</span><strong>[PLAN 2] · [PRICE] FCFA</strong></div>
-      <div class="row"><span style="color: #5c6963">{{method}} fee</span><strong>[FEE] FCFA</strong></div>
-      <div class="row"><span style="color: #5c6963">Total asked</span><strong>[TOTAL] FCFA</strong></div>
-      <div class="row"><span style="color: #5c6963">Paid with</span><strong>{{method}} · 6•• •• 12 45</strong></div>
-      <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Reference</span><strong style="font-family: ui-monospace, Menlo, monospace">PAY-1113-0042</strong></div>
+    <section aria-label="{{t.details}}" style="padding: 2px 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
+      <div class="row"><span style="color: #5c6963">{{t.bundle}}</span><strong>Personal Unlimited · 7 {{t.days}} · 2 {{t.devs}}</strong></div>
+      <div class="row"><span style="color: #5c6963">{{t.bundlePrice}}</span><strong>{{price}}</strong></div>
+      <sc-if value="{{feeKnown}}" hint-placeholder-val="{{ true }}">
+        <div class="row"><span style="color: #5c6963">{{t.feeLabel}}</span><strong>{{fee}}</strong></div>
+        <div class="row"><span style="color: #5c6963">{{t.total}}</span><strong>{{total}}</strong></div>
+      </sc-if>
+      <div class="row"><span style="color: #5c6963">{{t.payWith}}</span><strong>{{net}} · 6•• •• 12 45</strong></div>
+      <div class="row" style="border-bottom: 0"><span style="color: #5c6963">{{refLabel}}</span><span style="display: flex; align-items: center; gap: 8px"><strong style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">{{ref}}</strong><button type="button" class="copy" onClick="{{copy}}">{{copyLabel}}</button></span></div>
     </section>
-    <sc-if value="{{isTimeout}}" hint-placeholder-val="{{ false }}">
-      <p style="margin: 0; color: #5c6963; font-size: 13px">Checked {{checks}} time{{plural}} · we keep checking for 15 minutes even if you close this page.</p>
+    <sc-if value="{{isPending}}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 0; color: #5c6963; font-size: 13px">{{checkedLine}}</p>
     </sc-if>
   </main>
   <div class="foot">
-    <sc-if value="{{isTimeout}}" hint-placeholder-val="{{ false }}">
-      <button type="button" class="btn" onClick="{{check}}">Check again</button>
+    <sc-if value="{{isPending}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="btn" onClick="{{check}}">{{t.checkAgain}}</button>
     </sc-if>
-    <sc-if value="{{notTimeout}}" hint-placeholder-val="{{ true }}">
-      <a class="btn" href="PhoneBuyBundle.dc.html">{{primary}}</a>
+    <sc-if value="{{hasSwitch}}" hint-placeholder-val="{{ false }}">
+      <a class="btn" href="PhoneBuyBundle.dc.html">{{switchLabel}}</a>
+    </sc-if>
+    <sc-if value="{{hasRetry}}" hint-placeholder-val="{{ true }}">
+      <a class="{{retryClass}}" href="PhoneBuyBundle.dc.html">{{t.retry}}</a>
+    </sc-if>
+    <sc-if value="{{isWrong}}" hint-placeholder-val="{{ false }}">
+      <a class="btn2" href="PhoneBuyBundle.dc.html">{{t.useOther}}</a>
     </sc-if>
     <a class="btn2" href="{{secondaryHref}}">{{secondary}}</a>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"reason":{"editor":"enum","options":["declined","lowBalance","timeout","wrongNetwork"],"default":"declined"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"reason":{"editor":"enum","options":["lowBalance","expired","cancelled","wrongNetwork","pending","unclear"],"default":"lowBalance"},"fee":{"editor":"enum","options":["verified","unverified"],"default":"verified"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { checks: 1 }; }
+  constructor(props) { super(props); this.state = { checks: 3, copied: false }; }
   renderVals() {
-    const r = this.props.reason ?? 'declined';
-    const X = 'M18 6 6 18M6 6l12 12', CLOCK = 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', WALLET = 'M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01', SIM = 'M6 3h9l4 4v14H6ZM9 12h6v5H9Z';
-    const red = ['#fbe4e4', '#8a2a2a'], amber = ['#fff4e0', '#6b3a00'];
-    const v = {
-      declined: { tone: red, path: X, title: 'Payment not approved', method: 'MTN MoMo',
-        body: 'The request was declined or cancelled on your phone, so nothing happened.',
-        money: 'No money was taken.', primary: 'Try again', secondary: 'Pay with Orange Money instead', href: 'PhoneBuyBundle.dc.html' },
-      lowBalance: { tone: red, path: WALLET, title: 'Not enough Mobile Money', method: 'MTN MoMo',
-        body: 'Your MoMo balance is below [TOTAL] FCFA: the bundle ([PRICE] FCFA) plus the Mobile Money fee ([FEE] FCFA). Add money at any MoMo agent, then try again — or pick a smaller bundle.',
-        money: 'No money was taken.', primary: 'Try again', secondary: 'Choose a smaller bundle', href: 'PhoneBuyBundle.dc.html' },
-      timeout: { tone: amber, path: CLOCK, title: 'Still waiting for MTN', method: 'MTN MoMo',
-        body: "MTN hasn't confirmed yet. If you approved on your phone, your bundle starts by itself as soon as they do.",
-        money: "Please don't pay again yet — you could be charged twice.", primary: '', secondary: 'Get help with this payment', href: 'PhoneHelp.dc.html' },
-      wrongNetwork: { tone: red, path: SIM, title: "This number isn't on MTN MoMo", method: 'MTN MoMo',
-        body: '6•• •• 12 45 looks like an Orange number. Pay with Orange Money, or enter an MTN MoMo number.',
-        money: 'No money was taken.', primary: 'Pay with Orange Money', secondary: 'Use a different number', href: 'PhoneBuyBundle.dc.html' }
+    const r = this.props.reason ?? 'lowBalance';
+    const fr = (this.props.lang ?? 'en') === 'fr';
+    const feeKnown = (this.props.fee ?? 'verified') === 'verified';
+    const num = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/ /g, ' ') + ' XAF';
+    const base = 4000, fee = Math.round(base * 0.02), total = base + fee;
+    // Cheaper offer: the highest-priced eligible published bundle strictly below 4,000 XAF.
+    // Personal Unlimited 7 days · 1 device and 24 hours · 6 devices tie at 2,500; the tie goes to the one
+    // closest to the 2 devices asked for (then longer validity, then display order): 7 days · 1 device.
+    const cheaper = { name: fr ? 'Personal Unlimited · 7 jours · 1 appareil' : 'Personal Unlimited · 7 days · 1 device', total: 2500 + Math.round(2500 * 0.02) };
+    const net = 'MTN MoMo', netShort = 'MTN';
+    const T = fr ? { top: 'Acheter un forfait', help: 'Aide', number: 'Numéro Mobile Money', details: 'Détails du paiement', bundle: 'Forfait', days: 'jours', devs: 'appareils', bundlePrice: 'Prix du forfait', feeLabel: 'Frais de paiement mobile (2 %)', total: 'Total à payer', payWith: 'Payé avec', retry: 'Réessayer', checkAgain: 'Vérifier à nouveau', useOther: 'Payer avec Orange Money', noMoney: "Aucun argent n'a été débité.", dontPay: 'Ne payez pas à nouveau pour le moment : vous pourriez être débité deux fois.', copy: 'Copier', copied: 'Copié', help2: "Obtenir de l'aide pour ce paiement", change: 'Changer de numéro ou de réseau', choose: 'Choisir un autre forfait' }
+                 : { top: 'Buy a bundle', help: 'Help', number: 'Mobile Money number', details: 'Payment details', bundle: 'Bundle', days: 'days', devs: 'devices', bundlePrice: 'Bundle Price', feeLabel: 'Mobile Payment Fee (2%)', total: 'Total to Pay', payWith: 'Paid with', retry: 'Retry', checkAgain: 'Check again', useOther: 'Pay with Orange Money', noMoney: 'No money was taken.', dontPay: "Please don't pay again yet — you could be charged twice.", copy: 'Copy', copied: 'Copied', help2: 'Get help with this payment', change: 'Change number or network', choose: 'Choose another bundle' };
+    const X = 'M18 6 6 18M6 6l12 12', CLOCK = 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', WALLET = 'M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01', SIM = 'M6 3h9l4 4v14H6ZM9 12h6v5H9Z', Q = 'M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z';
+    const red = ['#fbe4e4', '#8a2a2a'], amber = ['#fff4e0', '#6b3a00'], grey = ['#eef0ee', '#3d4a44'];
+    const lowBody = feeKnown
+      ? (fr ? ['Solde MoMo/OM insuffisant. Il vous faut au moins ', num(total), ' sur votre compte pour couvrir le forfait + 2 % de frais de paiement.'] : ['Insufficient MoMo/OM balance. You need at least ', num(total), ' in your wallet to cover the bundle + 2% payment fee.'])
+      : (fr ? ['Solde MoMo/OM insuffisant. Votre compte doit couvrir le prix du forfait (', num(base), ") plus les frais affichés dans la demande de l'opérateur."] : ['Insufficient MoMo/OM balance. Your wallet needs the bundle price (', num(base), ') plus the fee shown in the operator prompt.']);
+    const V = {
+      lowBalance: { tone: red, path: WALLET, title: fr ? 'Solde insuffisant' : 'Not enough balance', body: lowBody, money: T.noMoney, retry: true, sec: [T.choose, 'PhoneBuyBundle.dc.html'] },
+      expired: { tone: amber, path: CLOCK, title: fr ? 'Demande de paiement expirée' : 'Payment request expired',
+        body: fr ? ['Demande de paiement expirée. Composez *126# (MTN) ou #150# (Orange) pour valider les demandes en attente, ou touchez Réessayer pour envoyer une nouvelle demande.', '', ''] : ['Payment request expired. Dial *126# (MTN) or #150# (Orange) to approve pending prompts, or tap Retry to send a new pop-up.', '', ''],
+        money: T.noMoney, retry: true, sec: [T.change, 'PhoneBuyBundle.dc.html'] },
+      cancelled: { tone: red, path: X, title: fr ? 'Paiement non validé' : 'Payment not approved',
+        body: fr ? ['Transaction annulée ou code PIN incorrect. Touchez Réessayer quand vous êtes prêt à valider la demande.', '', ''] : ["Transaction cancelled or incorrect PIN entered. Tap Retry when you're ready to approve the prompt.", '', ''],
+        money: T.noMoney, retry: true, sec: [T.change, 'PhoneBuyBundle.dc.html'] },
+      wrongNetwork: { tone: red, path: SIM, title: fr ? 'Numéro non reconnu' : 'Number not recognised',
+        body: fr ? [`Ce numéro n'est pas enregistré sur ${net}. Vérifiez le numéro ou changez de réseau.`, '', ''] : [`This number isn't registered on ${net}. Please check the number or switch networks.`, '', ''],
+        money: T.noMoney, retry: true, wrong: true, sec: [T.choose, 'PhoneBuyBundle.dc.html'] },
+      pending: { tone: amber, path: CLOCK, title: fr ? 'En attente de confirmation' : 'Waiting for confirmation',
+        body: fr ? [`En attente de la confirmation ${netShort}. Validez la demande sur votre téléphone — votre Wi-Fi s'activera automatiquement dès la confirmation.`, '', ''] : [`Waiting for ${netShort} confirmation. Approve the pop-up on your phone—your Wi-Fi will activate automatically once confirmed.`, '', ''],
+        money: T.dontPay, retry: false, pending: true, sec: [T.help2, 'PhoneHelp.dc.html'] },
+      unclear: { tone: grey, path: Q, title: fr ? 'Paiement non confirmé' : "We couldn't confirm this payment",
+        body: fr ? [`${netShort} n'a pas donné de réponse claire. Si de l'argent a quitté votre compte, votre forfait s'activera ou le montant vous sera rendu.`, '', ''] : [`${netShort} didn't give a clear answer. If money left your wallet, your bundle will activate or the amount will be returned.`, '', ''],
+        money: T.dontPay, retry: false, pending: true, sec: [T.help2, 'PhoneHelp.dc.html'] }
     }[r];
-    const isTimeout = r === 'timeout';
+    const isPending = !!V.pending;
+    const hasSwitch = r === 'lowBalance' && feeKnown;
     return {
-      title: v.title, body: v.body, method: v.method, primary: v.primary, secondary: v.secondary, secondaryHref: v.href,
-      iconWrap: `width: 80px; height: 80px; border-radius: 50%; display: grid; place-items: center; background: ${v.tone[0]}`,
-      iconColor: v.tone[1], iconPath: v.path,
-      money: true, moneyLine: v.money,
-      moneyStyle: 'margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 700; ' + (isTimeout ? 'background: #fff4e0; color: #6b3a00;' : 'background: #eaf6d5; color: #345000;'),
-      isTimeout, notTimeout: !isTimeout,
-      checks: this.state.checks, plural: this.state.checks === 1 ? '' : 's',
+      t: T, title: V.title, bodyA: V.body[0], bodyAmount: V.body[1], bodyB: V.body[2],
+      iconWrap: `width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: ${V.tone[0]}`, iconColor: V.tone[1], iconPath: V.path,
+      moneyLine: V.money, moneyStyle: 'margin: 0; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 700; ' + (isPending ? 'background: #fff4e0; color: #6b3a00;' : 'background: #eaf6d5; color: #345000;'),
+      price: num(base), fee: num(fee), total: num(total), feeKnown, net,
+      refLabel: fr ? 'Référence' : 'Reference', ref: r === 'wrongNetwork' || r === 'expired' ? 'NC-PAY-2411-0042' : 'MP241124.1432.A7731',
+      copyLabel: this.state.copied ? T.copied : T.copy, copy: () => this.setState({ copied: true }),
+      isPending, isWrong: !!V.wrong, hasSwitch, hasRetry: V.retry, retryClass: hasSwitch ? 'btn2' : 'btn',
+      switchLabel: fr ? `Passer à ${cheaper.name} (${num(cheaper.total)})` : `Switch to ${cheaper.name} (${num(cheaper.total)})`,
+      secondary: V.sec[0], secondaryHref: V.sec[1],
+      checkedLine: fr ? `Vérifié ${this.state.checks} fois · nous continuons à vérifier même si vous fermez cette page.` : `Checked ${this.state.checks} times · we keep checking even if you close this page.`,
       check: () => this.setState({ checks: this.state.checks + 1 })
     };
   }

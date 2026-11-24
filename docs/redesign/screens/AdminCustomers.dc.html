@@ -62,7 +62,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
         <sc-if value="{{isGift}}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.18)">
             <label for="gb" style="font-size: 14px">Bundle</label>
-            <select id="gb" style="min-height: 40px; padding: 0 10px; border-radius: 9px; border: 0; font: 600 14px 'DM Sans', sans-serif"><option selected="">[PLAN 1] · 1 GB · 1 day</option><option>[PLAN 2] · 5 GB · 7 days</option></select>
+            <select id="gb" style="min-height: 40px; padding: 0 10px; border-radius: 9px; border: 0; font: 600 14px 'DM Sans', sans-serif"><option selected="">[PLAN 1] · Unlimited · 24 h · 1 device</option><option>[PLAN 2] · Unlimited · 7 days · 2 devices</option></select>
             <span style="flex: 1 1 200px; font-size: 13px; color: #c8d8d0">Saved in each account, starts when they use it. Recorded as gifts, no revenue.</span>
             <button type="button" onClick="{{sendGift}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Give to {{selCount}}</button>
           </div>
@@ -114,8 +114,8 @@ class Component extends DCLogic {
     const s = this.state;
     // idle: days since the last bundle ended (0 = has one now); never: signed up but never bought
     const base = [
-      { id: 'a', name: 'Amina N.', phone: '6•• •• 12 45', bundle: '[PLAN 2] · 3.2 GB left', last: 'Online now', idle: 0, devices: '2 / 3' },
-      { id: 'b', name: 'J. Fon', phone: '6•• •• 40 19', bundle: '[PLAN 3] · 11 GB left', last: 'Today', idle: 0, devices: '3 / 3' },
+      { id: 'a', name: 'Amina N.', phone: '6•• •• 12 45', bundle: '[PLAN 2] · 2 d 14 h left', last: 'Online now', idle: 0, devices: '2 / 2' },
+      { id: 'b', name: 'J. Fon', phone: '6•• •• 40 19', bundle: '[PLAN 3] · 22 days left', last: 'Today', idle: 0, devices: '4 / 4' },
       { id: 'c', name: 'M. Ekane', phone: '6•• •• 77 31', bundle: 'Payment waiting', last: 'Today · ended 1 Nov', idle: 12, devices: '0 / 1' },
       { id: 'f', name: 'L. Ngwa', phone: '6•• •• 21 08', bundle: 'None', last: 'Ended 4 Nov', idle: 9, devices: '0' },
       { id: 'g', name: 'P. Mbah', phone: '6•• •• 64 52', bundle: 'None', last: 'Ended 2 Oct', idle: 42, devices: '0' },

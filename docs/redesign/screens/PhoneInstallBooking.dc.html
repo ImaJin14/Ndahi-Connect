@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Book an installation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;color:#10241c;border:0;background:transparent;cursor:pointer;text-decoration:none}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:26px;line-height:1.15}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:46px;padding:0 12px;border-radius:10px;border:1px solid #b8c7bd;background:#fff;font:15px 'DM Sans',sans-serif;color:#10241c}
+.foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <sc-if value="{{isWhen}}" hint-placeholder-val="{{ true }}"><a class="back" href="PhoneStarterKit.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a></sc-if>
+    <sc-if value="{{isWhere}}" hint-placeholder-val="{{ false }}"><button type="button" class="back" aria-label="Back" onClick="{{toWhen}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button></sc-if>
+    <span style="font-weight: 700; font-size: 15px; flex: 1">Installation</span>
+    <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{stepLabel}}</span>
+  </div>
+
+  <sc-if value="{{isWhen}}" hint-placeholder-val="{{ true }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">When should we come?</h1>
+      <p style="margin: 0; color: #5c6963; font-size: 14px">A technician installs and aligns the device, connects it to your account and checks the signal with you. About 1–2 hours.</p>
+      <div role="group" aria-label="Day" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px">
+        <sc-for list="{{days}}" as="d" hint-placeholder-count="8">
+          <button type="button" aria-pressed="{{d.pressed}}" disabled="{{d.full}}" onClick="{{d.pick}}" style="{{d.style}}"><span style="display: block; font-size: 11px; font-weight: 600">{{d.dow}}</span><strong style="display: block; font-size: 17px">{{d.num}}</strong><span style="display: block; font-size: 10px">{{d.note}}</span></button>
+        </sc-for>
+      </div>
+      <div role="group" aria-label="Time" style="display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{slots}}" as="t" hint-placeholder-count="2">
+          <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="{{t.style}}"><span style="flex: 1; text-align: left"><strong style="display: block">{{t.label}}</strong><span style="font-size: 12px; color: #5c6963">{{t.left}}</span></span></button>
+        </sc-for>
+      </div>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toWhere}}">Continue · {{chosen}}</button></div>
+  </sc-if>
+
+  <sc-if value="{{isWhere}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+      <h1 class="h1">Where?</h1>
+      <div><label class="lbl" for="ar">Area</label><select class="in" id="ar"><option>[AREA 1] · Bamenda</option><option selected="">[AREA 2] · Bamenda</option><option>[AREA 3] · Douala</option></select><p style="margin: 6px 0 0; color: #5c6963; font-size: 12px">Travel fee for this area: [TRAVEL FEE] FCFA</p></div>
+      <div><label class="lbl" for="lm">Directions from a landmark</label><textarea id="lm" class="in" style="min-height: 72px; padding: 10px 12px; line-height: 1.4">Behind the Total station, blue gate, second house on the left.</textarea></div>
+      <div><label class="lbl" for="cp">Phone the technician calls</label><input class="in" id="cp" type="tel" value="6•• •• 12 45"></div>
+      <section aria-label="Booking summary" style="padding: 4px 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc">
+        <div class="row"><span style="color: #5c6963">When</span><strong>{{chosen}}</strong></div>
+        <div class="row"><span style="color: #5c6963">Installation</span><strong>[INSTALL PRICE] FCFA</strong></div>
+        <div class="row" style="border-bottom: 0"><span style="color: #5c6963">Travel</span><strong>[TRAVEL FEE] FCFA</strong></div>
+      </section>
+    </main>
+    <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Book and pay with the kit</button><p style="margin: 0; text-align: center; color: #5c6963; font-size: 12px">Free to move or cancel up to 24 h before.</p></div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 24px 20px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; gap: 12px"><span style="width: 52px; height: 52px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></span><h1 class="h1">Installation booked</h1></div>
+      <section style="padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff">
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Booking IN-2611-014</p>
+        <p style="margin: 8px 0 2px; font-size: 22px; font-weight: 700">{{chosen}}</p>
+        <p style="margin: 0; color: #c8d8d0; font-size: 14px">[AREA 2] · the technician calls 30 minutes before arriving</p>
+      </section>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; line-height: 1.5">Please have power near the spot and someone over 18 at home. If the signal at your place isn't good enough, we don't install and refund the installation fee.</p>
+    </main>
+    <div class="foot"><a class="btn2" href="PhoneActivity.dc.html">Move or cancel</a><a class="btn" href="PhoneHome.dc.html">Done</a></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { step: 'when', day: 2, slot: 'am' }; }
+  renderVals() {
+    const s = this.state;
+    const go = (step) => () => this.setState({ step });
+    const list = [['Fri', 20, ''], ['Sat', 21, ''], ['Mon', 23, ''], ['Tue', 24, 'Full'], ['Wed', 25, ''], ['Thu', 26, ''], ['Fri', 27, 'Busy'], ['Sat', 28, '']];
+    const days = list.map(([dow, num, note], i) => {
+      const full = note === 'Full', on = s.day === i;
+      return { dow, num, note: note || ' ', full, pressed: on ? 'true' : 'false',
+        style: 'min-height: 64px; border-radius: 12px; font-family: inherit; cursor: ' + (full ? 'not-allowed' : 'pointer') + '; ' + (full ? 'border: 1px dashed #dfe5dc; background: #f4f5f2; color: #9aa5a0;' : on ? 'border: 2px solid #003b2b; background: #f3f9e8; color: #10241c;' : 'border: 1px solid #dfe5dc; background: #fffef9; color: #10241c;'),
+        pick: () => { if (!full) this.setState({ day: i }); } };
+    });
+    const slots = [['am', 'Morning · 8:00 – 12:00', '2 slots left'], ['pm', 'Afternoon · 13:00 – 17:00', '1 slot left']].map(([id, label, left]) => ({ label, left, pressed: s.slot === id ? 'true' : 'false',
+      style: 'display: flex; align-items: center; min-height: 56px; padding: 8px 14px; border-radius: 12px; font: 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ' + (s.slot === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #fffef9;'),
+      pick: () => this.setState({ slot: id }) }));
+    const d = list[s.day];
+    return {
+      isWhen: s.step === 'when', isWhere: s.step === 'where', isDone: s.step === 'done',
+      stepLabel: { when: 'Step 1 of 2', where: 'Step 2 of 2', done: 'Booked' }[s.step],
+      days, slots, chosen: `${d[0]} ${d[1]} Nov · ${s.slot === 'am' ? 'morning' : 'afternoon'}`,
+      toWhen: go('when'), toWhere: go('where'), toDone: go('done')
+    };
+  }
+}
+</script>
+</body>
+</html>

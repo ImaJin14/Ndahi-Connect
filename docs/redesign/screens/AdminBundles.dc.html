@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Admin bundles</title>
+<title>Admin bundle catalogue</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,75 +12,160 @@
 <style>
 body{margin:0;background:#fbfaf5}
 a{color:#003b2b}a:hover{color:#062a20}
-.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
-.in{box-sizing:border-box;width:100%;min-height:44px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:22px}
+.sub{margin:4px 0 0;color:#5c6963;font-size:14px}
+.go{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:0;border-radius:9px;background:#b9ee2e;color:#15210c;font:700 14px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.go2{min-height:36px;padding:0 10px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.ic{width:32px;height:32px;border-radius:8px;border:1px solid #dfe5dc;background:#ffffff;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
+.ic[disabled]{color:#c4ccc7;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:96px repeat(6,minmax(0,1fr));gap:8px;align-items:stretch}
+.gh{font-size:13px;font-weight:700;color:#5c6963;text-align:center;align-self:end;padding-bottom:4px}
+.gl{font-size:14px;font-weight:700;display:flex;align-items:center}
+td,th{text-align:left;padding:10px 6px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap;vertical-align:middle}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
 </style>
 </helmet>
-<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1640px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
-    <dc-import name="AdminSide" current="bundles" hint-size="240px,780px"></dc-import>
+    <dc-import name="AdminSide" current="bundles" hint-size="240px,900px"></dc-import>
   </aside>
-  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
-    <div>
-      <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales</p>
-      <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Your bundles.</h1>
-      <p style="margin: 6px 0 0; color: #5c6963; font-size: 15px">What customers see on the plan picker, in this order.</p>
-    </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px">
-      <sc-for list="{{plans}}" as="p" hint-placeholder-count="4">
-        <article style="{{p.card}}">
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
-            <strong style="font-size: 17px">{{p.name}}</strong>
-            <span style="{{p.pill}}">{{p.state}}</span>
-          </div>
-          <p style="margin: 0; font-size: 20px; font-weight: 700; color: #003b2b">[XAF]</p>
-          <p style="margin: 0; color: #3d4a44; font-size: 14px">{{p.detail}}</p>
-          <p style="margin: 0; color: #5c6963; font-size: 13px">{{p.sold}}</p>
-          <div style="display: flex; gap: 8px; margin-top: auto">
-            <a href="AdminBundleEdit.dc.html" style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: 8px; border: 1px solid #b8c7bd; font-weight: 700; font-size: 13px; text-decoration: none">Edit</a>
-            <button type="button" onClick="{{p.flip}}" style="flex: 1; min-height: 40px; border-radius: 8px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">{{p.action}}</button>
-          </div>
-        </article>
-      </sc-for>
-    </div>
-
-    <section aria-labelledby="nb" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px">
-      <h2 id="nb" style="margin: 0 0 14px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">New bundle</h2>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end">
-        <div><label class="lbl" for="bn">Name</label><input class="in" id="bn" placeholder="e.g. Weekend"></div>
-        <div><label class="lbl" for="bpz">Price (FCFA)</label><input class="in" id="bpz" type="number"></div>
-        <div><label class="lbl" for="bd">Data (GB)</label><input class="in" id="bd" placeholder="Blank = unlimited"></div>
-        <div><label class="lbl" for="bv">Validity (hours)</label><input class="in" id="bv" type="number"></div>
-        <div><label class="lbl" for="bdl">Device limit</label><input class="in" id="bdl" type="number" value="1"></div>
-        <button type="button" style="min-height: 44px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save as draft</button>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales · catalogue managers only</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Bundle catalogue.</h1>
+        <p class="sub" style="font-size: 15px">Every bundle customers can buy. Changes reach the store and checkout straight away — no deploy. All bundles have unlimited data.</p>
       </div>
+      <a class="go" href="AdminBundleEdit.dc.html">Add bundle</a>
+    </div>
+
+    <section aria-labelledby="pu" class="panel">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
+        <div><h2 id="pu" class="h2">Personal Unlimited</h2><p class="sub">Registered device slots, each tied to one device's Wi-Fi address. Restricts sharing. 19 offers on sale; with Home WISP, 20 unlimited offers.</p></div>
+        <span style="display: flex; gap: 14px; font-size: 12px; color: #5c6963"><span style="display: flex; align-items: center; gap: 6px"><i style="width: 10px; height: 10px; border-radius: 50%; background: #6f9500"></i>Published</span><span style="display: flex; align-items: center; gap: 6px"><i style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #b8c7bd; box-sizing: border-box"></i>Unpublished</span></span>
+      </div>
+      <div class="grid" role="table" aria-label="Personal Unlimited prices in FCFA by validity and device slots">
+        <span></span><span class="gh">1 device</span><span class="gh">2 devices</span><span class="gh">3 devices</span><span class="gh">4 devices</span><span class="gh">5 devices</span><span class="gh">6 devices</span>
+        <sc-for list="{{matrix}}" as="r" hint-placeholder-count="4">
+          <span class="gl">{{r.label}}</span>
+          <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="6">
+            <a href="AdminBundleEdit.dc.html" aria-label="{{c.aria}}" style="{{c.style}}"><strong style="font-size: 16px">{{c.price}}</strong><span style="font-size: 11px; color: #5c6963">{{c.note}}</span></a>
+          </sc-for>
+        </sc-for>
+      </div>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">A dashed cell is "Not offered": customers see it disabled and checkout refuses it. Select it to create that bundle. Prices in XAF.</p>
+    </section>
+
+    <section aria-labelledby="hw" class="panel" style="flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px">
+      <div style="flex: 1 1 420px">
+        <h2 id="hw" class="h2">Home WISP Unlimited</h2>
+        <p class="sub">A supported WISP router with household sharing on. Kept separate from Personal Unlimited.</p>
+      </div>
+      <a href="AdminBundleEdit.dc.html" style="display: flex; gap: 18px; align-items: center; padding: 14px 18px; border-radius: 12px; border: 2px solid #003b2b; background: #f3f9e8; text-decoration: none; color: #10241c"><span><strong style="display: block">30 days</strong><span style="font-size: 12px; color: #5c6963">12 active subscriptions</span></span><strong style="font-size: 18px">50,000</strong><span class="pill" style="background: #eaf6d5; color: #345000">Published</span></a>
+    </section>
+
+    <section aria-labelledby="ord" class="panel" style="gap: 8px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+        <div><h2 id="ord" class="h2">All bundles</h2><p class="sub">The order here is the order customers see.</p></div>
+        <div role="group" aria-label="Show" style="display: flex; flex-wrap: wrap; gap: 6px">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+            <button type="button" aria-pressed="{{f.pressed}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}} · {{f.count}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <sc-if value="{{dialog}}" hint-placeholder-val="{{ false }}">
+        <div role="alertdialog" aria-label="Remove bundle" style="{{dialogStyle}}">
+          <span style="flex: 1 1 360px"><strong>{{dialogTitle}}</strong> {{dialogBody}}</span>
+          <button type="button" class="go2" onClick="{{closeDialog}}">Cancel</button>
+          <button type="button" onClick="{{confirmDialog}}" style="{{dialogBtnStyle}}">{{dialogBtn}}</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{doneMsg}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 700">{{doneMsg}}</p></sc-if>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Order</th><th scope="col">Bundle</th><th scope="col">Price (XAF)</th><th scope="col">Status</th><th scope="col">Used by</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr style="{{r.rowStyle}}">
+                <td style="display: flex; gap: 4px; align-items: center"><button type="button" class="ic" aria-label="{{r.upLabel}}" disabled="{{r.first}}" onClick="{{r.up}}">↑</button><button type="button" class="ic" aria-label="{{r.downLabel}}" disabled="{{r.last}}" onClick="{{r.down}}">↓</button><span style="width: 22px; text-align: center; color: #5c6963; font-size: 13px">{{r.pos}}</span></td>
+                <td style="white-space: normal; min-width: 180px"><strong>{{r.name}}</strong><br><span style="font-size: 12px; color: #5c6963">{{r.terms}}</span></td>
+                <td><strong>{{r.price}}</strong></td>
+                <td><span style="{{r.pill}}">{{r.status}}</span></td>
+                <td style="font-size: 13px; color: #3d4a44; white-space: normal">{{r.used}}</td>
+                <td style="text-align: right"><sc-if value="{{r.editable}}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; gap: 6px"><a class="go2" href="AdminBundleEdit.dc.html">Edit</a><button type="button" class="go2" onClick="{{r.flip}}">{{r.flipLabel}}</button><button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4" onClick="{{r.remove}}">Delete</button></span></sc-if><sc-if value="{{r.archived}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: #5c6963">History kept · not for sale</span></sc-if></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 13px">Unpublishing or deleting stops new checkouts immediately, including from old links and open screens. Pending orders keep their recorded terms until checkout expires. Active bundles keep working until they end. A bundle with any orders or subscriptions is archived instead of deleted, and deleted bundles never come back on a restart or deploy.</p>
     </section>
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1640}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { off: ['p4'] }; }
+  constructor(props) {
+    super(props);
+    this.state = {
+      filter: 'all', dialog: null, done: '',
+      list: [
+        { id: 'p24-1', name: 'Personal Unlimited', terms: '24 hours · 1 device', type: 'Personal', price: 500, status: 'pub', orders: 412, subs: 18 },
+        { id: 'p7-1', name: 'Personal Unlimited', terms: '7 days · 1 device', type: 'Personal', price: 2500, status: 'pub', orders: 233, subs: 41 },
+        { id: 'p7-2', name: 'Personal Unlimited', terms: '7 days · 2 devices', type: 'Personal', price: 4000, status: 'pub', orders: 178, subs: 37 },
+        { id: 'p7-3', name: 'Personal Unlimited', terms: '7 days · 3 devices', type: 'Personal', price: 5500, status: 'pub', orders: 0, subs: 0 },
+        { id: 'p30-1', name: 'Personal Unlimited', terms: '30 days · 1 device', type: 'Personal', price: 6000, status: 'pub', orders: 96, subs: 52 },
+        { id: 'w30', name: 'Home WISP Unlimited', terms: '30 days · household sharing', type: 'Home WISP', price: 50000, status: 'pub', orders: 14, subs: 12 },
+        { id: 'p5-1', name: 'Personal Unlimited', terms: '5 hours · 1 device', type: 'Personal', price: 250, status: 'pub', orders: 520, subs: 9 },
+        { id: 'p48-2', name: 'Weekend test', terms: '48 hours · 2 devices', type: 'Personal', price: 1500, status: 'unpub', orders: 0, subs: 0 },
+        { id: 'gig', name: 'Gig Standard', terms: 'Fixed data · retired from sale · original terms honoured', type: 'Legacy', price: null, status: 'arch', orders: 1204, subs: 23 }
+      ]
+    };
+  }
   renderVals() {
     const s = this.state;
-    const base = [
-      { id: 'p1', name: '[PLAN 1]', detail: '1 GB · 1 day · 1 device', sold: '41 sold this week' },
-      { id: 'p2', name: '[PLAN 2]', detail: '5 GB · 7 days · 3 devices', sold: '58 sold this week' },
-      { id: 'p3', name: '[PLAN 3]', detail: '15 GB · 30 days · 3 devices', sold: '17 sold this week' },
-      { id: 'p4', name: '[PLAN 4]', detail: 'Unlimited · 30 days · fair use', sold: 'Paused since 1 Nov' }
-    ];
-    const plans = base.map((p) => {
-      const off = s.off.includes(p.id);
-      return {
-        ...p,
-        state: off ? 'Paused' : 'On sale', action: off ? 'Put on sale' : 'Pause',
-        pill: 'padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (off ? 'background: #eef0ee; color: #3d4a44;' : 'background: #eaf6d5; color: #345000;'),
-        card: 'box-sizing: border-box; min-height: 210px; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; gap: 8px; ' + (off ? 'background: #f4f5f2; border: 1px dashed #b8c7bd;' : 'background: #fffef9; border: 1px solid #dfe5dc;'),
-        flip: () => this.setState({ off: off ? s.off.filter((x) => x !== p.id) : [...s.off, p.id] })
-      };
-    });
-    return { plans };
+    const fmt = (n) => n === null ? '—' : typeof n === 'string' ? n : n.toLocaleString('en-US');
+    // Personal Unlimited prices (XAF), 1 to 6 devices. null = not offered.
+    const P = { '5 hours': [250, null, null, null, null, null], '24 hours': [500, 900, 1300, 1700, 2100, 2500], '7 days': [2500, 4000, 5500, 7000, 8500, 10000], '30 days': [6000, 10000, 15000, 20000, 25000, 30000] };
+    const devs = [1, 2, 3, 4, 5, 6];
+    const matrix = Object.entries(P).map(([label, prices]) => ({ label, cells: prices.map((p, i) => ({
+      price: p === null ? '+' : fmt(p), note: p === null ? 'Not offered' : (label === '7 days' && devs[i] === 2 ? 'Most bought' : 'Published'),
+      aria: p === null ? `Not offered: create Personal Unlimited ${label} for ${devs[i]} devices` : `Personal Unlimited ${label}, ${devs[i]} device${devs[i] > 1 ? 's' : ''}: ${fmt(p)} XAF, published`,
+      style: 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 60px; border-radius: 12px; text-decoration: none; color: #10241c; ' + (p === null ? 'border: 1px dashed #b8c7bd; background: transparent; color: #5c6963;' : (label === '7 days' && devs[i] === 2 ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'))
+    })) }));
+    const counts = { all: s.list.length, pub: s.list.filter((b) => b.status === 'pub').length, unpub: s.list.filter((b) => b.status === 'unpub').length, arch: s.list.filter((b) => b.status === 'arch').length };
+    const fb = 'min-height: 36px; padding: 0 12px; border-radius: 999px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const filters = [['all', 'All'], ['pub', 'Published'], ['unpub', 'Unpublished'], ['arch', 'Archived']].map(([id, label]) => ({ label, count: counts[id], pressed: s.filter === id ? 'true' : 'false',
+      style: fb + (s.filter === id ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'), pick: () => this.setState({ filter: id }) }));
+    const tone = { pub: ['Published', 'background: #eaf6d5; color: #345000;'], unpub: ['Unpublished', 'background: #eef0ee; color: #3d4a44;'], arch: ['Archived', 'background: #f1e8fb; color: #5b2d86;'] };
+    const move = (i, d) => { const l = [...s.list]; const j = i + d; [l[i], l[j]] = [l[j], l[i]]; this.setState({ list: l, done: 'New order saved — the store shows it now.' }); };
+    const shown = s.list.map((b, i) => ({ b, i })).filter(({ b }) => s.filter === 'all' || b.status === s.filter);
+    const rows = shown.map(({ b, i }) => ({
+      name: b.name, terms: b.terms, type: b.type, price: fmt(b.price), pos: i + 1,
+      status: tone[b.status][0], pill: 'padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + tone[b.status][1],
+      used: b.orders === 0 ? 'No orders yet' : `${b.orders} orders · ${b.subs} active`,
+      editable: b.status !== 'arch', archived: b.status === 'arch', rowStyle: b.status === 'arch' ? 'background: #faf8fc;' : '',
+      first: i === 0, last: i === s.list.length - 1, upLabel: `Move ${b.name} ${b.terms} up`, downLabel: `Move ${b.name} ${b.terms} down`,
+      up: () => move(i, -1), down: () => move(i, 1),
+      flipLabel: b.status === 'pub' ? 'Unpublish' : 'Publish',
+      flip: () => { const l = s.list.map((x) => x.id === b.id ? { ...x, status: x.status === 'pub' ? 'unpub' : 'pub' } : x); this.setState({ list: l, done: b.status === 'pub' ? `${b.name} · ${b.terms} unpublished — new checkouts stopped.` : `${b.name} · ${b.terms} published.` }); },
+      remove: () => this.setState({ dialog: b.id, done: '' })
+    }));
+    const d = s.list.find((b) => b.id === s.dialog);
+    const used = d && d.orders > 0;
+    return {
+      matrix, filters, rows, doneMsg: s.done,
+      dialog: !!d,
+      dialogTitle: d ? (used ? `Archive ${d.name} · ${d.terms}?` : `Delete ${d.name} · ${d.terms}?`) : '',
+      dialogBody: d ? (used ? `It's used by ${d.orders} orders and ${d.subs} active subscriptions, so it can't be deleted. Archiving takes it off sale and out of checkout now; receipts, history and active access stay.` : 'It has never been bought. It will be removed permanently and won’t come back on a restart or deploy.') : '',
+      dialogBtn: used ? 'Archive' : 'Delete permanently',
+      dialogStyle: 'display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; font-size: 14px; ' + (used ? 'background: #f1e8fb; color: #3f1f5e;' : 'background: #fbe4e4; color: #8a2a2a;'),
+      dialogBtnStyle: 'min-height: 36px; padding: 0 14px; border: 0; border-radius: 8px; color: #ffffff; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: ' + (used ? '#5b2d86' : '#a73535'),
+      closeDialog: () => this.setState({ dialog: null }),
+      confirmDialog: () => { const l = used ? s.list.map((x) => x.id === d.id ? { ...x, status: 'arch' } : x) : s.list.filter((x) => x.id !== d.id); this.setState({ list: l, dialog: null, done: used ? `${d.name} · ${d.terms} archived. History and active access kept.` : `${d.name} deleted permanently.` }); }
+    };
   }
 }
 </script>

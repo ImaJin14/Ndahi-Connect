@@ -98,7 +98,7 @@ Front-end phases stay front-end. These are separate, small server tasks, each it
 
 Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout → order, as an account holder or a guest), `AdminPromotions` (set up, and the view while it runs). `AdminSide` gains Promotions under Sales.
 
-**Black Friday, 27–30 Nov (owner, 20 Nov):** any AX1500 router for **100,000 FCFA**, with **45 days of Unlimited Home** free. These rules replace the 19 Nov draft, which offered one month starting when the customer pressed Start.
+**Black Friday, 27–30 Nov (owner, 20 Nov; free bundle length changed 23 Nov):** any AX1500 router for **100,000 FCFA**, with **one month of Unlimited** free. The owner kept "a month of Unlimited" on 23 Nov, replacing the 45 days set on 20 Nov; the promotion's free-bundle length is set to one month (30 days) in Admin → Promotions. These rules replace the 19 Nov draft, which offered one month starting when the customer pressed Start.
 
 - **A promotion holds:**
   - its products, chosen one by one, so every AX1500 model can be included; products are never matched by name;
@@ -114,11 +114,11 @@ Screens: `StorePromo` (desktop store), `PhonePromoBuy` (product → checkout →
   - A misconfigured offer blocks its products rather than selling them at the regular price.
 - **One per phone number:** the paying number, the contact number and a signed-in account count as the same buyer. Stock is the overall cap.
 - **Crossed-out price:** the regular price is never shown crossed out until the store has really sold at it.
-- **The free bundle's days start when the payment is confirmed.**
-  - **An account** (the signed-in buyer, else the account of the paying number) gets it running at once. A bundle already running is **paused**, and resumes with the time it had left when the free one ends.
-  - **A guest** gets it reserved for the paying number (#254). The code is on the order page and the collection slip. Claiming starts it, and the days count from payment either way.
+- **The free month starts when the customer chooses** (owner, 23 Nov; replaces the 20 Nov rule that started it at payment). It is given when the router is collected, and the customer starts it any time within **60 days of collecting**; unstarted after 60 days, it expires. Once started it runs for one month (30 days).
+  - **An account** (the signed-in buyer, else the account of the paying number) sees "Start your free month" in the portal. Starting it while another bundle runs **pauses** that bundle, which resumes with the time it had left when the free month ends.
+  - **A guest** gets it reserved for the paying number (#254). The code is on the order page and the collection slip; claiming it adds it to the account, and the customer then starts it within the same 60 days.
   - It is a gift linked to the order, never revenue.
-- **Refunds:** a refund ends the free bundle and resumes any bundle paused for it.
+- **Refunds:** a refund before collection or before the free month starts cancels it; after it starts, the refund ends it and resumes any bundle paused for it.
 - **Ending:** the sale ends at the end time, when stock runs out, or with "End early". Orders already placed keep their price and free bundle.
 - **Countdown:** the public store and the portal (Home banner and Shop) count down to the start, then to the end, on the server's clock (owner, 21 Nov).
 - **Audited:** creating, editing and ending a promotion, and every free bundle given, paused, resumed, claimed or ended.
@@ -147,7 +147,6 @@ Needed before the phase that uses them. Until then, keep the placeholder and pul
 | Support phone and WhatsApp number | Phase 3 (Help) | `[SUPPORT NUMBER]` |
 | Pickup location and opening hours | Phase 4 | `[PICKUP LOCATION]` |
 | Product photos and warranty wording | Phase 4 | image slots, `[WARRANTY]` |
-| Restyle the public store in Phase 4, or later? | Phase 4 | — |
 | Reseller commission rate shown on the ledger | Phase 5 | `[RATE]` |
 
 ## Owner decisions for the Phase 5 drafts (19 Nov)
@@ -156,3 +155,73 @@ Needed before the phase that uses them. Until then, keep the placeholder and pul
 - **Speed limit per bundle (#263):** one limit shared by all of a customer's devices on that bundle; two devices on a 10 Mbps bundle share 10 Mbps. Verified on the RB5009 before it counts as done.
 - **Reseller codes redeemed before "Cash received" (#261):** they count as sold, and the reseller owes their price. The screen therefore shows the code and QR first, then "Cash received", as designed.
 - **Reseller price and commission (#261):** the price and commission rate recorded when the code was issued apply, even if the bundle's price or the reseller's rate changes later.
+
+## Unlimited catalogue and device locking (23 Nov)
+
+Spec: `specs/unlimited-catalog-and-device-locking.md` (owner, verbatim). Designs: the screens below, rendered in `screens/png/`. This replaces data-capped bundles and the "speed limit per customer" note in the 13 Nov table.
+
+- **The catalogue lives in the database.** Admins create, edit, publish, unpublish, reorder and delete bundles. Each has a name, a whole-FCFA price, a validity in hours or days, a display order, a publication status and an access type.
+- **Two access types.** *Personal Unlimited*: a number of device slots (1, 2, 4, 6 or a custom value). *Home WISP Unlimited*: one registered WISP router, sharing on. Data is always unlimited.
+- **Starting catalogue** (FCFA): 5 hours 250 (1 device); 24 hours 500 / 900 / 1,700 / 2,500; 7 days 2,000 / 3,500 / 7,000 / 10,000; 30 days 6,000 / 10,000 / 20,000 / 30,000 (1 / 2 / 4 / 6 devices); Home WISP 30 days 40,000. Gig Standard is retired: archived, existing purchases honoured. Seed scripts never recreate a deleted bundle.
+- **Time starts at first activation** and is never restarted or extended by replacing a device or router.
+- **The server prices every checkout** and stores an immutable snapshot of the terms. Retries are idempotent. Unpublishing or deleting blocks new checkout at once. A bundle with orders is archived, never cascade-deleted. Ending one customer's access is an explicit "Revoke subscription".
+- **Device slots bind to the MAC RouterOS sees at authenticated HotSpot sign-in.** A stable per-network private MAC is fine. Never trust a MAC the client sends. Full slots refuse a new device even if a registered one is offline. Replacing a device revokes the old one, kills its session, clears its saved login, confirms revocation, then authorises the new one — serialised per slot and retryable.
+- **Personal bundles "restrict sharing"** (TTL=1 on forwarded replies). Never promise sharing is impossible.
+- **Home WISP sharing** applies only to an authenticated session matching an active subscription and its registered upstream MAC — never to a MAC or vendor prefix alone — and is withheld if entitlement can't be verified. Customer wording: "up to 60 household devices on supported routers".
+- **Speed limits stay optional** on the bundle editor, collapsed, using the existing `lib/bundle-speed-policy.mjs` rules.
+
+## Custom bundles given by an admin (23 Nov)
+
+Design: `AdminVouchers` → For one customer → Bundle → **Custom bundle** (renders `AdminVouchers--custom-*.png`).
+
+- In "For one customer", the admin chooses **From the catalogue** or **Custom bundle**. Custom works for an existing account and for a number with no account (reserved for the number, claimed with number + code, as above).
+- A custom bundle sets: access type (Personal Unlimited or Home WISP Unlimited), validity (1 hour to 365 days), device slots (1, 2, 4, 6 or 1–10; Home WISP is one router with sharing on). Data is always unlimited.
+- **A reason is required** and kept in the audit log.
+- **Always a gift:** no revenue, no price, not added to the catalogue, never shown for sale and can't be bought again. The customer sees "Gift from NDAHI · [terms]".
+- The terms are snapshotted when it's given, exactly like a catalogue voucher: time starts at first connection, slots bind to RouterOS-observed MACs, Home WISP needs router registration. Replacing an active bundle needs the same confirmation as any voucher.
+- **Owners only** (owner, 23 Nov). Operators can still give catalogue vouchers but don't see the Custom bundle tab, and the server rejects a custom bundle from anyone but an owner. The server validates every field.
+
+## Public store restyle (23 Nov)
+
+The owner decided to restyle the public store (`store-app/`) now, alongside everything else, instead of waiting. The store screens (StoreGuest, StorePromo, PhoneGuestShop, PhoneGuestProduct, PhoneGuestCheckout, PhoneGuestOrder, ProductDesktop) are built now under the Phase 4 rules: `store-app/` keeps serving store.ndahiconnect.net, guests still check out with a Mobile Money number and an optional email, and no SMS. Black Friday code paths (27–30 Nov) are not changed until 1 Dec.
+
+## Kits, installations and payment plans (23 Nov)
+
+Screens: `AdminStoreServices` (Kits · Installations · Payment plans), `PhoneStarterKit`, `PhoneInstallBooking`, `PhoneInstalments`. Prices and fees come from the server (`[KIT PRICE]`, `[INSTALL PRICE]`, `[TRAVEL FEE]`, `[DEPOSIT]`).
+
+- **Kits** bundle store products (e.g. an AX1500 router) with a first bundle chosen from the catalogue (the Home kit uses Home WISP Unlimited, 30 days) at one kit price. Optional: "Set up for the buyer's account before collection" (the router is linked as their Home WISP router; the first bundle starts when it first connects), installation as an add-on, and Pay in 3.
+- **Installations:** the customer picks a day and a morning (8:00–12:00) or afternoon (13:00–17:00) slot within the capacity set per slot, an area (with its travel fee) and directions from a landmark. Free to move or cancel up to 24 h before. The technician calls 30 minutes before arriving; someone over 18 must be home. If the signal is too weak, the technician chooses "Couldn't install": the installation fee is refunded and the kit can be returned unopened. "Mark installed" records the signal and a photo.
+- **Pay in 3:** deposit today (the admin sets 30, 40 or 50%; the Home kit design uses 40%), the rest in two payments within 30, 45 or 60 days. No interest; each payment carries its own Mobile Money fee. Paying early or paying everything at once is allowed. The kit is held and collected only once fully paid. Reminders 3 days and 1 day before each date. After the grace period (7 or 14 days) a late plan is cancelled: the item goes back on sale and everything paid is refunded except the Mobile Money fees. A customer with a late or cancelled plan in the last 6 months can't start a new one. Plans are offered only on items above a price the admin sets.
+
+## Current customers keep their terms until their bundle ends (owner, 23 Nov)
+
+Nothing in the Unlimited catalogue, device locking or Home WISP work changes a bundle bought before it goes live. Each bundle follows the terms snapshotted when it was bought or issued, until it expires.
+
+- **Legacy bundles** (data-capped plans, Gig Standard, vouchers and reservations issued before the switch, NDAHI Home subscriptions) keep their data allowance, device rules, sharing behaviour, speed and end date. Retiring or archiving their plan never shortens or changes them.
+- **Device slots (#334)** are enforced only on bundles whose snapshot is Personal Unlimited. Devices already connected on a legacy bundle are never disconnected or refused by the new rules.
+- **The anti-sharing rule (#335)** applies only to sessions of Personal Unlimited bundles. Legacy sessions are never matched by it. A router-config change must be checked against a live legacy session on the test HotSpot before rollout.
+- **Home WISP (#336)** doesn't touch existing NDAHI Home subscriptions; they keep working as today until they end.
+- **Screens** show each bundle by its own snapshot: a legacy bundle still shows its data left and its own device rule; "unlimited data · device slots" appears only for Unlimited bundles. "Buy again" on an archived plan opens the bundle picker.
+- **Turning the catalogue on (#337)** only changes what can be bought from then on. Rollback never touches bundles bought under either catalogue.
+- Black Friday orders placed before #423 is deployed keep the rule they were bought under.
+
+## Catalogue, Mobile Money fee and payment states (24 Nov)
+
+Brief: `specs/catalogue-and-payment-update-2026-11-24.md` (owner, verbatim), with two owner changes the same day: **Home WISP Unlimited is 50,000 XAF** for 30 days (not 40,000), and **Home WISP and fixed-data plans show no device or router count**. These supersede the matching lines of the 23 Nov "Unlimited catalogue" section.
+
+- **Fixed-data plans stay on sale** with their current prices and rules (this includes Gig Standard, which the 23 Nov section had retired; the newer brief keeps every current fixed-data bundle).
+- **Personal Unlimited, 1–6 devices (XAF):** 5 hours 250 (1 device only; 2–6 "Not offered"); 24 hours 500 / 900 / 1,300 / 1,700 / 2,100 / 2,500; 7 days 2,500 / 4,000 / 5,500 / 7,000 / 8,500 / 10,000; 30 days 6,000 / 10,000 / 15,000 / 20,000 / 25,000 / 30,000. With Home WISP that is **20 purchasable unlimited offers**. Unavailable combinations are shown disabled and refused by the server.
+- **Home WISP Unlimited:** 50,000 XAF, 30 days, bound to one supported WISP router (the binding rule is unchanged; only the count is no longer shown). "Up to 60 household devices" appears in public copy only after it's validated on supported routers.
+- **Mobile Money confirmation:** Bundle Price · Mobile Payment Fee (2%) · Total to Pay, fee = `Math.round(base × 0.02)` (250 → 255, 500 → 510, 2,500 → 2,550, 6,000 → 6,120), with the wallet notice above **Pay Now** in EN and FR. The numeric 2% is shown only for a network whose fee is verified; otherwise the screen shows the price and says the fee appears in the operator prompt.
+- **Payment states:** insufficient balance (with "Switch to [cheaper bundle]" when the quote is verified), expired, cancelled or incorrect PIN, wrong network, pending after 30 s, and an unclear result. Payment confirmation and Wi-Fi activation are shown as separate steps; receipts and errors carry a copyable provider reference, or the NDAHI payment ID.
+- **Cheaper bundle:** the highest-priced eligible published bundle strictly below the attempted price, of the same kind (fixed-data, Personal Unlimited, Home WISP). Ties go to the device count closest to the one asked for, then the longer validity, then display order.
+- **Currency label:** the bundle payment screens say XAF, as the brief does.
+- **Brochure:** `docs/brochure/` (EN and FR PDFs, QR code), source on the design canvas (`Brochure`, `BrochureEN`, `BrochureFR`). Only confirmed fees, short codes and router claims go into a public release.
+
+## No fixed-data plans, no 60-device claim (owner, 24 Nov, later the same day)
+
+This replaces the matching lines of the section above.
+
+- **Fixed-data plans are removed from sale.** The catalogue is unlimited only: the 19 Personal Unlimited offers and Home WISP Unlimited (50,000 XAF). Fixed-data bundles, Gig Standard included, are archived: customers who already have one keep it on its original terms until it ends ("Current customers keep their terms until their bundle ends"), and their receipts and history stay.
+- **No "up to 60 household devices" claim anywhere**, in customer or admin copy. Home WISP is described only as household sharing through a supported WISP router, with no device or router count.
+- The brochure covers the two unlimited plans only.
