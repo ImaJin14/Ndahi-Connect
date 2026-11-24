@@ -84,11 +84,11 @@
     },
     {
      "issue": 338,
-     "title": "Unlimited redesign: AdminBundles — Bundle catalogue"
+     "title": "Unlimited redesign: AdminBundles — Bundle catalogue: fixed-data plans, 20 unlimited offers (1–6 devices), Home WISP 50,000"
     },
     {
      "issue": 339,
-     "title": "Unlimited redesign: AdminBundleEdit — Create/edit a bundle"
+     "title": "Unlimited redesign: AdminBundleEdit — Edit bundle: Personal Unlimited, Home WISP or Fixed data"
     },
     {
      "issue": 342,
@@ -98,6 +98,25 @@
   },
   {
    "batch": 4,
+   "name": "Payments: 2% fee, payment states · Desktop buy",
+   "items": [
+    {
+     "issue": 432,
+     "title": "Payments: verified 2% fee disclosure, provider amounts and reconciliation (follow-up to #297)"
+    },
+    {
+     "issue": 433,
+     "title": "Payments: normalized provider results, failure states, cheaper-bundle switch and retry rules (follow-up to #251)",
+     "base": "#432"
+    },
+    {
+     "issue": 431,
+     "title": "Unlimited redesign: DesktopBuyBundle — Buy a bundle on desktop (all six device counts)"
+    }
+   ]
+  },
+  {
+   "batch": 5,
    "name": "Admin screens",
    "items": [
     {
@@ -123,7 +142,7 @@
    ]
   },
   {
-   "batch": 5,
+   "batch": 6,
    "name": "Admin screens",
    "items": [
     {
@@ -149,7 +168,7 @@
    ]
   },
   {
-   "batch": 6,
+   "batch": 7,
    "name": "Admin screens",
    "items": [
     {
@@ -175,7 +194,7 @@
    ]
   },
   {
-   "batch": 7,
+   "batch": 8,
    "name": "Customer screens",
    "items": [
     {
@@ -196,12 +215,12 @@
     },
     {
      "issue": 397,
-     "title": "Redesign: PhoneCheckout — Checkout on phone"
+     "title": "Redesign: PhoneCheckout — Shop checkout (2% fee breakdown and wallet notice)"
     }
    ]
   },
   {
-   "batch": 8,
+   "batch": 9,
    "name": "Customer screens",
    "items": [
     {
@@ -214,7 +233,7 @@
     },
     {
      "issue": 409,
-     "title": "Redesign: PhonePaymentFailed — Payment did not go through"
+     "title": "Redesign: PhonePaymentFailed — Payment problems: insufficient balance, expired, cancelled/PIN, wrong network, pending, unclear"
     },
     {
      "issue": 398,
@@ -227,7 +246,7 @@
    ]
   },
   {
-   "batch": 9,
+   "batch": 10,
    "name": "Customer screens · Public store",
    "items": [
     {
@@ -253,12 +272,12 @@
    ]
   },
   {
-   "batch": 10,
+   "batch": 11,
    "name": "Public store · Sign-in",
    "items": [
     {
      "issue": 400,
-     "title": "Redesign: PhoneGuestCheckout — Guest checkout"
+     "title": "Redesign: PhoneGuestCheckout — Guest checkout (2% fee breakdown and wallet notice)"
     },
     {
      "issue": 401,
@@ -279,7 +298,7 @@
    ]
   },
   {
-   "batch": 11,
+   "batch": 12,
    "name": "Sign-in · Unlimited admin",
    "items": [
     {
@@ -305,7 +324,7 @@
    ]
   },
   {
-   "batch": 12,
+   "batch": 13,
    "name": "Unlimited admin · Unlimited customer",
    "items": [
     {
@@ -326,25 +345,25 @@
     },
     {
      "issue": 348,
-     "title": "Unlimited redesign: PhoneBuyBundle — Buy a bundle"
+     "title": "Unlimited redesign: PhoneBuyBundle — Buy a bundle: data plans, Personal Unlimited 1–6 devices, Home WISP; 2% fee"
     }
    ]
   },
   {
-   "batch": 13,
+   "batch": 14,
    "name": "Unlimited customer",
    "items": [
     {
      "issue": 364,
-     "title": "Unlimited redesign: PhoneBuyForOther — Buy for someone else"
+     "title": "Unlimited redesign: PhoneBuyForOther — Buy for someone else (2% fee breakdown)"
     },
     {
      "issue": 359,
-     "title": "Unlimited redesign: PhoneRenew — Bundle ending / ended"
+     "title": "Unlimited redesign: PhoneRenew — Renew (total incl. 2% fee)"
     },
     {
      "issue": 369,
-     "title": "Unlimited redesign: PhoneReceipt — Receipt"
+     "title": "Unlimited redesign: PhoneReceipt — Receipt: payment vs Wi-Fi activation, confirmed fee and debit, copyable reference"
     },
     {
      "issue": 365,
@@ -357,7 +376,7 @@
    ]
   },
   {
-   "batch": 14,
+   "batch": 15,
    "name": "Unlimited customer · Customer screens",
    "items": [
     {
@@ -383,7 +402,7 @@
    ]
   },
   {
-   "batch": 15,
+   "batch": 16,
    "name": "Unlimited customer",
    "items": [
     {
@@ -396,7 +415,7 @@
     },
     {
      "issue": 351,
-     "title": "Unlimited redesign: PhoneHomeRouter — Home WISP router"
+     "title": "Unlimited redesign: PhoneHomeRouter — Home WISP router (no device count; 60-device claim gated)"
     },
     {
      "issue": 357,
@@ -409,7 +428,7 @@
    ]
   },
   {
-   "batch": 16,
+   "batch": 17,
    "name": "Unlimited customer",
    "items": [
     {
@@ -435,7 +454,7 @@
    ]
   },
   {
-   "batch": 17,
+   "batch": 18,
    "name": "Unlimited customer · Kits server",
    "items": [
     {
@@ -461,7 +480,7 @@
    ]
   },
   {
-   "batch": 18,
+   "batch": 19,
    "name": "Kits server · Kit screens",
    "items": [
     {
@@ -484,12 +503,12 @@
     },
     {
      "issue": 373,
-     "title": "Unlimited redesign: PhoneStarterKit — Home starter kit in Shop"
+     "title": "Unlimited redesign: PhoneStarterKit — Home starter kit (no router count)"
     }
    ]
   },
   {
-   "batch": 19,
+   "batch": 20,
    "name": "Kit screens · Black Friday screens (from 1 Dec)",
    "items": [
     {
@@ -506,7 +525,7 @@
     },
     {
      "issue": 411,
-     "title": "Redesign: PhonePromoBuy — Black Friday deal on phone"
+     "title": "Redesign: PhonePromoBuy — Black Friday deal (2% fee breakdown and wallet notice)"
     },
     {
      "issue": 419,
@@ -516,12 +535,16 @@
    "notBefore": "2026-12-01"
   },
   {
-   "batch": 20,
-   "name": "Get-connected flow check",
+   "batch": 21,
+   "name": "Get-connected flow check · Brochure",
    "items": [
     {
      "issue": 393,
      "title": "Redesign: ConnectFlow — Get connected flow"
+    },
+    {
+     "issue": 434,
+     "title": "Brochure: NDAHI Connect — Connect, Pay & Get Online (EN + FR quick-start guide)"
     }
    ]
   }

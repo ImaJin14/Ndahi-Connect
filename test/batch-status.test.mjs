@@ -21,7 +21,7 @@ test("the plan: batches of 5 at most, every issue once, numbered in order", () =
 });
 
 test("every design screen is in the plan", () => {
-  const screens = readdirSync(new URL("../docs/redesign/screens/", import.meta.url)).filter((f) => f.endsWith(".dc.html")).map((f) => f.slice(0, -8));
+  const screens = readdirSync(new URL("../docs/redesign/screens/", import.meta.url)).filter((f) => f.endsWith(".dc.html") && !f.startsWith("Brochure")).map((f) => f.slice(0, -8)); // brochure boards are documents (#434), not screens
   const titles = plan.batches.flatMap((b) => b.items.map((it) => it.title)).join("\n");
   const missing = screens.filter((s) => !new RegExp(`: ${s} —`).test(titles));
   assert.deepEqual(missing, []);
