@@ -256,6 +256,52 @@ try {
     await page.evaluate(() => { location.hash = "bundle/missing"; });
     await page.waitForFunction(() => location.hash === "#bundles");
   }, { width });
+  // Redesigned Edit bundle (v2 only; canvas: AdminBundleEdit, #339).
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Edit bundle edits, adds and removes catalogue bundles at ${width}px`, async (page) => {
+    await store.transaction((s) => { delete s.catalogue; });
+    await page.goto(`${admin}/dashboard#bundles`);
+    await page.getByRole("link", { name: "Personal Unlimited 7 days, 2 devices: 4,000 XAF, published" }).click();
+    await page.getByRole("heading", { name: "Personal Unlimited · 7 days · 2 devices", exact: true }).waitFor();
+    assert.equal(await page.locator("#adminBack").textContent(), "← Bundle catalogue");
+    assert.equal(await page.locator("#bundleStatusHost").textContent(), "Published");
+    assert.equal(await page.getByRole("radio", { name: /^Personal Unlimited/ }).getAttribute("aria-checked"), "true");
+    assert.equal(await page.getByRole("button", { name: "2", exact: true }).getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator(".admin-edit__card").innerText(), /Personal Unlimited · 7 days · 2 devices\s+4,000 XAF[\s\S]*Unlimited data · 7 days · 2 registered devices[\s\S]*Restricts sharing — works on your registered devices/);
+    // Save waits for valid terms; the server's rules show beside the field.
+    await page.getByLabel("Price (XAF, whole number)", { exact: true }).fill("40.5");
+    await page.getByText("Use a whole number of XAF, 1 or more — no decimals.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Save bundle", exact: true }).isDisabled(), true);
+    await page.getByLabel("Price (XAF, whole number)", { exact: true }).fill("4200");
+    await page.getByRole("button", { name: "3", exact: true }).click();
+    assert.match(await page.locator("#editSuggested").textContent(), /Personal Unlimited · 7 days · 3 devices$/);
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/bundle-edit-${width}.png`, fullPage: true });
+    await page.getByRole("button", { name: "Save bundle", exact: true }).click();
+    await page.getByText("Saved. New checkouts use these terms now. Logged in the audit trail.", { exact: true }).waitFor();
+    const saved = (await store.snapshot()).bundles.find((b) => b.id === "unlimited-7d-2");
+    assert.deepEqual([saved.price, saved.deviceSlots], [4200, 3]);
+    // Home WISP locks the router and changes what customers see.
+    await page.getByRole("radio", { name: /^Home WISP Unlimited/ }).click();
+    await page.getByText("Supported WISP router · household sharing on", { exact: true }).waitFor();
+    assert.match(await page.locator(".admin-edit__card").innerText(), /household sharing[\s\S]*Share with your household through a supported router/);
+    // Add a bundle from a "Not offered" cell, published at once.
+    await page.goto(`${admin}/dashboard#bundles`);
+    await page.getByRole("link", { name: "Not offered: create Personal Unlimited 5 hours for 2 devices" }).click();
+    await page.getByRole("heading", { name: "Personal Unlimited · 5 hours · 2 devices", exact: true }).waitFor();
+    assert.equal(await page.locator(".admin-edit__err:not([hidden])").count(), 0, "no error before a field is used");
+    await page.getByLabel("Price (XAF, whole number)", { exact: true }).fill("450");
+    await page.getByRole("radio", { name: "Published", exact: true }).click();
+    await page.getByRole("button", { name: "Save bundle", exact: true }).click();
+    await page.getByText("Saved. New checkouts use these terms now. Logged in the audit trail.", { exact: true }).waitFor();
+    assert.match(await page.evaluate(() => location.hash), /^#bundle\/unlimited-/);
+    const added = (await store.snapshot()).bundles.find((b) => b.validityUnit === "hours" && b.validityValue === 5 && b.deviceSlots === 2);
+    assert.deepEqual([added.price, added.status, added.name], [450, "published", "Personal Unlimited · 5 hours · 2 devices"]);
+    // Never bought: deleted for good, back to the catalogue.
+    await page.getByRole("button", { name: "Delete permanently", exact: true }).click();
+    await page.waitForFunction(() => location.hash === "#bundles");
+    assert.equal((await store.snapshot()).bundles.some((b) => b.id === added.id), false);
+  }, { width });
   // Redesigned Live devices (v2 only; canvas: AdminDevices).
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Live devices names customers and keeps the router summary at ${width}px`, async (page) => {
     await page.goto(`${admin}/dashboard#devices`);
