@@ -42,8 +42,10 @@ async function fixture(t, { seeded = true } = {}) {
       ...(input ? { body: JSON.stringify(input) } : {}) });
     return { status: r.status, body: await r.json() };
   };
+  // A bundle the server knows but doesn't sell: "no longer on sale" (#333).
+  const offSale = async (planId) => { const r = await buy(planId); return r.status === 409 && r.body.code === "BUNDLE_NOT_ON_SALE"; };
   const buy = (planId) => call("/api/purchase", { phone: "699" + String(Math.floor(Math.random() * 1e6)).padStart(6, "0"), planId, requestKey: randomUUID() });
-  return { store, call, buy, now };
+  return { store, call, buy, offSale, now };
 }
 
 test("the starting catalogue: 19 Personal Unlimited and Home WISP, at the owner's 24 Nov prices", () => {
@@ -85,7 +87,7 @@ test("while the switch is legacy (the default), what is on sale is exactly as be
   const { body } = await f.call("/api/plans");
   assert.deepEqual(body.plans.map((p) => p.id), before, "the same fixed-data plans, no Unlimited bundle");
   assert.equal(body.plans.some((p) => p.catalogue === "unlimited"), false);
-  assert.equal((await f.buy("unlimited-24h-1")).status, 400, "Unlimited bundles can't be bought yet");
+  assert.ok(await f.offSale("unlimited-24h-1"), "Unlimited bundles can't be bought yet");
   assert.equal((await f.buy("weekly")).status, 201, "fixed-data still sells");
 });
 
@@ -100,7 +102,7 @@ test("switched to unlimited: the 20 offers in order, fixed-data archived, unavai
   assert.deepEqual(body.plans.map((p) => [p.id, p.price]), expected, "every price, in display order, read back from the API");
   assert.ok(body.plans.every((p) => p.quotaGb === null), "all unlimited");
   // Fixed-data: off sale and refused, the same id and terms still found for the customer who has one.
-  assert.equal((await f.buy("weekly")).status, 400);
+  assert.ok(await f.offSale("weekly"), "fixed-data: no longer on sale");
   const s = await f.store.snapshot();
   assert.deepEqual([findPlan(s, "weekly").price, findPlan(s, "weekly").quotaGb], [1000, 5]);
   assert.equal(s.vouchers.find((v) => v.id === "v-weekly").status, "active", "the bundle already bought keeps working");
@@ -125,7 +127,7 @@ test("admins create, edit, publish, unpublish and reorder; the change is on sale
   assert.equal(created.status, 201, JSON.stringify(created.body));
   const id = created.body.bundle.id;
   assert.deepEqual([created.body.bundle.status, created.body.bundle.validityHours, created.body.bundle.deviceSlots], ["unpublished", 48, 2]);
-  assert.equal((await f.buy(id)).status, 400, "unpublished: not on sale");
+  assert.ok(await f.offSale(id), "unpublished: not on sale");
   await f.call("/api/admin/catalogue/publish", { id }, "operator");
   assert.ok((await f.call("/api/plans")).body.plans.some((p) => p.id === id && p.price === 1500));
   const edited = await f.call("/api/admin/catalogue/update", { id, version: 2, price: 1800 }, "owner");
@@ -133,7 +135,7 @@ test("admins create, edit, publish, unpublish and reorder; the change is on sale
   assert.equal((await f.call("/api/admin/catalogue/update", { id, version: 2, price: 1900 }, "owner")).status, 409, "stale version");
   assert.equal((await f.call("/api/plans")).body.plans.find((p) => p.id === id).price, 1800);
   await f.call("/api/admin/catalogue/unpublish", { id }, "operator");
-  assert.equal((await f.buy(id)).status, 400, "unpublishing blocks new checkout at once");
+  assert.ok(await f.offSale(id), "unpublishing blocks new checkout at once");
   // Reorder: Home WISP first.
   const ids = (await f.call("/api/admin/catalogue", null, "owner")).body.bundles.map((b) => b.id);
   const reordered = ["home-wisp-30d", ...ids.filter((x) => x !== "home-wisp-30d")];
@@ -176,7 +178,7 @@ test("deleting: an unused bundle goes, a sold one is archived and nothing it was
   const s = await f.store.snapshot();
   assert.ok(s.bundles.some((b) => b.id === "unlimited-7d-1"), "kept, archived");
   assert.deepEqual(s.payments.find((p) => p.id === payment.id), payment, "the order keeps its snapshot");
-  assert.equal((await f.buy("unlimited-7d-1")).status, 400, "archived: off sale");
+  assert.ok(await f.offSale("unlimited-7d-1"), "archived: off sale");
   assert.equal((await f.call("/api/admin/catalogue/publish", { id: "unlimited-7d-1" }, "owner")).status, 409);
   // A restart (the seed again) recreates neither.
   await f.store.transaction((st) => seedCatalogue(st));
