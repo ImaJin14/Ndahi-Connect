@@ -110,7 +110,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                             </div>
                           </sc-if>
                           <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
-                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">1 registered WISP router · sharing on · up to 60 household devices on supported routers</p>
+                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">Supported WISP router · household sharing on</p>
                           </sc-if>
                           <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #f6f7f2; font-size: 13px"><span style="color: #5c6963">Data</span><strong>Unlimited</strong></div>
                           <div><label class="lbl" for="cr2">Reason (required, kept in the audit log)</label><input class="in" id="cr2" value="Compensation for the 18 Nov outage at AP-Market"></div>
@@ -163,7 +163,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
                             </div>
                           </sc-if>
                           <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
-                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">1 registered WISP router · sharing on · up to 60 household devices on supported routers</p>
+                            <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; font-size: 13px; color: #3d4a44">Supported WISP router · household sharing on</p>
                           </sc-if>
                           <div style="display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #f6f7f2; font-size: 13px"><span style="color: #5c6963">Data</span><strong>Unlimited</strong></div>
                           <div><label class="lbl" for="cr1">Reason (required, kept in the audit log)</label><input class="in" id="cr1" value="Compensation for the 18 Nov outage at AP-Market"></div>
@@ -271,9 +271,9 @@ class Component extends DCLogic {
     }));
     const custom = s.src === 'custom'; const wisp = custom && s.ctype === 'wisp';
     const srcTabs = [['catalogue', 'From the catalogue'], ['custom', 'Custom bundle']].map(([id, label]) => ({ label, sel: id === s.src ? 'true' : 'false', style: 'flex: 1; min-height: 36px; border: 0; border-radius: 7px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ' + (id === s.src ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ src: id }) }));
-    const access = [['personal', 'Personal Unlimited', 'Device slots · restricts sharing'], ['wisp', 'Home WISP Unlimited', 'One router · sharing on']].map(([id, label, hint]) => ({ label, hint, on: s.ctype === id, pick: () => this.setState({ ctype: id }), style: 'display: flex; gap: 8px; align-items: flex-start; padding: 10px; border-radius: 10px; cursor: pointer; ' + (s.ctype === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;') }));
+    const access = [['personal', 'Personal Unlimited', 'Device slots · restricts sharing'], ['wisp', 'Home WISP Unlimited', 'Supported router · sharing on']].map(([id, label, hint]) => ({ label, hint, on: s.ctype === id, pick: () => this.setState({ ctype: id }), style: 'display: flex; gap: 8px; align-items: flex-start; padding: 10px; border-radius: 10px; cursor: pointer; ' + (s.ctype === id ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;') }));
     const slots = [1, 2, 4, 6].map((n) => ({ n, style: 'display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; font-size: 13px; font-weight: 700; ' + 'border: 1px solid #b8c7bd; color: #10241c; background: #ffffff;' }));
-    const terms = wisp ? 'Home WISP Unlimited · 10 days · 1 router' : 'Unlimited · 10 days · 3 devices';
+    const terms = wisp ? 'Home WISP Unlimited · 10 days' : 'Unlimited · 10 days · 3 devices';
     const customName = 'Gift from NDAHI · ' + terms;
     const bname = custom ? 'Custom · ' + terms.replace('Unlimited · ', '') : '[PLAN 2]';
     const blocked = p.active && !s.confirmed;

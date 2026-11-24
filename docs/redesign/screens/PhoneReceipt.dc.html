@@ -15,34 +15,41 @@ a{color:#003b2b}a:hover{color:#062a20}
 .btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
 .btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:1;min-height:50px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
 .back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
-.dr{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.dr{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:8px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
 .dr dt{color:#5c6963}.dr dd{margin:0;text-align:right;font-weight:600}
+.st{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;font-size:13px}
+.copy{min-height:32px;padding:0 10px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
   <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
-    <a class="back" href="PhoneActivity.dc.html" aria-label="Back to activity"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
-    <span style="font-weight: 700; font-size: 15px">Payment receipt</span>
+    <a class="back" href="PhoneActivity.dc.html" aria-label="{{t.back}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">{{t.title}}</span>
   </div>
-  <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
-    <div style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 12px; background: #003b2b; color: #ffffff">
+  <main style="flex: 1; overflow: hidden; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #003b2b; color: #ffffff">
       <span style="width: 36px; height: 36px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 12px">NC</span>
-      <span><strong style="display: block; font-family: 'Playfair Display', serif; font-size: 20px">NDAHI Connect</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">RECEIPT</small></span>
+      <span><strong style="display: block; font-family: 'Playfair Display', serif; font-size: 20px">NDAHI Connect</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">{{t.kicker}}</small></span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+      <div class="st" style="background: #eaf6d5; color: #345000"><span aria-hidden="true" style="font-weight: 700">✓</span><span><strong style="display: block">{{t.payment}}</strong>{{t.paidAt}}</span></div>
+      <div class="st" style="{{actStyle}}"><span aria-hidden="true" style="font-weight: 700">{{actIcon}}</span><span><strong style="display: block">{{t.wifi}}</strong>{{actLine}}</span></div>
     </div>
     <div>
-      <p style="margin: 0; color: #5c6963; font-size: 13px">Receipt NC-2611-0457 · Paid 5 Nov 2026, 14:32</p>
-      <p style="margin: 8px 0 0; color: #5c6963; font-size: 13px">Total paid</p>
-      <p style="margin: 2px 0 0; font-size: 32px; font-weight: 700; color: #003b2b">[PRICE] FCFA</p>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.receiptNo}}</p>
+      <p style="margin: 6px 0 0; color: #5c6963; font-size: 13px">{{t.debited}}</p>
+      <p style="margin: 0; font-size: 30px; font-weight: 700; color: #003b2b">{{total}}</p>
     </div>
     <dl style="margin: 0">
-      <div class="dr"><dt>Bundle</dt><dd>[PLAN 2]</dd></div>
-      <div class="dr"><dt>Type</dt><dd>Personal Unlimited · unlimited data</dd></div>
-      <div class="dr"><dt>Validity</dt><dd>7 days</dd></div>
-      <div class="dr"><dt>Device slots</dt><dd>2</dd></div><div class="dr"><dt>Validity started</dt><dd>At first connection</dd></div>
-      <div class="dr"><dt>Paid with</dt><dd>MTN MoMo · 6•• •• 12 45</dd></div>
-      <div class="dr"><dt>Provider reference</dt><dd style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">MP261105.1432.A7731</dd></div>
+      <div class="dr"><dt>{{t.bundle}}</dt><dd>{{bundle}}</dd></div>
+      <div class="dr"><dt>{{t.bundlePrice}}</dt><dd>{{price}}</dd></div>
+      <div class="dr"><dt>{{t.fee}}</dt><dd>{{fee}}</dd></div>
+      <div class="dr"><dt>{{t.total}}</dt><dd>{{total}}</dd></div>
+      <div class="dr"><dt>{{t.validity}}</dt><dd>{{t.validityVal}}</dd></div>
+      <div class="dr"><dt>{{t.paidWith}}</dt><dd>MTN MoMo · 6•• •• 12 45</dd></div>
+      <div class="dr" style="border-bottom: 0"><dt>{{refLabel}}</dt><dd style="display: flex; align-items: center; gap: 8px"><span style="font-family: ui-monospace, Menlo, monospace; font-size: 13px">{{ref}}</span><button type="button" class="copy" onClick="{{copy}}">{{copyLabel}}</button></dd></div>
     </dl>
-    <p style="margin: 0; color: #5c6963; font-size: 13px; line-height: 1.5">Questions about this payment? Keep this receipt number and <a href="PhoneHelp.dc.html" style="font-weight: 700">contact support</a>.</p>
+    <p style="margin: 0; color: #5c6963; font-size: 12px; line-height: 1.45">{{t.support}} <a href="PhoneHelp.dc.html" style="font-weight: 700">{{t.contact}}</a>.</p>
   </main>
   <div style="padding: 12px 16px 18px; background: #fffef9; border-top: 1px solid #dfe5dc; display: flex; gap: 10px">
     <button type="button" class="btn2" onClick="{{share}}">{{shareLabel}}</button>
@@ -50,14 +57,35 @@ a{color:#003b2b}a:hover{color:#062a20}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"activation":{"editor":"enum","options":["active","activating"],"default":"active"},"ref":{"editor":"enum","options":["provider","ndahi"],"default":"provider"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { shared: false, saved: false }; }
+  constructor(props) { super(props); this.state = { shared: false, saved: false, copied: false }; }
   renderVals() {
     const s = this.state;
+    const fr = (this.props.lang ?? 'en') === 'fr';
+    const active = (this.props.activation ?? 'active') === 'active';
+    const provider = (this.props.ref ?? 'provider') === 'provider';
+    const num = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/ /g, ' ') + ' XAF';
+    const T = fr ? { back: "Retour à l'activité", title: 'Reçu de paiement', kicker: 'REÇU', payment: 'Paiement', paidAt: 'Confirmé · 24 nov., 14:32', wifi: 'Wi-Fi',
+        receiptNo: 'Reçu NC-2411-0457', debited: 'Total débité (confirmé par MTN)', bundle: 'Forfait', bundlePrice: 'Prix du forfait', fee: 'Frais de paiement mobile', total: 'Total débité',
+        validity: 'Validité', validityVal: '7 jours, dès la première connexion', paidWith: 'Payé avec', support: 'Une question sur ce paiement ? Gardez cette référence et', contact: 'contactez le support',
+        copy: 'Copier', copied: 'Copié', share: 'Partager', shared: 'Lien copié', pdf: 'Télécharger', saved: 'Enregistré' }
+      : { back: 'Back to activity', title: 'Payment receipt', kicker: 'RECEIPT', payment: 'Payment', paidAt: 'Confirmed · 24 Nov, 14:32', wifi: 'Wi-Fi',
+        receiptNo: 'Receipt NC-2411-0457', debited: 'Total debited (confirmed by MTN)', bundle: 'Bundle', bundlePrice: 'Bundle Price', fee: 'Mobile Payment Fee', total: 'Total debited',
+        validity: 'Validity', validityVal: '7 days, from first connection', paidWith: 'Paid with', support: 'Questions about this payment? Keep this reference and', contact: 'contact support',
+        copy: 'Copy', copied: 'Copied', share: 'Share', shared: 'Link copied', pdf: 'Download PDF', saved: 'Saved to Downloads' };
     return {
-      shareLabel: s.shared ? 'Link copied' : 'Share', share: () => this.setState({ shared: true }),
-      pdfLabel: s.saved ? 'Saved to Downloads' : 'Download PDF', download: () => this.setState({ saved: true })
+      t: T,
+      bundle: fr ? 'Personal Unlimited · 7 jours · 2 appareils' : 'Personal Unlimited · 7 days · 2 devices',
+      price: num(4000), fee: num(80), total: num(4080),
+      actLine: active ? (fr ? 'Actif depuis 14:33' : 'Active since 14:33') : (fr ? 'Activation en cours…' : 'Activating…'),
+      actIcon: active ? '✓' : '…',
+      actStyle: active ? 'background: #eaf6d5; color: #345000;' : 'background: #fff4e0; color: #6b3a00;',
+      refLabel: provider ? (fr ? 'Référence opérateur' : 'Provider reference') : (fr ? 'ID de paiement NDAHI' : 'NDAHI payment ID'),
+      ref: provider ? 'MP241124.1432.A7731' : 'NC-PAY-2411-0457',
+      copyLabel: s.copied ? T.copied : T.copy, copy: () => this.setState({ copied: true }),
+      shareLabel: s.shared ? T.shared : T.share, share: () => this.setState({ shared: true }),
+      pdfLabel: s.saved ? T.saved : T.pdf, download: () => this.setState({ saved: true })
     };
   }
 }

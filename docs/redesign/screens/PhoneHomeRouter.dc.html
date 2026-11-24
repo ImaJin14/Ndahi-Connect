@@ -34,13 +34,13 @@ a{color:#003b2b}a:hover{color:#062a20}
   <sc-if value="{{isSetup}}" hint-placeholder-val="{{ true }}">
     <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px">
       <h1 class="h1">Register your home router</h1>
-      <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">Your Home WISP Unlimited shares through one router. We recognise it by the address it uses to reach NDAHI Wi-Fi.</p>
+      <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">Your Home WISP Unlimited shares through your registered router. We recognise it by the address it uses to reach NDAHI Wi-Fi.</p>
       <ol class="st">
         <li><span class="n">1</span><span>Set your router to connect to <strong>NDAHI</strong> Wi-Fi (WISP or client mode). <a href="PhoneHelp.dc.html" style="font-weight: 700">How?</a></span></li>
         <li><span class="n">2</span><span>Connect this phone to <strong>your router's</strong> Wi-Fi.</span></li>
         <li><span class="n">3</span><span>Open <strong>portal.ndahiconnect.net</strong> and sign in. NDAHI Wi-Fi sees your router and we show it here.</span></li>
       </ol>
-      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px">Up to 60 household devices on supported routers. Your own router decides how many devices it lets on.</p>
+      <p style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px">Share with your household through a supported WISP router. Your own router decides how many devices it lets on.</p>
     </main>
     <div class="foot"><button type="button" class="btn" onClick="{{detect}}">I've done this — find my router</button></div>
   </sc-if>
@@ -65,7 +65,7 @@ a{color:#003b2b}a:hover{color:#062a20}
         <div style="display: flex; justify-content: space-between; align-items: center"><p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #b9ee2e">{{statusKicker}}</p><span style="{{statusPill}}">{{statusPillText}}</span></div>
         <p style="margin: 8px 0 4px; font-size: 20px; font-weight: 700">{{statusTitle}}</p>
         <div class="row"><span style="color: #c8d8d0">Router</span><span class="mono">••:9C:31:E4</span></div>
-        <div class="row"><span style="color: #c8d8d0">Household devices</span><span>Up to 60 on supported routers</span></div>
+        <div class="row"><span style="color: #c8d8d0">Household devices</span><span>Set by your router</span></div>
         <div class="row" style="border-bottom: 0"><span style="color: #c8d8d0">Subscription</span><span>Ends Tue 22 Dec · 18:03</span></div>
       </section>
       <sc-if value="{{isWithheld}}" hint-placeholder-val="{{ false }}">

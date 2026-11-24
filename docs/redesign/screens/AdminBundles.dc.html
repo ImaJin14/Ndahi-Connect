@@ -19,7 +19,7 @@ a{color:#003b2b}a:hover{color:#062a20}
 .go2{min-height:36px;padding:0 10px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
 .ic{width:32px;height:32px;border-radius:8px;border:1px solid #dfe5dc;background:#ffffff;color:#003b2b;font:700 14px 'DM Sans',sans-serif;cursor:pointer}
 .ic[disabled]{color:#c4ccc7;cursor:not-allowed}
-.grid{display:grid;grid-template-columns:120px repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.grid{display:grid;grid-template-columns:96px repeat(6,minmax(0,1fr));gap:8px;align-items:stretch}
 .gh{font-size:13px;font-weight:700;color:#5c6963;text-align:center;align-self:end;padding-bottom:4px}
 .gl{font-size:14px;font-weight:700;display:flex;align-items:center}
 td,th{text-align:left;padding:10px 6px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap;vertical-align:middle}
@@ -27,7 +27,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
 .pill{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
 </style>
 </helmet>
-<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1560px; display: flex; flex-wrap: wrap">
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 2060px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
     <dc-import name="AdminSide" current="bundles" hint-size="240px,900px"></dc-import>
   </aside>
@@ -36,34 +36,43 @@ th{color:#5c6963;font-weight:600;font-size:13px}
       <div>
         <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Sales · catalogue managers only</p>
         <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Bundle catalogue.</h1>
-        <p class="sub" style="font-size: 15px">Every bundle customers can buy. Changes reach the store and checkout straight away — no deploy. All bundles have unlimited data.</p>
+        <p class="sub" style="font-size: 15px">Every bundle customers can buy: fixed-data plans and unlimited plans. Changes reach the store and checkout straight away — no deploy.</p>
       </div>
       <a class="go" href="AdminBundleEdit.dc.html">Add bundle</a>
     </div>
 
     <section aria-labelledby="pu" class="panel">
       <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px">
-        <div><h2 id="pu" class="h2">Personal Unlimited</h2><p class="sub">Registered device slots, each tied to one device's Wi-Fi address. Restricts sharing.</p></div>
+        <div><h2 id="pu" class="h2">Personal Unlimited</h2><p class="sub">Registered device slots, each tied to one device's Wi-Fi address. Restricts sharing. 19 offers on sale; with Home WISP, 20 unlimited offers.</p></div>
         <span style="display: flex; gap: 14px; font-size: 12px; color: #5c6963"><span style="display: flex; align-items: center; gap: 6px"><i style="width: 10px; height: 10px; border-radius: 50%; background: #6f9500"></i>Published</span><span style="display: flex; align-items: center; gap: 6px"><i style="width: 10px; height: 10px; border-radius: 50%; border: 2px solid #b8c7bd; box-sizing: border-box"></i>Unpublished</span></span>
       </div>
       <div class="grid" role="table" aria-label="Personal Unlimited prices in FCFA by validity and device slots">
-        <span></span><span class="gh">1 device</span><span class="gh">2 devices</span><span class="gh">4 devices</span><span class="gh">6 devices</span>
+        <span></span><span class="gh">1 device</span><span class="gh">2 devices</span><span class="gh">3 devices</span><span class="gh">4 devices</span><span class="gh">5 devices</span><span class="gh">6 devices</span>
         <sc-for list="{{matrix}}" as="r" hint-placeholder-count="4">
           <span class="gl">{{r.label}}</span>
-          <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="4">
+          <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="6">
             <a href="AdminBundleEdit.dc.html" aria-label="{{c.aria}}" style="{{c.style}}"><strong style="font-size: 16px">{{c.price}}</strong><span style="font-size: 11px; color: #5c6963">{{c.note}}</span></a>
           </sc-for>
         </sc-for>
       </div>
-      <p style="margin: 0; color: #5c6963; font-size: 13px">A dashed cell isn't offered. Select it to create that bundle.</p>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">A dashed cell is "Not offered": customers see it disabled and checkout refuses it. Select it to create that bundle. Prices in XAF.</p>
     </section>
 
     <section aria-labelledby="hw" class="panel" style="flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px">
       <div style="flex: 1 1 420px">
         <h2 id="hw" class="h2">Home WISP Unlimited</h2>
-        <p class="sub">One registered WISP router with sharing on. Shown to customers as "up to 60 household devices on supported routers".</p>
+        <p class="sub">A supported WISP router with household sharing on. Kept separate from Personal Unlimited.</p><p style="margin: 8px 0 0; display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: #6b3a00; background: #fff4e0; padding: 6px 10px; border-radius: 8px"><strong>"Up to 60 household devices": hidden from customers</strong> until it's validated on supported routers. NDAHI sees one router behind NAT; the router itself decides how many devices join.</p>
       </div>
-      <a href="AdminBundleEdit.dc.html" style="display: flex; gap: 18px; align-items: center; padding: 14px 18px; border-radius: 12px; border: 2px solid #003b2b; background: #f3f9e8; text-decoration: none; color: #10241c"><span><strong style="display: block">30 days · 1 router</strong><span style="font-size: 12px; color: #5c6963">12 active subscriptions</span></span><strong style="font-size: 18px">40,000</strong><span class="pill" style="background: #eaf6d5; color: #345000">Published</span></a>
+      <a href="AdminBundleEdit.dc.html" style="display: flex; gap: 18px; align-items: center; padding: 14px 18px; border-radius: 12px; border: 2px solid #003b2b; background: #f3f9e8; text-decoration: none; color: #10241c"><span><strong style="display: block">30 days</strong><span style="font-size: 12px; color: #5c6963">12 active subscriptions</span></span><strong style="font-size: 18px">50,000</strong><span class="pill" style="background: #eaf6d5; color: #345000">Published</span></a>
+    </section>
+
+    <section aria-labelledby="fd" class="panel">
+      <div><h2 id="fd" class="h2">Fixed-data plans</h2><p class="sub">The plans on sale today, with their data allowance. Prices and rules unchanged.</p></div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px">
+        <sc-for list="{{fixed}}" as="p" hint-placeholder-count="4">
+          <a href="AdminBundleEdit.dc.html" style="display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 12px; border: 1px solid #dfe5dc; background: #ffffff; text-decoration: none; color: #10241c"><span><strong style="display: block">{{p.name}}</strong><span style="font-size: 12px; color: #5c6963">{{p.terms}}</span></span><strong>{{p.price}}</strong></a>
+        </sc-for>
+      </div>
     </section>
 
     <section aria-labelledby="ord" class="panel" style="gap: 8px">
@@ -85,7 +94,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
       <sc-if value="{{doneMsg}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eaf6d5; color: #345000; font-size: 14px; font-weight: 700">{{doneMsg}}</p></sc-if>
       <div style="overflow-x: auto">
         <table style="width: 100%; border-collapse: collapse">
-          <thead><tr><th scope="col">Order</th><th scope="col">Bundle</th><th scope="col">Price (FCFA)</th><th scope="col">Status</th><th scope="col">Used by</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th></tr></thead>
+          <thead><tr><th scope="col">Order</th><th scope="col">Bundle</th><th scope="col">Price (XAF)</th><th scope="col">Status</th><th scope="col">Used by</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th></tr></thead>
           <tbody>
             <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
               <tr style="{{r.rowStyle}}">
@@ -105,7 +114,7 @@ th{color:#5c6963;font-weight:600;font-size:13px}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1560}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2060}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -113,26 +122,30 @@ class Component extends DCLogic {
       filter: 'all', dialog: null, done: '',
       list: [
         { id: 'p24-1', name: 'Personal Unlimited', terms: '24 hours · 1 device', type: 'Personal', price: 500, status: 'pub', orders: 412, subs: 18 },
-        { id: 'p7-1', name: 'Personal Unlimited', terms: '7 days · 1 device', type: 'Personal', price: 2000, status: 'pub', orders: 233, subs: 41 },
-        { id: 'p7-2', name: 'Personal Unlimited', terms: '7 days · 2 devices', type: 'Personal', price: 3500, status: 'pub', orders: 178, subs: 37 },
+        { id: 'p7-1', name: 'Personal Unlimited', terms: '7 days · 1 device', type: 'Personal', price: 2500, status: 'pub', orders: 233, subs: 41 },
+        { id: 'p7-2', name: 'Personal Unlimited', terms: '7 days · 2 devices', type: 'Personal', price: 4000, status: 'pub', orders: 178, subs: 37 },
+        { id: 'p7-3', name: 'Personal Unlimited', terms: '7 days · 3 devices', type: 'Personal', price: 5500, status: 'pub', orders: 0, subs: 0 },
         { id: 'p30-1', name: 'Personal Unlimited', terms: '30 days · 1 device', type: 'Personal', price: 6000, status: 'pub', orders: 96, subs: 52 },
-        { id: 'w30', name: 'Home WISP Unlimited', terms: '30 days · 1 WISP router', type: 'Home WISP', price: 40000, status: 'pub', orders: 14, subs: 12 },
+        { id: 'w30', name: 'Home WISP Unlimited', terms: '30 days · household sharing', type: 'Home WISP', price: 50000, status: 'pub', orders: 14, subs: 12 },
         { id: 'p5-1', name: 'Personal Unlimited', terms: '5 hours · 1 device', type: 'Personal', price: 250, status: 'pub', orders: 520, subs: 9 },
+        { id: 'd1', name: '[PLAN 1]', terms: 'Fixed data · [DATA] GB · 24 hours', type: 'Data', price: '[PRICE]', status: 'pub', orders: 2310, subs: 64 },
+        { id: 'gig', name: 'Gig Standard', terms: 'Fixed data · [DATA] GB · price unchanged', type: 'Data', price: '[PRICE]', status: 'pub', orders: 1204, subs: 23 },
         { id: 'p48-2', name: 'Weekend test', terms: '48 hours · 2 devices', type: 'Personal', price: 1500, status: 'unpub', orders: 0, subs: 0 },
-        { id: 'gig', name: 'Gig Standard', terms: 'Retired from sale · original terms honoured', type: 'Legacy', price: null, status: 'arch', orders: 1204, subs: 23 }
+        { id: 'old', name: 'Night Owl', terms: 'Fixed data · archived 2025 · original terms honoured', type: 'Data', price: null, status: 'arch', orders: 88, subs: 0 }
       ]
     };
   }
   renderVals() {
     const s = this.state;
-    const fmt = (n) => n === null ? '—' : n.toLocaleString('en-US');
-    // Personal Unlimited price matrix (FCFA) from the initial catalogue.
-    const P = { '5 hours': [250, null, null, null], '24 hours': [500, 900, 1700, 2500], '7 days': [2000, 3500, 7000, 10000], '30 days': [6000, 10000, 20000, 30000] };
-    const devs = [1, 2, 4, 6];
+    const fmt = (n) => n === null ? '—' : typeof n === 'string' ? n : n.toLocaleString('en-US');
+    // Personal Unlimited prices (XAF), 1 to 6 devices. null = not offered.
+    const P = { '5 hours': [250, null, null, null, null, null], '24 hours': [500, 900, 1300, 1700, 2100, 2500], '7 days': [2500, 4000, 5500, 7000, 8500, 10000], '30 days': [6000, 10000, 15000, 20000, 25000, 30000] };
+    const devs = [1, 2, 3, 4, 5, 6];
+    const fixed = [['[PLAN 1]', '[DATA] GB · 24 hours'], ['[PLAN 2]', '[DATA] GB · 7 days'], ['[PLAN 3]', '[DATA] GB · 30 days'], ['Gig Standard', '[DATA] GB · [VALIDITY]']].map(([name, terms]) => ({ name, terms, price: '[PRICE] XAF' }));
     const matrix = Object.entries(P).map(([label, prices]) => ({ label, cells: prices.map((p, i) => ({
       price: p === null ? '+' : fmt(p), note: p === null ? 'Not offered' : (label === '7 days' && devs[i] === 2 ? 'Most bought' : 'Published'),
-      aria: p === null ? `Create Personal Unlimited ${label} for ${devs[i]} devices` : `Personal Unlimited ${label}, ${devs[i]} device${devs[i] > 1 ? 's' : ''}: ${fmt(p)} FCFA, published`,
-      style: 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; border-radius: 12px; text-decoration: none; color: #10241c; ' + (p === null ? 'border: 1px dashed #b8c7bd; background: transparent; color: #5c6963;' : (label === '7 days' && devs[i] === 2 ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'))
+      aria: p === null ? `Not offered: create Personal Unlimited ${label} for ${devs[i]} devices` : `Personal Unlimited ${label}, ${devs[i]} device${devs[i] > 1 ? 's' : ''}: ${fmt(p)} XAF, published`,
+      style: 'display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 60px; border-radius: 12px; text-decoration: none; color: #10241c; ' + (p === null ? 'border: 1px dashed #b8c7bd; background: transparent; color: #5c6963;' : (label === '7 days' && devs[i] === 2 ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #dfe5dc; background: #ffffff;'))
     })) }));
     const counts = { all: s.list.length, pub: s.list.filter((b) => b.status === 'pub').length, unpub: s.list.filter((b) => b.status === 'unpub').length, arch: s.list.filter((b) => b.status === 'arch').length };
     const fb = 'min-height: 36px; padding: 0 12px; border-radius: 999px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ';
@@ -155,7 +168,7 @@ class Component extends DCLogic {
     const d = s.list.find((b) => b.id === s.dialog);
     const used = d && d.orders > 0;
     return {
-      matrix, filters, rows, doneMsg: s.done,
+      matrix, fixed, filters, rows, doneMsg: s.done,
       dialog: !!d,
       dialogTitle: d ? (used ? `Archive ${d.name} · ${d.terms}?` : `Delete ${d.name} · ${d.terms}?`) : '',
       dialogBody: d ? (used ? `It's used by ${d.orders} orders and ${d.subs} active subscriptions, so it can't be deleted. Archiving takes it off sale and out of checkout now; receipts, history and active access stay.` : 'It has never been bought. It will be removed permanently and won’t come back on a restart or deploy.') : '',

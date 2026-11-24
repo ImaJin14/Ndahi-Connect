@@ -65,16 +65,16 @@ a{color:#003b2b}a:hover{color:#062a20}
       <section aria-label="Your order" style="padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 8px">
         <div class="ln"><span><strong>TP-Link AX1500</strong> <span class="bf" style="font-size: 9px; padding: 2px 6px">BLACK FRIDAY</span></span><span>100,000 FCFA</span></div>
         <div class="ln" style="color: #345000"><span>+ 1 month Unlimited ([PLAN 4])</span><strong>Free</strong></div>
-        <div class="ln" style="color: #3d4a44"><span>{{methodName}} fee</span><span>[FEE] FCFA</span></div>
-        <div class="ln" style="padding-top: 8px; border-top: 1px solid #dfe5dc"><strong>Total to approve</strong><strong style="font-size: 18px">[TOTAL] FCFA</strong></div>
+        <div class="ln" style="color: #3d4a44"><span>Mobile Payment Fee (2%)</span><span>[FEE] FCFA</span></div>
+        <div class="ln" style="padding-top: 8px; border-top: 1px solid #dfe5dc"><strong>Total to Pay</strong><strong style="font-size: 18px">[TOTAL] FCFA</strong></div>
       </section>
       <section aria-label="Your free month" style="padding: 12px 14px; border-radius: 12px; background: #eaf6d5; color: #2b4200; font-size: 14px; line-height: 1.5">
         <strong style="display: block">How you get your free month</strong>{{bonusHow}}
       </section>
       <div style="padding: 10px 12px; border-radius: 12px; border: 2px solid #003b2b; background: #fffef9; font-size: 14px"><strong style="display: block">Collect at [PICKUP LOCATION]</strong><span style="color: #5c6963">{{whoLine}}</span></div>
-      <p style="margin: 0; color: #6b3a00; font-size: 13px">Your {{balanceName}} balance needs at least [TOTAL] FCFA, or the payment fails and nothing is taken.</p>
+      <p role="note" style="margin: 0; padding: 8px 10px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45">Ensure you have at least <strong>[TOTAL] FCFA</strong> in your {{methodName}} wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.</p>
     </main>
-    <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Pay [TOTAL] FCFA</button></div>
+    <div class="foot"><button type="button" class="btn" onClick="{{toDone}}">Pay Now</button></div>
   </sc-if>
 
   <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">

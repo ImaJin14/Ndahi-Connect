@@ -204,3 +204,16 @@ Nothing in the Unlimited catalogue, device locking or Home WISP work changes a b
 - **Screens** show each bundle by its own snapshot: a legacy bundle still shows its data left and its own device rule; "unlimited data · device slots" appears only for Unlimited bundles. "Buy again" on an archived plan opens the bundle picker.
 - **Turning the catalogue on (#337)** only changes what can be bought from then on. Rollback never touches bundles bought under either catalogue.
 - Black Friday orders placed before #423 is deployed keep the rule they were bought under.
+
+## Catalogue, Mobile Money fee and payment states (24 Nov)
+
+Brief: `specs/catalogue-and-payment-update-2026-11-24.md` (owner, verbatim), with two owner changes the same day: **Home WISP Unlimited is 50,000 XAF** for 30 days (not 40,000), and **Home WISP and fixed-data plans show no device or router count**. These supersede the matching lines of the 23 Nov "Unlimited catalogue" section.
+
+- **Fixed-data plans stay on sale** with their current prices and rules (this includes Gig Standard, which the 23 Nov section had retired; the newer brief keeps every current fixed-data bundle).
+- **Personal Unlimited, 1–6 devices (XAF):** 5 hours 250 (1 device only; 2–6 "Not offered"); 24 hours 500 / 900 / 1,300 / 1,700 / 2,100 / 2,500; 7 days 2,500 / 4,000 / 5,500 / 7,000 / 8,500 / 10,000; 30 days 6,000 / 10,000 / 15,000 / 20,000 / 25,000 / 30,000. With Home WISP that is **20 purchasable unlimited offers**. Unavailable combinations are shown disabled and refused by the server.
+- **Home WISP Unlimited:** 50,000 XAF, 30 days, bound to one supported WISP router (the binding rule is unchanged; only the count is no longer shown). "Up to 60 household devices" appears in public copy only after it's validated on supported routers.
+- **Mobile Money confirmation:** Bundle Price · Mobile Payment Fee (2%) · Total to Pay, fee = `Math.round(base × 0.02)` (250 → 255, 500 → 510, 2,500 → 2,550, 6,000 → 6,120), with the wallet notice above **Pay Now** in EN and FR. The numeric 2% is shown only for a network whose fee is verified; otherwise the screen shows the price and says the fee appears in the operator prompt.
+- **Payment states:** insufficient balance (with "Switch to [cheaper bundle]" when the quote is verified), expired, cancelled or incorrect PIN, wrong network, pending after 30 s, and an unclear result. Payment confirmation and Wi-Fi activation are shown as separate steps; receipts and errors carry a copyable provider reference, or the NDAHI payment ID.
+- **Cheaper bundle:** the highest-priced eligible published bundle strictly below the attempted price, of the same kind (fixed-data, Personal Unlimited, Home WISP). Ties go to the device count closest to the one asked for, then the longer validity, then display order.
+- **Currency label:** the bundle payment screens say XAF, as the brief does.
+- **Brochure:** `docs/brochure/` (EN and FR PDFs, QR code), source on the design canvas (`Brochure`, `BrochureEN`, `BrochureFR`). Only confirmed fees, short codes and router claims go into a public release.

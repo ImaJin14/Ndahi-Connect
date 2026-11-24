@@ -40,8 +40,8 @@ a{color:#003b2b}a:hover{color:#062a20}
       <div style="flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
         <section aria-labelledby="t1" class="panel">
           <h2 id="t1" class="h2">Access type</h2>
-          <div role="radiogroup" aria-label="Access type" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px">
-            <sc-for list="{{types}}" as="t" hint-placeholder-count="2">
+          <div role="radiogroup" aria-label="Access type" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px">
+            <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
               <button type="button" role="radio" aria-checked="{{t.sel}}" class="type" onClick="{{t.pick}}" style="{{t.style}}"><span style="{{t.dot}}"></span><span><strong style="display: block; font-size: 15px">{{t.label}}</strong><span style="font-size: 13px; color: #5c6963">{{t.hint}}</span></span></button>
             </sc-for>
           </div>
@@ -53,9 +53,9 @@ a{color:#003b2b}a:hover{color:#062a20}
           <div><label class="lbl" for="bn">Name customers see</label><input class="in" id="bn" value="{{nameValue}}"><p class="hint">Suggested from the terms: {{suggested}}</p></div>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
             <div>
-              <label class="lbl" for="bp">Price (FCFA, whole number)</label>
+              <label class="lbl" for="bp">Price (XAF, whole number)</label>
               <input class="{{priceClass}}" id="bp" inputmode="numeric" value="{{price}}" onInput="{{setPrice}}">
-              <sc-if value="{{priceBad}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert">Use a whole number of FCFA, 1 or more — no decimals.</p></sc-if>
+              <sc-if value="{{priceBad}}" hint-placeholder-val="{{ false }}"><p class="err" role="alert">Use a whole number of XAF, 1 or more — no decimals.</p></sc-if>
             </div>
             <div>
               <span class="lbl" id="vl">Validity</span>
@@ -82,9 +82,12 @@ a{color:#003b2b}a:hover{color:#062a20}
             </div>
           </sc-if>
           <sc-if value="{{isWisp}}" hint-placeholder-val="{{ false }}">
-            <div><span class="lbl">Router</span><div class="lock">1 registered WISP router · sharing on</div><p class="hint">Customers see: "Up to 60 household devices on supported routers". The 60-client cap applies only on NDAHI-managed routers that support it.</p></div>
+            <div><span class="lbl">Router</span><div class="lock">Supported WISP router · household sharing on</div><p class="hint">"Up to 60 household devices" stays hidden from customers until it's validated on supported routers. NDAHI sees one router behind NAT; how many devices join is decided by the router itself, and the 60-client cap applies only on NDAHI-managed routers.</p></div>
           </sc-if>
-          <div><span class="lbl">Data</span><div class="lock">Unlimited</div></div>
+          <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
+            <div style="max-width: 320px"><label class="lbl" for="dq">Data allowance (GB)</label><input class="in" id="dq" inputmode="decimal" value="5"><p class="hint">When it's used up, the bundle ends, as today.</p></div>
+          </sc-if>
+          <sc-if value="{{notData}}" hint-placeholder-val="{{ true }}"><div><span class="lbl">Data</span><div class="lock">Unlimited</div></div></sc-if>
         </section>
 
         <section aria-labelledby="t3" class="panel">
@@ -132,7 +135,7 @@ a{color:#003b2b}a:hover{color:#062a20}
         <section aria-label="Who this change affects" style="padding: 14px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc">
           <strong style="display: block; font-size: 14px; margin-bottom: 4px">Who a change affects</strong>
           <div class="row"><span>New checkouts</span><strong>New terms</strong></div>
-          <div class="row"><span>3 pending orders</span><strong>Keep 3,500 FCFA</strong></div>
+          <div class="row"><span>3 pending orders</span><strong>Keep 4,000 XAF</strong></div>
           <div class="row" style="border-bottom: 0"><span>37 active subscriptions</span><strong>Unchanged</strong></div>
           <p class="hint" style="margin-top: 4px">The server prices every checkout from the catalogue. Prices or terms sent by a browser are ignored.</p>
         </section>
@@ -141,44 +144,44 @@ a{color:#003b2b}a:hover{color:#062a20}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"type":{"editor":"enum","options":["personal","wisp"],"default":"personal"},"$preview":{"width":1280,"height":1460}}'>
+<script type="text/x-dc" data-dc-script data-props='{"type":{"editor":"enum","options":["personal","wisp","data"],"default":"personal"},"$preview":{"width":1280,"height":1460}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    const wisp = (props.type ?? 'personal') === 'wisp';
-    this.state = { type: wisp ? 'wisp' : 'personal', price: wisp ? '40000' : '3500', validity: wisp ? '30' : '7', unit: 'days', slots: '2', pub: 'pub', saved: false, archived: false };
+    const type = props.type ?? 'personal', wisp = type === 'wisp', data = type === 'data';
+    this.state = { type, price: wisp ? '50000' : data ? '[PRICE]' : '4000', validity: wisp ? '30' : '7', unit: 'days', slots: '2', pub: 'pub', saved: false, archived: false };
   }
   renderVals() {
     const s = this.state;
-    const wisp = s.type === 'wisp';
+    const wisp = s.type === 'wisp', data = s.type === 'data';
     const on = 'border: 2px solid #003b2b; background: #f3f9e8;', off = 'border: 1px solid #dfe5dc; background: #ffffff;';
     const segOn = 'min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);';
     const segOff = 'min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: transparent; color: #3d4a44;';
     const set = (o) => this.setState({ ...o, saved: false });
-    const types = [['personal', 'Personal Unlimited', 'Registered device slots. Restricts sharing.'], ['wisp', 'Home WISP Unlimited', 'One registered WISP router. Sharing on.']].map(([id, label, hint]) => ({ label, hint, sel: s.type === id ? 'true' : 'false', style: s.type === id ? on : off,
+    const types = [['personal', 'Personal Unlimited', 'Device slots. Restricts sharing.'], ['wisp', 'Home WISP Unlimited', 'Supported WISP router. Sharing on.'], ['data', 'Fixed data', 'A data allowance. Same rules as today.']].map(([id, label, hint]) => ({ label, hint, sel: s.type === id ? 'true' : 'false', style: s.type === id ? on : off,
       dot: 'flex: 0 0 18px; height: 18px; margin-top: 1px; border-radius: 50%; box-sizing: border-box; ' + (s.type === id ? 'border: 6px solid #003b2b;' : 'border: 2px solid #b8c7bd;'), pick: () => set({ type: id }) }));
     const units = [['hours', 'hours'], ['days', 'days']].map(([id, label]) => ({ label, sel: s.unit === id ? 'true' : 'false', style: s.unit === id ? segOn : segOff, pick: () => set({ unit: id }) }));
     const pubs = [['pub', 'Published'], ['unpub', 'Unpublished']].map(([id, label]) => ({ label, sel: s.pub === id ? 'true' : 'false', style: s.pub === id ? segOn : segOff, pick: () => set({ pub: id }) }));
-    const slots = ['1', '2', '4', '6'].map((n) => ({ label: n, pressed: s.slots === n ? 'true' : 'false', style: s.slots === n ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;', pick: () => set({ slots: n }) }));
-    const priceBad = !/^[1-9]\d{0,8}$/.test(s.price.trim());
+    const slots = ['1', '2', '3', '4', '5', '6'].map((n) => ({ label: n, pressed: s.slots === n ? 'true' : 'false', style: s.slots === n ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;', pick: () => set({ slots: n }) }));
+    const priceBad = !data && !/^[1-9]\d{0,8}$/.test(s.price.trim());
     const v = Number(s.validity), hours = s.unit === 'days' ? v * 24 : v;
     const validityBad = !/^\d+$/.test(s.validity.trim()) || hours < 1 || hours > 8760;
-    const slotsBad = !wisp && (!/^\d+$/.test(s.slots) || Number(s.slots) < 1 || Number(s.slots) > 10);
+    const slotsBad = s.type === 'personal' && (!/^\d+$/.test(s.slots) || Number(s.slots) < 1 || Number(s.slots) > 10);
     const vText = `${s.validity} ${s.unit === 'days' ? (v === 1 ? 'day' : 'days') : (v === 1 ? 'hour' : 'hours')}`;
     const n = Number(s.slots);
-    const suggested = wisp ? `Home WISP Unlimited · ${vText}` : `Personal Unlimited · ${vText} · ${n} device${n === 1 ? '' : 's'}`;
+    const suggested = wisp ? `Home WISP Unlimited · ${vText}` : data ? `[PLAN 2] · 5 GB · ${vText}` : `Personal Unlimited · ${vText} · ${n} device${n === 1 ? '' : 's'}`;
     const invalid = priceBad || validityBad || slotsBad;
     const unpub = s.pub === 'unpub' || s.archived;
     return {
       types, units, pubs, slots,
-      isPersonal: !wisp, isWisp: wisp,
+      isPersonal: s.type === 'personal', isWisp: wisp, isData: data, notData: !data,
       titleName: s.archived ? suggested + ' (archived)' : suggested, nameValue: suggested, suggested,
       price: s.price, setPrice: (e) => set({ price: e.target.value }), priceBad, priceClass: priceBad ? 'in bad' : 'in',
       validity: s.validity, setValidity: (e) => set({ validity: e.target.value }), validityBad,
       slotsValue: s.slots, setSlots: (e) => set({ slots: e.target.value }), slotsBad,
-      priceShown: priceBad ? '— FCFA' : Number(s.price).toLocaleString('en-US') + ' FCFA',
-      cardLine: wisp ? `Unlimited data · ${vText} · one registered router` : `Unlimited data · ${vText} · ${n} registered device${n === 1 ? '' : 's'}`,
-      cardTag: wisp ? 'Up to 60 household devices on supported routers' : 'Restricts sharing — works on your registered devices',
+      priceShown: data ? '[PRICE] XAF' : priceBad ? '— XAF' : Number(s.price).toLocaleString('en-US') + ' XAF',
+      cardLine: wisp ? `Unlimited data · ${vText} · household sharing` : data ? `5 GB · ${vText}` : `Unlimited data · ${vText} · ${n} registered device${n === 1 ? '' : 's'}`,
+      cardTag: wisp ? 'Share with your household through a supported router' : data ? 'Same rules as today' : 'Restricts sharing — works on your registered devices',
       unpublished: s.pub === 'unpub',
       statusText: s.archived ? 'Archived' : (unpub ? 'Unpublished' : 'Published'),
       statusPill: 'padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; ' + (s.archived ? 'background: #f1e8fb; color: #5b2d86;' : unpub ? 'background: #eef0ee; color: #3d4a44;' : 'background: #eaf6d5; color: #345000;'),

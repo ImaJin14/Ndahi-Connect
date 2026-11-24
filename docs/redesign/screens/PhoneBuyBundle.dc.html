@@ -19,68 +19,74 @@ a{color:#003b2b}a:hover{color:#062a20}
 .back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c;border:0;background:transparent;cursor:pointer}
 .h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.15}
 .foot{padding:12px 16px 18px;background:#fffef9;border-top:1px solid #dfe5dc}
+.leg{font-size:14px;font-weight:700;margin-bottom:8px;padding:0}
+.qrow{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#3d4a44}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
   <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
     <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
-      <a class="back" href="PhoneInternet.dc.html" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+      <a class="back" href="PhoneInternet.dc.html" aria-label="{{t.back}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
     </sc-if>
     <sc-if value="{{isPay}}" hint-placeholder-val="{{ false }}">
-      <button type="button" class="back" aria-label="Back" onClick="{{toPlan}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button>
+      <button type="button" class="back" aria-label="{{t.back}}" onClick="{{toPlan}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></button>
     </sc-if>
-    <span style="font-weight: 700; font-size: 15px; flex: 1">Buy a bundle</span>
+    <span style="font-weight: 700; font-size: 15px; flex: 1; padding-left: 6px">{{t.title}}</span>
     <span style="font-size: 13px; color: #5c6963; padding-right: 8px">{{stepLabel}}</span>
   </div>
 
   <sc-if value="{{isPlan}}" hint-placeholder-val="{{ true }}">
     <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
-      <h1 class="h1">Choose your bundle</h1>
-      <div role="tablist" aria-label="Bundle type" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
-        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+      <h1 class="h1">{{t.choose}}</h1>
+      <div role="tablist" aria-label="{{t.kindLabel}}" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+        <sc-for list="{{kinds}}" as="k" hint-placeholder-count="3">
           <button type="button" role="tab" aria-selected="{{k.sel}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button>
         </sc-for>
       </div>
+
+      <sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.dataIntro}}</p>
+          <sc-for list="{{dataPlans}}" as="d" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}"><span style="flex: 1; text-align: left"><strong style="display: block; font-size: 15px">{{d.name}}</strong><span style="font-size: 13px; color: #5c6963">{{d.terms}}</span></span><strong style="font-size: 15px">{{d.price}}</strong></button>
+          </sc-for>
+        </div>
+      </sc-if>
+
       <sc-if value="{{isPersonal}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 12px">
           <fieldset style="border: 0; margin: 0; padding: 0">
-            <legend style="font-size: 14px; font-weight: 700; margin-bottom: 8px; padding: 0">How long?</legend>
+            <legend class="leg">{{t.howLong}}</legend>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
               <sc-for list="{{durations}}" as="d" hint-placeholder-count="4"><button type="button" aria-pressed="{{d.pressed}}" onClick="{{d.pick}}" style="{{d.style}}">{{d.label}}</button></sc-for>
             </div>
           </fieldset>
           <fieldset style="border: 0; margin: 0; padding: 0">
-            <legend style="font-size: 14px; font-weight: 700; margin-bottom: 8px; padding: 0">How many devices?</legend>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px">
-              <sc-for list="{{devices}}" as="d" hint-placeholder-count="4"><button type="button" aria-pressed="{{d.pressed}}" disabled="{{d.off}}" onClick="{{d.pick}}" style="{{d.style}}"><strong style="display: block; font-size: 16px">{{d.label}}</strong><span style="font-size: 11px">{{d.price}}</span></button></sc-for>
+            <legend class="leg">{{t.howMany}}</legend>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px">
+              <sc-for list="{{devices}}" as="d" hint-placeholder-count="6"><button type="button" aria-pressed="{{d.pressed}}" aria-disabled="{{d.offAria}}" disabled="{{d.off}}" onClick="{{d.pick}}" aria-label="{{d.aria}}" style="{{d.style}}"><strong style="display: block; font-size: 14px">{{d.label}}</strong><span style="font-size: 12px">{{d.price}}</span></button></sc-for>
             </div>
           </fieldset>
         </div>
       </sc-if>
-      <section aria-label="Selected bundle" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; display: flex; flex-direction: column; gap: 8px">
-        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><strong style="font-size: 16px">{{planName}}</strong><strong style="font-size: 24px; color: #b9ee2e; white-space: nowrap">{{planPriceShort}}</strong></div>
-        <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #dce8e2">
+
+      <section aria-label="{{t.selected}}" style="padding: 14px 16px; border-radius: 16px; background: #003b2b; color: #ffffff; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><strong style="font-size: 15px">{{planName}}</strong><strong style="font-size: 22px; color: #b9ee2e; white-space: nowrap">{{planPrice}}</strong></div>
+        <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: #dce8e2">
           <sc-for list="{{perks}}" as="x" hint-placeholder-count="4"><li>{{x.t}}</li></sc-for>
         </ul>
       </section>
-      <p style="margin: 0; color: #5c6963; font-size: 13px">You can buy once your current bundle has ended. <a href="PhoneBillingTerms.dc.html" style="font-weight: 700">Rules</a></p>
+      <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.rule}} <a href="PhoneBillingTerms.dc.html" style="font-weight: 700">{{t.rules}}</a></p>
     </main>
-    <div class="foot"><button type="button" class="btn" onClick="{{toPay}}">Continue · {{planPriceShort}}</button></div>
+    <div class="foot"><button type="button" class="btn" onClick="{{toPay}}">{{t.cont}} · {{planPrice}}</button></div>
   </sc-if>
 
   <sc-if value="{{isPay}}" hint-placeholder-val="{{ false }}">
-    <main style="flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 16px">
-      <h1 class="h1">Review and pay</h1>
-      <section aria-label="What you'll pay" style="padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 8px">
-        <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center">
-          <span><strong style="display: block; font-size: 15px">{{planName}}</strong><span style="font-size: 13px; color: #5c6963">{{planDetail}}</span></span>
-          <span style="font-size: 15px">{{planPrice}}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: #3d4a44"><span>{{methodName}} fee</span><span>[FEE] FCFA</span></div>
-        <div style="display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid #dfe5dc"><strong>Total to approve</strong><strong style="font-size: 18px">[TOTAL] FCFA</strong></div>
-      </section>
+    <main style="flex: 1; overflow: hidden; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">{{t.review}}</h1>
+      <p style="margin: -6px 0 0; font-size: 14px; color: #3d4a44"><strong>{{planName}}</strong><br><span style="color: #5c6963">{{planDetail}}</span></p>
       <fieldset style="border: 0; margin: 0; padding: 0">
-        <legend style="font-size: 15px; font-weight: 700; margin-bottom: 8px; padding: 0">Pay with</legend>
+        <legend class="leg">{{t.payWith}}</legend>
         <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
           <sc-for list="{{methods}}" as="m" hint-placeholder-count="2">
             <button type="button" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">{{m.label}}</button>
@@ -88,92 +94,158 @@ a{color:#003b2b}a:hover{color:#062a20}
         </div>
       </fieldset>
       <div>
-        <label class="lbl" for="bp">Mobile Money number</label>
+        <label class="lbl" for="bp">{{t.number}}</label>
         <input class="in" id="bp" type="tel" value="6•• •• 12 45">
-        <p style="margin: 6px 0 0; color: #5c6963; font-size: 13px">New here? We'll set up your NDAHI account with this number.</p>
       </div>
-      <div role="note" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.45">
-        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3ZM3 7l12-4v4M17 13h.01"></path></svg>
-        <span>Make sure your {{balanceName}} balance has at least <strong>[TOTAL] FCFA</strong>. If it's lower, the payment fails and no money is taken.</span>
-      </div>
+      <section aria-label="{{t.whatPay}}" style="padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 8px">
+        <div class="qrow"><span>{{t.bundlePrice}}</span><span style="color: #10241c">{{planPrice}}</span></div>
+        <sc-if value="{{feeKnown}}" hint-placeholder-val="{{ true }}">
+          <div class="qrow"><span>{{t.feeLabel}}</span><span style="color: #10241c">{{feeText}}</span></div>
+          <div style="display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid #dfe5dc"><strong>{{t.total}}</strong><strong style="font-size: 18px">{{totalText}}</strong></div>
+        </sc-if>
+        <sc-if value="{{feeUnknown}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; padding-top: 8px; border-top: 1px solid #dfe5dc; font-size: 13px; color: #3d4a44; line-height: 1.45">{{t.feeInPrompt}}</p>
+        </sc-if>
+      </section>
     </main>
-    <div class="foot">
-      <button type="button" class="btn" onClick="{{toWait}}">Pay [TOTAL] FCFA</button>
-      <p style="margin: 8px 0 0; text-align: center; color: #5c6963; font-size: 12px">You'll approve on your phone. We never ask for your PIN.</p>
+    <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
+      <p role="note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45">{{notice1}}<strong>{{noticeAmount}}</strong>{{notice2}}</p>
+      <button type="button" class="btn" onClick="{{toWait}}">{{t.payNow}}</button>
     </div>
   </sc-if>
 
   <sc-if value="{{isWait}}" hint-placeholder-val="{{ false }}">
     <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
       <div style="width: 84px; height: 84px; border-radius: 50%; background: #fff4e0; display: grid; place-items: center"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#6b3a00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"></path></svg></div>
-      <h1 class="h1">Approve on your phone</h1>
-      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">A {{methodName}} request for <strong>[TOTAL] FCFA</strong> ({{planPrice}} bundle + [FEE] FCFA fee) was sent to 6•• •• 12 45. Approve it there — this screen updates by itself.</p>
+      <h1 class="h1">{{t.approve}}</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55">{{waitLine}}</p>
       <ol style="margin: 4px 0 0; padding: 14px 14px 14px 34px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc; text-align: left; font-size: 14px; line-height: 1.7; color: #3d4a44; align-self: stretch">
-        <li>Open the payment prompt on your phone</li>
-        <li>Check the amount is [TOTAL] FCFA, then enter your PIN there</li>
-        <li>Come back here — no need to refresh</li>
+        <li>{{t.w1}}</li>
+        <li>{{w2}}</li>
+        <li>{{t.w3}}</li>
       </ol>
     </main>
     <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
-      <button type="button" class="btn" onClick="{{toDone}}">Check status</button>
-      <button type="button" class="btn2" onClick="{{toPay}}">Change payment</button>
-      <a href="PhonePaymentFailed.dc.html" style="align-self: center; min-height: 32px; display: flex; align-items: center; font-size: 13px; font-weight: 700">Payment didn't go through?</a>
+      <button type="button" class="btn" onClick="{{toActivating}}">{{t.check}}</button>
+      <a href="PhonePaymentFailed.dc.html" style="align-self: center; min-height: 32px; display: flex; align-items: center; font-size: 13px; font-weight: 700">{{t.problem}}</a>
     </div>
+  </sc-if>
+
+  <sc-if value="{{isActivating}}" hint-placeholder-val="{{ false }}">
+    <main style="flex: 1; padding: 26px 22px; display: flex; flex-direction: column; gap: 14px">
+      <h1 class="h1">{{t.paidTitle}}</h1>
+      <ol aria-label="{{t.progress}}" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+        <li style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: #eaf6d5"><span aria-hidden="true" style="flex: 0 0 26px; height: 26px; border-radius: 50%; background: #345000; color: #ffffff; display: grid; place-items: center; font-weight: 700">✓</span><span><strong style="display: block; color: #345000">{{t.payConfirmed}}</strong><span style="font-size: 13px; color: #3d4a44">{{paidLine}}</span></span></li>
+        <li style="display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: #fffef9; border: 1px solid #dfe5dc"><span aria-hidden="true" style="flex: 0 0 26px; height: 26px; border-radius: 50%; border: 3px solid #b9ee2e; border-top-color: #003b2b; box-sizing: border-box"></span><span><strong style="display: block">{{t.activating}}</strong><span style="font-size: 13px; color: #5c6963">{{t.activatingLine}}</span></span></li>
+      </ol>
+      <p style="margin: 0; font-size: 13px; color: #5c6963">{{t.refLabel}} <strong style="font-family: ui-monospace, Menlo, monospace; color: #10241c">MP261124.1432.A7731</strong></p>
+    </main>
+    <div class="foot"><a class="btn2" href="PhoneReceipt.dc.html">{{t.keepOpen}}</a></div>
   </sc-if>
 
   <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
     <main style="flex: 1; padding: 30px 22px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px">
       <div style="width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
-      <h1 class="h1">You're online</h1>
-      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55"><strong>{{planName}}</strong> is active on this device. Your receipt is in Activity.</p>
+      <h1 class="h1">{{t.online}}</h1>
+      <p style="margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55"><strong>{{planName}}</strong> {{t.onlineLine}}</p>
       <div style="align-self: stretch; padding: 14px; border-radius: 12px; background: #003b2b; color: #ffffff; text-align: left">
-        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">Active bundle</p>
-        <p style="margin: 6px 0 0; font-size: 18px; font-weight: 700">{{planDetail}}</p>
+        <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{t.activeBundle}}</p>
+        <p style="margin: 6px 0 0; font-size: 17px; font-weight: 700">{{planDetail}}</p>
       </div>
     </main>
     <div class="foot" style="display: flex; flex-direction: column; gap: 10px">
-      <a class="btn" href="PhoneHome.dc.html">Go to my home</a>
-      <a class="btn2" href="PhoneReceipt.dc.html">View receipt</a>
-      <sc-if value="{{isWispPlan}}" hint-placeholder-val="{{ false }}"><a class="btn2" href="PhoneHomeRouter.dc.html">Register my home router</a></sc-if>
+      <a class="btn" href="PhoneHome.dc.html">{{t.goHome}}</a>
+      <a class="btn2" href="PhoneReceipt.dc.html">{{t.viewReceipt}}</a>
+      <sc-if value="{{isWispPlan}}" hint-placeholder-val="{{ false }}"><a class="btn2" href="PhoneHomeRouter.dc.html">{{t.register}}</a></sc-if>
     </div>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["plan","pay","wait","activating","done"],"default":"plan"},"kind":{"editor":"enum","options":["personal","data","wisp"],"default":"personal"},"fee":{"editor":"enum","options":["verified","unverified"],"default":"verified"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { step: 'plan', kind: 'personal', dur: '7d', dev: 2, method: 'mtn' }; }
+  constructor(props) { super(props); this.state = { step: props.step ?? 'plan', kind: props.kind ?? 'personal', dur: '7d', dev: 2, data: 1, method: 'mtn' }; }
   renderVals() {
     const s = this.state;
+    const fr = (this.props.lang ?? 'en') === 'fr';
+    const verified = (this.props.fee ?? 'verified') === 'verified';
+    const T = fr ? {
+      back: 'Retour', title: 'Acheter un forfait', choose: 'Choisissez votre forfait', kindLabel: 'Type de forfait', data: 'Forfaits data', unl: 'Illimité', wisp: 'Home WISP',
+      dataIntro: 'Une quantité de data pour une durée donnée. Prix inchangés.', howLong: 'Pour combien de temps ?', howMany: "Combien d'appareils ?", notOffered: 'Non proposé', selected: 'Forfait choisi',
+      rule: "Vous pourrez acheter quand votre forfait actuel sera terminé.", rules: 'Règles', cont: 'Continuer', review: 'Vérifier et payer', payWith: 'Payer avec', number: 'Numéro Mobile Money',
+      whatPay: 'Ce que vous allez payer', bundlePrice: 'Prix du forfait', feeLabel: 'Frais de paiement mobile (2 %)', total: 'Total à payer',
+      feeInPrompt: "Les frais Mobile Money s'afficheront dans la demande de l'opérateur, avant que vous ne validiez.",
+      payNow: 'Payer maintenant', approve: 'Validez sur votre téléphone', w1: "Ouvrez la demande de paiement sur votre téléphone", w3: "Revenez ici — inutile d'actualiser",
+      check: "Vérifier l'état", problem: 'Le paiement n’a pas abouti ?', paidTitle: 'Paiement reçu', progress: 'Progression', payConfirmed: 'Paiement confirmé',
+      activating: 'Activation de votre Wi-Fi…', activatingLine: 'Cela prend souvent quelques secondes. Ne payez pas à nouveau.', refLabel: 'Référence :', keepOpen: 'Voir le reçu du paiement',
+      online: 'Vous êtes en ligne', onlineLine: 'est actif sur cet appareil. Votre reçu est dans Activité.', activeBundle: 'Forfait actif', goHome: "Aller à l'accueil", viewReceipt: 'Voir le reçu', register: 'Enregistrer mon routeur'
+    } : {
+      back: 'Back', title: 'Buy a bundle', choose: 'Choose your bundle', kindLabel: 'Bundle type', data: 'Data plans', unl: 'Unlimited', wisp: 'Home WISP',
+      dataIntro: 'A set amount of data for a set time. Prices unchanged.', howLong: 'How long?', howMany: 'How many devices?', notOffered: 'Not offered', selected: 'Selected bundle',
+      rule: 'You can buy once your current bundle has ended.', rules: 'Rules', cont: 'Continue', review: 'Review and pay', payWith: 'Pay with', number: 'Mobile Money number',
+      whatPay: "What you'll pay", bundlePrice: 'Bundle Price', feeLabel: 'Mobile Payment Fee (2%)', total: 'Total to Pay',
+      feeInPrompt: 'The Mobile Money fee will appear in the operator prompt, before you approve.',
+      payNow: 'Pay Now', approve: 'Approve on your phone', w1: 'Open the payment prompt on your phone', w3: 'Come back here — no need to refresh',
+      check: 'Check status', problem: "Payment didn't go through?", paidTitle: 'Payment received', progress: 'Progress', payConfirmed: 'Payment confirmed',
+      activating: 'Activating your Wi-Fi…', activatingLine: 'This usually takes a few seconds. Please don’t pay again.', refLabel: 'Reference:', keepOpen: 'View payment receipt',
+      online: "You're online", onlineLine: 'is active on this device. Your receipt is in Activity.', activeBundle: 'Active bundle', goHome: 'Go to my home', viewReceipt: 'View receipt', register: 'Register my home router'
+    };
     const go = (step) => () => this.setState({ step });
-    const P = { '5h': [250, null, null, null], '24h': [500, 900, 1700, 2500], '7d': [2000, 3500, 7000, 10000], '30d': [6000, 10000, 20000, 30000] };
-    const dur = { '5h': '5 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
-    const devs = [1, 2, 4, 6];
-    const fmt = (n) => n.toLocaleString('en-US') + ' FCFA';
+    // Personal Unlimited prices (XAF), 1 to 6 devices. null = not offered.
+    const P = { '5h': [250, null, null, null, null, null], '24h': [500, 900, 1300, 1700, 2100, 2500], '7d': [2500, 4000, 5500, 7000, 8500, 10000], '30d': [6000, 10000, 15000, 20000, 25000, 30000] };
+    const dur = fr ? { '5h': '5 heures', '24h': '24 heures', '7d': '7 jours', '30d': '30 jours' } : { '5h': '5 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+    const devs = [1, 2, 3, 4, 5, 6];
+    const num = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/ /g, ' ');
+    const xaf = (n) => num(n) + ' XAF';
+    const devWord = (n) => fr ? `${n} appareil${n > 1 ? 's' : ''}` : `${n} device${n > 1 ? 's' : ''}`;
     const on = 'border: 2px solid #003b2b; background: #f3f9e8; color: #10241c;', offS = 'border: 1px solid #dfe5dc; background: #fffef9; color: #10241c;';
-    const chip = 'min-height: 48px; border-radius: 12px; font: 600 14px "DM Sans", sans-serif; cursor: pointer; ';
-    const wisp = s.kind === 'wisp';
-    const tb = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 14px "DM Sans", sans-serif; cursor: pointer; ';
-    const kinds = [['personal', 'For my devices'], ['wisp', 'For my home router']].map(([id, label]) => ({ label, sel: s.kind === id ? 'true' : 'false', style: tb + (s.kind === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ kind: id }) }));
-    const durations = Object.keys(P).map((id) => ({ label: dur[id], pressed: s.dur === id ? 'true' : 'false', style: chip + (s.dur === id ? on : offS), pick: () => this.setState({ dur: id, dev: P[id][devs.indexOf(s.dev)] ? s.dev : 1 }) }));
-    const devices = devs.map((n, i) => { const price = P[s.dur][i]; return { label: n, price: price ? price.toLocaleString('en-US') : '—', off: !price, pressed: s.dev === n ? 'true' : 'false',
-      style: chip + (!price ? 'border: 1px dashed #dfe5dc; background: transparent; color: #9aa5a0; cursor: not-allowed;' : (s.dev === n ? on : offS)), pick: () => { if (price) this.setState({ dev: n }); } }; });
-    const price = wisp ? 40000 : P[s.dur][devs.indexOf(s.dev)];
+    const chip = 'min-height: 46px; border-radius: 12px; font: 600 14px "DM Sans", sans-serif; cursor: pointer; ';
+    const tb = 'flex: 1; min-height: 40px; border: 0; border-radius: 9px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const kinds = [['data', T.data], ['personal', T.unl], ['wisp', T.wisp]].map(([id, label]) => ({ label, sel: s.kind === id ? 'true' : 'false', style: tb + (s.kind === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ kind: id }) }));
+    const durations = Object.keys(P).map((id) => ({ label: dur[id], pressed: s.dur === id ? 'true' : 'false', style: chip + (s.dur === id ? on : offS), pick: () => this.setState({ dur: id, dev: P[id][s.dev - 1] ? s.dev : 1 }) }));
+    const devices = devs.map((n) => { const price = P[s.dur][n - 1]; return { label: devWord(n), price: price ? xaf(price) : T.notOffered, off: !price, offAria: price ? 'false' : 'true', pressed: s.dev === n ? 'true' : 'false',
+      aria: price ? `${devWord(n)}, ${xaf(price)}` : `${devWord(n)}, ${T.notOffered}`,
+      style: 'min-height: 52px; border-radius: 12px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ' + (!price ? 'border: 1px dashed #dfe5dc; background: transparent; color: #8a948f; cursor: not-allowed;' : (s.dev === n ? on : offS)), pick: () => { if (price) this.setState({ dev: n }); } }; });
+    const DP = [['[PLAN 1]', fr ? '[DATA] Go · 24 heures' : '[DATA] GB · 24 hours'], ['[PLAN 2]', fr ? '[DATA] Go · 7 jours' : '[DATA] GB · 7 days'], ['[PLAN 3]', fr ? '[DATA] Go · 30 jours' : '[DATA] GB · 30 days']];
+    const dataPlans = DP.map(([name, terms], i) => ({ name, terms, price: '[PRICE] XAF', pressed: s.data === i ? 'true' : 'false', pick: () => this.setState({ data: i }),
+      style: 'display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 14px; border-radius: 12px; font: 14px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ' + (s.data === i ? on : offS) }));
+    const wisp = s.kind === 'wisp', data = s.kind === 'data';
+    const price = wisp ? 50000 : data ? null : P[s.dur][s.dev - 1];
     const plan = wisp
-      ? { name: 'Home WISP Unlimited · 30 days', detail: 'Unlimited data · one registered home router · 30 days' }
-      : { name: `Personal Unlimited · ${dur[s.dur]} · ${s.dev} device${s.dev > 1 ? 's' : ''}`, detail: `Unlimited data · ${dur[s.dur]} · ${s.dev} registered device${s.dev > 1 ? 's' : ''}` };
+      ? { name: 'Home WISP Unlimited · ' + (fr ? '30 jours' : '30 days'), detail: fr ? 'Données illimitées · partage avec le foyer · 30 jours' : 'Unlimited data · household sharing · 30 days' }
+      : data ? { name: DP[s.data][0], detail: DP[s.data][1] }
+      : { name: `Personal Unlimited · ${dur[s.dur]} · ${devWord(s.dev)}`, detail: fr ? `Données illimitées · ${dur[s.dur]} · ${devWord(s.dev)} enregistré${s.dev > 1 ? 's' : ''}` : `Unlimited data · ${dur[s.dur]} · ${s.dev} registered device${s.dev > 1 ? 's' : ''}` };
     const perks = (wisp
-      ? ['Unlimited data for 30 days', 'Share with your household through one registered router', 'Up to 60 household devices on supported routers', 'Register your router after paying']
-      : ['Unlimited data', `${s.dev} device slot${s.dev > 1 ? 's' : ''}, tied to your devices when they sign in`, 'Restricts sharing: hotspot and router sharing won\u2019t work', 'Time starts when you first connect']).map((t) => ({ t }));
-    const mBase = 'min-height: 52px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
+      ? (fr ? ['Données illimitées pendant 30 jours', 'Partage avec votre foyer via un routeur WISP compatible', 'Enregistrez votre routeur après le paiement', 'Le temps démarre à la première connexion']
+            : ['Unlimited data for 30 days', 'Share with your household through a supported WISP router', 'Register your router after paying', 'Time starts when you first connect'])
+      : data ? (fr ? ['[DATA] Go pour la durée du forfait', 'Comme aujourd’hui : mêmes règles et mêmes prix'] : ['[DATA] GB for the length of the plan', 'Same rules and prices as today'])
+      : (fr ? ['Données illimitées', `${devWord(s.dev)}, lié${s.dev > 1 ? 's' : ''} à vos appareils quand ils se connectent`, 'Partage limité : le partage de connexion et les routeurs ne fonctionnent pas', 'Le temps démarre à la première connexion']
+            : ['Unlimited data', `${s.dev} device slot${s.dev > 1 ? 's' : ''}, tied to your devices when they sign in`, 'Restricts sharing: hotspot and router sharing won’t work', 'Time starts when you first connect'])).map((t) => ({ t }));
+    const fee = price === null ? null : Math.round(price * 0.02);
+    const total = price === null ? null : price + fee;
+    const net = s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money';
+    const mBase = 'min-height: 50px; border-radius: 12px; font: 600 15px "DM Sans", sans-serif; color: #10241c; cursor: pointer; ';
     const methods = [['mtn', 'MTN MoMo'], ['orange', 'Orange Money']].map(([id, label]) => ({ label, pressed: id === s.method ? 'true' : 'false', style: mBase + (id === s.method ? 'border: 2px solid #003b2b; background: #f3f9e8;' : 'border: 1px solid #b8c7bd; background: #fffef9;'), pick: () => this.setState({ method: id }) }));
-    const labels = { plan: 'Step 1 of 3', pay: 'Step 2 of 3', wait: 'Step 3 of 3', done: 'Done' };
+    const feeKnown = verified && price !== null;
+    const priceText = price === null ? '[PRICE] XAF' : xaf(price);
+    const totalText = total === null ? '[TOTAL] XAF' : xaf(total);
+    const feeText = fee === null ? '[FEE] XAF' : xaf(fee);
+    const notice = feeKnown
+      ? (fr ? [`Assurez-vous d'avoir au moins `, totalText, ` sur votre compte ${net} (frais de paiement mobile de 2 % inclus). Gardez votre écran déverrouillé pour saisir votre code PIN.`]
+            : ['Ensure you have at least ', totalText, ` in your ${net} wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.`])
+      : (fr ? [`Assurez-vous que votre compte ${net} couvre `, priceText, ` plus les frais affichés dans la demande de l'opérateur. Gardez votre écran déverrouillé pour saisir votre code PIN.`]
+            : [`Ensure your ${net} wallet covers `, priceText, ' plus the fee shown in the operator prompt. Keep your screen unlocked to enter your PIN.']);
+    const labels = fr ? { plan: 'Étape 1 sur 3', pay: 'Étape 2 sur 3', wait: 'Étape 3 sur 3', activating: 'Payé', done: 'Terminé' } : { plan: 'Step 1 of 3', pay: 'Step 2 of 3', wait: 'Step 3 of 3', activating: 'Paid', done: 'Done' };
+    const amount = feeKnown ? totalText : priceText;
     return {
-      isPlan: s.step === 'plan', isPay: s.step === 'pay', isWait: s.step === 'wait', isDone: s.step === 'done',
-      stepLabel: labels[s.step], kinds, durations, devices, perks, methods, isPersonal: !wisp, isWispPlan: wisp,
-      planName: plan.name, planDetail: plan.detail, planPrice: fmt(price), planPriceShort: fmt(price),
-      methodName: s.method === 'mtn' ? 'MTN MoMo' : 'Orange Money',
-      balanceName: s.method === 'mtn' ? 'MoMo' : 'Orange Money',
-      toPlan: go('plan'), toPay: go('pay'), toWait: go('wait'), toDone: go('done')
+      t: T, isPlan: s.step === 'plan', isPay: s.step === 'pay', isWait: s.step === 'wait', isActivating: s.step === 'activating', isDone: s.step === 'done',
+      stepLabel: labels[s.step], kinds, durations, devices, dataPlans, perks, methods, isPersonal: s.kind === 'personal', isData: data, isWispPlan: wisp,
+      planName: plan.name, planDetail: plan.detail, planPrice: priceText,
+      feeKnown, feeUnknown: !feeKnown, feeText, totalText,
+      notice1: notice[0], noticeAmount: notice[1], notice2: notice[2],
+      waitLine: fr ? `Une demande ${net} de ${amount} a été envoyée au 6•• •• 12 45. Validez-la — cet écran se met à jour tout seul.` : `A ${net} request for ${amount} was sent to 6•• •• 12 45. Approve it there — this screen updates by itself.`,
+      w2: feeKnown ? (fr ? `Vérifiez que le montant est ${totalText}, puis saisissez votre PIN dans la demande` : `Check the amount is ${totalText}, then enter your PIN in the prompt`) : (fr ? 'Vérifiez le montant et les frais, puis saisissez votre PIN dans la demande' : 'Check the amount and fee, then enter your PIN in the prompt'),
+      paidLine: fr ? `${net} a confirmé ${feeKnown ? totalText : priceText + ' + frais'} · 14:32` : `${net} confirmed ${feeKnown ? totalText : priceText + ' + fee'} · 14:32`,
+      toPlan: go('plan'), toPay: go('pay'), toWait: go('wait'), toActivating: go('activating'), toDone: go('done')
     };
   }
 }

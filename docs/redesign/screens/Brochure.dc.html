@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brochure: Connect, Pay and Get Online</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e9ece6}
+@page{size:A4;margin:0}
+.page{width:794px;height:1123px;box-sizing:border-box;background:#fbfaf5;color:#10241c;font-family:'DM Sans',system-ui,sans-serif;position:relative;overflow:hidden;margin:0 0 24px;display:flex;flex-direction:column}
+@media print{body{background:#fbfaf5}.page{margin:0;break-after:page}}
+.band{background:#003b2b;color:#ffffff;padding:26px 48px 24px;display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border:2px solid #b9ee2e;border-radius:50%;display:grid;place-items:center;color:#b9ee2e;font-weight:700;font-size:14px;flex:0 0 44px}
+.wrap{padding:30px 48px 0;display:flex;flex-direction:column;gap:18px;flex:1}
+.kick{margin:0;color:#4d6b00;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.h1{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:46px;line-height:1.05}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:28px;line-height:1.1;display:flex;align-items:center;gap:12px}
+.n{flex:0 0 34px;height:34px;border-radius:50%;background:#b9ee2e;color:#15210c;display:grid;place-items:center;font:700 17px 'DM Sans',sans-serif}
+.p{margin:0;font-size:15px;line-height:1.55;color:#3d4a44}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.steps li{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.5}
+.sn{flex:0 0 26px;height:26px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-size:13px;font-weight:700;margin-top:1px}
+.card{background:#ffffff;border:1px solid #dfe5dc;border-radius:16px;padding:16px 18px}
+.phone{width:234px;height:506px;overflow:hidden;border-radius:26px;border:7px solid #10241c;background:#fbfaf5;flex:0 0 auto}
+.phone>div{transform:scale(.6);transform-origin:0 0;width:390px;height:844px}
+.foot{padding:14px 48px 20px;display:flex;justify-content:space-between;color:#5c6963;font-size:11px;border-top:1px solid #dfe5dc;margin-top:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 6px;font-size:13px;text-align:center;border-bottom:1px solid #dfe5dc}
+th{color:#5c6963;font-weight:700;font-size:12px}
+td:first-child,th:first-child{text-align:left;font-weight:700;color:#10241c}
+.no{color:#8a948f;font-size:11px}
+.warn{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#fff4e0;color:#6b3a00;font-size:14px;line-height:1.45}
+.ts{display:grid;grid-template-columns:190px 1fr;gap:0;border:1px solid #dfe5dc;border-radius:14px;overflow:hidden;background:#ffffff}
+.ts>div{padding:12px 14px;border-bottom:1px solid #dfe5dc;font-size:14px;line-height:1.45}
+.ts>div:nth-child(odd){background:#f3f9e8;font-weight:700}
+</style>
+</helmet>
+<div>
+  <section class="page" aria-label="{{t.p1}}">
+    <div class="band" style="padding-top: 34px; padding-bottom: 30px">
+      <span class="logo">NC</span>
+      <span style="display: flex; flex-direction: column"><strong style="font-family: 'Playfair Display', serif; font-size: 22px">NDAHI Connect</strong><small style="color: #b9ee2e; font-size: 10px; letter-spacing: .3em; font-weight: 700">{{t.quick}}</small></span>
+    </div>
+    <div class="wrap" style="gap: 20px">
+      <div>
+        <p class="kick">{{t.kicker}}</p>
+        <h1 class="h1" style="margin-top: 8px">{{t.title}}</h1>
+        <p class="p" style="margin-top: 12px; font-size: 17px">{{t.intro}}</p>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <sc-for list="{{toc}}" as="c" hint-placeholder-count="5"><span style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: #eef3e9; font-size: 13px; font-weight: 700"><span style="width: 20px; height: 20px; border-radius: 50%; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-size: 11px">{{c.n}}</span>{{c.t}}</span></sc-for>
+      </div>
+      <h2 class="h2"><span class="n">1</span>{{t.s1}}</h2>
+      <div style="display: flex; gap: 26px; align-items: flex-start">
+        <ol class="steps" style="flex: 1">
+          <sc-for list="{{join}}" as="s" hint-placeholder-count="4"><li><span class="sn">{{s.n}}</span><span>{{s.t}}</span></li></sc-for>
+        </ol>
+        <div class="card" style="flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 33 33" shape-rendering="crispEdges" role="img" aria-label="QR code: portal.ndahiconnect.net"><path fill="#ffffff" d="M0 0h33v33H0z"></path><path stroke="#003b2b" d="M2 2.5h7m3 0h2m1 0h3m2 0h1m3 0h7M2 3.5h1m5 0h1m1 0h2m1 0h1m3 0h1m1 0h1m2 0h1m1 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m1 0h3m1 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h2m1 0h1m1 0h2m1 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h3m1 0h4m1 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m2 0h6m1 0h2m2 0h1m1 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M10 9.5h2m3 0h1m4 0h2M2 10.5h1m5 0h1m1 0h2m1 0h1m2 0h2m1 0h1m3 0h2m2 0h3M2 11.5h1m2 0h2m4 0h2m1 0h1m1 0h1m3 0h2m3 0h2m1 0h2M3 12.5h1m1 0h2m1 0h1m3 0h1m9 0h2m2 0h1M2 13.5h2m5 0h1m3 0h1m2 0h3m4 0h1m1 0h3M3 14.5h1m1 0h9m1 0h2m5 0h1m1 0h1m5 0h1M2 15.5h1m2 0h2m4 0h1m1 0h1m1 0h2m3 0h3m1 0h3m2 0h2M2 16.5h5m1 0h2m3 0h1m1 0h6m3 0h1m2 0h2M5 17.5h1m1 0h1m4 0h1m2 0h2m1 0h1m3 0h1m1 0h1m1 0h1m1 0h1m1 0h1M2 18.5h3m3 0h1m1 0h1m1 0h1m3 0h2m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2M2 19.5h1m1 0h3m5 0h2m4 0h1m2 0h2m1 0h3m1 0h3M2 20.5h3m1 0h3m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m5 0h1m2 0h1M2 21.5h1m4 0h1m1 0h1m1 0h3m2 0h3m1 0h1m3 0h2M2 22.5h1m3 0h1m1 0h1m1 0h2m7 0h2m1 0h5m1 0h3M10 23.5h4m1 0h1m2 0h3m1 0h1m3 0h2M2 24.5h7m2 0h3m1 0h3m1 0h1m1 0h2m1 0h1m1 0h3M2 25.5h1m5 0h1m2 0h2m1 0h2m2 0h1m1 0h3m3 0h1m2 0h2M2 26.5h1m1 0h3m1 0h1m3 0h2m1 0h1m1 0h1m3 0h7M2 27.5h1m1 0h3m1 0h1m3 0h1m1 0h2m1 0h4m2 0h1m3 0h3M2 28.5h1m1 0h3m1 0h1m2 0h1m4 0h4m1 0h1m1 0h7M2 29.5h1m5 0h1m2 0h2m1 0h1m5 0h1m2 0h1m2 0h3m1 0h1M2 30.5h7m1 0h2m1 0h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h3"></path></svg>
+
+          <strong style="font-size: 15px">portal.ndahiconnect.net</strong>
+          <span style="font-size: 12px; color: #5c6963">{{t.scan}}</span>
+        </div>
+      </div>
+      <div class="warn"><strong>!</strong><span>{{t.official}}</span></div>
+    </div>
+    <div class="foot"><span>NDAHI Connect · {{t.title}}</span><span>1 / 4</span></div>
+  </section>
+
+  <section class="page" aria-label="{{t.p2}}">
+    <div class="band"><span class="logo">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 20px">{{t.title}}</strong></div>
+    <div class="wrap">
+      <h2 class="h2"><span class="n">2</span>{{t.s2}}</h2>
+      <p class="p">{{t.chooseIntro}}</p>
+      <div style="display: flex; gap: 22px; align-items: flex-start">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+          <div class="card"><strong style="font-size: 17px">{{t.dataT}}</strong><p class="p" style="font-size: 14px; margin-top: 4px">{{t.dataD}}</p></div>
+          <div class="card">
+            <strong style="font-size: 17px">Personal Unlimited</strong>
+            <p class="p" style="font-size: 14px; margin: 4px 0 8px">{{t.puD}}</p>
+            <table>
+              <thead><tr><th>XAF</th><sc-for list="{{heads}}" as="h" hint-placeholder-count="6"><th>{{h.l}}</th></sc-for></tr></thead>
+              <tbody><sc-for list="{{rows}}" as="r" hint-placeholder-count="4"><tr><td>{{r.l}}</td><sc-for list="{{r.c}}" as="c" hint-placeholder-count="6"><td class="{{c.cls}}">{{c.v}}</td></sc-for></tr></sc-for></tbody>
+            </table>
+          </div>
+          <div class="card" style="border: 2px solid #003b2b; background: #f3f9e8"><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><strong style="font-size: 17px">Home WISP Unlimited</strong><strong style="font-size: 17px; white-space: nowrap">50 000 XAF</strong></div><p class="p" style="font-size: 14px; margin-top: 4px">{{t.wispD}}</p></div>
+        </div>
+        <div class="phone"><div><dc-import name="PhoneBuyBundle" step="plan" fee="unverified" lang="{{lang}}" hint-size="390px,844px"></dc-import></div></div>
+      </div>
+      <p class="p" style="font-size: 13px; color: #5c6963">{{t.priceNote}}</p>
+    </div>
+    <div class="foot"><span>NDAHI Connect · {{t.title}}</span><span>2 / 4</span></div>
+  </section>
+
+  <section class="page" aria-label="{{t.p3}}">
+    <div class="band"><span class="logo">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 20px">{{t.title}}</strong></div>
+    <div class="wrap">
+      <h2 class="h2"><span class="n">3</span>{{t.s3}}</h2>
+      <div style="display: flex; gap: 22px; align-items: flex-start">
+        <ol class="steps" style="flex: 1">
+          <sc-for list="{{pay}}" as="s" hint-placeholder-count="5"><li><span class="sn">{{s.n}}</span><span>{{s.t}}</span></li></sc-for>
+        </ol>
+        <div class="phone"><div><dc-import name="PhoneBuyBundle" step="pay" fee="unverified" lang="{{lang}}" hint-size="390px,844px"></dc-import></div></div>
+      </div>
+      <div class="warn" style="background: #fbe4e4; color: #8a2a2a"><strong>PIN</strong><span>{{t.pin}}</span></div>
+      <h2 class="h2"><span class="n">4</span>{{t.s4}}</h2>
+      <ul class="steps">
+        <sc-for list="{{online}}" as="s" hint-placeholder-count="5"><li><span class="sn" style="background: #b9ee2e; color: #15210c">✓</span><span><strong>{{s.h}}</strong> {{s.t}}</span></li></sc-for>
+      </ul>
+    </div>
+    <div class="foot"><span>NDAHI Connect · {{t.title}}</span><span>3 / 4</span></div>
+  </section>
+
+  <section class="page" aria-label="{{t.p4}}">
+    <div class="band"><span class="logo">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 20px">{{t.title}}</strong></div>
+    <div class="wrap">
+      <h2 class="h2"><span class="n">5</span>{{t.s5}}</h2>
+      <div class="ts">
+        <sc-for list="{{trouble}}" as="r" hint-placeholder-count="5"><div>{{r.q}}</div><div>{{r.a}}</div></sc-for>
+      </div>
+      <div class="card" style="display: flex; gap: 18px; align-items: center; background: #003b2b; color: #ffffff; border: 0">
+        <div style="flex: 1"><strong style="font-size: 18px; display: block">{{t.helpT}}</strong><span style="font-size: 14px; color: #c8d8d0">{{t.helpD}}</span></div>
+        <div style="text-align: right; font-size: 15px; line-height: 1.6"><strong style="color: #b9ee2e">[SUPPORT NUMBER]</strong><br>WhatsApp [WHATSAPP NUMBER]<br>portal.ndahiconnect.net</div>
+      </div>
+      <p class="p" style="font-size: 12px; color: #5c6963">{{t.demo}}</p>
+    </div>
+    <div class="foot"><span>NDAHI Connect · {{t.title}}</span><span>4 / 4</span></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":794,"height":4588}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const fr = (this.props.lang ?? 'en') === 'fr';
+    const T = fr ? {
+      p1: 'Page 1', p2: 'Page 2', p3: 'Page 3', p4: 'Page 4', quick: 'GUIDE DE DÉMARRAGE', kicker: 'Wi-Fi communautaire prépayé', title: 'Se connecter, payer et naviguer',
+      intro: "Tout ce qu'il faut pour vous connecter au Wi-Fi NDAHI, choisir un forfait, payer avec MTN MoMo ou Orange Money et rester en ligne.",
+      s1: 'Rejoindre le Wi-Fi officiel NDAHI', scan: 'Scannez pour ouvrir le portail',
+      official: "Connectez-vous uniquement au réseau officiel NDAHI. NDAHI ne vous demandera jamais votre code PIN Mobile Money, ni par appel, ni par SMS, ni sur une page web.",
+      s2: 'Choisir votre forfait', chooseIntro: "Trois types de forfaits. Le portail affiche toujours les offres en vente et leur prix.",
+      dataT: 'Forfaits data', dataD: "Une quantité de data pour une durée donnée, comme aujourd'hui. Les prix sont affichés sur le portail.",
+      puD: "Données illimitées sur vos appareils enregistrés. Chaque appareil prend une place. Le partage de connexion est limité.",
+      wispD: "30 jours de données illimitées pour votre foyer, via un routeur WISP compatible enregistré à votre compte.",
+      priceNote: "Prix en XAF. « — » : non proposé. Le temps démarre à la première connexion.",
+      s3: 'Payer avec Mobile Money', pin: "Saisissez votre PIN uniquement dans la demande de l'opérateur MTN MoMo ou Orange Money sur votre téléphone — jamais sur une page web ni au téléphone.",
+      s4: 'Être en ligne', s5: 'En cas de problème', helpT: "Besoin d'aide ?", helpD: 'Gardez la référence de votre paiement à portée de main.',
+      demo: "Les captures d'écran utilisent des données de démonstration. Les offres, prix et frais en vigueur sont ceux affichés sur le portail au moment du paiement."
+    } : {
+      p1: 'Page 1', p2: 'Page 2', p3: 'Page 3', p4: 'Page 4', quick: 'QUICK-START GUIDE', kicker: 'Prepaid community Wi-Fi', title: 'Connect, Pay & Get Online',
+      intro: 'Everything you need to join NDAHI Wi-Fi, choose a bundle, pay with MTN MoMo or Orange Money, and stay online.',
+      s1: 'Join the official NDAHI Wi-Fi', scan: 'Scan to open the portal',
+      official: 'Only join the official NDAHI network. NDAHI will never ask for your Mobile Money PIN — not by call, not by text, not on a web page.',
+      s2: 'Choose your bundle', chooseIntro: 'Three kinds of bundle. The portal always shows the offers on sale and their prices.',
+      dataT: 'Data plans', dataD: 'A set amount of data for a set time, as today. Prices are shown on the portal.',
+      puD: 'Unlimited data on your registered devices. Each device takes one slot. Sharing is restricted.',
+      wispD: '30 days of unlimited data for your household, through a supported WISP router registered to your account.',
+      priceNote: 'Prices in XAF. "—" means not offered. Time starts at your first connection.',
+      s3: 'Pay with Mobile Money', pin: 'Enter your PIN only in the MTN MoMo or Orange Money prompt on your phone — never on a web page or over the phone.',
+      s4: 'Get online', s5: 'If something goes wrong', helpT: 'Need help?', helpD: 'Keep your payment reference to hand.',
+      demo: 'Screenshots use demo data. The offers, prices and fees that apply are the ones the portal shows when you pay.'
+    };
+    const toc = (fr ? ['Rejoindre', 'Choisir', 'Payer', 'Être en ligne', 'Dépannage'] : ['Join', 'Choose', 'Pay', 'Get online', 'Troubleshoot']).map((t, i) => ({ n: i + 1, t }));
+    const join = (fr ? [
+      'Activez le Wi-Fi et choisissez le réseau officiel NDAHI.',
+      "La page de connexion s'ouvre toute seule. Sinon, ouvrez portal.ndahiconnect.net ou scannez le QR code.",
+      'Connectez-vous avec votre numéro et votre code, ou achetez votre premier forfait.',
+      "Un code voucher ? Touchez « Utiliser un code voucher »."
+    ] : [
+      'Turn on Wi-Fi and choose the official NDAHI network.',
+      "The sign-in page opens by itself. If it doesn't, open portal.ndahiconnect.net or scan the QR code.",
+      'Sign in with your number and PIN for NDAHI, or buy your first bundle.',
+      'Got a voucher code? Tap "Use a voucher code".'
+    ]).map((t, i) => ({ n: i + 1, t }));
+    const heads = [1, 2, 3, 4, 5, 6].map((n) => ({ l: fr ? `${n} app.` : `${n} dev.` }));
+    const P = [[fr ? '5 h' : '5 h', [250, null, null, null, null, null]], [fr ? '24 h' : '24 h', [500, 900, 1300, 1700, 2100, 2500]], [fr ? '7 jours' : '7 days', [2500, 4000, 5500, 7000, 8500, 10000]], [fr ? '30 jours' : '30 days', [6000, 10000, 15000, 20000, 25000, 30000]]];
+    const fmt = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/ /g, ' ');
+    const rows = P.map(([l, ps]) => ({ l, c: ps.map((p) => ({ v: p ? fmt(p) : '—', cls: p ? '' : 'no' })) }));
+    const pay = (fr ? [
+      'Choisissez MTN MoMo ou Orange Money et vérifiez votre numéro.',
+      "Vérifiez le total à l'écran : prix du forfait plus les frais Mobile Money. Votre compte doit couvrir ce total.",
+      'Touchez « Payer maintenant ». Gardez votre écran déverrouillé.',
+      "Une demande de l'opérateur s'affiche sur votre téléphone : vérifiez le montant et saisissez votre PIN dans cette demande.",
+      "Revenez sur le portail : il se met à jour tout seul. Le paiement est confirmé, puis votre Wi-Fi s'active."
+    ] : [
+      'Choose MTN MoMo or Orange Money and check your number.',
+      'Check the total on screen: the bundle price plus the Mobile Money fee. Your wallet must cover that total.',
+      'Tap Pay Now. Keep your screen unlocked.',
+      'An operator prompt appears on your phone: check the amount and enter your PIN in that prompt.',
+      'Come back to the portal — it updates by itself. Payment is confirmed first, then your Wi-Fi activates.'
+    ]).map((t, i) => ({ n: i + 1, t }));
+    const online = (fr ? [
+      ['Reçu et référence :', 'dans Activité. Copiez la référence si vous contactez le support.'],
+      ['Temps ou data restant :', "sur l'Accueil du portail."],
+      ['Ajouter un appareil :', "Compte → Appareils. Un forfait Personal Unlimited a un nombre fixe de places ; s'il est plein, remplacez un appareil."],
+      ['Home WISP :', 'après le paiement, réglez votre routeur compatible en mode WISP sur le réseau NDAHI, puis enregistrez-le depuis Compte → Routeur Home WISP.']
+    ] : [
+      ['Receipt and reference:', 'in Activity. Copy the reference if you contact support.'],
+      ['Time or data left:', 'on the portal Home.'],
+      ['Add a device:', 'Account → Devices. A Personal Unlimited bundle has a set number of slots; when they are full, replace a device.'],
+      ['Home WISP:', 'after paying, set your supported router to WISP mode on the NDAHI network, then register it from Account → Home WISP router.']
+    ]).map(([h, t]) => ({ h, t }));
+    const trouble = (fr ? [
+      ['Solde insuffisant', "Aucun argent n'est débité. Rechargez votre compte Mobile Money ou choisissez un forfait moins cher, puis réessayez."],
+      ['Pas de demande sur mon téléphone', "Gardez l'écran déverrouillé. Si la demande a expiré, touchez Réessayer pour en envoyer une nouvelle. Ne payez pas deux fois."],
+      ['Paiement en attente', "Validez la demande sur votre téléphone. Le portail continue de vérifier ; votre Wi-Fi s'active dès la confirmation. Ne payez pas à nouveau."],
+      ['Mauvais numéro ou réseau', 'Corrigez le numéro ou choisissez l’autre réseau (MTN MoMo / Orange Money), puis réessayez.'],
+      ['Payé mais pas encore connecté', "Le paiement est confirmé et l'activation est en cours : attendez quelques secondes sur le portail. Si cela dure, contactez le support avec votre référence."]
+    ] : [
+      ['Not enough balance', 'No money is taken. Top up your Mobile Money wallet or pick a cheaper bundle, then try again.'],
+      ['No prompt on my phone', "Keep your screen unlocked. If the request expired, tap Retry to send a new one. Don't pay twice."],
+      ['Payment pending', "Approve the prompt on your phone. The portal keeps checking, and your Wi-Fi activates once it's confirmed. Don't pay again."],
+      ['Wrong number or network', 'Fix the number or choose the other network (MTN MoMo / Orange Money), then try again.'],
+      ['Paid but not online yet', 'Payment is confirmed and activation is in progress: wait a few seconds on the portal. If it takes longer, contact support with your reference.']
+    ]).map(([q, a]) => ({ q, a }));
+    return { t: T, lang: fr ? 'fr' : 'en', toc, join, heads, rows, pay, online, trouble };
+  }
+}
+</script>
+</body>
+</html>
