@@ -36,7 +36,8 @@ export function bundleTerms(b) {
   }
   return `${validityLabel(b)} · ${isHome(b) ? L("adminCatHouseholdSharing") : devices(b.deviceSlots)}`;
 }
-const usedBy = (b) => (!b.orders ? L("adminCatNoOrders") : L(b.orders === 1 ? "adminCatUsedOne" : "adminCatUsed", { orders: number(b.orders), active: number(b.active) }));
+// Counts print as drawn ("1204 orders · 23 active"); prices keep their grouping.
+const usedBy = (b) => (!b.orders ? L("adminCatNoOrders") : L(b.orders === 1 ? "adminCatUsedOne" : "adminCatUsed", { orders: b.orders, active: b.active }));
 const STATUS = { published: ["adminCatPublished", "admin-cat__pill--published"], unpublished: ["adminCatUnpublished", "admin-cat__pill--unpublished"], archived: ["adminCatArchived", "admin-cat__pill--archived"] };
 const pill = (status) => `<span class="admin-cat__pill ${STATUS[status][1]}">${h(L(STATUS[status][0]))}</span>`;
 const editHref = (b) => `/dashboard#bundle/${encodeURIComponent(b.id)}`;
@@ -85,7 +86,7 @@ function homeCards(bundles) {
     return `<a class="admin-cat__cell admin-cat__cell--none admin-cat__home-none" href="${h(createHref({ accessType: "home_wisp_unlimited", validityValue: 30, validityUnit: "days" }))}"
   aria-label="${h(L("adminCatCreateHomeAria"))}"><strong>+</strong><span>${h(L("adminCatNotOffered"))}</span></a>`;
   }
-  return home.map((b) => `<a class="admin-cat__home" href="${h(editHref(b))}" data-home="${h(b.id)}"><span><strong>${h(validityLabel(b))}</strong><span class="admin-cat__home-subs">${h(L(b.active === 1 ? "adminCatActiveOne" : "adminCatActive", { count: number(b.active || 0) }))}</span></span><strong class="admin-cat__home-price">${h(price(b.price))}</strong>${pill(b.status)}</a>`).join("");
+  return home.map((b) => `<a class="admin-cat__home" href="${h(editHref(b))}" data-home="${h(b.id)}"><span><strong>${h(validityLabel(b))}</strong><span class="admin-cat__home-subs">${h(L(b.active === 1 ? "adminCatActiveOne" : "adminCatActive", { count: b.active || 0 }))}</span></span><strong class="admin-cat__home-price">${h(price(b.price))}</strong>${pill(b.status)}</a>`).join("");
 }
 
 export function mountCatalogue(host, { call }) {
@@ -102,7 +103,7 @@ export function mountCatalogue(host, { call }) {
     const shown = all.map((b, index) => ({ b, index })).filter(({ b }) => filter === "all" || b.status === filter);
     const d = dialog && all.find((b) => b.id === dialog), archive = d && d.inUse;
     host.innerHTML = `<section class="nd-panel admin-cat__panel" aria-labelledby="catPersonal">
-  <div class="admin-cat__head"><div><h2 class="admin-cat__h2" id="catPersonal">${h(L("adminCatPersonal"))}</h2><p class="admin-cat__sub">${h(L("adminCatPersonalSub", { personal: number(personal), total: number(total) }))}</p></div>
+  <div class="admin-cat__head"><div><h2 class="admin-cat__h2" id="catPersonal">${h(L("adminCatPersonal"))}</h2><p class="admin-cat__sub">${h(L("adminCatPersonalSub", { personal, total }))}</p></div>
   <span class="admin-cat__legend"><span><i class="admin-cat__dot"></i>${h(L("adminCatPublished"))}</span><span><i class="admin-cat__dot admin-cat__dot--off"></i>${h(L("adminCatUnpublished"))}</span></span></div>
   ${personalGrid(data.bundles)}
   <p class="admin-cat__note">${h(L("adminCatGridNote"))}</p>
@@ -114,9 +115,9 @@ export function mountCatalogue(host, { call }) {
 <section class="nd-panel admin-cat__panel admin-cat__panel--list" aria-labelledby="catAll">
   <div class="admin-cat__head admin-cat__head--center"><div><h2 class="admin-cat__h2" id="catAll">${h(L("adminCatAll"))}</h2><p class="admin-cat__sub">${h(L("adminCatAllSub"))}</p></div>
   <div class="admin-cat__filters" role="group" aria-label="${h(L("adminCatShow"))}">${["all", "published", "unpublished", "archived"].map((id) =>
-    `<button type="button" class="nd-chip admin-cat__chip" data-cat-filter="${id}" aria-pressed="${filter === id}">${h(L({ all: "adminCatFilterAll", published: "adminCatPublished", unpublished: "adminCatUnpublished", archived: "adminCatArchived" }[id]))} · ${number(counts[id])}</button>`).join("")}</div></div>
+    `<button type="button" class="nd-chip admin-cat__chip" data-cat-filter="${id}" aria-pressed="${filter === id}">${h(L({ all: "adminCatFilterAll", published: "adminCatPublished", unpublished: "adminCatUnpublished", archived: "adminCatArchived" }[id]))} · ${counts[id]}</button>`).join("")}</div></div>
   ${d ? `<div class="admin-cat__dialog admin-cat__dialog--${archive ? "archive" : "delete"}" role="alertdialog" aria-label="${h(L("adminCatRemoveBundle"))}" aria-describedby="catDialogText" tabindex="-1">
-    <span id="catDialogText" class="admin-cat__dialog-text"><strong>${h(L(archive ? "adminCatArchiveTitle" : "adminCatDeleteTitle", { bundle: named(d) }))}</strong> ${h(archive ? L("adminCatArchiveBody", { orders: number(d.orders), active: number(d.active) }) : L("adminCatDeleteBody"))}</span>
+    <span id="catDialogText" class="admin-cat__dialog-text"><strong>${h(L(archive ? "adminCatArchiveTitle" : "adminCatDeleteTitle", { bundle: named(d) }))}</strong> ${h(archive ? L("adminCatArchiveBody", { orders: d.orders, active: d.active }) : L("adminCatDeleteBody"))}</span>
     <button type="button" class="admin-cat__btn" data-cat-cancel>${h(L("adminCatCancel"))}</button>
     <button type="button" class="admin-cat__confirm" data-cat-confirm="${h(d.id)}">${h(L(archive ? "adminCatArchive" : "adminCatDeletePermanently"))}</button></div>` : ""}
   ${done ? `<p class="admin-cat__done" role="status">${h(done)}</p>` : ""}${error ? `<p class="nd-callout nd-callout--danger" role="alert">${h(error)}</p>` : ""}
