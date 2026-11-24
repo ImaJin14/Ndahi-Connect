@@ -19,6 +19,24 @@ Read `docs/redesign/README.md` first, then the phase you're working on in `docs/
 7. **Verification is PIN or passkey only.** Never add SMS codes, authenticator apps or recovery codes.
 8. **No buying while a bundle is active.** Never add top-up or queued-bundle UI.
 9. **No new dependencies** without the owner's approval.
+10. **Build exactly the design.** The design canvas is the specification. Its copy in `docs/redesign/screens/` (`*.dc.html`, with renders of every state in `screens/png/`) is what you build, state by state, at 390 px and 1280 px.
+    - Match layout, copy, order, components, colours and states. Don't add, remove, reorder, reword or "improve" anything, and don't add states the design doesn't have.
+    - The only allowed differences: real API data in place of sample data and `[PLACEHOLDERS]`; text wrapping caused by real data; browser font rendering.
+    - If something can't be built as drawn, or the design conflicts with `decisions.md`, stop and ask on the issue. Build the change only after the owner approves it there, and link that comment in the PR.
+    - Implementers never edit `docs/redesign/screens/`. Design changes are made on the canvas first, then committed there by Claude Code with fresh renders, and the screen's issue is reopened or a new one opened so the built screen is brought back in line.
+    - Every PR that changes a screen fills in the **Design fidelity** section of the PR template with design-vs-build captures. CI (`design-fidelity.yml`) fails the PR without it.
+
+## Merge batches
+
+All redesign issues are done in **batches of 5**, in the order in `docs/redesign/merge-batches.json`. The tracking issue (#429) shows live status, rewritten by the `Merge batches` workflow (`scripts/batch-status.mjs`).
+
+- Work on an issue only when its batch is the one under review or the next one. Never open a PR for a later batch; the check flags it as "too early".
+- One PR per issue. Name the branch `batch-<NN>/<issue>-<short-name>` and start the description with `Closes #<issue>` and `Batch <N>`. Start from `main`, or from the branch of an earlier PR in the same batch when the plan says it builds on it.
+- A PR is **correct** when it is marked ready for review (not a draft), every check is green (Design fidelity included), no review asks for changes, and it has no conflicts. Mark it ready only when you believe it is complete.
+- The owner merges a batch only when all its PRs are correct, in the order listed. Then the next batch goes under review and work starts on the one after it.
+- If review on the current batch asks for changes, fix those before continuing with the next batch.
+- Batches with a "not before" date (Black Friday screens: 1 Dec) are not merged before that date.
+- To change the plan, edit `merge-batches.json` in its own PR; `test/batch-status.test.mjs` checks that every issue appears once and no PR builds on a later one.
 
 ## Commands
 
@@ -41,7 +59,7 @@ Run the journeys that touch your area on **both** variants (normally, then with 
 ## Pull requests
 
 - Open as a draft. Never merge your own PR; the owner merges.
-- Include 390 px and 1280 px screenshots for any screen change, and list the journeys you ran.
+- Use the PR template. For any screen change, fill in **Design fidelity**: the screens built, design-vs-build captures of every state at 390 px and 1280 px, and "Differences: none" (or each difference with the owner's approval link). List the journeys you ran.
 - Fill in the checklist from "Testing and quality bar" in the execution plan.
 
 ## Review guidelines
@@ -54,5 +72,8 @@ Reviewers (Codex automatic review, Claude Code on Codex/Copilot PRs) treat these
 - Changes that alter what production serves by default (v1 must stay the default until the owner ramps).
 - Edits to v1 folders that aren't bug fixes, or to another agent's owned folder.
 - New dependencies, inline scripts that break the CSP, or new console errors.
+- **Any visible difference from the design** that isn't in the PR's approved Differences list: layout, copy, order, components, colours, spacing that doesn't match a design token, or missing or extra states. Compare the PR's captures with `docs/redesign/screens/png/`, not with memory.
+- A screen PR with no Design fidelity section, unticked fidelity boxes, or no capture for a state the design has.
+- Edits to `docs/redesign/screens/` in an implementation PR.
 
-Non-blocking, mention briefly: copy tone, minor spacing differences from the design, missing French strings (open a follow-up).
+Non-blocking, mention briefly: missing French strings (open a follow-up). Differences from the design are never non-blocking.
