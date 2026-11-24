@@ -7,6 +7,8 @@
 //                and stock, visibility; Save product in the page head
 // The store launches in English, so these screens are English like v1's.
 import { escapeHtml as h } from "/shared/safe-html.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 const MAX_PRODUCT_IMAGES = 30;
 // A product photo's address: the API serves photos by path; a photo saved
 // before photos were stored on their own carries its data URL.
@@ -54,6 +56,22 @@ const day = (value) => {
   return today ? `Today ${time}` : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Douala" });
 };
 // Order pills, worded as on the canvas.
+// A store promotion's free month on the order (#423). Staff see a guest's
+// code once the router is collected, to write down or read out (owner, 24 Nov).
+const L = (key, values) => format(key, values || {}, currentLanguage());
+function freeMonthFact(o) {
+  const b = o.bonus;
+  if (!b) return "";
+  const label = b.days === 30 ? L("adminStoreFreeMonth") : L("adminPromoColBonus");
+  const legacy = b.rule === "payment_confirmation";
+  const text = b.status === "reserved" && b.code
+    ? L("adminStoreBonusCode", { code: b.code, phone: b.phone || "", day: day(b.startBy || b.endsAt) })
+    : b.status === "given" ? L("adminPromoBonus_given", { day: day(b.startBy) })
+      : b.status === "active" && b.endsAt ? L("adminPromoBonus_activeUntil", { day: day(b.endsAt) })
+        : b.status === "pending" ? L(legacy ? "adminPromoBonus_pendingPaid" : "adminPromoBonus_pending")
+          : b.status === "expired" && !legacy ? L("adminPromoBonus_expiredUnstarted") : L(`adminPromoBonus_${b.status}`);
+  return `<div><dt>${h(label)}</dt><dd class="admin-store__bonus">${h(text)}</dd></div>`;
+}
 const ORDER = {
   awaiting_payment: ["Waiting for payment", "warning"], preparing: ["Paid · to prepare", "warning"], ready: ["Ready to collect", "info"],
   collected: ["Collected", "success"], review: ["Payment review", "danger"], cancelled: ["Cancelled", ""], expired: ["Expired", ""],
@@ -222,7 +240,7 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
           : "";
     $("#orderEditor").innerHTML = `<div class="admin-store__detailhead"><h2 class="nd-h2">${h(o.reference)}</h2>${orderPill(o)}</div>
 <dl class="admin-store__facts"><div><dt>Item</dt><dd>${h(o.product.name.en)} × ${h(o.quantity)}</dd></div><div><dt>Customer</dt><dd>${h(o.contact.name)} · ${h(o.contact.phone)}${o.contact.email ? " · " + h(o.contact.email) : ""}</dd></div>
-<div><dt>Paid</dt><dd>${h(fcfa(o.amount))} · ${h(o.paymentStatus)}${o.payment.refund ? ` (refund: ${h(o.payment.refund.status)})` : ""}</dd></div><div><dt>Collect at</dt><dd>${h(o.pickup || "—")}${o.hours ? " · " + h(o.hours) : ""}</dd></div></dl>
+<div><dt>Paid</dt><dd>${h(fcfa(o.amount))} · ${h(o.paymentStatus)}${o.payment.refund ? ` (refund: ${h(o.payment.refund.status)})` : ""}</dd></div><div><dt>Collect at</dt><dd>${h(o.pickup || "—")}${o.hours ? " · " + h(o.hours) : ""}</dd></div>${freeMonthFact(o)}</dl>
 ${step}
 ${owner && paid && !o.payment.refund ? `<details class="admin-store__refund"><summary class="nd-btn nd-btn--secondary admin-btn--danger">Refund (owner only)</summary><form id="refundOrder" class="admin-form admin-store__refundform" role="group" aria-label="Refund the full amount"><strong>Refund the full amount?</strong><span class="nd-meta">The order is cancelled. Stock comes back only after the refund is confirmed and you tick the box below.</span>${field("reason", "Refund reason", "", "text", 'required maxlength="300"')}${checkbox("restock", "Equipment is unsent or physically returned and can be restocked", false)}<button class="nd-btn nd-btn--danger-solid">Confirm refund</button></form></details>` : ""}
 <details class="admin-options"><summary>More order actions</summary><div class="admin-options__body">

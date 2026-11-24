@@ -8,6 +8,7 @@ import { hotspotPath } from "./hotspot-path.js";
 import { deviceIcon, wifiDeviceList } from "./wifi-devices.js";
 import { devicesAdd, devicesHead, devicesTip, mountDevicesAdd, updateDevicesCount } from "./portal-devices.js";
 import { mountShop, showHomePromo } from "./portal-shop.js";
+import { freeMonthCard, bindFreeMonth } from "./promo.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { mountInstallCard } from "./install.js";
 import { activePortalView, mountPortalNavigation } from "./portal-nav.js";
@@ -275,6 +276,7 @@ async function load() {
   const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
     ${outageBanner(result.outage)}
+    <div class="full home-promo" id="homeFreeMonth" hidden></div>
     <div class="full home-promo" id="homePromo" hidden></div>
     <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
     <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPaymentContent(pendingPayment)}</section>
@@ -347,7 +349,12 @@ async function load() {
   mountAccountHub(call);
   mountDevicesAdd();
   mountShop({ call, api });
-  // The store promotion and its countdown on Home (#302).
+  // A promotion's free month waiting to be started (#423), then the store
+  // promotion and its countdown on Home (#302).
+  const freeMonth = document.getElementById("homeFreeMonth");
+  freeMonth.innerHTML = freeMonthCard(result.vouchers, active);
+  freeMonth.hidden = !freeMonth.innerHTML;
+  bindFreeMonth(freeMonth, call, () => void load());
   void showHomePromo(document.getElementById("homePromo"));
   const quickRedeem = $("[data-quick-redeem]");
   if (quickRedeem) quickRedeem.onsubmit = (event) => { event.preventDefault(); void redeemCode(quickRedeem, quickRedeem.querySelector("[data-quick-redeem-message]")); };
