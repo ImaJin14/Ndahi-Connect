@@ -88,7 +88,7 @@
     "@simplewebauthn/server": "^14.1.0",
     "argon2": "^0.45.2",
     "fontkit": "^3.0.0",
-    "pdfkit": "^0.20.2",
+    "pdfkit": "^0.21.0",
     "pg": "^8.23.1",
     "qrcode": "1.5.4",
     "web-push": "^4.0.0",
