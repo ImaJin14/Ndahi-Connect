@@ -12,71 +12,155 @@
 <style>
 body{margin:0;background:#fbfaf5}
 a{color:#003b2b}a:hover{color:#062a20}
-td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap}
+td,th{text-align:left;padding:12px 10px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap;vertical-align:middle}
 th{color:#5c6963;font-weight:600;font-size:13px}
+.av{flex:0 0 36px;height:36px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-weight:700}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.go2{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.kick{min-height:34px;padding:0 10px;border-radius:8px;border:1px solid #e3b4b4;background:#ffffff;color:#a73535;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5c6963}
 </style>
 </helmet>
-<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
+<div style="position: relative; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1020px; display: flex; flex-wrap: wrap">
   <aside style="flex: 0 0 240px; background: #003b2b">
     <dc-import name="AdminSide" current="devices" hint-size="240px,780px"></dc-import>
   </aside>
-  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; max-width: 1080px">
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1080px">
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
       <div>
         <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">Network</p>
         <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Live Wi-Fi devices.</h1>
       </div>
-      <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3d4a44"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6f9500"></span>{{count}} online · updated 20 s ago</span>
+      <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #3d4a44"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6f9500"></span>{{deviceCount}} devices · {{customerCount}} customers online · updated 20 s ago</span>
     </div>
 
-    <div role="group" aria-label="Access point" style="display: flex; flex-wrap: wrap; gap: 8px">
-      <sc-for list="{{aps}}" as="a" hint-placeholder-count="4">
-        <button type="button" aria-pressed="{{a.pressed}}" onClick="{{a.pick}}" style="{{a.style}}">{{a.label}}</button>
-      </sc-for>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+      <div role="group" aria-label="Access point" style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{aps}}" as="a" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{a.pressed}}" onClick="{{a.pick}}" style="{{a.style}}">{{a.label}}</button>
+        </sc-for>
+      </div>
+      <label for="ds" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find a customer, number or code</label>
+      <input id="ds" placeholder="Name, number or voucher code" style="min-height: 40px; width: 240px; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #ffffff; font: 14px 'DM Sans', sans-serif">
     </div>
 
-    <section aria-label="Devices" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 14px 22px 22px">
+    <section aria-label="Customers online" style="background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 10px 22px 18px">
       <div style="overflow-x: auto">
         <table style="width: 100%; border-collapse: collapse">
-          <thead><tr><th scope="col">Device</th><th scope="col">Customer</th><th scope="col">Access point</th><th scope="col">Signal</th><th scope="col">Today</th><th scope="col">Online since</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
+          <thead><tr><th scope="col">Customer</th><th scope="col">Devices online</th><th scope="col">Access point</th><th scope="col">Today</th><th scope="col">Online since</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
           <tbody>
-            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
-              <tr>
-                <td><strong>{{r.dev}}</strong></td><td>{{r.who}}</td><td>{{r.ap}}</td>
-                <td><span style="{{r.sigStyle}}">{{r.sig}}</span></td>
-                <td>{{r.today}}</td><td>{{r.since}}</td>
-                <td><button type="button" onClick="{{r.kick}}" aria-label="{{r.kickLabel}}" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #dfe5dc; background: #ffffff; color: #a73535; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Disconnect</button></td>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <tr style="{{r.rowStyle}}">
+                <td><span style="display: flex; gap: 10px; align-items: center"><span class="av" style="{{r.avStyle}}">{{r.initial}}</span><span><strong style="display: block">{{r.who}}</strong><span style="font-size: 12px; color: #5c6963">{{r.plan}}</span></span></span></td>
+                <td><span style="{{r.countStyle}}">{{r.countText}}</span></td>
+                <td>{{r.ap}}</td><td>{{r.today}}</td><td>{{r.since}}</td>
+                <td style="text-align: right"><button type="button" class="go2" onClick="{{r.open}}" aria-haspopup="dialog" aria-label="{{r.openLabel}}">{{r.openText}}</button></td>
               </tr>
             </sc-for>
           </tbody>
         </table>
       </div>
+      <p style="margin: 10px 0 0; color: #5c6963; font-size: 13px">One row per customer. Open a row to see every device they have online. A Home WISP router counts as one device: NDAHI can't see the household devices behind it.</p>
     </section>
   </main>
+
+  <sc-if value="{{hasDialog}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(16,36,28,.45); display: flex; align-items: flex-start; justify-content: center; padding-top: 90px; z-index: 5">
+      <section role="dialog" aria-modal="true" aria-labelledby="dlgT" style="width: 760px; max-width: calc(100% - 40px); box-sizing: border-box; background: #fffef9; border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.25); padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; gap: 12px; align-items: flex-start">
+          <span class="av" style="flex-basis: 44px; height: 44px; font-size: 18px">{{d.initial}}</span>
+          <div style="flex: 1">
+            <h2 id="dlgT" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 24px">{{d.who}} · {{d.onlineText}}</h2>
+            <p style="margin: 4px 0 0; color: #5c6963; font-size: 14px">{{d.plan}} · {{d.slots}} · {{d.ends}}</p>
+          </div>
+          <button type="button" onClick="{{close}}" aria-label="Close" style="width: 40px; height: 40px; border: 0; border-radius: 10px; background: #eef3e9; color: #10241c; font: 700 18px 'DM Sans', sans-serif; cursor: pointer">×</button>
+        </div>
+        <sc-if value="{{d.full}}" hint-placeholder-val="{{ true }}">
+          <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px">All slots are in use. A new device is refused until one is replaced, even if a registered device goes offline.</p>
+        </sc-if>
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Device</th><th scope="col">Access point</th><th scope="col">Signal</th><th scope="col">Today</th><th scope="col">Online since</th><th scope="col"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Action</span></th></tr></thead>
+          <tbody>
+            <sc-for list="{{d.devices}}" as="x" hint-placeholder-count="4">
+              <tr>
+                <td><strong style="display: block">{{x.name}}</strong><span class="mono">{{x.mac}} · {{x.slot}}</span></td>
+                <td>{{x.ap}}</td>
+                <td><span style="{{x.sigStyle}}">{{x.sig}}</span></td>
+                <td>{{x.today}}</td><td>{{x.since}}</td>
+                <td style="text-align: right"><button type="button" class="kick" onClick="{{x.kick}}" aria-label="{{x.kickLabel}}">Disconnect</button></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        <sc-if value="{{d.none}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; color: #345000; font-weight: 700; font-size: 14px">All devices disconnected.</p></sc-if>
+        <p style="margin: 0; color: #5c6963; font-size: 13px; line-height: 1.45">Disconnect ends the session now; the device can sign in again. To free a slot or stop a device for good, use <strong>Revoke device</strong> on the customer's page.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center">
+          <a class="go2" href="AdminCustomerDetail.dc.html" style="{{d.linkStyle}}">Open customer</a>
+          <button type="button" onClick="{{kickAll}}" style="min-height: 40px; padding: 0 14px; border-radius: 9px; border: 0; background: #a73535; color: #ffffff; font: 700 13px 'DM Sans', sans-serif; cursor: pointer">Disconnect all {{d.n}}</button>
+        </div>
+      </section>
+    </div>
+  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+<script type="text/x-dc" data-dc-script data-props='{"open":{"editor":"enum","options":["none","amina","fon","wisp"],"default":"none"},"$preview":{"width":1280,"height":1020}}'>
 class Component extends DCLogic {
-  constructor(props) { super(props); this.state = { ap: 'all', gone: [] }; }
+  constructor(props) { super(props); const o = props.open ?? 'none'; this.state = { ap: 'all', open: o === 'none' ? null : o, gone: [] }; }
   renderVals() {
     const s = this.state;
-    const all = [
-      { id: 1, dev: 'Android phone', who: 'Amina N.', ap: 'AP-Market', sig: 'Good', today: '420 MB', since: '08:12' },
-      { id: 2, dev: 'HP laptop', who: 'Amina N.', ap: 'AP-Market', sig: 'Fair', today: '1.1 GB', since: '09:40' },
-      { id: 3, dev: 'iPhone', who: 'J. Fon', ap: 'AP-Church', sig: 'Good', today: '760 MB', since: '07:55' },
-      { id: 4, dev: 'Android phone', who: 'Voucher K7PM-42XQ', ap: 'AP-School', sig: 'Weak', today: '95 MB', since: '16:48' },
-      { id: 5, dev: 'Tablet', who: 'J. Fon', ap: 'AP-Church', sig: 'Good', today: '2.3 GB', since: '06:30' },
-      { id: 6, dev: 'Android phone', who: 'Grace T.', ap: 'AP-School', sig: 'Fair', today: '310 MB', since: '13:05' }
-    ].filter((r) => !s.gone.includes(r.id));
+    const C = [
+      { id: 'amina', who: 'Amina N.', initial: 'A', plan: 'Personal Unlimited · 7 days', slotsMax: 4, ends: 'ends Wed 25 Nov', link: true, devices: [
+        { id: 'a1', name: 'Android phone', mac: '••:8B:03:D1', ap: 'AP-Market', sig: 'Good', today: '420 MB', since: '08:12' },
+        { id: 'a2', name: 'HP laptop', mac: '••:19:C7:5E', ap: 'AP-Market', sig: 'Fair', today: '1.1 GB', since: '09:40' },
+        { id: 'a3', name: 'Samsung tablet', mac: '••:4F:A2:10', ap: 'AP-Market', sig: 'Good', today: '650 MB', since: '10:05' },
+        { id: 'a4', name: 'Smart TV', mac: '••:E2:71:9A', ap: 'AP-School', sig: 'Weak', today: '2.8 GB', since: '18:30' } ] },
+      { id: 'fon', who: 'J. Fon', initial: 'J', plan: 'Gig Standard · current plan, original terms', slotsMax: null, ends: 'ends Fri 27 Nov', link: true, devices: [
+        { id: 'f1', name: 'iPhone', mac: '••:61:0D:44', ap: 'AP-Church', sig: 'Good', today: '760 MB', since: '07:55' },
+        { id: 'f2', name: 'Tablet', mac: '••:A9:3E:12', ap: 'AP-Church', sig: 'Good', today: '2.3 GB', since: '06:30' } ] },
+      { id: 'wisp', who: 'Ngum family', initial: 'N', plan: 'Home WISP Unlimited', slotsMax: null, ends: 'ends Tue 22 Dec', link: true, router: true, devices: [
+        { id: 'w1', name: 'Home WISP router', mac: '••:9C:31:E4', ap: 'AP-Market', sig: 'Good', today: '9.4 GB', since: 'Mon 18:02' } ] },
+      { id: 'grace', who: 'Grace T.', initial: 'G', plan: 'Personal Unlimited · 24 hours', slotsMax: 1, ends: 'ends today 21:10', link: true, devices: [
+        { id: 'g1', name: 'Android phone', mac: '••:5D:22:B7', ap: 'AP-School', sig: 'Fair', today: '310 MB', since: '13:05' } ] },
+      { id: 'vch', who: 'Voucher K7PM-42XQ', initial: '#', plan: 'Personal Unlimited · 5 hours', slotsMax: 1, ends: 'ends 21:48', link: false, devices: [
+        { id: 'v1', name: 'Android phone', mac: '••:0A:9F:63', ap: 'AP-School', sig: 'Weak', today: '95 MB', since: '16:48' } ] }
+    ].map((c) => ({ ...c, devices: c.devices.filter((d) => !s.gone.includes(d.id)) }));
     const tone = { Good: 'color: #345000;', Fair: 'color: #6b3a00;', Weak: 'color: #8a2a2a;' };
-    const rows = all.filter((r) => s.ap === 'all' || r.ap === s.ap).map((r) => ({ ...r, sigStyle: 'font-weight: 700; ' + tone[r.sig], kickLabel: 'Disconnect ' + r.dev + ' of ' + r.who, kick: () => this.setState({ gone: [...s.gone, r.id] }) }));
+    const visible = C.filter((c) => c.devices.length && (s.ap === 'all' || c.devices.some((d) => d.ap === s.ap)));
+    const aps = (c) => { const u = [...new Set(c.devices.map((d) => d.ap))]; return u.length > 1 ? `${u[0]} +${u.length - 1}` : u[0]; };
+    const total = (c) => { const gb = c.devices.reduce((t, d) => t + (d.today.endsWith('GB') ? parseFloat(d.today) * 1000 : parseFloat(d.today)), 0); return gb >= 1000 ? (gb / 1000).toFixed(1) + ' GB' : Math.round(gb) + ' MB'; };
+    const earliest = (c) => c.devices.map((d) => d.since).sort()[0];
+    const count = (c) => c.router ? '1 router' : c.slotsMax ? `${c.devices.length} of ${c.slotsMax} slot${c.slotsMax === 1 ? '' : 's'}` : `${c.devices.length} device${c.devices.length > 1 ? 's' : ''}`;
+    const rows = visible.map((c) => ({
+      who: c.who, initial: c.initial, plan: c.plan, ap: aps(c), today: total(c), since: earliest(c),
+      countText: count(c),
+      countStyle: 'padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; ' + (c.slotsMax && c.devices.length >= c.slotsMax ? 'background: #003b2b; color: #b9ee2e;' : 'background: #eef3e9; color: #10241c;'),
+      avStyle: c.id === 'vch' ? 'background: #eef0ee; color: #5c6963;' : '',
+      rowStyle: s.open === c.id ? 'background: #f3f9e8;' : '',
+      openText: c.devices.length > 1 ? `View ${c.devices.length} devices` : 'View device',
+      openLabel: `View the devices of ${c.who}`,
+      open: () => this.setState({ open: c.id })
+    }));
+    const c = C.find((x) => x.id === s.open);
+    const d = c ? {
+      who: c.who, initial: c.initial, plan: c.plan, ends: c.ends, n: c.devices.length, none: c.devices.length === 0,
+      onlineText: c.router ? 'router online' : `${c.devices.length} device${c.devices.length === 1 ? '' : 's'} online`,
+      slots: c.router ? 'household devices behind the router aren’t visible' : c.slotsMax ? `${c.devices.length} of ${c.slotsMax} device slot${c.slotsMax === 1 ? '' : 's'}` : 'device rule of the current plan',
+      full: !!(c.slotsMax && c.devices.length >= c.slotsMax),
+      linkStyle: c.link ? '' : 'visibility: hidden;',
+      devices: c.devices.map((x, i) => ({ ...x, slot: c.router ? 'registered router' : c.slotsMax ? `slot ${i + 1}` : 'current plan', sigStyle: 'font-weight: 700; ' + tone[x.sig], kickLabel: `Disconnect ${x.name} of ${c.who}`, kick: () => this.setState({ gone: [...s.gone, x.id] }) }))
+    } : { devices: [] };
     const base = 'min-height: 40px; padding: 0 14px; border-radius: 999px; font: 600 13px "DM Sans", sans-serif; cursor: pointer; ';
-    const aps = [['all', 'All access points'], ['AP-Market', 'AP-Market'], ['AP-Church', 'AP-Church'], ['AP-School', 'AP-School']].map(([id, label]) => ({
+    const apList = [['all', 'All access points'], ['AP-Market', 'AP-Market'], ['AP-Church', 'AP-Church'], ['AP-School', 'AP-School']].map(([id, label]) => ({
       label, pressed: id === s.ap ? 'true' : 'false',
       style: base + (id === s.ap ? 'border: 1px solid #003b2b; background: #003b2b; color: #ffffff;' : 'border: 1px solid #b8c7bd; background: #fffef9; color: #10241c;'),
       pick: () => this.setState({ ap: id })
     }));
-    return { rows, aps, count: all.length };
+    return {
+      rows, aps: apList, d, hasDialog: !!c,
+      deviceCount: C.reduce((t, x) => t + x.devices.length, 0), customerCount: C.filter((x) => x.devices.length).length,
+      close: () => this.setState({ open: null }),
+      kickAll: () => this.setState({ gone: [...s.gone, ...(c ? c.devices.map((x) => x.id) : [])] })
+    };
   }
 }
 </script>
