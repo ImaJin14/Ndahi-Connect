@@ -60,7 +60,7 @@ try {
       assert.equal(await page.getAttribute("html", "lang"), lang);
       assert.equal(await page.getAttribute("html", "data-ui-variant"), "v2");
       await page.getByRole("heading", { level: 1, name: french ? "Kit de design NDAHI" : "NDAHI design kit" }).waitFor();
-      const tabs = page.locator("#kit-portalnav").getByRole("navigation", { name: french ? "Navigation principale" : "Main" });
+      const tabs = page.locator("#kit-portalnav").getByRole("navigation", { name: french ? "Principal" : "Main" });
       for (const label of french ? ["Accueil", "Internet", "Boutique", "Activité, 1 paiement en attente de confirmation", "Compte"] : ["Home", "Internet", "Shop", "Activity, 1 payment awaiting confirmation", "Account"]) {
         await tabs.getByRole("link", { name: label, exact: true }).waitFor();
       }

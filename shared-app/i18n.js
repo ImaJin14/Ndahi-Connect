@@ -1945,7 +1945,7 @@ export const TRANSLATIONS = {
     orangeMoney: "Orange Money",
 
     // Design kit (shared-app/ui).
-    uiNavMain: "Navigation principale",
+    uiNavMain: "Principal",
     uiTabHome: "Accueil",
     uiTabInternet: "Internet",
     uiTabShop: "Boutique",

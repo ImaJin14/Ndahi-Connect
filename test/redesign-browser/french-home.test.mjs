@@ -42,7 +42,7 @@ test('optional French: English default, Account preference, persistent translate
   await page.locator('[data-account-language] option[value="fr"][selected]').waitFor({ state: 'attached' });
   await page.locator('.account-setup-reminder strong').filter({ hasText: 'Terminez la configuration du compte' }).waitFor();
   assert.equal(await page.locator('#portalHeadAction').textContent(), 'Forfaits et tickets');
-  assert.equal(await page.locator('#portalNav').getAttribute('aria-label'), 'Navigation principale');
+  assert.equal(await page.locator('#portalNav').getAttribute('aria-label'), 'Principal');
   assert.equal(await page.locator('#shopPanel h2').textContent(), 'Meilleur signal à la maison');
   assert.equal(await page.locator('#differentCode summary').textContent(), 'Saisir un code de ticket');
   await page.locator('[data-portal-tab="home"]').click(); await page.locator('[data-remaining-data]').filter({ hasText: '3,2 Go' }).waitFor();
