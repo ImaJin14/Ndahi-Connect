@@ -65,7 +65,10 @@ test("the terms and quote are fixed at checkout: an admin edit changes new check
   assert.deepEqual([next.amount, next.planSnapshot.deviceSlots], [12000, 3]);
 });
 
-test("validity starts at activation, and retries or duplicate confirmations never charge twice or restart it", async (t) => {
+// Today the bundle starts when the payment is confirmed (never at checkout);
+// starting Unlimited bundles at the first connection comes with the device
+// binding at HotSpot sign-in (#334), where that connection is observed.
+test("validity starts when the payment is confirmed, not at checkout; retries and duplicate confirmations never charge twice or restart it", async (t) => {
   const f = await fixture(t);
   const input = order("unlimited-24h-1");
   const first = await f.call("/api/purchase", input);
@@ -73,7 +76,7 @@ test("validity starts at activation, and retries or duplicate confirmations neve
   const retry = await f.call("/api/purchase", input);
   assert.equal(retry.body.payment.id, first.body.payment.id);
   assert.equal((await f.store.snapshot()).payments.length, 1, "one order, one charge");
-  // Approved four minutes after checkout: the 24 hours start then.
+  // Approved four minutes after checkout: the 24 hours start then, not at checkout.
   f.at(+f.now() + 4 * MIN);
   const activatedAt = f.now().toISOString();
   await f.call(`/api/payments/${first.body.payment.id}/confirm`, {});
