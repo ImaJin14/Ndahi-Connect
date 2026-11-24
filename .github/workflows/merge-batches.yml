@@ -1,0 +1,48 @@
+name: Merge batches
+
+# Rewrites the tracking issue (trackingIssue in docs/redesign/merge-batches.json) with the
+# state of every batch of 5: which PRs are correct, which batch is ready to merge, and
+# whether any PR was opened too early. See AGENTS.md → "Merge batches".
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review, converted_to_draft, closed]
+  pull_request_review:
+    types: [submitted, dismissed]
+  workflow_run:
+    workflows: [CI, Redesign regressions, Design fidelity, Provider sandbox contracts]
+    types: [completed]
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  checks: read
+
+concurrency:
+  group: merge-batches
+  cancel-in-progress: true
+
+jobs:
+  status:
+    name: Merge batches status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Update merge-batches tracking issue
+        run: |
+          if [ -f scripts/batch-status.mjs ]; then
+            node scripts/batch-status.mjs --update-issue
+          else
+            echo "Skipping: scripts/batch-status.mjs is not present on the default branch yet."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
