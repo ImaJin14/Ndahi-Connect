@@ -37,6 +37,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - run: node scripts/batch-status.mjs --update-issue
+      - name: Update merge-batches tracking issue
+        run: |
+          if [ -f scripts/batch-status.mjs ]; then
+            node scripts/batch-status.mjs --update-issue
+          else
+            echo "Skipping: scripts/batch-status.mjs is not present on the default branch yet."
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
