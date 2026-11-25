@@ -42,7 +42,10 @@ const masked = (mac) => (mac ? "••:" + String(mac).split(":").slice(-3).join
 // "7 days", "24 hours", "5 hours", as drawn.
 const validity = (hours) => (!hours ? "" : hours > 24 && hours % 24 === 0 ? L("adminDevicesDays", { n: hours / 24 }) : L(hours === 1 ? "adminDevicesHour" : "adminDevicesHours", { n: hours }));
 const who = (row) => row.name || (row.code ? L("adminDevicesVoucher", { code: row.code }) : row.customerId ? L("adminUnnamedCustomer") : L("adminDevicesVoucherOnly"));
-const plan = (row) => row.router ? L("adminDevicesPlanHome")
+// An NDAHI Home household from before Home WISP is a router too, but keeps
+// its own plan's name, like any older plan.
+const homeWisp = (row) => row.accessType === "home_wisp_unlimited";
+const plan = (row) => homeWisp(row) ? L("adminDevicesPlanHome")
   : row.accessType === "personal_unlimited" ? [L("adminDevicesPlanPersonal"), validity(row.validityHours)].filter(Boolean).join(" · ")
     : L("adminDevicesPlanLegacy", { plan: row.planName || L("adminDevicesPlanUnknown") });
 const full = (row) => Boolean(row.slots) && row.devices.length >= row.slots;
@@ -98,7 +101,7 @@ export function mountLiveDevices(container, { call, canManage, refresh }) {
 ${row.slots && devices.length >= row.slots ? `<p class="admin-devices__full">${h(L("adminDevicesFull"))}</p>` : ""}
 <table class="admin-devices__table admin-devices__dtable"><thead><tr><th scope="col">${h(L("adminDevicesColDevice"))}</th><th scope="col">${h(L("adminDevicesColAp"))}</th><th scope="col">${h(L("adminDevicesColSignal"))}</th><th scope="col">${h(L("adminDevicesColToday"))}</th><th scope="col">${h(L("adminDevicesColSince"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminDevicesColAction"))}</span></th></tr></thead>
 <tbody>${devices.map((d) => {
-      const name = d.router ? L("adminDevicesHomeRouter") : d.name || L("adminUnnamedDevice"), slot = d.router ? L("adminDevicesRegisteredRouter") : row.slots ? (d.slot ? L("adminDevicesSlot", { n: d.slot }) : L("adminDevicesNoSlot")) : L("adminDevicesCurrentPlan");
+      const name = d.router ? L(homeWisp(row) ? "adminDevicesHomeRouter" : "adminHomeRouter") : d.name || L("adminUnnamedDevice"), slot = d.router ? L("adminDevicesRegisteredRouter") : row.slots ? (d.slot ? L("adminDevicesSlot", { n: d.slot }) : L("adminDevicesNoSlot")) : L("adminDevicesCurrentPlan");
       const blocked = pending(d) || (!d.router && (!d.fresh || !d.sessionId || !d.startedAt));
       return `<tr><td><strong class="admin-devices__dname">${h(name)}</strong><span class="admin-devices__mono">${h(masked(d.mac))} · ${h(slot)}</span></td><td>—</td><td>—</td><td>${h(data(d.todayBytes))}</td><td>${h(since(d.startedAt))}</td>
 <td class="admin-devices__go">${canManage ? `<button type="button" class="admin-devices__kick" data-focus-key="${h(d.id)}" data-live-device="${h(d.id)}" ${blocked ? "disabled" : ""} aria-label="${h(L("adminDevicesKickLabel", { device: name, name: who(row) }))}">${h(L(pending(d) ? "adminDisconnecting" : "adminDisconnect"))}</button>` : ""}</td></tr>`;

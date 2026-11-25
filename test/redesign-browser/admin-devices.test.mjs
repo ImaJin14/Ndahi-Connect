@@ -184,6 +184,28 @@ test("Live devices shows one row per customer and their devices in a pop-up", { 
   assert.ok((await store.snapshot()).homeOperations.some((o) => o.kind === "end_session" && o.voucherId === "vn"));
   await page.locator(".admin-devices__close").click();
 
+  // An NDAHI Home household from before Home WISP keeps its own plan's name. It
+  // arrives with the next reading, without a reload.
+  await store.transaction((s) => {
+    s.customers.push({ id: "c-old", name: "Old house", phone: "650009988", status: "active", homeConnectionId: "h2", createdAt: "2026-10-01T08:00:00Z" });
+    s.vouchers.push({ id: "vo", customerId: "c-old", code: "NC-vo", planId: "unlimited", status: "active", activatedAt: at("06:00"), quotaBytes: null, usedBytes: 2e9,
+      accessMode: "home", homeStatus: "connected", homeGeneration: 1, homeOnlineSince: at("07:00"), homeDay: { date: "2026-11-25", bytes: 1e9 },
+      lastUsageSyncAt: new Date(+now - 5000).toISOString(), expiresAt: at("12:00", "2026-12-10") });
+    s.homeConnections.push({ id: "h2", customerId: "c-old", status: "linked", mac: "D4:6E:0E:11:22:33", generation: 1, routerRevision: "" });
+  });
+  const old = page.locator("#liveDeviceRows tr").filter({ hasText: "Old house" });
+  await old.waitFor({ timeout: 15000 });
+  assert.deepEqual(await old.evaluate((tr) => [...tr.cells].map((td) => td.innerText.replace(/\s+/g, " ").trim())),
+    ["O Old house Unlimited Home · current plan, original terms", "1 router", "—", "1.0 GB", "07:00", "View device"]);
+  await page.getByRole("button", { name: "View the devices of Old house", exact: true }).click();
+  assert.deepEqual((await dialogRows(page))[0].slice(0, 1), ["Home router ••:11:22:33 · registered router"]);
+  await page.keyboard.press("Escape");
+  await store.transaction((s) => {
+    s.vouchers = s.vouchers.filter((v) => v.id !== "vo");
+    s.customers = s.customers.filter((c) => c.id !== "c-old");
+    s.homeConnections = s.homeConnections.filter((h) => h.id !== "h2");
+  });
+
   // A code with no account: no customer to open.
   await page.getByRole("button", { name: "View the devices of Voucher K7PM-42XQ", exact: true }).click();
   assert.equal(await page.locator(".admin-devices__open").evaluate((el) => getComputedStyle(el).visibility), "hidden");
