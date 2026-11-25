@@ -52,6 +52,17 @@ body[data-admin-view="home"] #adminHeadActions .nd-btn:not(.nd-btn--secondary) {
 
 /* ---------- Payments (canvas: AdminPayments) ---------- */
 .admin-payments, .admin-cash { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+/* Measured against the canvas at 1280 px (#386). The canvas sizes the search
+   box without its padding and border: 240 + 24 + 2 = 266 px, 40 + 2 = 42 px. */
+body[data-admin-view="payments"] #adminHeadActions [data-payments-export] { min-height: 44px; padding: 0 var(--nd-space-16); border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
+#paymentRecords .nd-h2 { line-height: normal; }
+#paymentRecords .records-toolbar--kit { column-gap: var(--nd-space-8); }
+#paymentRecords input[type="search"] { width: 266px; min-height: 42px; border-radius: 9px; }
+#paymentRecords .nd-chip { font-weight: 600; line-height: normal; }
+#paymentRecords table { background: transparent; }
+#paymentRecords td, #paymentRecords th { line-height: normal; }
+/* Inline pills, as drawn: their padding does not make the rows taller. */
+#paymentRecords .nd-pill { display: inline; padding: 3px 9px; line-height: normal; }
 .admin-payments__checks .nd-h3 { margin: var(--nd-space-18) 0 var(--nd-space-4); }
 .admin-payments__checks .nd-table { margin-top: var(--nd-space-8); }
 

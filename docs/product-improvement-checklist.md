@@ -1809,4 +1809,11 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
     - Needs attention shows the drawn items plus the operational alerts;
     - Latest payments lists bundle payments, store orders and reseller cash handoffs from one records collection (`allPayments`, owners and operators only).
   - **Not merged.**
+- [-] **ADM-386 — Admin payments** ([#386](https://github.com/ImaJin14/Ndahi-Connect/issues/386))
+  - **Implemented and tested:**
+    - All payments lists bundle payments, store orders ("Guest · phone", "Order NS-…") and reseller cash handoffs, searched by phone, order or reference, with the drawn chips;
+    - the four figures come from the dashboard: today's takings by source on the cash report's basis, and the list's waiting and failed counts;
+    - "Check with provider" checks that payment only: a store order through the store's own check;
+    - kept by the owner: refund actions, the provider reference, paging and Provider checks.
+  - **Not merged.**
 

@@ -127,3 +127,26 @@ test("only owners and operators read the payments list; the dashboard carries Ho
   assert.deepEqual([auditor.metrics.revenueToday, auditor.metrics.bundlesSoldToday, auditor.payments], [null, null, undefined], "no takings for roles without payments");
   assert.equal(auditor.metrics.routerUptime.percent, 87.5);
 });
+
+test("store rows carry the order's version for the store's own check; the dashboard splits today's takings (#386)", async (t) => {
+  const s = state();
+  s.storeOrders[0].version = 7;
+  const order = paymentFeed(s).find((r) => r.kind === "order");
+  assert.equal(order.orderVersion, 7);
+  assert.ok(!("orderVersion" in paymentFeed(state()).find((r) => r.kind === "order")), "no version, no field");
+  const secret = "takings-secret", store = createStore({ persistent: false });
+  await store.transaction((x) => {
+    x.adminUsers.push({ id: "u-owner", username: "owner", role: "owner", active: true, passkeys: [] });
+    x.adminSessions.push({ userId: "u-owner", role: "owner", tokenHash: hashSecret("owner-token", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
+    x.payments.push({ id: "b1", provider: "mesomb", providerReference: "r1", amount: 2500, currency: "XAF", status: "paid", createdAt: ago(30), confirmedAt: ago(29) },
+      { id: "b0", provider: "mesomb", providerReference: "r0", amount: 999, currency: "XAF", status: "paid", createdAt: "2026-11-24T20:00:00Z", confirmedAt: "2026-11-24T20:01:00Z" });
+    x.storeOrders = [{ id: "o1", payment: { id: "store-o1", provider: "mesomb", providerReference: "r2", amount: 30000, currency: "XAF", status: "paid", createdAt: ago(20), confirmedAt: ago(19) } }];
+  });
+  const server = createServer({ store, now: () => now, validateConfig: false, env: { NODE_ENV: "test", PAYMENT_MODE: "mock", SESSION_COOKIE_SECURE: "false", ADMIN_SESSION_SECRET: secret,
+    CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); }));
+  const body = await (await fetch(`http://127.0.0.1:${server.address().port}/api/admin/dashboard`, { headers: { cookie: "admin_session=owner-token" } })).json();
+  assert.deepEqual(body.metrics.takingsToday, { bundles: 2500, store: 30000 });
+  assert.equal(body.metrics.revenueToday, 32500, "the two add up to Home's revenue today");
+});
