@@ -1535,7 +1535,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Insights screen (#382, batch 7, 25 November 2026)
 
 - [-] **ADM-382 — Insights, redesigned (batch 7)** ([#382](https://github.com/ImaJin14/Ndahi-Connect/issues/382)). Owner decisions: [#382 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/382#issuecomment-7171758505).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #477, not merged yet):
     - a new owner-only screen at `#insights` and its side-menu item, from `GET /api/admin/insights`; nothing is sample data;
     - the API adds the screen's figures (`lib/insights-summary.mjs`): revenue, bundles sold and paying customers, each against the previous period of the same length, and "bought again within 2 days" (of customers whose bundle ended, those who bought another no later than 2 days after it ended), in points;
     - revenue per day (weekly bars for 90 days), devices online by hour with the busiest three hours, access-point load "Not measured yet" with "Starlink at peak" from the Connections checks (#380), and Wi-Fi page → paid by design with the computed note (no guessed reason);
