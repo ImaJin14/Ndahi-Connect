@@ -1707,7 +1707,7 @@ On 21 November the owner also asked for the countdown in the customer portal.
 ### Connections checked every minute (#380, batch 7, 25 November 2026)
 
 - [-] **ADM-380 — Connections and security, redesigned (batch 7)** ([#380](https://github.com/ImaJin14/Ndahi-Connect/issues/380)). Owner decisions: [#380 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/380#issuecomment-7171673999).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #475, not merged yet):
     - a new server check (`lib/service-health.mjs`), every minute in production (`SERVICE_HEALTH_ENABLED=false` turns it off) and on "Test connection" (`POST /api/admin/service-health/test`, owners and operators);
     - Starlink uplink: the router's ping and the traffic on its uplink port ("24 ms · 18 Mbps in use"), no speed test; MikroTik gateway: hotspot sessions; Mobile Money per network: how long recent payments took to confirm; Email: receipt-email results and every send since start; Omada while standalone: no test;
     - the router is read through the saved live connection with GETs and RouterOS's own ping and monitor-traffic, outside any store transaction; one uplink row an hour is kept for Insights;
