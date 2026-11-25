@@ -51,8 +51,10 @@ function labelCells(body, headers) {
 
 // `params` adds query parameters (the Customers filter) and `onResult` sees each
 // loaded page (its counts); `ready.reload()` reloads from the first page.
-export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null, params: extraParams = null, onResult = null }) {
-  const state = { page: 1, q: "", status: "", from: "", to: "" }, say = (kit && kit.text) || TEXT;
+// `initial` starts on a chip, search and page (from the address), and
+// `onState` sees each change so the screen can keep them in the address.
+export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null, params: extraParams = null, onResult = null, initial = null, onState = null }) {
+  const state = { page: 1, q: "", status: "", from: "", to: "", ...(initial || {}) }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
   const formId = `records-form-${++forms}`;
   if (kit && kit.searchHost) kit.searchHost.innerHTML = kitSearch(kit, formId);
@@ -71,6 +73,10 @@ export function mountRecords(container, { call, collection, title, headers, row,
     summary = container.querySelector(".records-pager span"),
     previous = container.querySelector('[data-page="prev"]'),
     next = container.querySelector('[data-page="next"]');
+  if (initial) {
+    if (initial.q) form.elements.q.value = initial.q;
+    if (initial.status !== undefined) chips.forEach((c) => { const on = (c.dataset.statusChip || "") === state.status; c.classList.toggle("active", on); c.setAttribute("aria-pressed", String(on)); });
+  }
   const details = collection === "vouchers" ? mountVoucherDetails(container, { columns: headers.length, refreshRecords: () => load(true) }) : null;
   function showLoading() {
     container.setAttribute("aria-busy", "true");
@@ -91,6 +97,7 @@ export function mountRecords(container, { call, collection, title, headers, row,
         status.hidden = Boolean(kit && (kit.chips || kit.statusFilter === false));
       }
       state.page = result.page;
+      onState?.({ status: state.status, q: state.q, page: state.page });
       onResult?.(result, { q: state.q });
       if (details) details.render(body, result.items, row, result.scopeKey);
       else body.innerHTML = result.items.length ? result.items.map(row).join("") : "";
@@ -102,7 +109,8 @@ export function mountRecords(container, { call, collection, title, headers, row,
       // #232: an empty list already says so in the table, and one page needs
       // no Previous/Next; the count stays for filtered results.
       if (kit) {
-        pager.hidden = !result.total;
+        // kit.singlePage === "hide": one page needs no count either (AdminAudit).
+        pager.hidden = !result.total || (kit.singlePage === "hide" && result.pages <= 1);
         previous.hidden = next.hidden = result.pages <= 1;
       }
       loaded = true;

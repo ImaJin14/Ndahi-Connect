@@ -639,3 +639,17 @@ test("a product's price must be a whole number of FCFA", async (t) => {
   assert.equal(whole.status, 200);
   assert.equal((await f.store.snapshot()).storeProducts[0].price, 1500);
 });
+// The audit log words these as drawn (AdminAudit, #378): "Changed stock 5 → 7"
+// and "Marked an order ready to collect".
+test("stock and order audit entries carry what changed", async (t) => {
+  const f = await fixture(t);
+  await f.call("/api/admin/store/stock/adjust", { id: "p1", version: 1, delta: 2, reason: "Delivery", operationKey: randomUUID() }, { role: "owner" });
+  const a = await f.call("/api/store/checkout", f.checkout()), id = a.body.order.id;
+  await f.call("/api/store/verify", { orderId: id, token: a.body.token });
+  const o = (await f.store.snapshot()).storeOrders[0];
+  assert.equal((await f.call("/api/admin/store/orders/update", { id, version: o.version, action: "ready" }, { role: "owner" })).status, 200);
+  const logs = (await f.store.snapshot()).auditLogs;
+  const stock = logs.find((x) => x.action === "store.stock.adjust"), ready = logs.find((x) => x.action === "store.orders.update");
+  assert.deepEqual([stock.meta.from, stock.meta.to], [5, 7]);
+  assert.equal(ready.meta.orderAction, "ready");
+});

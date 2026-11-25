@@ -7,7 +7,7 @@ import { mountBundleEdit } from "/bundles.js";
 import { mountCatalogue } from "/bundle-catalogue.js";
 import { liveSummaryText, mountLiveDevices } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
-import { exportAudit, mountAuditRecords } from "/audit.js";
+import { exportAudit, mountAuditRecords, syncAuditAddress } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
 import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
 import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
@@ -228,7 +228,7 @@ ${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="paymentsTo
 <h3 class="nd-h3">${h(L("adminReconTitle"))}</h3><p class="nd-meta">${h(L(x.paymentReconciliation?.enabled ? "adminReconOn" : "adminReconOff"))}</p>${x.paymentReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColFindings"))}</th><th scope="col">${h(L("adminColChecked"))}</th></tr></thead><tbody>${rows(x.paymentReconciliation.issues, (p) => `<tr><td>${h(p.paymentId)}</td><td>${h(p.provider)}</td><td>${h(p.issues.join(", ").replaceAll("_", " "))}</td><td>${h(new Date(p.checkedAt).toLocaleString())}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminReconNone"))}</p>`}
 <h3 class="nd-h3">${h(L("adminWebhooksTitle"))}</h3><p class="nd-meta">${h(L("adminWebhooksCount", { pending: x.paymentWebhooks?.pending || 0, review: x.paymentWebhooks?.deadLetters || 0 }))}</p>${x.paymentWebhooks?.events?.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColPayment"))}</th><th scope="col">${h(L("adminColProvider"))}</th><th scope="col">${h(L("adminColStatus"))}</th><th scope="col">${h(L("adminColAttempts"))}</th><th scope="col">${h(L("adminColReason"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminColAction"))}</span></th></tr></thead><tbody>${rows(x.paymentWebhooks.events, (event) => `<tr><td>${h(event.paymentId)}</td><td>${h(event.provider)}</td><td>${h(event.status.replaceAll("_", " "))}</td><td>${h(event.totalAttempts)}</td><td>${h((event.lastError || "").replaceAll("_", " "))}</td><td>${["retry", "dead_letter"].includes(event.status) && ["owner", "operator"].includes(x.profile?.role) ? `<button type="button" class="nd-btn nd-btn--sm nd-btn--secondary" data-replay-webhook="${h(event.id)}">${h(L("adminReplay"))}</button>` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminWebhooksNone"))}</p>`}</section></section>
 ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelledby="adminTitle" data-tab-panel="cash" ${activeAdminTab === "cash" ? "" : "hidden"}><div id="cashCollectedReport"></div></section>` : ""}
-<section class="tab-panel admin-audit" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><section class="nd-panel admin-audit__list" aria-label="${h(L("adminAuditEntries"))}"><div id="auditRecords"></div></section><details class="admin-options admin-legacy"><summary>${h(L("adminSecurityEvents"))}</summary><p class="nd-meta">${h(L("adminSecurityEventsNote"))}</p><div id="securityRecords"></div></details></section></div>`;
+<section class="tab-panel admin-audit" id="panel-audit" aria-labelledby="adminTitle" data-tab-panel="audit" ${activeAdminTab === "audit" ? "" : "hidden"}><section class="nd-panel admin-audit__list" aria-label="${h(L("adminAuditEntries"))}"><div id="auditRecords"></div></section><details class="admin-options admin-legacy admin-audit__tools"><summary>${h(L("adminAuditTools"))}</summary><div class="admin-options__body"><div class="admin-audit__search" id="auditSearchHost"></div><h3 class="nd-h3">${h(L("adminSecurityEvents"))}</h3><p class="nd-meta">${h(L("adminSecurityEventsNote"))}</p><div id="securityRecords"></div></div></details></section></div>`;
   for (const table of $("#app").querySelectorAll("table")) {
     if (table.closest(".table-scroll, .nd-table-wrap")) continue;
     const wrapper = document.createElement("div");
@@ -262,7 +262,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   // Catalogue managers only (owners and operators; the API refuses others).
   const catalogue = storeRole && $("#bundleCatalogue") ? mountCatalogue($("#bundleCatalogue"), { call }) : null;
   const bundleEditor = storeRole && $("#bundleEditor") ? mountBundleEdit($("#bundleEditor"), { call, setHead: setAdminHead, statusHost: $("#bundleStatusHost"), speedLimitsOn: x.integrations?.speedLimits === "on" }) : null;
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "bundles") void catalogue?.refresh(); resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); if (view === "promotions" && $("#promotionsHost")) void showPromotions($("#promotionsHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "bundles") void catalogue?.refresh(); resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); if (view === "promotions" && $("#promotionsHost")) void showPromotions($("#promotionsHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer(); if (view === "audit") syncAuditAddress();
     if (view === "voucher") void openVoucher(); else { $("#adminTitle")?.classList.remove("admin-title--code"); $("#adminTitle")?.parentElement?.classList.remove("admin-head-title--inline"); } if (view !== "bundle") $("#adminTitle")?.classList.remove("admin-title--sub"); if (view === "bundle") void bundleEditor?.open(adminViewParam()).then((shown) => { if (!shown) location.replace("/dashboard#bundles"); }); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.
@@ -426,7 +426,7 @@ function mountRecordViews(canManagePayments) {
     row: (s) => `<tr><td>${h(s.label)}</td><td>${h(s.deviceId)}</td><td>${h(s.status)}</td><td>${date(s.lastSeenAt)}</td><td><a href="/dashboard#devices">Open live devices</a></td></tr>`,
   });
   void mountPaymentRecords($("#paymentRecords"), { call, canManagePayments });
-  void mountAuditRecords($("#auditRecords"), { call });
+  void mountAuditRecords($("#auditRecords"), { call, searchHost: $("#auditSearchHost") });
   void mountRecords($("#securityRecords"), {
     call,
     collection: "security",

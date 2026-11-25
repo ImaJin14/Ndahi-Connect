@@ -84,13 +84,10 @@ test("admin v2 lists, Audit, Home, router checks and network setup read as desig
       ["10 Nov 15:48", "Owner", "K. Nji"],
       ["10 Nov 14:30", "Operator · Brenda", "Market kiosk"],
       ["10 Nov 10:00", "System", "—"],
-      ["10 Nov 08:15", "Owner", "—"],
+      ["10 Nov 08:15", "Owner", "Admin"],
     ]);
-    // Five entries fit on one page: the count stays, Previous/Next go.
-    const pager = page.locator("#auditRecords .records-pager");
-    assert.equal(await text(pager.locator("span")), "Page 1 of 1 · 5 total");
-    assert.equal(await pager.locator('[data-page="prev"]').isVisible(), false);
-    assert.equal(await pager.locator('[data-page="next"]').isVisible(), false);
+    // Five entries fit on one page: no pager and no count, as drawn (#378).
+    assert.equal(await page.locator("#auditRecords .records-pager").isVisible(), false);
     await check("audit");
 
     // Live devices with none online: said once, no pager (one row per customer, #381).

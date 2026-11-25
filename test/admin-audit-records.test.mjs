@@ -52,3 +52,53 @@ test("a payment without a customer is named by its masked number", () => {
   s.auditLogs = [{ id: "p", at: "2026-11-10T16:22:00Z", actor: "owner", action: "payment.checked", meta: { paymentId: "p1" } }];
   assert.equal(queryRecords(s, { collection: "audit" }).items[0].target, "6•• •• 12 45");
 });
+
+// AdminAudit (#378; owner, 25 Nov): the six drawn chips, one row per staff
+// sign-in, and the drawn "On" column.
+test("each drawn chip filters its areas; network actions show only under Everything", () => {
+  const s = state();
+  s.auditLogs = ["payment.refund_requested", "reseller.remittance_recorded", "store.orders.update", "voucher.revoked", "customer.suspension_changed", "wifi_device.disconnected", "admin.login.succeeded", "network.command_resolved", "home.provisioned"]
+    .map((action, i) => ({ id: "e" + i, at: new Date(Date.UTC(2026, 10, 10, 8, i)).toISOString(), actor: "owner", action, meta: {} }));
+  const ids = (status) => queryRecords(s, { collection: "audit", status, pageSize: 100 }).items.map((a) => a.action).sort();
+  assert.deepEqual(ids("money"), ["payment.refund_requested", "reseller.remittance_recorded"]);
+  assert.deepEqual(ids("store"), ["store.orders.update"]);
+  assert.deepEqual(ids("vouchers"), ["voucher.revoked"]);
+  assert.deepEqual(ids("customers"), ["customer.suspension_changed", "wifi_device.disconnected"]);
+  assert.deepEqual(ids("signins"), ["admin.login.succeeded"]);
+  assert.equal(ids("").length, 9, "Everything");
+  assert.deepEqual(ids("network"), ["network.command_resolved"], "a single area still filters, as before");
+});
+
+test("a sign-in that finished a PIN step is one row; a PIN step alone stays", () => {
+  const s = state();
+  s.auditLogs = [
+    { id: "late-pin", at: "2026-11-10T12:00:00Z", actor: "brenda", action: "admin.login.pin_verified", meta: {} },
+    { id: "done", at: "2026-11-10T07:15:20Z", actor: "owner", action: "admin.login.succeeded", meta: {} },
+    { id: "pin", at: "2026-11-10T07:15:00Z", actor: "owner", action: "admin.login.pin_verified", meta: {} },
+    { id: "old", at: "2026-11-01T07:15:00Z", actor: "owner", action: "admin.login.succeeded", meta: {} },
+  ];
+  const { items, total } = queryRecords(s, { collection: "audit", pageSize: 100 });
+  assert.deepEqual(items.map((a) => [a.id, a.method || null, a.targetKind]), [["late-pin", null, "admin"], ["done", "pin_passkey", "admin"], ["old", null, "admin"]]);
+  assert.equal(total, 3, "the folded PIN step is not counted");
+  assert.equal(s.auditLogs.length, 4, "stored entries never change");
+  assert.equal(s.auditLogs.some((a) => a.method), false);
+});
+
+test("On names the order, the voucher batch and a bundle payment as drawn", () => {
+  const s = state();
+  s.storeOrders = [{ id: "o1", reference: "NS-2611-0088" }];
+  s.vouchers = [{ id: "v1", code: "NC-SECRET-CODE", batchReference: "B-1110-03" }];
+  s.payments = [{ id: "p1", payerPhone: "670991245", planId: "day" }];
+  s.auditLogs = [
+    { id: "order", at: "2026-11-10T16:25:00Z", actor: "brenda", action: "store.orders.update", meta: { id: "o1", orderAction: "collect" } },
+    { id: "stock", at: "2026-11-10T10:02:00Z", actor: "owner", action: "store.stock.adjust", meta: { id: "prod-1", from: 3, to: 2 } },
+    { id: "batch", at: "2026-11-10T15:10:00Z", actor: "owner", action: "voucher.resale_batch_generated", meta: { voucherIds: ["v1"], quantity: 20 } },
+    { id: "pay", at: "2026-11-10T16:22:00Z", actor: "owner", action: "payment.support_verification.completed", meta: { paymentId: "p1" } },
+  ];
+  const by = Object.fromEntries(queryRecords(s, { collection: "audit", pageSize: 100 }).items.map((a) => [a.id, a]));
+  assert.equal(by.order.target, "NS-2611-0088");
+  assert.equal(by.stock.target, "Wavlink AC1200");
+  assert.equal(by.batch.target, "B-1110-03");
+  assert.deepEqual([by.pay.target, by.pay.targetKind], ["6•• •• 12 45", "bundle"]);
+  assert.equal(JSON.stringify(by).includes("NC-SECRET-CODE"), false);
+});
