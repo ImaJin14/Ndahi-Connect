@@ -1645,7 +1645,7 @@ On 20 November the owner asked for ready PRs to be merged as work goes on, each 
 ### Outages screen to the artboard (#385, batch 7, 25 November 2026)
 
 - [-] **ADM-385 — Outages, redesigned (batch 7)** ([#385](https://github.com/ImaJin14/Ndahi-Connect/issues/385)). Owner decisions: [#385 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/385#issuecomment-7171757858).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #474, not merged yet):
     - "Affected area" is the drawn list, "All sites · Bamenda" then "AP-Market only", from area names the owner keeps once (`GET`/`POST /api/admin/outages/areas`, owner only, audited; edited in Network setup, #384);
     - "Started" reads "Today 14:20" (or "Yesterday 23:10"), in Douala time, and asks again when it can't be read;
     - the detected-outage banner sits inside the panel; the panels are the drawn 766 / 768 px wide with no extra space under the two forms;
