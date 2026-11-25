@@ -235,7 +235,10 @@ export const en = {
   adminPaymentsWaiting: "Waiting over 10 min",
   adminPaymentsFailedToday: "Failed today",
   adminPaymentsSearch: "Search payments",
-  adminPaymentsPlaceholder: "Phone, name or reference",
+  adminPaymentsPlaceholder: "Search phone, order or reference",
+  // All payments rows (#386, canvas: AdminPayments).
+  adminWhoGuest: "Guest · {phone}",
+  adminForOrderRef: "Order {reference}",
   adminPaymentsNone: "No matching payments.",
   adminPaymentsFailedToLoad: "Payments could not be loaded.",
   adminFilterAll: "All",
@@ -1361,7 +1364,10 @@ export const fr = {
   adminPaymentsWaiting: "En attente depuis plus de 10 min",
   adminPaymentsFailedToday: "Échoués aujourd'hui",
   adminPaymentsSearch: "Rechercher des paiements",
-  adminPaymentsPlaceholder: "Téléphone, nom ou référence",
+  adminPaymentsPlaceholder: "Rechercher un téléphone, une commande ou une référence",
+  // All payments rows (#386, canvas: AdminPayments).
+  adminWhoGuest: "Invité · {phone}",
+  adminForOrderRef: "Commande {reference}",
   adminPaymentsNone: "Aucun paiement correspondant.",
   adminPaymentsFailedToLoad: "Les paiements n'ont pas pu être chargés.",
   adminFilterAll: "Tous",

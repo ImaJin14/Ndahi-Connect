@@ -76,9 +76,11 @@ try {
     await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
   });
   // Redesigned Payments and Cash (v2 only; canvas: AdminPayments, AdminCash).
-  // "Today" is read in the browser (Africa/Douala), so these payments are dated from the real clock.
+  // "Today" is read on the server (Africa/Douala; #377, #386), so these payments are
+  // dated from the API's clock, and the page's clock is set to match.
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Payments and Cash show today's figures, filters and exports at ${width}px`, async (page) => {
-    const real = Date.now(), today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
+    await page.clock.setFixedTime(now);
+    const real = +now, today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
     const recent = Math.max(today + 1000, real - 60000);
     const payment = (id, status, createdAt, amount, extra = {}) => ({ id, status, createdAt: at(createdAt), amount, currency: "XAF", provider: "mesomb", network: "mtn",
       payerPhone: "670042011", providerReference: `REF-${id.toUpperCase()}`, planId: "weekly", planSnapshot: { id: "weekly", name: "Weekly", price: amount }, ...extra });
