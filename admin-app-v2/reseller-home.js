@@ -7,6 +7,8 @@
 // (GET /api/admin/resellers/ledger?view=home); the browser never works out a
 // price, commission or balance. Other views (print, cash) keep the admin shell,
 // and so do wider screens: the canvas is phone-only (reseller-home.css).
+// "keeps N% of each sale" is the one rate every reseller earns on codes issued
+// from now on (owner, 25 Nov, #390 and #416).
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
@@ -68,7 +70,7 @@ export function mountResellerHome({ call, logout }) {
       <a href="/login" class="reseller-home__out" data-sign-out>${h(L("resellerSignOut"))}</a>
     </div>
     <h1 class="reseller-home__title">${h(r.displayName || r.username || "")}</h1>
-    <p class="reseller-home__sub">${h(L("resellerKeeps", { name: r.username || "", rate: r.commissionPercent ?? 0 }))}</p>
+    <p class="reseller-home__sub">${h(L("resellerKeeps", { name: r.username || "", rate: Number(r.commissionPercent ?? 0).toLocaleString(locale(), { maximumFractionDigits: 2 }) }))}</p>
   </header>
   <main class="reseller-home__main">
     <div class="reseller-home__stats">

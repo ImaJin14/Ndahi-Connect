@@ -11,7 +11,8 @@
 .reseller-home .reseller-home__head { display: block; height: auto; position: static; margin: 0; background: #003b2b; color: #ffffff; padding: 16px 18px 20px; }
 .reseller-home__top { display: flex; justify-content: space-between; align-items: center; }
 .reseller-home__brand { display: flex; align-items: center; gap: 10px; }
-.reseller-home__mark { width: 34px; height: 34px; box-sizing: border-box; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px; }
+/* 34 px inside its 2 px ring, as drawn: 38 px in all (#416). */
+.reseller-home__mark { width: 38px; height: 38px; box-sizing: border-box; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 11px; }
 .reseller-home__word { display: flex; flex-direction: column; }
 .reseller-home__word strong { font-family: "Playfair Display", var(--nd-font-display), serif; font-size: 19px; }
 .reseller-home__word small { color: #b9ee2e; font-size: 9px; letter-spacing: .3em; font-weight: 700; }
@@ -19,6 +20,9 @@
 .reseller-home__title { margin: 16px 0 2px; font-family: "Playfair Display", var(--nd-font-display), serif; font-weight: 600; font-size: 26px; }
 .reseller-home__sub { margin: 0; color: #c8d8d0; font-size: 13px; }
 .reseller-home__main { flex: 1; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+/* v1's ".admin-dashboard main" keeps 110 px free for its bottom bar; here the
+   two buttons sit at the bottom of the screen, as drawn (#416). */
+.reseller-home main.reseller-home__main { padding: 14px 16px; }
 .reseller-home__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .reseller-home__st { padding: 12px; border-radius: 14px; background: #fffef9; border: 1px solid #dfe5dc; }
 .reseller-home__st b { display: block; font-size: 20px; color: #003b2b; overflow-wrap: anywhere; }
@@ -28,7 +32,8 @@
 .reseller-home__sell { padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; text-align: center; display: flex; flex-direction: column; gap: 10px; }
 .reseller-home__eyebrow { margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .reseller-home__code { margin: 0; font: 700 28px ui-monospace, Menlo, monospace; letter-spacing: .1em; }
-.reseller-home__qr { margin: 0 auto; width: 128px; height: 128px; box-sizing: border-box; border-radius: 10px; border: 7px solid #ffffff; background: #ffffff; }
+/* A 128 px code inside its 7 px white frame: 142 px in all, as drawn (#416). */
+.reseller-home__qr { margin: 0 auto; width: 142px; height: 142px; box-sizing: border-box; border-radius: 10px; border: 7px solid #ffffff; background: #ffffff; }
 .reseller-home__take { margin: 0; color: #c8d8d0; font-size: 13px; }
 .reseller-home__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .reseller-home__cancel { min-height: 48px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .35); background: transparent; color: #ffffff; font: 700 15px "DM Sans", sans-serif; cursor: pointer; }
