@@ -1397,6 +1397,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tracked: shared admin/customer/email voucher design (#205), reliable mobile native printing (#206), and active-voucher account-aware PIN/passkey connection (#207). Those three changes are proposed/tracked, not implemented by the A4 removal.
 - Deployment: pending release verification; see the matching PR for final deployment evidence.
 
+- [-] **ADM-392 — Print a batch, redesigned (batch 6)** ([#392](https://github.com/ImaJin14/Ndahi-Connect/issues/392))
+  - **Implemented and tested** (PR #470, not merged yet):
+    - every resale batch gets a reference from the server ("B-2511-01": the day in Douala and the batch's number that day), shown as "Print batch B-2511-01";
+    - the drawn head, note and tray; the slips stay 58/80 mm thermal, chosen as "Slip width" (owner, 25 Nov);
+    - the note says codes work as soon as they're made; Print then reads "Sent to printer", with the preview link kept; English and French.
+  - **Not yet:** merged, deployed, or a batch printed on the real thermal printer from the new screen.
+
 ### Unified voucher slip design — issue #205 (9 November 2026)
 
 - Implemented: Generate Vouchers thermal slip is the shared presentation model/HTML for admin and reseller print previews, customer PDF downloads, and voucher emails. PDFs use the same branding, boxed code, QR, package/price, allowance, validity, device/Home access, activation/status and instructions. Only 58mm/80mm widths; customer downloads and email attachment default to 58mm.
