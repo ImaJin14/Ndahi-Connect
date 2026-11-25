@@ -169,6 +169,14 @@ try {
   }, { width });
   // Redesigned Customers and customer detail (v2 only; canvas: AdminCustomers, AdminCustomerDetail).
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Customers lists bundles and opens a customer's detail at ${width}px`, async (page) => {
+    const { routerRevision } = await import("../lib/device-identities.mjs"), { seedCatalogue } = await import("../lib/catalogue.mjs");
+    await store.transaction((s) => {
+      delete s.catalogue; seedCatalogue(s, now);
+      s.customers.push({ id: "c-unlimited", name: "Unlimited customer", phone: "670042077", status: "active", createdAt: "2029-12-01T08:00:00Z" });
+      s.vouchers.unshift({ id: "v-unlimited", customerId: "c-unlimited", code: "NC-UNLI-0001", planId: "unlimited-7d-2", status: "active", activatedAt: "2029-12-28T08:00:00Z",
+        expiresAt: new Date(+now + (2 * 24 + 14) * 36e5).toISOString(), quotaBytes: null, usedBytes: 0, deviceLimit: 2, accessType: "personal_unlimited", deviceSlots: 2, sharing: false });
+      s.wifiDeviceGrants.push({ id: "g-unl", customerId: "c-unlimited", mac: "AA:BB:CC:00:00:77", voucherId: "v-unlimited", status: "approved", routerRevision: routerRevision(s) });
+    });
     await page.goto(`${admin}/dashboard#customers`);
     await page.getByRole("heading", { name: "Your customers.", exact: true }).waitFor();
     const row = page.locator("#customerRecords tbody tr").filter({ hasText: "Fixture customer" });
@@ -179,6 +187,11 @@ try {
     const cells = (await row.locator("td").allInnerTexts()).map((text) => text.trim()).slice(1);
     assert.deepEqual([cells[0], cells[1], cells[2], cells[4], cells[5], cells[6]], ["Fixture customer", "6•• •• 20 01", "Weekly · 0 GB used", "2 / 2", "Active", "Suspend"]);
     assert.match(cells[3], /^(Online now|Today|Yesterday|—|\d{1,2} [A-Z][a-z]{2})$/);
+    // An Unlimited bundle shows time left and device slots used / slots (#342);
+    // the Weekly bundle above keeps its own terms (data, its device limit).
+    const unlimited = page.locator("#customerRecords tbody tr").filter({ hasText: "Unlimited customer" });
+    const unlimitedCells = (await unlimited.locator("td").allInnerTexts()).map((text) => text.trim()).slice(1);
+    assert.deepEqual([unlimitedCells[2], unlimitedCells[4]], ["Personal Unlimited · 2 d 14 h left", "1 / 2"]);
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("nobody-here");
     await page.locator("#customerRecords tbody").getByText("No matching customers.", { exact: true }).waitFor();
     await page.getByRole("searchbox", { name: "Search customers", exact: true }).fill("670042001");

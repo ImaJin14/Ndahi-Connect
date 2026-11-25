@@ -39,18 +39,38 @@ const suspendButton = (c, block) => {
   return `<button type="button" class="nd-btn ${block ? "nd-btn--block" : "nd-btn--compact"} nd-btn--secondary${suspended ? "" : " admin-btn--danger"}" data-customer="${h(c.id)}" data-suspended="${suspended}">${h(L(suspended ? (block ? "adminRestoreCustomer" : "adminRestore") : (block ? "adminSuspendCustomer" : "adminSuspend")))}</button>`;
 };
 
-// "[PLAN 2] · 1.8 GB used · 3.2 GB left", "Payment waiting", "[PLAN 1] · expired" or "None".
-function bundleText(summary) {
+// Time left on an Unlimited bundle (canvas: "2 d 14 h left", "22 days left"),
+// from the server's count.
+export function timeLeft(ms) {
+  if (!Number.isFinite(ms)) return "";
+  const minutes = Math.max(0, Math.floor(ms / 6e4)), days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60);
+  if (days >= 3) return L("adminDaysLeft", { count: days });
+  if (days >= 1) return L("adminDaysHoursLeft", { days, hours });
+  if (hours >= 1) return L("adminHoursLeft", { count: hours });
+  return L("adminMinutesLeft", { count: minutes % 60 });
+}
+
+// "[PLAN 2] · 2 d 14 h left" for an Unlimited bundle; an earlier bundle keeps
+// its own terms: "[PLAN 2] · 1.8 GB used · 3.2 GB left". Then "Payment
+// waiting", or in the list "None" once nothing runs (Last active says when it
+// ended); a suspended customer keeps "[PLAN 1] · expired" (owner, #342:
+// https://github.com/ImaJin14/Ndahi-Connect/issues/342#issuecomment-7149689512).
+function bundleText(summary, customer) {
   const bundle = summary && summary.bundle;
+  if (bundle && bundle.status === "active" && bundle.accessType && Number.isFinite(bundle.msLeft)) return `${bundle.name || "—"} · ${timeLeft(bundle.msLeft)}`;
   // Unlimited bundles show data used, never data left.
   // Staff see what was actually used on every plan; fixed plans also show what is left.
   if (bundle && bundle.status === "active") return `${bundle.name || "—"} · ${L("adminDataUsed", { amount: gb(bundle.usedBytes) })}${bundle.quotaBytes == null ? "" : ` · ${L("adminDataLeft", { amount: gb(bundle.remainingBytes) })}`}`;
   if (summary && summary.paymentWaiting) return L("adminPaymentWaiting");
+  if (bundle && customer && customer.status !== "suspended") return L("adminFieldNone");
   if (bundle) return `${bundle.name || "—"} · ${L(VOUCHER_WORDS[bundle.status] || "adminVoucherExpired").toLowerCase()}`;
   return L("adminFieldNone");
 }
+// Unlimited: device slots used / slots (a registered device holds its slot
+// offline too, #334). Earlier bundles: devices online / their device limit.
 const devicesText = (summary) => {
   const bundle = summary && summary.bundle;
+  if (bundle && bundle.status === "active" && bundle.accessType) return `${bundle.slotsUsed ?? 0} / ${bundle.deviceSlots ?? "—"}`;
   return bundle && bundle.status === "active" ? `${bundle.activeDevices} / ${bundle.deviceLimit == null ? "—" : bundle.deviceLimit}` : "0";
 };
 
@@ -215,7 +235,7 @@ export function mountCustomerRecords(container, { call, searchHost, filtersHost 
         summary: (page, pages, total) => L("adminPageSummary", { page, pages, total }),
       },
     },
-    row: (c) => `<tr${selected.has(c.id) ? ' class="admin-customers__row--on"' : ""}><td class="admin-customers__select"><input type="checkbox" class="admin-customers__check" data-select="${h(c.id)}" data-name="${h(c.name || "")}" aria-label="${h(L("adminSelectCustomer", { name: c.name || L("adminUnnamedCustomer") }))}"${selected.has(c.id) ? " checked" : ""}></td><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(c.activity && c.activity.neverBought && !(c.summary && c.summary.paymentWaiting) ? L("adminNeverBought") : bundleText(c.summary))}</td><td>${h(lastActive(c.activity))}</td><td>${h(devicesText(c.summary))}</td><td>${statePill(c)}</td><td class="admin-customers__actions">${c.activity && c.activity.state === "stale" ? `<a class="nd-btn nd-btn--compact nd-btn--secondary" href="${customerHref(c.id)}">${h(L("adminGiveVoucherShort"))}</a>` : ""}${suspendButton(c)}</td></tr>`,
+    row: (c) => `<tr${selected.has(c.id) ? ' class="admin-customers__row--on"' : ""}><td class="admin-customers__select"><input type="checkbox" class="admin-customers__check" data-select="${h(c.id)}" data-name="${h(c.name || "")}" aria-label="${h(L("adminSelectCustomer", { name: c.name || L("adminUnnamedCustomer") }))}"${selected.has(c.id) ? " checked" : ""}></td><td><a class="admin-name" href="${customerHref(c.id)}">${h(c.name || L("adminUnnamedCustomer"))}</a></td><td>${h(maskPhone(c.phone))}</td><td>${h(c.activity && c.activity.neverBought && !(c.summary && c.summary.paymentWaiting) ? L("adminNeverBought") : bundleText(c.summary, c))}</td><td>${h(lastActive(c.activity))}</td><td>${h(devicesText(c.summary))}</td><td>${statePill(c)}</td><td class="admin-customers__actions">${c.activity && c.activity.state === "stale" ? `<a class="nd-btn nd-btn--compact nd-btn--secondary" href="${customerHref(c.id)}">${h(L("adminGiveVoucherShort"))}</a>` : ""}${suspendButton(c)}</td></tr>`,
   });
   return list;
 }

@@ -62,3 +62,20 @@ test("audit entries filter by the area of their action", () => {
   const { items } = queryRecords({ ...state(), auditLogs }, { collection: "audit", status: "voucher" });
   assert.deepEqual(items.map((a) => a.id), ["a1", "a3"]);
 });
+
+// #342 (canvas AdminCustomers): an Unlimited bundle shows time left and device
+// slots used / slots; a bundle bought before the switch keeps its own terms.
+test("an Unlimited bundle carries its device slots, counting a registered device while offline; earlier bundles are unchanged", async () => {
+  const { routerRevision } = await import("../lib/device-identities.mjs");
+  const s = state();
+  s.customers.push({ id: "c4", name: "Ngwa", phone: "670000004", status: "active" });
+  s.vouchers.unshift({ id: "v-unl", customerId: "c4", status: "active", code: "NC-UNL", planId: "unlimited-7d-2", quotaBytes: null, usedBytes: 0, expiresAt: "2030-01-08T00:00:00Z",
+    deviceLimit: 2, accessType: "personal_unlimited", deviceSlots: 2, sharing: false });
+  s.wifiDeviceGrants = ["AA:AA:AA:AA:AA:01", "AA:AA:AA:AA:AA:02"].map((mac) => ({ id: mac, customerId: "c4", mac, voucherId: "v-unl", status: "approved", routerRevision: routerRevision(s) }));
+  const { items } = queryRecords(s, { collection: "customers" }, { voucherView: view });
+  const byId = Object.fromEntries(items.map((c) => [c.id, c]));
+  assert.deepEqual([byId.c4.summary.bundle.accessType, byId.c4.summary.bundle.deviceSlots, byId.c4.summary.bundle.slotsUsed], ["personal_unlimited", 2, 2]);
+  assert.equal(byId.c4.summary.bundle.activeDevices, 2);
+  // The earlier Weekly bundle: exactly the row it had before (data left, its device limit).
+  assert.deepEqual(Object.keys(byId.c1.summary.bundle).sort(), ["activeDevices", "deviceLimit", "expiresAt", "id", "name", "quotaBytes", "remainingBytes", "status", "usedBytes"]);
+});
