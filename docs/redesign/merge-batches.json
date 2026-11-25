@@ -125,11 +125,13 @@
     },
     {
      "issue": 386,
-     "title": "Redesign: AdminPayments — Admin payments"
+     "title": "Redesign: AdminPayments — Admin payments",
+     "base": "#377"
     },
     {
      "issue": 379,
-     "title": "Redesign: AdminCash — Admin cash and settlements"
+     "title": "Redesign: AdminCash — Admin cash and settlements",
+     "base": "#377"
     },
     {
      "issue": 390,
@@ -137,7 +139,8 @@
     },
     {
      "issue": 416,
-     "title": "Redesign: ResellerHome — Reseller home"
+     "title": "Redesign: ResellerHome — Reseller home",
+     "base": "#390"
     }
    ]
   },
