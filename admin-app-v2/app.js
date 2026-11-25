@@ -77,11 +77,19 @@ function showBatchPrint(view) {
     return;
   }
   if (!lastBatch) { location.replace("/dashboard#vouchers"); return; }
-  const { vouchers, plan, reseller } = lastBatch, count = vouchers.length;
+  const { vouchers, plan, reseller } = lastBatch, count = vouchers.length, batch = vouchers[0]?.batchReference;
+  // Canvas: "Print batch B-1110-03" over "20 slips · [PLAN 2] · for [RESELLER] ·
+  // …"; the slips stay thermal (owner, #208, #240), so the line ends with
+  // the width chosen, and the batch reference is the server's (#392).
+  const lede = (layout) => [count === 1 ? L("adminSlipsOne") : L("adminSlips", { count }), plan?.name, reseller ? L("adminForName", { name: reseller }) : "",
+    L(layout === "thermal-80" ? "adminPrintWidth80" : "adminPrintWidth58")].filter(Boolean).join(" · ");
   setAdminHead({
-    title: count === 1 ? L("adminPrintTitleOne", { code: vouchers[0].code }) : L("adminPrintTitle", { count }),
-    lede: [count === 1 ? L("adminSlipsOne") : L("adminSlips", { count }), plan?.name, reseller ? L("adminForName", { name: reseller }) : ""].filter(Boolean).join(" · "),
+    title: batch ? L("adminPrintBatchTitle", { batch }) : count === 1 ? L("adminPrintTitleOne", { code: vouchers[0].code }) : L("adminPrintTitle", { count }),
+    lede: lede("thermal-58"),
   });
+  // Accurate wording (owner, 25 Nov, #392): codes work as soon as they're made.
+  const note = $(".admin-print__note");
+  if (note) note.textContent = L(reseller ? "adminPrintNoteReseller" : "adminPrintNotePerson");
   tray.innerHTML = '<div id="voucherPrintPreview"></div>';
   activePrintController = mountGeneratedVoucherPrint({
     container: $("#voucherPrintPreview"),
@@ -89,7 +97,8 @@ function showBatchPrint(view) {
     vouchers,
     plan,
     layout: "thermal-58",
-    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere") },
+    onLayout: (layout) => setAdminHead({ lede: lede(layout) }),
+    labels: { region: L("adminPrintRegion"), format: L("adminPrintFormat"), thermal58: L("adminThermal58"), thermal80: L("adminThermal80"), print: count === 1 ? L("adminPrintOne") : L("adminPrintMany", { count }), openHere: L("adminPrintOpenHere"), sent: L("adminPrintSent") },
   });
 }
 
@@ -185,7 +194,7 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
   <label class="nd-field" id="voucherExistingPlan"><span class="nd-label">${h(L("adminFieldBundle"))}</span><select class="nd-input" name="planId">${bundleOptions}</select></label>
   <div class="admin-form__pair">
     <label class="nd-field" id="voucherQuantity"><span class="nd-label">${h(L("adminFieldHowMany"))}</span><input class="nd-input" name="quantity" type="number" min="1" max="100" value="1"></label>
-    <label class="nd-field" id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}><span class="nd-label">${h(L("adminFieldForReseller"))}</span><select class="nd-input" name="assignedResellerId" id="voucherResellerSelect"><option value="">${h(L("adminFieldNone"))}</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
+    <label class="nd-field" id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}><span class="nd-label">${h(L("adminFieldForReseller"))}</span><select class="nd-input" name="assignedResellerId" id="voucherResellerSelect"><option value="">${h(L("adminFieldNone"))}</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}" data-name="${h(r.displayName || r.username)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
   </div>
   <button type="submit" class="nd-btn nd-btn--block"></button>
   <details class="admin-options" id="voucherOptions"><summary>${h(L("adminMoreOptions"))}</summary><div class="admin-options__body">
@@ -204,7 +213,7 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
 </form><div id="generated" data-sensitive-output role="status" aria-live="polite"></div></div></section>
 <section class="nd-panel admin-vouchers__list" aria-labelledby="voucherRecordsTitle"><div id="activeVoucherPrint" data-sensitive-output role="status" aria-live="polite"></div><div id="voucherRecords"></div></section>
 </div></section>
-<section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNote"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
+<section class="tab-panel admin-print" id="panel-voucher-print" aria-labelledby="adminTitle" data-tab-panel="voucher-print" ${activeAdminTab === "voucher-print" ? "" : "hidden"}><p class="nd-callout nd-callout--warning admin-print__note">${h(L("adminPrintNotePerson"))}</p><div class="admin-print__tray" id="voucherPrintTray" data-sensitive-output></div></section>
 <section class="tab-panel admin-resellers" id="panel-resellers" aria-labelledby="adminTitle" data-tab-panel="resellers" ${activeAdminTab === "resellers" ? "" : "hidden"}><div id="resellerLedger"></div></section>
 <section class="tab-panel admin-customers" id="panel-customers" aria-labelledby="adminTitle" data-tab-panel="customers" ${activeAdminTab === "customers" ? "" : "hidden"}><div id="customerFilters"></div><section class="nd-panel admin-customers__list" aria-label="${h(L("adminCustomerList"))}"><div id="customerRecords"></div><p class="nd-meta admin-customers__note" id="customerNote">${h(L("adminSuspendNote"))}</p></section><details class="admin-options admin-legacy"><summary>${h(L("adminLegacySessions"))}</summary><p class="nd-meta">${h(L("adminLegacySessionsNote"))}</p><div id="sessionRecords"></div></details></section>
 <section class="tab-panel admin-voucher-page" id="panel-voucher" aria-labelledby="adminTitle" data-tab-panel="voucher" ${activeAdminTab === "voucher" ? "" : "hidden"}><div id="voucherDetail"></div></section>
@@ -330,7 +339,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
       const vouchers = result.vouchers || [result.voucher];
       clearPrintContainers();
       // Canvas: a ready box with Print slips, which opens the print screen.
-      const resellerName = $("#voucherResellerSelect")?.selectedOptions[0]?.value ? $("#voucherResellerSelect").selectedOptions[0].textContent : "";
+      // The print screen names the reseller as the canvas does: "for Market kiosk".
+      const resellerName = $("#voucherResellerSelect")?.selectedOptions[0]?.value ? $("#voucherResellerSelect").selectedOptions[0].dataset.name : "";
       lastBatch = { vouchers, plan: result.plan, reseller: resellerName };
       $("#generated").innerHTML = `<div class="admin-batch"><div class="generated-heading"><strong>${h(vouchers.length === 1 ? L("adminGeneratedOne") : L("adminGeneratedMany", { count: vouchers.length }))}</strong></div><details class="admin-options"><summary>${h(L("adminGiveShowCodes"))}</summary><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div></details><a class="nd-btn nd-btn--dark nd-btn--block" href="/dashboard#voucher-print">${h(L("adminPrintSlips"))}</a><div class="admin-batch__more"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="downloadVouchers">${h(L("adminDownloadCsv"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="closeGenerated">${h(L("adminCloseCodes"))}</button></div></div>`;
       $("#closeGenerated").onclick = () => { clearPrintContainers(); lastBatch = null; $("#generate").reset(); updateVoucherBuilder(); };

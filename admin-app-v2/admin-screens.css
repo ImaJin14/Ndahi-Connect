@@ -145,14 +145,25 @@ body[data-admin-view="payments"] #adminHeadActions [data-payments-export] { min-
 #activeVoucherPrint:not(:empty) { margin-bottom: var(--nd-space-16); }
 
 /* ---------- Print a batch (canvas: AdminVoucherPrint) ---------- */
+/* Measured against the canvas at 1280 px (#392): the back link, 20 px, the
+   batch at 34 px with its line under it, and the controls beside it. */
+body[data-admin-view="voucher-print"] main.nd-admin-shell__main { gap: var(--nd-space-20); }
+body[data-admin-view="voucher-print"] .admin-back { display: block; width: -moz-fit-content; width: fit-content; margin-bottom: var(--nd-space-20); line-height: normal; }
+body[data-admin-view="voucher-print"] .nd-pagehead #adminTitle { font-size: 34px; }
+body[data-admin-view="voucher-print"] .admin-lede { line-height: normal; }
+/* After Print, the kept preview link sits beside the button (owner, 25 Nov):
+   the title's block gives way, so the controls stay on the title's line. */
+body[data-admin-view="voucher-print"] .nd-pagehead > div:first-child { flex: 1 1 0; min-width: 0; }
+.admin-print__tools [data-open-print-preview] { color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; line-height: normal; }
 .admin-print { display: flex; flex-direction: column; gap: var(--nd-space-20); }
-.admin-print__note { margin: 0; }
+.admin-print__note { margin: 0; border: 0; line-height: normal; }
 .admin-print__tray { display: flex; flex-wrap: wrap; gap: var(--nd-space-16); padding: var(--nd-space-16); border-radius: var(--nd-radius-card-lg); background: #e7ece5; }
 .admin-print__tray:empty { display: none; }
 /* v1 boxes its print toolbar; on the canvas the controls sit beside the title. */
 .admin-dashboard .admin-print__tools { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
-.admin-print__format { font-size: var(--nd-fs-meta); font-weight: 600; }
-.admin-print__tools select.nd-input { width: auto; min-height: 44px; }
+.admin-print__format { font-size: var(--nd-fs-meta); font-weight: 600; line-height: normal; }
+.admin-dashboard .admin-print__tools select.nd-input { width: auto; min-width: 0; min-height: 44px; padding: 0 var(--nd-space-10); border-radius: 9px; background: var(--nd-white); color: #000; font-size: var(--nd-fs-small); line-height: normal; }
+.admin-dashboard .admin-print__tools .nd-btn { min-height: 44px; padding: 0 var(--nd-space-18); border: 0; border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
 
 @media (max-width: 767.98px) {
   .admin-form__pair { flex-wrap: wrap; }
