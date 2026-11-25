@@ -1384,6 +1384,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Tested locally: 17 store/publication/API unit tests, including inventory idempotency and unpriced purchase protection; mobile/desktop catalogue and existing store regressions checked before release.
 - [ ] Deployment and exact live product/stock verification tracked in the release PR. User will update selling prices, exact travel/Wavlink models, photos, package details and warranty later; physical compatibility remains unverified.
 
+- [-] **ADM-387 — Edit product, redesigned (batch 6)** ([#387](https://github.com/ImaJin14/Ndahi-Connect/issues/387))
+  - **Implemented and tested** (PR #469, not merged yet):
+    - name, description and warranty edited one language at a time with the drawn EN/FR switch; both languages saved together;
+    - the drawn photo slots (main outlined, "+ Add", still up to 30), price as a whole number of FCFA, SKU, category, stock and visibility;
+    - "Saved · live in the store" beside Save product;
+    - More product details, Photo details and More settings kept, collapsed (owner, 25 Nov); English and French.
+  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+
 ## MoMo customer payment message (9 November 2026)
 
 - [x] Implemented: send MeSomb’s documented customer `message` field with “NDAHI Connect - Internet bundle payment” or “NDAHI Connect - Store purchase”. Existing transaction references/signing retained; store descriptions no longer use an undefined plan ID.
