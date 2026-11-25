@@ -172,7 +172,9 @@ try {
 
   const baseline = await store.snapshot();
   for (const width of [320, 1280]) {
-  await store.transaction(s => Object.assign(s, structuredClone(baseline)));
+  // Back to the baseline for each width, including the shared commission rate
+  // (#390), which the baseline doesn't have and Object.assign would keep.
+  await store.transaction(s => { Object.assign(s, structuredClone(baseline)); if (!("resellerSettings" in baseline)) delete s.resellerSettings; });
   // Journey 1: Owner views reseller inventory, updates commission %, assigns new stock, and records cash remittance
   {
     const context = await browser.newContext({ viewport: { width, height: 900 } });
