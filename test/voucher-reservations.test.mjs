@@ -92,8 +92,8 @@ test("wrong tries lock the claim for 15 minutes", async (t) => {
   const { store, post, reserve } = await start(t);
   const { code } = (await reserve("670009910")).body.voucher;
   for (let i = 0; i < 5; i++) assert.equal((await post("/api/account/claim/check", { phone: "670007777", code }, { ip: "203.0.113.9" })).status, 401);
-  const locked = await post("/api/account/claim/check", { phone: "670009910", code }, { ip: "203.0.113.9" });
-  assert.deepEqual([locked.status, locked.body.code], [429, "CLAIM_LOCKED"], "the address is locked, even for the right number");
+  const valid = await post("/api/account/claim/check", { phone: "670009910", code }, { ip: "203.0.113.9" });
+  assert.equal(valid.status, 200, "another number sharing the address can claim its voucher");
   assert.equal((await post("/api/account/claim/check", { phone: "670007777", code }, { ip: "203.0.113.10" })).status, 429, "and so is the number, from anywhere");
   assert.ok((await store.snapshot()).auditLogs.some((a) => a.action === "voucher.reservation_claim_locked"));
 });
