@@ -93,10 +93,10 @@ test("admin v2 lists, Audit, Home, router checks and network setup read as desig
     assert.equal(await pager.locator('[data-page="next"]').isVisible(), false);
     await check("audit");
 
-    // Live devices with none online: said once, no pager.
+    // Live devices with none online: said once, no pager (one row per customer, #381).
     await page.goto(`${admin}/dashboard#devices`);
-    await page.locator("#wifiRecords tbody").getByText("No Wi-Fi devices right now.").waitFor();
-    assert.equal(await page.locator("#wifiRecords .records-pager").isVisible(), false);
+    await page.locator("#liveDeviceRows").getByText("No Wi-Fi devices right now.").waitFor();
+    assert.equal(await page.locator("#liveDevices .records-pager").count(), 0);
     assert.equal(await page.getByText("No Wi-Fi devices right now.").filter({ visible: true }).count(), 1, "said once");
     await check("devices-empty");
 

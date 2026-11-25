@@ -41,6 +41,7 @@ NDAHI shows no device or router count for Home WISP (owner, 24 Nov): how many de
 | 10 | **Revocation** | Admin → revoke the subscription (`POST /api/admin/vouchers/revoke`). | Router B is disconnected on the worker's next pass, and the revocation is audited. |
 | 11 | **Personal stays restricted** | With Phone P on Personal Unlimited, share its hotspot to another phone. | The second phone can't browse through ordinary forwarding (#335). Phone P can't be switched to Home mode. |
 | 12 | **Legacy NDAHI Home untouched** | Throughout, watch the legacy NDAHI Home household. | It keeps working exactly as before: same bundle, same data allowance and end date, never disconnected by these tests. |
+| 13 | **Live devices: the router and Disconnect** (#381) | With Router B registered and browsing, open Admin → Live devices. Then open the household's row and press **Disconnect** on the router. | The household is one row, "1 router", with today's data and "online since" matching the router's session. Disconnect ends only the router's session (`/ip hotspot active`): it signs in again within a minute or two and the household browses again. The registration, the end date and the router binding are unchanged, and the request is in the audit log. If the router doesn't come back by itself, note it: the step must not be relied on until it does. |
 
 ## Record the results
 
@@ -58,5 +59,6 @@ NDAHI shows no device or router count for Home WISP (owner, 24 Nov): how many de
 | 10 | | | | | | |
 | 11 | | | | | | |
 | 12 | | | | | | |
+| 13 | | | | | | |
 
 Also note which WISP router models worked. Only routers that pass belong in "supported routers" in customer copy.

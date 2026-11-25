@@ -294,7 +294,9 @@ test("usage sync records router devices and cuts off a voucher whose shared tota
   const s = await store.snapshot(), [v1, v2] = s.vouchers;
   assert.equal(v1.status, "exhausted");
   assert.equal(v1.usedBytes, 1200);
-  assert.deepEqual(v1.wifiDevices, [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 700, sessionId: null, startedAt: null }]);
+  // With the day the reading was taken (Live devices, #381): a session of
+  // unknown start counts today's data from this reading.
+  assert.deepEqual(v1.wifiDevices, [{ mac: "AA:BB:CC:DD:EE:01", address: "10.20.0.30", uptime: "4m", usedBytes: 700, sessionId: null, startedAt: null, day: "2026-09-21", dayStartBytes: 700 }]);
   assert.equal(v1.wifiDevicesAt, baseTime.toISOString());
   assert.equal(v1.routerSyncStatus, "pending");
   assert.ok(s.routerCommands.some((c) => c.id === "router:disconnect_voucher:v1" && c.status === "queued"));
