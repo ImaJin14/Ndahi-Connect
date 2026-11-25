@@ -247,15 +247,17 @@ try {
     await panel.getByRole("link", { name: "Home", exact: true }).click();
     await panel.getByRole("link", { name: adminLinkName("Store"), exact: true }).click();
     if (uiV2) {
-      // v2 (canvas: AdminStore): open orders beside the chosen order; the status select filters them.
+      // v2 (canvas: AdminStore): open orders beside the chosen order; the
+      // collapsed "Find an order" (kept by the owner, #391) filters every order.
       await panel
         .getByRole("heading", { name: "Orders to prepare and hand over.", exact: true })
         .waitFor();
-      await panel.locator("#storeOrderStatus").selectOption("preparing");
+      await panel.locator("#storeFinder > summary").click();
+      await panel.locator("#storeOrderStatus").selectOption("paid");
       assert.equal(
-        await panel.locator("#storeOrderRows [data-order-pick]").count(),
+        await panel.locator("#storeFoundRows [data-order-pick]").count(),
         (await store.snapshot()).storeOrders.filter(
-          (o) => o.status === "preparing",
+          (o) => o.status === "preparing" && !o.payment.refund,
         ).length,
       );
       await panel.locator("#storeOrderStatus").selectOption("collected");
@@ -264,7 +266,7 @@ try {
         .waitFor();
       await panel.locator("#storeOrderStatus").selectOption("all");
       assert.equal(
-        await panel.locator("#storeOrderRows [data-order-pick]").count(),
+        await panel.locator("#storeFoundRows [data-order-pick]").count(),
         (await store.snapshot()).storeOrders.length,
       );
       await panel.getByRole("link", { name: "Products & stock", exact: true }).click();
