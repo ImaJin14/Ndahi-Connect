@@ -968,3 +968,50 @@ body[data-admin-view="product"] #adminHeadActions .admin-pedit__save { min-heigh
 .admin-edit__row { display: flex; justify-content: space-between; gap: var(--nd-space-12); padding: 9px 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-meta); }
 .admin-edit__row:last-of-type { border-bottom: 0; }
 .admin-edit__who .admin-edit__hint { margin-top: 4px; }
+
+/* ---------- Insights (canvas: AdminInsights, #382) ---------- */
+/* As drawn: 20 px gaps; four figures, revenue per day, busiest hours beside
+   access-point load, then Wi-Fi page to paid. Panels are border-box, as on
+   the canvas. The period toggle reuses the Cash screen's .admin-periods. */
+body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space-20); }
+.admin-insights > #insightsHost { display: flex; flex-direction: column; gap: var(--nd-space-20); }
+.admin-insights__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.admin-insights__metric, .admin-insights__panel { box-sizing: border-box; min-width: 0; padding: 22px; border: 1px solid var(--nd-line); border-radius: 16px; background: var(--nd-paper); }
+.admin-insights__metric { padding: 18px; }
+.admin-insights__metric b { display: block; color: var(--nd-forest); font-size: 24px; font-weight: 700; }
+.admin-insights__metric > span { color: var(--nd-muted); font-size: 13px; }
+.admin-insights__up { color: #345000; font-weight: 700; }
+.admin-insights__down { color: #a73535; font-weight: 700; }
+.admin-insights__h2 { margin: 0; font-family: var(--nd-font-display); font-size: 21px; font-weight: 600; line-height: normal; }
+.admin-insights__sub { margin: 4px 0 16px; color: var(--nd-muted); font-size: 13px; }
+.admin-insights__sub--flush { margin-bottom: 0; }
+.admin-insights__bars { box-sizing: content-box; display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-bottom: 6px; border-bottom: 1px solid var(--nd-line); }
+.admin-insights__bar { flex: 1; min-width: 0; border-radius: 4px 4px 0 0; background: #6f9500; }
+.admin-insights__bar--high { background: var(--nd-forest); }
+.admin-insights__bar--today { background: var(--nd-lime); }
+.admin-insights__axis { display: flex; justify-content: space-between; margin-top: 6px; color: var(--nd-muted); font-size: 12px; }
+.admin-insights__row { display: flex; flex-wrap: wrap; gap: var(--nd-space-20); }
+.admin-insights__half { flex: 1 1 380px; }
+.admin-insights__heat { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+.admin-insights__heat > span { height: 34px; border-radius: 4px; }
+.admin-insights__aps { display: flex; flex-direction: column; gap: 12px; }
+.admin-insights__empty { margin: 0; color: var(--nd-neutral-fg); font-size: 14px; }
+.admin-insights__note { margin: 0; padding: 10px 12px; border-radius: 10px; background: #fff4e0; color: #6b3a00; font-size: 13px; }
+.admin-insights__fhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 10px; }
+.admin-insights__legend { display: flex; gap: 14px; font-size: 13px; }
+.admin-insights__legend > span { display: flex; align-items: center; gap: 6px; }
+.admin-insights__swatch { width: 12px; height: 12px; border-radius: 3px; }
+.admin-insights__swatch--current, .admin-insights__fbar--current { background: #b8c7bd; }
+.admin-insights__swatch--new, .admin-insights__fbar--new { background: var(--nd-forest); }
+.admin-insights__funnel { display: flex; flex-direction: column; gap: 12px; }
+.admin-insights__frow { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: center; }
+.admin-insights__fstep { font-size: 14px; font-weight: 600; }
+.admin-insights__fbars { display: flex; flex-direction: column; gap: 4px; }
+.admin-insights__fbars > div { display: flex; align-items: center; gap: 8px; }
+.admin-insights__fbar { display: block; height: 12px; border-radius: 4px; }
+.admin-insights__fpct { color: var(--nd-muted); font-size: 12px; }
+.admin-insights__fpct--new { color: var(--nd-ink); font-weight: 700; }
+.admin-insights__fnote { margin: 14px 0 0; color: #3d4a44; font-size: 13px; }
+@media (max-width: 767.98px) {
+  .admin-insights__frow { grid-template-columns: 1fr; gap: 6px; }
+}

@@ -12,6 +12,8 @@ import { ADMIN_MENU, renderAdminMenu } from "/shared/ui/navigation.js";
 // view -> menu item, panels shown, optional section to scroll to, title, eyebrow group.
 const VIEWS = {
   home: { menu: "home", panels: ["home"], title: "adminTitleHome" },
+  // Insights (#382, canvas: AdminInsights): owners only, as the API.
+  insights: { menu: "insights", panels: ["insights"], title: "adminTitleInsights", group: "adminInsightsGroup" },
   devices: { menu: "devices", panels: ["devices"], title: "adminTitleDevices", group: "uiAdminGroupNetwork" },
   connections: { menu: "connections", panels: ["connections"], title: "adminTitleConnections", group: "uiAdminGroupNetwork", lede: "adminConnectionsLede" },
   // Outages (#259, canvas: AdminOutage): staff read; owners and operators manage.
@@ -56,7 +58,7 @@ let mounted = false, currentRole, changed, homeRouters = false, badges = {};
 // rendered for this role; Home routers follows NDAHI Home being in use.
 function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
-  if (menu === "setup") return who === "owner";
+  if (menu === "setup" || menu === "insights") return who === "owner";
   if (menu === "store" || menu === "products" || menu === "promotions") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "payments" || menu === "customers" || menu === "audit" || menu === "bundles") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));

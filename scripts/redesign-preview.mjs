@@ -222,7 +222,7 @@ export const SCREENS = [
     ["admin-outage", "Outages", "AdminOutage", "/dashboard#outages", "Redesigned (#259; the live and fixed stages are in test/redesign-browser/outages.test.mjs)", { panel: "outages", menu: "outages", design: "stage=detected",
       state: "no outage: the form to post a notice (the \"detected automatically\" hint needs an open router incident, which the preview has none of)", expect: ["#outagePost"] }],
     ["admin-promotions", "Promotions", "AdminPromotions", "/dashboard#promotions", "Redesigned (#302; a running offer is in test/redesign-browser/promotions.test.mjs)", { panel: "promotions", menu: "promotions" }],
-    ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
+    ["admin-insights", "Insights", "AdminInsights", "/dashboard#insights", "Redesigned (#382: from the insights API; access-point load not measured while the access points run standalone)", { panel: "insights", menu: "insights", expect: [".admin-insights__metrics"] }],
     ["admin-profile", "Profile & security", "AdminProfile", "/dashboard#profile", "Redesigned (password, not PIN, until Phase 6; no name or email editing: the API has none; add staff instead of invitations)", { panel: "profile", menu: "profile" }],
   ].map(([id, title, desktop, path, status, options]) => ({ id, app: "admin", title, status: status || SHELL, desktop, path, ...(options || {}) })),
 ];
