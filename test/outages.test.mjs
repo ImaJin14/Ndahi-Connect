@@ -130,3 +130,22 @@ test("a customer with a newer bundle since the outage began is held for review, 
   assert.equal(Date.parse(v("v-on").expiresAt) - Date.parse(was("v-on").expiresAt), 3 * 36e5);
 });
 
+
+// The area list (#385, #384): the owner names the site and each area once;
+// the form offers "All sites · <site>" and "<area> only".
+test("the owner names the outage areas; a whole-site outage is marked", async (t) => {
+  const { store, call } = await start(t);
+  assert.deepEqual((await call("/api/admin/outages", undefined, "operator")).body.areas, { site: "", areas: [] });
+  const areas = { site: " Bamenda ", areas: ["AP-Market", "AP-Junction", "AP-Market", " "] };
+  assert.equal((await call("/api/admin/outages/areas", areas, "operator")).status, 403, "owner only");
+  assert.equal((await call("/api/admin/outages/areas", { site: "Bamenda" }, "owner")).status, 400);
+  assert.equal((await call("/api/admin/outages/areas", { site: "x", areas: Array.from({ length: 21 }, (_, i) => `AP-${i}`) }, "owner")).status, 400);
+  const saved = await call("/api/admin/outages/areas", areas, "owner");
+  assert.deepEqual(saved.body.areas, { site: "Bamenda", areas: ["AP-Market", "AP-Junction"] }, "trimmed, unique, no blanks");
+  assert.deepEqual((await call("/api/admin/outages", undefined, "auditor")).body.areas, { site: "Bamenda", areas: ["AP-Market", "AP-Junction"] });
+  const posted = await call("/api/admin/outages", { ...notice, allSites: true }, "owner");
+  assert.equal(posted.body.outage.allSites, true);
+  assert.equal((await call("/api/outage")).body.outage.area, "All sites · Bamenda", "customers see the site");
+  const s = await store.snapshot();
+  assert.deepEqual(s.auditLogs.find((a) => a.action === "outage.areas_updated").meta, { site: "Bamenda", areas: ["AP-Market", "AP-Junction"] });
+});
