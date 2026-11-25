@@ -1342,12 +1342,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [ ] Physically verified: real Mobile Money purchases/refunds, pickup fulfilment, stock reconciliation and each advertised compatible model remain pending. Delivery, multi-product carts and bundled internet offers remain later phases. [Proposal](../store-app/readme.md) · [Operations](operations/device-store.md).
 
 - [-] **ADM-391 — Store orders, redesigned (batch 6)** ([#391](https://github.com/ImaJin14/Ndahi-Connect/issues/391))
-  - **Implemented and tested** (PR #467, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #467):
     - the drawn screen: open orders (paid, ready and payment review, oldest first; a guest by their masked number) beside the chosen order and its next step;
     - Refund (owner only) is one confirmation with no reason field for an order not yet handed over. The reason recorded is "Refunded before collection", and the device goes back into stock once the provider confirms;
     - "Find an order" and "More order actions" kept, collapsed (owner, 25 Nov);
     - English and French.
-  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+  - **Not yet:** used by the owner on the live admin.
 
 ## Reseller ledger and automatic account repair (7 November 2026)
 
@@ -1386,11 +1386,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [ ] Apply through an authorized admin session using draft products and inventory ledger entries; review/publish approved listings. No live catalogue/stock change or physical compatibility test performed by intake preparation. Checkout remains closed.
 
 - [-] **ADM-388 — Products and stock, redesigned (batch 6)** ([#388](https://github.com/ImaJin14/Ndahi-Connect/issues/388))
-  - **Implemented and tested** (PR #468, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #468):
     - the drawn checkout switch, which asks before opening or closing; the change is audited, and a missing store setting is named before opening;
     - the drawn catalogue: price, − count +, Shown/Hidden and Edit, in English and French;
     - stock history, categories and store settings kept, collapsed below; the search, row Delete, Refresh and View storefront removed (owner, 25 Nov).
-  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+  - **Not yet:** used by the owner on the live admin.
 
 ## Owner-approved live initial catalogue (8 November 2026)
 
@@ -1400,12 +1400,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [ ] Deployment and exact live product/stock verification tracked in the release PR. User will update selling prices, exact travel/Wavlink models, photos, package details and warranty later; physical compatibility remains unverified.
 
 - [-] **ADM-387 — Edit product, redesigned (batch 6)** ([#387](https://github.com/ImaJin14/Ndahi-Connect/issues/387))
-  - **Implemented and tested** (PR #469, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #469):
     - name, description and warranty edited one language at a time with the drawn EN/FR switch; both languages saved together;
     - the drawn photo slots (main outlined, "+ Add", still up to 30), price as a whole number of FCFA, SKU, category, stock and visibility;
     - "Saved · live in the store" beside Save product;
     - More product details, Photo details and More settings kept, collapsed (owner, 25 Nov); English and French.
-  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+  - **Not yet:** used by the owner on the live admin.
 
 ## MoMo customer payment message (9 November 2026)
 
@@ -1421,11 +1421,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Deployment: pending release verification; see the matching PR for final deployment evidence.
 
 - [-] **ADM-392 — Print a batch, redesigned (batch 6)** ([#392](https://github.com/ImaJin14/Ndahi-Connect/issues/392))
-  - **Implemented and tested** (PR #470, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #470):
     - every resale batch gets a reference from the server ("B-2511-01": the day in Douala and the batch's number that day), shown as "Print batch B-2511-01";
     - the drawn head, note and tray; the slips stay 58/80 mm thermal, chosen as "Slip width" (owner, 25 Nov);
     - the note says codes work as soon as they're made; Print then reads "Sent to printer", with the preview link kept; English and French.
-  - **Not yet:** merged, deployed, or a batch printed on the real thermal printer from the new screen.
+  - **Not yet:** a batch printed on the real thermal printer from the new screen.
 
 ### Unified voucher slip design — issue #205 (9 November 2026)
 
@@ -1829,13 +1829,13 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
   - **Not yet:** seen on a real Mobile Money payment.
 
 - [-] **ADM-381 — Live devices, one row per customer (batch 6)** ([#381](https://github.com/ImaJin14/Ndahi-Connect/issues/381))
-  - **Implemented and tested** (PR #471, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #471):
     - one row per customer ("4 of 4 slots", "2 devices", "1 router", or a code), today's data counted from midnight in Douala, and a devices pop-up with masked addresses;
     - Disconnect ends the session only (the slot stays); Disconnect all is one audited request;
     - access point and signal show "—" (standalone access points, owner 25 Nov);
     - a Home WISP router is one row from the Home reading;
     - English and French.
-  - **Not yet:** merged, deployed, used by the owner on the live admin; and the Home WISP router's Disconnect checked on the RB5009 with the first Home WISP customer (home-wisp-test-plan.md, test 13).
+  - **Not yet:** used by the owner on the live admin; and the Home WISP router's Disconnect checked on the RB5009 with the first Home WISP customer (home-wisp-test-plan.md, test 13).
 
 ## Admin screens (batch 5, 25 November 2026)
 
