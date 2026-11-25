@@ -1761,7 +1761,7 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Network setup in four drawn steps (#384, batch 7, 25 November 2026)
 
 - [-] **ADM-384 — Network setup, redesigned (batch 7)** ([#384](https://github.com/ImaJin14/Ndahi-Connect/issues/384)). Owner decisions: [first](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7171756340), [second](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7172610323).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #476, not merged yet):
     - the drawn steps (Router, Access points, Wi-Fi, Review) and fields first; service username and password, AP port, gateway, DHCP range and DNS in a closed "More router settings" (secrets entered, never shown back);
     - "Discover router" saves a new or changed connection, then reads the router; "Next: access points" makes the router preview;
     - with standalone access points (production), the Access points and Wi-Fi steps carry a note only;
