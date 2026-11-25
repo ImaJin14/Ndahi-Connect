@@ -137,6 +137,14 @@ test("Admin home shows the drawn figures, Needs attention and Latest payments fr
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.mouse.move(0, 0);
   await page.screenshot({ path: `${screenshots}/home-en.png`, fullPage: true });
+  // Keyboard: after the head's buttons, Tab reaches Needs attention, and Enter opens where it leads.
+  await page.locator("#adminHeadActions a[href$='#product/new']").focus();
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement?.innerText.replace(/\s+/g, " ").trim()), "2 payments waiting over 10 min →");
+  assert.notEqual(await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle), "none", "the focused item shows a focus ring");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => location.hash === "#payments");
+  await page.locator("#panel-payments:not([hidden])").waitFor();
   // Another screen keeps the usual title size.
   await page.goto(`${servers.admin}/dashboard#customers`);
   await page.locator("#panel-customers:not([hidden])").waitFor();
