@@ -9,14 +9,15 @@ import { lowContrastText } from "../../scripts/ui-checks.mjs";
 
 // Bundles arranged Daily, Weekly and Monthly with filters (owner, 21 Nov 2026:
 // "auto arrange bundles based on monthly, weekly and daily plans with filters
-// on the bundle page"), on the customer buy page and in Admin → Bundles.
-// Local servers only.
+// on the bundle page"), on the customer buy page. Admin → Bundles became the
+// bundle catalogue on 24 Nov (#338, canvas AdminBundles): its price grid rows
+// by validity, checked in scripts/check-admin-app-journeys.mjs. Local servers only.
 
 const listen = (server) => new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", () => resolve(server)); });
 const close = (server) => new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); });
 const reservePort = async () => { const server = await listen(http.createServer()); const port = server.address().port; await close(server); return port; };
 
-test("bundles are arranged by period with filters on the buy page and in Admin → Bundles", { timeout: 300000 }, async (t) => {
+test("bundles are arranged by period with filters on the buy page", { timeout: 300000 }, async (t) => {
   const secret = "redesign-bundle-periods", store = createStore({ persistent: false });
   await store.transaction((s) => {
     s.bundles.push({ id: "three-days", name: "Three Days", price: 600, quotaGb: 3, validityHours: 72, deviceLimit: 1, custom: true, createdAt: "2026-11-21T00:00:00Z" },
@@ -94,19 +95,5 @@ test("bundles are arranged by period with filters on the buy page and in Admin �
     assert.deepEqual(errors, []);
     await context.close();
 
-    // Admin → Bundles: the same periods, with counts.
-    ({ context, page, errors } = await open(width, [{ name: "admin_session", value: "owner-token", url: `${api}/api/admin`, httpOnly: true, sameSite: "Lax" }]));
-    await page.goto(`${admin}/dashboard#bundles`);
-    const adminChips = page.getByRole("group", { name: "Show bundles" }).getByRole("button");
-    await adminChips.first().waitFor();
-    assert.deepEqual((await adminChips.allInnerTexts()).map((t) => t.replace(/\s+/g, " ")), ["All 10", "Daily 2", "Weekly 2", "Monthly 6"]);
-    assert.deepEqual(await visibleCards(page, '[data-bundle-group="weekly"] [data-bundle-card]'), ["three-days", "weekly"]);
-    await check(page, `admin-bundles-all-${width}`);
-    await page.getByRole("button", { name: /^Daily 2$/ }).click();
-    assert.deepEqual(await visibleCards(page, "#panel-bundles [data-bundle-card]"), ["six-hours", "daily"]);
-    assert.equal(await page.locator('#panel-bundles [data-bundle-card="six-hours"]').getByRole("link", { name: "Edit Six Hours" }).count(), 1);
-    await check(page, `admin-bundles-daily-${width}`);
-    assert.deepEqual(errors, []);
-    await context.close();
   }
 });

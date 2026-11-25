@@ -336,26 +336,21 @@ test("all v2/store pages load cleanly and fixed customer CSRF + admin self-servi
       await page.locator("#adminTitle").waitFor({ state: "visible" });
     }
 
-    // Create and delete a custom bundle on #bundles
+    // Bundle catalogue (#338): unpublish and publish a bundle, then delete one never bought.
     await page.goto(`${adminUrl}/dashboard#bundles`);
-    const bundleForm = page.locator("#bundle");
-    await bundleForm.waitFor({ state: "visible" });
-    await bundleForm.locator('input[name="name"]').fill("Smoke Weekend");
-    await bundleForm.locator('input[name="price"]').fill("750");
-    await bundleForm.locator('input[name="quotaGb"]').fill("3");
-    await bundleForm.locator('input[name="validityHours"]').fill("48");
-    await bundleForm.locator('input[name="deviceLimit"]').fill("2");
-    const [createRes] = await Promise.all([
-      page.waitForResponse((r) => r.url().endsWith("/api/admin/bundles") && r.request().method() === "POST"),
-      bundleForm.locator('button[type="submit"]').click(),
-    ]);
-    assert.equal(createRes.status(), 201);
-    const deleteBtn = page.locator('[data-delete-bundle]').first();
-    await deleteBtn.waitFor({ state: "visible" });
-    page.once("dialog", (dialog) => dialog.accept());
+    const row = page.locator('[data-cat-row="unlimited-7d-3"]');
+    await row.waitFor({ state: "visible" });
+    for (const [label, path] of [["Unpublish", "unpublish"], ["Publish", "publish"]]) {
+      const [res] = await Promise.all([
+        page.waitForResponse((r) => r.url().endsWith(`/api/admin/catalogue/${path}`) && r.request().method() === "POST"),
+        row.getByRole("button", { name: `${label} Personal Unlimited · 7 days · 3 devices`, exact: true }).click(),
+      ]);
+      assert.equal(res.status(), 200);
+    }
+    await row.getByRole("button", { name: "Delete Personal Unlimited · 7 days · 3 devices", exact: true }).click();
     const [delRes] = await Promise.all([
-      page.waitForResponse((r) => r.url().endsWith("/api/admin/bundles/delete") && r.request().method() === "POST"),
-      deleteBtn.click(),
+      page.waitForResponse((r) => r.url().endsWith("/api/admin/catalogue/delete") && r.request().method() === "POST"),
+      page.getByRole("alertdialog", { name: "Remove bundle" }).getByRole("button", { name: "Delete permanently", exact: true }).click(),
     ]);
     assert.equal(delRes.status(), 200);
 
