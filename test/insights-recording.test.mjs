@@ -87,7 +87,8 @@ async function usageFixture() {
     now = new Date(at); readings = next;
     await store.transaction((s) => enqueueRouterCommand(s, { action: "sync_usage" }, () => now));
     while (!(await processor.process()).idle);
-    return (await store.snapshot()).insightCounters;
+    // The device samples; each sync also counts a router check for Admin home (#377).
+    return (await store.snapshot()).insightCounters.filter((row) => row.type === "devices_hourly");
   };
   return { read };
 }

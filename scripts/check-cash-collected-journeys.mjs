@@ -110,13 +110,17 @@ try {
       } else {
         await page.locator(cashView ? "#admin-nav-cash" : "#admin-nav-payments").click();
       }
+      // v1 Home shows cash collected since 1 November (7,000 FCFA after the
+      // refund). v2 Home shows revenue today (#377), nothing on this fixed day,
+      // and Cash and settlements opens on the last 7 days (#379): 3,000 FCFA
+      // of internet payments and 5,000 FCFA of store purchases.
+      const takings = uiV2 ? "#cashCollectedReport" : "#cashCollectedMetric", total = uiV2 ? "3,000" : "7,000";
       if (role === "owner") {
-        await page.waitForFunction(() =>
-          document
-            .getElementById("cashCollectedMetric")
-            ?.textContent.includes("7,000"),
-        );
-        assert.match(
+        await page.waitForFunction(([selector, value]) => document.querySelector(selector)?.textContent.includes(value), [takings, total]);
+        if (uiV2) {
+          assert.equal(await page.locator("#revenueTodayMetric").textContent(), "0 FCFA");
+          assert.match(await page.locator("#cashCollectedReport").innerText(), /3,000 FCFA\s*Internet payments, last 7 days[\s\S]*5,000 FCFA\s*Store purchases, last 7 days/);
+        } else assert.match(
           await page.locator("#cashCollectedReport").innerText(),
           /1 November 2026 onward/,
         );
@@ -130,15 +134,11 @@ try {
           /Recorded offline voucher sales|99,999|88,888|77,777/,
         );
         await page.reload();
-        await page.waitForFunction(() =>
-          document
-            .getElementById("cashCollectedMetric")
-            ?.textContent.includes("7,000"),
-        );
+        await page.waitForFunction(([selector, value]) => document.querySelector(selector)?.textContent.includes(value), [takings, total]);
       } else {
         assert.equal(await page.locator("#cashCollectedReport").count(), 0);
         assert.equal(
-          await page.locator("#cashCollectedMetric").innerText(),
+          await page.locator(uiV2 ? "#revenueTodayMetric" : "#cashCollectedMetric").innerText(),
           "Unavailable",
         );
       }

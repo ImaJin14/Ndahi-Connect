@@ -193,7 +193,7 @@ export const SCREENS = [
   // Admin artboards are desktop (1280px) only.
   ...[
     ["admin-login", "Sign in", "AdminLogin", "/login", "Redesigned look; today's username + password or passkey stays until Phase 6 (no email + PIN two-step yet)", { signedOut: true, expect: ["#login"] }],
-    ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned", { panel: "home" }],
+    ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned (#377): every figure from the API, with router uptime recorded from each router check", { panel: "home" }],
     ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (no access point, signal or today's usage: the router doesn't report them)", { panel: "devices", menu: "devices" }],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections", "Redesigned (no uplink speed, per-network payment health or check times: none are recorded)", { panel: "connections", menu: "connections" }],
     ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html", "Redesigned (pilot evidence is a JSON report with an audit reason, not free notes)",
@@ -206,12 +206,12 @@ export const SCREENS = [
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)",
       { open: [{ fill: "#generate [name=\"quantity\"]", value: "3" }, "#generate button[type=\"submit\"]", "#generated a[href=\"/dashboard#voucher-print\"]"],
         panel: "voucher-print", menu: "vouchers", hash: "^#voucher-print$", expect: ["#voucherPrintSurface"], state: "a new batch of 3 demo vouchers, 58 mm" }],
-    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned", { panel: "payments", menu: "payments" }],
+    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned (#386): bundle payments, store orders and reseller cash in one list", { panel: "payments", menu: "payments" }],
     ["admin-store", "Store orders", "AdminStore", "/dashboard#store", "Redesigned", { panel: "store", menu: "store", expect: ["#storeOrdersTitle"] }],
     ["admin-store-services", "Kits & installs", "AdminStoreServices", "/dashboard#store", NOT_BUILT(347), { panel: "store", menu: "store", expect: ["#storeOrdersTitle"] }],
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)", { panel: "store", menu: "products", expect: ["#storeCatalogueTitle"] }],
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", { open: ["a[href*=\"#product/\"]:not([href$=\"/new\"])"], panel: "store", menu: "products", hash: "^#product/", expect: ["#storeProductForm"] }],
-    ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (no provider settlements or period switch until the API records them)", { panel: "cash", menu: "cash" }],
+    ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (#379): Today, 7 days or Month, and net provider settlements from saved payments", { panel: "cash", menu: "cash" }],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-vouchers-batch", "Vouchers — batch", "AdminVouchers", "/dashboard#vouchers", "Redesigned; existing batch and thermal print workflow", { panel: "vouchers", menu: "vouchers", design: "mode=batch", open: ['[data-voucher-mode="batch"]'], expect: ["#generate", "#voucherQuantity"] }],

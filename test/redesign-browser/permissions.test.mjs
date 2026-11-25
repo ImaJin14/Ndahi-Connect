@@ -225,7 +225,8 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
               await metrics.nth(1).waitFor({ state: "visible" });
               assert.equal(await metrics.nth(1).locator(".nd-metric__value").innerText(), "Unavailable");
               assert.equal(await metrics.nth(0).locator(".nd-metric__value").innerText(), "0");
-              assert.equal(await page.locator("#cashCollectedMetric").innerText(), "Unavailable");
+              // Takings on v2 Home are "Revenue today" (#377).
+              assert.equal(await page.locator("#revenueTodayMetric").innerText(), "Unavailable");
               }
               for (const nav of ["payments", "customers", "audit"]) {
                 assert.equal(await page.locator(`[data-admin-nav="${nav}"]`).count(), 0);
@@ -255,8 +256,10 @@ test("admin role permissions stay scoped at phone and desktop sizes on both UI v
             }
           } else {
             assert.match(body, /Payments|Revenue/i);
-            assert.notEqual(await page.locator("#cashCollectedMetric").innerText(), "Unavailable");
-            assert.match(await page.locator("#cashCollectedMetric").innerText(), /3[,.]?000/);
+            // v1 Home shows cash collected since 1 November; v2 Home shows revenue today (#377).
+            const takings = page.locator(variant.name === "v2" ? "#revenueTodayMetric" : "#cashCollectedMetric");
+            assert.notEqual(await takings.innerText(), "Unavailable");
+            assert.match(await takings.innerText(), /3[,.]?000/);
             if (variant.name === "v2") {
               await page.goto(`${admin}/dashboard?${variant.query}#vouchers`);
               await page.locator("#panel-vouchers:not([hidden])").waitFor({ state: "visible" });
