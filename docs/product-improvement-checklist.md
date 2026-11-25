@@ -1385,6 +1385,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [ ] Confirm exact travel-router/Wavlink model codes, hardware revisions and all four FCFA selling prices; finish model-specific official descriptions, real package contents and local warranty.
 - [ ] Apply through an authorized admin session using draft products and inventory ledger entries; review/publish approved listings. No live catalogue/stock change or physical compatibility test performed by intake preparation. Checkout remains closed.
 
+- [-] **ADM-388 — Products and stock, redesigned (batch 6)** ([#388](https://github.com/ImaJin14/Ndahi-Connect/issues/388))
+  - **Implemented and tested** (PR #468, not merged yet):
+    - the drawn checkout switch, which asks before opening or closing; the change is audited, and a missing store setting is named before opening;
+    - the drawn catalogue: price, − count +, Shown/Hidden and Edit, in English and French;
+    - stock history, categories and store settings kept, collapsed below; the search, row Delete, Refresh and View storefront removed (owner, 25 Nov).
+  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+
 ## Owner-approved live initial catalogue (8 November 2026)
 
 - [x] Implemented: publish the four requested products with 10/6/2/4 units (22 total), conservative EN/FR descriptions, null prices displayed as “Price to be confirmed”, editable admin fields and server-side purchase rejection until a positive price is set. Exact model details/warranty remain unconfirmed where not supplied.

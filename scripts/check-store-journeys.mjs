@@ -227,21 +227,32 @@ try {
         .count(),
       0,
     );
-    // v2 (canvas: AdminProducts): the checkout control sits on Products.
-    if (uiV2) await panel.goto("http://127.0.0.1:9191/dashboard#products");
-    await panel
-      .getByRole("button", { name: "Close checkout", exact: true })
-      .click();
-    await panel
-      .getByText("Closed — new orders paused", { exact: true })
-      .waitFor();
-    assert.equal((await store.snapshot()).storeSettings.open, false);
-    await panel
-      .getByRole("button", { name: "Open checkout", exact: true })
-      .click();
-    await panel
-      .getByText("Open — accepting new orders", { exact: true })
-      .waitFor();
+    // v2 (canvas: AdminProducts): the checkout switch sits on Products and
+    // asks before changing (#388); this journey accepts every confirmation.
+    if (uiV2) {
+      await panel.goto("http://127.0.0.1:9191/dashboard#products");
+      const checkout = panel.getByRole("switch", { name: "Store checkout open", exact: true });
+      await checkout.click();
+      await panel.getByText("Store checkout is closed", { exact: true }).waitFor();
+      assert.equal(await checkout.getAttribute("aria-checked"), "false");
+      assert.equal((await store.snapshot()).storeSettings.open, false);
+      await checkout.click();
+      await panel.getByText("Store checkout is open", { exact: true }).waitFor();
+    } else {
+      await panel
+        .getByRole("button", { name: "Close checkout", exact: true })
+        .click();
+      await panel
+        .getByText("Closed — new orders paused", { exact: true })
+        .waitFor();
+      assert.equal((await store.snapshot()).storeSettings.open, false);
+      await panel
+        .getByRole("button", { name: "Open checkout", exact: true })
+        .click();
+      await panel
+        .getByText("Open — accepting new orders", { exact: true })
+        .waitFor();
+    }
     assert.equal((await store.snapshot()).storeSettings.open, true);
     checks++;
     await panel.getByRole("link", { name: "Home", exact: true }).click();
@@ -382,7 +393,16 @@ try {
     }
     await row.getByText("5,500 FCFA", { exact: true }).waitFor();
     checks++;
-    await row.getByRole("button", { name: "Delete", exact: true }).click();
+    if (uiV2) {
+      // v2 (canvas: AdminProducts, #388): rows have no Delete; it is on the
+      // product's own page, possibly in a collapsed section.
+      await row.getByRole("link", { name: "Edit Browser draft " + width, exact: true }).click();
+      await panel.locator("#storeProductForm").waitFor();
+      // By CSS: a role locator can't see the button inside a closed section.
+      const holder = panel.locator("details", { has: panel.locator("[data-delete-product]") });
+      if ((await holder.count()) && !(await holder.evaluate((d) => d.open))) await holder.locator(":scope > summary").click();
+      await panel.getByRole("button", { name: "Delete product", exact: true }).click();
+    } else await row.getByRole("button", { name: "Delete", exact: true }).click();
     await row.waitFor({ state: "detached" });
     checks++;
     // v2: categories, the stock ledger and settings are disclosures under the catalogue.
@@ -447,24 +467,39 @@ try {
       snapshot.settings.contact = "";
       return route.fulfill({ response, json: snapshot });
     });
-    await panel.getByRole("button", { name: "Refresh", exact: true }).click();
-    await panel
-      .getByText("Closed — new orders paused", { exact: true })
-      .waitFor();
-    assert.equal(
+    if (uiV2) {
+      // v2 (#388): no Refresh button (the page reloads); with a setting
+      // missing, the switch says what to fill in and opens Store settings.
+      await panel.reload();
+      await panel.getByText("Store checkout is closed", { exact: true }).waitFor();
+      await panel.getByRole("switch", { name: "Store checkout open", exact: true }).click();
       await panel
-        .getByRole("button", { name: "Open checkout", exact: true })
-        .isDisabled(),
-      true,
-    );
-    await panel
-      .getByText("Configuration missing: Contact details.", { exact: true })
-      .waitFor();
-    await panel.unroute("**/api/admin/store");
-    await panel.getByRole("button", { name: "Refresh", exact: true }).click();
-    await panel
-      .getByText("Open — accepting new orders", { exact: true })
-      .waitFor();
+        .getByText("Fill in Store settings before opening checkout: Contact details.", { exact: true })
+        .waitFor();
+      assert.equal(await panel.locator("#storeSettings").evaluate((d) => d.open), true);
+      await panel.unroute("**/api/admin/store");
+      await panel.reload();
+      await panel.getByText("Store checkout is open", { exact: true }).waitFor();
+    } else {
+      await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+      await panel
+        .getByText("Closed — new orders paused", { exact: true })
+        .waitFor();
+      assert.equal(
+        await panel
+          .getByRole("button", { name: "Open checkout", exact: true })
+          .isDisabled(),
+        true,
+      );
+      await panel
+        .getByText("Configuration missing: Contact details.", { exact: true })
+        .waitFor();
+      await panel.unroute("**/api/admin/store");
+      await panel.getByRole("button", { name: "Refresh", exact: true }).click();
+      await panel
+        .getByText("Open — accepting new orders", { exact: true })
+        .waitFor();
+    }
     checks++;
     await panel.screenshot({
       path: `/tmp/ndahi-store-admin-${width}.png`,
