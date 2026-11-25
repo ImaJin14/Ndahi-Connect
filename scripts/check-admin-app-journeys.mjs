@@ -152,8 +152,9 @@ try {
     await page.screenshot({ path: `${screenshots}/vouchers-${width}.png`, fullPage: true });
 
     await page.getByRole("link", { name: "Print slips", exact: true }).click();
-    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
-    assert.match(await page.locator("#adminLede").textContent(), /^3 slips · /);
+    // A batch is named by its reference (canvas: AdminVoucherPrint, #392).
+    await page.getByRole("heading", { name: /^Print batch B-\d{4}-\d{2}$/ }).waitFor();
+    assert.match(await page.locator("#adminLede").textContent(), /^3 slips · .* · 58 mm thermal slips$/);
     assert.equal(await page.locator("#voucherPrintSurface .thermal-slip").count(), 3);
     await page.getByRole("button", { name: "Print 3 slips", exact: true }).waitFor();
     assert.equal(await page.locator("#adminEyebrow").isVisible(), false, "the back link replaces the eyebrow");
@@ -166,7 +167,7 @@ try {
     assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
     // A reload forgets the batch, so its print screen falls back to Vouchers.
     await page.evaluate(() => { location.hash = "voucher-print"; });
-    await page.getByRole("heading", { name: "Print 3 vouchers", exact: true }).waitFor();
+    await page.getByRole("heading", { name: /^Print batch B-\d{4}-\d{2}$/ }).waitFor();
     await page.reload();
     await page.waitForFunction(() => location.hash === "#vouchers");
     await page.getByRole("heading", { name: "Your vouchers.", exact: true }).waitFor();

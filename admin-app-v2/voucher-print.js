@@ -11,11 +11,13 @@ let activePrintCleanup = null;
 
 // v2: `toolbar` puts the format and print controls in the page head (canvas:
 // AdminVoucherPrint) and `labels` localizes them; without them the v1 toolbar
-// sits above the slips.
+// sits above the slips. `onLayout` hears the chosen width (the page head
+// names it), and `labels.sent` is the button's "Sent to printer", as drawn.
 export function mountGeneratedVoucherPrint({
   container,
   toolbar = null,
   labels = null,
+  onLayout = null,
   vouchers = [],
   plan = {},
   layout = "thermal-58",
@@ -78,6 +80,7 @@ export function mountGeneratedVoucherPrint({
       select.onchange = () => {
         currentLayout = VOUCHER_PRINT_LAYOUTS.includes(select.value) ? select.value : "thermal-58";
         render();
+        onLayout?.(currentLayout);
       };
     }
     if (printButton) {
@@ -88,6 +91,7 @@ export function mountGeneratedVoucherPrint({
           let fallback = controls.querySelector("[data-open-print-preview]");
           if (!fallback) { fallback = document.createElement("a"); fallback.dataset.openPrintPreview = "true"; fallback.textContent = labels ? labels.openHere : "Open print preview in this tab"; (controls.querySelector(".voucher-print-controls") || controls.querySelector(".voucher-print-toolbar")).appendChild(fallback); }
           fallback.href = url;
+          if (labels?.sent) printButton.textContent = labels.sent;
         }
       };
     }
