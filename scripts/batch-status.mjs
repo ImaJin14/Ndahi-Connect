@@ -46,6 +46,14 @@ export function checksState(runs) {
   return { state: "green", failing: [] };
 }
 
+// Merge batches runs are never cancelled (#454), so they can overlap and finish
+// out of order. A run skips rewriting the tracking issue once a newer run of
+// the workflow has started; the newest run's report is the one that stays.
+export function newerRunStarted(runs, runNumber) {
+  const current = Number(runNumber);
+  return Number.isSafeInteger(current) && (runs || []).some((run) => Number(run.run_number) > current);
+}
+
 export function changesRequested(reviews) {
   const last = new Map();
   for (const r of reviews || []) if (["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(r.state)) last.set(r.user?.login, r.state);
@@ -196,8 +204,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   console.log(markdown);
   if (process.argv.includes("--update-issue")) {
     if (!Number.isSafeInteger(plan.trackingIssue) || plan.trackingIssue < 1) throw new Error("trackingIssue in merge-batches.json must be an issue number");
-    await api(`repos/${repo}/issues/${plan.trackingIssue}`, { method: "PATCH", body: { body: markdown } });
-    console.error(`Updated #${plan.trackingIssue}.`);
+    const runNumber = process.env.GITHUB_RUN_NUMBER;
+    const runs = runNumber ? (await api(`repos/${repo}/actions/workflows/merge-batches.yml/runs?per_page=20`)).workflow_runs : [];
+    if (newerRunStarted(runs, runNumber)) console.error(`Skipped: a newer Merge batches run rewrites #${plan.trackingIssue}.`);
+    else {
+      await api(`repos/${repo}/issues/${plan.trackingIssue}`, { method: "PATCH", body: { body: markdown } });
+      console.error(`Updated #${plan.trackingIssue}.`);
+    }
   }
   if (process.argv.includes("--strict") && summary.early.length) process.exit(1);
 }

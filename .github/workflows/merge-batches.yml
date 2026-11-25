@@ -20,10 +20,14 @@ permissions:
   issues: write
   pull-requests: read
   checks: read
+  actions: read
 
-concurrency:
-  group: merge-batches
-  cancel-in-progress: true
+# No concurrency group: a run is never cancelled. Runs started by workflow_run,
+# schedule and workflow_dispatch report on the head of main, and render.yaml
+# deploys a commit only once all of its checks pass (autoDeployTrigger:
+# checksPass), so a cancelled run there kept a merged commit out of production
+# (#454). Runs may overlap; only the newest rewrites the tracking issue
+# (newerRunStarted in scripts/batch-status.mjs).
 
 jobs:
   status:
