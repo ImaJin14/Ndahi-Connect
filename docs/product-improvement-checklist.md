@@ -1803,31 +1803,48 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
 Owner decisions are on each issue (25 Nov). The payments list, today's money and router uptime are added to the API first; the screens never compute money themselves.
 
 - [-] **ADM-377 — Admin home** ([#377](https://github.com/ImaJin14/Ndahi-Connect/issues/377))
-  - **Implemented and tested:**
+  - **Implemented, tested, merged and deployed** (PR #458):
     - five figures from the API: devices online, bundles sold today, revenue today (the cash report from Douala midnight), store orders to prepare, and router uptime over 7 days;
     - router uptime is the share of router usage syncs that reached the router, recorded per hour from now on, with no figure until checks exist;
     - Needs attention shows the drawn items plus the operational alerts;
     - Latest payments lists bundle payments, store orders and reseller cash handoffs from one records collection (`allPayments`, owners and operators only).
-  - **Not merged.**
+  - **Not yet:** used by the owner on the live admin.
 - [-] **ADM-386 — Admin payments** ([#386](https://github.com/ImaJin14/Ndahi-Connect/issues/386))
-  - **Implemented and tested:**
+  - **Implemented, tested, merged and deployed** (PR #459):
     - All payments lists bundle payments, store orders ("Guest · phone", "Order NS-…") and reseller cash handoffs, searched by phone, order or reference, with the drawn chips;
     - the four figures come from the dashboard: today's takings by source on the cash report's basis, and the list's waiting and failed counts;
     - "Check with provider" checks that payment only: a store order through the store's own check;
     - kept by the owner: refund actions, the provider reference, paging and Provider checks.
-  - **Not merged.**
+  - **Not yet:** used by the owner on the live admin.
 - [-] **ADM-379 — Cash and settlements** ([#379](https://github.com/ImaJin14/Ndahi-Connect/issues/379))
-  - **Implemented and tested:**
+  - **Implemented, tested, merged and deployed** (PR #463):
     - Today, 7 days and Month (Douala time, never before 1 Nov) replace the fixed total;
     - the figures and the per-network table come from `GET /api/admin/cash?period=`: confirmed collections, what customers paid, the saved fees, completed refunds and the net;
     - the accountant's CSV is the table as shown.
   - **Not a completed settlement:** the net is what MeSomb should pay from saved payments. Completed settlements read from MeSomb wait for #191.
-  - **Not merged.**
+  - **Not yet:** used by the owner on the live admin, or compared with a MeSomb statement.
 - [-] **ADM-390 — Resellers** ([#390](https://github.com/ImaJin14/Ndahi-Connect/issues/390))
-  - **Implemented and tested:**
+  - **Implemented, tested, merged and deployed** (PR #461):
     - one commission rate for every reseller ("Commission split: N% · Change"), stored in `resellerSettings`, for codes issued from then on; issued codes keep their rate;
     - the drawn ledger (assigned codes, redeemed sales, cash, commission, remitted, net owed) with each reseller's @sign-in name;
     - Record a cash handoff and its confirmation;
     - corrections and the histories kept below;
     - English and French.
-  - **Not merged.**
+  - **Not yet:** used by the owner and a reseller on the live admin.
+- [-] **ADM-416 — Reseller home** ([#416](https://github.com/ImaJin14/Ndahi-Connect/issues/416))
+  - **Implemented, tested, merged and deployed** (PR #462):
+    - a reseller's Home on a phone, matched to the canvas at 390 px: the two bottom buttons at the bottom of the screen, the 38 px brand mark and the QR in its 142 px frame;
+    - "keeps N% of each sale" is the one rate every reseller earns (ADM-390), written for the language ("12.5%", "12,5 %").
+  - **Not yet:** used by a reseller on their phone.
+
+## Portal sign-in timeouts (#464, 25 November 2026)
+
+- [-] **PERF-464 — Sign-in timed out while the notification worker blocked the API** ([#464](https://github.com/ImaJin14/Ndahi-Connect/issues/464))
+  - **Cause:** the 15-second notification worker built every account's notification list from the whole database, once per customer and again per item, and reopened a store transaction for each already-sent delivery. The API stopped answering for about 5.5 s every 15 s, and portal sign-in gave up after 15 s ("Taking longer than expected").
+  - **Implemented, tested, merged and deployed** (PR #465):
+    - each customer's list is built from their own records;
+    - accounts that can't receive the push or email are skipped;
+    - finished deliveries open no transaction;
+    - one run at a time.
+  - **Measured in production** after the deploy, from outside: `/api/health` mean 0.55 s, max 0.74 s (was 1.66 s, max 5.69 s); `/api/plans` about 0.5 s (was 5.6–12 s); `/api/status` about 0.5 s (was about 4 s).
+  - **Not yet:** a real portal sign-in on NDAHI Wi-Fi, including through the phone's captive Wi-Fi sheet (owner).
