@@ -1798,6 +1798,15 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
   - **Implemented, tested, merged and deployed** (PR #453): provider answers are normalized (insufficient balance, expired, cancelled or wrong PIN, wrong network, pending, unclear), with the drawn messages and retry rules.
   - **Not yet:** seen on a real Mobile Money payment.
 
+- [-] **ADM-381 — Live devices, one row per customer (batch 6)** ([#381](https://github.com/ImaJin14/Ndahi-Connect/issues/381))
+  - **Implemented and tested** (PR #471, not merged yet):
+    - one row per customer ("4 of 4 slots", "2 devices", "1 router", or a code), today's data counted from midnight in Douala, and a devices pop-up with masked addresses;
+    - Disconnect ends the session only (the slot stays); Disconnect all is one audited request;
+    - access point and signal show "—" (standalone access points, owner 25 Nov);
+    - a Home WISP router is one row from the Home reading;
+    - English and French.
+  - **Not yet:** merged, deployed, used by the owner on the live admin; and the Home WISP router's Disconnect checked on the RB5009 with the first Home WISP customer (home-wisp-test-plan.md, test 13).
+
 ## Admin screens (batch 5, 25 November 2026)
 
 Owner decisions are on each issue (25 Nov). The payments list, today's money and router uptime are added to the API first; the screens never compute money themselves.
