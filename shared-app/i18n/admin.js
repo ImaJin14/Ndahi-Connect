@@ -793,6 +793,11 @@ export const en = {
   adminSuspend: "Suspend",
   adminUnlimited: "unlimited",
   adminDataLeft: "{amount} left",
+  // Customers: time left on an Unlimited bundle (#342).
+  adminDaysLeft: "{count} days left",
+  adminDaysHoursLeft: "{days} d {hours} h left",
+  adminHoursLeft: "{count} h left",
+  adminMinutesLeft: "{count} min left",
   // Voucher detail (canvas: AdminVoucherDetail, #258).
   adminTitleVoucher: "Voucher.",
   adminVoucher: "Voucher",
@@ -1775,6 +1780,11 @@ export const fr = {
   adminSuspend: "Suspendre",
   adminUnlimited: "illimité",
   adminDataLeft: "{amount} restants",
+  // Customers: time left on an Unlimited bundle (#342).
+  adminDaysLeft: "{count} jours restants",
+  adminDaysHoursLeft: "{days} j {hours} h restants",
+  adminHoursLeft: "{count} h restantes",
+  adminMinutesLeft: "{count} min restantes",
   // Voucher detail (canvas: AdminVoucherDetail, #258).
   adminTitleVoucher: "Ticket.",
   adminVoucher: "Ticket",
