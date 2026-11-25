@@ -137,8 +137,13 @@ test("desktop customers pick any Unlimited bundle from one table and pay beside 
   assert.equal(await text(page.locator(".buy-desk__choice")), "Personal Unlimited · 24 hours · 6 devices Unlimited data · restricts sharing");
   assert.equal(await text(page.locator("#deskCost")), "Bundle Price 2,500 XAF Mobile Payment Fee (2%) 50 XAF Total to Pay 2,550 XAF");
   assert.deepEqual(await page.locator('#plans [aria-pressed="true"]').evaluateAll((cells) => cells.map((cell) => cell.getAttribute("aria-label"))), ["24 hours, 6 devices: 2,500 XAF"]);
-  await page.getByRole("radio", { name: "Orange Money" }).click();
+  // The networks are a radio group: one tab stop, arrow keys move the choice.
+  assert.deepEqual(await page.getByRole("radio").evaluateAll((radios) => radios.map((radio) => radio.tabIndex)), [0, -1]);
+  await page.getByRole("radio", { name: "MTN MoMo" }).focus();
+  await page.keyboard.press("ArrowRight");
   assert.equal(await page.getByRole("radio", { name: "Orange Money" }).getAttribute("aria-checked"), "true");
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Orange Money");
+  assert.deepEqual(await page.getByRole("radio").evaluateAll((radios) => radios.map((radio) => radio.tabIndex)), [-1, 0]);
   assert.equal(await page.locator('#purchase [name="network"]').inputValue(), "orange");
   assert.equal(await text(page.locator("#balanceNote")), "Ensure you have at least 2,550 XAF in your Orange Money wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.");
   await page.locator(".buy-desk__wisp").click();

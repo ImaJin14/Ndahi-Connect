@@ -608,6 +608,16 @@ function renderDesk() {
     form.elements.network.value = button.dataset.deskNetwork;
     form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
   };
+  // A radio group: one tab stop, and the arrow keys move the choice.
+  $("#deskNetworks").onkeydown = (event) => {
+    const radios = [...$("#deskNetworks").querySelectorAll("[data-desk-network]")], at = radios.indexOf(document.activeElement);
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (at < 0 || !step) return;
+    event.preventDefault();
+    const next = radios[(at + step + radios.length) % radios.length];
+    next.focus();
+    next.click();
+  };
   renderCheckoutReview();
 }
 function maskDeskPayer() {
@@ -620,7 +630,10 @@ function maskDeskPayer() {
 function renderDeskCost() {
   maskDeskPayer();
   const network = chosenNetwork(), quote = quoteFor(selected, network);
-  $("#deskNetworks")?.querySelectorAll("[data-desk-network]").forEach((button) => button.setAttribute("aria-checked", String(button.dataset.deskNetwork === network)));
+  $("#deskNetworks")?.querySelectorAll("[data-desk-network]").forEach((button, i) => {
+    button.setAttribute("aria-checked", String(button.dataset.deskNetwork === network));
+    button.tabIndex = button.dataset.deskNetwork === network || (!WALLETS[network] && i === 0) ? 0 : -1;
+  });
   const host = $("#deskCostHost");
   if (host) host.innerHTML = deskCost(selected, quote);
   const note = $("#balanceNote");
