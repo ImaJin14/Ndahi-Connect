@@ -29,6 +29,8 @@ test("staff post an outage, customers see it, and time is given back", { timeout
     s.dashboardSessions.push({ id: "sess", customerId: "c-amina", role: "customer", tokenHash: hashSecret("amina", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
     for (const [id, customerId] of [["v-amina", "c-amina"], ["v-jean", "c-jean"]]) s.vouchers.push({ id, customerId, planId: "weekly", code: `NC-${id.slice(2, 6).toUpperCase()}-0001`, status: "active",
       activatedAt: at(-4000), expiresAt: at(2880), quotaBytes: 5e9, usedBytes: 1.8e9, deviceLimit: 3, routerSyncStatus: "synchronized" });
+    // The owner's area names (#385): the form offers "All sites · Bamenda" and "AP-Market only".
+    s.outageAreas = { site: "Bamenda", areas: ["AP-Market"] };
     // The router stopped answering when the outage began.
     s.operationalIncidents.push({ id: "inc-1", key: "k", action: "sync_usage", problem: "unavailable", status: "open", global: true, count: 3, failures: {}, customerIds: [], firstAt: since, lastAt: at(-1) });
   });
@@ -71,11 +73,19 @@ test("staff post an outage, customers see it, and time is given back", { timeout
   assert.equal(await text(desk.locator(".admin-outage__detected")), `The router has not answered since ${clock(since)}. Detected automatically — post a notice so customers know.`);
   assert.equal(await desk.getByLabel("Message (English)").inputValue(), `Our satellite link dropped at ${clock(since)}. We're working on it. The time you lose will be added back to your bundle.`);
   assert.equal(await text(desk.locator(".admin-outage__check").nth(1)), "Send a notification and email to the 2 customers with an active bundle");
+  // As drawn (#385): the area list and "Today 14:20".
+  assert.deepEqual(await desk.locator("#outageArea option").allInnerTexts(), ["All sites · Bamenda", "AP-Market only"]);
+  assert.match(await desk.getByLabel("Started").inputValue(), new RegExp(`^(Today|Yesterday) ${clock(since)}$`));
   await check(desk, "admin-detected");
+  const started = await desk.getByLabel("Started").inputValue();
+  await desk.getByLabel("Started").fill("teatime");
+  await desk.getByRole("button", { name: "Post notice" }).click();
+  await desk.getByText("Write when it started, like “Today 14:20” or “Yesterday 23:10”.").waitFor();
+  await desk.getByLabel("Started").fill(started);
   await desk.getByRole("button", { name: "Post notice" }).click();
   const live = desk.getByRole("region", { name: "Outage in progress" });
   await live.waitFor();
-  assert.match(await text(live), /Outage in progress Down 2 h 2[4-9] min All sites · since \d\d:\d\d · notice shown to customers · 2 active bundles affected/);
+  assert.match(await text(live), /Outage in progress Down 2 h 2[4-9] min All sites · Bamenda · since \d\d:\d\d · notice shown to customers · 2 active bundles affected/);
   await desk.getByLabel("Post an update").fill("Engineer on site, expected back by 17:00");
   await desk.getByRole("button", { name: "Post update" }).click();
   await desk.getByText("Update posted. Customers see it with the notice.").waitFor();
@@ -85,8 +95,8 @@ test("staff post an outage, customers see it, and time is given back", { timeout
   await phone.goto(`${portal}/dashboard#home`);
   const down = phone.getByRole("status", { name: "Network outage" });
   await down.waitFor();
-  assert.match(await text(down), new RegExp(`^Internet is down in All sites Our satellite link dropped at ${clock(since)}\\. .* Engineer on site, expected back by 17:00 Updated \\d\\d:\\d\\d by NDAHI · next update by \\d\\d:\\d\\d$`));
-  assert.equal(await text(phone.locator(".home-outage-line")), "Network down · All sites");
+  assert.match(await text(down), new RegExp(`^Internet is down in All sites · Bamenda Our satellite link dropped at ${clock(since)}\\. .* Engineer on site, expected back by 17:00 Updated \\d\\d:\\d\\d by NDAHI · next update by \\d\\d:\\d\\d$`));
+  assert.equal(await text(phone.locator(".home-outage-line")), "Network down · All sites · Bamenda");
   assert.equal(await text(phone.locator("#dataBalance [data-bundle-status]")), "No internet");
   assert.match(await text(phone.locator("#dataBalance .nd-meter-legend")), /\+ lost time/);
   await check(phone, "home-down");
@@ -114,7 +124,7 @@ test("staff post an outage, customers see it, and time is given back", { timeout
   await dialog.getByRole("button", { name: "Verify PIN", exact: true }).click();
   await desk.getByText("Outage closed.").waitFor();
   assert.equal(await text(desk.locator(".admin-outage__done")), 'Outage closed. +3 hours added to 2 bundles. Customers now see "We’re back online". Held for review: 1. These customers had more than one bundle around the outage, so no time was added for them. Find them in the audit log (outage.credit_needs_review) and settle by hand.');
-  assert.match(await text(desk.getByRole("region", { name: "Past outages" })), /All sites 2 h 2[4-9] min — \+3 h · 2 customers/);
+  assert.match(await text(desk.getByRole("region", { name: "Past outages" })), /All sites 2 h 2[4-9] min Router not answering \+3 h · 2 customers/);
   await check(desk, "admin-closed");
 
   // The customer: back online with the hours added.

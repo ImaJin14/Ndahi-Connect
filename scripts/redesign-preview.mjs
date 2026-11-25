@@ -219,7 +219,7 @@ export const SCREENS = [
     ["admin-audit", "Audit log", "AdminAudit", "/dashboard#audit", "Redesigned", { panel: "audit", menu: "audit" }],
     ["admin-voucher-reserved", "Voucher waiting for claim", "AdminVoucherDetail", "/dashboard#voucher/{reservedVoucherId}", "Redesigned (#254)", { panel: "voucher", menu: "vouchers", design: "status=waitingClaim", expect: [".admin-voucher__reserved"] }],
     ["admin-voucher-detail", "Voucher detail", "AdminVoucherDetail", "/dashboard#voucher/{voucherId}", "Redesigned (the demo customer's active voucher)", { panel: "voucher", menu: "vouchers", expect: [".admin-voucher__ticket", ".admin-voucher__timeline li"] }],
-    ["admin-outage", "Outages", "AdminOutage", "/dashboard#outages", "Redesigned (#259; the live and fixed stages are in test/redesign-browser/outages.test.mjs)", { panel: "outages", menu: "outages", design: "stage=detected",
+    ["admin-outage", "Outages", "AdminOutage", "/dashboard#outages", "Redesigned (#259, #385: area list, \"Today 14:20\"; the live and fixed stages are in test/redesign-browser/outages.test.mjs)", { panel: "outages", menu: "outages", design: "stage=detected",
       state: "no outage: the form to post a notice (the \"detected automatically\" hint needs an open router incident, which the preview has none of)", expect: ["#outagePost"] }],
     ["admin-promotions", "Promotions", "AdminPromotions", "/dashboard#promotions", "Redesigned (#302; a running offer is in test/redesign-browser/promotions.test.mjs)", { panel: "promotions", menu: "promotions" }],
     ["admin-insights", "Insights", "AdminInsights", "/dashboard#home", NOT_BUILT(262), { panel: "home" }],
