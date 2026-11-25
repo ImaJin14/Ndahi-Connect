@@ -324,41 +324,40 @@ body[data-admin-view="payments"] #adminHeadActions [data-payments-export] { min-
 /* The install prompt keeps v1's markup; v1's --muted is 4.46:1 on this background. */
 .admin-profile #adminInstall p { color: var(--nd-muted); }
 
-/* ---------- Resellers (canvas: AdminResellers): v1's ledger markup, kit look ---------- */
-.admin-resellers .reseller-ledger-section { display: flex; flex-direction: column; gap: var(--nd-space-20); margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
-/* The page head already names the screen; the ledger's own heading stays for screen readers. */
-.admin-resellers .section-heading { display: flex; justify-content: flex-end; margin: 0; }
-.admin-resellers .section-heading > div { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.admin-resellers .payment-chip { padding: 4px 10px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-meta); text-transform: none; }
-.admin-resellers .reseller-ledger-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--nd-space-12); margin: 0; }
-.admin-resellers .reseller-ledger-totals .sales-card { margin: 0; padding: var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); box-shadow: none; }
-.admin-resellers .sales-card .section-kicker { color: var(--nd-muted); font-size: var(--nd-fs-meta); letter-spacing: 0; text-transform: none; font-weight: 600; }
-.admin-resellers .sales-card strong { display: block; margin: 4px 0; color: var(--nd-forest); font-size: 22px; }
-.admin-resellers .sales-card span { color: var(--nd-muted); font-size: var(--nd-fs-meta); }
-.admin-resellers .table-scroll { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
-.admin-resellers .table-subtext { color: var(--nd-muted); font-size: 12px; }
-.admin-resellers td[data-cell="outstanding"] strong { color: #8a4a00; }
-.admin-resellers td[data-cell="outstanding"] small { display: block; color: var(--nd-success-fg); }
-.admin-resellers .reseller-ledger-actions { display: flex; flex-direction: column; gap: var(--nd-space-14); margin: 0; }
-.admin-resellers .reseller-ledger-actions > [data-reseller-remittance-form] { max-width: 520px; }
-.admin-resellers .reseller-ledger-form { display: flex; flex-direction: column; flex-wrap: nowrap; gap: var(--nd-space-12); margin: 0; padding: var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
-.admin-resellers .reseller-ledger-advanced { padding: var(--nd-space-10) var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
-.admin-resellers .reseller-ledger-advanced__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--nd-space-14); padding: var(--nd-space-12) 0 var(--nd-space-8); }
-.admin-resellers .reseller-ledger-form h4 { margin: 0; font-family: var(--nd-font-display); font-size: 20px; font-weight: 600; }
-.admin-resellers .reseller-ledger-form p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
-.admin-resellers .reseller-ledger-form label { display: flex; flex-direction: column; gap: var(--nd-space-6); color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
-.admin-resellers .reseller-ledger-form label.checkbox { flex-direction: row; align-items: flex-start; font-weight: 400; }
-.admin-resellers .reseller-ledger-form input:not([type="checkbox"]), .admin-resellers .reseller-ledger-form select { width: 100%; min-width: 0; min-height: 44px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 14px var(--nd-font-body); }
-.admin-resellers .reseller-ledger-form .nd-btn { align-self: flex-start; margin-top: auto; }
-.admin-resellers [data-reseller-ledger-message]:empty { display: none; }
-.admin-resellers .reseller-remittance-history > summary { min-height: 44px; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; cursor: pointer; }
-.admin-resellers .reseller-ledger-empty { padding: var(--nd-space-22); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); color: var(--nd-muted); }
+/* ---------- Resellers (canvas: AdminResellers; #390) ---------- */
+/* Measured against the canvas at 1280 px. The canvas sizes the handoff panel
+   without its padding and border: 640 + 2 × 22 + 2 = 686 px. */
+#resellerLedger { display: flex; flex-direction: column; gap: var(--nd-space-22); }
+.admin-resellers__split { color: var(--nd-ink-soft); font-size: var(--nd-fs-small); }
+.admin-dashboard .admin-linkbutton { min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--nd-forest); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.admin-dashboard .admin-linkbutton:hover { background: none; color: var(--nd-forest-dark, #062a20); }
+.admin-resellers__ledger { padding: var(--nd-space-14) var(--nd-space-22) var(--nd-space-18); }
+.admin-resellers__table { background: transparent; }
+.admin-resellers__table td, .admin-resellers__table th { line-height: normal; }
+.admin-resellers__who { display: block; color: var(--nd-muted); font-size: 12px; }
+.admin-resellers__owed { color: var(--nd-success-fg); }
+.admin-resellers__owed--due { color: #8a4a00; }
+.admin-resellers__note { margin: var(--nd-space-10) 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.admin-resellers__handoff { display: flex; flex-direction: column; gap: var(--nd-space-14); max-width: 686px; }
+.admin-resellers__handoff .nd-h2 { margin: 0; line-height: normal; }
+.admin-dashboard .admin-resellers__form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; gap: var(--nd-space-12); margin: 0; }
+.admin-resellers__label { display: block; margin: 0 0 var(--nd-space-6); font-size: var(--nd-fs-meta); font-weight: 600; }
+.admin-dashboard .admin-resellers__input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: 9px; background: var(--nd-white); color: var(--nd-ink); font: 400 var(--nd-fs-small) var(--nd-font-body); }
+.admin-dashboard .admin-resellers__record { min-height: 44px; border: 0; border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
+.admin-resellers__recorded { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: var(--nd-fs-small); font-weight: 600; }
+/* Kept by the owner (25 Nov): the rate and corrections forms, and the histories. */
+.admin-resellers__more, .admin-resellers__history { padding: var(--nd-space-10) var(--nd-space-18); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); }
+.admin-resellers__more > summary, .admin-resellers__history > summary { min-height: 44px; display: flex; align-items: center; color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; cursor: pointer; }
+.admin-resellers__more-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--nd-space-22); padding: var(--nd-space-12) 0 var(--nd-space-8); }
+.admin-dashboard .admin-resellers__subform { display: flex; flex-direction: column; gap: var(--nd-space-12); margin: 0; }
+.admin-resellers__subform .nd-h3, .admin-resellers__subform p { margin: 0; }
+.admin-resellers__subform .nd-btn { align-self: flex-start; }
+.admin-resellers__history .nd-table { background: transparent; }
+.admin-resellers__corrections { margin: 0; padding-left: var(--nd-space-18); font-size: var(--nd-fs-small); }
 @media (max-width: 767.98px) {
-  .admin-resellers .table-scroll { padding: var(--nd-space-12) var(--nd-space-14); overflow-x: auto; }
-  .admin-resellers .reseller-ledger-actions > [data-reseller-remittance-form] { max-width: none; }
-  .admin-resellers .reseller-ledger-advanced { padding: var(--nd-space-8) var(--nd-space-14); }
-  .admin-resellers .reseller-ledger-advanced__grid { grid-template-columns: minmax(0, 1fr); }
-  .admin-resellers .reseller-ledger-form { padding: var(--nd-space-16); }
+  .admin-resellers__ledger { padding: var(--nd-space-12) var(--nd-space-14); }
+  .admin-resellers__more, .admin-resellers__history { padding: var(--nd-space-8) var(--nd-space-14); }
+  .admin-resellers__more-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------- Network setup (canvas: AdminNetworkSetup) ---------- */

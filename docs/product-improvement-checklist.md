@@ -1823,4 +1823,11 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
     - the accountant's CSV is the table as shown.
   - **Not a completed settlement:** the net is what MeSomb should pay from saved payments. Completed settlements read from MeSomb wait for #191.
   - **Not merged.**
-
+- [-] **ADM-390 — Resellers** ([#390](https://github.com/ImaJin14/Ndahi-Connect/issues/390))
+  - **Implemented and tested:**
+    - one commission rate for every reseller ("Commission split: N% · Change"), stored in `resellerSettings`, for codes issued from then on; issued codes keep their rate;
+    - the drawn ledger (assigned codes, redeemed sales, cash, commission, remitted, net owed) with each reseller's @sign-in name;
+    - Record a cash handoff and its confirmation;
+    - corrections and the histories kept below;
+    - English and French.
+  - **Not merged.**
