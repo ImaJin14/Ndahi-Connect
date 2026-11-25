@@ -199,7 +199,7 @@ export const SCREENS = [
       { menu: "homerouters", open: ["#checkHomeReadiness"], expect: ["#homeReadiness > h2", "#homeAdminList"], blocked: "NDAHI Home is off in the preview, so no household connections are listed; the page and readiness checks are real" }],
     ["admin-setup", "Network setup", "AdminNetworkSetup", "/dashboard#network-setup", "Redesigned (four steps over the existing forms; status, enforcement and history stay below)", { panel: "network-setup", menu: "setup" }],
     ["admin-bundles", "Bundles", "AdminBundles", "/dashboard#bundles", "Redesigned (#338): the bundle catalogue", { panel: "bundles", menu: "bundles", expect: [".admin-cat__grid", "[data-cat-row]"] }],
-    ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles", "Rebuilt with #339", { open: ["a[data-cell]"], panel: "bundle-edit", menu: "bundles", hash: "^#bundle/" }],
+    ["admin-bundle-edit", "Edit bundle", "AdminBundleEdit", "/dashboard#bundles", "Redesigned (#339)", { open: ["a[data-cell]"], panel: "bundle-edit", menu: "bundles", hash: "^#bundle/", expect: [".admin-edit"] }],
     ["admin-vouchers", "Vouchers — one customer", "AdminVouchers", "/dashboard#vouchers", "Redesigned; existing-customer mode (253)", { panel: "vouchers", menu: "vouchers", expect: ["#customerVoucherForm", "[data-give-pick]"] }],
     // Creates a batch of three in-memory vouchers, then opens its print screen.
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)",
