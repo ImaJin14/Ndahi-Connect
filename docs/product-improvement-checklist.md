@@ -1,6 +1,6 @@
 # NDAHI Connect Product Improvement Checklist
 
-Last reviewed: 2026-11-19
+Last reviewed: 2026-11-25
 
 Use this document as the source of truth for product, engineering, security, and operational improvements. Mark a task complete only after its acceptance criteria have been verified.
 
@@ -1757,3 +1757,33 @@ On 21 November the owner asked to "auto arrange bundles based on monthly, weekly
     - contrast and overflow.
   - The full suite and journeys are in the PR.
 - **Deployed** on 21 November: PR #328 merged as `169dc30`. By 09:10 UTC the portal and admin served `shared-app/bundle-period.js`, and the production smoke checks passed. Not yet seen by a customer.
+
+## Unlimited catalogue and device locking (#331, 24–25 November 2026)
+
+Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the owner's 24 Nov updates. Bundles bought before the switch keep their own terms (decisions.md). Rollout and rollback: `docs/operations/unlimited-rollout.md`. Results: `docs/operations/unlimited-hardware-test-report.md`.
+
+- [-] **UNL-332 — Unlimited catalogue in the database, behind the owner's switch** ([#332](https://github.com/ImaJin14/Ndahi-Connect/issues/332))
+  - **Implemented and tested** in PR #439: seeded once, admin API, archive instead of delete, `catalogue.mode` switch. Merged 24 Nov.
+  - **Deployed:** the production API served `d924d82`, which includes batch 2, on 25 Nov. `/api/plans` still lists the current plans because the switch is off.
+  - **Not yet:** switched on. That waits for the hardware report.
+- [-] **UNL-333 — Server-priced checkout with an immutable terms snapshot** ([#333](https://github.com/ImaJin14/Ndahi-Connect/issues/333))
+  - **Implemented, tested, merged and deployed** (PR #440), together with UNL-332.
+  - **Not yet:** a real Mobile Money purchase of an Unlimited bundle.
+- [-] **UNL-421 — Custom Unlimited gifts, owner only** ([#421](https://github.com/ImaJin14/Ndahi-Connect/issues/421))
+  - **Implemented, tested, merged and deployed** (PR #441).
+- [-] **UNL-334 — Personal Unlimited device slots bound to the router-seen MAC** ([#334](https://github.com/ImaJin14/Ndahi-Connect/issues/334))
+  - **Implemented, tested, merged and deployed** (PR #442).
+  - **Physically verified: not yet.** Owner to run `unlimited-device-slots-test-plan.md`.
+- [-] **UNL-335 — Sharing rules: TTL 1 toward Personal Unlimited sessions, IPv6 kept blocked** ([#335](https://github.com/ImaJin14/Ndahi-Connect/issues/335))
+  - **Implemented, tested, merged and deployed** (PR #444). No rule is applied to any router until the owner previews and keeps it.
+  - **Physically verified: not yet.** Owner to run `unlimited-sharing-rules-test-plan.md`.
+  - **Follow-up:** IPv6 authorization and Hop Limit ([#443](https://github.com/ImaJin14/Ndahi-Connect/issues/443)).
+- [-] **UNL-336 — Home WISP Unlimited on the NDAHI Home router path** ([#336](https://github.com/ImaJin14/Ndahi-Connect/issues/336))
+  - **Implemented and tested** in PR #449: waits for the router, never on the direct path, refused while NDAHI Home is off. Not merged.
+  - **Physically verified: not yet.** Owner to run `home-wisp-test-plan.md`.
+- [-] **UNL-337 — Rollout, rollback and hardware test report** ([#337](https://github.com/ImaJin14/Ndahi-Connect/issues/337))
+  - **Written:** the rollout guide and the report template. Not merged.
+  - **Pending:** the report results, which the owner records on site.
+- [-] **UNL-338/339/342 — Admin screens: Bundles, Edit bundle, Customers** ([#338](https://github.com/ImaJin14/Ndahi-Connect/issues/338), [#339](https://github.com/ImaJin14/Ndahi-Connect/issues/339), [#342](https://github.com/ImaJin14/Ndahi-Connect/issues/342))
+  - **Implemented and tested** in PRs #446, #447 and #448, with design captures and owner-approved differences. Not merged.
+

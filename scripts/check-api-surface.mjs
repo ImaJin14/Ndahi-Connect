@@ -39,6 +39,8 @@ const knownBackendMatchers = [
   // Store promotions (#302): lib/api/admin-store.mjs matches its actions after /api/admin/store/.
   /^\/api\/admin\/store\/promotions\/(?:save|end)$/,
   /^\/api\/admin\/network\/incidents\/[^/]+$/,
+  // Bundle catalogue (#332, #338): lib/api/catalogue.mjs matches its actions after /api/admin/catalogue/.
+  /^\/api\/admin\/catalogue\/(?:create|update|publish|unpublish|reorder|delete|mode)$/,
   /^\/api\/admin\/network\/setup\/(?:status|connection|discover|purchase-access|assisted-connections|preview|apply|confirm|rollback|refresh|recovery|resolve|activate|cancel)$/,
   // Order actions (ready, collect, cancel, contact, notes, rotate-link, refund,
   // refund-reference, verify) are an `action` sent to orders/update, not paths.

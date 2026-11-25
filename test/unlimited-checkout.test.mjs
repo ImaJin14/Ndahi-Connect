@@ -12,7 +12,7 @@ import { redeemVoucher } from "../lib/domain/vouchers.mjs";
 
 const secret = "unlimited-checkout-tests", MIN = 60000, HOUR = 36e5;
 
-async function fixture(t, { mode = "unlimited" } = {}) {
+async function fixture(t, { mode = "unlimited", home = false } = {}) {
   const store = createStore({ persistent: false });
   let now = new Date("2026-11-25T10:00:00Z");
   await store.transaction((s) => {
@@ -22,7 +22,9 @@ async function fixture(t, { mode = "unlimited" } = {}) {
     s.catalogue.mode = mode;
   });
   const server = createServer({ store, now: () => now, validateConfig: false, env: { NODE_ENV: "test", PAYMENT_MODE: "mock", ADMIN_SESSION_SECRET: secret, CUSTOMER_SESSION_SECRET: secret,
-    SECRET_PEPPER: secret, NETWORK_QUEUE_ENABLED: "false", BILLING_WORKER_ENABLED: "false", BOOTSTRAP_MODE: "false", LOG_LEVEL: "silent" } });
+    SECRET_PEPPER: secret, NETWORK_QUEUE_ENABLED: "false", BILLING_WORKER_ENABLED: "false", BOOTSTRAP_MODE: "false", LOG_LEVEL: "silent",
+    // Home WISP is sold only with NDAHI Home on (#336).
+    ...(home ? { NDAHI_HOME_ENABLED: "true" } : {}) } });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   t.after(() => new Promise((r) => { server.closeAllConnections(); server.close(r); }));
   const base = "http://127.0.0.1:" + server.address().port;
@@ -109,7 +111,7 @@ test("a bundle taken off sale: a quote still on screen gets a clear error, a pen
 });
 
 test("Revoke subscription ends one customer's access, at the router, audited", async (t) => {
-  const f = await fixture(t);
+  const f = await fixture(t, { home: true });
   const placed = await f.call("/api/purchase", order("home-wisp-30d"));
   await f.call(`/api/payments/${placed.body.payment.id}/confirm`, {});
   const v = (await f.store.snapshot()).vouchers.find((x) => x.paymentId === placed.body.payment.id);

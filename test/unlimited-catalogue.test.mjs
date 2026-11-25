@@ -162,8 +162,8 @@ test("the server validates every field", () => {
     assert.throws(() => bundleInput({ ...ok, ...bad }), (e) => e.status === 400, JSON.stringify(bad));
   // Home WISP is always one router, whatever is sent.
   assert.equal(bundleInput({ ...ok, accessType: "home_wisp_unlimited", deviceSlots: 60 }).deviceSlots, 1);
-  // The access type of an existing bundle never changes.
-  assert.throws(() => bundleInput({ accessType: "home_wisp_unlimited" }, { ...ok }), (e) => e.status === 400);
+  // An edit may change the access type (canvas AdminBundleEdit, #339); Home WISP is still one router.
+  assert.deepEqual([bundleInput({ accessType: "home_wisp_unlimited" }, { ...ok }).accessType, bundleInput({ accessType: "home_wisp_unlimited" }, { ...ok }).deviceSlots], ["home_wisp_unlimited", 1]);
 });
 
 test("deleting: an unused bundle goes, a sold one is archived and nothing it was sold with changes", async (t) => {
@@ -195,4 +195,88 @@ test("a legacy bundle is unaffected: seeding and switching leave every voucher, 
   await f.call("/api/admin/catalogue/mode", { mode: "unlimited" }, "owner");
   await f.call("/api/admin/catalogue/mode", { mode: "legacy" }, "owner");
   assert.equal(keep(await f.store.snapshot()), before);
+});
+
+// Admin → Bundles (#338, canvas AdminBundles): "Used by", "Most bought", the
+// delete dialog's choice and the earlier plans' place in the list, all from the API.
+test("the admin list says how each bundle is used, which sells most, and whether it can be deleted", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    // 7 days · 2 devices: two paid checkouts (one still running) and a gift waiting for its first connection.
+    s.payments.push({ id: "p1", planId: "unlimited-7d-2", status: "paid" }, { id: "p2", planId: "unlimited-7d-2", status: "pending" });
+    s.vouchers.push({ id: "u1", planId: "unlimited-7d-2", paymentId: "p1", status: "active" },
+      { id: "u2", planId: "unlimited-7d-2", status: "available", startsOnFirstConnection: true, generatedByAdmin: true, saleType: "gift" },
+      { id: "u3", planId: "unlimited-24h-1", status: "expired", generatedByAdmin: true, saleType: "gift" });
+  });
+  const list = (await f.call("/api/admin/catalogue", null, "operator")).body;
+  const row = (id) => list.bundles.find((b) => b.id === id);
+  assert.deepEqual([row("unlimited-7d-2").orders, row("unlimited-7d-2").active, row("unlimited-7d-2").inUse, row("unlimited-7d-2").mostBought], [3, 2, true, true]);
+  assert.deepEqual([row("unlimited-24h-1").orders, row("unlimited-24h-1").active, row("unlimited-24h-1").mostBought], [1, 0, false]);
+  assert.deepEqual([row("unlimited-7d-3").orders, row("unlimited-7d-3").inUse], [0, false], "never bought: the dialog offers a permanent delete");
+  assert.equal(list.bundles.filter((b) => b.mostBought).length, 1);
+  const weekly = list.legacy.find((p) => p.id === "weekly");
+  assert.deepEqual([weekly.orders, weekly.active, weekly.inUse, weekly.status], [1, 1, true, "published"]);
+  assert.ok(list.legacy.every((p) => p.displayOrder > Math.max(...list.bundles.map((b) => b.displayOrder))), "earlier plans list after the Unlimited bundles");
+});
+
+test("reordering can place an earlier plan anywhere in the list without changing it or what is on sale", async (t) => {
+  const f = await fixture(t);
+  const before = await f.call("/api/plans");
+  const { bundles, legacy } = (await f.call("/api/admin/catalogue", null, "owner")).body;
+  const ids = [bundles[0].id, "weekly", ...bundles.slice(1).map((b) => b.id), ...legacy.filter((p) => p.id !== "weekly").map((p) => p.id)];
+  const moved = await f.call("/api/admin/catalogue/reorder", { ids }, "owner");
+  assert.equal(moved.status, 200, JSON.stringify(moved.body));
+  const order = [...moved.body.bundles, ...moved.body.legacy].sort((a, b) => a.displayOrder - b.displayOrder).map((b) => b.id);
+  assert.deepEqual(order, ids);
+  assert.deepEqual(await f.call("/api/plans"), before, "the legacy checkout is unchanged while the switch is legacy");
+  const s = await f.store.snapshot();
+  assert.deepEqual(s.catalogue.legacyOrder.weekly, 20);
+  assert.equal(findPlan(s, "weekly").displayOrder, undefined, "the plan itself is untouched");
+  assert.equal((await f.call("/api/admin/catalogue/reorder", { ids: ["weekly", "no-such-plan"] }, "owner")).status, 400);
+});
+
+test("the earlier bundle endpoints refuse Unlimited bundles: the catalogue manages them", async (t) => {
+  const f = await fixture(t);
+  for (const path of ["/api/admin/bundles/update", "/api/admin/bundles/delete"]) {
+    const r = await f.call(path, { bundleId: "unlimited-7d-1", name: "Changed", price: 1, quotaGb: 5, validityHours: 1, deviceLimit: 1 }, "owner");
+    assert.deepEqual([r.status, r.body.error], [409, "Unlimited bundles are managed in the bundle catalogue."], path);
+  }
+  const b = (await f.store.snapshot()).bundles.find((x) => x.id === "unlimited-7d-1");
+  assert.deepEqual([b.name, b.price, b.quotaGb], ["Personal Unlimited", 2500, null]);
+});
+
+// Edit bundle (#339, canvas AdminBundleEdit): what the edit screen sends and shows.
+test("an edit may change the access type and the place in the list; orders and vouchers keep their terms", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    s.payments.push({ id: "pend-1", planId: "unlimited-7d-2", status: "pending", amount: 4000, planSnapshot: { id: "unlimited-7d-2", price: 4000, accessType: "personal_unlimited", deviceSlots: 2 } },
+      { id: "pend-2", planId: "unlimited-7d-2", status: "pending", amount: 4000, planSnapshot: { id: "unlimited-7d-2", price: 4000 } });
+    s.vouchers.push({ id: "running", customerId: "amina", planId: "unlimited-7d-2", status: "active", accessType: "personal_unlimited", deviceSlots: 2, deviceLimit: 2, sharing: false });
+  });
+  let row = (await f.call("/api/admin/catalogue", null, "owner")).body.bundles.find((b) => b.id === "unlimited-7d-2");
+  assert.deepEqual([row.pending, row.pendingPrice, row.active], [2, 4000, 1], "Who a change affects");
+  const before = JSON.stringify((await f.store.snapshot()).payments) + JSON.stringify((await f.store.snapshot()).vouchers);
+  const r = await f.call("/api/admin/catalogue/update", { id: "unlimited-7d-2", version: row.version, name: "Personal Unlimited", price: "4200", accessType: "home_wisp_unlimited",
+    validityValue: 7, validityUnit: "days", deviceSlots: 2, status: "unpublished", position: 1 }, "owner");
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual([r.body.bundle.accessType, r.body.bundle.deviceSlots, r.body.bundle.sharing, r.body.bundle.price, r.body.bundle.status], ["home_wisp_unlimited", null, true, 4200, "unpublished"]);
+  const order = [...r.body.bundles, ...r.body.legacy].sort((a, b) => a.displayOrder - b.displayOrder).map((b) => b.id);
+  assert.equal(order[0], "unlimited-7d-2", "display order 1 puts it first");
+  const s = await f.store.snapshot();
+  assert.equal(JSON.stringify(s.payments) + JSON.stringify(s.vouchers), before, "pending orders keep their price and the running bundle its terms");
+  assert.ok(s.auditLogs.some((a) => a.action === "catalogue.bundle_updated" && a.meta.before.accessType === "personal_unlimited" && a.meta.after.accessType === "home_wisp_unlimited"));
+});
+
+test("Add bundle can publish at once and place the bundle; bad status or place is refused", async (t) => {
+  const f = await fixture(t);
+  const terms = { name: "Personal Unlimited · 5 hours · 2 devices", price: "450", accessType: "personal_unlimited", validityValue: 5, validityUnit: "hours", deviceSlots: 2 };
+  const made = await f.call("/api/admin/catalogue/create", { ...terms, status: "published", position: 2 }, "operator");
+  assert.equal(made.status, 201, JSON.stringify(made.body));
+  assert.equal(made.body.bundle.status, "published");
+  const order = [...made.body.bundles, ...made.body.legacy].sort((a, b) => a.displayOrder - b.displayOrder).map((b) => b.id);
+  assert.equal(order[1], made.body.bundle.id);
+  for (const extra of [{ status: "archived" }, { status: "live" }, { position: 0 }, { position: "x" }])
+    assert.equal((await f.call("/api/admin/catalogue/create", { ...terms, ...extra }, "owner")).status, 400, JSON.stringify(extra));
+  await f.call("/api/admin/catalogue/mode", { mode: "unlimited" }, "owner");
+  assert.ok((await f.call("/api/plans")).body.plans.some((p) => p.id === made.body.bundle.id), "published: on sale once the switch is on");
 });
