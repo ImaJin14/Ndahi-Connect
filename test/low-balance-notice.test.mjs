@@ -35,7 +35,7 @@ test("MeSomb's balance refusal reaches billing as a refusal, through the real SD
   const adapter = new MeSombPaymentAdapter(keys);
   const refused = await withFetch(json(400, { detail: "insufficient balance in the account", code: "subscriber-insufficient-balance", support: "https://mesomb.example" }),
     () => adapter.createPayment(payment).then(() => null, (error) => error));
-  assert.deepEqual(refused.refusal, { failureCode: "low_balance" });
+  assert.deepEqual(refused.refusal, { failureCode: "low_balance", failureState: "insufficient_funds" });
   // Any other rejection, or a server error that merely mentions a balance, stays uncertain.
   for (const reply of [json(400, { detail: "This account does not exist", code: "subscriber-not-found" }),
     json(500, { detail: "insufficient balance", code: "subscriber-insufficient-balance" })]) {
@@ -47,7 +47,7 @@ test("MeSomb's balance refusal reaches billing as a refusal, through the real SD
   const failed = await new MeSombPaymentAdapter({ ...keys, client: { async makeCollect() {
     return { success: false, status: "FAIL", message: "Either the balance is low, or the payee has reached its limit", transaction: null };
   } } }).createPayment(payment).then(() => null, (e) => e);
-  assert.deepEqual(failed.refusal, { failureCode: "check_balance" });
+  assert.deepEqual(failed.refusal, { failureCode: "check_balance", failureState: "insufficient_funds" });
 });
 
 function billingFixture(createPayment) {
