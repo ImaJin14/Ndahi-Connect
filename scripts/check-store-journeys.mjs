@@ -396,7 +396,8 @@ try {
       // product's own page, possibly in a collapsed section.
       await row.getByRole("link", { name: "Edit Browser draft " + width, exact: true }).click();
       const deleteProduct = panel.getByRole("button", { name: "Delete product", exact: true });
-      const holder = panel.locator("details", { has: deleteProduct });
+      // By CSS: a role locator can't see the button inside a closed section.
+      const holder = panel.locator("details", { has: panel.locator("[data-delete-product]") });
       if ((await holder.count()) && !(await holder.evaluate((d) => d.open))) await holder.locator("> summary").click();
       await deleteProduct.click();
     } else await row.getByRole("button", { name: "Delete", exact: true }).click();
