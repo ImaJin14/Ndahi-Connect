@@ -57,4 +57,4 @@ Results come from the test plans: **S** = `unlimited-device-slots-test-plan.md` 
 | RB5009 complete | | | |
 | Catalogue switched on (`catalogue.mode_changed` audit entry) | | | |
 
-Post this report, filled in, on #337 before switching the catalogue on.
+Post this report, filled in, on #450 before switching the catalogue on.

@@ -34,7 +34,7 @@ Stop and roll back the step if any check fails.
    - sharing rules: `unlimited-sharing-rules-test-plan.md` (#335);
    - Home WISP: `home-wisp-test-plan.md` (#336).
 3. Copy every result into `unlimited-hardware-test-report.md`.
-4. Go on only when every row passes, or the owner has accepted a known failure in writing on #337.
+4. Go on only when every row passes, or the owner has accepted a known failure in writing on #450.
 
 ### 2. Prepare production (RB5009), switch still off
 
@@ -53,7 +53,7 @@ The catalogue switch is site-wide; access points can't be switched one by one. U
 3. Repeat staging tests 2–3 of #334 and 1–2 of #335 on the RB5009.
 4. Check the legacy bundle.
 5. Watch for an hour: payments, Admin → Router commands, and `/system resource print` (CPU, since Personal traffic skips FastTrack).
-6. If anything fails, roll back (below) and record what failed on #337.
+6. If anything fails, roll back (below) and record what failed on #450.
 
 ### 4. All access points
 
@@ -77,6 +77,6 @@ Rollback stops new Unlimited sales and removes the router rules. It **keeps all 
    Running Personal Unlimited bundles keep working, but without the TTL restriction.
 3. **Home WISP:** to stop new Home WISP sales, unpublish it in Admin → Bundles, or set `NDAHI_HOME_ENABLED=false`. Turning Home off also makes the Home worker withhold access for running Home bundles, legacy NDAHI Home included, so prefer unpublishing while any are running.
 4. **Device slots** need no rollback: they apply only to Personal Unlimited bundles, and switching back stops new ones being sold.
-5. Check the legacy bundle (above), and record the rollback and its reason on #337.
+5. Check the legacy bundle (above), and record the rollback and its reason on #450.
 
 Running Unlimited bundles bought before a rollback keep working until they end: their slots, their sharing rule (while the rules are on) and their Home WISP router.
