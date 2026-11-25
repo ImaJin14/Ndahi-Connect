@@ -161,6 +161,58 @@ the fee is unchanged.
   `PAYMENT_FEE_ORANGE` on `ndahi-api` once the rule matches, and run it again
   after a contract change.
 
+## Verified 2% fee and reconciliation before activation (25 November 2026, #432)
+
+From the 24 Nov brief (`docs/redesign/specs/catalogue-and-payment-update-2026-11-24.md` §2).
+
+### Showing the 2% fee: only once it is verified, per network
+
+The screens show **Bundle Price · Mobile Payment Fee (2%) · Total to Pay** for a network only when that network has a fee rule (see above). Until then they show the base price, and say the Mobile Money fee appears in the operator prompt. They never show a percentage or total that hasn't been confirmed.
+
+To verify a network:
+
+1. Make one real bundle payment on it, for example Personal Unlimited 24 hours at 500 XAF.
+2. In the MeSomb dashboard, and on the payer's Mobile Money statement, write down what was **debited from the customer**, the **processing fee**, and what was **credited to the NDAHI account**.
+3. Compare them with `node scripts/check-payment-fees.mjs` (read-only), which shows MeSomb's `fees` and `trxamount` for recent payments.
+4. If the customer debit is the base price plus `Math.round(base × 0.02)`, and the credit is the base price, set on `ndahi-api`:
+
+   ```text
+   PAYMENT_FEE_MTN="percent=2,on=price,round=nearest"
+   PAYMENT_FEE_ORANGE="percent=2,on=price,round=nearest"
+   ```
+
+   Set each network only after checking it. `round=nearest` gives 250 → 255, 500 → 510, 2,500 → 2,550 and 6,000 → 6,120 XAF.
+5. Record the check below.
+
+| Network | Date | Base price | Customer debit | Processing fee | Merchant credit | `fees` | `trxamount` | Rule set |
+|---|---|---|---|---|---|---|---|---|
+| MTN MoMo | | | | | | | | |
+| Orange Money | | | | | | | | |
+
+**What `trxamount` means.** MeSomb reports `amount` (the price we sent), `fees` and `trxamount`. On the records seen so far, `trxamount` = `amount` + `fees`, which looks like the customer's debit. It is saved as `providerTotal` beside the quote, and it is **not** used to decide anything until the table above confirms it against the dashboard and statement. Reconciliation uses `amount`, the merchant credit.
+
+### One rule set before anything is activated
+
+The checkout status poll (`lib/billing.mjs`) and authenticated webhooks (`lib/payment-webhooks.mjs`) apply the same rules (`lib/payment-verification.mjs`) before a bundle is activated:
+
+- **Status:** exactly MeSomb's `SUCCESS`. Another success word ("SUCCESSFUL", "SUCCEEDED") is *unconfirmed* and is never activated.
+- **Identity:** the transaction is this payment's (`trxID`), its provider reference is the authenticated webhook's (when polling, the one recorded at creation), and no other payment holds it.
+- **Currency:** `XAF`.
+- **Merchant credit:** `amount` equals the base price stored on the payment.
+
+**When the money moved but the details don't match.** If the provider reports success (or an unconfirmed success) and any rule fails, the payment goes to reconciliation:
+
+- `reconciliation.status = "needs_review"`, with the issue (`amount_mismatch`, `currency_mismatch`, `identity_mismatch` or `provider_status_unconfirmed`) and what the provider reported.
+- A `payment.reconciliation_issue` event, and an entry under Admin → payment reconciliation.
+- Nothing is activated, and the checkout stays unresolved, so the customer isn't asked to pay again.
+- Support checks the MeSomb records, then either fulfils the bundle by hand or refunds.
+
+A mismatch on a pending or failed answer only counts as unverified, as before.
+
+**Activation is once per payment.** Polls, repeated webhooks and the late checks all settle through the same path. A payment that already has its voucher is never settled again.
+
+**Older payments are unchanged.** Payments made before this change keep their recorded amounts, quote and receipt.
+
 ## Receipts
 
 The paid payment contains an immutable receipt snapshot: receipt ID, paid date,
