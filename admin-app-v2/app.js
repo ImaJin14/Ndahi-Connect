@@ -9,7 +9,8 @@ import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
-import { downloadPaymentsExport, loadPaymentFigures, maskPhone, mountPaymentRecords, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
+import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
+import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
@@ -17,7 +18,7 @@ import { mountNetworkSetup } from "/network-setup.js";
 import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
-import { activeAdminView, adminViewParam, mountAdminNavigation, setAdminBadges, setAdminHead } from "/navigation.js";
+import { activeAdminView, adminViewParam, mountAdminNavigation, setAdminHead } from "/navigation.js";
 import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
@@ -140,44 +141,6 @@ const stamp = (value) => {
 };
 const commandStatus = (status) => (format(`adminCommandStatus_${status}`, {}, "en") !== `adminCommandStatus_${status}` ? L(`adminCommandStatus_${status}`) : sentence(status));
 
-// Needs attention: only real signals, each linking to where it is handled.
-async function loadHomeAttention(x, storeSnapshot, contacts) {
-  const host = $("#homeAttention");
-  if (!host) return;
-  // Tones follow the canvas: waiting money orange, orders blue, stock neutral, failures red.
-  const items = [], item = (href, text, tone) => items.push(`<a class="admin-attention admin-attention--${tone}" href="${href}">${h(text)}<span aria-hidden="true">→</span></a>`);
-  const [pending, store] = await Promise.all([
-    contacts ? call("/api/admin/records?collection=payments&status=pending&pageSize=50").catch(() => null) : null,
-    storeSnapshot,
-  ]);
-  const late = (pending?.items || []).filter((p) => Date.now() - Date.parse(p.createdAt) > 10 * 60000).length;
-  if (late) item("/dashboard#payments", late === 1 ? L("adminAttentionPaymentsOne") : L("adminAttentionPayments", { count: late }), "warning");
-  const badges = { payments: late };
-  if (store) {
-    const preparing = store.orders.filter((o) => o.status === "preparing").length;
-    const orders = $("#homeOrdersMetric");
-    if (orders) orders.textContent = String(preparing);
-    badges.store = preparing;
-    if (preparing) item("/dashboard#store", preparing === 1 ? L("adminAttentionOrdersOne") : L("adminAttentionOrders", { count: preparing }), "info");
-    const lang = currentLanguage();
-    store.products.filter((p) => p.status === "published" && p.available <= 3).forEach((p) => item("/dashboard#products", L("adminAttentionStock", { name: typeof p.name === "object" ? p.name[lang] || p.name.en : p.name, count: p.available }), "neutral"));
-  }
-  if (x.paymentWebhooks?.deadLetters) item("/dashboard#payments", L("adminAttentionWebhooks", { count: x.paymentWebhooks.deadLetters }), "danger");
-  if (x.paymentReconciliation?.issues?.length) item("/dashboard#payments", L("adminAttentionPaymentChecks", { count: x.paymentReconciliation.issues.length }), "warning");
-  if (x.networkCommands?.deadLetters) item("/dashboard#connections", L("adminAttentionCommands", { count: x.networkCommands.deadLetters }), "danger");
-  if (x.networkReconciliation?.issues?.length) item("/dashboard#connections", L("adminAttentionNetworkChecks", { count: x.networkReconciliation.issues.length }), "warning");
-  // Side menu counts, as on the canvas: payments waiting, orders to prepare.
-  setAdminBadges(badges);
-  host.innerHTML = items.length ? items.join("") : `<p class="nd-meta">${h(L(contacts ? "adminAttentionNone" : "adminUnavailable"))}</p>`;
-}
-
-async function loadHomePayments() {
-  const host = $("#homePayments");
-  if (!host) return;
-  const result = await call("/api/admin/records?collection=payments&pageSize=4").catch(() => null);
-  if (!result) { host.closest("section").hidden = true; return; }
-  host.innerHTML = result.items.length ? `<table class="nd-table"><thead><tr><th scope="col">${h(L("adminColCustomer"))}</th><th scope="col">${h(L("adminColFor"))}</th><th scope="col">${h(L("adminColMethod"))}</th><th scope="col">${h(L("adminColStatus"))}</th></tr></thead><tbody>${result.items.map((p) => `<tr><td>${h(maskPhone(p.payerPhone))}</td><td>${h(paymentFor(p))}</td><td>${h(paymentMethod(p))}</td><td>${paymentStatus(p)}</td></tr>`).join("")}</tbody></table>` : `<p class="nd-meta">${h(L("adminNoPayments"))}</p>`;
-}
 
 async function load() {
   const x = await call("/api/admin/dashboard");
@@ -197,19 +160,14 @@ async function load() {
   // Restricted dashboards include zero-valued record totals. Only the role's
   // actual capabilities permit contact/payment views; counts are not grants.
   const storeRole = canManagePayments, access = { contacts: canManagePayments, codes: canManagePayments || adminRole === "reseller" };
-  $("#adminHeadActions").innerHTML = `${access.codes ? `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>` : ""}${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a><a class="nd-btn nd-btn--sm admin-cat__add" data-head-view="bundles" href="/dashboard#bundle/new">${h(L("adminAddBundle"))}</a><span data-head-view="bundle" id="bundleStatusHost"></span>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button>` : ""}<div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div><div data-head-view="voucher" id="voucherStatusHost" class="admin-voucher__head"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}<span class="admin-resellers__split" data-head-view="resellers" id="resellerSplit"></span>`;
+  $("#adminHeadActions").innerHTML = `${access.codes ? `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>` : ""}${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a><a class="nd-btn nd-btn--sm admin-cat__add" data-head-view="bundles" href="/dashboard#bundle/new">${h(L("adminAddBundle"))}</a><span data-head-view="bundle" id="bundleStatusHost"></span>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button>` : ""}<div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div><div data-head-view="voucher" id="voucherStatusHost" class="admin-voucher__head"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}${x.sales ? `<div class="admin-periods" role="group" aria-label="${h(L("adminCashPeriodLabel"))}" data-head-view="cash" id="cashPeriods"></div>` : ""}<span class="admin-resellers__split" data-head-view="resellers" id="resellerSplit"></span>`;
   const auditExport = $("#auditExport");
   if (auditExport) auditExport.onclick = () => runAction(auditExport, L("adminExporting"), () => exportAudit(call));
   const paymentsExport = $("[data-payments-export]");
   if (paymentsExport) paymentsExport.onclick = () => runAction(paymentsExport, L("adminExporting"), () => downloadPaymentsExport(api));
   $("#app").innerHTML = `<div id="actionMessage" class="error" role="alert" aria-live="assertive"></div>
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
-<section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">
-<div class="nd-metric"><b class="nd-metric__value" id="activeSessionsMetric">${h(x.metrics.activeSessions == null ? L("adminUnavailable") : x.metrics.activeSessions)}</b><a class="nd-metric__label" href="/dashboard#devices">${h(L("adminMetricDevicesOnline"))}</a></div>
-<div class="nd-metric"><b class="nd-metric__value">${h(access.contacts && x.metrics.bundlesSold != null ? x.metrics.bundlesSold : L("adminUnavailable"))}</b><span class="nd-metric__label">${h(L("adminMetricBundlesSold"))}</span></div>
-<div class="nd-metric"><b class="nd-metric__value" id="cashCollectedMetric">${x.cashCollected?.amount == null ? h(L("adminUnavailable")) : fcfa(x.cashCollected.amount)}</b><span class="nd-metric__label">${h(L("adminMetricCollected"))}</span></div>
-${storeRole ? `<div class="nd-metric"><b class="nd-metric__value" id="homeOrdersMetric">…</b><a class="nd-metric__label" href="/dashboard#store">${h(L("adminMetricOrdersToPrepare"))}</a></div>` : ""}
-</div><div class="admin-home__row"><section class="nd-panel admin-home__attention" aria-labelledby="homeAttentionTitle"><h2 class="nd-h2" id="homeAttentionTitle">${h(L("adminAttentionTitle"))}</h2><div id="homeAttention" aria-live="polite"></div></section>
+<section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">${homeMetricsMarkup(x, { contacts: access.contacts, storeRole })}</div><div class="admin-home__row"><section class="nd-panel admin-home__attention" aria-labelledby="homeAttentionTitle"><h2 class="nd-h2" id="homeAttentionTitle">${h(L("adminAttentionTitle"))}</h2><div id="homeAttention" aria-live="polite"></div></section>
 ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
 <section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><section class="nd-panel admin-devices__list" aria-label="${h(L("adminDevicesList"))}"><div id="wifiRecords"></div></section></section>
 <section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
@@ -289,7 +247,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     storeManagement = mountStore(panel, { call, role: adminRole, csrf: () => csrfToken, setHead: setAdminHead,
       heads: { store: $("#storeHeadOrders"), products: $("#storeHeadProducts"), product: $("#storeHeadProduct") } });
   }
-  if (x.sales) mountCashCollectedReport(x.cashCollected, { resellers: x.resellerLedger?.totals });
+  // Cash and settlements (#379): opens on the last 7 days; the period buttons fetch the others.
+  if (x.sales) mountCashCollectedReport(x.cashReport, { call });
   let customerVoucher;
   // Catalogue managers only (owners and operators; the API refuses others).
   const catalogue = storeRole && $("#bundleCatalogue") ? mountCatalogue($("#bundleCatalogue"), { call }) : null;
@@ -300,9 +259,9 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   // Home and Payments both read the store's orders; fetch them once.
   const storeSnapshot = storeRole ? call("/api/admin/store").catch(() => null) : Promise.resolve(null);
   void loadHomeAttention(x, storeSnapshot, access.contacts);
-  if (access.contacts) void loadHomePayments();
+  if (access.contacts) void loadHomePayments(call);
   void updateHomeRouterMenu(adminRole, api);
-  if (access.contacts) void loadPaymentFigures({ call, storeRole, storeSnapshot });
+  if (access.contacts) showPaymentFigures(x, { storeRole });
   mountAdminInstall($("#adminInstall"));
   mountProfile({ call, runAction, reload: load });
   renderWifiSummary(x.wifi);
@@ -480,7 +439,7 @@ $("#app").onclick = async (e) => {
     prefillAssignedVoucher(button.dataset.replaceBundle);
     return;
   }
-  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment", "verifyOrder"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.printVoucher) {
       const result = await call("/api/admin/vouchers/print", {
@@ -561,10 +520,16 @@ $("#app").onclick = async (e) => {
         body: JSON.stringify({ paymentId: button.dataset.refund }),
       });
     } else if (button.dataset.verifyPayment) {
-      if (!confirm("Check this unconfirmed payment with the provider now?")) return;
+      // A check only asks the provider about this one payment, so it runs at once, as drawn (#386).
       await call("/api/admin/payments/verify", {
         method: "POST",
         body: JSON.stringify({ paymentId: button.dataset.verifyPayment }),
+      });
+    } else if (button.dataset.verifyOrder) {
+      // A store order's payment, through the store's own check of that order (#386).
+      await call("/api/admin/store/orders/update", {
+        method: "POST",
+        body: JSON.stringify({ id: button.dataset.verifyOrder, version: Number(button.dataset.orderVersion), action: "verify" }),
       });
     } else return;
     await load();

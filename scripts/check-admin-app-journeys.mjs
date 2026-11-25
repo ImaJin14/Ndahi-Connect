@@ -76,9 +76,11 @@ try {
     await page.locator('[data-admin-nav="home"][aria-current]').waitFor();
   });
   // Redesigned Payments and Cash (v2 only; canvas: AdminPayments, AdminCash).
-  // "Today" is read in the browser (Africa/Douala), so these payments are dated from the real clock.
+  // "Today" is read on the server (Africa/Douala; #377, #386), so these payments are
+  // dated from the API's clock, and the page's clock is set to match.
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Payments and Cash show today's figures, filters and exports at ${width}px`, async (page) => {
-    const real = Date.now(), today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
+    await page.clock.setFixedTime(now);
+    const real = +now, today = Math.floor((real + 3600000) / 864e5) * 864e5 - 3600000, at = (ms) => new Date(ms).toISOString();
     const recent = Math.max(today + 1000, real - 60000);
     const payment = (id, status, createdAt, amount, extra = {}) => ({ id, status, createdAt: at(createdAt), amount, currency: "XAF", provider: "mesomb", network: "mtn",
       payerPhone: "670042011", providerReference: `REF-${id.toUpperCase()}`, planId: "weekly", planSnapshot: { id: "weekly", name: "Weekly", price: amount }, ...extra });
@@ -116,14 +118,16 @@ try {
 
     await page.locator("#admin-nav-cash").click();
     await page.getByRole("heading", { name: "Cash and settlements.", exact: true }).waitFor();
-    await page.getByRole("heading", { name: "Cash collected before fees", exact: true }).waitFor();
+    // Cash and settlements (#379): the last 7 days, then the per-network table.
+    await page.getByRole("heading", { name: "Net provider settlements", exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "Export CSV", exact: true }).count(), 0, "head actions belong to Payments");
+    assert.equal(await page.getByRole("button", { name: "7 days", exact: true }).getAttribute("aria-pressed"), "true");
     assert.equal(await page.locator("#cashCollectedReport tbody tr").count(), 2);
-    assert.equal(await page.locator("#settlementReport").count(), 0, "no settlement figures until providers report them");
-    assert.match(await page.locator("#panel-cash").innerText(), /3,250 FCFA[\s\S]*Internet payments, since 1 Nov 2026/);
+    assert.equal(await page.locator("#settlementReport").count(), 0, "the gateway's own settlement report stays apart (#191)");
+    assert.match(await page.locator("#panel-cash").innerText(), /3,250 FCFA\s*Internet payments, last 7 days/);
     const cash = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export for accountant (CSV)", exact: true }).click();
-    assert.equal((await cash).suggestedFilename(), "ndahi-cash-before-fees.csv");
+    assert.equal((await cash).suggestedFilename(), "ndahi-settlements-week.csv");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/cash-${width}.png`, fullPage: true });

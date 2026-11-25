@@ -52,7 +52,8 @@ test("wrong owners are rejected generically and repeated failures are throttled"
     assert.deepEqual(result, { status: 401, body: { error: generic } });
   }
   assert.equal(s.securityEvents.filter(({ type, ip }) => type === "redeem.failed" && ip === "10.0.0.8").length, 20);
-  assert.equal(redeem(s, {}).status, 429);
+  assert.equal(redeem(s, { phone: "670000009" }).status, 429);
+  assert.equal(redeem(s, {}).status, 200, "another customer on the shared IP can still connect");
 });
 
 test("inactive vouchers are reported with their status", () => {

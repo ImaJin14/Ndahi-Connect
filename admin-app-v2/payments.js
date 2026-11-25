@@ -1,6 +1,11 @@
-// Redesigned Payments screen (canvas: AdminPayments) and the payment wording
-// the admin Home shares with it. Figures come from the records API and the
-// store snapshot; nothing here is estimated.
+// Redesigned Payments screen (canvas: AdminPayments; #386) and the payment
+// wording the admin Home shares with it. The figures come from the dashboard
+// (today's takings on the cash report's basis, and the payments list's counts)
+// and the list from the records collection allPayments: bundle payments, store
+// orders and reseller cash handoffs (#377). Nothing here is estimated.
+// Owner decision (25 Nov, #386): the refund actions, the provider reference,
+// paging, "Check with provider" on failed and expired rows, and the Provider
+// checks section stay, though the canvas leaves them out.
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
@@ -33,6 +38,8 @@ const STATUS = {
   cancelled: ["adminStatusCancelled", ""],
   "refund-pending": ["adminStatusRefundPending", "info"],
   refunded: ["adminStatusRefunded", ""],
+  // A reseller's cash handoff (#377), green on Home as drawn.
+  recorded: ["adminStatusRecorded", "success"],
 };
 export const paymentStatus = (p) => {
   const [key, tone] = STATUS[p.status] || ["adminStatusFailed", "danger"];
@@ -47,35 +54,15 @@ function when(value) {
   return new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: ZONE }) + ", " + time;
 }
 
-// Every payment of one status created since `stop`, newest first. Returns null
-// rather than a partial list when there are more than 1,000 of them.
-async function paymentsSince(call, status, stop) {
-  const items = [];
-  for (let page = 1; page <= 10; page++) {
-    const result = await call(`/api/admin/records?${new URLSearchParams({ collection: "payments", status, page, pageSize: 100 })}`);
-    items.push(...result.items);
-    const last = result.items[result.items.length - 1];
-    if (page >= result.pages || !last || Date.parse(last.createdAt) < stop) return items;
-  }
-  return null;
-}
-
 // The four figures above the list: today's bundle and store takings, payments
-// waiting over 10 minutes and payments that failed today.
-export async function loadPaymentFigures({ call, storeRole, storeSnapshot }) {
-  const today = startOfToday(), show = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-  const unavailable = L("adminUnavailable");
-  const [paid, pending, failed, store] = await Promise.all([
-    // A payment started late yesterday can be confirmed today, so read one day further back.
-    paymentsSince(call, "paid", today - DAY).catch(() => null),
-    paymentsSince(call, "pending", -Infinity).catch(() => null),
-    paymentsSince(call, "failed", today).catch(() => null),
-    storeSnapshot,
-  ]);
-  show("paymentsTodayBundles", paid ? fcfa(paid.filter((p) => Date.parse(p.confirmedAt || p.createdAt) >= today).reduce((sum, p) => sum + Number(p.amount || 0), 0)) : unavailable);
-  if (storeRole) show("paymentsTodayStore", store ? fcfa(store.orders.filter((o) => o.paymentStatus === "paid" && Date.parse(o.createdAt) >= today).reduce((sum, o) => sum + Number(o.amount || 0), 0)) : unavailable);
-  show("paymentsWaiting", pending ? String(pending.filter((p) => Date.now() - Date.parse(p.createdAt) > 10 * 60000).length) : unavailable);
-  show("paymentsFailedToday", failed ? String(failed.filter((p) => Date.parse(p.createdAt) >= today).length) : unavailable);
+// waiting over 10 minutes and payments that failed today, all from the dashboard.
+export function showPaymentFigures(x, { storeRole }) {
+  const show = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const unavailable = L("adminUnavailable"), takings = (x.metrics && x.metrics.takingsToday) || {}, counts = x.payments || {};
+  show("paymentsTodayBundles", takings.bundles == null ? unavailable : fcfa(takings.bundles));
+  if (storeRole) show("paymentsTodayStore", takings.store == null ? unavailable : fcfa(takings.store));
+  show("paymentsWaiting", counts.waitingOverTen == null ? unavailable : String(counts.waitingOverTen));
+  show("paymentsFailedToday", counts.failedToday == null ? unavailable : String(counts.failedToday));
 }
 
 // "Export CSV": the API's report (payments, then vouchers), saved as a file.
@@ -96,13 +83,31 @@ export function saveFile(name, blob) {
   setTimeout(() => URL.revokeObjectURL(link.href), 0);
 }
 
-// "All payments": search, status chips and the provider actions from v1
-// (refund approval, refund status, provider check), which the dashboard's
-// delegated click handler runs.
+// "All payments": search, status chips and every kind of payment. Bundle rows
+// keep the provider actions from v1 (refund approval, refund status, provider
+// check); a store order not yet confirmed can be checked with the provider
+// too, through the store's own order check. The dashboard's delegated click
+// handler runs them.
+const who = (p) => (p.kind === "cash" ? L("adminWhoReseller", { name: p.resellerName || "" })
+  : p.kind === "order" && p.guest ? L("adminWhoGuest", { phone: maskPhone(p.payerPhone) }) : maskPhone(p.payerPhone));
+const what = (p) => (p.kind === "cash" ? L("adminForCashHandoff") : p.kind === "order" ? L("adminForOrderRef", { reference: p.orderReference || "" }) : paymentFor(p));
+const UNCONFIRMED = ["pending", "processing", "failed", "expired", "cancelled"];
+function actions(p, canManagePayments) {
+  if (!canManagePayments || p.kind === "cash") return "";
+  if (p.kind === "order") return p.provider !== "mock" && !p.confirmedAt && !p.refund && UNCONFIRMED.includes(p.status) && Number.isInteger(p.orderVersion)
+    ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-verify-order="${h(p.orderId)}" data-order-version="${h(p.orderVersion)}">${h(L("adminCheckProvider"))}</button>` : "";
+  return [
+    p.status === "paid" && (!p.refund || p.refund.status === "requested") ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-refund="${h(p.id)}">${h(L("adminApproveRefund"))}</button>` : "",
+    ["paid", "refund-pending"].includes(p.status) && p.refund && p.refund.status === "pending" ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-check-refund="${h(p.id)}">${h(L("adminCheckRefund"))}</button>` : "",
+    p.provider !== "mock" && !p.confirmedAt && !p.refund && UNCONFIRMED.includes(p.status) ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-verify-payment="${h(p.id)}">${h(L("adminCheckProvider"))}</button>` : "",
+  ].filter(Boolean).join("");
+}
+// Recorded cash is the kit's neutral grey here, as drawn (green on Home).
+const status = (p) => (p.kind === "cash" ? `<span class="nd-pill">${h(L("adminStatusRecorded"))}</span>` : paymentStatus(p));
 export function mountPaymentRecords(container, { call, canManagePayments }) {
   return mountRecords(container, {
     call,
-    collection: "payments",
+    collection: "allPayments",
     title: L("adminAllPayments"),
     headers: [L("adminColWhen"), L("adminColCustomer"), L("adminColFor"), L("adminColMethod"), L("adminColAmount"), L("adminColStatus"), { label: L("adminColAction") }],
     empty: L("adminPaymentsNone"),
@@ -111,7 +116,7 @@ export function mountPaymentRecords(container, { call, canManagePayments }) {
       searchLabel: L("adminPaymentsSearch"),
       placeholder: L("adminPaymentsPlaceholder"),
       chipsLabel: L("adminColStatus"),
-      chips: [["", L("adminFilterAll")], ["pending", L("adminStatusWaiting")], ["paid", L("adminStatusPaid")], ["failed", L("adminStatusFailed")]],
+      chips: [["", L("adminFilterAll")], ["waiting", L("adminStatusWaiting")], ["paid", L("adminStatusPaid")], ["failed", L("adminStatusFailed")]],
       previous: L("adminPagePrevious"),
       next: L("adminPageNext"),
       text: {
@@ -123,13 +128,10 @@ export function mountPaymentRecords(container, { call, canManagePayments }) {
       },
     },
     row: (p) => {
-      const refund = p.refund ? `<span class="admin-cell__sub">${h(L("adminRefundLine", { status: p.refund.status }))}${[p.refund.message, p.refund.reason, p.refund.providerReference].filter(Boolean).map((line) => `<br>${h(line)}`).join("")}</span>` : "";
-      const actions = [
-        p.status === "paid" && (!p.refund || p.refund.status === "requested") && canManagePayments ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-refund="${h(p.id)}">${h(L("adminApproveRefund"))}</button>` : "",
-        ["paid", "refund-pending"].includes(p.status) && p.refund && p.refund.status === "pending" && canManagePayments ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-check-refund="${h(p.id)}">${h(L("adminCheckRefund"))}</button>` : "",
-        canManagePayments && p.provider !== "mock" && !p.confirmedAt && !p.refund && ["pending", "processing", "failed", "expired", "cancelled"].includes(p.status) ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-verify-payment="${h(p.id)}">${h(L("adminCheckProvider"))}</button>` : "",
-      ].filter(Boolean).join("");
-      return `<tr><td>${h(when(p.createdAt))}</td><td>${h(maskPhone(p.payerPhone))}</td><td>${h(paymentFor(p))}${p.providerReference ? `<span class="admin-cell__sub admin-cell__ref" title="${h(p.providerReference)}">${h(p.providerReference)}</span>` : ""}</td><td>${h(paymentMethod(p))}</td><td>${h(fcfa(p.amount))}</td><td>${paymentStatus(p)}${refund}</td><td><div class="admin-actions">${actions}</div></td></tr>`;
+      const refund = p.kind === "bundle" && p.refund ? `<span class="admin-cell__sub">${h(L("adminRefundLine", { status: p.refund.status }))}${[p.refund.message, p.refund.reason, p.refund.providerReference].filter(Boolean).map((line) => `<br>${h(line)}`).join("")}</span>` : "";
+      const reference = p.kind !== "cash" && p.providerReference ? `<span class="admin-cell__sub admin-cell__ref" title="${h(p.providerReference)}">${h(p.providerReference)}</span>` : "";
+      const method = p.kind === "cash" ? L("adminMethodCash") : paymentMethod(p);
+      return `<tr><td>${h(when(p.createdAt))}</td><td>${h(who(p))}</td><td>${h(what(p))}${reference}</td><td>${h(method)}</td><td>${h(fcfa(p.amount))}</td><td>${status(p)}${refund}</td><td><div class="admin-actions">${actions(p, canManagePayments)}</div></td></tr>`;
     },
   });
 }
