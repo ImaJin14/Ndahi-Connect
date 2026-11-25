@@ -25,6 +25,9 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
     s.adminUsers.push({ id: "r-kiosk", username: "brenda", displayName: "Market kiosk", role: "reseller", active: true, passkeys: [], commissionPercent: 10,
       remittances: [{ id: "rem-1", amount: 100, note: "Cash drop", recordedBy: "owner", createdAt: "2026-11-10T09:00:00.000Z" }] });
     s.adminSessions.push({ userId: "r-kiosk", role: "reseller", tokenHash: hashSecret("kiosk", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
+    // The owner, who changes the one commission rate (#390, #416).
+    s.adminUsers.push({ id: "u-owner", username: "owner", displayName: "Owner", role: "owner", active: true, passkeys: [] });
+    s.adminSessions.push({ userId: "u-owner", role: "owner", tokenHash: hashSecret("owner-test", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
     let n = 0;
     for (const [planId, price, count] of [["weekly", 1000, 3], ["daily", 300, 2]])
       for (let i = 0; i < count; i++, n++) s.vouchers.push({ id: `v-${planId}-${i}`, planId, code: `NC-KS${String(n).padStart(2, "0")}-${planId === "weekly" ? "WKLY" : "DALY"}`, status: "available",
@@ -73,6 +76,8 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
   assert.equal(await text(home.locator(".reseller-home__money")), "Your money Collected this week 300 FCFA Your commission 30 FCFA Paid to NDAHI · 10 Nov 100 FCFA Still to pay NDAHI 170 FCFA");
   assert.deepEqual(await home.locator("#resellerPlan option").allTextContents(), ["Weekly · 3 in hand", "Daily · 2 in hand"]);
   await check(page, "reseller-home-390");
+  // The two buttons sit at the bottom of the phone screen, as drawn (#416): 844 px less the 14 px padding.
+  assert.equal(await home.locator(".reseller-home__foot").evaluate((el) => Math.round(el.getBoundingClientRect().bottom)), 830);
   // Keyboard: Tab reaches every control in order, each with a 3px ring.
   const stops = [];
   for (let i = 0; i < 5; i++) {
@@ -140,6 +145,17 @@ test("a reseller sells a code for cash from the phone home screen", { timeout: 2
   assert.equal(await home.isHidden(), true);
   assert.deepEqual(errors, []);
   await context.close();
+
+  // One rate for every reseller (#390, #416): the owner's Change shows on the reseller's phone.
+  const changed = await fetch(`${api}/api/admin/resellers/commission`, { method: "POST",
+    headers: { cookie: "admin_session=owner-test", "content-type": "application/json", "x-csrf-token": "csrf" }, body: JSON.stringify({ commissionPercent: 12.5 }) });
+  assert.equal(changed.status, 200);
+  const after = await open(390);
+  await after.page.goto(`${admin}/dashboard`);
+  await after.page.locator("#resellerHome .reseller-home__title").waitFor();
+  assert.equal(await text(after.page.locator("#resellerHome .reseller-home__sub")), "brenda · keeps 12.5% of each sale");
+  assert.deepEqual(after.errors, []);
+  await after.context.close();
 
   // Desktop keeps the admin shell and its menu (the canvas is phone-only).
   const wide = await open(1280);
