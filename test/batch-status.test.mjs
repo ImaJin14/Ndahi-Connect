@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { linkedIssues, checksState, changesRequested, itemStatus, batchVerdict, summarise, render, tableCell, PLAN_FILE } from "../scripts/batch-status.mjs";
+import { linkedIssues, checksState, changesRequested, itemStatus, batchVerdict, summarise, render, tableCell, newerRunStarted, PLAN_FILE } from "../scripts/batch-status.mjs";
 
 const plan = JSON.parse(readFileSync(PLAN_FILE, "utf8"));
 
@@ -78,4 +78,23 @@ test("titles in the status table escape backslashes before pipes", () => {
   assert.equal(tableCell("a | b"), "a \\| b");
   assert.equal(tableCell("ends with \\"), "ends with \\\\", "a trailing backslash can't escape the cell's closing pipe");
   assert.equal(tableCell("x \\| y"), "x \\\\\\| y");
+});
+
+// #454: production deploys a commit only when all of its checks pass
+// (render.yaml, autoDeployTrigger: checksPass), and Merge batches runs report on
+// main's head, so they must never end cancelled.
+test("Merge batches runs are never cancelled, so none keeps a merged commit out of production", () => {
+  const workflow = readFileSync(new URL("../.github/workflows/merge-batches.yml", import.meta.url), "utf8");
+  assert.doesNotMatch(workflow, /^\s*concurrency\s*:/m);
+  assert.doesNotMatch(workflow, /cancel-in-progress\s*:\s*true/);
+  assert.match(workflow, /^\s*actions:\s*read\s*$/m, "the newest-run check lists this workflow's runs");
+});
+
+test("only the newest Merge batches run rewrites the tracking issue", () => {
+  const runs = [{ run_number: 40 }, { run_number: 42 }, { run_number: 41 }];
+  assert.equal(newerRunStarted(runs, 42), false);
+  assert.equal(newerRunStarted(runs, "41"), true);
+  assert.equal(newerRunStarted(runs, 43), false);
+  assert.equal(newerRunStarted([], 7), false);
+  assert.equal(newerRunStarted(runs, undefined), false, "outside Actions there is no run number: always write");
 });
