@@ -7,7 +7,7 @@ import { mountBundleEdit } from "/bundles.js";
 import { mountCatalogue } from "/bundle-catalogue.js";
 import { liveSummaryText, mountLiveDevices } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
-import { exportAudit, mountAuditRecords, syncAuditAddress } from "/audit.js";
+import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
 import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
 import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
@@ -262,7 +262,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   // Catalogue managers only (owners and operators; the API refuses others).
   const catalogue = storeRole && $("#bundleCatalogue") ? mountCatalogue($("#bundleCatalogue"), { call }) : null;
   const bundleEditor = storeRole && $("#bundleEditor") ? mountBundleEdit($("#bundleEditor"), { call, setHead: setAdminHead, statusHost: $("#bundleStatusHost"), speedLimitsOn: x.integrations?.speedLimits === "on" }) : null;
-  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "bundles") void catalogue?.refresh(); resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); if (view === "promotions" && $("#promotionsHost")) void showPromotions($("#promotionsHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer(); if (view === "audit") syncAuditAddress();
+  mountAdminNavigation(adminRole, (view) => { activeAdminTab = view; if (view === "bundles") void catalogue?.refresh(); resellerHome?.setView(view); if (view === "outages") void showOutages($("#outagesHost"), { call }); if (view === "promotions" && $("#promotionsHost")) void showPromotions($("#promotionsHost"), { call }); showBatchPrint(view); if (view === "vouchers" && location.hash === "#voucher-create") customerVoucher?.showMode("batch"); if (view === "customer") void openCustomer();
     if (view === "voucher") void openVoucher(); else { $("#adminTitle")?.classList.remove("admin-title--code"); $("#adminTitle")?.parentElement?.classList.remove("admin-head-title--inline"); } if (view !== "bundle") $("#adminTitle")?.classList.remove("admin-title--sub"); if (view === "bundle") void bundleEditor?.open(adminViewParam()).then((shown) => { if (!shown) location.replace("/dashboard#bundles"); }); if (["store", "products", "product"].includes(view)) void storeManagement?.activate(view, adminViewParam()); if (view === "devices") void refreshWifiSummary(); });
   if (["owner", "operator"].includes(adminRole)) void mountIncidentDetails(call);
   // Home and Payments both read the store's orders; fetch them once.

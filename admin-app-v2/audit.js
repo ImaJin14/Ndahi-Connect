@@ -90,6 +90,7 @@ export function syncAuditAddress() {
 
 export function mountAuditRecords(container, { call, searchHost }) {
   const initial = auditAddressState(location.hash);
+  window.addEventListener("hashchange", syncAuditAddress);
   if (initial.q && searchHost?.closest("details")) searchHost.closest("details").open = true;
   return mountRecords(container, {
     initial,
