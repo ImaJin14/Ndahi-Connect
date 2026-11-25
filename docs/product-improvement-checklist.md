@@ -1809,4 +1809,11 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
     - Needs attention shows the drawn items plus the operational alerts;
     - Latest payments lists bundle payments, store orders and reseller cash handoffs from one records collection (`allPayments`, owners and operators only).
   - **Not merged.**
+- [-] **ADM-379 — Cash and settlements** ([#379](https://github.com/ImaJin14/Ndahi-Connect/issues/379))
+  - **Implemented and tested:**
+    - Today, 7 days and Month (Douala time, never before 1 Nov) replace the fixed total;
+    - the figures and the per-network table come from `GET /api/admin/cash?period=`: confirmed collections, what customers paid, the saved fees, completed refunds and the net;
+    - the accountant's CSV is the table as shown.
+  - **Not a completed settlement:** the net is what MeSomb should pay from saved payments. Completed settlements read from MeSomb wait for #191.
+  - **Not merged.**
 
