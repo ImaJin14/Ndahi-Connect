@@ -1704,6 +1704,17 @@ On 21 November the owner also asked for the countdown in the customer portal.
   - [ ] **Staging, by 25 November:** a guest purchase, an account purchase with a running bundle (paused, then resumed on the router), and a refund.
     - On 21 November the staging hostnames (`staging-api`, `staging-portal`, `staging-admin`) did not resolve. Staging must be brought up first, or the owner must agree another way to test.
 
+### Connections checked every minute (#380, batch 7, 25 November 2026)
+
+- [-] **ADM-380 — Connections and security, redesigned (batch 7)** ([#380](https://github.com/ImaJin14/Ndahi-Connect/issues/380)). Owner decisions: [#380 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/380#issuecomment-7171673999).
+  - **Implemented and tested** (PR pending, not merged yet):
+    - a new server check (`lib/service-health.mjs`), every minute in production (`SERVICE_HEALTH_ENABLED=false` turns it off) and on "Test connection" (`POST /api/admin/service-health/test`, owners and operators);
+    - Starlink uplink: the router's ping and the traffic on its uplink port ("24 ms · 18 Mbps in use"), no speed test; MikroTik gateway: hotspot sessions; Mobile Money per network: how long recent payments took to confirm; Email: receipt-email results and every send since start; Omada while standalone: no test;
+    - the router is read through the saved live connection with GETs and RouterOS's own ping and monitor-traffic, outside any store transaction; one uplink row an hour is kept for Insights;
+    - Admin security shows the real sign-in policy ("PIN + passkey, required" after the cutover); router checks and Sync usage are closed below, opened by "N stuck";
+    - English and French.
+  - **Not yet:** merged, deployed, or the router readings checked on-site against the RB5009 (ping, uplink port and hotspot sessions).
+
 ### Product photos up to 30 (#321, 21 November 2026)
 
 On 21 November the owner asked for products to take up to 30 photos instead of 4. Codex had raised the limits; Claude took the work over.

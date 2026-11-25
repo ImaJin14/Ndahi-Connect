@@ -102,6 +102,7 @@ test("admin v2 lists, Audit, Home, router checks and network setup read as desig
 
     // Connections: router commands in plain words.
     await page.goto(`${admin}/dashboard#connections`);
+    await page.locator("#routerChecks > summary").click();
     const commands = page.locator("#routerChecksTitle").locator("xpath=..").locator("table").last();
     await commands.waitFor();
     assert.deepEqual(await commands.locator("thead th").evaluateAll((ths) => ths.map((th) => th.textContent.trim())), ["Command", "On", "Status", "Tries", "Reason", "What you can do"]);

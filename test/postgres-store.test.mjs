@@ -212,6 +212,20 @@ test("partial snapshots read only the requested collections", { skip }, async ()
   assert.equal((await store.snapshot()).customers.length, 1);
 });
 
+// Connections' router check reads only the saved router setting (#380).
+test("a partial snapshot reads the settings it names, and only those", { skip }, async () => {
+  await store.transaction((s) => {
+    s.customers.push({ id: "customer-2", phone: "670000002" });
+    s.networkSetup = { connections: { router: { kind: "router", mode: "live", secret: "sealed" } } };
+    s.zone = { ...s.zone, status: "maintenance" };
+  });
+  const partial = await store.snapshot({ only: [], settings: ["networkSetup", "notASetting"] });
+  assert.equal(partial.networkSetup.connections.router.mode, "live");
+  assert.deepEqual(partial.customers, []);
+  assert.notEqual(partial.zone?.status, "maintenance", "settings not named are not read");
+  assert.equal("notASetting" in partial, false);
+});
+
 test("operational incident state commits atomically and survives normalized-store restart", { skip }, async () => {
   await store.transaction((s) => {
     s.operationalIncidents.push({ id: "incident-pg", status: "open", count: 1, firstAt: "2030-01-01T00:00:00Z", lastAt: "2030-01-01T00:00:00Z" });
