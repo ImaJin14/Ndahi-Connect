@@ -1881,7 +1881,7 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
 Owner decisions are on each issue (25 Nov).
 
 - [-] **ADM-378 — Audit log, redesigned (batch 7)** ([#378](https://github.com/ImaJin14/Ndahi-Connect/issues/378))
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #473, not merged yet):
     - the six drawn chips (Everything, Money, Store, Vouchers, Customers, Sign-ins), each mapped to its areas on the server; network, Home WISP and setup actions show under Everything;
     - a staff sign-in is one row, "Signed in with PIN + passkey", on "Admin": the PIN step it used is folded into it. Stored entries and the CSV export are unchanged;
     - "On" names the order (NS-…), the voucher batch (B-…), the product and "Bundle · 6•• •• 12 45";
