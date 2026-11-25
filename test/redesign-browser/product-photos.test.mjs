@@ -98,10 +98,13 @@ test("the owner adds photos up to 30, and shoppers browse them in the store and 
   // The owner adds two photos; at 30 the picker stops.
   let { context, page, errors, csp } = await open(1280, [ownerCookie]);
   await page.goto(`${admin}/dashboard#product/ax1500`);
-  const photos = page.locator("#storeImages fieldset");
+  // The drawn grid (canvas: AdminProductEdit, #387): one square per photo, the
+  // first outlined as the main one, then "+ Add".
+  const photos = page.locator("#storeImages .is-photo");
   await photos.nth(27).waitFor();
   assert.equal(await photos.count(), 28);
   assert.match(await loaded(photos.first().locator("img")), new RegExp(`^${api}/api/store/photos/${ids[0]}$`));
+  assert.equal(await page.locator("#storeImages .is-main").count(), 1);
   const picker = page.locator("#storeImageUpload");
   for (const n of [28, 29]) {
     await picker.setInputFiles({ name: `photo-${n}.png`, mimeType: "image/png", buffer: png(320, 240, colour(n)) });
@@ -110,9 +113,12 @@ test("the owner adds photos up to 30, and shoppers browse them in the store and 
   assert.equal(await photos.count(), 30);
   assert.equal(await picker.isDisabled(), true, "no 31st photo");
   assert.equal(await page.locator(".admin-photos__add").innerText(), "30 photos, the most a product can have. Remove one to add another.");
-  assert.match(await page.locator(".admin-photos__add").locator("xpath=..").innerText(), /up to 30/);
-  await photos.nth(29).locator('[name="image29.en"]').fill("Ports and power");
-  await photos.nth(29).locator('[name="image29.fr"]').fill("Ports et alimentation");
+  // Each photo's alternative text is under the collapsed Photo details (kept by the owner, 25 Nov).
+  await page.locator("#productPhotoDetails > summary").click();
+  const details = page.locator("#storePhotoDetails fieldset");
+  assert.equal(await details.count(), 30);
+  await details.nth(29).locator('[name="image29.en"]').fill("Ports and power");
+  await details.nth(29).locator('[name="image29.fr"]').fill("Ports et alimentation");
   await page.getByRole("button", { name: "Save product" }).click();
   await page.locator("#storeSaved").filter({ hasText: "Saved" }).waitFor();
   const saved = (await store.snapshot()).storeProducts.find((p) => p.id === "ax1500");

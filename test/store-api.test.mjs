@@ -585,3 +585,15 @@ test("published unpriced products are visible but cannot reserve stock or charge
   const invalid=await f.call("/api/admin/store/products/save", {...p,version:p.version+1,price:0},{role:"owner",csrf:"csrf-owner"});
   assert.equal(invalid.status,400);
 });
+
+// Edit product (#387): the price is a whole number of FCFA, checked by the server.
+test("a product's price must be a whole number of FCFA", async (t) => {
+  const f = await fixture(t);
+  const p = (await f.store.snapshot()).storeProducts[0];
+  const fractional = await f.call("/api/admin/store/products/save", { ...p, price: 1500.5 }, { role: "owner", csrf: "csrf-owner" });
+  assert.equal(fractional.status, 400);
+  assert.match(fractional.body.error, /whole number/);
+  const whole = await f.call("/api/admin/store/products/save", { ...p, price: 1500 }, { role: "owner", csrf: "csrf-owner" });
+  assert.equal(whole.status, 200);
+  assert.equal((await f.store.snapshot()).storeProducts[0].price, 1500);
+});
