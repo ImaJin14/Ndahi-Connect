@@ -103,7 +103,8 @@ export const SCREENS = [
   ...[
     ["home", "Home", "PhoneHome", "Main", "/dashboard#home", "Redesigned", { tab: "home", expect: ["#portalTitle"] }],
     ["internet", "Internet", "PhoneInternet", "DesktopInternet", "/dashboard#internet", "Redesigned", { tab: "internet" }],
-    ["buy-desktop", "Buy a bundle — desktop", null, "DesktopBuyBundle", "/dashboard#internet", NOT_BUILT(431), { tab: "internet" }],
+    ["buy-desktop", "Buy a bundle — desktop", null, "DesktopBuyBundle", "/onboarding.html", "Redesigned (#431): the price table and Your choice", { expect: ["#plans .plan"],
+      blocked: "The preview sells the legacy catalogue (the Unlimited switch stays off), so this shows today's buy page; test/redesign-browser/desktop-buy.test.mjs captures the table, Your choice, the waiting, no-fee and running-bundle states in English and French at 1280 px" }],
     ["activity", "Activity", "PhoneActivity", "DesktopActivity", "/dashboard#activity", "Redesigned", { tab: "activity" }],
     ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["details[data-payment-row] > summary", "[data-view-receipt]"], expect: ["#receiptDialog[open]", "#receiptDownload"] }],
     ["account", "Account", "PhoneAccount", "DesktopAccount", "/dashboard#account", "Redesigned", { tab: "account" }],

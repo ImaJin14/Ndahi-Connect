@@ -128,3 +128,73 @@
 }
 /* Under the waiting message (canvas: PhoneBuyBundle). */
 .packages-page .pay-failed-link { display: flex; align-items: center; min-height: 32px; margin: var(--nd-space-10) auto 0; padding: 0; border: 0; background: none; color: var(--nd-forest); font: 700 var(--nd-fs-meta) var(--nd-font-body); text-decoration: underline; cursor: pointer; }
+
+/* Desktop Buy a bundle (#431, canvas: DesktopBuyBundle): signed-in customers,
+   a wide screen, the Unlimited catalogue on sale. The forest portal header, the
+   price table and the Home WISP card, and "Your choice" (the checkout, shown
+   inline) beside them. Values from the artboard; "body.buy-desk" outranks the
+   phone rules above. */
+body.buy-desk > header:not(.buy-desk__header), body.buy-desk > footer, body.buy-desk #entryConnectivity, body.buy-desk .help-link { display: none; }
+body.buy-desk > header.buy-desk__header { display: block; min-height: 0; padding: 0; border-bottom: 0; background: var(--nd-forest); box-shadow: none; }
+body.buy-desk .buy-desk__header .nd-topnav__inner { max-width: 1280px; padding-left: 40px; padding-right: 40px; }
+body.buy-desk main#pageContent { box-sizing: content-box; max-width: 1200px; margin: 0 auto; padding: 32px 28px 56px; }
+body.buy-desk #packages { display: grid; grid-template-columns: minmax(0, 1fr) 386px; gap: 22px; align-items: start; max-width: none; margin: 0; padding: 0; }
+body.buy-desk #packages > * { grid-column: 1 / -1; min-width: 0; margin: 0; }
+body.buy-desk #packages > #plans.grid { grid-column: 1; display: block !important; max-width: none; margin: 0 !important; padding: 0 !important; border: 0; border-radius: 0; background: none; overflow: visible !important; }
+body.buy-desk #packages > #checkout { grid-column: 2; }
+body.buy-desk #planNotice:empty { display: none; }
+body.buy-desk #packages .section-head { display: block; margin: 0; }
+body.buy-desk #packages .section-head .trust { display: none; }
+body.buy-desk .buy-desk__back { color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; }
+body.buy-desk #packages #packagesTitle { margin: 10px 0 0; color: var(--nd-ink); font: 600 40px/normal var(--nd-font-display); }
+body.buy-desk #packages #packagesDescription { margin: 6px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-body); line-height: normal; }
+.buy-desk__catalogue { display: flex; flex-direction: column; gap: 22px; }
+.buy-desk__panel { display: flex; flex-direction: column; gap: 14px; padding: 24px; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-hero); background: var(--nd-paper); }
+.buy-desk__panel--wisp { gap: 10px; }
+.buy-desk__h2 { margin: 0; color: var(--nd-ink); font: 600 var(--nd-fs-title)/normal var(--nd-font-display); }
+.buy-desk__sub { margin: 4px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: normal; }
+.buy-desk__panel--wisp .buy-desk__sub { margin: 0; }
+.buy-desk__table { width: 100%; margin: 0; border-collapse: separate; border-spacing: 6px; background: transparent; }
+.buy-desk__table th { padding: 0 4px; border: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 600; text-align: center; white-space: nowrap; }
+.buy-desk__table th.buy-desk__rowhead { color: var(--nd-ink); font-size: var(--nd-fs-small); font-weight: 700; text-align: left; }
+.buy-desk__table td { padding: 0; border: 0; white-space: nowrap; }
+.buy-desk__cell, .buy-desk__cell:hover { width: 100%; min-height: 48px; padding: 1px 6px; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 700 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; transform: none; box-shadow: none; transition: none; }
+.buy-desk__cell[aria-pressed="true"], .buy-desk__cell[aria-pressed="true"]:hover { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+.buy-desk__cell--none, .buy-desk__cell--none:disabled, .buy-desk__cell--none:hover { border: 1px dashed var(--nd-line); background: transparent; color: #8a948f; font-size: var(--nd-fs-caption); font-weight: 600; cursor: not-allowed; opacity: 1; }
+.buy-desk__cell:disabled:not(.buy-desk__cell--none), .buy-desk__wisp:disabled { cursor: not-allowed; opacity: .55; }
+.buy-desk__note { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.buy-desk__wisp, .buy-desk__wisp:hover { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 14px; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-panel); background: var(--nd-white); color: var(--nd-ink); font: 400 var(--nd-fs-small)/normal var(--nd-font-body); text-align: left; cursor: pointer; transform: none; box-shadow: none; transition: none; }
+.buy-desk__wisp[aria-pressed="true"], .buy-desk__wisp[aria-pressed="true"]:hover { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+.buy-desk__wisp strong { display: block; }
+.buy-desk__wisp span span { color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+.buy-desk__wisp .buy-desk__wisp-price { font-size: 18px; white-space: nowrap; }
+/* "Your choice": the phone's checkout form, shown beside the table. */
+body.buy-desk #checkout.buy-desk__aside { position: sticky; top: 20px; inset: auto; z-index: auto; display: block; width: auto; height: auto; margin: 0; padding: 22px; border: 1px solid var(--nd-line); border-radius: var(--nd-radius-hero); background: var(--nd-paper); box-shadow: none; overflow: visible; }
+body.buy-desk #checkout > .card { display: flex; flex-direction: column; gap: 14px; width: auto; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+body.buy-desk #checkout #closeCheckout, body.buy-desk #checkout #checkoutPolicy, body.buy-desk #checkout #checkoutPolicy + p, body.buy-desk #checkout p:has(> #checkoutHelp), body.buy-desk #checkout #message:empty,
+body.buy-desk #checkout #accountContact, body.buy-desk #checkout label:has(> select[name="network"]), body.buy-desk #checkout #paymentNetworkHint, body.buy-desk #checkout #accountPayer small, body.buy-desk #checkout #balanceNote svg { display: none; }
+body.buy-desk #checkout #selected { margin: 0; color: var(--nd-ink); font: 600 var(--nd-fs-title)/normal var(--nd-font-display); }
+body.buy-desk #checkout #checkoutSummary { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
+.buy-desk__choice { display: block; padding: 14px; border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-white); font-size: var(--nd-fs-control); line-height: normal; }
+body.buy-desk #checkoutSummary .buy-desk__choice strong { display: block; color: var(--nd-white); font-size: var(--nd-fs-control); }
+body.buy-desk #checkoutSummary .buy-desk__choice span { color: var(--nd-on-forest-muted); font-size: var(--nd-fs-meta); }
+body.buy-desk #checkout #purchase, body.buy-desk #checkout #purchaseFields { display: flex; flex-direction: column; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.buy-desk__networks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.buy-desk__network, .buy-desk__network:hover { min-height: 46px; padding: 0 8px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-ink); font: 600 var(--nd-fs-small) var(--nd-font-body); cursor: pointer; transform: none; box-shadow: none; transition: none; }
+.buy-desk__network[aria-checked="true"], .buy-desk__network[aria-checked="true"]:hover { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+body.buy-desk #checkout #accountPayer { display: block; margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+body.buy-desk #checkout .buy-desk__payer { position: relative; display: block; margin: 6px 0 0; }
+body.buy-desk #checkout #accountPayer input { box-sizing: border-box; display: block; width: 100%; min-height: 46px; margin: 0; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 var(--nd-fs-control) var(--nd-font-body); }
+/* The account's number shows masked ("6•• •• 12 45") until the field is used. */
+body.buy-desk #checkout #accountPayer input.buy-desk__payer--masked { color: transparent; }
+.buy-desk__mask { position: absolute; inset: 0 15px; display: flex; align-items: center; color: var(--nd-ink); font: 400 var(--nd-fs-control) var(--nd-font-body); pointer-events: none; }
+.buy-desk__mask:empty { display: none; }
+.buy-desk__cost { display: flex; flex-direction: column; gap: 8px; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); font-weight: 400; }
+.buy-desk__row { display: flex; justify-content: space-between; gap: 12px; }
+.buy-desk__row > :last-child { color: var(--nd-ink); }
+.buy-desk__row--total { padding-top: 8px; border-top: 1px solid var(--nd-line); color: var(--nd-ink); }
+.buy-desk__row--total > strong:last-child { font-size: 20px; }
+body.buy-desk #checkout #balanceNote { display: block; margin: 0; padding: 10px 12px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-meta); font-weight: 400; line-height: 1.45; }
+body.buy-desk #checkout #balanceNote[hidden] { display: none; }
+body.buy-desk #checkout #requestPayment, body.buy-desk #checkout #requestPayment:hover { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-control) var(--nd-font-body); transform: none; box-shadow: none; }
+body.buy-desk #checkout .buy-desk__rule { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-caption); font-weight: 400; }
