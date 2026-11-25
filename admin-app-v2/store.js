@@ -5,10 +5,11 @@
 //                stock and visibility, then stock ledger, categories, settings
 //   #product/id  Edit product (AdminProductEdit): EN/FR details, photos, price
 //                and stock, visibility; Save product in the page head
-// The store launches in English, so these screens are English like v1's.
+// Strings come from shared-app/i18n/admin.js, in English and French.
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
+import { fcfa as money, maskPhone, paymentMethod } from "/payments.js";
 const MAX_PRODUCT_IMAGES = 30;
 // A product photo's address: the API serves photos by path; a photo saved
 // before photos were stored on their own carries its data URL.
@@ -47,18 +48,21 @@ function values(form) {
   }
   return out;
 }
-const fcfa = (n) => n == null ? "Price to be confirmed" : `${Number(n).toLocaleString()} FCFA`;
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
+const ZONE = "Africa/Douala";
+// Amounts as on the other admin screens ("30,000 FCFA"; "30 000 FCFA" in French).
+const fcfa = (n) => n == null ? L("adminStorePriceTbc") : money(n);
+// "Today 09:12", or the day ("8 Nov") for older orders, in Douala time.
 const day = (value) => {
   const at = Date.parse(value);
   if (!Number.isFinite(at)) return "—";
-  const date = new Date(at), today = new Date().toDateString() === date.toDateString();
-  const time = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" });
-  return today ? `Today ${time}` : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Douala" });
+  const date = new Date(at), key = (d) => d.toLocaleDateString("en-CA", { timeZone: ZONE });
+  if (key(date) === key(new Date())) return L("adminStoreToday", { time: date.toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit", timeZone: ZONE }) });
+  return date.toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: ZONE });
 };
-// Order pills, worded as on the canvas.
 // A store promotion's free month on the order (#423). Staff see a guest's
 // code once the router is collected, to write down or read out (owner, 24 Nov).
-const L = (key, values) => format(key, values || {}, currentLanguage());
 function freeMonthFact(o) {
   const b = o.bonus;
   if (!b) return "";
@@ -100,7 +104,7 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     keepNotice = false,
     loading;
   root.innerHTML =
-    '<button type="button" id="retryStore" class="nd-btn nd-btn--secondary" hidden>Retry loading store</button><p id="storeAdminMessage" class="nd-meta admin-store__message" role="status" aria-live="polite"></p><div id="storeAdminContent" class="admin-store"></div>';
+    `<button type="button" id="retryStore" class="nd-btn nd-btn--secondary" hidden>${h(L("adminStoreRetry"))}</button><p id="storeAdminMessage" class="nd-meta admin-store__message" role="status" aria-live="polite"></p><div id="storeAdminContent" class="admin-store"></div>`;
   const $ = (s) => root.querySelector(s),
     message = $("#storeAdminMessage"),
     content = $("#storeAdminContent");
@@ -109,7 +113,7 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     const label = button?.textContent;
     if (button) {
       button.disabled = true;
-      button.textContent = "Saving…";
+      button.textContent = L("adminSaving");
     }
     message.textContent = "";
     try {
@@ -127,7 +131,7 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     if (loading) return loading;
     const retry = $("#retryStore");
     retry.hidden = true;
-    message.textContent = "Loading store management…";
+    message.textContent = L("adminStoreLoading");
     content.setAttribute("aria-busy", "true");
     loading = (async () => {
       try {
@@ -160,7 +164,7 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     });
     state = result;
     render();
-    message.textContent = "Saved.";
+    message.textContent = L("adminStoreSaved");
     return result;
   }
   function missingConfiguration() {
