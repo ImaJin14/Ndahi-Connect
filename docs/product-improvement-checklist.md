@@ -1779,11 +1779,15 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
   - **Physically verified: not yet.** Owner to run `unlimited-sharing-rules-test-plan.md`.
   - **Follow-up:** IPv6 authorization and Hop Limit ([#443](https://github.com/ImaJin14/Ndahi-Connect/issues/443)).
 - [-] **UNL-336 — Home WISP Unlimited on the NDAHI Home router path** ([#336](https://github.com/ImaJin14/Ndahi-Connect/issues/336))
-  - **Implemented and tested** in PR #449: waits for the router, never on the direct path, refused while NDAHI Home is off. Not merged.
+  - **Implemented, tested, merged and deployed** (PR #449): waits for the router, never on the direct path, refused while NDAHI Home is off.
   - **Physically verified: not yet.** Owner to run `home-wisp-test-plan.md`.
 - [-] **UNL-337 — Rollout, rollback and hardware test report** ([#337](https://github.com/ImaJin14/Ndahi-Connect/issues/337))
-  - **Written:** the rollout guide and the report template. Not merged.
+  - **Written and merged** (PR #451): the rollout guide and the report template.
   - **Pending:** the report results, which the owner records on site.
 - [-] **UNL-338/339/342 — Admin screens: Bundles, Edit bundle, Customers** ([#338](https://github.com/ImaJin14/Ndahi-Connect/issues/338), [#339](https://github.com/ImaJin14/Ndahi-Connect/issues/339), [#342](https://github.com/ImaJin14/Ndahi-Connect/issues/342))
-  - **Implemented and tested** in PRs #446, #447 and #448, with design captures and owner-approved differences. Not merged.
+  - **Implemented, tested, merged and deployed** (PRs #446, #447 and #448), with design captures and owner-approved differences.
+  - **Deployed:** production has served batch 3 (`dc39726`) since 25 Nov, 03:12 UTC. Render held back the last two merges until their cancelled "Merge batches status" checks were rerun ([#454](https://github.com/ImaJin14/Ndahi-Connect/issues/454)).
+- [-] **UNL-431 — Desktop Buy a bundle** ([#431](https://github.com/ImaJin14/Ndahi-Connect/issues/431))
+  - **Implemented and tested:** a signed-in customer on a wide screen sees every Personal Unlimited price in one table (1 to 6 devices; combinations not offered are disabled), the Home WISP card, and "Your choice" beside them with the server's fee and total. Pay Now opens the same payment flow as on phones. Not merged.
+  - **Shows only after the switch:** the current catalogue, phones and signed-out visitors keep today's buy page.
 

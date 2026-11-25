@@ -17,9 +17,10 @@ import { configurePairingLink } from "./wifi-pairing.js";
 import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
-import { didntGoThroughButton, hidePaymentFailed, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
+import { didntGoThroughButton, hidePaymentFailed, maskedNumber, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
+import { unlimitedCatalogue, deskCatalogue, deskChoiceCard, deskNetworks, deskCost, deskNotice, deskHeader, setDeskNetwork } from "./buy-desktop.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -38,6 +39,17 @@ let selected, checkoutTrigger, csrfToken = "", account, plans = [], cataloguePla
   paymentProvider, renewal, paymentInProgress, activeRequestKey, polling = false, creatingPayment = false,
   purchaseAccess = { allowed: false }, accessReady = false, checkingAccess = null, coverageError = false;
 let subscriptionAccess = { allowed: true };
+// Desktop Buy a bundle (#431, buy-desktop.js): signed-in, wide screen, Unlimited catalogue on sale.
+const deskQuery = typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 1024px)") : null;
+let deskHeaderEl = null, networkState = "unknown", deskReady = false;
+const deskFits = () => Boolean(deskQuery?.matches) && Boolean(account) && !accountAction && unlimitedCatalogue(plans);
+// Once set up, the layout stays until the page reloads: the checkout is part of
+// the page here and a dialog on phones. Crossing the width reloads into the
+// other layout, unless a payment is under way.
+const deskMode = () => deskReady || deskFits();
+deskQuery?.addEventListener?.("change", () => {
+  if (accessReady && !paymentInProgress && !creatingPayment && deskReady !== deskFits()) location.reload();
+});
 // Price, Mobile Money fee and total (#297, canvas: PhoneBuyBundle). The fee and the
 // total always come from the server: each plan's paymentQuotes for the chosen
 // network, then the payment record. Without them the page says the fee is in the
@@ -48,6 +60,7 @@ const L = (key, values) => format(key, values || {}, currentLanguage()),
   quoteFor = (plan, network) => (Number.isFinite(plan?.paymentQuotes?.[network]?.total) ? plan.paymentQuotes[network] : null);
 const chosenNetwork = () => $("#purchase").elements.network.value;
 function payLabel() {
+  if (deskMode()) return L("deskBuyPayNow");
   const quote = quoteFor(selected, chosenNetwork());
   return quote ? L("buyPay", { total: fcfa(quote.total) }) : L("buyPayNoFee", { price: fcfa(selected.price) });
 }
@@ -65,6 +78,7 @@ function costSection() {
 // The breakdown, the balance note and the Pay button follow the chosen network.
 function renderCost() {
   if (!selected) return;
+  if (deskMode()) return renderDeskCost();
   const cost = $("#checkoutCost"), network = chosenNetwork(), wallet = WALLETS[network], quote = quoteFor(selected, network);
   if (cost) cost.outerHTML = costSection();
   const note = $("#balanceNote");
@@ -92,7 +106,7 @@ function showSubscriptionProtection() {
     : `<a href="${h(withWifiHint("/dashboard"))}">Connect using existing bundle</a>`);
 }
 
-fetchNetworkStatus(api).then((status) => applyNetworkStatus($(".network-state"), status));
+fetchNetworkStatus(api).then((status) => { networkState = status; applyNetworkStatus($(".network-state"), status); setDeskNetwork(deskHeaderEl, status); });
 async function call(path, options = {}) {
   const { response, body: result } = await requestJson(api + path, {
     credentials: "include", ...options,
@@ -176,6 +190,7 @@ function showPlanPeriod(value) {
   document.querySelectorAll("#plans [data-plan-group]").forEach((group) => { group.hidden = planPeriod !== "all" && group.dataset.planGroup !== planPeriod; });
 }
 function renderPlans() {
+  if (deskMode()) return renderDesk();
   const card = (plan) => {
     const blocked = !subscriptionAccess.allowed || (accountAction === "renew" && (!renewal || !renewal.eligible));
     const eligibility = !subscriptionAccess.allowed ? "Your existing bundle is protected from replacement." : blocked
@@ -286,7 +301,9 @@ async function initialize() {
   cataloguePlans = catalogue.plans.filter((plan) => !plan.discontinued);
   plans = cataloguePlans;
   paymentProvider = catalogue.paymentProvider;
-  if (!accountAction) renderPlans();
+  // On a wide screen the Unlimited catalogue waits for the account (the desktop
+  // layout is for signed-in customers), so the phone list doesn't flash first.
+  if (!accountAction && !(deskQuery?.matches && unlimitedCatalogue(plans))) renderPlans();
   $("#purchase").elements.email.required = paymentProvider === "flutterwave";
   if (paymentProvider === "flutterwave") {
     $("#emailLabel").textContent = "Payment contact email";
@@ -309,6 +326,7 @@ async function initialize() {
       throw error;
     }
     if (error.status !== 401) {
+      renderPlans();
       notice("Packages are available, but your account could not load. Try again before starting a payment for your existing account.", false);
       $("#planNotice").firstElementChild.insertAdjacentHTML("beforeend", '<button id="retryAccount">Try again</button>');
       $("#retryAccount").onclick = () => location.reload();
@@ -373,7 +391,8 @@ async function initialize() {
   const preferred = pageParams.get("plan");
   if (preferred && choose(preferred)) {
     const btn = Array.from(document.querySelectorAll("#plans button[data-plan]")).find((button) => button.dataset.plan === preferred);
-    if (btn) openCheckout(btn);
+    if (deskMode()) renderCheckoutReview();
+    else if (btn) openCheckout(btn);
     if (pageParams.get("quick") === "1") {
       setTimeout(() => {
         const reqBtn = $("#requestPayment");
@@ -518,6 +537,7 @@ function choose(id) {
   if (!plan || !purchaseAccess.allowed || !subscriptionAccess.allowed || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
   selected = plan;
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
+  document.querySelectorAll("#plans [data-plan][aria-pressed]").forEach((cell) => cell.setAttribute("aria-pressed", String(cell.dataset.plan === id)));
   return true;
 }
 const checkoutTitle = () =>
@@ -531,8 +551,8 @@ function renderCheckoutReview() {
     $("#requestPayment").disabled = true;
     return;
   }
-  $("#selected").textContent = checkoutTitle();
-  $("#checkoutSummary").innerHTML = (accountAction === "switch" && account.currentPlan?.plan ? comparison(selected) : "") + costSection();
+  $("#selected").textContent = deskMode() ? L("deskBuyYourChoice") : checkoutTitle();
+  $("#checkoutSummary").innerHTML = deskMode() ? deskChoiceCard(selected) : (accountAction === "switch" && account.currentPlan?.plan ? comparison(selected) : "") + costSection();
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
   $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;
@@ -541,6 +561,73 @@ function renderCheckoutReview() {
   renderCost();
 }
 for (const type of ["change", "networkchange"]) $("#purchase").elements.network.addEventListener(type, renderCost);
+// Desktop layout (#431): the table and Home WISP card, and the checkout shown
+// inline as "Your choice". The form, its submit and the payment flow are the
+// phone's; only their arrangement and words differ.
+function renderDesk() {
+  document.body.classList.add("buy-desk");
+  if (!deskHeaderEl) {
+    deskHeaderEl = deskHeader();
+    document.body.prepend(deskHeaderEl);
+    setDeskNetwork(deskHeaderEl, networkState);
+  }
+  if (!$("#deskBack")) $("#packagesTitle").insertAdjacentHTML("beforebegin", `<a id="deskBack" class="buy-desk__back" href="/dashboard#internet">${h(L("deskBuyBack"))}</a>`);
+  $("#packagesTitle").textContent = L("deskBuyTitle");
+  $("#packagesDescription").textContent = L("deskBuySub");
+  if (!selected || !plans.some((plan) => plan.id === selected.id)) selected = plans.find((plan) => plan.id === pageParams.get("plan")) || plans[0];
+  const disabled = !accessReady || !purchaseAccess.allowed || !subscriptionAccess.allowed || Boolean(paymentInProgress) || creatingPayment;
+  $("#plans").innerHTML = deskCatalogue(plans, selected?.id, disabled);
+  $("#plans").setAttribute("aria-busy", "false");
+  if (deskReady) return;
+  deskReady = true;
+  const checkout = $("#checkout"), form = $("#purchase");
+  $("#packages").append(checkout);
+  checkout.hidden = false;
+  checkout.classList.add("buy-desk__aside");
+  checkout.removeAttribute("role");
+  checkout.removeAttribute("aria-modal");
+  checkout.removeAttribute("aria-describedby");
+  // No acknowledgement checkbox here (owner, #431); the rule line below says when buying is possible.
+  form.elements.acknowledge.required = false;
+  $("#acknowledgement").hidden = true;
+  $("#purchaseFields").insertAdjacentHTML("afterbegin", `<div id="deskNetworks">${deskNetworks(chosenNetwork())}</div>`);
+  $("#accountPayer").insertAdjacentHTML("afterend", '<div id="deskCostHost"></div>');
+  $("#requestPayment").insertAdjacentHTML("afterend", `<p class="buy-desk__rule">${h(L("deskBuyRule"))}</p>`);
+  const label = [...$("#accountPayer").childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+  if (label) label.textContent = L("deskBuyNumber");
+  // The number shows masked, as drawn ("6•• •• 12 45"), until the field is used.
+  const payer = form.elements.payerPhone, wrap = document.createElement("span");
+  wrap.className = "buy-desk__payer";
+  payer.before(wrap);
+  wrap.append(payer);
+  wrap.insertAdjacentHTML("beforeend", '<span class="buy-desk__mask" id="deskPayerMask" aria-hidden="true"></span>');
+  for (const type of ["focus", "blur", "input", "change"]) payer.addEventListener(type, maskDeskPayer);
+  $("#deskNetworks").onclick = (event) => {
+    const button = event.target.closest("[data-desk-network]");
+    if (!button || button.disabled) return;
+    form.elements.network.value = button.dataset.deskNetwork;
+    form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  renderCheckoutReview();
+}
+function maskDeskPayer() {
+  const payer = $("#purchase").elements.payerPhone, mask = $("#deskPayerMask");
+  if (!mask) return;
+  const masked = document.activeElement === payer ? "" : maskedNumber(payer.value);
+  mask.textContent = masked;
+  payer.classList.toggle("buy-desk__payer--masked", Boolean(masked));
+}
+function renderDeskCost() {
+  maskDeskPayer();
+  const network = chosenNetwork(), quote = quoteFor(selected, network);
+  $("#deskNetworks")?.querySelectorAll("[data-desk-network]").forEach((button) => button.setAttribute("aria-checked", String(button.dataset.deskNetwork === network)));
+  const host = $("#deskCostHost");
+  if (host) host.innerHTML = deskCost(selected, quote);
+  const note = $("#balanceNote");
+  note.querySelector("span").innerHTML = deskNotice(selected, network, quote);
+  note.hidden = false;
+  if (!paymentInProgress && !creatingPayment && purchaseAccess.allowed) $("#requestPayment").textContent = payLabel();
+}
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
   if (account && !paymentInProgress) fillAccountPayer();
@@ -550,6 +637,7 @@ function openCheckout(trigger) {
 }
 function showCheckout() {
   $("#checkout").hidden = false;
+  if (deskMode()) return;
   document.body.classList.add("modal-open");
   $("#pageContent").inert = true;
   $("header").inert = true;
@@ -560,7 +648,11 @@ $("#plans").onclick = (event) => {
   const chip = event.target.closest("button[data-plan-period]");
   if (chip) return showPlanPeriod(chip.dataset.planPeriod);
   const button = event.target.closest("button[data-plan]");
-  if (button && !button.disabled && choose(button.dataset.plan)) openCheckout(button);
+  if (button && !button.disabled && choose(button.dataset.plan)) {
+    // On the desktop layout "Your choice" is beside the table, not a dialog.
+    if (deskMode()) { renderCheckoutReview(); return; }
+    openCheckout(button);
+  }
 };
 function isAvailableControl(element) {
   if (!element || !element.isConnected || typeof element.getAttribute !== "function") return false;
@@ -609,6 +701,7 @@ function restoreCheckoutFocus() {
   }
 }
 function closeCheckout() {
+  if (deskMode()) return;
   $("#checkout").hidden = true;
   document.body.classList.remove("modal-open");
   $("#pageContent").inert = false;
@@ -626,7 +719,7 @@ function closeCheckout() {
 $("#closeCheckout").onclick = closeCheckout;
 $("#checkout").onclick = (event) => { if (event.target.id === "checkout") closeCheckout(); };
 document.addEventListener("keydown", (event) => {
-  if ($("#checkout").hidden) return;
+  if ($("#checkout").hidden || deskMode()) return;
   if (event.key === "Escape") closeCheckout();
   if (event.key === "Tab") {
     const controls = [...$("#checkout").querySelectorAll('a[href], button, input, select, [tabindex="0"]')]
