@@ -191,26 +191,42 @@ try {
 
     const row = page.locator('[data-reseller-row="staff-reseller-1"]');
     await row.waitFor();
-    assert.match(await row.locator('[data-cell="stock"]').textContent(), /1 unsold \/ 2 sold \/ 3 total/);
+    // v2 (#390, canvas: AdminResellers): assigned codes and redeemed sales as drawn, one shared rate in the head, "Net owed".
+    const owedCell = uiV2 ? '[data-cell="owed"]' : '[data-cell="outstanding"]';
+    if (uiV2) {
+      assert.equal((await row.locator('[data-cell="stock"]').textContent()).trim(), "3 codes");
+      assert.equal((await row.locator('[data-cell="sales"]').textContent()).trim(), "2");
+      assert.match(await page.locator("#resellerSplit").textContent(), /Commission split: 10% · Change/);
+    } else assert.match(await row.locator('[data-cell="stock"]').textContent(), /1 unsold \/ 2 sold \/ 3 total/);
     assert.match(await row.locator('[data-cell="collected"]').textContent(), /2,000 FCFA/);
-    assert.match(await row.locator('[data-cell="commission"]').textContent(), /200 FCFA \(10%\)/);
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,800 FCFA/);
+    assert.match(await row.locator('[data-cell="commission"]').textContent(), uiV2 ? /^200 FCFA$/ : /200 FCFA \(10%\)/);
+    assert.match(await row.locator(owedCell).textContent(), /1,800 FCFA/);
 
     // Configure commission split to 15% (prospective only — already-redeemed sales keep their agreed 10% rate)
-    if (uiV2) await page.locator("[data-reseller-advanced] > summary").click();
     const commForm = page.locator("[data-reseller-commission-form]");
-    await commForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
-    await commForm.locator('input[name="commissionPercent"]').fill("15");
-    await commForm.locator('button[type="submit"]').click();
-    await page.getByText("Updated commission split for Buea Market Kiosk to 15%.").waitFor();
-    assert.match(await row.locator('[data-cell="commission"]').textContent(), /200 FCFA \(15%\)/);
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /1,800 FCFA/);
+    if (uiV2) {
+      // One rate for every reseller (owner, 25 Nov): "Change" opens the rate form.
+      await page.locator("#resellerSplit").getByRole("button", { name: "Change", exact: true }).click();
+      await commForm.locator('input[name="commissionPercent"]').fill("15");
+      await commForm.locator('button[type="submit"]').click();
+      await page.getByText("Every reseller now earns 15% on codes issued from now on.").waitFor();
+      assert.match(await page.locator("#resellerSplit").textContent(), /Commission split: 15%/);
+      assert.match(await row.locator('[data-cell="commission"]').textContent(), /^200 FCFA$/);
+    } else {
+      await commForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
+      await commForm.locator('input[name="commissionPercent"]').fill("15");
+      await commForm.locator('button[type="submit"]').click();
+      await page.getByText("Updated commission split for Buea Market Kiosk to 15%.").waitFor();
+      assert.match(await row.locator('[data-cell="commission"]').textContent(), /200 FCFA \(15%\)/);
+    }
+    assert.match(await row.locator(owedCell).textContent(), /1,800 FCFA/);
 
     // Record a 1,200 FCFA cash remittance handoff and verify lost-response retry deduplication
     const remitForm = page.locator("[data-reseller-remittance-form]");
     await remitForm.locator('select[name="resellerId"]').selectOption("staff-reseller-1");
     await remitForm.locator('input[name="amount"]').fill("1200");
-    await remitForm.locator('input[name="note"]').fill("Evening cash drop");
+    // v2 has no note on a handoff, as drawn.
+    if (!uiV2) await remitForm.locator('input[name="note"]').fill("Evening cash drop");
 
     let failFirstRemittanceResponse = true;
     await page.route("**/api/admin/resellers/remittances", async (route) => {
@@ -232,10 +248,11 @@ try {
     assert.equal(await remitForm.locator('input[name="amount"]').isDisabled(), true);
     // Reload after a lost reply retains the exact key and immutable handoff payload.
     await remitForm.locator('button[type="submit"]').click();
-    await page.getByText("Already recorded 1,200 FCFA cash remittance from Buea Market Kiosk (duplicate submission prevented).").waitFor();
+    if (uiV2) await page.getByText(/^Already recorded 1,200 FCFA from Buea Market Kiosk · by .+ · \d{1,2} [A-Z][a-z]{2} \d{2}:\d{2}$/).waitFor();
+    else await page.getByText("Already recorded 1,200 FCFA cash remittance from Buea Market Kiosk (duplicate submission prevented).").waitFor();
     assert.match(await row.locator('[data-cell="remitted"]').textContent(), /1,200 FCFA/);
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /600 FCFA/);
-    assert.match(await page.locator("[data-remittance-history-table]").textContent(), /Evening cash drop/);
+    assert.match(await row.locator(owedCell).textContent(), /600 FCFA/);
+    assert.match(await page.locator("[data-remittance-history-table]").textContent(), uiV2 ? /1,200 FCFA/ : /Evening cash drop/);
 
     // Generate 2 more resale vouchers assigned directly to Buea Market Kiosk
     await page.goto(`${adminOrigin}/dashboard#voucher-create`);
@@ -247,15 +264,15 @@ try {
 
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     // A hash change keeps the old row on screen until the ledger refreshes.
-    await row.locator('[data-cell="stock"]').filter({ hasText: /3 unsold \/ 2 sold \/ 5 total/ }).waitFor();
+    await row.locator('[data-cell="stock"]').filter({ hasText: uiV2 ? /^5 codes$/ : /3 unsold \/ 2 sold \/ 5 total/ }).waitFor();
     const adjustment = page.locator("[data-reseller-adjustment-form]");
     if (uiV2) await page.locator("[data-reseller-advanced] > summary").click();
     await adjustment.locator('[name="resellerId"]').selectOption("staff-reseller-1");
     await adjustment.locator('[name="amount"]').fill("-100");
     await adjustment.locator('[name="reason"]').fill("Audited customer credit");
     await adjustment.locator('button[type="submit"]').click();
-    await page.getByText("Recorded -100 FCFA balance correction for Buea Market Kiosk.").waitFor();
-    assert.match(await row.locator('[data-cell="outstanding"]').textContent(), /500 FCFA/);
+    await page.getByText(uiV2 ? "Recorded a -100 FCFA correction for Buea Market Kiosk." : "Recorded -100 FCFA balance correction for Buea Market Kiosk.").waitFor();
+    assert.match(await row.locator(owedCell).textContent(), /500 FCFA/);
 
     assert.deepEqual(errors, []);
     await context.close();
@@ -278,13 +295,13 @@ try {
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     await page.locator("[data-reseller-ledger]").waitFor();
     const ledgerText = await page.locator("[data-reseller-ledger]").textContent();
-    assert.match(ledgerText, /My inventory, sales & cash remittance/);
+    if (!uiV2) assert.match(ledgerText, /My inventory, sales & cash remittance/);
     assert.match(ledgerText, /Buea Market Kiosk/);
     assert.doesNotMatch(ledgerText, /Molyko Junction POS/);
     assert.equal(await page.locator("[data-reseller-remittance-form]").count(), 0);
     assert.equal(await page.locator("[data-reseller-commission-form]").count(), 0);
     assert.match(
-      await page.locator('[data-reseller-row="staff-reseller-1"] [data-cell="outstanding"]').textContent(),
+      await page.locator(`[data-reseller-row="staff-reseller-1"] ${uiV2 ? '[data-cell="owed"]' : '[data-cell="outstanding"]'}`).textContent(),
       /500 FCFA/,
     );
 

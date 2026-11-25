@@ -1791,3 +1791,15 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
   - **Implemented and tested:** a signed-in customer on a wide screen sees every Personal Unlimited price in one table (1 to 6 devices; combinations not offered are disabled), the Home WISP card, and "Your choice" beside them with the server's fee and total. Pay Now opens the same payment flow as on phones. Not merged.
   - **Shows only after the switch:** the current catalogue, phones and signed-out visitors keep today's buy page.
 
+## Admin screens (batch 5, 25 November 2026)
+
+Owner decisions are on each issue (25 Nov).
+
+- [-] **ADM-390 — Resellers** ([#390](https://github.com/ImaJin14/Ndahi-Connect/issues/390))
+  - **Implemented and tested:**
+    - one commission rate for every reseller ("Commission split: N% · Change"), stored in `resellerSettings`, for codes issued from then on; issued codes keep their rate;
+    - the drawn ledger (assigned codes, redeemed sales, cash, commission, remitted, net owed) with each reseller's @sign-in name;
+    - Record a cash handoff and its confirmation;
+    - corrections and the histories kept below;
+    - English and French.
+  - **Not merged.**
