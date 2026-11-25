@@ -76,26 +76,41 @@ function freeMonthFact(o) {
           : b.status === "expired" && !legacy ? L("adminPromoBonus_expiredUnstarted") : L(`adminPromoBonus_${b.status}`);
   return `<div><dt>${h(label)}</dt><dd class="admin-store__bonus">${h(text)}</dd></div>`;
 }
-const ORDER = {
-  awaiting_payment: ["Waiting for payment", "warning"], preparing: ["Paid · to prepare", "warning"], ready: ["Ready to collect", "info"],
-  collected: ["Collected", "success"], review: ["Payment review", "danger"], cancelled: ["Cancelled", ""], expired: ["Expired", ""],
-};
+// An order's state on Store orders, worded and toned as on the canvas: paid
+// orange, ready blue, collected green, refunded grey. A requested refund shows
+// as refunded at once, as drawn; payment review (paid after the reservation
+// lapsed) is red (owner, 25 Nov, #391).
+const orderState = (o) => (o.refundStatus && o.refundStatus !== "failed" ? "refunded"
+  : o.status === "preparing" ? "paid" : o.status === "awaiting_payment" ? "waiting" : o.status);
+const TONES = { paid: "warning", waiting: "warning", ready: "info", collected: "success", review: "danger" };
 const orderPill = (o) => {
-  const [label, tone] = o.refundStatus ? [`Refund ${o.refundStatus}`, ""] : ORDER[o.status] || [String(o.status || "—").replace(/_/g, " "), ""];
-  return `<span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(label)}</span>`;
+  const state = orderState(o), tone = TONES[state];
+  return `<span class="nd-pill admin-store__pill${tone ? " nd-pill--" + tone : ""}">${h(L("adminStoreState_" + state))}</span>`;
 };
-const FILTERS = [
-  ["open", "Open orders"], ["all", "All orders"], ["preparing", "To prepare"], ["ready", "Ready to collect"], ["review", "Payment review"],
-  ["awaiting_payment", "Waiting for payment"], ["collected", "Collected"], ["cancelled", "Cancelled"], ["expired", "Expired"],
-];
-const OPEN = ["awaiting_payment", "preparing", "ready", "review"];
+// Open orders: paid, ready, and payment review (owner, 25 Nov, #391); oldest
+// first, as drawn, so the longest-waiting order is prepared first.
+const OPEN = ["preparing", "ready", "review"];
+// "Find an order" (kept by the owner, 25 Nov): every order, by state.
+const FILTERS = ["all", "waiting", "paid", "ready", "review", "collected", "refunded", "cancelled", "expired"];
+const named = (name) => (name && typeof name === "object" ? name[currentLanguage()] || name.en || "" : String(name || ""));
+// An account holder by name; a guest by their masked number, as drawn.
+const orderWho = (o) => (o.customerId ? o.contact.name : L("adminWhoGuest", { phone: maskPhone(o.contact.phone) }));
+const orderMethod = (o) => paymentMethod({ network: o.network, provider: o.payment?.provider });
+const HISTORY = { ready: "adminStoreDid_ready", collect: "adminStoreDid_collect", refund: "adminStoreDid_refund", cancel: "adminStoreDid_cancel", contact: "adminStoreDid_contact",
+  notes: "adminStoreDid_notes", "rotate-link": "adminStoreDid_rotate", verify: "adminStoreDid_verify", "refund-reference": "adminStoreDid_reference" };
+const when = (value) => {
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? new Date(at).toLocaleString(locale(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ZONE }) : "—";
+};
 
 export function mountStore(root, { call, role, csrf, heads = {}, setHead = () => {} }) {
   let state,
     view = "store",
     productId = "",
-    orderFilter = "open",
+    orderFilter = "all",
     orderQuery = "",
+    refundAsk = false,
+    handled = new Set(),
     productQuery = "",
     selectedOrder = "",
     images = [],
@@ -189,131 +204,134 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
   }
 
   // ---------- Store orders (canvas: AdminStore) ----------
+  // The drawn screen: open orders beside the chosen order and its next step.
+  // Kept by the owner (25 Nov, #391), collapsed below the two panels: "Find an
+  // order" (every order, by state) and "More order actions".
   function ordersView() {
-    if (heads.store) heads.store.innerHTML = '<a class="nd-btn nd-btn--secondary" href="/dashboard#products">Products &amp; stock</a>';
+    if (heads.store) heads.store.innerHTML = `<a class="nd-btn nd-btn--secondary admin-store__headlink" href="/dashboard#products">${h(L("adminStoreProductsLink"))}</a>`;
+    // A save redraws the screen; an open finder stays open.
+    const finderOpen = document.getElementById("storeFinder")?.open;
     content.innerHTML = `<div class="admin-store__orders">
-<section class="nd-panel admin-store__list" aria-labelledby="storeOrdersTitle">
-  <div class="admin-store__listhead"><h2 class="admin-store__h" id="storeOrdersTitle">${h((FILTERS.find(([id]) => id === orderFilter) || FILTERS[0])[1])}</h2>
-  <label class="nd-visually-hidden" for="storeOrderStatus">Order status</label><select id="storeOrderStatus" class="nd-input nd-input--sm">${FILTERS.map(([value, label]) => `<option value="${value}" ${orderFilter === value ? "selected" : ""}>${label}</option>`).join("")}</select>
-  <input type="search" id="storeOrderSearch" class="nd-input nd-input--sm" value="${h(orderQuery)}" placeholder="Reference, customer or phone" aria-label="Search orders"></div>
-  <div id="storeOrderRows"></div>
-</section>
-<section class="nd-panel admin-store__detail" id="orderEditor" aria-live="polite"></section></div>`;
-    $("#storeOrderStatus").onchange = (e) => {
-      orderFilter = e.target.value;
-      $("#storeOrdersTitle").textContent = (FILTERS.find(([id]) => id === orderFilter) || FILTERS[0])[1];
-      orderRows();
-    };
-    $("#storeOrderSearch").oninput = (e) => {
-      orderQuery = e.target.value;
-      orderRows();
-    };
+<div class="admin-store__side">
+  <section class="nd-panel admin-store__list" aria-labelledby="storeOrdersTitle"><h2 class="admin-store__h" id="storeOrdersTitle">${h(L("adminStoreOpenOrders"))}</h2><div id="storeOrderRows"></div></section>
+  <details class="admin-options admin-store__finder" id="storeFinder"><summary>${h(L("adminStoreFind"))}</summary><div class="admin-options__body">
+    <div class="admin-store__finderbar"><label class="nd-visually-hidden" for="storeOrderStatus">${h(L("adminStoreFilter"))}</label><select id="storeOrderStatus" class="nd-input nd-input--sm">${FILTERS.map((id) => `<option value="${id}" ${orderFilter === id ? "selected" : ""}>${h(L(id === "all" ? "adminStoreAllOrders" : "adminStoreState_" + id))}</option>`).join("")}</select>
+    <input type="search" id="storeOrderSearch" class="nd-input nd-input--sm" value="${h(orderQuery)}" placeholder="${h(L("adminStoreSearch"))}" aria-label="${h(L("adminStoreSearchLabel"))}"></div>
+    <div id="storeFoundRows"></div></div></details>
+</div>
+<div class="admin-store__main">
+  <section class="nd-panel admin-store__detail" id="orderEditor" aria-labelledby="storeOrderRef"></section>
+  <div id="orderMore"></div>
+</div></div>`;
+    if (finderOpen) $("#storeFinder").open = true;
+    $("#storeOrderStatus").onchange = (e) => { orderFilter = e.target.value; foundRows(); };
+    $("#storeOrderSearch").oninput = (e) => { orderQuery = e.target.value; foundRows(); };
     orderRows();
   }
-  function orderRows() {
-    const list = state.orders.filter(
-      (o) =>
-        (orderFilter === "all" || (orderFilter === "open" ? OPEN.includes(o.status) : o.status === orderFilter)) &&
-        `${o.reference} ${o.contact.name} ${o.contact.phone}`
-          .toLowerCase()
-          .includes(orderQuery.toLowerCase()),
-    );
-    const chosen = list.find((o) => o.id === selectedOrder) || list[0];
-    $("#storeOrderRows").innerHTML = !list.length
-      ? '<p class="store-empty nd-meta" role="status">No orders match this view.</p>'
-      : list.map((o) => `<button type="button" class="admin-order" data-order-pick="${h(o.id)}" aria-pressed="${o === chosen}"><span class="admin-order__main"><strong>${h(o.reference)} · ${h(o.product.name.en)}</strong><span>${h(o.contact.name)} · ${h(day(o.createdAt))}</span></span>${orderPill(o)}</button>`).join("");
-    root.querySelectorAll("[data-order-pick]").forEach((b) => {
+  const orderRow = (o) => `<button type="button" class="admin-order" data-order-pick="${h(o.id)}" aria-pressed="${o.id === selectedOrder}"><span class="admin-order__main"><strong>${h(o.reference)} · ${h(named(o.product.name))}</strong><span>${h(orderWho(o))} · ${h(day(o.createdAt))}</span></span>${orderPill(o)}</button>`;
+  function pickRows(host) {
+    host.querySelectorAll("[data-order-pick]").forEach((b) => {
       b.onclick = () => {
         selectedOrder = b.dataset.orderPick;
-        root.querySelectorAll("[data-order-pick]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        refundAsk = false;
+        root.querySelectorAll("[data-order-pick]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.orderPick === selectedOrder)));
         editOrder(state.orders.find((o) => o.id === selectedOrder));
       };
     });
+  }
+  function orderRows() {
+    // An order handled on this visit stays in the list, in its new state, as drawn.
+    const list = state.orders.filter((o) => OPEN.includes(o.status) || handled.has(o.id)).sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    if (!state.orders.some((o) => o.id === selectedOrder)) selectedOrder = list[0]?.id || "";
+    const rows = $("#storeOrderRows");
+    rows.innerHTML = list.length ? list.map(orderRow).join("") : `<p class="nd-meta admin-store__empty" role="status">${h(L("adminStoreNoOpen"))}</p>`;
+    pickRows(rows);
+    foundRows();
+    const chosen = state.orders.find((o) => o.id === selectedOrder);
     if (chosen) editOrder(chosen);
-    else $("#orderEditor").innerHTML = '<p class="nd-meta">Choose an order to see it here.</p>';
+    else { $("#orderEditor").innerHTML = `<p class="nd-meta">${h(L("adminStoreChoose"))}</p>`; $("#orderMore").replaceChildren(); }
+  }
+  function foundRows() {
+    const query = orderQuery.trim().toLowerCase();
+    const list = state.orders.filter((o) => (orderFilter === "all" || orderState(o) === orderFilter) &&
+      `${o.reference} ${o.contact.name} ${o.contact.phone}`.toLowerCase().includes(query)).slice(0, 50);
+    const rows = $("#storeFoundRows");
+    rows.innerHTML = list.length ? list.map(orderRow).join("") : `<p class="nd-meta" role="status">${h(L("adminStoreNoMatch"))}</p>`;
+    pickRows(rows);
   }
   function editOrder(o) {
     selectedOrder = o.id;
-    const owner = role === "owner", paid = o.paymentStatus === "paid";
-    const step = o.status === "preparing" && paid
-      ? `<p class="admin-store__hint">Test the device, pack it, then mark it ready to collect.</p><button type="button" class="nd-btn" data-order-action="ready">Mark ready to collect</button>`
-      : o.status === "ready"
-        ? `<form id="collectOrder" class="admin-form"><label class="nd-field"><span class="nd-label">Customer's collection code</span><input class="nd-input admin-store__code" name="collectionCode" inputmode="numeric" autocomplete="off" required></label><button class="nd-btn">Verify code and hand over</button></form>`
-        : o.status === "collected"
-          ? `<p class="nd-callout nd-callout--success admin-callout">Code verified and handed over — logged to the audit trail.</p>`
-          : "";
-    $("#orderEditor").innerHTML = `<div class="admin-store__detailhead"><h2 class="nd-h2">${h(o.reference)}</h2>${orderPill(o)}</div>
-<dl class="admin-store__facts"><div><dt>Item</dt><dd>${h(o.product.name.en)} × ${h(o.quantity)}</dd></div><div><dt>Customer</dt><dd>${h(o.contact.name)} · ${h(o.contact.phone)}${o.contact.email ? " · " + h(o.contact.email) : ""}</dd></div>
-<div><dt>Paid</dt><dd>${h(fcfa(o.amount))} · ${h(o.paymentStatus)}${o.payment.refund ? ` (refund: ${h(o.payment.refund.status)})` : ""}</dd></div><div><dt>Collect at</dt><dd>${h(o.pickup || "—")}${o.hours ? " · " + h(o.hours) : ""}</dd></div>${freeMonthFact(o)}</dl>
-${step}
-${owner && paid && !o.payment.refund ? `<details class="admin-store__refund"><summary class="nd-btn nd-btn--secondary admin-btn--danger">Refund (owner only)</summary><form id="refundOrder" class="admin-form admin-store__refundform" role="group" aria-label="Refund the full amount"><strong>Refund the full amount?</strong><span class="nd-meta">The order is cancelled. Stock comes back only after the refund is confirmed and you tick the box below.</span>${field("reason", "Refund reason", "", "text", 'required maxlength="300"')}${checkbox("restock", "Equipment is unsent or physically returned and can be restocked", false)}<button class="nd-btn nd-btn--danger-solid">Confirm refund</button></form></details>` : ""}
-<details class="admin-options"><summary>More order actions</summary><div class="admin-options__body">
-<div class="admin-store__actions">${o.receiptAvailable ? '<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" id="adminStoreReceipt">Download store receipt</button>' : ""}<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="verify">Check provider payment</button>${!o.payment.confirmedAt && !["paid", "refund-pending", "refunded"].includes(o.paymentStatus) ? '<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="cancel">Cancel unpaid order</button>' : ""}<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="rotate-link">Replace tracking link</button></div>
-<form id="orderNotes" class="admin-form">${field("serialNumbers", "Serial numbers", o.serialNumbers || "")}<label class="nd-field"><span class="nd-label">Support / warranty notes</span><textarea class="nd-input" name="notes" maxlength="2000">${h(o.notes || "")}</textarea></label><label class="nd-field"><span class="nd-label">Return status</span><select class="nd-input" name="returnStatus">${["none", "requested", "received", "resolved"].map((status) => `<option ${status === o.returnStatus ? "selected" : ""}>${status}</option>`).join("")}</select></label><button class="nd-btn nd-btn--secondary">Save after-sales details</button></form>
-<form id="orderContact" class="admin-form">${field("name", "Order contact name", o.contact.name, "text", 'required maxlength="120"')}${field("phone", "Order contact phone", o.contact.phone, "tel", "required")}${field("email", "Order contact email", o.contact.email || "", "email")}<button class="nd-btn nd-btn--secondary">Correct order contact</button></form>
-${owner && o.payment.refund?.status === "uncertain" && !o.payment.refund.providerReference ? `<form id="refundReference" class="admin-form"><h3 class="nd-h3">Reconcile uncertain refund</h3>${field("providerReference", "Reference verified in the provider dashboard", "", "text", 'required maxlength="200"')}<button class="nd-btn nd-btn--secondary">Verify refund reference</button></form>` : ""}
-<h3 class="nd-h3">Order history</h3>${o.history.map((e) => `<p class="nd-meta">${h(e.at)} · ${h(e.action)} · ${h(e.actor)}</p>`).join("")}<p id="replacementLink"></p></div></details>`;
+    const owner = role === "owner", paid = o.paymentStatus === "paid", current = orderState(o), method = orderMethod(o), refund = o.payment.refund;
+    const collected = [...(o.history || [])].reverse().find((e) => e.action === "collect");
+    // The drawn refund: a paid order not yet handed over (owner, 25 Nov, #391).
+    const canRefund = owner && paid && !refund && ["paid", "ready"].includes(current);
+    const step = current === "paid"
+      ? `<p class="admin-store__hint">${h(L("adminStorePaidHint"))}</p><button type="button" class="nd-btn nd-btn--block admin-store__go" data-order-action="ready">${h(L("adminStoreMarkReady"))}</button>`
+      : current === "ready"
+        ? `<form id="collectOrder" class="admin-store__collect"><div><label class="admin-store__label" for="storeCollectionCode">${h(L("adminStoreCodeLabel"))}</label><input class="admin-store__code" id="storeCollectionCode" name="collectionCode" inputmode="numeric" autocomplete="off" required></div><button class="nd-btn nd-btn--block admin-store__go">${h(L("adminStoreVerify"))}</button></form>`
+        : current === "collected"
+          ? `<p class="admin-store__done">${h(L("adminStoreHandedOver", { when: when(collected?.at) }))}</p>`
+          : current === "refunded"
+            ? `<p class="admin-store__refunded">${h(L(refund?.status === "completed" ? refund.restock ? "adminStoreRefundDoneStock" : "adminStoreRefundDone" : refund?.restock ? "adminStoreRefundSent" : "adminStoreRefundSentNoStock", { method }))}</p>`
+            : "";
+    const ask = canRefund && refundAsk
+      ? `<div class="admin-store__confirm" role="alertdialog" aria-labelledby="storeRefundTitle" aria-describedby="storeRefundNote"><strong id="storeRefundTitle">${h(L("adminStoreRefundAsk", { method }))}</strong><span id="storeRefundNote">${h(L("adminStoreRefundWarn"))}</span><div class="admin-store__confirmrow"><button type="button" class="nd-btn nd-btn--secondary admin-store__go2" id="storeKeepOrder">${h(L("adminStoreKeepOrder"))}</button><button type="button" class="nd-btn nd-btn--danger-solid admin-store__go2" id="storeConfirmRefund">${h(L("adminStoreConfirmRefund"))}</button></div></div>`
+      : canRefund ? `<button type="button" class="nd-btn nd-btn--secondary admin-store__go2 admin-store__refundbtn" id="storeAskRefund">${h(L("adminStoreRefundOwner"))}</button>` : "";
+    $("#orderEditor").innerHTML = `<div class="admin-store__detailhead"><h2 class="admin-store__ref" id="storeOrderRef">${h(o.reference)}</h2>${orderPill(o)}</div>
+<dl class="admin-store__facts"><div><dt>${h(L("adminStoreItem"))}</dt><dd>${h(L("adminStoreItemLine", { item: named(o.product.name), count: o.quantity }))}</dd></div><div><dt>${h(L("adminStoreCustomer"))}</dt><dd>${h(orderWho(o))}</dd></div>
+<div><dt>${h(L("adminStorePaid"))}</dt><dd>${h(fcfa(o.amount))} · ${h(method)}</dd></div><div><dt>${h(L("adminStoreCollectAt"))}</dt><dd>${h(o.pickup || "—")}</dd></div>${freeMonthFact(o)}</dl>
+${step}${ask}`;
+    // Kept by the owner (25 Nov, #391): everything v1 can do with an order.
+    const later = owner && paid && !refund && ["review", "collected"].includes(current);
+    const more = document.getElementById("storeOrderMore"), moreOpen = more?.open && more.dataset.order === o.id;
+    $("#orderMore").innerHTML = `<details class="admin-options admin-store__more" id="storeOrderMore" data-order="${h(o.id)}"${moreOpen ? " open" : ""}><summary>${h(L("adminStoreMore"))}</summary><div class="admin-options__body">
+<div class="admin-store__actions">${o.receiptAvailable ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" id="adminStoreReceipt">${h(L("adminStoreReceipt"))}</button>` : ""}<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="verify">${h(L("adminStoreCheckProvider"))}</button>${!o.payment.confirmedAt && !["paid", "refund-pending", "refunded"].includes(o.paymentStatus) ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="cancel">${h(L("adminStoreCancelUnpaid"))}</button>` : ""}<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-order-action="rotate-link">${h(L("adminStoreReplaceLink"))}</button></div>
+${later ? `<form id="refundOrder" class="admin-form admin-store__refundform" role="group" aria-labelledby="storeLaterRefund"><strong id="storeLaterRefund">${h(L("adminStoreRefundLater"))}</strong><span class="nd-meta">${h(L("adminStoreRefundLaterNote"))}</span>${field("reason", L("adminStoreRefundReason"), "", "text", 'required maxlength="300"')}${checkbox("restock", L("adminStoreRestock"), false)}<button class="nd-btn nd-btn--danger-solid">${h(L("adminStoreConfirmRefund"))}</button></form>` : ""}
+<form id="orderNotes" class="admin-form">${field("serialNumbers", L("adminStoreSerials"), o.serialNumbers || "")}<label class="nd-field"><span class="nd-label">${h(L("adminStoreNotes"))}</span><textarea class="nd-input" name="notes" maxlength="2000">${h(o.notes || "")}</textarea></label><label class="nd-field"><span class="nd-label">${h(L("adminStoreReturnStatus"))}</span><select class="nd-input" name="returnStatus">${["none", "requested", "received", "resolved"].map((status) => `<option value="${status}" ${status === o.returnStatus ? "selected" : ""}>${h(L("adminStoreReturn_" + status))}</option>`).join("")}</select></label><button class="nd-btn nd-btn--secondary">${h(L("adminStoreSaveAfterSales"))}</button></form>
+<form id="orderContact" class="admin-form">${field("name", L("adminStoreContactName"), o.contact.name, "text", 'required maxlength="120"')}${field("phone", L("adminStoreContactPhone"), o.contact.phone, "tel", "required")}${field("email", L("adminStoreContactEmail"), o.contact.email || "", "email")}<button class="nd-btn nd-btn--secondary">${h(L("adminStoreCorrectContact"))}</button></form>
+${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form id="refundReference" class="admin-form"><h3 class="nd-h3">${h(L("adminStoreReconcileTitle"))}</h3>${field("providerReference", L("adminStoreReconcileRef"), "", "text", 'required maxlength="200"')}<button class="nd-btn nd-btn--secondary">${h(L("adminStoreVerifyRef"))}</button></form>` : ""}
+<h3 class="nd-h3">${h(L("adminStoreHistory"))}</h3>${(o.history || []).map((e) => `<p class="nd-meta">${h(when(e.at))} · ${h(HISTORY[e.action] ? L(HISTORY[e.action]) : e.action)} · ${h(e.actor)}</p>`).join("")}<p id="replacementLink"></p></div></details>`;
     const receiptButton = $("#adminStoreReceipt");
     if (receiptButton) receiptButton.onclick = (event) => run(event.currentTarget, async () => {
       const response = await fetch(window.NDAHI_CONFIG.apiUrl + "/api/admin/store/receipt", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": csrf?.() || "" }, body: JSON.stringify({ orderId: o.id }) });
-      if (!response.ok) { const body = await response.json(); throw Error(body.error || "Receipt unavailable."); }
+      if (!response.ok) { const body = await response.json(); throw Error(body.error || L("adminStoreReceiptFailed")); }
       const blob = await response.blob(), url = URL.createObjectURL(blob), link = document.createElement("a");
       link.href = url; link.download = `ndahi-store-receipt-${o.id}.pdf`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
     });
     const update = async (action, input = {}) => {
-      const result = await save("orders/update", {
-        id: o.id,
-        version: o.version,
-        action,
-        ...input,
-      });
+      const result = await save("orders/update", { id: o.id, version: o.version, action, ...input });
+      if (["ready", "collect", "refund"].includes(action)) handled.add(o.id);
       if (result.token) {
-        message.textContent =
-          "Replacement link created. The previous link no longer works. Share privately with the verified buyer: " +
-          (window.NDAHI_CONFIG.storeUrl || "https://store.ndahiconnect.net") +
-          "/#order/" +
-          o.id +
-          "/" +
-          result.token;
+        message.textContent = L("adminStoreLinkReplaced", { url: (window.NDAHI_CONFIG.storeUrl || "https://store.ndahiconnect.net") + "/#order/" + o.id + "/" + result.token });
       } else {
         await load();
       }
     };
-    root.querySelectorAll("[data-order-action]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          run(b, async () => {
-            if (
-              b.dataset.orderAction === "rotate-link" &&
-              !confirm(
-                "Revoke the previous tracking link and issue a replacement for the verified buyer?",
-              )
-            )
-              return;
-            await update(b.dataset.orderAction);
-          })),
-    );
-    for (const [id, action] of [
-      ["collectOrder", "collect"],
-      ["orderNotes", "notes"],
-      ["orderContact", "contact"],
-      ["refundOrder", "refund"],
-      ["refundReference", "refund-reference"],
-    ])
-      if ($("#" + id))
-        $("#" + id).onsubmit = (e) => {
-          e.preventDefault();
-          run(e.submitter, async () => {
-            if (action === "refund" && !confirm("Authorize this full refund? The order is cancelled and this can't be undone."))
-              return;
-            await update(action, {
-              ...values(e.target),
-              ...(action === "refund"
-                ? { restock: e.target.elements.restock.checked }
-                : {}),
-            });
-          });
-        };
+    root.querySelectorAll("[data-order-action]").forEach((b) => (b.onclick = () => run(b, async () => {
+      if (b.dataset.orderAction === "rotate-link" && !confirm(L("adminStoreRotateConfirm"))) return;
+      await update(b.dataset.orderAction);
+    })));
+    const askRefund = $("#storeAskRefund"), keep = $("#storeKeepOrder"), confirmRefund = $("#storeConfirmRefund");
+    if (askRefund) askRefund.onclick = () => { refundAsk = true; editOrder(o); $("#storeKeepOrder")?.focus(); };
+    if (keep) keep.onclick = () => { refundAsk = false; editOrder(o); $("#storeAskRefund")?.focus(); };
+    if (confirmRefund) confirmRefund.onclick = () => run(confirmRefund, async () => {
+      await update("refund", { beforeCollection: true });
+      refundAsk = false;
+    });
+    const collect = $("#collectOrder");
+    if (collect) collect.onsubmit = (e) => {
+      e.preventDefault();
+      // Staff may type the code as it is shown to the customer, "739 204".
+      run(e.submitter, () => update("collect", { collectionCode: e.target.elements.collectionCode.value.replace(/\s+/g, "") }));
+    };
+    for (const [id, action] of [["orderNotes", "notes"], ["orderContact", "contact"], ["refundOrder", "refund"], ["refundReference", "refund-reference"]])
+      if ($("#" + id)) $("#" + id).onsubmit = (e) => {
+        e.preventDefault();
+        run(e.submitter, async () => {
+          if (action === "refund" && !confirm(L("adminStoreRefundConfirm"))) return;
+          await update(action, { ...values(e.target), ...(action === "refund" ? { restock: e.target.elements.restock.checked } : {}) });
+        });
+      };
   }
 
   // ---------- Products (canvas: AdminProducts) ----------

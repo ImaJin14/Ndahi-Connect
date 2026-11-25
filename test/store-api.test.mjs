@@ -571,6 +571,48 @@ test("store refund authorization is owner-only and verified refund restores stoc
   );
 });
 
+// Store orders' drawn refund (owner, 25 Nov, #391): one confirmation, no
+// reason field, for an order not yet handed over; the device goes back into
+// stock once the provider confirms. Other refunds still name both.
+test("the drawn refund refunds an order not yet handed over in one step, and returns its device to stock", async (t) => {
+  const f = await fixture(t);
+  const order = async () => {
+    const a = await f.call("/api/store/checkout", f.checkout());
+    await f.call("/api/store/verify", { orderId: a.body.order.id, token: a.body.token });
+    return (await f.store.snapshot()).storeOrders.find((o) => o.id === a.body.order.id);
+  };
+  const update = (o, input, role = "owner") => f.call("/api/admin/store/orders/update", { id: o.id, version: o.version, ...input }, { role });
+  const paid = await order();
+  assert.equal(paid.status, "preparing");
+  assert.equal((await f.store.snapshot()).storeProducts[0].stock, 4);
+  assert.equal((await update(paid, { action: "refund", beforeCollection: true }, "operator")).status, 403);
+  assert.equal((await update(paid, { action: "refund", beforeCollection: true })).status, 200);
+  let current;
+  for (let i = 0; i < 50; i++) {
+    current = (await f.store.snapshot()).storeOrders.find((o) => o.id === paid.id);
+    if (current.payment.status === "refunded") break;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.equal(current.payment.refund.reason, "Refunded before collection");
+  assert.equal(current.payment.refund.restock, true);
+  assert.equal(current.payment.status, "refunded");
+  assert.equal((await f.store.snapshot()).storeProducts[0].stock, 5, "back into stock once confirmed");
+  const audited = (await f.store.snapshot()).auditLogs.find((e) => e.action === "store.orders.update" && e.meta.id === paid.id && e.meta.refund);
+  assert.equal(audited.meta.reason, "Refunded before collection");
+
+  // Handed over: the drawn refund is refused; a return names its reason and restock.
+  let collected = await order();
+  assert.equal((await update(collected, { action: "ready" })).status, 200);
+  collected = (await f.store.snapshot()).storeOrders.find((o) => o.id === collected.id);
+  assert.equal((await update(collected, { action: "collect", collectionCode: collected.collectionCode })).status, 200);
+  collected = (await f.store.snapshot()).storeOrders.find((o) => o.id === collected.id);
+  const drawn = await update(collected, { action: "refund", beforeCollection: true });
+  assert.equal(drawn.status, 409);
+  assert.match(drawn.body.error, /not yet handed over/);
+  assert.equal((await update(collected, { action: "refund" })).status, 400, "a return still says whether it can be restocked");
+  assert.equal((await update(collected, { action: "refund", reason: "Returned unopened", restock: false })).status, 200);
+});
+
 test("published unpriced products are visible but cannot reserve stock or charge, even when checkout is open", async (t) => {
   const f = await fixture(t);
   await f.store.transaction((s) => { s.storeProducts[0].price = null; });
