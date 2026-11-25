@@ -1341,6 +1341,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [-] Deployment in progress: [PR #187](https://github.com/ImaJin14/Ndahi-Connect/pull/187) merged at `62cb67e`; API deployment is verified at that revision with PostgreSQL ready, exact store CORS and a closed/empty catalogue. Admin/customer deployments and delivered revisions/assets are verified, and production smoke checks pass. The store service is live with the correct API URL. The user saved the IONOS CNAME, disabling the listed store-subdomain mail records; mailbox usage was not established. Public DNS points to Render, and custom-domain HTTPS now passes public health checks. [Release evidence](releases/device-store-2026-11-08.md).
 - [ ] Physically verified: real Mobile Money purchases/refunds, pickup fulfilment, stock reconciliation and each advertised compatible model remain pending. Delivery, multi-product carts and bundled internet offers remain later phases. [Proposal](../store-app/readme.md) · [Operations](operations/device-store.md).
 
+- [-] **ADM-391 — Store orders, redesigned (batch 6)** ([#391](https://github.com/ImaJin14/Ndahi-Connect/issues/391))
+  - **Implemented and tested** (PR #467, not merged yet):
+    - the drawn screen: open orders (paid, ready and payment review, oldest first; a guest by their masked number) beside the chosen order and its next step;
+    - Refund (owner only) is one confirmation with no reason field for an order not yet handed over. The reason recorded is "Refunded before collection", and the device goes back into stock once the provider confirms;
+    - "Find an order" and "More order actions" kept, collapsed (owner, 25 Nov);
+    - English and French.
+  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+
 ## Reseller ledger and automatic account repair (7 November 2026)
 
 - [x] Implemented: scoped reseller stock/sales balances, prospective commissions, immutable cash/correction retries, retained credits, owner correction UI and reload recovery.
