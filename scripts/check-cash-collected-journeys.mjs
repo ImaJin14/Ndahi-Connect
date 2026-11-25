@@ -110,12 +110,12 @@ try {
       } else {
         await page.locator(cashView ? "#admin-nav-cash" : "#admin-nav-payments").click();
       }
+      // v1 Home shows cash collected since 1 November; v2 Home shows revenue
+      // today (#377), nothing on this fixed day, and the Cash screen the total.
+      const takings = uiV2 ? "#cashCollectedReport" : "#cashCollectedMetric";
       if (role === "owner") {
-        await page.waitForFunction(() =>
-          document
-            .getElementById("cashCollectedMetric")
-            ?.textContent.includes("7,000"),
-        );
+        await page.waitForFunction((selector) => document.querySelector(selector)?.textContent.includes("7,000"), takings);
+        if (uiV2) assert.equal(await page.locator("#revenueTodayMetric").textContent(), "0 FCFA");
         assert.match(
           await page.locator("#cashCollectedReport").innerText(),
           /1 November 2026 onward/,
@@ -130,15 +130,11 @@ try {
           /Recorded offline voucher sales|99,999|88,888|77,777/,
         );
         await page.reload();
-        await page.waitForFunction(() =>
-          document
-            .getElementById("cashCollectedMetric")
-            ?.textContent.includes("7,000"),
-        );
+        await page.waitForFunction((selector) => document.querySelector(selector)?.textContent.includes("7,000"), takings);
       } else {
         assert.equal(await page.locator("#cashCollectedReport").count(), 0);
         assert.equal(
-          await page.locator("#cashCollectedMetric").innerText(),
+          await page.locator(uiV2 ? "#revenueTodayMetric" : "#cashCollectedMetric").innerText(),
           "Unavailable",
         );
       }
