@@ -9,7 +9,7 @@ import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
-import { downloadPaymentsExport, loadPaymentFigures, mountPaymentRecords } from "/payments.js";
+import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
 import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
 import { mountStore } from '/store.js';
 import { requestAdminActionProof } from "/action-proof.js";
@@ -261,7 +261,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   void loadHomeAttention(x, storeSnapshot, access.contacts);
   if (access.contacts) void loadHomePayments(call);
   void updateHomeRouterMenu(adminRole, api);
-  if (access.contacts) void loadPaymentFigures({ call, storeRole, storeSnapshot });
+  if (access.contacts) showPaymentFigures(x, { storeRole });
   mountAdminInstall($("#adminInstall"));
   mountProfile({ call, runAction, reload: load });
   renderWifiSummary(x.wifi);
@@ -437,7 +437,7 @@ $("#app").onclick = async (e) => {
     prefillAssignedVoucher(button.dataset.replaceBundle);
     return;
   }
-  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment"].some((key) => button.dataset[key])) return;
+  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment", "verifyOrder"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.printVoucher) {
       const result = await call("/api/admin/vouchers/print", {
@@ -518,10 +518,16 @@ $("#app").onclick = async (e) => {
         body: JSON.stringify({ paymentId: button.dataset.refund }),
       });
     } else if (button.dataset.verifyPayment) {
-      if (!confirm("Check this unconfirmed payment with the provider now?")) return;
+      // A check only asks the provider about this one payment, so it runs at once, as drawn (#386).
       await call("/api/admin/payments/verify", {
         method: "POST",
         body: JSON.stringify({ paymentId: button.dataset.verifyPayment }),
+      });
+    } else if (button.dataset.verifyOrder) {
+      // A store order's payment, through the store's own check of that order (#386).
+      await call("/api/admin/store/orders/update", {
+        method: "POST",
+        body: JSON.stringify({ id: button.dataset.verifyOrder, version: Number(button.dataset.orderVersion), action: "verify" }),
       });
     } else return;
     await load();

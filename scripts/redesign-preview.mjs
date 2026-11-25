@@ -206,7 +206,7 @@ export const SCREENS = [
     ["admin-voucher-print", "Print a voucher batch", "AdminVoucherPrint", "/dashboard#vouchers", "Redesigned — create a batch, then Print slips (58/80 mm thermal slips, not A6 sheets)",
       { open: [{ fill: "#generate [name=\"quantity\"]", value: "3" }, "#generate button[type=\"submit\"]", "#generated a[href=\"/dashboard#voucher-print\"]"],
         panel: "voucher-print", menu: "vouchers", hash: "^#voucher-print$", expect: ["#voucherPrintSurface"], state: "a new batch of 3 demo vouchers, 58 mm" }],
-    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned", { panel: "payments", menu: "payments" }],
+    ["admin-payments", "Payments", "AdminPayments", "/dashboard#payments", "Redesigned (#386): bundle payments, store orders and reseller cash in one list", { panel: "payments", menu: "payments" }],
     ["admin-store", "Store orders", "AdminStore", "/dashboard#store", "Redesigned", { panel: "store", menu: "store", expect: ["#storeOrdersTitle"] }],
     ["admin-store-services", "Kits & installs", "AdminStoreServices", "/dashboard#store", NOT_BUILT(347), { panel: "store", menu: "store", expect: ["#storeOrdersTitle"] }],
     ["admin-products", "Products", "AdminProducts", "/dashboard#products", "Redesigned (categories, stock ledger and store settings under the catalogue)", { panel: "store", menu: "products", expect: ["#storeCatalogueTitle"] }],

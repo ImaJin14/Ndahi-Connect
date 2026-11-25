@@ -169,13 +169,16 @@ export function createHandler(opts = {}) {
   handler.usageAlertConfig = usageAlertConfig(env);
   const usageSender = createUsageAlertSender({ store, config: handler.usageAlertConfig, now: clock, logger });
   const fallbackSender = createNotificationEmailSender({ store, email: context.email, config: handler.usageAlertConfig, now: clock });
-  handler.sendUsageAlerts = async () => {
+  // One run at a time: a run that outlasts the 15-second timer is joined, not
+  // started again beside itself (#464).
+  let notifying;
+  handler.sendUsageAlerts = () => notifying ??= (async () => {
     const [usage, activity] = await Promise.allSettled([usageSender(), deliverActivityPush({ store, config: handler.usageAlertConfig, now: clock })]);
     if (activity.status === "rejected") logger.error("notification.activity_failed", { errorName: activity.reason?.name });
     await fallbackSender().catch(error => logger.error("notification.fallback_failed", { errorName: error?.name }));
     if (usage.status === "rejected") throw usage.reason;
     return usage.value;
-  };
+  })().finally(() => { notifying = undefined; });
   handler.storeCommerce = context.storeCommerce;
   // Expiry, quota cut-off and stale-session housekeeping used to ride on every
   // request, including public catalogue reads. Requests that now load only their
