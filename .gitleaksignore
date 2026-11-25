@@ -7,3 +7,5 @@
 a8fd22666e3c74d75a629d4cbf254896e477a0d4:test/reseller-home-api-integration.test.mjs:generic-api-key:38
 # Deterministic operation key in the reseller interface test fixture, not a credential.
 bc50e0b0759b9b7f3c6414d136b6964755b4ba95:test/redesign-browser/reseller-home.test.mjs:generic-api-key:121
+# Deterministic, non-secret checkout request key in the #432 payment verification test (now generated at runtime).
+09de5b1631dcf3158ebce52284d617cb63ff581d:test/payment-verification.test.mjs:generic-api-key:133

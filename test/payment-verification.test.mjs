@@ -3,6 +3,7 @@
 // unverified network, MeSomb's own "SUCCESS", one rule set for polling and
 // webhooks, and activation exactly once.
 import test from "node:test";
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { createServer, createStore } from "../server.mjs";
 import { paymentFeeRules, quotePayment } from "../lib/payment-fees.mjs";
@@ -75,7 +76,7 @@ async function server(t, verify, clock = { now: new Date() }) {
     const r = await fetch(base + path, { method, headers: { "content-type": "application/json", ...headers }, ...(data ? { body: typeof data === "string" ? data : JSON.stringify(data) } : {}) });
     return { status: r.status, json: await r.json().catch(() => null) };
   };
-  const key = "private-guest-checkout-432";
+  const key = randomUUID();
   const placed = await call("/api/purchase", "POST", { phone: "670010043", name: "Test", planId: "weekly", network: "mtn", requestKey: key });
   assert.equal(placed.status, 201, JSON.stringify(placed.json));
   const id = placed.json.payment.id;
@@ -130,7 +131,7 @@ test("a payment held for review is never closed as expired and blocks a second c
   await f.poll();
   const p = (await f.store.snapshot()).payments.find((x) => x.id === f.id);
   assert.deepEqual([p.status, p.checkoutClosedAt, p.verificationHold.issue], ["pending", undefined, "amount_mismatch"], "held open, not expired");
-  const again = await f.call("/api/purchase", "POST", { phone: "670010043", name: "Test", planId: "weekly", network: "mtn", requestKey: "second-attempt-432" });
+  const again = await f.call("/api/purchase", "POST", { phone: "670010043", name: "Test", planId: "weekly", network: "mtn", requestKey: randomUUID() });
   assert.deepEqual([again.status, again.json.code], [409, "PAYMENT_UNDER_REVIEW"]);
   const after = (await f.store.snapshot()).payments;
   assert.equal(after.length, 1, "no second charge");
