@@ -364,7 +364,13 @@ try {
       mimeType: "image/png",
       buffer: Buffer.from(imageData.split(",")[1], "base64"),
     });
-    await panel.locator("#storeImages fieldset").waitFor();
+    if (uiV2) {
+      // v2 (canvas: AdminProductEdit, #387): the photo fills the drawn grid;
+      // its alternative text is in the collapsed Photo details.
+      await panel.locator("#storeImages .is-photo img").waitFor();
+      await panel.locator("#productPhotoDetails > summary").click();
+      await panel.locator("#storePhotoDetails fieldset").waitFor();
+    } else await panel.locator("#storeImages fieldset").waitFor();
     await panel.locator('[name="image0.en"]').fill("Test product image");
     await panel.locator('[name="image0.fr"]').fill("Image du produit test");
 

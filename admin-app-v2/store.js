@@ -446,80 +446,65 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
   }
 
   // ---------- Edit product (canvas: AdminProductEdit) ----------
+  // The drawn screen: name and description in the language chosen (EN/FR),
+  // photos, price and stock, visibility; Save product in the page head. Kept by
+  // the owner (25 Nov, #387), collapsed in their panels: More product details,
+  // Photo details (alternative text and order) and More settings (Featured,
+  // internal cost, Delete product).
+  const LANGS = ["en", "fr"];
+  const inLang = (value) => (value && typeof value === "object" ? value[currentLanguage()] || value.en || "" : String(value || ""));
+  // One field per language; the EN/FR switch shows one of them.
+  const textField = (name, label, value, large = false) => LANGS.map((code) => `<div class="admin-pedit__field" data-lang="${code}"><label class="admin-pedit__label" for="product-${name}-${code}">${h(L(label, { language: L("adminProductEditLanguage_" + code) }))}</label>${large
+    ? `<textarea class="admin-pedit__input admin-pedit__textarea" id="product-${name}-${code}" name="${name}.${code}" rows="4" maxlength="4000">${h(value?.[code] || "")}</textarea>`
+    : `<input class="admin-pedit__input" id="product-${name}-${code}" name="${name}.${code}" value="${h(value?.[code] || "")}" maxlength="${name === "warranty" ? 3000 : 120}">`}</div>`).join("");
   function productView() {
     const p = productId === "new" ? emptyProduct() : state.products.find((x) => x.id === productId);
     if (!p) { location.replace("/dashboard#products"); return; }
     images = structuredClone(p.images || []);
-    setHead({ title: p.id ? p.name.en || p.sku : "New product" });
-    if (heads.product) heads.product.innerHTML = `<span class="admin-saved" role="status" aria-live="polite" id="storeSaved">${h(savedNotice)}</span><button type="submit" form="storeProductForm" class="nd-btn">Save product</button>`;
+    setHead({ title: p.id ? inLang(p.name) || p.sku : L("adminProductEditNew") });
+    if (heads.product) heads.product.innerHTML = `<span class="admin-saved admin-pedit__saved" role="status" aria-live="polite" id="storeSaved">${h(savedNotice)}</span><button type="submit" form="storeProductForm" class="nd-btn admin-pedit__save">${h(L("adminProductEditSave"))}</button>`;
     const shown = p.status === "published";
-    content.innerHTML = `<form id="storeProductForm" class="admin-store__product">
-<div class="admin-store__col admin-store__col--main">
-  <section class="nd-panel admin-store__panel admin-store__textpanel" aria-labelledby="productTextTitle"><div class="admin-store__panelhead"><h2 class="nd-h2" id="productTextTitle">Name and description</h2><div class="nd-segmented" role="tablist" aria-label="Language">${[["en", "EN"], ["fr", "FR"]].map(([id, label]) => `<button type="button" role="tab" class="nd-segmented__option" aria-selected="${lang === id}" data-product-lang="${id}">${label}</button>`).join("")}</div></div>
-  ${bilingual("name", "Name", p.name)}${bilingual("description", "Description", p.description, true)}
-  <details class="admin-options"><summary>More product details</summary><div class="admin-options__body">${["specifications", "compatibility", "contents", "setup"].map((key) => bilingual(key, key[0].toUpperCase() + key.slice(1), p[key], true)).join("")}</div></details></section>
-  <section class="nd-panel admin-store__panel" aria-labelledby="productPhotosTitle"><h2 class="nd-h2" id="productPhotosTitle">Photos</h2><div id="storeImages" class="admin-photos"></div>
-  <label class="admin-photos__add"><input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp"><span>+ Add photo</span></label><p class="nd-meta">JPG, PNG or WebP, up to ${MAX_PRODUCT_IMAGES}. Large images are resized to 960px. Add alternative text in both languages; the first photo is the main one.</p></section>
+    content.innerHTML = `<form id="storeProductForm" class="admin-pedit">
+<div class="admin-pedit__col admin-pedit__col--main">
+  <section class="nd-panel admin-pedit__panel" aria-labelledby="productTextTitle"><div class="admin-pedit__panelhead"><h2 class="admin-pedit__h2" id="productTextTitle">${h(L("adminProductEditTextTitle"))}</h2><div class="admin-pedit__langs" role="tablist" aria-label="${h(L("adminProductEditLanguage"))}">${LANGS.map((code) => `<button type="button" role="tab" class="admin-pedit__lang" aria-selected="${lang === code}" data-product-lang="${code}">${code.toUpperCase()}</button>`).join("")}</div></div>
+  ${textField("name", "adminProductEditName", p.name)}${textField("description", "adminProductEditDescription", p.description, true)}
+  <details class="admin-options admin-pedit__more" id="productMoreDetails"><summary>${h(L("adminProductEditMoreDetails"))}</summary><div class="admin-options__body">${textField("specifications", "adminProductEditSpecifications", p.specifications, true)}${textField("compatibility", "adminProductEditCompatibility", p.compatibility, true)}${textField("contents", "adminProductEditContents", p.contents, true)}${textField("setup", "adminProductEditSetup", p.setup, true)}</div></details></section>
+  <section class="nd-panel admin-pedit__panel" aria-labelledby="productPhotosTitle"><h2 class="admin-pedit__h2" id="productPhotosTitle">${h(L("adminProductEditPhotos"))}</h2><div id="storeImages" class="admin-pedit__photos"></div><p class="admin-pedit__caption">${h(L("adminProductEditPhotoTypes"))}</p>
+  <details class="admin-options admin-pedit__more" id="productPhotoDetails"><summary>${h(L("adminProductEditPhotoDetails"))}</summary><div class="admin-options__body" id="storePhotoDetails"></div></details></section>
 </div>
-<div class="admin-store__col">
-  <section class="nd-panel admin-store__panel" aria-labelledby="productPriceTitle"><h2 class="nd-h2" id="productPriceTitle">Price and stock</h2>
-  ${field("price", "Price (FCFA)", p.price, "number", 'min="1" max="100000000" placeholder="Price to be confirmed"')}${field("sku", "SKU", p.sku, "text", 'required maxlength="80"')}
-  <label class="nd-field"><span class="nd-label">Category</span><select class="nd-input" name="categoryId"><option value="">Uncategorized</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(c.name.en)}</option>`).join("")}</select></label>
-  ${role === "owner" ? field("cost", "Internal cost (FCFA)", p.cost, "number", 'min="0" max="100000000"') : ""}
-  ${p.id ? `<div class="admin-row"><span class="admin-row__label">In stock</span><strong>${h(p.available)} · <a class="admin-link" href="/dashboard#products">adjust</a></strong></div>` : '<p class="nd-meta">Stock starts at 0; add it on Products after saving.</p>'}</section>
-  <section class="nd-panel admin-store__panel" aria-labelledby="productVisibilityTitle"><h2 class="nd-h2" id="productVisibilityTitle">Visibility</h2>
-  ${checkbox("shown", "Show in the store", shown)}${checkbox("featured", "Featured product", p.featured)}
-  ${p.status === "archived" ? '<p class="nd-meta">Archived: kept for order history and hidden from the store. Show it to publish it again.</p>' : ""}
-  ${bilingual("warranty", "Warranty", p.warranty, true)}</section>
-</div></form>
-${p.id ? `<p class="admin-store__danger"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-product="${h(p.id)}">Delete product</button></p>` : ""}`;
+<div class="admin-pedit__col">
+  <section class="nd-panel admin-pedit__panel" aria-labelledby="productPriceTitle"><h2 class="admin-pedit__h2" id="productPriceTitle">${h(L("adminProductEditPriceTitle"))}</h2>
+  <div><label class="admin-pedit__label" for="productPrice">${h(L("adminProductEditPrice"))}</label><input class="admin-pedit__input" id="productPrice" name="price" type="number" value="${h(p.price ?? "")}" min="1" max="100000000" step="1" placeholder="${h(L("adminStorePriceTbc"))}"></div>
+  <div><label class="admin-pedit__label" for="productSku">${h(L("adminProductEditSku"))}</label><input class="admin-pedit__input admin-pedit__sku" id="productSku" name="sku" value="${h(p.sku)}" required maxlength="80"></div>
+  <div><label class="admin-pedit__label" for="productCategory">${h(L("adminProductEditCategory"))}</label><select class="admin-pedit__input" id="productCategory" name="categoryId"><option value="">${h(L("adminProductEditUncategorized"))}</option>${state.categories.map((c) => `<option value="${h(c.id)}" ${c.id === p.categoryId ? "selected" : ""}>${h(inLang(c.name))}</option>`).join("")}</select></div>
+  ${p.id ? `<div class="admin-pedit__stock"><span>${h(L("adminProductEditInStock"))}</span><strong>${h(p.available)} · <a href="/dashboard#products">${h(L("adminProductEditAdjust"))}</a></strong></div>` : `<p class="admin-pedit__caption">${h(L("adminProductEditStockStarts"))}</p>`}</section>
+  <section class="nd-panel admin-pedit__panel" aria-labelledby="productVisibilityTitle"><h2 class="admin-pedit__h2" id="productVisibilityTitle">${h(L("adminProductEditVisibility"))}</h2>
+  <label class="admin-pedit__check"><input type="checkbox" name="shown" ${shown ? "checked" : ""}>${h(L("adminProductEditShow"))}</label>
+  ${LANGS.map((code) => `<div class="admin-pedit__field" data-lang="${code}"><label class="admin-pedit__label" for="product-warranty-${code}">${h(L("adminProductEditWarranty"))}</label><input class="admin-pedit__input" id="product-warranty-${code}" name="warranty.${code}" value="${h(p.warranty?.[code] || "")}" maxlength="3000"></div>`).join("")}
+  <details class="admin-options admin-pedit__more" id="productMoreSettings"><summary>${h(L("adminProductEditMoreSettings"))}</summary><div class="admin-options__body">${checkbox("featured", L("adminProductEditFeatured"), p.featured)}${role === "owner" ? field("cost", L("adminProductEditCost"), p.cost, "number", 'min="0" max="100000000"') : ""}${p.status === "archived" ? `<p class="nd-meta">${h(L("adminProductEditArchived"))}</p>` : ""}${p.id ? `<p class="admin-store__danger"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-product="${h(p.id)}">${h(L("adminProductEditDelete"))}</button></p>` : ""}</div></details></section>
+</div></form>`;
     const tabs = root.querySelectorAll("[data-product-lang]");
     const showLang = (next) => {
       lang = next;
       tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.productLang === lang)));
-      root.querySelectorAll(".admin-store__textpanel [data-lang]").forEach((label) => { label.hidden = label.dataset.lang !== lang; });
+      root.querySelectorAll("#storeProductForm [data-lang]").forEach((field) => { field.hidden = field.dataset.lang !== lang; });
     };
-    tabs.forEach((t) => { t.onclick = () => showLang(t.dataset.productLang); });
+    tabs.forEach((t) => {
+      t.onclick = () => showLang(t.dataset.productLang);
+      // Arrow keys move between the two languages, as tabs do.
+      t.onkeydown = (e) => {
+        if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        e.preventDefault();
+        const next = lang === "en" ? "fr" : "en";
+        showLang(next);
+        root.querySelector(`[data-product-lang="${next}"]`).focus();
+      };
+    });
     showLang(lang);
     renderImages();
-    $("#storeImageUpload").onchange = (e) =>
-      run(null, async () => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const editImages = images;
-        if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(`Use at most ${MAX_PRODUCT_IMAGES} images.`);
-        if (
-          !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
-          file.size > 8e6
-        )
-          throw Error("Choose a PNG, JPEG or WebP under 8 MB.");
-        const bitmap = await createImageBitmap(file);
-        const scale = Math.min(1, 960 / Math.max(bitmap.width, bitmap.height)),
-          canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-        canvas
-          .getContext("2d")
-          .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-        bitmap.close();
-        let data = canvas.toDataURL("image/webp", 0.8);
-        if (data.length > 230000) data = canvas.toDataURL("image/webp", 0.4);
-        if (data.length > 230000)
-          throw Error("Image is too detailed; upload a smaller image.");
-        // Each photo is uploaded on its own; the product refers to it when saved.
-        message.textContent = "Uploading photo…";
-        const { photo } = await call("/api/admin/store/photos", { method: "POST", body: JSON.stringify({ data }) });
-        message.textContent = "";
-        // The editor or image count may have changed while the photo uploaded.
-        if (!e.target.isConnected || images !== editImages) return;
-        if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(`Use at most ${MAX_PRODUCT_IMAGES} images.`);
-        editImages.push({ id: photo.id, src: photo.src, alt: loc() });
-        renderImages();
-        e.target.value = "";
-      });
-    const del = root.querySelector(".admin-store__danger [data-delete-product]");
+    const del = root.querySelector("#productMoreSettings [data-delete-product]");
     if (del) del.onclick = () => run(del, async () => {
-      if (!confirm("Delete this product? Products with history must be archived instead.")) return;
+      if (!confirm(L("adminProductEditDeleteConfirm"))) return;
       await save("products/delete", { id: p.id, version: p.version });
       location.hash = "products";
     });
@@ -539,55 +524,65 @@ ${p.id ? `<p class="admin-store__danger"><button type="button" class="nd-btn nd-
           featured: form.featured.checked,
           // Stored photos by id; a photo saved inside the product before stays as it is.
           images: images.map(({ id, data, alt }) => (id ? { id, alt } : { data, alt })),
-        });
-        savedNotice = status === "published" ? "Saved · live in the store" : "Saved · hidden from the store";
+        }, { quiet: true });
+        // As drawn, the result shows beside Save product, not above the screen.
+        savedNotice = L(status === "published" ? "adminProductEditSavedLive" : "adminProductEditSavedHidden");
         const saved = p.id ? p : state.products.find((x) => x.sku.toLowerCase() === String(input.sku).trim().toLowerCase());
         if (!p.id && saved) { keepNotice = true; location.hash = "product/" + encodeURIComponent(saved.id); }
         else render();
       });
     };
   }
+  // The drawn grid: the photos (the first is the main one), empty slots up to
+  // three, then "+ Add". Photo details holds each photo's alternative text in
+  // both languages, its order and Remove.
   function renderImages() {
-    const wrap = $("#storeImages");
-    wrap.innerHTML = images
-      .map(
-        (im, index) =>
-          `<fieldset class="admin-photo${index === 0 ? " is-main" : ""}"><legend>${index === 0 ? "Main photo" : `Photo ${index + 1}`}</legend><img src="${h(photoSrc(im))}" alt="${h(im.alt.en)}" width="120" height="90" loading="lazy">${bilingual(`image${index}`, "Alternative text", im.alt)}<div class="admin-actions"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-image-up="${index}" ${index === 0 ? "disabled" : ""}>Move up</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-image-delete="${index}">Remove</button></div></fieldset>`,
-      )
-      .join("");
-    // At the limit, the picker waits until a photo is removed.
-    const add = $("#storeImageUpload");
-    if (add) {
-      const full = images.length >= MAX_PRODUCT_IMAGES;
-      add.disabled = full;
-      add.closest("label").classList.toggle("is-full", full);
-      add.nextElementSibling.textContent = full ? `${MAX_PRODUCT_IMAGES} photos, the most a product can have. Remove one to add another.` : "+ Add photo";
-    }
-    wrap.querySelectorAll("input").forEach(
-      (input) =>
-        (input.oninput = () => {
-          const [key, lang] = input.name.split(".");
-          images[Number(key.slice(5))].alt[lang] = input.value;
-        }),
-    );
-    wrap.querySelectorAll("[data-image-up]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          const index = Number(b.dataset.imageUp);
-          [images[index - 1], images[index]] = [
-            images[index],
-            images[index - 1],
-          ];
-          renderImages();
-        }),
-    );
-    wrap.querySelectorAll("[data-image-delete]").forEach(
-      (b) =>
-        (b.onclick = () => {
-          images.splice(Number(b.dataset.imageDelete), 1);
-          renderImages();
-        }),
-    );
+    const full = images.length >= MAX_PRODUCT_IMAGES, slots = Math.max(3, images.length);
+    const label = (index) => (index === 0 ? L("adminProductEditMainPhoto") : L("adminProductEditPhotoN", { n: index + 1 }));
+    $("#storeImages").innerHTML = Array.from({ length: slots }, (_, index) => {
+      const im = images[index], main = index === 0 ? " is-main" : "";
+      return im ? `<div class="admin-pedit__slot is-photo${main}"><img src="${h(photoSrc(im))}" alt="${h(inLang(im.alt) || label(index))}" width="140" height="140" loading="lazy"></div>` : `<div class="admin-pedit__slot${main}">${h(label(index))}</div>`;
+    }).join("") + `<label class="admin-pedit__slot admin-pedit__add admin-photos__add${full ? " is-full" : ""}"><input type="file" id="storeImageUpload" accept="image/png,image/jpeg,image/webp" ${full ? "disabled" : ""}><span>${h(full ? L("adminProductEditPhotosFull", { max: MAX_PRODUCT_IMAGES }) : L("adminProductEditAddPhoto"))}</span></label>`;
+    $("#storePhotoDetails").innerHTML = images.length ? images.map((im, index) => `<fieldset class="admin-photo${index === 0 ? " is-main" : ""}"><legend>${h(label(index))}</legend><img src="${h(photoSrc(im))}" alt="" width="120" height="90" loading="lazy">${bilingual(`image${index}`, L("adminProductEditAltText"), im.alt)}<div class="admin-actions"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-image-up="${index}" ${index === 0 ? "disabled" : ""}>${h(L("adminProductEditMoveUp"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-image-delete="${index}">${h(L("adminProductEditRemove"))}</button></div></fieldset>`).join("") : `<p class="nd-meta">${h(L("adminProductEditNoPhotos"))}</p>`;
+    const details = $("#storePhotoDetails");
+    details.querySelectorAll("input").forEach((input) => (input.oninput = () => {
+      const [key, code] = input.name.split(".");
+      images[Number(key.slice(5))].alt[code] = input.value;
+    }));
+    details.querySelectorAll("[data-image-up]").forEach((b) => (b.onclick = () => {
+      const index = Number(b.dataset.imageUp);
+      [images[index - 1], images[index]] = [images[index], images[index - 1]];
+      renderImages();
+    }));
+    details.querySelectorAll("[data-image-delete]").forEach((b) => (b.onclick = () => {
+      images.splice(Number(b.dataset.imageDelete), 1);
+      renderImages();
+    }));
+    $("#storeImageUpload").onchange = (e) => run(null, async () => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const editImages = images;
+      if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(L("adminProductEditTooMany", { max: MAX_PRODUCT_IMAGES }));
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 8e6) throw Error(L("adminProductEditBadImage"));
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 960 / Math.max(bitmap.width, bitmap.height)), canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      let data = canvas.toDataURL("image/webp", 0.8);
+      if (data.length > 230000) data = canvas.toDataURL("image/webp", 0.4);
+      if (data.length > 230000) throw Error(L("adminProductEditTooDetailed"));
+      // Each photo is uploaded on its own; the product refers to it when saved.
+      message.textContent = L("adminProductEditUploading");
+      const { photo } = await call("/api/admin/store/photos", { method: "POST", body: JSON.stringify({ data }) });
+      message.textContent = "";
+      // The editor or image count may have changed while the photo uploaded.
+      if (!$("#storeImages") || images !== editImages) return;
+      if (editImages.length >= MAX_PRODUCT_IMAGES) throw Error(L("adminProductEditTooMany", { max: MAX_PRODUCT_IMAGES }));
+      editImages.push({ id: photo.id, src: photo.src, alt: loc() });
+      renderImages();
+    });
   }
   $("#retryStore").onclick = (e) => run(e.currentTarget, load);
   return { load, activate };
