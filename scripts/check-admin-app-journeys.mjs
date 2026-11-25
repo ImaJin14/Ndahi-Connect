@@ -22,6 +22,17 @@ const listen = (app, port) => new Promise((r) => app.listen(port, "127.0.0.1", r
 const close = (app) => new Promise((r) => { app.close(r); app.closeAllConnections(); });
 const screenshots = "/tmp/ndahi-admin-app-checks";
 let browser, checks = 0;
+// v2 Live devices (#381) has no Refresh button: the router is read on its own.
+// The journeys ask for a reading through the same API the button used.
+const requestReading = (page) => page.evaluate(async (base) => {
+  const { csrfToken } = await (await fetch(base + "/api/admin/dashboard", { credentials: "include" })).json();
+  return (await fetch(base + "/api/admin/wifi-devices/refresh", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": csrfToken }, body: "{}" })).status;
+}, api);
+// v2: one row per customer; its devices are in the pop-up.
+const openLiveDevices = async (page) => {
+  await page.locator("#liveDeviceRows .admin-devices__view").first().click();
+  await page.locator("#liveDeviceDialog[open]").waitFor();
+};
 await store.transaction((s) => {
   s.customers.push({ id: "c1", name: "Fixture customer", phone: "670042001" });
   s.vouchers.push({ id: "v1", customerId: "c1", assignedResellerId: "staff-reseller", code: "NC-FIXTURE", planId: "weekly", status: "active", quotaBytes: null, usedBytes: 0, expiresAt: "2030-01-02T08:00:00Z", deviceLimit: 2, wifiDevices: observed, wifiDevicesAt: now.toISOString() });
@@ -319,22 +330,26 @@ try {
     await page.waitForFunction(() => location.hash === "#bundles");
     assert.equal((await store.snapshot()).bundles.some((b) => b.id === added.id), false);
   }, { width });
-  // Redesigned Live devices (v2 only; canvas: AdminDevices).
-  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Live devices names customers and keeps the router summary at ${width}px`, async (page) => {
+  // Redesigned Live devices (v2 only; canvas: AdminDevices; #381): one row per customer.
+  if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Live devices shows one row per customer and their devices at ${width}px`, async (page) => {
     await page.goto(`${admin}/dashboard#devices`);
     await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
-    const row = page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac });
+    const row = page.locator("#liveDeviceRows tr").filter({ hasText: "Fixture customer" });
     await row.waitFor();
-    assert.match(await page.locator("#wifiSummary").textContent(), /^2 confirmed connected · Router reading current · checked /);
+    assert.match(await page.locator("#wifiSummary").textContent(), /^2 devices · 1 customer online · updated \d+ s ago$/);
     assert.equal(await page.locator("#wifiLive").getAttribute("data-state"), "ready");
-    await row.getByRole("link", { name: "Fixture customer", exact: true }).waitFor();
-    assert.match(await row.innerText(), /10\.20\.0\.2[\s\S]*Connected/);
-    await page.getByRole("button", { name: "Refresh devices", exact: true }).waitFor();
+    assert.match(await row.innerText(), /Fixture customer[\s\S]*Weekly · current plan, original terms[\s\S]*2 devices/);
+    assert.equal(await page.getByRole("button", { name: "Refresh devices", exact: true }).count(), 0, "read on its own, as drawn");
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/live-devices-${width}.png`, fullPage: true });
-    await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
+    await row.getByRole("button", { name: "View the devices of Fixture customer", exact: true }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.waitFor();
+    assert.match(await dialog.innerText(), /••:DD:EE:01[\s\S]*••:DD:EE:02/);
+    await dialog.getByRole("link", { name: "Open customer", exact: true }).click();
     await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
+    assert.equal(await page.locator("#liveDeviceDialog[open]").count(), 0, "the pop-up closes on leaving");
   }, { width });
   // Redesigned Connections (v2 only; canvas: AdminConnections).
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Connections shows services, admin security and router checks at ${width}px`, async (page) => {
@@ -497,8 +512,13 @@ try {
     for (const tab of ["Network setup", "Generate voucher", "Audit"]) assert.equal(await adminMoreCount(page, tab), 1, tab);
     if (!uiV2) assert.deepEqual(await page.locator('[data-admin-more] [role="tab"]').allTextContents(), ["Network setup", "Generate voucher", "Audit"]);
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
-    await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
-    assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
+    if (uiV2) {
+      await page.locator("#liveDeviceRows tr").filter({ hasText: "Fixture customer" }).waitFor();
+      assert.equal(await page.locator("#liveDeviceRows tr").count(), 1, "one row per customer");
+    } else {
+      await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[1].mac }).waitFor();
+      assert.equal(await page.locator("#wifiRecords tbody tr").count(), 2);
+    }
     await page.reload(); await page.getByRole("heading", { name: "Live Wi-Fi devices.", exact: true }).waitFor();
     await page.getByRole("link", { name: adminLinkName("Payments"), exact: true }).click();
     await page.goBack(); assert.equal(new URL(page.url()).hash, "#devices");
@@ -520,32 +540,44 @@ try {
   await scenario("refresh waits for a successful router reading and clears departed devices", async (page) => {
     let release; readGate = new Promise((r) => { release = r; });
     await page.goto(`${admin}/dashboard#devices`);
-    await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
-    await page.getByRole("button", { name: "Refresh devices", exact: true }).click();
-    await page.getByText("A router reading was requested.", { exact: false }).waitFor();
+    if (uiV2) {
+      await page.locator("#liveDeviceRows tr").filter({ hasText: "Fixture customer" }).waitFor();
+      assert.equal(await requestReading(page), 202);
+    } else {
+      await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
+      await page.getByRole("button", { name: "Refresh devices", exact: true }).click();
+      await page.getByText("A router reading was requested.", { exact: false }).waitFor();
+    }
     assert.equal(readCalls, 1); assert.equal((await store.snapshot()).vouchers[0].wifiDevices.length, 2);
     devices = []; release();
-    await page.locator("#wifiSummary").filter({ hasText: "0 confirmed connected" }).waitFor();
-    await page.locator("#wifiRecords tbody").getByText(uiV2 ? "No Wi-Fi devices right now." : "No records found.").waitFor();
+    // v2 updates in place, without a reload (#381).
+    await page.locator("#wifiSummary").filter({ hasText: uiV2 ? "0 devices · 0 customers online" : "0 confirmed connected" }).waitFor();
+    await page.locator(uiV2 ? "#liveDeviceRows" : "#wifiRecords tbody").getByText(uiV2 ? "No Wi-Fi devices right now." : "No records found.").waitFor();
   });
   await scenario("failed router readings preserve stale devices and expose a bounded retry action", async (page) => {
     now = new Date(+now + 180000); failRead = true;
     await page.goto(`${admin}/dashboard#devices`);
-    await page.getByRole("button", { name: "Refresh devices", exact: true }).click();
+    if (uiV2) { await page.locator("#liveDeviceRows .admin-devices__view").first().waitFor(); await requestReading(page); }
+    else await page.getByRole("button", { name: "Refresh devices", exact: true }).click();
     await page.getByRole("button", { name: "Retry router reading" }).waitFor();
     assert.equal((await store.snapshot()).vouchers[0].wifiDevices.length, 2);
-    assert.equal(await page.locator("#wifiRecords [data-wifi-mac]:enabled").count(), 0);
+    if (uiV2) {
+      await openLiveDevices(page);
+      assert.equal(await page.locator(".admin-devices__kick:enabled").count(), 0, "an old reading can't be acted on");
+      await page.keyboard.press("Escape");
+    } else assert.equal(await page.locator("#wifiRecords [data-wifi-mac]:enabled").count(), 0);
     failRead = false; await page.getByRole("button", { name: "Retry router reading" }).click();
-    await page.locator("#wifiSummary").filter({ hasText: "Router reading current" }).waitFor();
+    await page.locator("#wifiSummary").filter({ hasText: uiV2 ? "1 customer online" : "Router reading current" }).waitFor();
   });
   await scenario("a device slot remains occupied until the scoped disconnect is confirmed", async (page) => {
     let release; disconnectGate = new Promise((r) => { release = r; });
     await page.goto(`${admin}/dashboard#devices`);
-    await page.locator(`[data-wifi-mac="${observed[0].mac}"]`).click();
-    await page.getByRole("button", { name: "Disconnecting…", exact: true }).waitFor();
+    if (uiV2) { await page.locator("#liveDeviceRows .admin-devices__view").first().waitFor(); await openLiveDevices(page); await page.locator(".admin-devices__kick").first().click(); }
+    else await page.locator(`[data-wifi-mac="${observed[0].mac}"]`).click();
+    await page.getByRole("button", { name: uiV2 ? /^Disconnect .* of Fixture customer$/ : "Disconnecting…", exact: !uiV2 }).filter({ hasText: "Disconnecting…" }).waitFor();
     assert.equal((await store.snapshot()).vouchers[0].wifiDevices.length, 2);
     release();
-    await page.locator("#wifiSummary").filter({ hasText: "1 confirmed connected" }).waitFor();
+    await page.locator("#wifiSummary").filter({ hasText: uiV2 ? "1 device · 1 customer online" : "1 confirmed connected" }).waitFor();
     assert.equal((await store.snapshot()).vouchers[0].wifiDevices[0].sessionId, "*B");
   });
   for (const role of ["operator", "auditor", "reseller"]) await scenario(`navigation preserves ${role} access and hides owner setup`, async (page) => {
@@ -569,9 +601,16 @@ try {
     }
     assert.equal(await adminMoreCount(page, "Network setup"), 0);
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click();
-    await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
-    assert.equal(await page.locator("#refreshWifi").isVisible(), role === "operator");
-    assert.equal(await page.getByRole("button", { name: "Disconnect", exact: true }).count(), role === "operator" ? 2 : 0);
+    if (uiV2) {
+      await page.locator("#liveDeviceRows tr").filter({ hasText: "2 devices" }).waitFor();
+      assert.equal(await page.locator("#refreshWifi").count(), 0);
+      await openLiveDevices(page);
+      assert.equal(await page.locator(".admin-devices__kick").count(), role === "operator" ? 2 : 0);
+    } else {
+      await page.locator("#wifiRecords tbody tr").filter({ hasText: observed[0].mac }).waitFor();
+      assert.equal(await page.locator("#refreshWifi").isVisible(), role === "operator");
+      assert.equal(await page.getByRole("button", { name: "Disconnect", exact: true }).count(), role === "operator" ? 2 : 0);
+    }
   }, { role });
   await scenario("admin installation assets, service worker and offline launch do not cache records", async (page, context) => {
     const response = await fetch(`${admin}/manifest.webmanifest`), manifest = await response.json();
@@ -585,7 +624,7 @@ try {
     await context.setOffline(true); await page.reload(); await page.getByRole("heading", { name: "You're offline" }).waitFor();
     assert.ok(!(await page.locator("body").innerText()).includes("670042001"));
     await context.setOffline(false); await page.getByRole("link", { name: "Try again" }).click();
-    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click(); await page.locator("#wifiRecords").waitFor();
+    await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click(); await page.locator(uiV2 ? "#liveDevices" : "#wifiRecords").waitFor();
   });
   await scenario("the admin install button invokes the available browser prompt and hides after installation", async (page) => {
     await page.goto(`${admin}/dashboard#more`);

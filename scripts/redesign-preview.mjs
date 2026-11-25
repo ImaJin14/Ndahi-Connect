@@ -194,7 +194,7 @@ export const SCREENS = [
   ...[
     ["admin-login", "Sign in", "AdminLogin", "/login", "Redesigned look; today's username + password or passkey stays until Phase 6 (no email + PIN two-step yet)", { signedOut: true, expect: ["#login"] }],
     ["admin-home", "Home", "Admin", "/dashboard#home", "Redesigned (#377): every figure from the API, with router uptime recorded from each router check", { panel: "home" }],
-    ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (no access point, signal or today's usage: the router doesn't report them)", { panel: "devices", menu: "devices" }],
+    ["admin-devices", "Live devices", "AdminDevices", "/dashboard#devices", "Redesigned (#381): one row per customer and a devices pop-up; access point and signal show \"—\" (the access points run standalone)", { panel: "devices", menu: "devices", expect: ["#liveDevices"] }],
     ["admin-connections", "Connections", "AdminConnections", "/dashboard#connections", "Redesigned (no uplink speed, per-network payment health or check times: none are recorded)", { panel: "connections", menu: "connections" }],
     ["admin-homerouters", "Home routers", "AdminHomeRouters", "/home-routers.html", "Redesigned (pilot evidence is a JSON report with an audit reason, not free notes)",
       { menu: "homerouters", open: ["#checkHomeReadiness"], expect: ["#homeReadiness > h2", "#homeAdminList"], blocked: "NDAHI Home is off in the preview, so no household connections are listed; the page and readiness checks are real" }],

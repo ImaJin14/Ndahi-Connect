@@ -5,7 +5,7 @@ import { mountCustomerRecords, showCustomerDetail } from "/customers.js";
 import { showVoucherDetail } from "/voucher-detail.js";
 import { mountBundleEdit } from "/bundles.js";
 import { mountCatalogue } from "/bundle-catalogue.js";
-import { deviceSummaryText, mountDeviceRecords } from "/devices.js";
+import { liveSummaryText, mountLiveDevices } from "/devices.js";
 import { adminSecurity, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
@@ -37,7 +37,7 @@ const api = window.NDAHI_CONFIG.apiUrl,
   rows = (items, render) => items.map(render).join("");
 let bundleIndex = new Map();
 const fcfa = (amount) => `${Number(amount || 0).toLocaleString()} FCFA`;
-let activeAdminTab = "home", wifiRecords, wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
+let activeAdminTab = "home", liveDevices, liveRows = [], wifiTimer, wifiLoading = false, adminRole, wifiLive = false, adminAuthenticatorRetired = false;
 let csrfToken = "";
 let passkeyEnrollmentRunning = false;
 let activePrintController = null;
@@ -160,7 +160,7 @@ async function load() {
   // Restricted dashboards include zero-valued record totals. Only the role's
   // actual capabilities permit contact/payment views; counts are not grants.
   const storeRole = canManagePayments, access = { contacts: canManagePayments, codes: canManagePayments || adminRole === "reseller" };
-  $("#adminHeadActions").innerHTML = `${access.codes ? `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>` : ""}${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a><a class="nd-btn nd-btn--sm admin-cat__add" data-head-view="bundles" href="/dashboard#bundle/new">${h(L("adminAddBundle"))}</a><span data-head-view="bundle" id="bundleStatusHost"></span>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button>` : ""}<div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span><button type="button" class="nd-btn nd-btn--secondary" id="refreshWifi" ${canManagePayments && x.wifi.live ? "" : "hidden"}>${h(L("adminRefreshDevices"))}</button></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div><div data-head-view="voucher" id="voucherStatusHost" class="admin-voucher__head"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}${x.sales ? `<div class="admin-periods" role="group" aria-label="${h(L("adminCashPeriodLabel"))}" data-head-view="cash" id="cashPeriods"></div>` : ""}<span class="admin-resellers__split" data-head-view="resellers" id="resellerSplit"></span>`;
+  $("#adminHeadActions").innerHTML = `${access.codes ? `<a class="nd-btn nd-btn--sm nd-btn--secondary" data-head-view="home" href="/dashboard#vouchers">${h(L("adminHomePrintVouchers"))}</a>` : ""}${storeRole ? `<a class="nd-btn nd-btn--sm" data-head-view="home" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a><a class="nd-btn nd-btn--sm admin-cat__add" data-head-view="bundles" href="/dashboard#bundle/new">${h(L("adminAddBundle"))}</a><span data-head-view="bundle" id="bundleStatusHost"></span>` : ""}<div class="nd-cluster" data-head-view="voucher-print" id="voucherPrintActions"></div><div class="nd-cluster" data-head-view="store" id="storeHeadOrders"></div><div class="nd-cluster" data-head-view="products" id="storeHeadProducts"></div><div class="nd-cluster" data-head-view="product" id="storeHeadProduct"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="audit" id="auditExport">${h(L("adminExport"))}</button>` : ""}<div class="admin-devices__head" data-head-view="devices"><span class="admin-live" id="wifiLive"><span class="admin-live__dot" aria-hidden="true"></span><span id="wifiSummary" role="status" aria-live="polite"></span></span></div><div data-head-view="customers" id="customerSearchHost" class="admin-head-search"></div><div data-head-view="customer" id="customerStatusHost"></div><div data-head-view="voucher" id="voucherStatusHost" class="admin-voucher__head"></div>${access.contacts ? `<button type="button" class="nd-btn nd-btn--secondary" data-head-view="payments" data-payments-export>${h(L("adminExportCsv"))}</button>` : ""}${x.sales ? `<div class="admin-periods" role="group" aria-label="${h(L("adminCashPeriodLabel"))}" data-head-view="cash" id="cashPeriods"></div>` : ""}<span class="admin-resellers__split" data-head-view="resellers" id="resellerSplit"></span>`;
   const auditExport = $("#auditExport");
   if (auditExport) auditExport.onclick = () => runAction(auditExport, L("adminExporting"), () => exportAudit(call));
   const paymentsExport = $("[data-payments-export]");
@@ -169,7 +169,7 @@ async function load() {
 ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status"><div><p class="section-kicker">Setup mode</p><h2>Finish connecting production services</h2><p>The dashboard and stored data are available. Customer purchases stay paused until every required service is connected and <code>BOOTSTRAP_MODE</code> is set to <code>false</code>.</p></div><div class="setup-services">${Object.entries(x.deployment.providers).map(([name, ready]) => `<span class="status-chip ${ready ? "status-good" : "status-warning"}">${h(name)}: ${h(ready === true ? "ready" : ready || "needs setup")}</span>`).join("")}</div></section>` : ""}
 <section class="tab-panel admin-home" data-tab-panel="home" id="panel-home" aria-labelledby="adminTitle"><div class="nd-metrics admin-home__metrics">${homeMetricsMarkup(x, { contacts: access.contacts, storeRole })}</div><div class="admin-home__row"><section class="nd-panel admin-home__attention" aria-labelledby="homeAttentionTitle"><h2 class="nd-h2" id="homeAttentionTitle">${h(L("adminAttentionTitle"))}</h2><div id="homeAttention" aria-live="polite"></div></section>
 ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
-<section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><section class="nd-panel admin-devices__list" aria-label="${h(L("adminDevicesList"))}"><div id="wifiRecords"></div></section></section>
+<section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><div id="liveDevices"></div></section>
 <section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
 <section class="tab-panel admin-outages" id="panel-outages" aria-labelledby="adminTitle" data-tab-panel="outages" ${activeAdminTab === "outages" ? "" : "hidden"}><div id="outagesHost"></div></section>
 ${storeRole ? `<section class="tab-panel admin-promotions" id="panel-promotions" aria-labelledby="adminTitle" data-tab-panel="promotions" ${activeAdminTab === "promotions" ? "" : "hidden"}><div id="promotionsHost"></div></section>` : ""}
@@ -264,15 +264,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   if (access.contacts) showPaymentFigures(x, { storeRole });
   mountAdminInstall($("#adminInstall"));
   mountProfile({ call, runAction, reload: load });
+  // Live devices (#381): the router is read automatically; the screen has no Refresh, as drawn.
   renderWifiSummary(x.wifi);
-  $("#refreshWifi").onclick = async (event) => {
-    await runAction(event.currentTarget, L("adminRequestingReading"), async () => {
-      const result = await call("/api/admin/wifi-devices/refresh", { method: "POST", body: "{}" });
-      renderWifiSummary(result);
-      $("#wifiMessage").textContent = L(result.state === "refreshing" || result.state === "retrying" ? "adminWifiRequested" : "adminWifiCurrent");
-    }, "#wifiMessage");
-    await refreshWifiSummary();
-  };
   let customerPicker;
   const updateVoucherBuilder = (event) => {
     const purposeChanged = event?.target?.id === "voucherPurpose";
@@ -410,7 +403,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
 
 }
 function mountRecordViews(canManagePayments) {
-  wifiRecords = mountDeviceRecords($("#wifiRecords"), { call, canManage: canManagePayments });
+  liveDevices = mountLiveDevices($("#liveDevices"), { call, canManage: canManagePayments, refresh: refreshWifiSummary });
   voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
   if (!canManagePayments) return;
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
@@ -488,7 +481,7 @@ $("#app").onclick = async (e) => {
       await call("/api/admin/wifi-devices/disconnect", { method: "POST", body: JSON.stringify({
         voucherId: button.dataset.wifiVoucher, mac: button.dataset.wifiMac, sessionId: button.dataset.wifiSession, startedAt: button.dataset.wifiStarted,
       }) });
-      await wifiRecords.refresh(); await refreshWifiSummary();
+      await refreshWifiSummary();
       return;
     } else if (button.dataset.session) {
       if (!confirm("Disconnect this device session?")) return;
@@ -552,7 +545,8 @@ load();
 function renderWifiSummary(summary) {
   const target = $("#wifiSummary");
   if (!target) return;
-  target.textContent = deviceSummaryText(summary);
+  if (Array.isArray(summary.customers)) liveRows = summary.customers;
+  target.textContent = liveSummaryText(summary, liveRows);
   const live = $("#wifiLive");
   if (live) live.dataset.state = summary.live === false ? "off" : summary.state || "";
   if (summary.refresh?.canReplay && ["owner", "operator"].includes(adminRole)) {
@@ -569,7 +563,12 @@ function renderWifiSummary(summary) {
 async function refreshWifiSummary() {
   if (wifiLoading || document.hidden || !$("#wifiSummary")) return;
   wifiLoading = true;
-  try { renderWifiSummary(await call("/api/admin/wifi-devices")); }
+  try {
+    // Live devices also takes its rows (one per customer, #381); Home needs only the counts.
+    const result = await call(activeAdminTab === "devices" ? "/api/admin/wifi-devices?customers=1" : "/api/admin/wifi-devices");
+    renderWifiSummary(result);
+    if (result.customers) liveDevices?.update(result);
+  }
   catch (error) { if ($("#wifiSummary")) $("#wifiSummary").textContent = `Unable to refresh devices: ${error.message}. Previous readings remain on screen.`; }
   finally { wifiLoading = false; }
 }
