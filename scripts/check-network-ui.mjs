@@ -28,18 +28,19 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("http://127.0.0.1:18981/dashboard");
   await openAdminMore(page, "Network setup");
-  await page.locator("#networkRouterConnection select").selectOption("simulation");
-  await page.getByRole("button", { name: "Save router connection", exact: true }).click();
-  await page.getByText("router connection saved.", { exact: false }).waitFor();
+  // The four steps (AdminNetworkSetup, #384): simulation, discover, preview, review, run, keep.
+  await page.locator("#netRouterMode").selectOption("simulation");
   await page.getByRole("button", { name: "Discover router", exact: true }).click();
-  await page.locator('#networkRouterConfig select[name="apPort"] option[value="ether2"]').waitFor({ state: "attached" });
-  await page.getByRole("button", { name: "Preview router changes", exact: true }).click();
-  await page.getByRole("heading", { name: "3. Review router changes", exact: true }).waitFor();
-  await page.locator("#networkReviewed").check();
+  await page.locator('#netApPort option[value="ether2"]').waitFor({ state: "attached" });
+  await page.getByRole("button", { name: "Next: access points", exact: true }).click();
+  await page.getByRole("heading", { name: "Omada access points", exact: true }).waitFor();
+  await page.getByRole("list", { name: "Setup steps" }).getByRole("button", { name: "Review" }).click();
+  await page.getByRole("heading", { name: "Review before applying", exact: true }).waitFor();
   await page.getByRole("button", { name: "Run simulation", exact: true }).click();
   await page.getByRole("button", { name: "Keep changes", exact: true }).waitFor();
   await page.locator("[data-tested]").check();
   await page.getByRole("button", { name: "Keep changes", exact: true }).click();
+  await page.locator("#networkTools > summary").click();
   await page.getByRole("heading", { name: "router · simulation · completed", exact: true }).waitFor();
   const output = process.env.NETWORK_QA_DIR || "/tmp/ndahi-network-qa";
   await mkdir(output, { recursive: true });

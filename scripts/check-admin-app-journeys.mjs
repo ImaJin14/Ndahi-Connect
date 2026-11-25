@@ -435,13 +435,17 @@ try {
     await page.getByRole("heading", { name: "Connect and configure your equipment.", exact: true }).waitFor();
     const steps = page.getByRole("list", { name: "Setup steps" });
     assert.deepEqual((await steps.getByRole("button").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()), ["1 Router", "2 Access points", "3 Wi-Fi", "4 Review"]);
-    assert.equal(await page.locator("#networkRouterConnection").isVisible(), true);
-    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), false);
+    // The drawn Router fields first (#384); the rest in "More router settings".
+    await page.getByLabel("Router address").waitFor();
+    assert.equal(await page.getByLabel("Service password").isVisible(), false);
     await steps.getByRole("button", { name: "Access points" }).click();
     assert.equal(await steps.getByRole("button", { name: "Access points" }).getAttribute("aria-current"), "step");
-    assert.equal(await page.locator("#networkOmadaConnection").isVisible(), true);
+    assert.match(await steps.getByRole("button", { name: "Router" }).innerText(), /^✓\s*Router$/, "steps before read ✓");
+    await page.getByRole("heading", { name: "Omada access points", exact: true }).waitFor();
     await steps.getByRole("button", { name: "Review" }).click();
     await page.getByText("Preview router, access point or Wi-Fi changes", { exact: false }).waitFor();
+    // Voucher enforcement, assisted connections and history are closed below.
+    await page.locator("#networkTools > summary").click();
     await page.locator("#networkPairingStatus").waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -479,6 +483,8 @@ try {
     });
     await page.goto(`${admin}/dashboard#more`);
     await openAdminMore(page, "Network setup");
+    // v2 keeps the purchase-access check in the closed "More network tools" (#384).
+    if (uiV2) await page.locator("#networkTools > summary").click();
     const button = page.getByRole("button", { name: "Check purchase access", exact: true });
     await button.click();
     assert.equal(await page.locator("#networkPurchaseCheck").isDisabled(), true);
