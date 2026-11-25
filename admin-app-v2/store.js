@@ -157,23 +157,25 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     if (!state) return run(null, load);
     render();
   }
-  async function save(path, input) {
+  // `quiet`: the drawn quick controls show their own result (the switch, the
+  // pill, the count), so they add no "Saved." line above the screen.
+  async function save(path, input, { quiet = false } = {}) {
     const result = await call("/api/admin/store/" + path, {
       method: "POST",
       body: JSON.stringify(input),
     });
     state = result;
     render();
-    message.textContent = L("adminStoreSaved");
+    if (!quiet) message.textContent = L("adminStoreSaved");
     return result;
   }
   function missingConfiguration() {
     const s = state.settings;
     return [
-      ["contact", "Contact details"],
-      ["pickup", "Pickup location"],
-      ["warranty", "Warranty in EN and FR"],
-      ["returns", "Returns in EN and FR"],
+      ["contact", L("adminProductsMissingContact")],
+      ["pickup", L("adminProductsMissingPickup")],
+      ["warranty", L("adminProductsMissingWarranty")],
+      ["returns", L("adminProductsMissingReturns")],
     ]
       .filter(([key]) =>
         typeof s[key] === "object"
@@ -317,156 +319,96 @@ ${owner && o.payment.refund?.status === "uncertain" && !o.payment.refund.provide
   }
 
   // ---------- Products (canvas: AdminProducts) ----------
+  // The drawn screen: the checkout switch, then the catalogue with quick
+  // stock and visibility. Kept by the owner (25 Nov, #388), collapsed below:
+  // stock adjustments and history, categories and store settings.
   function productsView() {
-    const s = state.settings, missing = missingConfiguration();
+    const s = state.settings;
     // A save redraws the screen; disclosures that were open stay open.
     const wasOpen = ["storeInventory", "storeCategories", "storeSettings"].filter((id) => document.getElementById(id)?.open);
-    if (heads.products) heads.products.innerHTML = `<a class="admin-link" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">View storefront ↗</a><button type="button" id="refreshStore" class="nd-btn nd-btn--secondary">Refresh</button><a class="nd-btn" href="/dashboard#product/new">Add product</a>`;
-    content.innerHTML = `<section class="admin-store__banner${s.open ? " is-open" : ""}" aria-label="Checkout status"><div class="admin-store__bannertext"><strong>Store checkout is ${s.open ? "open" : "closed"}</strong><p id="storeCheckoutStatus" role="status" class="store-state ${s.open ? "is-open" : ""}">${s.open ? "Open — accepting new orders" : "Closed — new orders paused"}</p><span class="nd-meta">${s.open ? "Customers and guests can pay. Close checkout to pause new orders." : "Products stay visible but nobody can pay until you reopen. Approve policies and finish payment and device testing first."}</span>${missing.length ? `<p class="store-setup-note">Configuration missing: ${h(missing.join(", "))}.</p>` : ""}</div><button type="button" id="toggleStoreCheckout" class="admin-switch${s.open ? " is-on" : ""}" ${!s.open && missing.length ? "disabled" : ""}><span class="admin-switch__track" aria-hidden="true"><span class="admin-switch__knob"></span></span><span>${s.open ? "Close checkout" : "Open checkout"}</span></button></section>
-<section class="nd-panel admin-store__catalogue" aria-labelledby="storeCatalogueTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="storeCatalogueTitle">Catalogue</h2><input type="search" id="storeSearch" class="nd-input nd-input--sm" value="${h(productQuery)}" placeholder="Name or SKU" aria-label="Search catalogue"></div><div id="storeProductRows"></div><p class="nd-meta admin-store__note">Every stock change is recorded in the inventory ledger with who made it.</p></section>
-<details class="admin-options admin-store__more" id="storeInventory"><summary>Stock adjustments and history</summary><div class="admin-options__body" id="storeInventoryBody"></div></details>
-<details class="admin-options admin-store__more" id="storeCategories"><summary>Categories</summary><div class="admin-options__body" id="storeCategoriesBody"></div></details>
-<details class="admin-options admin-store__more" id="storeSettings"><summary>Store settings</summary><div class="admin-options__body" id="storeSettingsBody"></div></details>`;
+    if (heads.products) heads.products.innerHTML = `<a class="nd-btn admin-products__add" href="/dashboard#product/new">${h(L("adminHomeAddProduct"))}</a>`;
+    content.innerHTML = `<section class="admin-products__banner${s.open ? " is-open" : ""}" aria-label="${h(L("adminProductsCheckout"))}"><div><strong>${h(L(s.open ? "adminProductsOpen" : "adminProductsClosed"))}</strong><span>${h(L(s.open ? "adminProductsOpenHint" : "adminProductsClosedHint"))}</span></div><button type="button" id="toggleStoreCheckout" class="admin-products__switch" role="switch" aria-checked="${s.open}" aria-label="${h(L("adminProductsSwitch"))}"><span class="admin-products__knob"></span></button></section>
+<section class="nd-panel admin-products" aria-labelledby="storeCatalogueTitle"><h2 class="admin-products__h" id="storeCatalogueTitle">${h(L("adminProductsCatalogue"))}</h2><div id="storeProductRows"></div><p class="admin-products__note">${h(L("adminProductsLedger"))}</p></section>
+<details class="admin-options admin-store__more" id="storeInventory"><summary>${h(L("adminProductsStockMore"))}</summary><div class="admin-options__body" id="storeInventoryBody"></div></details>
+<details class="admin-options admin-store__more" id="storeCategories"><summary>${h(L("adminProductsCategories"))}</summary><div class="admin-options__body" id="storeCategoriesBody"></div></details>
+<details class="admin-options admin-store__more" id="storeSettings"><summary>${h(L("adminProductsSettings"))}</summary><div class="admin-options__body" id="storeSettingsBody"></div></details>`;
     wasOpen.forEach((id) => { $("#" + id).open = true; });
+    // The switch asks before changing anything; the change is audited (#388).
     const toggle = $("#toggleStoreCheckout");
-    toggle.onclick = (e) =>
-      run(e.currentTarget, async () => {
-        if (
-          !s.open &&
-          !confirm(
-            "Open checkout for new purchases? Confirm approved policies, accurate stock and prices, pickup details, and completed payment/device acceptance testing.",
-          )
-        )
-          return;
-        await save("settings/save", { ...s, open: !s.open });
-        message.textContent = state.settings.open
-          ? "Checkout opened."
-          : "Checkout closed. Existing orders can still be managed.";
-      });
-    const refresh = document.getElementById("refreshStore");
-    if (refresh) refresh.onclick = (e) => run(e.currentTarget, load);
-    $("#storeSearch").oninput = (e) => {
-      productQuery = e.target.value;
-      productRows();
-    };
+    toggle.onclick = () => run(null, async () => {
+      if (!s.open) {
+        const missing = missingConfiguration();
+        if (missing.length) {
+          $("#storeSettings").open = true;
+          throw Error(L("adminProductsMissing", { items: missing.join(", ") }));
+        }
+      }
+      if (!confirm(L(s.open ? "adminProductsConfirmClose" : "adminProductsConfirmOpen"))) return;
+      toggle.disabled = true;
+      try { await save("settings/save", { ...s, open: !s.open }, { quiet: true }); }
+      finally { if (toggle.isConnected) toggle.disabled = false; }
+      $("#toggleStoreCheckout")?.focus();
+    });
     productRows();
     inventory();
     categories();
     settings();
   }
+  // A name in the screen's language (product and category names are kept in both).
+  const inLanguage = (name) => (name && typeof name === "object" ? name[currentLanguage()] || name.en || "" : String(name || ""));
+  const categoryName = (id) => inLanguage(state.categories.find((c) => c.id === id)?.name) || L("adminProductsUncategorized");
   function productRows() {
-    const list = state.products.filter((p) =>
-      `${p.name.en} ${p.name.fr} ${p.sku}`
-        .toLowerCase()
-        .includes(productQuery.toLowerCase()),
-    );
-    const category = (id) => state.categories.find((c) => c.id === id)?.name.en || "Uncategorized";
-    $("#storeProductRows").innerHTML = !list.length ? '<p class="nd-meta">No products yet.</p>' :
-      `<div class="nd-table-wrap"><table class="nd-table"><thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Price</th><th scope="col">In stock</th><th scope="col">Shown in store</th><th scope="col"><span class="nd-visually-hidden">Actions</span></th></tr></thead><tbody>${list.map((p) => {
-        const shown = p.status === "published";
-        return `<tr><td><span class="admin-product"><span class="admin-product__thumb">${p.images?.[0] ? `<img src="${h(photoSrc(p.images[0]))}" alt="" width="40" height="40" loading="lazy">` : ""}</span><span><strong>${h(p.name.en)}</strong><span class="admin-cell__sub">${h(category(p.categoryId))}</span></span></span></td><td class="admin-code admin-store__sku">${h(p.sku)}</td><td>${h(fcfa(p.price))}</td><td><span class="admin-stepper"><button type="button" class="admin-stepper__btn" data-stock-delta="-1" data-stock-product="${h(p.id)}" aria-label="Remove one ${h(p.name.en)}" ${p.available <= 0 ? "disabled" : ""}>−</button><strong class="${p.available <= 2 ? "is-low" : ""}" title="${h(p.available)} available of ${h(p.stock)} in stock">${h(p.available)}</strong><button type="button" class="admin-stepper__btn" data-stock-delta="1" data-stock-product="${h(p.id)}" aria-label="Add one ${h(p.name.en)}">+</button></span></td><td><button type="button" class="admin-shown${shown ? " is-on" : ""}" aria-pressed="${shown}" data-toggle-shown="${h(p.id)}" aria-label="Shown in store: ${h(p.name.en)}">${shown ? "Shown" : p.status === "archived" ? "Archived" : "Hidden"}</button></td><td><span class="admin-actions"><a class="nd-btn nd-btn--compact nd-btn--secondary" href="/dashboard#product/${encodeURIComponent(p.id)}" aria-label="Edit ${h(p.name.en)}">Edit</a><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-product="${h(p.id)}">Delete</button></span></td></tr>`;
+    const list = state.products;
+    $("#storeProductRows").innerHTML = !list.length ? `<p class="nd-meta">${h(L("adminProductsNone"))}</p>` :
+      `<div class="nd-table-wrap"><table class="admin-products__table"><thead><tr><th scope="col">${h(L("adminProductsColProduct"))}</th><th scope="col">${h(L("adminProductsColSku"))}</th><th scope="col">${h(L("adminProductsColPrice"))}</th><th scope="col">${h(L("adminProductsColStock"))}</th><th scope="col">${h(L("adminProductsColShown"))}</th><th scope="col"><span class="nd-visually-hidden">${h(L("adminProductsEdit"))}</span></th></tr></thead><tbody>${list.map((p) => {
+        const shown = p.status === "published", name = inLanguage(p.name);
+        return `<tr><td><span class="admin-product"><span class="admin-product__thumb">${p.images?.[0] ? `<img src="${h(photoSrc(p.images[0]))}" alt="" width="40" height="40" loading="lazy">` : ""}</span><span><strong>${h(name)}</strong><span class="admin-product__cat">${h(categoryName(p.categoryId))}</span></span></span></td><td class="admin-products__sku">${h(p.sku)}</td><td>${h(fcfa(p.price))}</td><td><span class="admin-stepper"><button type="button" class="admin-stepper__btn" data-stock-delta="-1" data-stock-product="${h(p.id)}" aria-label="${h(L("adminProductsRemoveOne", { name }))}" ${p.available <= 0 ? "disabled" : ""}>−</button><strong class="${p.available <= 2 ? "is-low" : ""}" title="${h(L("adminProductsAvailableOf", { available: p.available, stock: p.stock }))}">${h(p.available)}</strong><button type="button" class="admin-stepper__btn" data-stock-delta="1" data-stock-product="${h(p.id)}" aria-label="${h(L("adminProductsAddOne", { name }))}">+</button></span></td><td><button type="button" class="admin-shown${shown ? " is-on" : ""}" aria-pressed="${shown}" data-toggle-shown="${h(p.id)}" aria-label="${h(L("adminProductsShownLabel", { name }))}">${h(L(shown ? "adminProductsShown" : "adminProductsHidden"))}</button></td><td><a class="admin-products__edit" href="/dashboard#product/${encodeURIComponent(p.id)}" aria-label="${h(L("adminProductsEditName", { name }))}">${h(L("adminProductsEdit"))}</a></td></tr>`;
       }).join("")}</tbody></table></div>`;
-    root.querySelectorAll("[data-delete-product]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          run(b, async () => {
-            if (
-              confirm(
-                "Delete this product? Products with history must be archived instead.",
-              )
-            ) {
-              const p = state.products.find(
-                (p) => p.id === b.dataset.deleteProduct,
-              );
-              await save("products/delete", { id: p.id, version: p.version });
-            }
-          })),
-    );
     // − / +: one unit, recorded in the stock ledger like any adjustment.
-    root.querySelectorAll("[data-stock-delta]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          run(b, async () => {
-            const p = state.products.find((p) => p.id === b.dataset.stockProduct);
-            await save("stock/adjust", { id: p.id, delta: Number(b.dataset.stockDelta), reason: "Quick change on Products", version: p.version, operationKey: crypto.randomUUID() });
-          })),
-    );
-    // Shown / Hidden: publishes the product or returns it to draft.
-    root.querySelectorAll("[data-toggle-shown]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          run(b, async () => {
-            const p = state.products.find((p) => p.id === b.dataset.toggleShown);
-            await save("products/save", { ...p, status: p.status === "published" ? "draft" : "published" });
-          })),
-    );
+    root.querySelectorAll("[data-stock-delta]").forEach((b) => (b.onclick = () => run(b, async () => {
+      const p = state.products.find((p) => p.id === b.dataset.stockProduct);
+      await save("stock/adjust", { id: p.id, delta: Number(b.dataset.stockDelta), reason: "Quick change on Products", version: p.version, operationKey: crypto.randomUUID() }, { quiet: true });
+    })));
+    // Shown / Hidden: publishes the product or takes it out of the store. An
+    // archived product is hidden; showing it publishes it again.
+    root.querySelectorAll("[data-toggle-shown]").forEach((b) => (b.onclick = () => run(b, async () => {
+      const p = state.products.find((p) => p.id === b.dataset.toggleShown);
+      await save("products/save", { ...p, status: p.status === "published" ? "draft" : "published" }, { quiet: true });
+    })));
   }
   function categories() {
     const w = $("#storeCategoriesBody");
-    w.innerHTML = `<div class="admin-store__catlist">${state.categories.map((c) => `<div class="admin-row"><span><strong>${h(c.name.en)}</strong> / ${h(c.name.fr)} · ${c.hidden ? "Hidden" : "Visible"} · position ${h(c.position)}</span><span class="admin-actions"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-edit-category="${h(c.id)}">Edit</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-category="${h(c.id)}">Delete</button></span></div>`).join("")}</div><button type="button" class="nd-btn nd-btn--secondary" id="newStoreCategory">Add category</button><div id="categoryEditor"></div>`;
+    w.innerHTML = `<div class="admin-store__catlist">${state.categories.map((c) => `<div class="admin-row"><span><strong>${h(c.name.en)}</strong> / ${h(c.name.fr)} · ${h(L(c.hidden ? "adminProductsCatHidden" : "adminProductsCatVisible"))} · ${h(L("adminProductsCatPosition", { position: c.position }))}</span><span class="admin-actions"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-edit-category="${h(c.id)}">${h(L("adminProductsEdit"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-category="${h(c.id)}">${h(L("adminProductsDelete"))}</button></span></div>`).join("")}</div><button type="button" class="nd-btn nd-btn--secondary" id="newStoreCategory">${h(L("adminProductsAddCategory"))}</button><div id="categoryEditor"></div>`;
     const edit = (c) => {
       $("#categoryEditor").innerHTML =
-        `<form id="categoryForm" class="admin-form">${bilingual("name", "Category name", c.name)}${field("position", "Sort position", c.position, "number", 'min="0" max="1000"')}${checkbox("hidden", "Hide category and its products", c.hidden)}<button class="nd-btn">Save category</button></form>`;
+        `<form id="categoryForm" class="admin-form">${bilingual("name", L("adminProductsCategoryName"), c.name)}${field("position", L("adminProductsSortPosition"), c.position, "number", 'min="0" max="1000"')}${checkbox("hidden", L("adminProductsHideCategory"), c.hidden)}<button class="nd-btn">${h(L("adminProductsSaveCategory"))}</button></form>`;
       $("#categoryForm").onsubmit = (e) => {
         e.preventDefault();
-        run(e.submitter, () =>
-          save("categories/save", {
-            ...values(e.target),
-            id: c.id,
-            version: c.version,
-            position: Number(e.target.elements.position.value),
-            hidden: e.target.elements.hidden.checked,
-          }),
-        );
+        run(e.submitter, () => save("categories/save", { ...values(e.target), id: c.id, version: c.version, position: Number(e.target.elements.position.value), hidden: e.target.elements.hidden.checked }));
       };
     };
-    $("#newStoreCategory").onclick = () =>
-      edit({ name: loc(), position: 0, hidden: false });
-    root
-      .querySelectorAll("[data-edit-category]")
-      .forEach(
-        (b) =>
-          (b.onclick = () =>
-            edit(
-              state.categories.find((c) => c.id === b.dataset.editCategory),
-            )),
-      );
-    root.querySelectorAll("[data-delete-category]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          run(b, async () => {
-            if (confirm("Delete this category?")) {
-              const c = state.categories.find(
-                (c) => c.id === b.dataset.deleteCategory,
-              );
-              await save("categories/delete", { id: c.id, version: c.version });
-            }
-          })),
-    );
+    $("#newStoreCategory").onclick = () => edit({ name: loc(), position: 0, hidden: false });
+    root.querySelectorAll("[data-edit-category]").forEach((b) => (b.onclick = () => edit(state.categories.find((c) => c.id === b.dataset.editCategory))));
+    root.querySelectorAll("[data-delete-category]").forEach((b) => (b.onclick = () => run(b, async () => {
+      if (!confirm(L("adminProductsDeleteCategory"))) return;
+      const c = state.categories.find((c) => c.id === b.dataset.deleteCategory);
+      await save("categories/delete", { id: c.id, version: c.version });
+    })));
   }
   function inventory() {
     const w = $("#storeInventoryBody");
-    w.innerHTML = `<h3 class="nd-h3">Inventory</h3><p class="nd-meta">Available stock excludes active reservations. Use negative quantities for removals. Every adjustment is recorded.</p><form id="stockForm" class="admin-form"><label class="nd-field"><span class="nd-label">Product</span><select class="nd-input" name="id" required>${state.products.map((p) => `<option value="${h(p.id)}">${h(p.name.en)} — ${h(p.available)} available / ${h(p.stock)} in stock</option>`).join("")}</select></label>${field("delta", "Quantity to add or remove", 1, "number", 'required min="-1000000" max="1000000"')}${field("reason", "Reason", "", "text", 'required maxlength="300"')}<button class="nd-btn nd-btn--secondary" ${!state.products.length ? "disabled" : ""}>Record adjustment</button></form><h3 class="nd-h3">Recent stock movements</h3><div class="nd-table-wrap"><table class="nd-table"><thead><tr><th scope="col">When</th><th scope="col">Product</th><th scope="col">Change</th><th scope="col">Balance</th><th scope="col">Reason / actor</th></tr></thead><tbody>${state.movements.map((m) => `<tr><td>${h(new Date(m.at).toLocaleString())}</td><td>${h(state.products.find((p) => p.id === m.productId)?.name.en || m.productId)}</td><td>${h(m.delta)}</td><td>${h(m.balance)}</td><td>${h(m.reason)} / ${h(m.actor)}</td></tr>`).join("")}</tbody></table></div>`;
+    w.innerHTML = `<h3 class="nd-h3">${h(L("adminProductsInventory"))}</h3><p class="nd-meta">${h(L("adminProductsInventoryNote"))}</p><form id="stockForm" class="admin-form"><label class="nd-field"><span class="nd-label">${h(L("adminProductsColProduct"))}</span><select class="nd-input" name="id" required>${state.products.map((p) => `<option value="${h(p.id)}">${h(L("adminProductsStockOption", { name: inLanguage(p.name), available: p.available, stock: p.stock }))}</option>`).join("")}</select></label>${field("delta", L("adminProductsQuantity"), 1, "number", 'required min="-1000000" max="1000000"')}${field("reason", L("adminProductsReason"), "", "text", 'required maxlength="300"')}<button class="nd-btn nd-btn--secondary" ${!state.products.length ? "disabled" : ""}>${h(L("adminProductsRecord"))}</button></form><h3 class="nd-h3">${h(L("adminProductsMovements"))}</h3><div class="nd-table-wrap"><table class="nd-table"><thead><tr><th scope="col">${h(L("adminProductsColWhen"))}</th><th scope="col">${h(L("adminProductsColProduct"))}</th><th scope="col">${h(L("adminProductsColChange"))}</th><th scope="col">${h(L("adminProductsColBalance"))}</th><th scope="col">${h(L("adminProductsColReason"))}</th></tr></thead><tbody>${state.movements.map((m) => `<tr><td>${h(new Date(m.at).toLocaleString(locale(), { timeZone: ZONE }))}</td><td>${h(inLanguage(state.products.find((p) => p.id === m.productId)?.name) || m.productId)}</td><td>${h(m.delta)}</td><td>${h(m.balance)}</td><td>${h(m.reason)} / ${h(m.actor)}</td></tr>`).join("")}</tbody></table></div>`;
     $("#stockForm").onsubmit = (e) => {
       e.preventDefault();
       run(e.submitter, async () => {
-        const input = values(e.target),
-          p = state.products.find((p) => p.id === input.id),
-          fingerprint = JSON.stringify([input.id, input.delta, input.reason]);
+        const input = values(e.target), p = state.products.find((p) => p.id === input.id), fingerprint = JSON.stringify([input.id, input.delta, input.reason]);
         let op;
-        try {
-          op = JSON.parse(sessionStorage.getItem("store-stock-operation"));
-        } catch {}
+        try { op = JSON.parse(sessionStorage.getItem("store-stock-operation")); } catch {}
         if (!op || op.fingerprint !== fingerprint) {
           op = { fingerprint, key: crypto.randomUUID() };
           sessionStorage.setItem("store-stock-operation", JSON.stringify(op));
         }
-        await save("stock/adjust", {
-          ...input,
-          delta: Number(input.delta),
-          version: p.version,
-          operationKey: op.key,
-        });
+        await save("stock/adjust", { ...input, delta: Number(input.delta), version: p.version, operationKey: op.key });
         sessionStorage.removeItem("store-stock-operation");
         $("#storeInventory").open = true;
       });
@@ -475,15 +417,11 @@ ${owner && o.payment.refund?.status === "uncertain" && !o.payment.refund.provide
   function settings() {
     const s = state.settings;
     $("#storeSettingsBody").innerHTML =
-      `<p class="nd-meta">Saved content appears in the store without a code deployment. Configure pickup and policies before opening checkout.</p><form id="storeSettingsForm" class="admin-form">${field("name", "Store name", s.name, "text", 'required maxlength="100"')}${bilingual("introduction", "Introduction", s.introduction, true)}${bilingual("banner", "Announcement banner", s.banner, true)}${field("contact", "Public contact details", s.contact, "text", 'maxlength="300"')}<label class="nd-field"><span class="nd-label">Pickup location and instructions</span><textarea class="nd-input" name="pickup" maxlength="1000">${h(s.pickup)}</textarea></label>${field("hours", "Pickup hours", s.hours, "text", 'maxlength="300"')}${bilingual("warranty", "Warranty policy", s.warranty, true)}${bilingual("returns", "Returns and refund policy", s.returns, true)}<button class="nd-btn">Save store settings</button></form>`;
+      `<p class="nd-meta">${h(L("adminProductsSettingsNote"))}</p><form id="storeSettingsForm" class="admin-form">${field("name", L("adminProductsStoreName"), s.name, "text", 'required maxlength="100"')}${bilingual("introduction", L("adminProductsIntroduction"), s.introduction, true)}${bilingual("banner", L("adminProductsBanner"), s.banner, true)}${field("contact", L("adminProductsContact"), s.contact, "text", 'maxlength="300"')}<label class="nd-field"><span class="nd-label">${h(L("adminProductsPickup"))}</span><textarea class="nd-input" name="pickup" maxlength="1000">${h(s.pickup)}</textarea></label>${field("hours", L("adminProductsHours"), s.hours, "text", 'maxlength="300"')}${bilingual("warranty", L("adminProductsWarrantyPolicy"), s.warranty, true)}${bilingual("returns", L("adminProductsReturnsPolicy"), s.returns, true)}<button class="nd-btn">${h(L("adminProductsSaveSettings"))}</button></form>`;
     $("#storeSettingsForm").onsubmit = (e) => {
       e.preventDefault();
       run(e.submitter, async () => {
-        await save("settings/save", {
-          ...values(e.target),
-          version: s.version,
-          open: s.open,
-        });
+        await save("settings/save", { ...values(e.target), version: s.version, open: s.open });
         $("#storeSettings").open = true;
       });
     };
