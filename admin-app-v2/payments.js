@@ -33,6 +33,8 @@ const STATUS = {
   cancelled: ["adminStatusCancelled", ""],
   "refund-pending": ["adminStatusRefundPending", "info"],
   refunded: ["adminStatusRefunded", ""],
+  // A reseller's cash handoff (#377), green on Home as drawn.
+  recorded: ["adminStatusRecorded", "success"],
 };
 export const paymentStatus = (p) => {
   const [key, tone] = STATUS[p.status] || ["adminStatusFailed", "danger"];

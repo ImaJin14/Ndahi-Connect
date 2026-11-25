@@ -103,6 +103,8 @@ function renderMenu(view) {
 
 function apply(focus) {
   const view = activeAdminView(), config = VIEWS[view], lang = currentLanguage();
+  // The screen on show, for styles that differ by screen (Home's larger title, #377).
+  document.body.dataset.adminView = view;
   document.querySelectorAll("[data-tab-panel]").forEach((panel) => { panel.hidden = config.panels.indexOf(panel.dataset.tabPanel) < 0; });
   document.querySelectorAll("[data-admin-nav]").forEach((link) => {
     if (link.dataset.adminNav === config.menu) {

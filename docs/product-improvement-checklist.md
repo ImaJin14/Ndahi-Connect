@@ -1788,6 +1788,25 @@ Spec: `docs/redesign/specs/unlimited-catalog-and-device-locking.md`, with the ow
   - **Implemented, tested, merged and deployed** (PRs #446, #447 and #448), with design captures and owner-approved differences.
   - **Deployed:** production has served batch 3 (`dc39726`) since 25 Nov, 03:12 UTC. Render held back the last two merges until their cancelled "Merge batches status" checks were rerun ([#454](https://github.com/ImaJin14/Ndahi-Connect/issues/454)).
 - [-] **UNL-431 — Desktop Buy a bundle** ([#431](https://github.com/ImaJin14/Ndahi-Connect/issues/431))
-  - **Implemented and tested:** a signed-in customer on a wide screen sees every Personal Unlimited price in one table (1 to 6 devices; combinations not offered are disabled), the Home WISP card, and "Your choice" beside them with the server's fee and total. Pay Now opens the same payment flow as on phones. Not merged.
+  - **Implemented, tested, merged and deployed** (PR #456): a signed-in customer on a wide screen sees every Personal Unlimited price in one table (1 to 6 devices; combinations not offered are disabled), the Home WISP card, and "Your choice" beside them with the server's fee and total. Pay Now opens the same payment flow as on phones.
+  - **Deployed:** production has served batch 4 (`edf5dd6`) since 25 Nov, 05:46 UTC.
   - **Shows only after the switch:** the current catalogue, phones and signed-out visitors keep today's buy page.
+- [-] **PAY-432 — One set of verification rules before activation; verified 2% fee** ([#432](https://github.com/ImaJin14/Ndahi-Connect/issues/432))
+  - **Implemented, tested, merged and deployed** (PR #452): the synchronous check and webhooks apply the same rules (success, identity, currency, merchant credit equal to the price) before anything starts. Each payment keeps the fee MeSomb reports. A mismatch where money may have moved goes to support review, never to a second charge.
+  - **Not yet:** seen on a real Mobile Money payment.
+- [-] **PAY-433 — Payment states, safe retry, cheaper bundle, activation apart** ([#433](https://github.com/ImaJin14/Ndahi-Connect/issues/433))
+  - **Implemented, tested, merged and deployed** (PR #453): provider answers are normalized (insufficient balance, expired, cancelled or wrong PIN, wrong network, pending, unclear), with the drawn messages and retry rules.
+  - **Not yet:** seen on a real Mobile Money payment.
+
+## Admin screens (batch 5, 25 November 2026)
+
+Owner decisions are on each issue (25 Nov). The payments list, today's money and router uptime are added to the API first; the screens never compute money themselves.
+
+- [-] **ADM-377 — Admin home** ([#377](https://github.com/ImaJin14/Ndahi-Connect/issues/377))
+  - **Implemented and tested:**
+    - five figures from the API: devices online, bundles sold today, revenue today (the cash report from Douala midnight), store orders to prepare, and router uptime over 7 days;
+    - router uptime is the share of router usage syncs that reached the router, recorded per hour from now on, with no figure until checks exist;
+    - Needs attention shows the drawn items plus the operational alerts;
+    - Latest payments lists bundle payments, store orders and reseller cash handoffs from one records collection (`allPayments`, owners and operators only).
+  - **Not merged.**
 

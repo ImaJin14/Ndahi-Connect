@@ -3,9 +3,12 @@
    components come from shared-app/ui. Canvas: AdminSide and every Admin* screen. */
 
 /* v1 reserved room for its bottom bar and its 190px desktop rail. */
-body.admin-dashboard { padding-left: 0; background: var(--nd-ivory); }
+body.admin-dashboard { padding-left: 0; background: var(--nd-ivory); color: var(--nd-ink); }
+/* v1's .error margin made the empty action message a 10 px gap above every screen. */
+.admin-dashboard #actionMessage:empty { margin: 0; }
 .admin-dashboard main.nd-admin-shell__main { margin: 0; padding-bottom: var(--nd-space-48); }
-.admin-dashboard .nd-pagehead h1 { color: var(--nd-ink); }
+/* Every admin canvas draws the page title at the font's normal line height. */
+.admin-dashboard .nd-pagehead h1 { color: var(--nd-ink); line-height: normal; }
 .admin-dashboard .nd-pagehead h1:focus { outline: none; }
 
 /* Side menu: the kit menu, then sign-out (with the notification bell beside it). */
@@ -19,6 +22,9 @@ body.admin-dashboard { padding-left: 0; background: var(--nd-ivory); }
   /* The menu stays in view while long screens scroll. */
   .nd-admin-shell__side { position: -webkit-sticky; position: sticky; top: 0; align-self: flex-start; min-height: 100vh; max-height: 100vh; overflow-y: auto; }
   .admin-dashboard .update-notice { left: 256px; }
+  /* Admin home's title is drawn larger than the other screens' (canvas: Admin, #377). */
+  body[data-admin-view="home"] .nd-pagehead #adminTitle { font-size: 38px; }
+  body[data-admin-view="home"] main.nd-admin-shell__main { gap: var(--nd-space-24); }
 }
 
 @media (max-width: 767.98px) {
