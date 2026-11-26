@@ -1461,7 +1461,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin sign in (#383, batch 12, 26 November 2026)
 
 - [-] **ADM-383 — Admin sign in, redesigned (batch 12)** ([#383](https://github.com/ImaJin14/Ndahi-Connect/issues/383)). Build note: [#383 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/383#issuecomment-7197236628).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #505, not merged yet):
     - Step 1 of 2 as drawn: Email (still accepts a staff username) and PIN with no Show toggle, then Continue;
     - Step 2 of 2 as drawn: "Confirm with your passkey." with the key, Use passkey, "Use a different account" as a link, and the lost-device note, which now shows on step 2 only (not when a new admin is adding a first passkey);
     - the forest bar and card measure as the board at 1280 px (the frozen v1 stylesheet no longer stretches the bar).
