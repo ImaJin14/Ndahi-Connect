@@ -139,7 +139,9 @@ body[data-portal-sub="editProfile"] #editProfile > summary:focus { outline: none
 @media (max-width: 767px) {
   /* The main portal head is empty on a sub-page; only the sub-page bar shows. */
   body[data-portal-sub] #portalHead { display: none; }
-  body[data-portal-sub] .portal-sub-head { margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-12); padding: 0 var(--nd-space-10); min-height: 64px; border-bottom: 1px solid var(--nd-line); }
+  body[data-portal-sub] .portal-sub-head { gap: var(--nd-space-8); margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-12); padding: 0 var(--nd-space-10); min-height: 65px; border-bottom: 1px solid var(--nd-line); }
+  body[data-portal-sub] .portal-sub-head .portal-sub__back { margin-left: 0; }
+  body[data-portal-sub] .portal-sub-head__title { font-size: 15px; line-height: normal; }
   /* Edit profile's head is its summary: the same bar, with the back arrow in it;
      the fields sit 22px in and 20px below it (canvas: PhoneEditProfile). */
   body[data-portal-sub="editProfile"] #editProfile > summary { margin: 0 calc(-1 * var(--nd-space-16)) 20px; padding: 0 var(--nd-space-10) 0 62px; min-height: 65px; border-bottom: 1px solid var(--nd-line); font-size: 15px; }
@@ -185,11 +187,16 @@ body[data-portal-sub] #security-pin > p,
 body[data-portal-sub] #security-passkeys > p,
 body[data-portal-sub="sessions"] #accountSessions > p { margin: 0; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; }
 
-/* ---------- Change PIN (canvas: PhoneChangePin; look only until the sign-in cutover) ---------- */
-#changePin { display: flex; flex-direction: column; gap: var(--nd-space-14); margin-top: var(--nd-space-12); }
-#changePin label { display: block; margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
+/* ---------- Change PIN (canvas: PhoneChangePin, #396) ---------- */
+#changePin { display: flex; flex-direction: column; gap: var(--nd-space-16); margin-top: var(--nd-space-12); }
+#changePin label { display: block; margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; line-height: normal; }
 #changePin label > input:not([type="checkbox"]):not([type="radio"]) { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
-#changePin > p { margin: -6px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
+#changePin > p { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: normal; }
+/* Saved: the sage note and the way to sign the other devices out. */
+.change-pin__done:not([hidden]) { display: flex; flex-direction: column; gap: var(--nd-space-16); }
+.change-pin__done:focus { outline: none; }
+.change-pin__done [role="status"] { margin: 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: var(--nd-fs-small); font-weight: 600; line-height: normal; }
+.change-pin__done a { color: var(--nd-forest); font-size: var(--nd-fs-small); font-weight: 700; line-height: normal; }
 #changePin .security-actions { display: flex; flex-direction: column; gap: var(--nd-space-10); }
 #changePin .security-actions button { width: 100%; min-height: 50px; }
 #changePin [data-proof-message]:empty { display: none; }
@@ -370,6 +377,11 @@ body[data-portal-sub="accountSecurity"] #securityManager { margin: 0; padding: 0
   body[data-portal-sub="sessions"] #logoutEverywhere { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
   /* Save sits 22px in and 20px up, as the board's main padding sets it. */
   body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"] { left: 22px; right: 22px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); padding: 0 16px; line-height: normal; }
+  /* Change PIN (canvas: PhoneChangePin): the fields 22px in and 20px below the
+     bar; Save new PIN 22px in and 20px up, with no bar of its own. */
+  body[data-portal-sub="pin"] #changePin { margin-top: 8px; padding: 0 var(--nd-space-6); }
+  body[data-portal-sub="pin"] #changePin .security-actions { padding: 0 22px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 0; background: none; }
+  body[data-portal-sub="pin"] #changePin .security-actions button { min-height: 52px; padding: 0 16px; border-radius: var(--nd-radius-control); font-size: 16px; line-height: normal; }
 }
 /* Devices: count as plain text, Disconnect in red (canvas). */
 .portal-devices__count { padding: 0; background: none; color: var(--nd-muted); font-size: 13px; font-weight: 600; }

@@ -26,6 +26,25 @@ test("unified PIN change verifies current proof, hashes the PIN, rotates session
   assert.deepEqual(Object.keys(confirmed.body).sort(), ["action", "completed", "completedAt"]);
 });
 
+// v2 (PhoneChangePin, #396; owner 26 Nov): the customer's devices stay signed
+// in; the change still ends backup codes, keeps the same session and confirms to it.
+test("a v2 PIN change keeps the customer's other devices signed in", async t => {
+  const f = await fixture(t), before = await f.store.snapshot(), c0 = before.customers[0];
+  const mine = before.dashboardSessions.filter(x => x.customerId === c0.id).map(x => x.id).sort();
+  assert.ok(mine.length >= 2, "the fixture has another signed-in device");
+  await f.store.transaction(s => { s.customers[0].accountBackupCodes = [{ hash: "old" }]; });
+  const result = await f.call(pin, { ...change, keepOtherSessions: true });
+  assert.equal(result.status, 200); assert.deepEqual(result.body, { changed: true, otherSessionsKept: true });
+  assert.equal(result.headers.get("set-cookie"), null, "no new session cookie");
+  const s = await f.store.snapshot(), c = s.customers[0];
+  assert.equal(await argon2.verify(c.pinHash, "5830"), true); assert.equal(c.accountBackupCodes, undefined);
+  assert.deepEqual(s.dashboardSessions.filter(x => x.customerId === c.id).map(x => x.id).sort(), mine);
+  assert.match(s.securityAlerts?.at(-1)?.lines?.[0] || JSON.stringify(s.notificationOutbox?.at(-1) || ""), /stay signed in/);
+  assert.equal((await f.call(receipt)).body.action, "pin_change");
+  // The old PIN no longer proves anything.
+  assert.equal((await f.call(pin, { ...change, currentPin: "2468", newPin: "1357", confirmPin: "1357", keepOtherSessions: true })).status, 401);
+});
+
 test("security receipts are bounded, expire, require the initiating session and contain no proof or backup codes", async t => {
   const f = await fixture(t), generated = await f.call(backup + "/generate", { currentPin: "2468", operationId: actionId });
   assert.equal(generated.status, 200); assert.equal(generated.body.codes.length, 5);

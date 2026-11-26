@@ -114,7 +114,7 @@ export const SCREENS = [
     ["install-booking", "Book an installation", "PhoneInstallBooking", null, "/dashboard#shop", NOT_BUILT(374), { tab: "shop", hash: "^#shop$", expect: [".portal-shop__item"], reject: [SHOP_ERROR] }],
     ["instalments", "Pay in instalments", "PhoneInstalments", null, "/dashboard#shop", NOT_BUILT(375), { tab: "shop", hash: "^#shop$", expect: [".portal-shop__item"], reject: [SHOP_ERROR] }],
     ["edit-profile", "Edit profile", "PhoneEditProfile", null, "/dashboard#editProfile", "Redesigned", { expect: ["#emailAccount[data-sub-active]"] }],
-    ["change-pin", "Change PIN", "PhoneChangePin", null, "/dashboard#pin", "Redesigned look; four-digit PIN until Phase 6", { expect: ["#accountSecurity[data-sub-active]"] }],
+    ["change-pin", "Change PIN", "PhoneChangePin", null, "/dashboard#pin", "Redesigned (#396)", { expect: ["#accountSecurity[data-sub-active]"] }],
     ["notifications", "Notifications", "PhoneNotifications", null, "/dashboard#home", "Redesigned", { open: [".notification-bell"], expect: [".notification-panel"] }],
     ["sessions", "Signed-in devices", "PhoneSessions", null, "/dashboard#sessions", "Redesigned", { expect: ["#accountSessions[data-sub-active]"] }],
     ["passkeys", "Passkey sign-in", "PhonePasskey", null, "/dashboard#passkeys", "Redesigned", { expect: ["#accountSecurity[data-sub-active]"] }],
