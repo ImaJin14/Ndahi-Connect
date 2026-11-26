@@ -1532,7 +1532,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Signed-in devices (#413, batch 12, 26 November 2026)
 
 - [-] **CUS-413 — Signed-in devices, redesigned (batch 12)** ([#413](https://github.com/ImaJin14/Ndahi-Connect/issues/413)). Owner decision: [#413 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/413#issuecomment-7197230239).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #503):
+  - **Implemented and tested** (PR #504, not merged yet; built on #503):
     - the drawn page: the lede, this device first with a forest border and "You", the others with "Last active 2 h ago" and Sign out, and "Sign out all other devices" at the foot; English and French;
     - no town on the rows (owner): we keep the IP address and browser, not a place;
     - "Sign out all other devices" keeps this device signed in (the server gains that option; the v1 "Log out everywhere" still ends every session) and then shows "Signed out everywhere else."; no confirmation boxes, as drawn;
