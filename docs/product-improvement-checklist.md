@@ -1633,6 +1633,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - English and French.
   - **Not yet:** the name entered by the owner, or the page opened from the RB5009's Wi-Fi sign-in on a real phone.
 
+### Voucher slip as a colour card (#368, batch 13, 26 November 2026)
+
+- [-] **ADM-368 — The voucher slip, redesigned as the colour card (batch 13)** ([#368](https://github.com/ImaJin14/Ndahi-Connect/issues/368)). Owner decisions: [#368 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/368#issuecomment-7202630710).
+  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #344):
+    - on screen (the batch print page and the voucher page's print preview) each slip is the drawn card: NDAHI Connect, WI-FI VOUCHER and the price; the QR beside the plan, "Unlimited · 7 days · 2 devices", the code without "NC-" and its three steps ("tap I have a voucher", as drawn); "Use before [date] · single use" and "Batch B-1105-02 · [reseller]" (owner);
+    - the voucher's own PDF (the account download and the email attachment) is the same card on an A6 page, with the board's fonts bundled (DM Sans and Playfair Display, open licence; owner);
+    - printing stays thermal (owner): the Print button's preview, its Download PDF (which phones open in a thermal printer's app) and printing the page itself give the 58 or 80 mm thermal slips as before;
+    - one model (`shared-app/voucher-card.js`) gives the screen and the PDF the same words; a long plan name ends in an ellipsis; phones get the card without sideways scrolling.
+  - **Not yet:** merged, deployed, or a PDF printed and a slip read on paper.
+
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
 - Implemented: account-specific, replaceable QR locators open a dedicated connection page. Scanning alone grants no account session; fresh owner PIN or user-verified passkey signs in and issues a single-use, 90-second connection authorization bound to the account, voucher, device and attempt. Main-device designation and existing device limits remain enforced.

@@ -65,7 +65,7 @@ test("Voucher print names the batch, keeps thermal slips and prints them", { tim
     if (reseller) await page.locator("#voucherResellerSelect").selectOption(reseller);
     await page.locator('#generate button[type="submit"]').click();
     await page.locator("#generated .admin-batch a.nd-btn").click();
-    await page.locator("#voucherPrintSurface .thermal-slip").first().waitFor();
+    await page.locator("#voucherPrintSurface .voucher-card-page").first().waitFor();
     return { page, context, errors };
   };
 
@@ -78,7 +78,10 @@ test("Voucher print names the batch, keeps thermal slips and prints them", { tim
   assert.deepEqual(await page.locator("#voucherPrintLayout option").allInnerTexts(), ["58 mm thermal", "80 mm thermal"]);
   assert.equal(await text(page.locator("#printVouchersNow")), "Print 20 slips");
   assert.equal(await text(page.locator(".admin-print__note")), "Codes work as soon as they're made and start when a customer first redeems one. Hand them only to the named reseller — every print is logged.");
-  assert.equal(await page.locator(".admin-print__tray .thermal-slip").count(), 20);
+  // On screen each slip is the colour card as drawn (canvas: VoucherSlip, #368; owner 26 Nov).
+  assert.equal(await page.locator(".admin-print__tray .voucher-card-page").count(), 20);
+  const card = page.locator(".admin-print__tray .voucher-card-page").first();
+  assert.match(await text(card), /^NC NDAHI Connect WI-FI VOUCHER 4,000 FCFA PERSONAL UNLIMITED Unlimited · 7 days · 2 devices Voucher code [A-Z0-9]{4}-[A-Z0-9]{4} Join the Wi-Fi network NDAHI The sign-in page opens — tap I have a voucher Type the code above, or scan the QR code Use before \d{1,2} \w{3} \d{4} · single use Batch B-2511-01 · Market kiosk$/);
   // The reference is the server's, kept on each code.
   const codes = (await store.snapshot()).vouchers.filter((v) => v.resale);
   assert.equal(codes.length, 20);
@@ -90,7 +93,7 @@ test("Voucher print names the batch, keeps thermal slips and prints them", { tim
 
   // The width chosen is named under the title.
   await page.locator("#voucherPrintLayout").selectOption("thermal-80");
-  await page.locator('[data-print-surface="thermal-80"]').waitFor();
+  await page.locator('#voucherPrintSurface[data-active-print-layout="thermal-80"]').waitFor();
   assert.equal(await text(page.locator("#adminLede")), "20 slips · Personal Unlimited · for Market kiosk · 80 mm thermal slips");
   // Print opens the preview; the button then reads as drawn, with the preview link kept.
   const popup = context.waitForEvent("page");
