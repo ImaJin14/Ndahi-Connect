@@ -5,7 +5,7 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
-import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, waitForAccount } from "./portal-tabs.mjs";
+import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, openSecurityHistory, waitForAccount } from "./portal-tabs.mjs";
 import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
@@ -392,8 +392,7 @@ try {
     await page.locator('#login [name="phone"]').fill('670050101');
     await page.locator('#customerPasskeyLogin').click();
     await page.waitForURL(/\/dashboard#account$/);
-    await openSessions(page);
-    await page.getByRole('button', { name: 'View security history', exact: true }).click();
+    await openSecurityHistory(page);
     const centre = page.getByRole('dialog', { name: 'Notifications', exact: true });
     await centre.getByRole('heading', { name: /Passkey sign-in/ }).waitFor();
     assert.equal((await store.snapshot()).securityEvents.filter((e) => e.type === 'customer.passkey_login.succeeded').length, 1);

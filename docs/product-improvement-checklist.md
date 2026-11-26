@@ -1529,6 +1529,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - "Buy now" replaces "Buy this device" on phones and desktop; an offer that includes internet (#302) leaves out the Internet tile.
   - **Not yet:** the products' Needs lines entered by the owner on the live admin.
 
+### Signed-in devices (#413, batch 12, 26 November 2026)
+
+- [-] **CUS-413 — Signed-in devices, redesigned (batch 12)** ([#413](https://github.com/ImaJin14/Ndahi-Connect/issues/413)). Owner decision: [#413 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/413#issuecomment-7197230239).
+  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #503):
+    - the drawn page: the lede, this device first with a forest border and "You", the others with "Last active 2 h ago" and Sign out, and "Sign out all other devices" at the foot; English and French;
+    - no town on the rows (owner): we keep the IP address and browser, not a place;
+    - "Sign out all other devices" keeps this device signed in (the server gains that option; the v1 "Log out everywhere" still ends every session) and then shows "Signed out everywhere else."; no confirmation boxes, as drawn;
+    - the "View security history" button is gone, as drawn: security history is in Notifications (Security, All).
+  - **Not yet:** merged, deployed, or tried with two real phones.
+
 ## MoMo customer payment message (9 November 2026)
 
 - [x] Implemented: send MeSomb’s documented customer `message` field with “NDAHI Connect - Internet bundle payment” or “NDAHI Connect - Store purchase”. Existing transaction references/signing retained; store descriptions no longer use an undefined plan ID.

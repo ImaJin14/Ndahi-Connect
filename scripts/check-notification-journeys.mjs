@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, openSessions, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
+import { openManageDevices, openSessions, openSecurityHistory, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
@@ -237,8 +237,7 @@ try {
   await owner.reload();
   assert.equal(await owner.getByRole("heading", { name: "Recent security notices", exact: true }).count(), 0);
   assert.equal(await owner.getByRole("heading", { name: "Recent sign-ins", exact: true }).count(), 0);
-  await openSessions(owner);
-  await owner.getByRole("button", { name: "View security history", exact: true }).click();
+  await openSecurityHistory(owner);
   const securityPanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await securityPanel.getByRole("heading", { name: "Account security changed", exact: true }).waitFor();
   await securityPanel.getByRole("heading", { name: /PIN sign-in/ }).waitFor();

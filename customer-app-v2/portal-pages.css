@@ -228,7 +228,21 @@ body[data-portal-sub="sessions"] #accountSessions > p { margin: 0; color: var(--
 #sessionActivity > summary + .device { margin-top: var(--nd-space-10); }
 #sessionActivity #logoutEverywhere { width: 100%; min-height: 50px; margin-top: var(--nd-space-14); border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-danger); font: 700 var(--nd-fs-body) var(--nd-font-body); }
 body[data-portal-sub="sessions"] #accountSessions { display: flex; flex-direction: column; gap: var(--nd-space-12); }
-body[data-portal-sub="sessions"] [data-open-security-history] { order: 3; align-self: flex-start; }
+/* Signed-in devices (canvas: PhoneSessions, #413): 18px sides, the lede, rows
+   10px apart (this device first, with a 2px forest border and "You"), the sage
+   note when no other device is signed in, and Sign out all other devices. */
+body[data-portal-sub="sessions"] #accountSessions { gap: 0; padding: 4px 2px 0; }
+body[data-portal-sub="sessions"] #accountSessions > p:not(.eyebrow):not(.nd-visually-hidden) { margin: 0 0 14px; color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: 1.5; }
+#sessionActivity .account-session { flex-wrap: nowrap; gap: var(--nd-space-12); }
+#sessionActivity .account-session[data-current] { border: 2px solid var(--nd-forest); }
+body[data-portal-sub="sessions"] #sessionActivity > summary + .device { margin-top: 0; }
+#sessionActivity .account-session__text { flex: 1; min-width: 0; font-size: 16px; line-height: normal; }
+#sessionActivity .account-session b { font-size: 15px; }
+#sessionActivity .account-session small { display: inline; margin: 0; line-height: normal; }
+#sessionActivity .account-session .account-you { flex: none; padding: 4px var(--nd-space-10); font-size: 12px; font-weight: 700; line-height: normal; }
+#sessionActivity .account-session.device:not([data-current]) > .account-session__out { flex: none; min-height: 44px; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line); border-radius: 9px; background: var(--nd-white); color: var(--nd-danger); font: 700 13px var(--nd-font-body); }
+#sessionActivity .account-sessions__none { margin: var(--nd-space-10) 0 0; padding: var(--nd-space-12) var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: var(--nd-fs-small); font-weight: 600; line-height: normal; }
+#sessionActivity .account-sessions__none:focus { outline: none; }
 
 /* ---------- Voucher code (canvas: PhoneVoucher) ---------- */
 body[data-portal-sub="redeem"] main.dashboard-shell > :not(#activateDevice):not(#portalSubHead):not(#portalHead):not(#dashboardMessage) { display: none !important; }
@@ -374,7 +388,8 @@ body[data-portal-sub="accountSecurity"] #securityManager { margin: 0; padding: 0
   /* A button can't carry a padded bar, so these fill the bar's width with a border inset. */
   body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"],
   body[data-portal-sub="passkeys"] #addCustomerPasskey { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-weight: 700; }
-  body[data-portal-sub="sessions"] #logoutEverywhere { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+  /* Sign out all other devices 18px in and 16px up (canvas: PhoneSessions). */
+  body[data-portal-sub="sessions"] #sessionActivity #logoutEverywhere { width: auto; left: 18px; right: 18px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); min-height: 50px; padding: 0 16px; border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); font-size: 16px; line-height: normal; box-shadow: none; }
   /* Save sits 22px in and 20px up, as the board's main padding sets it. */
   body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"] { left: 22px; right: 22px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); padding: 0 16px; line-height: normal; }
   /* Change PIN (canvas: PhoneChangePin): the fields 22px in and 20px below the

@@ -331,7 +331,7 @@ async function load() {
     else $("#confirmEmail")?.scrollIntoView({ block: "center" });
   } });
   const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
-  $("[data-open-security-history]").onclick = () => notifications.open({ category: "security", view: "all" });
+  // Security history lives in Notifications (Security, All); Signed-in devices has no button for it (canvas: PhoneSessions, #413).
   if (active) mountInstallCard($("#installApp"));
   loadHomeShop();
   showRenewal(result.bundleStatus, { payments: result.payments, plans: result.availablePlans, call });
@@ -450,26 +450,30 @@ $("#dashboard").onclick = async (event) => {
     } catch (error) { showError($("#billingMessage"), error); }
     return;
   }
+  // Signed-in devices (canvas: PhoneSessions, #413): Sign out ends that one
+  // device; "Sign out all other devices" keeps this one. No confirmations, as drawn.
   const revokeSessionButton = event.target.closest("[data-revoke-session]");
   if (revokeSessionButton) {
-    if (!confirm("Sign out this session? If it's the device you're using now, you'll be signed out too.")) return;
     try {
       await runButton(revokeSessionButton, "Signing out…", async () => {
         const result = await call("/api/account/security/sessions/revoke", { method: "POST", body: JSON.stringify({ sessionId: revokeSessionButton.dataset.revokeSession }) });
         if (result.loggedOut) { location.href = "/login"; return; }
         await load();
-        $("#dashboardMessage").textContent = "Session signed out.";
+        // The row goes; screen readers hear it, and the last one shows the drawn note.
+        const none = document.querySelector("#sessionActivity .account-sessions__none");
+        if (none) none.focus();
+        else setTimeout(() => { const say = document.getElementById("sessionsAnnounce"); if (say) say.textContent = t("sessionsSignedOutOne", currentLanguage()); }, 50);
       });
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;
   }
   const logoutEverywhereButton = event.target.closest("#logoutEverywhere");
   if (logoutEverywhereButton) {
-    if (!confirm("Log out everywhere? This signs out every device, including this one.")) return;
     try {
       await runButton(logoutEverywhereButton, "Signing out…", async () => {
-        await call("/api/account/security/logout-everywhere", { method: "POST", body: "{}" });
-        location.href = "/login";
+        await call("/api/account/security/logout-everywhere", { method: "POST", body: JSON.stringify({ keepCurrent: true }) });
+        await load();
+        document.querySelector("#sessionActivity .account-sessions__none")?.focus();
       });
     } catch (error) { showError($("#dashboardMessage"), error); }
     return;
