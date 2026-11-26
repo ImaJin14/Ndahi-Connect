@@ -1376,7 +1376,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Shop on desktop (#417, batch 9, 26 November 2026)
 
 - [-] **CUS-417 — Shop on desktop, redesigned (batch 9)** ([#417](https://github.com/ImaJin14/Ndahi-Connect/issues/417)).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #485, not merged yet):
     - the drawn page in 1200 px: the 12 px eyebrow, 40 px title and the lede "Devices we have tested on our network. Internet access is bought separately in Internet.", with an outlined "My orders" beside them (the head's action, as Home's "Bundles & vouchers" is);
     - the trust strip with its three icons, "All devices" and the full category names on 44 px chips;
     - cards with the kicker, name and description, then the price and stock beside a lime View at their foot;
