@@ -183,21 +183,35 @@ function doneView(o) {
 // expired or in review) its order page.
 const placedState = (o) => (o.paymentStatus === "paid" && o.status !== "review" ? "done" : o.status === "awaiting_payment" && !["failed", "expired"].includes(o.paymentStatus) ? "wait" : "order");
 
-function orderView(o) {
+// Order tracking (canvas: PhoneOrder, #406): the item with how it was paid,
+// the collection code, the steps with when each happened and how long a ready
+// order is held, then Receipt and Get help. New orders' codes are six digits,
+// shown "739 204"; older ten-character codes show as they are.
+const codeShown = (code) => (/^\d{6}$/.test(code) ? `${code.slice(0, 3)} ${code.slice(3)}` : code);
+const stepTime = (value) => { const t = Date.parse(value); return Number.isFinite(t) ? new Date(t).toLocaleString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" }) : ""; };
+const stepDay = (value) => new Date(value).toLocaleDateString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", timeZone: "Africa/Douala" });
+const ORDER_TONES = { ready: "info", preparing: "warning", awaiting_payment: "warning", review: "danger" };
+function orderSteps(o) {
   // Once paid: Paid is done and Preparing current, then Ready, then all done when Collected.
-  const at = o.status === "collected" ? STEPS.length : o.status === "ready" ? 2 : 1;
+  const at = o.status === "collected" ? STEPS.length : o.status === "ready" ? 2 : 1, p = o.progress || {};
+  const lines = { paid: stepTime(p.paidAt), preparing: at > 1 ? stepTime(p.readyAt) : "", ready: at === 2 && o.holdUntil ? L("shopHeldUntil", { date: stepDay(o.holdUntil) }) : "", collected: stepTime(p.collectedAt) };
+  return `<ol class="portal-shop__steps" aria-label="${h(L("shopProgress"))}">${STEPS.map((step, i) => `<li class="${i < at ? "is-done" : i === at ? "is-current" : ""}"${i === at ? ' aria-current="step"' : ""}><span class="portal-shop__dot" aria-hidden="true">${i < at ? icon(CHECK, 12) : i === at ? "<span></span>" : ""}</span><span class="portal-shop__step-text"><strong>${h(L(`shopStep_${step}`))}</strong>${lines[step] ? `<span class="nd-meta">${h(lines[step])}</span>` : ""}</span></li>`).join("")}</ol>`;
+}
+function orderView(o) {
   const waiting = ["pending", "awaiting_payment"].includes(o.paymentStatus) || o.status === "awaiting_payment";
-  const pickup = place(o.pickup);
+  const pickup = place(o.pickup), tone = ORDER_TONES[o.status];
   return `${bar("/dashboard#activity", L("shopBackActivity"), L("shopOrderTitle", { reference: o.reference }))}
-  <div class="portal-shop__line">${photo(o.product || {}, "portal-shop__thumb")}<span><strong>${h(text(o.product && o.product.name))} × ${h(o.quantity)}</strong><span class="nd-meta">${h(money(o.amount))}</span><span class="nd-pill portal-shop__status">${h(statusWord(o))}</span></span></div>
+  <div class="portal-shop__order">
+  <div class="portal-shop__line portal-shop__line--order">${photo(o.product || {}, "portal-shop__thumb")}<span><strong>${h(text(o.product && o.product.name))} × ${h(o.quantity)}</strong><span class="nd-meta">${h([money(o.amount), METHOD_NAMES[o.network]].filter(Boolean).join(" · "))}</span></span><span class="nd-pill portal-shop__status${tone ? ` nd-pill--${tone}` : ""}">${h(statusWord(o))}</span></div>
   ${waiting ? `<section class="portal-shop__waiting" aria-labelledby="shopWaitTitle"><h3 id="shopWaitTitle">${h(L("shopApproveTitle"))}</h3><p>${h(Number.isFinite(o.total) && Number.isFinite(o.fee)
     ? L("shopApproveBody", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.total), fee: money(o.fee) })
     : L("shopApproveBodyNoFee", { method: METHOD_NAMES[o.network] || "Mobile Money", amount: money(o.amount) }))}</p></section>` : ""}
-  ${o.collectionCode ? `<section class="portal-shop__code" aria-labelledby="shopCodeTitle"><h3 id="shopCodeTitle">${h(L("shopCollectionCode"))}</h3><p class="portal-shop__code-value">${h(o.collectionCode)}</p>${pickup ? `<p>${h(L("shopShowCode", { place: pickup }))}</p>` : ""}</section>` : ""}
+  ${o.collectionCode ? `<section class="portal-shop__code" aria-labelledby="shopCodeTitle"><h3 id="shopCodeTitle">${h(L("shopCollectionCode"))}</h3><p class="portal-shop__code-value">${h(codeShown(o.collectionCode))}</p>${pickup ? `<p>${h(L("shopShowCode", { place: pickup }))}</p>` : ""}</section>` : ""}
   ${promo.orderExtras(o)}
-  ${o.paymentStatus === "paid" ? `<ol class="portal-shop__steps" aria-label="${h(L("shopProgress"))}">${STEPS.map((step, i) => `<li class="${i < at ? "is-done" : i === at ? "is-current" : ""}"${i === at ? ' aria-current="step"' : ""}><span class="portal-shop__dot" aria-hidden="true">${i < at ? icon(CHECK, 14) : ""}</span><strong>${h(L(`shopStep_${step}`))}</strong></li>`).join("")}</ol>` : ""}
-  <div class="portal-shop__actions">${waiting || o.paymentStatus !== "paid" ? `<button type="button" class="nd-btn nd-btn--block" data-shop-verify>${h(L("shopCheckStatus"))}</button>` : ""}${o.receiptAvailable ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-receipt>${h(L("shopReceipt"))}</button>` : ""}<a class="portal-shop__help" href="/help#support">${h(L("shopHelp"))}</a></div>
-  <div id="shopOrderMessage" role="status" aria-live="polite"></div>`;
+  ${o.paymentStatus === "paid" ? orderSteps(o) : ""}
+  <div class="portal-shop__actions">${waiting || o.paymentStatus !== "paid" ? `<button type="button" class="nd-btn nd-btn--block" data-shop-verify>${h(L("shopCheckStatus"))}</button>` : ""}${o.receiptAvailable ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-receipt>${h(L("shopReceipt"))}</button>` : ""}<a class="portal-shop__help" href="/help#support">${h(L("shopGetHelp"))}</a></div>
+  <div id="shopOrderMessage" role="status" aria-live="polite"></div>
+  </div>`;
 }
 
 async function render() {
