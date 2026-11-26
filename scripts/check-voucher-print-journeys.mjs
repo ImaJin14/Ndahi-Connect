@@ -326,16 +326,20 @@ try {
     await page.getByRole("button", { name: "Close print preview", exact: true }).click();
     assert.equal(await page.locator("#voucherPrintPreview").count(), 0);
 
-    // Now navigate to Customers tab and print directly from User One's customer row
-    await page.getByRole("link", { name: "Customers", exact: true }).click();
-    await openAdminCustomer(page, "cust-pii-1");
-    await page.locator('[data-print-customer-voucher="cust-pii-1"]').waitFor();
-    await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
+    // The old admin prints from the customer's row. The new admin's Customer
+    // detail has no Print (owner, 26 Nov, #341): a voucher prints from its own
+    // page, run above.
+    if (!uiV2) {
+      await page.getByRole("link", { name: "Customers", exact: true }).click();
+      await openAdminCustomer(page, "cust-pii-1");
+      await page.locator('[data-print-customer-voucher="cust-pii-1"]').waitFor();
+      await page.locator('[data-print-customer-voucher="cust-pii-1"]').click();
 
-    await page.locator("#customerVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
-    const customer58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-customer-58.pdf", preferCSSPageSize: true });
-    assertPaperWidth(customer58Pdf, 58);
-    assert.equal((customer58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 1);
+      await page.locator("#customerVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
+      const customer58Pdf = await page.pdf({ path: "/tmp/ndahi-voucher-print-customer-58.pdf", preferCSSPageSize: true });
+      assertPaperWidth(customer58Pdf, 58);
+      assert.equal((customer58Pdf.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length, 1);
+    }
   });
 
   console.log(`${checks} voucher print browser journeys passed.`);

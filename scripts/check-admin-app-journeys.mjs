@@ -220,10 +220,13 @@ try {
     await row.getByRole("link", { name: "Fixture customer", exact: true }).click();
     await page.getByRole("heading", { name: "Fixture customer", exact: true }).waitFor();
     assert.equal(await page.locator("#adminAvatar").textContent(), "F");
-    assert.match(await page.locator("#adminLede").textContent(), /^\+237 670 04 20 01/);
+    // The number masked, as drawn (canvas: AdminCustomerDetail, #341; owner 26 Nov).
+    assert.match(await page.locator("#adminLede").textContent(), /^\+237 6•• •• 20 01/);
     await page.getByRole("link", { name: "Back to Customers", exact: true }).waitFor();
     await page.getByRole("heading", { name: "Support actions", exact: true }).waitFor();
-    for (const name of ["Print active voucher", "Recover PIN with a support code", "Give a voucher (sold or gift)", "Suspend customer"]) await page.getByRole("button", { name, exact: true }).waitFor();
+    // The board's support actions (#341; owner 26 Nov), and Change number for owners.
+    for (const name of ["Send PIN reset email", "Remove lost passkeys", "Give a voucher (sold or gift)", "Revoke current subscription", "Suspend customer", "Change number"]) await page.getByRole("button", { name, exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Print active voucher", exact: true }).count(), 0);
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     await page.screenshot({ path: `${screenshots}/customer-${width}.png`, fullPage: true });
     await page.getByRole("tab", { name: "Devices", exact: true }).click();
