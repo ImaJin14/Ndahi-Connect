@@ -356,14 +356,18 @@ try {
   if (uiV2) for (const width of [390, 1280]) await scenario(`redesigned Connections shows services, admin security and router checks at ${width}px`, async (page) => {
     await page.goto(`${admin}/dashboard#connections`);
     await page.getByRole("heading", { name: "Connections and security.", exact: true }).waitFor();
+    // The six drawn cards (#380); each but standalone access points can be tested.
+    assert.deepEqual(await page.locator(".admin-service strong").allInnerTexts(), ["Starlink uplink", "MikroTik gateway", "Omada controller", "MTN MoMo", "Orange Money", "Email"]);
     const router = page.locator(".admin-service").filter({ hasText: "MikroTik gateway" });
-    assert.match(await router.innerText(), /Connected[\s\S]*2 devices confirmed connected/);
-    await router.getByRole("button", { name: "Sync usage", exact: true }).waitFor();
-    assert.match(await page.locator(".admin-service").filter({ hasText: "Omada controller" }).innerText(), /Not connected/);
+    await router.getByRole("button", { name: "Test connection", exact: true }).click();
+    await router.getByText(/^Checked just now$|^Tested just now — (responded|no answer)$/).waitFor();
     const security = page.getByRole("region", { name: "Admin security" });
-    assert.match(await security.innerText(), /Password or passkey[\s\S]*1 owner · 1 operator · 1 auditor · 1 reseller[\s\S]*1 stuck/);
+    assert.match(await security.innerText(), /PIN(; passkey recommended| \+ passkey, required)[\s\S]*1 owner · 1 operator · 1 auditor · 1 reseller[\s\S]*1 stuck/);
     await security.getByRole("link", { name: "Open audit log" }).waitFor();
+    // "1 stuck" opens the router checks, closed below (owner, 25 Nov).
+    await security.getByRole("link", { name: "1 stuck" }).click();
     await page.getByRole("row").filter({ hasText: "legacy-uuid" }).getByRole("button", { name: "Mark obsolete" }).waitFor();
+    await page.getByRole("button", { name: "Sync usage", exact: true }).waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/connections-${width}.png`, fullPage: true });
@@ -529,6 +533,7 @@ try {
   }, { width });
   await scenario("obsolete disconnects have no Replay and can be resolved without disconnecting a device", async (page) => {
     await page.goto(`${admin}/dashboard#connections`);
+    if (uiV2) await page.locator("#routerChecks > summary").click();
     const row = page.getByRole("row").filter({ hasText: "legacy-uuid" });
     await row.waitFor(); assert.equal(await row.getByRole("button", { name: "Replay", exact: true }).count(), 0);
     await row.getByRole("button", { name: "Mark obsolete" }).click();

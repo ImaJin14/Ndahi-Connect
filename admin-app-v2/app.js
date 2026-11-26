@@ -6,7 +6,7 @@ import { showVoucherDetail } from "/voucher-detail.js";
 import { mountBundleEdit } from "/bundles.js";
 import { mountCatalogue } from "/bundle-catalogue.js";
 import { liveSummaryText, mountLiveDevices } from "/devices.js";
-import { adminSecurity, serviceCards } from "/connections.js";
+import { adminSecurity, mountServiceTests, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup } from "/profile.js";
 import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
@@ -182,9 +182,9 @@ ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelle
 <section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
 <section class="tab-panel admin-outages" id="panel-outages" aria-labelledby="adminTitle" data-tab-panel="outages" ${activeAdminTab === "outages" ? "" : "hidden"}><div id="outagesHost"></div></section>
 ${storeRole ? `<section class="tab-panel admin-promotions" id="panel-promotions" aria-labelledby="adminTitle" data-tab-panel="promotions" ${activeAdminTab === "promotions" ? "" : "hidden"}><div id="promotionsHost"></div></section>` : ""}
-<section class="tab-panel admin-connections" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="admin-connections__grid">${serviceCards(x)}</div><p id="integrationMessage" class="nd-meta" role="status" aria-live="polite"></p>
+<section class="tab-panel admin-connections" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="admin-connections__grid" id="serviceCards">${serviceCards(x)}</div>
 <section class="nd-panel admin-security" aria-labelledby="adminSecurityTitle"><h2 class="nd-h2" id="adminSecurityTitle">${h(L("adminSecurityTitle"))}</h2>${adminSecurity(x)}</section>
-<section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminVoucher"))}</th><th>${h(L("adminColFinding"))}</th><th>${h(L("adminColLastChecked"))}</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${shortId(v.voucherId)}</td><td>${h(sentence(v.issue))}</td><td>${h(stamp(v.checkedAt))}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminColCommand"))}</th><th>${h(L("adminColOn"))}</th><th>${h(L("adminColStatus"))}</th><th>${h(L("adminColTries"))}</th><th>${h(L("adminColReason"))}</th><th><span class="nd-visually-hidden">${h(L("adminColCommandActions"))}</span></th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(sentence(c.action))}</td><td>${shortId(c.targetId)}</td><td>${h(commandStatus(c.status))}</td><td>${h(c.totalAttempts)}</td><td>${h(sentence(c.lastError || ""))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">${h(L("adminRefreshDevicesLink"))}</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">${h(L("adminMarkObsolete"))}</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></section>
+<details class="admin-options admin-legacy admin-connections__more" id="routerChecks"><summary>${h(L("adminMoreRouterChecks"))}</summary><section class="nd-panel admin-payments__checks" aria-labelledby="routerChecksTitle"><h2 class="nd-h2" id="routerChecksTitle">${h(L("adminRouterChecksTitle"))}</h2><div class="nd-cluster"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" id="syncUsage">${h(L("adminSyncUsage"))}</button></div><p id="integrationMessage" class="nd-meta" role="status" aria-live="polite"></p><h3 class="nd-h3">${h(L("adminNetworkChecks"))}</h3><p class="nd-meta">${h(L(x.networkReconciliation?.enabled ? "adminNetworkChecksOn" : "adminNetworkChecksOff"))}</p>${x.networkReconciliation?.issues?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminVoucher"))}</th><th>${h(L("adminColFinding"))}</th><th>${h(L("adminColLastChecked"))}</th></tr></thead><tbody>${rows(x.networkReconciliation.issues, (v) => `<tr><td>${shortId(v.voucherId)}</td><td>${h(sentence(v.issue))}</td><td>${h(stamp(v.checkedAt))}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminNetworkChecksNone"))}</p>`}<h3 class="nd-h3">${h(L("adminRouterCommands"))}</h3><p class="nd-meta">${h(L("adminRouterCommandsCount", { pending: x.networkCommands?.pending || 0, review: x.networkCommands?.deadLetters || 0 }))}</p>${x.networkCommands?.commands?.length ? `<table class="nd-table"><thead><tr><th>${h(L("adminColCommand"))}</th><th>${h(L("adminColOn"))}</th><th>${h(L("adminColStatus"))}</th><th>${h(L("adminColTries"))}</th><th>${h(L("adminColReason"))}</th><th><span class="nd-visually-hidden">${h(L("adminColCommandActions"))}</span></th></tr></thead><tbody>${rows(x.networkCommands.commands, (c) => `<tr><td>${h(sentence(c.action))}</td><td>${shortId(c.targetId)}</td><td>${h(commandStatus(c.status))}</td><td>${h(c.totalAttempts)}</td><td>${h(sentence(c.lastError || ""))}</td><td>${["owner", "operator"].includes(x.profile?.role) ? `${c.canReplay ? `<button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-replay-command="${h(c.id)}">${h(L("adminReplay"))}</button>` : ""}${c.recoveryAction === "refresh_devices" ? `<a href="/dashboard#devices">${h(L("adminRefreshDevicesLink"))}</a>${c.canResolve ? ` <button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" data-resolve-command="${h(c.id)}">${h(L("adminMarkObsolete"))}</button>` : ""}` : ""}` : ""}</td></tr>`)}</tbody></table>` : `<p>${h(L("adminRouterCommandsNone"))}</p>`}</section></details></section>
 ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel-network-setup" aria-labelledby="adminTitle" data-tab-panel="network-setup" ${activeAdminTab === "network-setup" ? "" : "hidden"}><div id="networkSetup"></div></section>` : ""}
 <section class="tab-panel admin-bundles" id="panel-bundles" aria-labelledby="adminTitle" data-tab-panel="bundles" ${activeAdminTab === "bundles" ? "" : "hidden"}><div id="bundleCatalogue"></div></section>
 <section class="tab-panel admin-bundle-edit" id="panel-bundle-edit" aria-labelledby="adminTitle" data-tab-panel="bundle-edit" ${activeAdminTab === "bundle" ? "" : "hidden"}><div id="bundleEditor"></div></section>
@@ -369,14 +369,15 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
         `Updated ${result.updated} of ${result.readings} usage records.`;
     }, "#integrationMessage");
   };
-  if ($("#checkOmada")) $("#checkOmada").onclick = async () => {
-    await runAction($("#checkOmada"), "Checking…", async () => {
-      const result = await call("/api/admin/integrations/omada");
-      $("#integrationMessage").textContent = result.connected
-        ? `Omada connected (${result.accessPoints.length} access points).`
-        : result.error;
-    }, "#integrationMessage");
-  };
+  mountServiceTests($("#serviceCards"), call);
+  // "N stuck" in Admin security opens the router checks below it.
+  $("[data-open-router-checks]")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    const more = $("#routerChecks");
+    more.open = true;
+    more.scrollIntoView({ block: "start" });
+    more.querySelector("summary").focus({ preventScroll: true });
+  });
   document.querySelectorAll("[data-remove-admin-passkey]").forEach(button => { button.onclick = async () => {
     try { await runAction(button, "Removing…", async () => {
       const credentialId = button.dataset.removeAdminPasskey;

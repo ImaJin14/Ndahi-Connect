@@ -142,6 +142,10 @@ export function createHandler(opts = {}) {
   handler.billing = billing;
   handler.transactionalEmails = context.transactionalEmails;
   handler.serviceMonitor = context.serviceMonitor;
+  // Connections' checks (#380): every minute in production, or when
+  // SERVICE_HEALTH_ENABLED=true; tests call the checks themselves.
+  handler.serviceHealth = context.serviceHealth;
+  handler.serviceHealthEnabled = env.SERVICE_HEALTH_ENABLED === "true" || (env.SERVICE_HEALTH_ENABLED !== "false" && env.NODE_ENV === "production");
   handler.metricsRegistry = context.performanceMetrics.registry;
   handler.monitoringEnabled = context.serviceMetrics.enabled;
   handler.logger = logger;
@@ -203,6 +207,7 @@ export const createServer = (opts) => {
     securityAlertsTimer,
     networkSetupTimer,
     monitorTimer,
+    healthTimer,
     housekeepingTimer,
     storeTimer;
   const runBilling = () =>
@@ -261,6 +266,11 @@ export const createServer = (opts) => {
       void handler.serviceMonitor.run();
       monitorTimer = setInterval(() => handler.serviceMonitor.run(), 60000);
       monitorTimer.unref();
+    }
+    if (handler.serviceHealthEnabled) {
+      void handler.serviceHealth.run();
+      healthTimer = setInterval(() => handler.serviceHealth.run(), 60000);
+      healthTimer.unref();
     }
     if (handler.networkSetupEnabled) {
       void resumeNetworkSetup();
@@ -322,6 +332,7 @@ export const createServer = (opts) => {
     clearInterval(usageAlertTimer);
     clearInterval(securityAlertsTimer);
     clearInterval(monitorTimer);
+    clearInterval(healthTimer);
   });
   return server;
 };

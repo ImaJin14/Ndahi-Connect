@@ -173,6 +173,8 @@ try {
     await page.getByText("Fixture generation failure", { exact: true }).waitFor();
     await page.getByRole("link", { name: adminLinkName("Connections"), exact: true }).click();
     const sync = await hold(page, "/api/admin/integrations/sync-usage", { error: "Fixture sync failure" });
+    // v2 keeps Sync usage in the closed router checks (#380).
+    if (adminV2) await page.locator("#routerChecks > summary").click();
     await page.locator("#syncUsage").click(); await sync.started;
     await page.evaluate(() => document.querySelector("#syncUsage").onclick());
     sync.release(); await idle(page, "#syncUsage");
@@ -183,7 +185,7 @@ try {
 
   await scenario("delegated admin actions reject duplicate clicks and recover after failure", async (page) => {
     await page.goto(`${admin}/dashboard#connections`);
-    await page.locator("#syncUsage").waitFor();
+    await page.locator("#syncUsage").waitFor({ state: "attached" });
     await page.evaluate(() => document.querySelector("#app").insertAdjacentHTML("afterbegin", '<button id="fixtureRevoke" data-voucher="fixture-voucher">Revoke fixture</button>'));
     const revoke = await hold(page, "/api/admin/vouchers/revoke", { error: "Fixture revoke failure" });
     await page.locator("#fixtureRevoke").click(); await revoke.started;
