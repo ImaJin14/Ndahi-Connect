@@ -1769,7 +1769,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Product page on phones (#410, batch 8, 26 November 2026)
 
 - [-] **CUS-410 — Product, redesigned (batch 8)** ([#410](https://github.com/ImaJin14/Ndahi-Connect/issues/410)). Owner decisions: [#410 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/410#issuecomment-7178824515).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #480, not merged yet):
     - the drawn phone page: a bar across the top, the photo edge to edge, the price beside a green stock pill, the details as a plain disclosure, and quantity with Buy now on a bar at the bottom;
     - each product has an optional "Needs" line (English and French, up to 60 characters) in Admin → Edit product → More product details. Its tile shows when it is filled in, beside "Internet: Sold separately" on every product. Desktop has no tiles, as its board has none. Saving a product from the frozen v1 admin keeps the line;
     - English and French.
