@@ -1435,7 +1435,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Public store on desktop (#418, batch 10, 26 November 2026)
 
 - [-] **CUS-418 — NDAHI Store on desktop, redesigned (batch 10)** ([#418](https://github.com/ImaJin14/Ndahi-Connect/issues/418)). Owner decisions: [#418 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/418#issuecomment-7182527943).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #403):
+  - **Implemented and tested** (PR #493, not merged yet; built on #403):
     - the drawn desktop store: a 1200 px page, the forest bar with soft links and the current one in lime, the board's line beside the three steps, four 4:3 photo cards a row with the price and stock beside View, and the "Already an NDAHI customer?" banner;
     - no category chips on desktop, as drawn (phones keep them), and no footer.
   - **Not yet:** merged, deployed, or the products' own photos seen on the live store.
