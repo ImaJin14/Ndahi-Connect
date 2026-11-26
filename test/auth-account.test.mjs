@@ -126,6 +126,27 @@ test("AUTH-002 logging out everywhere invalidates every session for that custome
   assert.equal((await f.call("/api/account/dashboard")).response.status, 401);
 });
 
+// "Sign out all other devices" (PhoneSessions, #413) keeps the current one and
+// only touches this customer's sessions.
+test("AUTH-002 signing out all other devices keeps the current session", async (t) => {
+  const f = await fixture(t);
+  await account(f, "670010004");
+  const other = (await f.store.snapshot()).dashboardSessions[0].id;
+  const { phone } = await account(f);
+  delete f.jar.customer_session;
+  await f.call("/api/account/login/pin", "POST", { phone, pin: "2468" });
+  const before = await f.store.snapshot(), mine = before.dashboardSessions.filter((x) => x.id !== other);
+  assert.equal(mine.length, 2);
+  const result = await f.call("/api/account/security/logout-everywhere", "POST", { keepCurrent: true });
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.json, { loggedOut: false, sessionsRevoked: 1 });
+  assert.equal(result.response.headers.get("set-cookie"), null, "this device keeps its cookie");
+  const after = await f.store.snapshot();
+  assert.deepEqual(after.dashboardSessions.map((x) => x.id).sort(), [other, mine.at(-1).id].sort(), "another customer's session and this one stay");
+  assert.equal((await f.call("/api/account/dashboard")).response.status, 200);
+  assert.equal(after.securityEvents.filter((e) => e.type === "customer.sessions.revoked_others").length, 1);
+});
+
 test("AUTH-003 an enrolled passkey gets a sensible default label and a custom label is respected", async (t) => {
   const f = await fixture(t);
   const { customerId } = await account(f);

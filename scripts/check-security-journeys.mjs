@@ -55,7 +55,9 @@ try {
     page.on("dialog", (dialog) => dialog.accept());
     await page.locator("#sessionActivity .device").filter({ hasNotText: "This device" })
       .getByRole("button", { name: "Sign out" }).click();
-    await page.getByText("Session signed out.").waitFor();
+    // v2 (canvas: PhoneSessions, #413) has no confirmation or banner: the row goes and the drawn note shows.
+    if (uiV2) await page.getByText("Signed out everywhere else.", { exact: true }).waitFor();
+    else await page.getByText("Session signed out.").waitFor();
     assert.equal(await page.locator("#sessionActivity .device").count(), 1);
     const dashboardStillWorks = await fetch(`${api}/api/account/dashboard`, { headers: { cookie: secondCookie } });
     assert.equal(dashboardStillWorks.status, 401, "the revoked (non-current) session must no longer authenticate");
@@ -87,12 +89,24 @@ try {
     assert.ok(queued.some((a) => a.kind === "passkey_removed"), "removal must queue a security alert");
   });
   const dedicatedLogin = await post("/api/account/login/pin", { phone: "670050001", pin: "2468" });
-  await scenario("logging out everywhere signs out the current browser too", async (page) => {
+  // v1 signs out every device, this one too; v2's "Sign out all other devices"
+  // (canvas: PhoneSessions, #413) keeps this one.
+  await scenario(uiV2 ? "signing out all other devices keeps this browser signed in" : "logging out everywhere signs out the current browser too", async (page) => {
+    const elsewhere = uiV2 && (await post("/api/account/login/pin", { phone: "670050001", pin: "2468" })).response.headers.get("set-cookie").split(";")[0];
     await page.goto(`${portal}/dashboard#account`);
     await openSessions(page);
     page.on("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: /^(Log|Sign) out everywhere$/ }).click();
-    await page.waitForURL("**/login");
+    if (!uiV2) {
+      await page.getByRole("button", { name: /^(Log|Sign) out everywhere$/ }).click();
+      await page.waitForURL("**/login");
+      return;
+    }
+    await page.getByRole("button", { name: "Sign out all other devices", exact: true }).click();
+    await page.getByText("Signed out everywhere else.", { exact: true }).waitFor();
+    assert.equal(await page.locator("#sessionActivity .device").count(), 1);
+    assert.equal((await fetch(`${api}/api/account/dashboard`, { headers: { cookie: elsewhere } })).status, 401, "the other device is signed out");
+    await page.reload();
+    await page.locator("#sessionActivity .account-session[data-current]").waitFor();
   }, { cookie: dedicatedLogin.response.headers.get("set-cookie").split(";")[0] });
   console.log(`${checks} security browser scenarios passed. Screenshots: ${screenshots}`);
 } finally {

@@ -101,6 +101,17 @@ export async function openNotifications(page) {
   await bell.click();
 }
 
+// Security history: v1's "View security history" on Signed-in devices; v2 has
+// no such button (canvas: PhoneSessions, #413), so it opens Notifications on
+// Security, All.
+export async function openSecurityHistory(page) {
+  if (!uiV2) { await openSessions(page); return page.getByRole("button", { name: "View security history", exact: true }).click(); }
+  await openNotifications(page);
+  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
+  await panel.locator("[data-notification-view]").selectOption("all");
+  await panel.locator("[data-notification-category]").selectOption("security");
+}
+
 // v2 sign-in leads with phone + PIN (Phase 6, canvas: PhoneLogin); journeys
 // that sign in with a voucher code switch to that path first.
 export async function useVoucherSignIn(page) {

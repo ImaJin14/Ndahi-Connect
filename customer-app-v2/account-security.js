@@ -125,7 +125,24 @@ function deviceName(agent = "") {
   const browser = /Edg\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /OPR\/|Opera/.test(ua) ? "Opera" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
   return [device, browser].filter(Boolean).join(" · ") || ua.slice(0, 40);
 }
+// Signed-in devices (canvas: PhoneSessions, #413; owner 26 Nov): this device
+// first with "You", the others with when they were last active and Sign out,
+// then "Sign out all other devices" (this one stays signed in). No town: we
+// keep the IP address and browser, not a place.
+const agoLabel = (iso) => {
+  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  if (!Number.isFinite(minutes) || minutes < 1) return L("sessionsJustNow");
+  if (minutes < 60) return L("sessionsMinutesAgo", { n: minutes });
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return L("sessionsHoursAgo", { n: hours });
+  const days = Math.round(hours / 24);
+  return L(days === 1 ? "sessionsDayAgo" : "sessionsDaysAgo", { n: days });
+};
 export function accountSessionsCard(security) {
-  const sessions = security.sessions || [];
-  return `<section class="surface account-sessions" id="accountSessions" aria-labelledby="accountSessionsTitle"><p class="eyebrow">Activity</p><h2 id="accountSessionsTitle">Sessions &amp; security notices</h2><p>Places where your NDAHI account is open. This isn't the same as devices using your bundle. Security notices and recent sign-ins are in Notifications.</p><button type="button" class="secondary-action" data-open-security-history>View security history</button><details id="sessionActivity"><summary>Active sessions <span class="account-count">${h(sessions.length)}</span></summary>${sessions.map(session => `<div class="device"${session.current ? " data-current" : ""}><div><b>${h(deviceName(session.userAgent))}</b><br><small>${session.current ? "This device · " : ""}${h(session.ip || "IP address unavailable")} · Last active ${h(new Date(session.lastSeenAt).toLocaleString())}</small></div>${session.current ? '<span class="nd-pill nd-pill--success account-you">You</span>' : ""}<button type="button" class="secondary-action" data-revoke-session="${h(session.id)}">Sign out</button></div>`).join("")}<button type="button" class="danger-action" id="logoutEverywhere">Sign out everywhere</button></details></section>`;
+  const sessions = security.sessions || [], others = sessions.filter((session) => !session.current), current = sessions.find((session) => session.current);
+  const row = (session) => {
+    const name = deviceName(session.userAgent);
+    return `<div class="device account-session"${session.current ? " data-current" : ""}><span class="account-session__text"><b>${h(name)}</b><small>${h(session.current ? L("sessionsThisDevice") : L("sessionsLastActive", { when: agoLabel(session.lastSeenAt) }))}</small></span>${session.current ? `<span class="nd-pill nd-pill--success account-you">${h(L("sessionsYou"))}</span>` : `<button type="button" class="account-session__out" data-revoke-session="${h(session.id)}" aria-label="${h(L("sessionsSignOutNamed", { name }))}">${h(L("sessionsSignOut"))}</button>`}</div>`;
+  };
+  return `<section class="surface account-sessions" id="accountSessions" aria-labelledby="accountSessionsTitle"><p class="eyebrow">Activity</p><h2 id="accountSessionsTitle">${h(L("portalSignedInDevices"))}</h2><p>${h(L("sessionsLede"))}</p><details id="sessionActivity"><summary>${h(L("portalSignedInDevices"))} <span class="account-count">${h(sessions.length)}</span></summary>${current ? row(current) : ""}${others.map(row).join("")}${others.length ? "" : `<p class="account-sessions__none" role="status" tabindex="-1">${h(L("sessionsNoneElse"))}</p>`}<button type="button" class="danger-action" id="logoutEverywhere">${h(L("sessionsSignOutOthers"))}</button><p class="nd-visually-hidden" id="sessionsAnnounce" role="status" aria-live="polite"></p></details></section>`;
 }
