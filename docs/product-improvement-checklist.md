@@ -1390,6 +1390,17 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the Black Friday offer's note and free-month line show in the details step; `store-app/promo.js` is unchanged.
   - **Not yet:** merged, deployed, or a real Mobile Money payment made from a phone.
 
+### Admin vouchers with custom gifts (#343, batch 12, 26 November 2026)
+
+- [-] **ADM-343 — Vouchers, redesigned, with custom gift bundles and numbers with no account (batch 12)** ([#343](https://github.com/ImaJin14/Ndahi-Connect/issues/343)). Owner decisions: [#343 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/343#issuecomment-7197231995).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - For one customer: the search finds accounts ("6•• •• 12 45 · [PLAN 2] active") and, for a full number with no account, offers to reserve the voucher for it; the Bundle has From the catalogue and, for owners only, Custom bundle (Personal or Home WISP Unlimited, 1 hour to 365 days, 1 to 10 slots, a required reason and "They'll see: Gift from NDAHI · …"); the done state shows the code, who has it and, for a replacement, the old bundle ended;
+    - a voucher staff give an account now also sends a notification ("A bundle was added to your account") and the usual voucher email (owner); a reserved voucher waits for its claim;
+    - custom gifts are named as the customer sees them: "Gift from NDAHI · Unlimited · 10 days · 3 devices" or "… · Home WISP Unlimited · 10 days";
+    - Recent vouchers as drawn: Code, Bundle ("Custom · 10 days · 3 devices"), For (the customer, "6•• •• 57 03 · no account yet" or the batch and reseller), Type, Status; one search that also finds a customer's name or a reserved number; actions live on each voucher's page;
+    - Batch to print or sell as drawn: no More options; the result is "Batch B-… ready · N codes" with Print slips (owner).
+  - **Not yet:** merged, deployed, or a custom gift and a reserved voucher given on the live admin and claimed on a phone.
+
 ## Reseller ledger and automatic account repair (7 November 2026)
 
 - [x] Implemented: scoped reseller stock/sales balances, prospective commissions, immutable cash/correction retries, retained credits, owner correction UI and reload recovery.

@@ -199,7 +199,7 @@ ${x.profile.role === "owner" ? `<section class="tab-panel admin-setup" id="panel
     <label class="nd-field" id="voucherResellerField" ${["owner", "operator"].includes(x.profile.role) && x.resellerLedger?.resellers?.some((r) => r.active && r.role === "reseller") ? "" : "hidden"}><span class="nd-label">${h(L("adminFieldForReseller"))}</span><select class="nd-input" name="assignedResellerId" id="voucherResellerSelect"><option value="">${h(L("adminFieldNone"))}</option>${rows((x.resellerLedger?.resellers || []).filter((r) => r.active && r.role === "reseller"), (r) => `<option value="${h(r.resellerId)}" data-name="${h(r.displayName || r.username)}">${h(r.displayName || r.username)} (@${h(r.username)})</option>`)}</select></label>
   </div>
   <button type="submit" class="nd-btn nd-btn--block"></button>
-  <details class="admin-options" id="voucherOptions"><summary>${h(L("adminMoreOptions"))}</summary><div class="admin-options__body">
+  <details class="admin-options" id="voucherOptions" hidden><summary>${h(L("adminMoreOptions"))}</summary><div class="admin-options__body">
     <label class="nd-field" hidden><span class="nd-label">${h(L("adminFieldPurpose"))}</span><select class="nd-input" name="purpose" id="voucherPurpose"><option value="resale">${h(L("adminPurposeResale"))}</option>${access.contacts ? `<option value="assigned">${h(L("adminPurposeAssigned"))}</option>` : ""}</select></label>
     <div id="voucherCustomer" class="customer-picker" hidden><label class="nd-field"><span class="nd-label">${h(L("adminFindCustomer"))}</span><input class="nd-input" type="search" id="customerSearch" maxlength="100" placeholder="${h(L("adminFindCustomerHint"))}"></label><label class="nd-field"><span class="nd-label">${h(L("adminColCustomer"))}</span><select class="nd-input" name="customerId" id="customerSelect"></select></label><label id="voucherReplaceActiveField" class="admin-check"><input type="checkbox" name="replaceActive" id="voucherReplaceActive" value="true"> ${h(L("adminReplaceActive"))}</label></div>
     <label class="nd-field"><span class="nd-label">${h(L("adminFieldSaleType"))}</span><select class="nd-input" name="saleType" id="voucherSaleType" required><option value="">${h(L("adminChoose"))}</option><option value="sold" selected>${h(L("adminSaleSold"))}</option>${["owner", "operator"].includes(x.profile.role) ? `<option value="gift">${h(L("adminSaleGift"))}</option>` : ""}</select></label>
@@ -339,16 +339,10 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
       // The print screen names the reseller as the canvas does: "for Market kiosk".
       const resellerName = $("#voucherResellerSelect")?.selectedOptions[0]?.value ? $("#voucherResellerSelect").selectedOptions[0].dataset.name : "";
       lastBatch = { vouchers, plan: result.plan, reseller: resellerName };
-      $("#generated").innerHTML = `<div class="admin-batch"><div class="generated-heading"><strong>${h(vouchers.length === 1 ? L("adminGeneratedOne") : L("adminGeneratedMany", { count: vouchers.length }))}</strong></div><details class="admin-options"><summary>${h(L("adminGiveShowCodes"))}</summary><div class="generated-codes">${vouchers.map((voucher) => `<code>${h(voucher.code)}</code>`).join("")}</div></details><a class="nd-btn nd-btn--dark nd-btn--block" href="/dashboard#voucher-print">${h(L("adminPrintSlips"))}</a><div class="admin-batch__more"><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="downloadVouchers">${h(L("adminDownloadCsv"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet" id="closeGenerated">${h(L("adminCloseCodes"))}</button></div></div>`;
-      $("#closeGenerated").onclick = () => { clearPrintContainers(); lastBatch = null; $("#generate").reset(); updateVoucherBuilder(); };
-      $("#downloadVouchers").onclick = () => {
-        const csv = ["code,bundle,status", ...vouchers.map((voucher) => `${voucher.code},"${String(result.plan.name).replaceAll('"', '""')}",${voucher.status}`)].join("\n"),
-          link = document.createElement("a");
-        link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        link.download = `ndahi-vouchers-${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-      };
+      // As drawn (canvas: AdminVouchers, #343; owner 26 Nov): "Batch B-1110-03 ready · 20 codes"
+      // and Print slips; the codes are on the print screen and in Recent vouchers.
+      const reference = vouchers[0]?.batchReference || "";
+      $("#generated").innerHTML = `<div class="admin-batch admin-batch--ready"><strong>${h(reference ? L("adminBatchReady", { batch: reference, count: vouchers.length }) : vouchers.length === 1 ? L("adminGeneratedOne") : L("adminGeneratedMany", { count: vouchers.length }))}</strong><a class="nd-btn nd-btn--dark nd-btn--block" href="/dashboard#voucher-print">${h(L("adminPrintSlips"))}</a></div>`;
       void voucherRecords?.refresh();
       await resellerLedgerView.refresh();
     });
@@ -362,7 +356,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
     },
   });
   void mountNetworkSetup($("#networkSetup"), call);
-  mountRecordViews(canManagePayments);
+  mountRecordViews(canManagePayments, new Map((x.resellerLedger?.resellers || []).map((r) => [r.resellerId, r.displayName || r.username])));
   $("#syncUsage").onclick = async () => {
     await runAction($("#syncUsage"), "Syncing…", async () => {
       const result = await call("/api/admin/integrations/sync-usage", {
@@ -417,9 +411,9 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   };
 
 }
-function mountRecordViews(canManagePayments) {
+function mountRecordViews(canManagePayments, resellerNames = new Map()) {
   liveDevices = mountLiveDevices($("#liveDevices"), { call, canManage: canManagePayments, refresh: refreshWifiSummary });
-  voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments });
+  voucherRecords = mountVoucherRecords($("#voucherRecords"), { call, canManagePayments, resellerName: (id) => resellerNames.get(id) || "" });
   if (!canManagePayments) return;
   const date = (value) => (value ? h(new Date(value).toLocaleString()) : "");
   void mountCustomerRecords($("#customerRecords"), { call, searchHost: $("#customerSearchHost"), filtersHost: $("#customerFilters"), noteHost: $("#customerNote"), api, bundles: [...bundleIndex.values()] });

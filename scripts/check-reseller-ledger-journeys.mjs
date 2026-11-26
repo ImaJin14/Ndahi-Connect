@@ -262,7 +262,8 @@ try {
     await page.locator("#voucherResellerSelect").selectOption("staff-reseller-1");
     await page.locator('#voucherQuantity input[name="quantity"]').fill("2");
     await page.locator('#generate button[type="submit"], #generate button:not([type])').click();
-    await page.locator("#generated .generated-codes code").first().waitFor({ state: "attached" });
+    // v2 shows "Batch … ready · 2 codes" (canvas: AdminVouchers, #343); v1 lists the codes.
+    await page.locator(uiV2 ? "#generated .admin-batch--ready" : "#generated .generated-codes code").first().waitFor({ state: "attached" });
 
     await page.goto(`${adminOrigin}/dashboard#${resellerLedgerView}`);
     // A hash change keeps the old row on screen until the ledger refreshes.

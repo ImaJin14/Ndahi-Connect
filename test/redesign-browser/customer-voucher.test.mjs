@@ -68,7 +68,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     const recent = page.locator(`[data-voucher-record="${v.id}"]`);
     await recent.getByRole('link', { name: 'Grace T.', exact: true }).waitFor();
     assert.match(await recent.innerText(), /Gift/);
-    await page.getByText('Active now on Grace T.’s account. It shows in their Internet tab.', { exact: true }).waitFor();
+    await page.getByText("Active now on Grace T.'s account. It shows in their Internet tab and they get a notification and an email.", { exact: true }).waitFor();
     assert.equal(posts[0].expectedActiveVoucherId, null);
     await capture(page, `gift-success-${width}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -98,14 +98,14 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     const s = await store.snapshot(), v = s.vouchers.find(v => v.customerId === 'c1' && v.id !== 'v1');
     assert.equal(s.vouchers.find(v => v.id === 'v1').status, 'replaced'); assert.equal(v.saleType, 'sold'); assert.equal(v.saleAmount, 1000);
     assert.ok(s.auditLogs.some(a => a.action === 'voucher.admin_replaced')); assert.ok(s.routerCommands.some(c => c.action === 'disconnect_voucher' && c.targetId === 'v1'));
-    await page.getByText('The old bundle has ended. Its device disconnection request is queued; check Devices for confirmation.', { exact: true }).waitFor();
+    await page.getByText(/^Their old .+ bundle was ended and its devices disconnected\. Logged in the audit trail\.$/).waitFor();
     await capture(page, `sold-replacement-success-${width}`);
     await page.getByRole('button', { name: 'Give another', exact: true }).click(); await page.locator('[data-give-pick]').first().waitFor();
     const batchTab = page.getByRole('tab', { name: 'For one customer', exact: true }); await batchTab.focus(); await page.keyboard.press('ArrowRight');
     assert.equal(await page.getByRole('tab', { name: 'Batch to print or sell', exact: true }).getAttribute('aria-selected'), 'true');
     await page.locator('#generate [name="planId"]').selectOption('weekly');
     await page.locator('#generate [name="quantity"]').fill('20'); await capture(page, `batch-${width}`);
-    await page.locator('#generate [type="submit"]').click(); await page.getByText('20 vouchers generated', { exact: true }).waitFor(); await capture(page, `batch-success-${width}`);
+    await page.locator('#generate [type="submit"]').click(); await page.locator('#generated .admin-batch--ready strong').filter({ hasText: /^Batch \S+ ready · 20 codes$/ }).waitFor(); await capture(page, `batch-success-${width}`);
     assert.equal(posts.at(-1).purpose, 'resale'); assert.equal((await store.snapshot()).vouchers.filter(v => v.status === 'available').length, 20);
   }, { width });
 
@@ -176,7 +176,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await open(page); await pick(page, 'Grace');
     await context.route('**/api/admin/vouchers/generate', async route => { const response = await route.fetch(), body = await response.json(); body.voucher[field] = value; await route.fulfill({ response, json: body }); }, { times: 1 });
     await submit(page).click(); await page.getByText('The returned account, status, plan or payment type differs from this request. Review Recent vouchers before giving another voucher.', { exact: true }).waitFor();
-    assert.equal(await page.getByRole('link', { name: 'Print slip', exact: true }).count(), 0); assert.equal(await page.getByText('Active now on Grace T.’s account. It shows in their Internet tab.', { exact: true }).count(), 0);
+    assert.equal(await page.getByRole('link', { name: 'Print slip', exact: true }).count(), 0); assert.equal(await page.getByText("Active now on Grace T.'s account. It shows in their Internet tab and they get a notification and an email.", { exact: true }).count(), 0);
   });
   await scenario('503 preflight preserves the form and sends no mutation', async ({ page, context, posts }) => {
     await open(page); await pick(page, 'Grace');
@@ -206,7 +206,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     const readFailure = page.waitForResponse(response => response.status() === 503 && response.url().includes('/api/admin/records?') && new URL(response.url()).searchParams.get('collection') === failingCollection);
     await submit(page).click(); await page.locator('.customer-voucher__code').waitFor(); await readFailure;
     assert.ok(failedReads > 0); assert.equal(new URL(page.url()).pathname, '/dashboard');
-    await page.getByText('Active now on Grace T.’s account. It shows in their Internet tab.', { exact: true }).waitFor();
+    await page.getByText("Active now on Grace T.'s account. It shows in their Internet tab and they get a notification and an email.", { exact: true }).waitFor();
     await page.getByRole('link', { name: 'Print slip', exact: true }).click(); await page.locator('.thermal-slip').waitFor();
   });
   await scenario('stale search responses cannot select a different customer', async ({ page, context, posts }) => {

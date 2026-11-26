@@ -53,7 +53,7 @@ function labelCells(body, headers) {
 // loaded page (its counts); `ready.reload()` reloads from the first page.
 // `initial` starts on a chip, search and page (from the address), and
 // `onState` sees each change so the screen can keep them in the address.
-export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null, params: extraParams = null, onResult = null, initial = null, onState = null }) {
+export function mountRecords(container, { call, collection, title, headers, row, empty = "No records found.", pageSize = 25, refreshMs = 0, kit = null, params: extraParams = null, onResult = null, initial = null, onState = null, voucherDetails = true }) {
   const state = { page: 1, q: "", status: "", from: "", to: "", ...(initial || {}) }, say = (kit && kit.text) || TEXT;
   let timer, request = 0, loaded = false;
   const formId = `records-form-${++forms}`;
@@ -77,7 +77,8 @@ export function mountRecords(container, { call, collection, title, headers, row,
     if (initial.q) form.elements.q.value = initial.q;
     if (initial.status !== undefined) chips.forEach((c) => { const on = (c.dataset.statusChip || "") === state.status; c.classList.toggle("active", on); c.setAttribute("aria-pressed", String(on)); });
   }
-  const details = collection === "vouchers" ? mountVoucherDetails(container, { columns: headers.length, refreshRecords: () => load(true) }) : null;
+  // Vouchers get the inline Details panel unless the caller draws plain rows (canvas: AdminVouchers, #343).
+  const details = collection === "vouchers" && voucherDetails ? mountVoucherDetails(container, { columns: headers.length, refreshRecords: () => load(true) }) : null;
   function showLoading() {
     container.setAttribute("aria-busy", "true");
     previous.disabled = next.disabled = true;

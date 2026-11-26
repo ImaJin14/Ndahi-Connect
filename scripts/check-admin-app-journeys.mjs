@@ -4,7 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, adminLinkName, adminMoreCount, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
+import { adminGenerateName, generatedText, adminLinkName, adminMoreCount, openAdminMore, uiV2, adminIdentifierLabel } from "./admin-nav.mjs";
 import { lowContrastText } from "./ui-checks.mjs";
 
 const apiPort = Number(process.env.ADMIN_JOURNEY_API_PORT || 8998), adminPort = Number(process.env.ADMIN_JOURNEY_PORT || 8997);
@@ -152,11 +152,12 @@ try {
     await page.getByRole("heading", { name: "Recent vouchers", exact: true }).waitFor();
     await page.locator('[data-voucher-record="v1"]').waitFor();
     assert.equal(await page.locator('[data-voucher-record="v1"] .nd-pill').textContent(), "In use");
-    assert.equal(await page.locator("#voucherOptions").evaluate((details) => details.open), false, "purpose and sale type wait under More options");
+    // As drawn (canvas: AdminVouchers, #343; owner 26 Nov): no More options, and the result is "Batch … ready · 3 codes" with Print slips.
+    assert.equal(await page.locator("#voucherOptions").isVisible(), false, "no More options");
     await page.getByLabel("How many", { exact: true }).fill("3");
     await page.getByRole("button", { name: "Create 3 vouchers", exact: true }).click();
-    await page.getByText("3 vouchers generated", { exact: true }).waitFor();
-    assert.equal(await page.locator("#generated .generated-codes code").count(), 3);
+    await page.locator("#generated .admin-batch--ready strong").filter({ hasText: /^Batch \S+ ready · 3 codes$/ }).waitFor();
+    await page.locator("#generated").getByRole("link", { name: "Print slips", exact: true }).waitFor();
     await page.locator('#voucherRecords tbody tr[data-voucher-record]').nth(3).waitFor();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
@@ -672,7 +673,7 @@ try {
     await page.clock.fastForward(61000); assert.equal(reloads, 0);
     await openAdminMore(page, "Generate voucher");
     await page.getByRole("button", { name: adminGenerateName("resale") }).click();
-    await page.getByText("1 voucher generated").waitFor();
+    await page.getByText(generatedText(1)).waitFor();
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "false"; });
     await page.clock.fastForward(61000); assert.equal(reloads, 0, "generated codes must not disappear on an automatic update");
     available = false;
