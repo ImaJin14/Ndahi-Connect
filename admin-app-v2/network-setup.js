@@ -103,6 +103,7 @@ function markup() {
   <section><h3>${h(L("adminNetEnforcementTitle"))}</h3><p id="networkEnforcementStatus"></p><p>${h(L("adminNetEnforcementText"))}</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> ${h(L("adminNetEnforcementTested"))}</label><button type="button" id="networkActivate" disabled>${h(L("adminNetActivate"))}</button></section>
   <section><h3>${h(L("adminNetPairingTitle"))}</h3><p id="networkPairingStatus"></p><p>${h(L("adminNetPairingText"))}</p><label class="network-checkbox"><input type="checkbox" id="networkPairingTested"> ${h(L("adminNetPairingTested"))}</label><button type="button" id="networkPairingEnable">${h(L("adminNetPairingEnable"))}</button><button type="button" id="networkPairingDisable" class="secondary-action">${h(L("adminNetPairingDisable"))}</button><p>${h(L("adminNetPairingNote"))}</p></section>
   <section><h3>${h(L("adminNetAreasTitle"))}</h3><p>${h(L("adminNetAreasText"))}</p><form id="networkAreas" class="admin-setup__areas"><label>${h(L("adminNetAreasSite"))}<input name="site" maxlength="40" autocomplete="off"></label><label>${h(L("adminNetAreasList"))}<textarea name="areas" rows="4"></textarea></label><button type="submit">${h(L("adminNetAreasSave"))}</button></form></section>
+  <section><h3>${h(L("adminNetHotspotTitle"))}</h3><p>${h(L("adminNetHotspotText"))}</p><form id="networkHotspotName" class="admin-setup__areas"><label>${h(L("adminNetHotspotEn"))}<input name="en" maxlength="40" autocomplete="off"></label><label>${h(L("adminNetHotspotFr"))}<input name="fr" maxlength="40" autocomplete="off"></label><button type="submit">${h(L("adminNetHotspotSave"))}</button></form></section>
   <section><h3>${h(L("adminNetHistory"))}</h3><button type="button" id="networkRefresh" class="secondary-action">${h(L("adminNetRefreshJobs"))}</button><div id="networkJobs"></div></section>
   <section id="networkRecovery" hidden></section>
 </div></details>`;
@@ -294,6 +295,17 @@ export async function mountNetworkSetup(root, call) {
     const result = await call("/api/admin/outages/areas", { method: "POST", body: JSON.stringify({ site: areas.elements.site.value, areas: areas.elements.areas.value.split("\n") }) });
     areas.elements.areas.value = result.areas.areas.join("\n");
     message(L("adminNetAreasSaved"));
+  }); };
+  // The hotspot's name on the Wi-Fi page (#404), read from the public status.
+  const hotspot = $("#networkHotspotName");
+  call("/api/status").then((status) => {
+    if (stopped || !status?.hotspotName) return;
+    hotspot.elements.en.value = status.hotspotName.en || "";
+    hotspot.elements.fr.value = status.hotspotName.fr || "";
+  }).catch(() => {});
+  hotspot.onsubmit = (event) => { event.preventDefault(); busy(hotspot.querySelector("button"), async () => {
+    await call("/api/admin/network/hotspot-name", { method: "POST", body: JSON.stringify({ name: { en: hotspot.elements.en.value, fr: hotspot.elements.fr.value } }) });
+    message(L("adminNetHotspotSaved"));
   }); };
   $("#networkPurchaseCheck").onclick = () => busy($("#networkPurchaseCheck"), async () => {
     const target = $("#networkPurchaseReport");

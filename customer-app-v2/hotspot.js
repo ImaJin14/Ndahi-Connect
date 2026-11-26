@@ -9,7 +9,7 @@ import { allSlotsInUse, wifiDeviceList } from "./wifi-devices.js";
 import { requestJson, markReady, randomId, loadPasskeys } from "./compat.js";
 import { mountDeviceControls } from "./device-controls.js";
 import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
-import { fetchNetworkStatus } from "./network-status.js";
+import { fetchNetworkInfo } from "./network-status.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage, localize } from "/shared/ui/dom.js";
 
@@ -249,10 +249,13 @@ function showLanding(evidence) {
   localize(landing, lang);
   landing.querySelectorAll("[data-hotspot-link]").forEach((link) => { link.href = withWifiHint(link.dataset.hotspotLink); });
   if (evidence.network.state === "confirmed") document.getElementById("hotspotWifi").textContent = L("hotspotOnWifi");
-  // The network's own state (public /api/status), with its dot.
-  void fetchNetworkStatus(config.apiUrl).then((status) => {
+  // The network's own state (public /api/status), with its dot, and the
+  // hotspot's name in the lede when the owner has set one (#404).
+  void fetchNetworkInfo(config.apiUrl).then(({ status, hotspotName }) => {
     document.getElementById("hotspotStatus").dataset.status = status;
     document.getElementById("hotspotStatusText").textContent = L(`hotspotStatus_${status}`);
+    const name = hotspotName && (hotspotName[lang] || hotspotName.en);
+    if (name) document.getElementById("hotspotLede").textContent = format("hotspotLedeNamed", { name }, lang);
   });
   document.body.setAttribute("data-hotspot-landing", "");
   landing.hidden = false;
