@@ -384,6 +384,36 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .customer-bar p { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: normal; }
   .customer-bar .button { min-height: 44px; padding: 0 18px; border-radius: 9px; font-size: 14px; }
 }
+/* Phone product (canvas: PhoneGuestProduct, #402): the bar, the 240px photo,
+   18px sides, 10px between the eyebrow, title, price row, words, tiles and the
+   details, and the quantity with Buy now on a bar at the bottom. */
+@media (max-width: 767.98px) {
+  body[data-view="product"] .bar { gap: 8px; min-height: 0; padding: 10px; }
+  body[data-view="product"] .bar-back { border-radius: 10px; color: var(--nd-forest); }
+  body[data-view="product"] .bar-title { flex: 1; font-size: 15px; line-height: normal; }
+  body[data-view="product"] .bar-link { display: flex; align-items: center; min-height: 44px; margin: 0; padding: 0 8px; font-size: 14px; }
+  .detail-grid { gap: 0; }
+  .detail-info { display: flex; flex-direction: column; gap: 10px; padding: 18px 8px 0; }
+  .detail-info > * { margin: 0; }
+  .detail-info .eyebrow { font-size: 11px; letter-spacing: .12em; line-height: normal; }
+  #productTitle { margin: 0; color: var(--nd-ink); font: 600 26px var(--nd-font-display); line-height: normal; letter-spacing: 0; }
+  .price-row { justify-content: space-between; margin: 0; }
+  .price-row .price { font-size: 22px; line-height: normal; }
+  .price-row .stock { padding: 4px 10px; line-height: normal; }
+  .details { font-size: 14px; line-height: 1.55; }
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px !important; }
+  .facts > div { padding: 10px 12px; border: 1px solid var(--nd-line); border-radius: 10px; background: var(--nd-paper); }
+  .facts dt { color: var(--nd-muted); font-size: 12px; line-height: normal; }
+  .facts dd { margin: 2px 0 0; color: var(--nd-ink); font-size: 13px; font-weight: 600; line-height: normal; }
+  .specs { padding-top: 6px; border-bottom: 0; }
+  .specs > summary { min-height: 44px; font-size: 14px; }
+  body[data-view="product"] main { padding-bottom: 104px; }
+  .buy-bar { gap: 12px; align-items: center; padding: 12px 16px max(18px, env(safe-area-inset-bottom)); background: var(--nd-paper); }
+  .stepper { border-radius: 10px; background: none; }
+  .stepper button { width: 44px; min-height: 48px; }
+  .stepper output { min-width: 22px; }
+  #buy { min-height: 50px; border-radius: 10px; font-size: 16px; }
+}
 /* Store promotions (#302, canvas: StorePromo, PhonePromoBuy). */
 .promo-badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #10241c; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .promo-hero { display: flex; flex-wrap: wrap; gap: var(--nd-space-20) var(--nd-space-32); align-items: center; margin: 0 0 var(--nd-space-20); padding: 28px 32px; border-radius: 24px; background: #10241c; color: #ffffff; }

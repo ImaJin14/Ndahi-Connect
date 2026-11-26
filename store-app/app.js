@@ -58,7 +58,11 @@ const words = {
     contents: "What’s in the box",
     warranty: "Warranty",
     setup: "Setup guidance",
-    buy: "Buy this device",
+    buy: "Buy now",
+    // The phone product's tiles (canvas: PhoneGuestProduct, #402).
+    needs: "Needs",
+    internetTile: "Internet",
+    soldSeparately: "Sold separately",
     separate:
       "Internet service is purchased separately unless explicitly included in this product’s description.",
     checkout: "Checkout",
@@ -200,7 +204,10 @@ const words = {
     contents: "Contenu du colis",
     warranty: "Garantie",
     setup: "Configuration",
-    buy: "Acheter cet appareil",
+    buy: "Acheter",
+    needs: "Nécessite",
+    internetTile: "Internet",
+    soldSeparately: "Vendu séparément",
     separate:
       "Le service internet est vendu séparément sauf mention explicite dans la description du produit.",
     checkout: "Commande",
@@ -467,6 +474,13 @@ function renderShop() {
 }
 // Specification rows (canvas: ProductDesktop table). "Key: value" lines in the
 // specifications become their own rows; the other fields are one row each.
+// "Needs" (set in Admin) and "Internet: Sold separately", as tiles on phones
+// (canvas: PhoneGuestProduct, #402). An offer that includes internet (#302)
+// leaves out the Internet tile.
+function factTiles(p) {
+  const tiles = [...(l(p.needs) ? [[t("needs"), l(p.needs)]] : []), ...(p.promotion?.bonus ? [] : [[t("internetTile"), t("soldSeparately")]])];
+  return tiles.length ? `<dl class="facts narrow">${tiles.map(([k, v]) => `<div><dt>${h(k)}</dt><dd>${h(v)}</dd></div>`).join("")}</dl>` : "";
+}
 function specRows(p) {
   const rows = [];
   for (const line of l(p.specifications).split(/\n+/).map((x) => x.trim()).filter(Boolean)) {
@@ -494,7 +508,7 @@ function renderProduct(id) {
     max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)),
     pp = promo.product(p);
   $("#view").innerHTML =
-    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}</div>${pp.strip}` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery" role="group" aria-label="${h(t("gallery"))}">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-pressed="${i === 0}" aria-label="${h(t("photoOf").replace("{n}", i + 1).replace("{count}", p.images.length))}"><img src="${h(photoSrc(im))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}<div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button></div>${pp ? `<p class="form-help promo-limit">${h(pp.limit)}</p>` : ""}<p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p)}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
+    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}</div>${pp.strip}` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery" role="group" aria-label="${h(t("gallery"))}">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-pressed="${i === 0}" aria-label="${h(t("photoOf").replace("{n}", i + 1).replace("{count}", p.images.length))}"><img src="${h(photoSrc(im))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}${factTiles(p)}<div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button></div>${pp ? `<p class="form-help promo-limit">${h(pp.limit)}</p>` : ""}<p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p)}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
   document.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => {
     qty = Math.min(max, Math.max(1, qty + Number(b.dataset.step)));
     $("#qty").textContent = qty;
