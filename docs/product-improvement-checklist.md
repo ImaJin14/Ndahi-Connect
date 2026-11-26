@@ -1312,6 +1312,16 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - Tested locally: all 1,178 tests pass with disposable PostgreSQL 18.6, zero failures/skips; 39 focused API/reconciliation/store cases include foreign-key-safe reparenting, backup rollback, JSONB round trips/reopen, stale credentials and concurrent application. All ten account-purchase browser journeys, required syntax and offline provider contracts pass.
   - Deployed and audited: PR #185 deployed at `f813bf2`; PR #183 deployed at `826481a` on API/customer/admin. The authorized version-1 inventory completed at 18:37:36 UTC: zero changed/merged customers, zero review cases, six retained historical checkout-detail differences. No unsafe ownership merge was required. See [runbook](operations/account-reconciliation.md) and [release evidence](releases/account-identity-2026-11-07.md).
 
+### Public store on phones (#403, batch 10, 26 November 2026)
+
+- [-] **CUS-403 — NDAHI Store on phones, redesigned (batch 10)** ([#403](https://github.com/ImaJin14/Ndahi-Connect/issues/403)). Owner decisions: [#403 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/403#issuecomment-7182528320).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - the drawn phone shop: the forest head with "No account needed. Pay with Mobile Money, collect locally.", the short category chips in one row (the full name when a category has no short name), rows with an 80 px photo and a centred chevron, and "Looking for internet packages?" at the foot;
+    - the head shows the boards' fixed words on phones and desktop, so Admin's store "Introduction" field is removed (a save keeps the stored text);
+    - no footer, on phones or desktop: the store's warranty and returns texts now show in each product's details;
+    - offer cards (Black Friday, #302) keep their own layout until the offer ends; the store stays English-only, as the owner asked, with French kept for later.
+  - **Not yet:** merged, deployed, or the short category names entered by the owner on the live admin.
+
 ## Device store (8 November 2026)
 
 - [x] Implemented locally: storefront language toggle temporarily removed; English is used even with an old French preference, while translations and bilingual catalogue/policy fields remain saved. Store management now opens on Overview with order-work cards, product/stock shortcuts, low-stock visibility, and compact section navigation. Orders support status filters and clear empty states; checkout control stays separate from daily work. Verified 38 store browser checks at 320px/1280px, six navigation/role journeys, syntax/diff checks and mobile/desktop screenshots. Not yet deployed; no live settings or policies were changed.

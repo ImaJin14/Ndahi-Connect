@@ -307,6 +307,41 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .detail-media .product-visual { height: 240px; }
   .detail-media .product-visual svg { height: 45%; }
 }
+/* Phone shop (canvas: PhoneGuestShop, #403): the forest head carries the title
+   and the board's line; short chips in one row; rows with an 80px photo and the
+   chevron centred; "Looking for internet packages?" at the foot. Offer cards
+   (#302) keep their own layout until the offer ends. */
+@media (max-width: 767.98px) {
+  header { gap: 4px; padding: 14px 16px 0; }
+  .brand { gap: 10px; font-size: 18px; line-height: normal; }
+  .brand-mark { width: 38px; height: 38px; font-size: 11px; }
+  .brand-sub { margin-top: 0; font-size: 9px; letter-spacing: .26em; }
+  header nav { gap: 4px; }
+  header nav a { min-height: 46px; padding: 0 8px; color: var(--nd-on-forest-soft); font-weight: 600; }
+  .header-signin { min-height: 46px; padding: 0 12px; border-color: rgba(255, 255, 255, .3); border-radius: 9px; }
+  body[data-view="shop"] { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+  body[data-view="shop"] main { display: flex; flex: 1; flex-direction: column; padding-bottom: 16px; }
+  body[data-view="shop"] #view { display: flex; flex: 1; flex-direction: column; }
+  .hero { padding: 18px 16px 22px; }
+  .hero h1 { margin: 0 0 6px; font: 600 26px/1.15 var(--nd-font-display); letter-spacing: 0; }
+  .hero p { color: var(--nd-on-forest-muted); font-size: 14px; line-height: normal; }
+  #devices { margin-top: 0; }
+  .filters { flex-wrap: nowrap; gap: 8px; margin: 0 -10px; padding: 14px 16px 10px; overflow-x: auto; scrollbar-width: none; }
+  .filters button { min-height: 40px; padding: 0 14px; border-color: var(--nd-line-strong); color: var(--nd-ink); font: 600 13px var(--nd-font-body); white-space: nowrap; }
+  .filters button.active { color: var(--nd-white); }
+  .products { gap: 10px; margin: 0 6px; padding-top: 4px; }
+  .product:not(.product--promo) { grid-template-columns: 80px minmax(0, 1fr) auto; grid-template-rows: 1fr auto auto auto 1fr; column-gap: 12px; align-items: start; padding: 10px; border-radius: 14px; }
+  .product:not(.product--promo) > .product-visual { grid-row: 1 / -1; align-self: center; border-radius: 10px; }
+  .product:not(.product--promo) .product-body, .product:not(.product--promo) .product-bottom { display: contents; }
+  .product:not(.product--promo) .product-category { grid-column: 2; grid-row: 2; line-height: normal; }
+  .product:not(.product--promo) h3 { grid-column: 2; grid-row: 3; margin: 2px 0 0; font-size: 15px; line-height: normal; }
+  .product:not(.product--promo) .product-bottom p { grid-column: 2; grid-row: 4; margin-top: 4px; }
+  .product:not(.product--promo) .price { font-size: 14px; line-height: normal; }
+  .product:not(.product--promo) .product-stock { font-size: 12px; font-weight: 600; line-height: normal; }
+  .product:not(.product--promo) .product-stock.is-low { color: #8a4a00; }
+  .product:not(.product--promo) .product-bottom button { grid-column: 3; grid-row: 1 / -1; align-self: center; min-width: 0; min-height: 44px; padding: 0; color: var(--nd-lime-text); font: 400 20px var(--nd-font-body); }
+  .internet-row { box-sizing: content-box; min-height: 48px; margin: auto 6px 0; font-size: 14px; }
+}
 /* Store promotions (#302, canvas: StorePromo, PhonePromoBuy). */
 .promo-badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #10241c; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .promo-hero { display: flex; flex-wrap: wrap; gap: var(--nd-space-20) var(--nd-space-32); align-items: center; margin: 0 0 var(--nd-space-20); padding: 28px 32px; border-radius: 24px; background: #10241c; color: #ffffff; }
