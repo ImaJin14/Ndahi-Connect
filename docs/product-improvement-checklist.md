@@ -1393,7 +1393,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin vouchers with custom gifts (#343, batch 12, 26 November 2026)
 
 - [-] **ADM-343 — Vouchers, redesigned, with custom gift bundles and numbers with no account (batch 12)** ([#343](https://github.com/ImaJin14/Ndahi-Connect/issues/343)). Owner decisions: [#343 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/343#issuecomment-7197231995).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #509, not merged yet):
     - For one customer: the search finds accounts ("6•• •• 12 45 · [PLAN 2] active") and, for a full number with no account, offers to reserve the voucher for it; the Bundle has From the catalogue and, for owners only, Custom bundle (Personal or Home WISP Unlimited, 1 hour to 365 days, 1 to 10 slots, a required reason and "They'll see: Gift from NDAHI · …"); the done state shows the code, who has it and, for a replacement, the old bundle ended;
     - a voucher staff give an account now also sends a notification ("A bundle was added to your account") and the usual voucher email (owner); a reserved voucher waits for its claim;
     - custom gifts are named as the customer sees them: "Gift from NDAHI · Unlimited · 10 days · 3 devices" or "… · Home WISP Unlimited · 10 days";
