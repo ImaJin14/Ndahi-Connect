@@ -1476,6 +1476,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - English and French.
   - **Not yet:** merged, deployed, or checked by the owner on a phone with real payments and orders.
 
+### Activity on desktop (#394, batch 8, 26 November 2026)
+
+- [-] **CUS-394 — Activity on desktop, redesigned (batch 8)** ([#394](https://github.com/ImaJin14/Ndahi-Connect/issues/394)). Owner decisions: [#394 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/394#issuecomment-7178823165).
+  - **Implemented and tested** (PR #483, not merged yet; built on #395):
+    - the drawn desktop page: the 12 px eyebrow and 40 px "Payments and orders." with the filter beside them, the banner in the desktop's words ("1 payment waiting for approval. Approve the prompt on your phone, then check it here."), and the table card with the board's column widths;
+    - the rows named as drawn ("Order NS-2611-0088 · TP-Link CPE210", "Voucher K7PM-42XQ redeemed"), with a last column of Check, Track, Receipt or View: Check and Receipt open the payment in place, Track and View open the order, View opens Internet's vouchers for a code (owner, 26 Nov);
+    - between 768 and 1280 px every row shares the same columns, and long names are cut short with an ellipsis;
+    - English and French.
+  - **Not yet:** merged, deployed, or checked by the owner on a desktop browser with real payments and orders.
+
 ### Sign-in cutover to PIN and passkey — redesign Phase 6 (13 November 2026)
 
 - Implemented: administrators sign in with email (or username) + PIN, then confirm with a passkey. The passkey step is single use, expires after five minutes and is bound to current credentials. Administrators without a passkey add one on the sign-in page; this is required after the retirement marker and offered before it. Passkey-only sign-in is refused after the cutover. Self-service sign-in email; owner removal of a staff member's lost passkeys; owner removal of a customer's lost passkeys through the audited support-recovery form. v2 customer sign-in leads with phone + PIN, with the voucher code as the second path. v1 admin sign-in handles the passkey step. See `docs/operations/phase6-sign-in.md`.
