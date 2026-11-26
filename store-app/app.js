@@ -90,6 +90,10 @@ const words = {
     keepLink: "Keep this private link",
     keepLinkText: "You bought as a guest. This link is the only way back to this order — copy or bookmark it.",
     copyShort: "Copy",
+    copied: "Copied",
+    copyFailed: "Select the link and copy it.",
+    receiptShort: "Receipt",
+    heldUntil: "Held for you until {date}",
     claimGuest: "Save to an account",
     codeHelp: "Show this at {place}. Staff check it before handing over.",
     specsAll: "Specifications, box contents, warranty",
@@ -154,7 +158,6 @@ const words = {
     refresh: "Refresh",
     check: "Check payment",
     copy: "Copy private order link",
-    saved: "Link copied. Keep it private.",
     claim: "Save to my account",
     collection: "Collection code",
     collectionHelp: "Share this code only when collecting your equipment.",
@@ -180,7 +183,7 @@ const words = {
     signHelp:
       "Sign in to the portal in the new tab, then return here and refresh sign-in.",
     orderEmpty: "You have no saved orders yet.",
-    link: "Private order link",
+    link: "Private tracking link",
     open: "Open order",
     paymentReview:
       "Payment verification needs another check. Do not start a second payment.",
@@ -257,6 +260,10 @@ const words = {
     keepLink: "Gardez ce lien privé",
     keepLinkText: "Vous avez acheté en invité. Ce lien est le seul moyen de revenir à cette commande — copiez-le ou ajoutez-le aux favoris.",
     copyShort: "Copier",
+    copied: "Copié",
+    copyFailed: "Sélectionnez le lien et copiez-le.",
+    receiptShort: "Reçu",
+    heldUntil: "Gardée pour vous jusqu'au {date}",
     claimGuest: "Enregistrer dans un compte",
     codeHelp: "Montrez-le à {place}. L’équipe le vérifie avant la remise.",
     specsAll: "Caractéristiques, contenu, garantie",
@@ -324,7 +331,6 @@ const words = {
     refresh: "Actualiser",
     check: "Vérifier le paiement",
     copy: "Copier le lien privé",
-    saved: "Lien copié. Gardez-le confidentiel.",
     claim: "Enregistrer dans mon compte",
     collection: "Code de retrait",
     collectionHelp: "Communiquez ce code uniquement lors du retrait.",
@@ -350,7 +356,7 @@ const words = {
     signHelp:
       "Connectez-vous au portail dans le nouvel onglet, puis revenez ici et actualisez la connexion.",
     orderEmpty: "Vous n’avez pas encore de commandes enregistrées.",
-    link: "Lien privé de commande",
+    link: "Lien de suivi privé",
     open: "Ouvrir la commande",
     paymentReview:
       "La vérification du paiement nécessite un nouveau contrôle. Ne lancez pas un second paiement.",
@@ -457,6 +463,8 @@ const ICON = {
   check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>',
   store: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7"/></svg>',
   person: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 6 0 0 1 16 0v2"/></svg>',
+  // A done step on the order's progress (canvas: PhoneOrder).
+  tick: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 5 5 9-10"/></svg>',
   // The checkout's waiting and placed steps (canvas: PhoneGuestCheckout).
   phone: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"/></svg>',
   done: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 5 5 9-10"/></svg>',
@@ -711,11 +719,18 @@ async function refreshAccount() {
 function place() {
   return l(data?.settings?.pickup).replace(/[\s.]+$/, "");
 }
-// Paid orders show where they are (canvas: PhoneGuestOrder).
+// Paid orders show where they are (canvas: PhoneOrder, guest; #401): each
+// step with when it happened, and "Held for you until" while ready.
+const stamp = (iso) => { const d = new Date(iso); return `${d.toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" })}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`; };
+const day = (iso) => new Date(iso).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
 function progress(o) {
   if (o.paymentStatus !== "paid" || ["review", "cancelled"].includes(o.status)) return "";
-  const at = o.status === "collected" ? 4 : o.status === "ready" ? 2 : 1;
-  return `<ol class="progress" aria-label="${h(t("progress"))}">${["stepPaid", "stepPreparing", "stepReady", "stepCollected"].map((key, i) => `<li class="${i < at ? "done" : i === at ? "current" : ""}"${i === at ? ' aria-current="step"' : ""}><span aria-hidden="true">${i < at ? ICON.check : ""}</span>${h(t(key))}</li>`).join("")}</ol>`;
+  const at = o.status === "collected" ? 4 : o.status === "ready" ? 2 : 1, p = o.progress || {};
+  const times = [p.paidAt, p.readyAt, p.readyAt, p.collectedAt];
+  return `<ol class="progress" aria-label="${h(t("progress"))}">${["stepPaid", "stepPreparing", "stepReady", "stepCollected"].map((key, i) => {
+    const note = i < at ? (times[i] ? stamp(times[i]) : "") : i === at && i === 2 && o.holdUntil ? tf("heldUntil", { date: day(o.holdUntil) }) : "";
+    return `<li class="${i < at ? "done" : i === at ? "current" : ""}"${i === at ? ' aria-current="step"' : ""}><span class="progress__dot" aria-hidden="true">${i < at ? ICON.tick : ""}</span><span><strong>${h(t(key))}</strong>${note ? `<span>${h(note)}</span>` : ""}</span></li>`;
+  }).join("")}</ol>`;
 }
 // A compact order for the My orders list.
 function orderCard(o) {
@@ -733,18 +748,24 @@ async function showOrders() {
   $("#refreshAccount").onclick = (e) => action(e.currentTarget, showOrders);
 }
 const toneOf = (o) => o.paymentStatus === "paid" ? (["ready", "collected"].includes(o.status) ? "ready" : "info") : ["failed", "expired"].includes(o.paymentStatus) ? "danger" : "waiting";
-// One order (canvas: PhoneGuestOrder): its bar, the line, the collection code as
-// the forest card, progress, the private link for guests, then Receipt and Save.
+// One order (canvas: PhoneOrder, guest; #401; owner 26 Nov): the bar, the line
+// with the method and status, the collection code, progress with its times,
+// the short private link for guests, then Receipt and Save to an account.
+// id is null when the order opens from its short link (/o/<token>).
 async function showOrder(id, token, verify = false) {
   const result = await call(
     account.authenticated
       ? `/api/account/store/${verify ? "verify" : "order"}`
       : `/api/store/${verify ? "verify" : "order"}`,
-    { orderId: id, token },
+    { ...(id ? { orderId: id } : {}), token },
   );
-  const o = result.order, paid = o.paymentStatus === "paid", link = token ? location.origin + "/" + orderHash(id, token) : "";
+  const o = result.order, paid = o.paymentStatus === "paid", guest = Boolean(token) && !account.authenticated;
+  id = o.id;
+  // store.ndahiconnect.net/o/<token>: shown without the scheme, copied whole.
+  const link = token ? `${location.origin}/o/${encodeURIComponent(token)}` : "", shown = link.replace(/^https?:\/\//, "");
+  const code = String(o.collectionCode || "").replace(/^(\d{3})(\d{3})$/, "$1 $2");
   $("#view").innerHTML =
-    `<div class="order-page"><div class="bar"><a class="bar-back" href="#orders" aria-label="${h(t("orders"))}">${ICON.back}</a><h1 class="bar-title">${h(t("order"))} ${h(o.reference)}</h1></div><div class="order-line">${visual(o.product)}<div><strong>${h(l(o.product.name))} × ${h(o.quantity)}</strong><span>${h(money(o.amount))} · ${h(t(o.paymentStatus))}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</span></div><span class="order-status is-${toneOf(o)}">${h(t(o.status))}</span></div>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.paymentStatus === "pending" && o.status === "awaiting_payment" ? `<p class="notice notice--quiet" id="paymentRequest">${h(requestSent(o))}</p>` : ""}${o.collectionCode ? `<section class="code-card" aria-labelledby="codeTitle"><h2 class="eyebrow" id="codeTitle">${h(t("collection"))}</h2><p class="code-card__code">${h(o.collectionCode)}</p><p>${h(t("codeHelp").replace("{place}", (o.pickup || place()).replace(/[\s.]+$/, "")))}</p></section>` : ""}${promo.order(o, data.portalUrl)}${progress(o)}${token && !account.authenticated ? `<section class="keep-link" aria-labelledby="keepTitle"><h2 id="keepTitle">${h(t("keepLink"))}</h2><p>${h(t("keepLinkText"))}</p><div class="keep-link__row"><input readonly id="privateLink" aria-label="${h(t("link"))}" value="${h(link)}"><button type="button" id="copyLink">${h(t("copyShort"))}</button></div></section>` : ""}<div class="order-facts"><p><strong>${h(t("pickup"))}</strong><br>${h(o.pickup)}<br>${h(o.hours)}</p>${o.serialNumbers ? `<p>${h(o.serialNumbers)}</p>` : ""}<details class="policy"><summary>${h(t("policies"))}</summary><h4>${h(t("warranty"))}</h4><p>${h(l(o.product.warranty))}</p><h4>${h(t("returns"))}</h4><p>${h(l(o.returns))}</p></details></div>${paid ? "" : `<p class="form-help">${h(t("reserved"))}</p>`}<div class="order-actions">${paid ? "" : `<button id="checkPayment">${h(t("check"))}</button>`}${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">Download receipt</button>` : ""}${token ? account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claimGuest"))}</button>` : `<a class="button secondary" id="signToClaim" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("claimGuest"))}</a>` : ""}</div>${token && !account.authenticated ? `<p class="form-help">${h(t("signHelp"))}</p>` : ""}</div>`;
+    `<div class="order-page"><div class="bar"><a class="bar-back" href="${guest ? "#shop" : "#orders"}" aria-label="${h(t("backStep"))}">${ICON.back}</a><h1 class="bar-title">${h(t("order"))} ${h(o.reference)}</h1></div><div class="order-main"><div class="order-line">${visual(o.product)}<div><strong>${h(l(o.product.name))} × ${h(o.quantity)}</strong><span>${h(money(o.amount))}${METHODS[o.network] ? ` · ${h(METHODS[o.network])}` : ""}${o.refundStatus === "failed" ? ` · ${lang === "fr" ? "Échec du remboursement — contactez la boutique" : "Refund failed — contact the store"}` : ""}</span></div><span class="order-status is-${toneOf(o)}">${h(t(o.status))}</span></div>${o.paymentReview ? `<p class="notice">${h(t(o.paymentReview === "late_payment" ? "late" : "paymentReview"))}</p>` : ""}${o.paymentStatus === "pending" && o.status === "awaiting_payment" ? `<p class="notice notice--quiet" id="paymentRequest">${h(requestSent(o))}</p>` : ""}${o.collectionCode ? `<section class="code-card" aria-labelledby="codeTitle"><h2 class="eyebrow" id="codeTitle">${h(t("collection"))}</h2><p class="code-card__code">${h(code)}</p><p>${h(t("codeHelp").replace("{place}", (o.pickup || place()).replace(/[\s.]+$/, "")))}</p></section>` : ""}${promo.order(o, data.portalUrl)}${progress(o)}${o.serialNumbers ? `<p class="order-serials">${h(o.serialNumbers)}</p>` : ""}${guest ? `<section class="keep-link" aria-labelledby="keepTitle"><h2 id="keepTitle">${h(t("keepLink"))}</h2><p>${h(t("keepLinkText"))}</p><div class="keep-link__row"><input readonly id="privateLink" aria-label="${h(t("link"))}" value="${h(shown)}"><button type="button" id="copyLink">${h(t("copyShort"))}</button></div></section>` : ""}${paid ? "" : `<p class="form-help">${h(t("reserved"))}</p>`}<div class="order-actions">${paid ? "" : `<button id="checkPayment">${h(t("check"))}</button>`}${o.receiptAvailable ? `<button class="secondary" id="downloadStoreReceipt">${h(t("receiptShort"))}</button>` : ""}${token ? account.authenticated ? `<button class="secondary" id="claimOrder">${h(t("claimGuest"))}</button>` : `<a class="button secondary" id="signToClaim" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("claimGuest"))}</a>` : ""}</div></div></div>`;
   if ($("#checkPayment"))
     $("#checkPayment").onclick = (e) =>
       action(e.currentTarget, () => showOrder(id, token, true));
@@ -757,11 +778,11 @@ async function showOrder(id, token, verify = false) {
     link.href = url; link.download = `ndahi-store-receipt-${id}.pdf`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
   });
   if ($("#copyLink"))
-    $("#copyLink").onclick = (e) =>
-      action(e.currentTarget, async () => {
-        await navigator.clipboard.writeText(link);
-        $("#message").textContent = t("saved");
-      });
+    $("#copyLink").onclick = async (e) => {
+      const button = e.currentTarget;
+      try { await navigator.clipboard.writeText(link); button.textContent = t("copied"); }
+      catch { $("#privateLink").select(); $("#message").textContent = t("copyFailed"); }
+    };
   if ($("#claimOrder"))
     $("#claimOrder").onclick = (e) =>
       action(e.currentTarget, async () => {
@@ -773,15 +794,16 @@ async function route() {
   if (!data) return;
   $("#message").textContent = "";
   layout();
-  const parts = location.hash.slice(1).split("/");
-  const view = parts[0] === "order" && parts[1] ? "order" : parts[0] === "product" && parts[1] ? "product" : parts[0] === "orders" ? "orders" : "shop";
+  const parts = location.hash.slice(1).split("/"), short = !location.hash.slice(1) && /^\/o\/([A-Za-z0-9_-]{40,100})$/.exec(location.pathname);
+  const view = short || (parts[0] === "order" && parts[1]) ? "order" : parts[0] === "product" && parts[1] ? "product" : parts[0] === "orders" ? "orders" : "shop";
   document.body.dataset.view = view;
   document.querySelectorAll("[data-nav]").forEach((a) => {
     if (a.dataset.nav === (view === "orders" || view === "order" ? "orders" : "shop")) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   });
   try {
-    if (view === "order")
+    if (view === "order" && short) await showOrder(null, short[1]);
+    else if (view === "order")
       await showOrder(
         decodeURIComponent(parts[1]),
         parts[2] ? decodeURIComponent(parts[2]) : undefined,

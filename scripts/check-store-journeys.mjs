@@ -168,7 +168,7 @@ try {
     await page.getByText("Preparing your order", { exact: true }).waitFor();
     checks++;
     const receiptDownload = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download receipt", exact: true }).click();
+    await page.getByRole("button", { name: "Receipt", exact: true }).click();
     const receiptFile = await receiptDownload;
     assert.match(receiptFile.suggestedFilename(), /^ndahi-store-receipt-/);
     const receiptBytes = await readFile(await receiptFile.path());
@@ -179,10 +179,11 @@ try {
     await page.getByText("Preparing your order", { exact: true }).waitFor();
     assert.equal(page.url(), url);
     checks++;
-    await page
-      .getByRole("link", { name: "My orders", exact: true })
-      .first()
-      .click();
+    // A guest's order goes back to the shop (canvas: PhoneGuestOrder, #401);
+    // the order is in "Track order" from there.
+    await page.locator(".order-page .bar-back").click();
+    await page.locator('body[data-view="shop"]').waitFor();
+    await page.locator('[data-nav="orders"]').click();
     await page
       .getByRole("heading", { name: "Recent orders on this browser" })
       .waitFor();
