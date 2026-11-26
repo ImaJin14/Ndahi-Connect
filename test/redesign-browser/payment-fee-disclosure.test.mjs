@@ -101,17 +101,18 @@ test("customers see the price, the Mobile Money fee and the total before they pa
       orange: ["Orange Money fee 30 FCFA", "Total to approve 1,030 FCFA", "Pay 1,030 FCFA"],
       wait: "A MTN MoMo request for 1,020 FCFA (1,000 FCFA bundle + 20 FCFA fee) was sent to 6•• •• 92 45. Approve it there — this screen updates by itself.",
       waitCheck: "Check the amount is 1,020 FCFA, then enter your PIN there.",
-      lowTitle: "Not enough Mobile Money",
-      low: "Your MoMo balance is below 1,020 FCFA: the bundle (1,000 FCFA) plus the Mobile Money fee (20 FCFA). Add money at any MoMo agent, then try again — or pick a smaller bundle.",
-      rows: ["Bundle Weekly · 1,000 FCFA", "MTN MoMo fee 20 FCFA", "Total asked 1,020 FCFA"] },
+      // As drawn (PhonePaymentFailed, #409; 24 Nov brief).
+      lowTitle: "Not enough balance",
+      low: "Insufficient MoMo/OM balance. You need at least 1,020 XAF in your wallet to cover the bundle + 2% payment fee.",
+      rows: ["Bundle Weekly", "Bundle Price 1,000 XAF", "Mobile Payment Fee (2%) 20 XAF", "Total to Pay 1,020 XAF"] },
     fr: { buyer: "670077245", refused: "670012245", cost: "Weekly 5 GB data · 7 days · 1 device 1 000 FCFA Frais MTN MoMo 20 FCFA Total à valider 1 020 FCFA", pay: "Payer 1 020 FCFA",
       note: "Vérifiez que votre solde MoMo est d'au moins 1 020 FCFA. S'il est inférieur, le paiement échoue et rien n'est prélevé.",
       orange: ["Frais Orange Money 30 FCFA", "Total à valider 1 030 FCFA", "Payer 1 030 FCFA"],
       wait: "Une demande MTN MoMo de 1 020 FCFA (forfait 1 000 FCFA + 20 FCFA de frais) a été envoyée au 6•• •• 72 45. Validez-la sur ce téléphone — cet écran se met à jour tout seul.",
       waitCheck: "Vérifiez que le montant est de 1 020 FCFA, puis saisissez votre code PIN.",
-      lowTitle: "Mobile Money insuffisant",
-      low: "Votre solde MoMo est inférieur à 1 020 FCFA : le forfait (1 000 FCFA) plus les frais Mobile Money (20 FCFA). Rechargez chez un agent MoMo, puis réessayez — ou choisissez un forfait plus petit.",
-      rows: ["Forfait Weekly · 1 000 FCFA", "Frais MTN MoMo 20 FCFA", "Total demandé 1 020 FCFA"] },
+      lowTitle: "Solde insuffisant",
+      low: "Solde MoMo/OM insuffisant. Il vous faut au moins 1 020 XAF sur votre compte pour couvrir le forfait + 2 % de frais de paiement.",
+      rows: ["Forfait Weekly", "Prix du forfait 1 000 XAF", "Frais de paiement mobile (2 %) 20 XAF", "Total à payer 1 020 XAF"] },
   };
 
   for (const lang of ["en", "fr"]) {
@@ -148,19 +149,19 @@ test("customers see the price, the Mobile Money fee and the total before they pa
     await page.locator("#requestPayment").click();
     await page.getByRole("heading", { name: c.lowTitle, exact: true }).waitFor();
     assert.equal(await text(page.locator("#paymentFailedBody")), c.low);
-    assert.deepEqual(await page.locator(".pay-failed__row").evaluateAll((rows) => rows.slice(0, 3).map((row) => row.innerText.replace(/[\s  ]+/g, " ").trim())), c.rows);
+    assert.deepEqual(await page.locator(".pay-failed__row").evaluateAll((rows) => rows.slice(0, 4).map((row) => row.innerText.replace(/[\s  ]+/g, " ").trim())), c.rows);
     await page.evaluate(() => { for (const id of ["pageContent", "checkout"]) document.getElementById(id).style.display = "none"; });
     await check(page, `low-balance-${lang}`);
     assert.deepEqual(errors, []);
     await context.close();
   }
 
-  // check_balance (balance or an account limit) keeps the softer wording.
+  // check_balance (balance or an account limit) is insufficient funds too (#433, #409).
   let { context, page, errors } = await open();
   await startCheckout(page, "670031245");
   await page.locator("#requestPayment").click();
-  await page.getByRole("heading", { name: "Not enough Mobile Money", exact: true }).waitFor();
-  assert.equal(await text(page.locator("#paymentFailedBody")), "MTN MoMo didn't approve this payment, which usually means the balance is too low. Check your MoMo balance covers 1,020 FCFA: the bundle (1,000 FCFA) plus the Mobile Money fee (20 FCFA). Then try again — or pick a smaller bundle.");
+  await page.getByRole("heading", { name: "Not enough balance", exact: true }).waitFor();
+  assert.equal(await text(page.locator("#paymentFailedBody")), "Insufficient MoMo/OM balance. You need at least 1,020 XAF in your wallet to cover the bundle + 2% payment fee.");
   assert.deepEqual(errors, []);
   await context.close();
 

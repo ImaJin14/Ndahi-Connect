@@ -116,7 +116,7 @@ test("desktop customers pick any Unlimited bundle from one table and pay beside 
   assert.equal(await page.getByRole("radio", { name: "MTN MoMo" }).getAttribute("aria-checked"), "true");
   assert.equal(await page.getByRole("radio", { name: "Orange Money" }).getAttribute("aria-checked"), "false");
   // The account's number shows masked until the field is used.
-  const number = page.getByLabel("Mobile Money number");
+  const number = page.locator("#purchase").getByLabel("Mobile Money number");
   assert.equal(await number.inputValue(), "670001245");
   assert.equal(await text(page.locator("#deskPayerMask")), "6•• •• 12 45");
   await number.focus();

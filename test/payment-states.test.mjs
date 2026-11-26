@@ -87,8 +87,9 @@ test("payment confirmed and Wi-Fi active are separate; short codes only once ver
   assert.equal(activationState(paid, { status: "active", routerSyncStatus: "synchronized" }), "active");
   assert.equal(activationState(paid, { status: "available", startsOnFirstConnection: true }), "waiting_first_connection");
   assert.equal(activationState({ ...paid, fulfillmentStatus: "needs_review" }, null), "review");
-  assert.equal(shortCodes({}), null);
-  assert.deepEqual(shortCodes({ PAYMENT_SHORT_CODES: "verified" }), { mtn: "*126#", orange: "#150#" });
+  // The owner confirmed the codes for Cameroon on 26 Nov (#409): on unless turned off.
+  assert.deepEqual(shortCodes({}), { mtn: "*126#", orange: "#150#" });
+  assert.equal(shortCodes({ PAYMENT_SHORT_CODES: "off" }), null);
 });
 
 test("the messages read exactly as the brief and the design, in English and French", () => {
@@ -135,7 +136,7 @@ async function server(t, { answer, refuse } = {}) {
     const signature = createHmac("sha256", secret).update(`${stamp}.${raw}`, "utf8").digest("hex");
     return call("/api/webhooks/mesomb", "POST", raw, { "x-mesomb-webhook-signature": `t=${stamp},v1=${signature}` });
   };
-  return { store, id, placed, call, webhook, set: (next) => { current = next; }, poll: () => call(`/api/payments/${id}/status`, "GET", null, { "x-checkout-key": key }) };
+  return { store, id, key, placed, call, webhook, set: (next) => { current = next; }, poll: () => call(`/api/payments/${id}/status`, "GET", null, { "x-checkout-key": key }) };
 }
 
 test("each failure state, by poll and by webhook, from MeSomb-shaped answers", async (t) => {
@@ -155,7 +156,12 @@ test("each failure state, by poll and by webhook, from MeSomb-shaped answers", a
     assert.deepEqual([p.state, p.retryAllowed, p.reference, p.paymentConfirmed], [state, true, "pk-1", false], `${path} ${state}`);
     assert.equal(Boolean(status.json.cheaperBundle), state === "insufficient_funds", `${path} ${state}: cheaper bundle only for insufficient funds`);
     if (state === "insufficient_funds") assert.deepEqual([status.json.cheaperBundle.planId, status.json.cheaperBundle.total], ["daily", 255]);
-    assert.equal(status.json.shortCodes, null, "short codes stay off until verified");
+    assert.deepEqual(status.json.shortCodes, { mtn: "*126#", orange: "#150#" }, "the owner confirmed the short codes (#409)");
+    // A guest returning to the saved checkout gets the same extras (#409).
+    const recovered = await f.call("/api/purchase/recover", "POST", { requestKey: f.key });
+    assert.equal(recovered.status, 200);
+    assert.deepEqual(recovered.json.shortCodes, { mtn: "*126#", orange: "#150#" });
+    assert.equal(recovered.json.cheaperBundle?.total, state === "insufficient_funds" ? 255 : undefined, `${path} ${state}: recovery's cheaper bundle`);
     assert.equal((await f.store.snapshot()).vouchers.length, 0);
   }
 });

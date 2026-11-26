@@ -123,18 +123,21 @@ try {
         payment.status = "failed";
         payment.providerFailedAt = now.toISOString();
         payment.failureReason = "Synthetic provider failure";
+        // A known cause (#433): v2 shows "Payment not approved" with Retry; an
+        // unknown one reads as unclear, with no Retry (#409).
+        payment.failureState = "cancelled_or_pin";
       });
       await seedSavedCheckout(context, { requestKey: input.requestKey, planId: "weekly", paymentId: purchase.json.payment.id });
       await page.goto(`${portal}/onboarding.html`);
       // No click needed: the visit itself checks the saved key and releases the packages.
-      // The key reads why it failed (#251): v2 shows "Payment didn't go through"
+      // The key reads why it failed (#251, #409): v2 shows the drawn state
       // (canvas: PhonePaymentFailed), v1 the provider's reason.
       if (uiV2) await page.getByRole("heading", { name: "Payment not approved", exact: true }).waitFor();
       else await page.getByText("Synthetic provider failure", { exact: true }).waitFor();
       assert.equal(await page.getByRole("button", { name: "Resume saved payment" }).count(), 0);
       assert.equal(await savedCookie(context), undefined);
       const opener = page.locator('[data-plan="weekly"]');
-      if (uiV2) await page.getByRole("button", { name: "Try again", exact: true }).click();
+      if (uiV2) await page.getByRole("button", { name: "Retry", exact: true }).click();
       else await opener.click();
       // The API supplied the contact details this device no longer keeps.
       assert.equal(await page.getByLabel("Your name", { exact: true }).inputValue(), "");
