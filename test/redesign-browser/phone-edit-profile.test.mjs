@@ -12,7 +12,7 @@ import { emailConfirmationLinkToken } from "../../lib/transactional-email.mjs";
 // the sign-in number read-only and masked with "contact support", and "Save
 // changes" at the bottom. A name change saves at once; an email change asks
 // for the PIN in a dialog after Save, then shows "Saved. Check … to confirm
-// it." The link opens a page that confirms on a tap, once. Local servers
+// it." The link opens a page that confirms on a tap. Local servers
 // only, synthetic customer, every non-local request aborted.
 
 const listen = (server) => new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", () => resolve(server)); });
@@ -127,10 +127,16 @@ test("Edit profile keeps the number read-only and asks for the PIN only for a ne
   await link.page.screenshot({ path: `${screenshots}/confirm-email-done.png` });
   assert.deepEqual(link.errors, []);
   await link.context.close();
+  // The same link again (as after a lost reply) reports it done; a tampered one is refused.
   const again = await open(`/confirm-email#${encodeURIComponent(token)}`, { signedIn: false });
   await again.page.locator("#confirmEmailButton").click();
-  await again.page.locator("h1", { hasText: "This link has expired" }).waitFor();
+  await again.page.locator("h1", { hasText: "Email confirmed" }).waitFor();
   await again.context.close();
+  const [id, signature] = token.split(".");
+  const tampered = await open(`/confirm-email#${id}.${signature.replace(/.$/, (x) => (x === "0" ? "1" : "0"))}`, { signedIn: false });
+  await tampered.page.locator("#confirmEmailButton").click();
+  await tampered.page.locator("h1", { hasText: "This link has expired" }).waitFor();
+  await tampered.context.close();
   const broken = await open("/confirm-email#nonsense", { signedIn: false });
   assert.equal(await broken.page.locator("h1").innerText(), "This link has expired");
   assert.equal(await broken.page.locator("#confirmEmailButton").isHidden(), true);
