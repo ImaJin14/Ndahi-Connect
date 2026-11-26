@@ -1432,7 +1432,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Forgot PIN and the PIN rule (#399, batch 11, 26 November 2026)
 
 - [-] **CUS-399 — Forgot PIN, redesigned; PINs of 4 to 6 digits (batch 11)** ([#399](https://github.com/ImaJin14/Ndahi-Connect/issues/399)). Owner decisions: [#399 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/399#issuecomment-7193167473).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #497, not merged yet):
     - customer PINs are 4 to 6 digits everywhere (sign-in, setup, claim, change PIN, reset, Home sign-up, the QR and device checks); existing 4-digit PINs keep working; one shared rule in `lib/pin-policy.mjs`; staff PINs unchanged;
     - the drawn Forgot PIN: the number typed on Sign in comes along, "No email on your account? Visit <the shop's pickup place> with your ID, or contact support", "Check your email" with Send again, "Reset your PIN" from the emailed link (the token leaves the address bar) and "PIN changed";
     - the support recovery code from Admin's PIN recovery stays below the request; account backup codes are no longer offered here; no footer note or help link.
