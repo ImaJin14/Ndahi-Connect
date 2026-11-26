@@ -1393,13 +1393,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin vouchers with custom gifts (#343, batch 12, 26 November 2026)
 
 - [-] **ADM-343 — Vouchers, redesigned, with custom gift bundles and numbers with no account (batch 12)** ([#343](https://github.com/ImaJin14/Ndahi-Connect/issues/343)). Owner decisions: [#343 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/343#issuecomment-7197231995).
-  - **Implemented and tested** (PR #509, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #509):
     - For one customer: the search finds accounts ("6•• •• 12 45 · [PLAN 2] active") and, for a full number with no account, offers to reserve the voucher for it; the Bundle has From the catalogue and, for owners only, Custom bundle (Personal or Home WISP Unlimited, 1 hour to 365 days, 1 to 10 slots, a required reason and "They'll see: Gift from NDAHI · …"); the done state shows the code, who has it and, for a replacement, the old bundle ended;
     - a voucher staff give an account now also sends a notification ("A bundle was added to your account") and the usual voucher email (owner); a reserved voucher waits for its claim;
     - custom gifts are named as the customer sees them: "Gift from NDAHI · Unlimited · 10 days · 3 devices" or "… · Home WISP Unlimited · 10 days";
     - Recent vouchers as drawn: Code, Bundle ("Custom · 10 days · 3 devices"), For (the customer, "6•• •• 57 03 · no account yet" or the batch and reseller), Type, Status; one search that also finds a customer's name or a reserved number; actions live on each voucher's page;
     - Batch to print or sell as drawn: no More options; the result is "Batch B-… ready · N codes" with Print slips (owner).
-  - **Not yet:** merged, deployed, or a custom gift and a reserved voucher given on the live admin and claimed on a phone.
+  - **Not yet:** a custom gift and a reserved voucher given on the live admin and claimed on a phone.
 
 ## Reseller ledger and automatic account repair (7 November 2026)
 
@@ -1421,12 +1421,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin profile and security (#389, batch 12, 26 November 2026)
 
 - [-] **ADM-389 — Admin profile and security, redesigned (batch 12)** ([#389](https://github.com/ImaJin14/Ndahi-Connect/issues/389)). Owner decisions: [#389 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/389#issuecomment-7197231105).
-  - **Implemented and tested** (PR #508, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #508):
     - You: Name (each administrator sets the name staff see; no fresh verification, audited), Email (still verified), Save, and Change PIN, which opens a dialog;
     - Passkeys: each with "added 19 Aug · used today" and Remove, the one-left warning and "Add a passkey on this device"; the server now records when an admin passkey was last used, and new passkeys are named after the device;
     - Staff (owner only): active staff as "Name · role" with Remove, which opens a choice: "Remove their passkeys (lost device)" or "Remove from staff" (owner); "Invite an operator" opens today's add form (owner);
     - no install card on the page (owner): staff install the admin app from the browser menu.
-  - **Not yet:** merged, deployed, or a passkey added and a staff member managed on the live admin.
+  - **Not yet:** a passkey added and a staff member managed on the live admin.
 
 ## Customer bundle expiry message (8 November 2026)
 
@@ -1482,11 +1482,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin sign in (#383, batch 12, 26 November 2026)
 
 - [-] **ADM-383 — Admin sign in, redesigned (batch 12)** ([#383](https://github.com/ImaJin14/Ndahi-Connect/issues/383)). Build note: [#383 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/383#issuecomment-7197236628).
-  - **Implemented and tested** (PR #505, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #505):
     - Step 1 of 2 as drawn: Email (still accepts a staff username) and PIN with no Show toggle, then Continue;
     - Step 2 of 2 as drawn: "Confirm with your passkey." with the key, Use passkey, "Use a different account" as a link, and the lost-device note, which now shows on step 2 only (not when a new admin is adding a first passkey);
     - the forest bar and card measure as the board at 1280 px (the frozen v1 stylesheet no longer stretches the bar).
-  - **Not yet:** merged, deployed, or an admin sign-in with a real passkey on the live site.
+  - **Not yet:** an admin sign-in with a real passkey on the live site.
 
 ## Cash collected from November 2026 onward (8 November 2026)
 
@@ -1528,13 +1528,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Change PIN (#396, batch 12, 26 November 2026)
 
 - [-] **CUS-396 — Change PIN, redesigned (batch 12)** ([#396](https://github.com/ImaJin14/Ndahi-Connect/issues/396)). Owner decision: [#396 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/396#issuecomment-7197229439).
-  - **Implemented and tested** (PR #503, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #503):
     - the drawn page: Current PIN, New PIN, "Type the new PIN again", "4 to 6 digits. Other devices stay signed in unless you sign them out." and Save new PIN at the foot; the browser says when the two new PINs differ; English and French;
     - after saving, "PIN updated. Use it next time you sign in." with "Sign out other devices too →" to Signed-in devices;
     - the customer's other devices now stay signed in after a PIN change in the redesigned portal (owner); pending sign-in and reset requests and old backup codes still end, and the security email says the other devices stay signed in. The frozen v1 portal still signs them out, as its screen says;
     - a PIN holder confirms with the current PIN only; an account with no PIN yet sets one with its passkey (not drawn);
     - every sub-page bar now matches the boards (65 px, the back arrow 10 px in, the title after an 8 px gap).
-  - **Not yet:** merged, deployed, or a PIN changed on a real phone.
+  - **Not yet:** a PIN changed on a real phone.
 
 ## Owner-approved live initial catalogue (8 November 2026)
 
@@ -1562,12 +1562,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Signed-in devices (#413, batch 12, 26 November 2026)
 
 - [-] **CUS-413 — Signed-in devices, redesigned (batch 12)** ([#413](https://github.com/ImaJin14/Ndahi-Connect/issues/413)). Owner decision: [#413 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/413#issuecomment-7197230239).
-  - **Implemented and tested** (PR #504, not merged yet; built on #503):
+  - **Implemented, tested, merged and deployed** (PR #504):
     - the drawn page: the lede, this device first with a forest border and "You", the others with "Last active 2 h ago" and Sign out, and "Sign out all other devices" at the foot; English and French;
     - no town on the rows (owner): we keep the IP address and browser, not a place;
     - "Sign out all other devices" keeps this device signed in (the server gains that option; the v1 "Log out everywhere" still ends every session) and then shows "Signed out everywhere else."; no confirmation boxes, as drawn;
     - the "View security history" button is gone, as drawn: security history is in Notifications (Security, All).
-  - **Not yet:** merged, deployed, or tried with two real phones.
+  - **Not yet:** tried with two real phones.
 
 ## MoMo customer payment message (9 November 2026)
 
