@@ -51,6 +51,11 @@ try {
     await page.locator('#changePin [name="newPin"]').fill("5830"); await page.locator('#changePin [name="confirmPin"]').fill("5830");
   }
   const success = (page, text) => page.locator("#securityMessage").getByText(text, { exact: true }).waitFor();
+  // v2 (canvas: PhoneChangePin, #396; owner 26 Nov): "Save new PIN", then "PIN
+  // updated…" under the fields; the customer's other devices stay signed in.
+  const pinSave = uiV2 ? "Save new PIN" : "Change PIN with PIN";
+  const pinChanged = (page) => uiV2 ? page.locator("#changePinDone:not([hidden])").getByText("PIN updated. Use it next time you sign in.", { exact: true }).waitFor()
+    : success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
   for (const width of [320,390,768,1280]) await scenario(`one security entry and no duplicate recovery card at ${width}px`, async ({ page }) => {
     // v2: Account is a hub and PIN & passkeys opens as its own page, already expanded.
     await page.goto(portal + (uiV2 ? "/dashboard#accountSecurity" : "/dashboard#account")); await page.getByRole("heading", { name: "PIN & passkeys", exact: true }).waitFor();
@@ -65,14 +70,19 @@ try {
     assert.doesNotMatch(await page.locator("#accountSecurity").textContent(), /TOTP|MFA|authenticator|Wi-Fi approval code/i);
     await page.screenshot({ path: `${screenshots}/security-${width}.png`, fullPage: true });
   }, { width });
-  await scenario("PIN failure keeps fields, success rotates sessions and preserves manager/focus", async ({ page }) => {
-    await open(page); await pinChange(page, "1111"); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click();
+  await scenario("PIN failure keeps fields, success keeps or rotates sessions and preserves manager/focus", async ({ page }) => {
+    // Another device signed in to the same account.
+    await f.store.transaction((s) => { s.dashboardSessions.push({ id: "other-device", customerId: s.customers[0].id, tokenHash: "other-device", csrfToken: "other-device", createdAt: new Date().toISOString(), expiresAt: "2099-01-01T00:00:00.000Z" }); });
+    await open(page); await pinChange(page, "1111"); await page.getByRole("button", { name: pinSave, exact: true }).click();
     await page.locator("#changePin [data-proof-message]").getByText("Unable to continue", { exact: true }).waitFor();
     assert.equal(await page.locator('#changePin [name="newPin"]').inputValue(), "5830"); f.advance(2);
-    await page.locator('#changePin [name="currentPin"]').fill("2468"); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click();
-    await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+    await page.locator('#changePin [name="currentPin"]').fill("2468"); await page.getByRole("button", { name: pinSave, exact: true }).click();
+    await pinChanged(page);
     assert.equal(await page.locator("#securityManager").evaluate(node => node.open), true);
-    assert.equal(await page.locator("#securityMessage").evaluate(node => node === document.activeElement), true);
+    assert.equal(await page.locator(uiV2 ? "#changePinDone" : "#securityMessage").evaluate(node => node === document.activeElement), true);
+    // v2 keeps the other device signed in and offers to sign it out; v1 signs it out.
+    assert.equal((await f.store.snapshot()).dashboardSessions.some((x) => x.id === "other-device"), uiV2);
+    if (uiV2) assert.equal(await page.getByRole("link", { name: "Sign out other devices too →", exact: true }).getAttribute("href"), "/dashboard#sessions");
     assert.equal(await argon2.verify((await f.store.snapshot()).customers[0].pinHash, "5830"), true);
   });
   await scenario("real passkey enrollment, rename and removal use the same confirmation/status experience", async ({ page, context }) => {
@@ -84,11 +94,19 @@ try {
     await page.locator("[data-remove-passkey]").click(); await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468"); await page.getByRole("button", { name: "Confirm with PIN", exact: true }).click(); await success(page, "Passkey removed.");
     assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 0);
   });
-  await scenario("passkey changes a PIN despite invalid leftover PIN input", async ({ page, context }) => {
-    await virtualKey(page, context, { seed: true }); await open(page); await pinChange(page, "bad");
-    await page.getByRole("button", { name: "Change PIN with passkey", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+  // v2 asks a PIN holder for the current PIN only (as drawn); an account with no PIN sets one with its passkey.
+  if (uiV2) await scenario("an account with no PIN sets one with its passkey", async ({ page, context }) => {
+    await virtualKey(page, context, { seed: true, noPin: true }); await open(page);
+    assert.equal(await page.locator('#changePin [name="currentPin"]').count(), 0);
+    await page.locator('#changePin [name="newPin"]').fill("5830"); await page.locator('#changePin [name="confirmPin"]').fill("5830");
+    await page.getByRole("button", { name: "Save new PIN with passkey", exact: true }).click(); await pinChanged(page);
+    assert.equal(await argon2.verify((await f.store.snapshot()).customers[0].pinHash, "5830"), true);
   });
-  await scenario("cancelled passkey keeps PIN fallback and explicit Cancel clears proof and restores focus", async ({ page, context }) => {
+  if (!uiV2) await scenario("passkey changes a PIN despite invalid leftover PIN input", async ({ page, context }) => {
+    await virtualKey(page, context, { seed: true }); await open(page); await pinChange(page, "bad");
+    await page.getByRole("button", { name: "Change PIN with passkey", exact: true }).click(); await pinChanged(page);
+  });
+  if (!uiV2) await scenario("cancelled passkey keeps PIN fallback and explicit Cancel clears proof and restores focus", async ({ page, context }) => {
     await virtualKey(page, context, { seed: true }); await open(page); await pinChange(page);
     await page.addScriptTag({ url: portal + "/vendor/webauthn.js" });
     await page.evaluate(() => { window.SimpleWebAuthnBrowser.startAuthentication = async () => { throw new DOMException("Cancelled", "NotAllowedError"); }; });
@@ -96,7 +114,7 @@ try {
     assert.equal((await f.store.snapshot()).customers[0].pinFailedAttempts || 0, 0);
     await page.getByRole("button", { name: "Cancel", exact: true }).click(); assert.equal(await page.locator("#securityManager").evaluate(node => node.open), false);
     assert.equal(await page.locator('#changePin [name="newPin"]').inputValue(), "");
-    await openSecurityManager(page); await pinChange(page); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+    await openSecurityManager(page); await pinChange(page); await page.getByRole("button", { name: pinSave, exact: true }).click(); await pinChanged(page);
   });
   await scenario("last passkey remains usable and recovery is reachable after rejection", async ({ page, context }) => {
     await virtualKey(page, context, { seed: true, noPin: true }); await open(page, "passkeys"); await page.locator("[data-remove-passkey]").click();
@@ -106,7 +124,7 @@ try {
   });
   await scenario("unsupported passkey and blocked storage leave PIN and recovery usable", async ({ page }) => {
     await open(page); await page.getByText(/Passkeys are unavailable in this browser/).waitFor(); assert.equal(await page.locator("#addCustomerPasskey").isVisible(), false);
-    await pinChange(page); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+    await pinChange(page); await page.getByRole("button", { name: pinSave, exact: true }).click(); await pinChanged(page);
     await page.locator('[data-security-panel="recovery"]').click(); await page.getByRole("link", { name: "Recover a forgotten PIN", exact: true }).waitFor();
   }, { unsupported: true, blockedStorage: true });
   for (const action of ["passkey", "pin", "backup"]) await scenario(`lost ${action} reply is reconciled through a receipt without repeating its mutation`, async ({ page, context }) => {
@@ -116,7 +134,7 @@ try {
     if (action === "passkey") {
       await virtualKey(page, context); await open(page, "passkeys"); await page.locator("#addCustomerPasskey").click(); await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468"); await page.getByRole("button", { name: "Confirm with PIN", exact: true }).click(); await success(page, "Passkey added.");
     } else if (action === "pin") {
-      await open(page); await pinChange(page); await page.getByRole("button", { name: "Change PIN with PIN", exact: true }).click(); await success(page, "PIN changed. Other portal sessions and previous account backup codes were revoked.");
+      await open(page); await pinChange(page); await page.getByRole("button", { name: pinSave, exact: true }).click(); await pinChanged(page);
     } else {
       await open(page, "recovery"); await page.locator("#backupCodeSettings>summary").click(); await page.locator('#accountBackup [name="currentPin"]').fill("2468"); await page.getByRole("button", { name: "Generate codes with PIN", exact: true }).click(); await page.locator("#securityMessage").getByText(/response was lost/).waitFor(); assert.equal(await page.locator("#accountBackupOutput code").count(), 0);
     }
