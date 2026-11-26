@@ -1561,7 +1561,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Order tracking on phones (#406, batch 9, 26 November 2026)
 
 - [-] **CUS-406 — Order tracking, redesigned (batch 9)** ([#406](https://github.com/ImaJin14/Ndahi-Connect/issues/406)). Owner decisions: [#406 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/406#issuecomment-7180264893).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #487, not merged yet):
     - the drawn page: the item with how it was paid ("38,000 FCFA · Orange Money"), the centred collection code, the steps with when each happened ("Paid 8 Nov, 10:14", "Prepared and tested 9 Nov, 16:02"), and Receipt and Get help at the foot;
     - new orders get a 6-digit collection code, shown "739 204", unique among open orders; older orders keep their 10-character codes (owner, 26 Nov);
     - "Held for you until <date>" on a ready order, from "Days we hold a ready order" in the store settings (default 14, 1 to 90); nothing happens automatically when it passes (owner, 26 Nov). Saving the settings from the frozen v1 admin keeps the value;
