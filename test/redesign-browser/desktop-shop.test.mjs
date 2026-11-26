@@ -85,10 +85,10 @@ test("the desktop Shop is drawn with its head, strip, cards and banner", { timeo
     const c = await box(card), price = await box(card.locator(".portal-shop__price")), stock = await box(card.locator(".portal-shop__stock")),
       view = await box(card.locator(".portal-shop__view"));
     assert.equal(view.right, c.right - 19, "View 18px inside the card");
-    // Beside the price and stock: level with the stock line's foot, never above
-    // the price. (With DM Sans the two lines are View's 44px, so the tops meet;
-    // fallback fonts may make them taller.)
-    assert.ok(Math.abs(view.bottom - stock.bottom) <= 2 && view.y >= price.y - 2 && view.x >= price.right, `View beside the price and stock: ${JSON.stringify({ price, stock, view })}`);
+    // Beside the price and stock: level with the stock line's foot, alongside the
+    // price, to their right. (With DM Sans the two lines are View's 44px, so the
+    // tops meet; fallback fonts make them shorter or taller.)
+    assert.ok(Math.abs(view.bottom - stock.bottom) <= 2 && view.y <= price.bottom && view.x >= price.right, `View beside the price and stock: ${JSON.stringify({ price, stock, view })}`);
     assert.ok(c.bottom - view.bottom >= 18 && c.bottom - view.bottom <= 20, "at the card's foot");
   }
   assert.equal(await page.locator(".portal-shop__friends .nd-btn").innerText(), "See the public store");
