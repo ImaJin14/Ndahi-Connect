@@ -1367,7 +1367,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Shop tab on phones (#414, batch 8, 26 November 2026)
 
 - [-] **CUS-414 — Shop, redesigned (batch 8)** ([#414](https://github.com/ImaJin14/Ndahi-Connect/issues/414)). Owner decisions: [#414 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/414#issuecomment-7178824016).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #479, not merged yet):
     - the drawn phone list: "My orders" beside the title, the category chips in one row, 80px photo boxes, and the stock line ("Only 2 left" from two units down);
     - each category has an optional short name (English and French) in Admin → Products → Categories. Phone chips use it, or the full name when it is blank; desktop keeps the full names, as its board does. Saving a category from the frozen v1 admin keeps the short name;
     - English and French.
