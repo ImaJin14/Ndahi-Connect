@@ -1433,6 +1433,15 @@ Owner requested all unknown business details remain blank for now. Review this l
     - English and French.
   - **Not yet:** the products' photos and short descriptions entered by the owner.
 
+### Guest order and the short private link (#401, batch 11, 26 November 2026)
+
+- [-] **STORE-401 — A guest's order, redesigned, with a short private link (batch 11)** ([#401](https://github.com/ImaJin14/Ndahi-Connect/issues/401)). Owner decisions: [#401 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/401#issuecomment-7193170186).
+  - **Implemented and tested** (PR #501, not merged yet; built on #500):
+    - the drawn order page: the bar (Back to the shop), the item with how it was paid and its status, the code shown "739 204", each step with when it happened and "Held for you until <date>", "Keep this private link" with Copy (which says Copied), and Receipt with Save to an account at the foot; no Local pickup or Store policies sections;
+    - short private links: `store.ndahiconnect.net/o/<token>` opens the order with the same private token, without the order id; the page shows it, and a guest's order emails carry it with a Track my order button; long `#order/<id>/<token>` links keep working;
+    - new orders' tokens are derived from data the server keeps (with its secret), so emails can rebuild the link; orders placed before this, and links staff rotated, keep the link they were given and their emails keep the old wording.
+  - **Not yet:** merged, deployed, or a real order email opened on a phone.
+
 ## Email setup, provider settlements and store receipts (8 November 2026)
 
 - [x] Implemented locally: optional signup-email completion popup after PIN setup, prefilled email, PIN proof and mailbox code, resend/change and dismiss/reopen. Existing unverified accounts get a setup reminder. Arbitrary signup email is never marked verified automatically; original account identity remains unchanged.

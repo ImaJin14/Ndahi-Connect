@@ -129,6 +129,8 @@ export function createStaticServer(
     if (path === "/pair" && kind === "customer") path = "/pair.html";
     if (path === "/forgot-pin") path = "/forgot-pin.html";
     if (path === "/confirm-email" && kind === "customer") path = "/confirm-email.html";
+    // A store order's short private link (#401): the page reads the token from the path.
+    if (kind === "store" && /^\/o\/[A-Za-z0-9_-]{40,100}$/.test(path)) path = "/index.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404, headers);
       return res.end("Not found");
