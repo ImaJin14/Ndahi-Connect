@@ -1527,6 +1527,16 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. Run `node scripts/check-payment-fees.mjs` in the API's Render shell before setting `PAYMENT_FEE_MTN` and `PAYMENT_FEE_ORANGE`. A staging payment with a balance between the price and the total is still to be done.
 - Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
 
+### Shop checkout on phones (#397, batch 8, 26 November 2026)
+
+- [-] **CUS-397 — Shop checkout, redesigned (batch 8)** ([#397](https://github.com/ImaJin14/Ndahi-Connect/issues/397)). Owner decisions: [#397 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/397#issuecomment-7178824960).
+  - **Implemented and tested** (PR #481, not merged yet):
+    - the drawn checkout: the account's details masked ("Amina N. · +237 6•• •• 12 45"), the collection box, MTN MoMo or Orange Money, and the number masked until it is used; then price · Mobile Payment Fee (2%) · Total to Pay, the wallet notice and Pay Now on a bar at the bottom, as the bundle checkout shows them (24 Nov brief). Without a fee quote, the fee is shown in the operator prompt;
+    - after Pay Now, the drawn "Waiting for payment" screen (Check status, Change payment) and "Order placed" screen (View order, Back to shop), at `#checkout/<product>/<quantity>/<order>`, so a refresh keeps them;
+    - Change payment (owner, 26 Nov): a new `POST /api/account/store/cancel` asks the provider first, then cancels the account's own unpaid order and puts its device back into stock, and the form opens for a fresh request. A payment approved anyway goes to review for a refund, as a late payment on an expired order does;
+    - English and French.
+  - **Not yet:** merged, deployed, or a real Mobile Money checkout, Change payment and collection tried on the live portal.
+
 ### Insights data recording (#262, 20 November 2026)
 
 - **Implemented** (PR #308, merged as `69f665a`):

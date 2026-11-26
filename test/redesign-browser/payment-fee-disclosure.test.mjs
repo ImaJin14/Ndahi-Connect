@@ -195,10 +195,12 @@ test("customers see the price, the Mobile Money fee and the total before they pa
   ({ context, page, errors } = await open({ signedIn: true }));
   await page.goto(`${portal}/dashboard#checkout/router/2`);
   await page.locator("#shopCost").waitFor();
-  assert.equal(await text(page.locator("#shopCost")), "Item 36,000 FCFA MTN MoMo fee 720 FCFA Total to approve 36,720 FCFA Your balance needs at least 36,720 FCFA, or the payment fails and nothing is taken.");
-  assert.equal(await text(page.locator('#shopCheckout [type="submit"]')), "Pay 36,720 FCFA");
+  // As drawn (PhoneCheckout, #397; 24 Nov brief): price · Mobile Payment Fee ·
+  // Total to Pay, the wallet notice, then Pay Now.
+  assert.equal(await text(page.locator("#shopCost")), "Item 36,000 FCFA Mobile Payment Fee (2%) 720 FCFA Total to Pay 36,720 FCFA Ensure you have at least 36,720 FCFA in your MTN MoMo wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.");
+  assert.equal(await text(page.locator('#shopCheckout [type="submit"]')), "Pay Now");
   await page.locator('#shopCheckout input[value="orange"]').check({ force: true });
-  assert.equal(await text(page.locator('#shopCheckout [type="submit"]')), "Pay 37,080 FCFA");
+  assert.equal(await text(page.locator(".portal-shop__total strong")), "37,080 FCFA");
   await page.locator('#shopCheckout input[value="mtn"]').check({ force: true });
   await page.locator("#shopCost").scrollIntoViewIfNeeded();
   await check(page, "portal-checkout-en");
