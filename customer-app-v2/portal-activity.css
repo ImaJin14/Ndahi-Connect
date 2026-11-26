@@ -20,7 +20,8 @@
 .portal-activity__main .nd-meta { font-size: 13px; }
 .portal-activity__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-forest); }
 .portal-activity__status { flex-shrink: 0; }
-.portal-activity__pill { text-transform: capitalize; }
+/* Only the first letter: French reads "En attente", not "En Attente". */
+.portal-activity__pill::first-letter { text-transform: uppercase; }
 .portal-activity__body { display: flex; flex-direction: column; gap: 4px; padding: 0 0 var(--nd-space-12) 52px; color: var(--nd-muted); font-size: 13px; }
 .portal-activity__body p, .portal-activity__body small { margin: 0; }
 .portal-activity__actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-8); margin-top: var(--nd-space-6); }
@@ -143,3 +144,23 @@ a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid va
 .portal-receipt__actions { display: flex; gap: var(--nd-space-10); }
 .portal-receipt__actions > button { flex: 1; }
 .portal-receipt__actions > button[hidden] { display: none; }
+
+/* ---------- Activity on phones (canvas: PhoneActivity, #395) ----------
+   The title and lede as drawn, the filter in a sage track, the waiting
+   banner, and rows 13px above and below their text with status pills. */
+@media (max-width: 767.98px) {
+  body[data-current-tab="activity"]:not([data-portal-sub]) .portal-head { gap: 0; }
+  body[data-current-tab="activity"]:not([data-portal-sub]) .portal-head__title { line-height: normal; }
+  body[data-current-tab="activity"]:not([data-portal-sub]) .dashboard-grid { row-gap: 0; }
+  .portal-activity__filters { margin: var(--nd-space-8) 2px var(--nd-space-4); }
+  .portal-activity__filters .nd-segmented__option { min-height: 40px; padding: 0; font-size: 14px; line-height: normal; }
+  .portal-activity__waiting { margin: var(--nd-space-12) 2px var(--nd-space-4); line-height: 1.45; }
+  #billing.portal-activity { padding: 0 2px; }
+  .portal-activity__list .portal-activity__summary, .portal-activity__list > .portal-activity__order { min-height: 0; padding: 13px 0; }
+  #billing .portal-activity__list > .portal-activity__item { margin: 0; }
+  /* The title on its own line, the date line inline in a 16px line, as drawn. */
+  .portal-activity__list .portal-activity__main { display: block; font-size: 16px; }
+  .portal-activity__list .portal-activity__main strong { display: block; }
+  .portal-activity__status .nd-pill { padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: normal; white-space: nowrap; }
+  .portal-activity__list > .portal-activity__order:last-child, .portal-activity__list > .portal-activity__item:last-child { border-bottom: 1px solid var(--nd-line); }
+}

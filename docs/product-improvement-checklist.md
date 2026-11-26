@@ -1465,6 +1465,17 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: the full v2 browser suite (18 npm scripts, including voucher print, store and authentication journeys), v1 runs of every edited journey (12 scripts), `npm run check` and `npm test` (1,266 pass, 0 fail). Journeys reach v2 sub-pages through `scripts/portal-tabs.mjs` helpers.
 - Deployment: not deployed; draft PR #227, stacked on #226. Not yet tried on a real phone, including the new hotspot choice page on NDAHI Wi-Fi.
 
+### Activity on phones (#395, batch 8, 26 November 2026)
+
+- [-] **CUS-395 — Activity, redesigned (batch 8)** ([#395](https://github.com/ImaJin14/Ndahi-Connect/issues/395)). Owner decisions: [#395 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/395#issuecomment-7178822585).
+  - **Implemented and tested** (PR #482, not merged yet):
+    - the drawn phone list: the filter in its sage track, the waiting banner ("Approve it on your phone, then tap here to check", which opens the waiting payment), and rows with their date and how they were paid ("Today · MTN MoMo", "5 Nov · MTN MoMo · Receipt", "8 Nov · Orange Money") and their status pills;
+    - payments still open in place, with the status check, receipt and refund request (owner, 26 Nov). A waiting row the customer has opened now updates when its payment window ends;
+    - "Voucher redeemed" rows for the codes the customer entered (not those bought with their own payment, a store order's free month or a bulk gift from staff), dated when first used, opening Internet's vouchers;
+    - the rules link under the list removed, as drawn; status words capitalised on the first letter only, so French reads "En attente";
+    - English and French.
+  - **Not yet:** merged, deployed, or checked by the owner on a phone with real payments and orders.
+
 ### Sign-in cutover to PIN and passkey — redesign Phase 6 (13 November 2026)
 
 - Implemented: administrators sign in with email (or username) + PIN, then confirm with a passkey. The passkey step is single use, expires after five minutes and is bound to current credentials. Administrators without a passkey add one on the sign-in page; this is required after the retirement marker and offered before it. Passkey-only sign-in is refused after the cutover. Self-service sign-in email; owner removal of a staff member's lost passkeys; owner removal of a customer's lost passkeys through the audited support-recovery form. v2 customer sign-in leads with phone + PIN, with the voucher code as the second path. v1 admin sign-in handles the passkey step. See `docs/operations/phase6-sign-in.md`.

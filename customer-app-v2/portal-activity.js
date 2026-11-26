@@ -9,17 +9,41 @@ import { currentLanguage } from "/shared/ui/dom.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
-export const activityDay = (value) => {
+const douala = (at) => new Date(at).toLocaleDateString("en-CA", { timeZone: "Africa/Douala" });
+export const activityDay = (value, { today = false } = {}) => {
   const at = Date.parse(value);
-  return Number.isFinite(at) ? new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: "Africa/Douala" }) : "";
+  if (!Number.isFinite(at)) return "";
+  // Phones say "Today" for today's entries (canvas: PhoneActivity).
+  if (today && douala(at) === douala(Date.now())) return L("portalActivityToday");
+  return new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short", timeZone: "Africa/Douala" });
 };
 const ICONS = {
   wifi: "M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0M12 19.5h.01",
   shop: "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7",
+  ticket: "M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4Zm12 0v14",
 };
+// How it was paid, as the rows name it: "MTN MoMo", "Orange Money".
+const METHODS = { mtn: "MTN MoMo", orange: "Orange Money" };
+export const activityMethod = (network) => METHODS[network] || "Mobile Money";
+// A payment row's line under its title: "Today · MTN MoMo", and "· Receipt"
+// once its receipt is ready (canvas: PhoneActivity).
+export const paymentMeta = (payment) => [activityDay(payment.createdAt, { today: true }), payment.provider === "mock" ? payment.methodLabel : activityMethod(payment.network),
+  ...(payment.receiptAvailable && (payment.confirmedAt || payment.status === "paid") ? [L("portalActivityReceipt")] : [])].filter(Boolean).join(" · ");
+
+// "Voucher redeemed" rows (owner, 26 Nov): codes on the account that it didn't
+// buy with its own Mobile Money payment (those are its "Bundle" rows), dated
+// when first used. A store order's free month and a bulk gift from staff were
+// never entered, so they aren't listed. They open Internet's vouchers.
+export function voucherRows(vouchers, payments) {
+  const own = new Set((payments || []).map((p) => p.id));
+  return (vouchers || []).filter((v) => v.code && v.activatedAt && !own.has(v.paymentId) && !v.orderId && !v.giftBatchId).map((v) =>
+    `<a class="portal-activity__order portal-activity__voucher" data-voucher-row="${h(v.id)}" data-activity-kind="internet" data-activity-at="${h(v.activatedAt)}" href="/dashboard#vouchers">${activityIcon("ticket")}<span class="portal-activity__date nd-wide-only">${h(activityDay(v.activatedAt))}</span><span class="portal-activity__main"><strong>${h(L("portalVoucherRedeemed"))}</strong><span class="nd-meta">${h([activityDay(v.activatedAt, { today: true }), v.code].join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">—</span><span class="portal-activity__amount nd-wide-only">—</span><span class="portal-activity__status"><span class="nd-pill">${h(L("portalVoucherUsed"))}</span></span></a>`).join("");
+}
 export const activityIcon = (name) => `<span class="portal-activity__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"></path></svg></span>`;
 // Payment pills: the word stays lower case in the page (journeys read it) and CSS capitalises it.
 const PAY = { paid: "success", pending: "warning", processing: "warning", failed: "danger", "refund-pending": "info" };
+// Order pills (canvas): Ready to collect in blue, Collected grey.
+const ORDER = { ready: "info", preparing: "warning", awaiting_payment: "warning", review: "danger" };
 export const paymentPill = (status) => `<span class="nd-pill portal-activity__pill${PAY[status] ? " nd-pill--" + PAY[status] : ""}">${h(L("portalPay_" + String(status || "").replace(/-/g, "_")) || status)}</span>`;
 
 export function activityFilters() {
@@ -55,6 +79,8 @@ export function mountActivity({ call }) {
   // in All and Orders so a failed lookup never passes for a complete list.
   const host = document.getElementById("activityOrders"), list = document.querySelector("#billing .portal-activity__list");
   if (!host || !list) return;
+  // Payments and redeemed vouchers by date, before the orders arrive.
+  sortActivity(list);
   call("/api/account/store/context").then((context) => {
     // A context without an order list (or that does not know this customer)
     // cannot vouch for "no orders": report it as unavailable instead.
@@ -67,10 +93,11 @@ export function mountActivity({ call }) {
     const lang = currentLanguage();
     list.insertAdjacentHTML("beforeend", orders.map((o) => {
       const product = o.product && (typeof o.product.name === "object" ? o.product.name[lang] || o.product.name.en : o.product.name);
-      const tone = { ready: "info", collected: "", preparing: "warning", awaiting_payment: "warning", review: "danger" }[o.status];
+      const tone = ORDER[o.status];
       const amount = Number.isFinite(Number(o.amount)) ? `${Number(o.amount).toLocaleString()} FCFA` : "—";
-      // Orders don't record how they were paid, so that column says "—".
-      return `<a class="portal-activity__order" data-order-row="${h(o.id)}" data-activity-kind="orders" data-activity-at="${h(o.createdAt || "")}" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__date nd-wide-only">${h(activityDay(o.createdAt))}</span><span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt), o.reference].filter(Boolean).join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">—</span><span class="portal-activity__amount nd-wide-only">${h(amount)}</span><span class="portal-activity__status"><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></span></a>`;
+      // Date and how it was paid (canvas: "8 Nov · Orange Money").
+      const method = o.network ? activityMethod(o.network) : "—";
+      return `<a class="portal-activity__order" data-order-row="${h(o.id)}" data-activity-kind="orders" data-activity-at="${h(o.createdAt || "")}" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__date nd-wide-only">${h(activityDay(o.createdAt))}</span><span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt, { today: true }), o.network ? method : o.reference].filter(Boolean).join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">${h(method)}</span><span class="portal-activity__amount nd-wide-only">${h(amount)}</span><span class="portal-activity__status"><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></span></a>`;
     }).join(""));
     sortActivity(list);
   }).catch(() => {
