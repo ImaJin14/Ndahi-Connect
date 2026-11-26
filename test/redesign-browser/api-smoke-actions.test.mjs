@@ -289,6 +289,8 @@ test("all v2/store pages load cleanly and fixed customer CSRF + admin self-servi
     const { pageErrors, badResponses } = attachGuards(page);
 
     await page.goto(`${adminUrl}/dashboard#profile`);
+    // Change PIN opens its dialog (canvas: AdminProfile, #389).
+    await page.locator("#openAdminPin").click();
     await page.locator("#adminPassword").waitFor({ state: "visible" });
     await page.locator('#adminPassword input[name="newPassword"]').fill(newPin);
     await page.locator('#adminPassword input[name="confirmPassword"]').fill(newPin);
@@ -302,7 +304,7 @@ test("all v2/store pages load cleanly and fixed customer CSRF + admin self-servi
       proofDialog.locator('button[type="submit"]').click(),
     ]);
     assert.equal(pwRes.status(), 200, "Operator self-service password change must succeed");
-    await page.locator("[data-password-message]").filter({ hasText: /changed/i }).waitFor();
+    await page.locator("[data-pin-changed]").filter({ hasText: /changed/i }).waitFor();
 
     // Clear session and sign back in with the new password
     await ctx.clearCookies({ name: "admin_session" });

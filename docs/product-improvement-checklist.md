@@ -1407,6 +1407,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the server records when each passkey last signed in or confirmed a change; new passkeys are named after the device (Android phone, iPhone, Windows computer…); no Rename on the rows (owner).
   - **Not yet:** merged, deployed, or a passkey added and used on a real phone.
 
+### Admin profile and security (#389, batch 12, 26 November 2026)
+
+- [-] **ADM-389 — Admin profile and security, redesigned (batch 12)** ([#389](https://github.com/ImaJin14/Ndahi-Connect/issues/389)). Owner decisions: [#389 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/389#issuecomment-7197231105).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - You: Name (each administrator sets the name staff see; no fresh verification, audited), Email (still verified), Save, and Change PIN, which opens a dialog;
+    - Passkeys: each with "added 19 Aug · used today" and Remove, the one-left warning and "Add a passkey on this device"; the server now records when an admin passkey was last used, and new passkeys are named after the device;
+    - Staff (owner only): active staff as "Name · role" with Remove, which opens a choice: "Remove their passkeys (lost device)" or "Remove from staff" (owner); "Invite an operator" opens today's add form (owner);
+    - no install card on the page (owner): staff install the admin app from the browser menu.
+  - **Not yet:** merged, deployed, or a passkey added and a staff member managed on the live admin.
+
 ## Customer bundle expiry message (8 November 2026)
 
 - [x] Implemented locally: confirmed expiry now shows “No active bundle” and “You don’t have an active bundle. Subscribe to get connected.” with guidance to the existing package selection below; the expired balance gauge is hidden. Accounts without a bundle get the same invitation. Unknown/unavailable status is kept separate, and expiry confirmation/purchase eligibility rules are unchanged.
