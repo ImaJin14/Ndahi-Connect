@@ -107,3 +107,14 @@ test("the hold period is 1 to 90 days, and a save without it keeps it", async (t
   assert.equal((await f.post("/api/admin/store/settings/save", v1, "owner")).status, 200);
   assert.equal((await f.store.snapshot()).storeSettings.readyHoldDays, 21);
 });
+
+// The store shows the boards' fixed words (#403/#418; owner 26 Nov), so the v2
+// admin's settings form has no Introduction; a save without it keeps the stored one.
+test("a store settings save without an introduction keeps the stored one", async (t) => {
+  const f = await fixture(t);
+  const current = (await f.store.snapshot()).storeSettings;
+  assert.equal((await f.post("/api/admin/store/settings/save", { ...current, introduction: { en: "Kept", fr: "Gardé" } }, "owner")).status, 200);
+  const { introduction: _intro, ...v2 } = (await f.store.snapshot()).storeSettings;
+  assert.equal((await f.post("/api/admin/store/settings/save", v2, "owner")).status, 200);
+  assert.deepEqual((await f.store.snapshot()).storeSettings.introduction, { en: "Kept", fr: "Gardé" });
+});

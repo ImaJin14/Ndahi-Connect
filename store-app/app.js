@@ -22,6 +22,9 @@ const words = {
     headline: "Equipment for better connections.",
     intro:
       "Routers and extenders we've tested on our network. Buy without an account — pay with Mobile Money and collect locally.",
+    // The phone board's shorter line (PhoneGuestShop, #403; owner 26 Nov).
+    introPhone: "No account needed. Pay with Mobile Money, collect locally.",
+    policyWarranty: "Warranty policy",
     how: "How buying works",
     step1: "Pick a device",
     step2: "Pay as a guest or signed in",
@@ -164,9 +167,11 @@ const words = {
     orders: "Mes commandes",
     account: "Se connecter",
     eyebrow: "LA BOUTIQUE NDAHI",
-    headline: "Faites place à de<br>meilleures connexions.",
+    headline: "Des équipements pour de meilleures connexions.",
     intro:
-      "Le bon équipement, un peu plus de portée. Découvrez les essentiels réseau pour la maison, le travail et vos déplacements.",
+      "Des routeurs et répéteurs testés sur notre réseau. Achetez sans compte — payez par Mobile Money et retirez sur place.",
+    introPhone: "Sans compte. Payez par Mobile Money, retirez sur place.",
+    policyWarranty: "Politique de garantie",
     browse: "Voir les appareils",
     pickup: "Retrait local",
     money: "MTN et Orange Money",
@@ -395,11 +400,6 @@ function layout() {
     .forEach((el) => (el.textContent = t(el.dataset.label)));
   $("#portal").href = data.portalUrl + "/login";
   $("#internetNav").href = data.portalUrl + "/onboarding.html";
-  $("#internet").href = data.portalUrl + "/onboarding.html";
-  $("#internet").textContent = t("internet");
-  $("#footerText").textContent = t("footer");
-  $("#storeContact").textContent = data.settings.contact;
-  $("#footerPolicies").innerHTML = `<summary>${h(t("policies"))}</summary><h3>${h(t("warranty"))}</h3><p>${h(l(data.settings.warranty))}</p><h3>${h(t("returns"))}</h3><p>${h(l(data.settings.returns))}</p>`;
 }
 const ICON = {
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"/></svg>',
@@ -439,7 +439,7 @@ function renderShop() {
   // The canvas has no search; it appears only once the catalogue outgrows the chips.
   const searchable = data.products.length > 8;
   $("#view").innerHTML =
-    `${promo.hero(data)}<section class="hero"><div><span class="eyebrow hero-domain">${h(location.hostname)}</span><h1>${t("headline")}</h1><p>${h(l(data.settings.introduction) || t("intro"))}</p></div><ol class="steps" aria-label="${h(t("how"))}"><li><span aria-hidden="true">1</span>${h(t("step1"))}</li><li><span aria-hidden="true">2</span>${h(t("step2"))}</li><li><span aria-hidden="true">3</span>${h(place() ? t("step3At").replace("{place}", place()) : t("step3"))}</li></ol></section>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${resumeNotice()}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices" aria-labelledby="devicesTitle"><h2 id="devicesTitle" class="visually-hidden">${h(t("devices"))}</h2>${searchable ? `<input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}">` : ""}<div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}">${h(l(c.name))}</button>`).join("")}</div><div class="products">${products.length ? products.map((p) => { const s = stock(p), pc = promo.card(p); return `<article class="product${pc ? " product--promo" : ""}">${pc ? `<div class="promo-visual">${visual(p)}${pc.badge}</div>` : visual(p)}<div class="product-body"><p class="product-category">${h(category_(p))}</p><h3>${h(l(p.name))}</h3>${pc ? pc.chip : ""}<div class="product-bottom"><p><span class="price">${h(money(p.price))}</span><span class="product-stock${s.low || pc ? " is-low" : ""}">${h(pc && p.available ? pc.stock : s.text)}</span></p><button data-product="${h(p.id)}" aria-label="${h(t("details"))}: ${h(l(p.name))}"><span class="wide">${h(pc ? pc.button : t("view"))}</span><span class="narrow">${ICON.chevron}</span></button></div></div></article>`; }).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><a class="internet-row narrow" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internetRow"))}<span aria-hidden="true">→</span></a>${account.authenticated ? "" : `<section class="customer-bar wide"><div><h2>${h(t("customerTitle"))}</h2><p>${h(t("customerText"))}</p></div><a class="button dark" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></section>`}`;
+    `${promo.hero(data)}<section class="hero"><div><span class="eyebrow hero-domain">${h(location.hostname)}</span><h1>${t("headline")}</h1><p><span class="narrow">${h(t("introPhone"))}</span><span class="wide">${h(t("intro"))}</span></p></div><ol class="steps" aria-label="${h(t("how"))}"><li><span aria-hidden="true">1</span>${h(t("step1"))}</li><li><span aria-hidden="true">2</span>${h(t("step2"))}</li><li><span aria-hidden="true">3</span>${h(place() ? t("step3At").replace("{place}", place()) : t("step3"))}</li></ol></section>${l(data.settings.banner) ? `<p class="notice">${h(l(data.settings.banner))}</p>` : ""}${resumeNotice()}${!data.settings.open ? `<p class="notice">${h(t("closed"))}</p>` : ""}<section id="devices" aria-labelledby="devicesTitle"><h2 id="devicesTitle" class="visually-hidden">${h(t("devices"))}</h2>${searchable ? `<input class="search" type="search" id="search" aria-label="${h(t("search"))}" placeholder="${h(t("search"))}" value="${h(search)}">` : ""}<div class="filters"><button data-category="" class="${!category ? "active" : ""}">${h(t("all"))}</button>${data.categories.map((c) => `<button data-category="${h(c.id)}" class="${category === c.id ? "active" : ""}" aria-label="${h(l(c.name))}"><span class="narrow" aria-hidden="true">${h(l(c.shortName) || l(c.name))}</span><span class="wide" aria-hidden="true">${h(l(c.name))}</span></button>`).join("")}</div><div class="products">${products.length ? products.map((p) => { const s = stock(p), pc = promo.card(p); return `<article class="product${pc ? " product--promo" : ""}">${pc ? `<div class="promo-visual">${visual(p)}${pc.badge}</div>` : visual(p)}<div class="product-body"><p class="product-category">${h(category_(p))}</p><h3>${h(l(p.name))}</h3>${pc ? pc.chip : ""}<div class="product-bottom"><p><span class="price">${h(money(p.price))}</span><span class="product-stock${s.low || pc ? " is-low" : ""}">${h(pc && p.available ? pc.stock : s.text)}</span></p><button data-product="${h(p.id)}" aria-label="${h(t("details"))}: ${h(l(p.name))}"><span class="wide">${h(pc ? pc.button : t("view"))}</span><span class="narrow" aria-hidden="true">›</span></button></div></div></article>`; }).join("") : `<div class="empty"><h3>${h(t("empty"))}</h3><p>${h(t("emptyText"))}</p></div>`}</div></section><a class="internet-row narrow" href="${h(data.portalUrl)}/onboarding.html" target="_blank" rel="noopener">${h(t("internetRow"))}<span aria-hidden="true">→</span></a>${account.authenticated ? "" : `<section class="customer-bar wide"><div><h2>${h(t("customerTitle"))}</h2><p>${h(t("customerText"))}</p></div><a class="button dark" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></section>`}`;
   bindResume();
   promo.tick($("#view"), () => void reloadCatalogue());
   if ($("#search"))
@@ -475,6 +475,9 @@ function specRows(p) {
   }
   for (const k of ["compatibility", "contents", "warranty", "setup"]) if (l(p[k])) rows.push([t(k), l(p[k])]);
   rows.push([lang === "fr" ? "Référence" : "SKU", p.sku]);
+  // The store's own policies, once in the footer (owner, 26 Nov: no footer).
+  if (l(data.settings.warranty)) rows.push([t("policyWarranty"), l(data.settings.warranty)]);
+  if (l(data.settings.returns)) rows.push([t("returns"), l(data.settings.returns)]);
   // A promotion's free bundle is internet included with the product (#302).
   return `<dl class="spec-table">${rows.map(([k, v]) => `<div class="${v.length > 40 ? "is-long" : ""}"><dt>${h(k)}</dt><dd>${h(v)}</dd></div>`).join("")}</dl>${p.promotion?.bonus ? "" : `<p class="form-help">${h(t("separate"))}</p>`}`;
 }
