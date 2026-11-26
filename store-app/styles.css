@@ -158,44 +158,84 @@ footer .policy p { margin-bottom: var(--nd-space-8); }
   .buy-bar { position: fixed; right: 0; bottom: 0; left: 0; z-index: 3; padding: var(--nd-space-10) var(--nd-space-10) max(var(--nd-space-10), env(safe-area-inset-bottom)); border-top: 1px solid var(--nd-line); background: var(--nd-ivory); }
 }
 
-/* ---------- Checkout (canvas: PhoneGuestCheckout) ---------- */
-dialog { width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; padding: var(--nd-space-16) var(--nd-space-14) var(--nd-space-32); border: 0; background: var(--nd-ivory); color: var(--nd-ink); overflow: auto; }
+/* ---------- Checkout (canvas: PhoneGuestCheckout, #400) ---------- */
+/* A full-screen sheet on phones: the bar, the step (its main scrolls), the foot. */
+dialog { width: 100%; max-width: 100%; height: 100%; max-height: 100%; margin: 0; padding: 0; border: 0; background: var(--nd-ivory); color: var(--nd-ink); overflow: hidden; }
+dialog[open] { display: flex; flex-direction: column; }
 dialog::backdrop { background: rgba(0, 30, 22, .55); }
-.sheet-bar { position: sticky; top: calc(-1 * var(--nd-space-16)); z-index: 2; display: flex; align-items: center; gap: var(--nd-space-6); margin: calc(-1 * var(--nd-space-16)) calc(-1 * var(--nd-space-14)) var(--nd-space-14); padding: var(--nd-space-6) var(--nd-space-10) var(--nd-space-6) var(--nd-space-4); border-bottom: 1px solid var(--nd-line); background: var(--nd-ivory); }
+.sheet-bar { flex: none; display: flex; align-items: center; gap: var(--nd-space-8); padding: var(--nd-space-10); border-bottom: 1px solid var(--nd-line); background: var(--nd-ivory); }
 .close { display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: var(--nd-radius-control); background: none; color: var(--nd-ink); }
 .close:hover { background: var(--nd-sage); }
-.sheet-bar__title { color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
-#checkoutTitle { margin: 0 0 4px; color: var(--nd-forest); font: 700 24px/1.2 var(--nd-font-display); }
-.checkout-line { margin: 0 0 var(--nd-space-14); color: var(--nd-muted); font-size: var(--nd-fs-meta); }
-.checkout-choice { display: grid; gap: var(--nd-space-10); margin: 0 0 var(--nd-space-14); }
-.choice { display: flex; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); color: var(--nd-ink); text-decoration: none; }
+.sheet-bar__title { padding-left: var(--nd-space-8); color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+/* Once a request is sent the bar has no back: Check status, Change payment, Track my order. */
+#checkoutDialog[data-step="wait"] .close, #checkoutDialog[data-step="done"] .close { display: none; }
+#checkoutDetail, .checkout-step { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.checkout-main { display: flex; flex: 1; flex-direction: column; gap: var(--nd-space-12); min-height: 0; overflow: auto; padding: var(--nd-space-20) var(--nd-space-18); }
+.checkout-step .checkout-main { padding: var(--nd-space-14) var(--nd-space-18); }
+#checkoutTitle { margin: 0; color: var(--nd-ink); font: 600 28px/1.15 var(--nd-font-display); letter-spacing: 0; }
+.checkout-line { margin: 0 0 6px; color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: normal; }
+.checkout-choice { display: grid; gap: var(--nd-space-12); }
+.choice { display: flex; align-items: center; justify-content: flex-start; gap: var(--nd-space-14); width: 100%; min-height: 84px; padding: var(--nd-space-14); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-card); background: var(--nd-paper); color: var(--nd-ink); font: 400 16px/normal var(--nd-font-body); text-align: left; text-decoration: none; }
+/* As drawn, the button keeps the browser's 13.33px base, which sets its text's line height. */
+button.choice { font-size: 13.3333px; }
+.choice:hover { background: var(--nd-paper); }
 .choice.is-chosen { border: 2px solid var(--nd-forest); }
-.choice__icon { display: grid; flex-shrink: 0; place-items: center; width: 40px; height: 40px; border-radius: var(--nd-radius-control); background: var(--nd-sage); color: var(--nd-forest); }
+.choice__icon { display: grid; flex-shrink: 0; place-items: center; width: 44px; height: 44px; border-radius: var(--nd-radius-panel); background: var(--nd-sage); color: var(--nd-forest); }
 .choice.is-chosen .choice__icon { background: var(--nd-lime); color: var(--nd-lime-ink); }
-.choice strong { display: block; font-size: 15px; }
-.choice span span { display: block; color: var(--nd-muted); font-size: 13px; line-height: 1.4; }
+.choice > span:last-child { flex: 1; }
+.choice strong { display: block; font-size: 16px; }
+.choice span span { color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 label { display: block; margin: 0 0 6px; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
 input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; min-height: 48px; padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
 textarea { padding: var(--nd-space-10) var(--nd-space-14); }
 .form-grid { display: grid; gap: var(--nd-space-14); margin: var(--nd-space-14) 0; }
 .form-help { margin: var(--nd-space-8) 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 .form-grid .form-help { margin-top: 4px; }
-.collect-box { display: flex; flex-direction: column; gap: 2px; margin: 0 0 var(--nd-space-14); padding: var(--nd-space-14); border-radius: var(--nd-radius-panel); background: var(--nd-sage); font-size: var(--nd-fs-small); }
+/* The details: full name, the one number that pays, an optional email. */
+#checkoutForm .form-grid { gap: var(--nd-space-12); margin: 0; }
+#checkoutForm input:not([type="radio"]) { min-height: 46px; }
+#checkoutForm label, .pay-with legend { line-height: normal; }
+.label-note { color: var(--nd-muted); font-weight: 500; }
+.collect-box { display: flex; flex-direction: column; padding: var(--nd-space-10) var(--nd-space-12); border: 2px solid var(--nd-forest); border-radius: var(--nd-radius-panel); background: var(--nd-paper); font-size: var(--nd-fs-small); line-height: normal; }
 .collect-box strong { color: var(--nd-ink); }
-.collect-box span { color: var(--nd-ink-soft); }
+.collect-box span { color: var(--nd-muted); }
 .collect-box span:empty { display: none; }
-.pay-with { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-8); margin: 0 0 var(--nd-space-14); padding: 0; border: 0; }
+.pay-with { margin: 0; padding: 0; border: 0; }
 .pay-with legend { margin-bottom: 6px; padding: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; }
-.method { display: flex; align-items: center; gap: var(--nd-space-8); min-height: 52px; margin: 0; padding: 0 var(--nd-space-12); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); font-size: var(--nd-fs-small); font-weight: 700; cursor: pointer; }
-.method:has(input:checked) { border: 2px solid var(--nd-forest); }
-.method input { accent-color: var(--nd-forest); }
-.checkout-summary { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nd-space-12); margin: 0 0 var(--nd-space-8); padding: var(--nd-space-12) 0; border-top: 1px solid var(--nd-line); border-bottom: 1px solid var(--nd-line); }
-.checkout-summary span { color: var(--nd-ink-soft); font-weight: 600; }
-.checkout-summary strong { color: var(--nd-forest); font-size: 20px; }
-/* Item, Mobile Money fee and total to approve (canvas: PhoneGuestCheckout, #297). */
-.checkout-cost__row { display: flex; justify-content: space-between; gap: var(--nd-space-12); margin: 0 0 4px; color: var(--nd-ink-soft); font-size: 14px; }
-.checkout-cost .checkout-summary { margin-top: var(--nd-space-6); }
-.checkout-cost__balance { margin: 0 0 var(--nd-space-8); color: var(--nd-warning-fg, #6b3a00); font-size: 12px; }
+.pay-with__methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-10); }
+/* Each method is a radio drawn as the board's button: the dot stays for screen readers only. */
+.method { position: relative; display: flex; align-items: center; justify-content: center; min-height: 48px; margin: 0; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-panel); background: var(--nd-paper); color: var(--nd-ink); font-size: var(--nd-fs-body); font-weight: 600; cursor: pointer; }
+.method:has(input:checked) { border: 2px solid var(--nd-forest); background: #f3f9e8; }
+.method:has(input:focus-visible) { outline: var(--nd-focus-width) solid var(--nd-focus-color); outline-offset: 2px; }
+.method input { position: absolute; opacity: 0; pointer-events: none; }
+/* The foot: item, fee, total to pay, the wallet note and the step's buttons. */
+.checkout-foot { flex: none; padding: var(--nd-space-12) var(--nd-space-16) var(--nd-space-18); border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
+.checkout-foot button { width: 100%; min-height: 52px; padding: 0 var(--nd-space-16); font-size: var(--nd-fs-control); }
+.checkout-foot button.secondary { min-height: 50px; }
+.checkout-foot--actions { display: flex; flex-direction: column; gap: var(--nd-space-10); }
+.checkout-foot .error { margin: var(--nd-space-8) 0 0; }
+.checkout-cost__row { display: flex; justify-content: space-between; gap: var(--nd-space-12); color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: normal; }
+.checkout-cost__row + .checkout-cost__row { margin-top: 4px; }
+.checkout-summary { display: flex; align-items: baseline; justify-content: space-between; gap: var(--nd-space-12); margin: 6px 0 4px; padding-top: 6px; border-top: 1px solid var(--nd-line); line-height: normal; }
+.checkout-summary span { color: var(--nd-ink); font-size: var(--nd-fs-small); font-weight: 700; }
+.checkout-summary strong { color: var(--nd-ink); font-size: 20px; }
+.checkout-cost__balance { margin: 0 0 var(--nd-space-10); padding: var(--nd-space-8) var(--nd-space-10); border-radius: var(--nd-radius-control); background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: var(--nd-fs-caption); line-height: 1.45; }
+.checkout-cost__balance strong { color: inherit; }
+/* Approve on your phone, and Order placed. */
+.checkout-state { align-items: center; gap: var(--nd-space-14); padding: 30px var(--nd-space-22); text-align: center; }
+.checkout-state--done { gap: var(--nd-space-12); padding: 26px var(--nd-space-20); }
+.checkout-state__icon { display: grid; flex: none; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+.checkout-state__icon--done { width: 76px; height: 76px; background: var(--nd-success-bg); color: var(--nd-success-fg); }
+.checkout-state > p { color: var(--nd-ink-soft); font-size: var(--nd-fs-body); line-height: 1.55; }
+.checkout-state--done > p { line-height: 1.5; }
+.checkout-state strong { color: inherit; }
+.checkout-keep, .checkout-account { align-self: stretch; padding: var(--nd-space-14); border-radius: var(--nd-radius-panel); text-align: left; }
+.checkout-keep { background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+.checkout-account { background: var(--nd-sage); }
+.checkout-keep strong, .checkout-account strong { display: block; font-size: var(--nd-fs-small); line-height: normal; }
+.checkout-keep p, .checkout-account p { margin: 4px 0 0; color: inherit; font-size: var(--nd-fs-meta); line-height: 1.45; }
+.checkout-account p { margin-bottom: var(--nd-space-10); color: var(--nd-ink-soft); line-height: normal; }
+.checkout-account .button { display: flex; width: 100%; min-height: 44px; padding: 0 var(--nd-space-16); font-size: var(--nd-fs-small); }
 .actions { display: flex; flex-wrap: wrap; gap: var(--nd-space-10); margin: var(--nd-space-16) 0 0; }
 .actions > button, .actions > .button { flex: 1 1 200px; min-height: 52px; font-size: var(--nd-fs-body); }
 
@@ -289,9 +329,10 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .stepper output { min-width: 36px; }
   #buy { min-height: 54px; }
   /* Checkout and order. */
-  dialog { width: min(620px, calc(100% - 48px)); height: auto; max-height: calc(100% - 48px); margin: auto; padding: var(--nd-space-16) var(--nd-space-24) var(--nd-space-24); border-radius: var(--nd-radius-card-lg); }
-  .sheet-bar { margin: calc(-1 * var(--nd-space-16)) calc(-1 * var(--nd-space-24)) var(--nd-space-16); }
+  /* A modal is fixed to all four sides: fit-content keeps the sheet to its step. */
+  dialog { width: min(620px, calc(100% - 48px)); height: fit-content; max-height: calc(100% - 48px); margin: auto; border-radius: var(--nd-radius-card-lg); }
   .form-grid { grid-template-columns: 1fr 1fr; }
+  #checkoutForm .form-grid { grid-template-columns: 1fr; }
   .order-page { padding-top: var(--nd-space-16); }
   .order-page .bar { margin: 0; padding: 0; border: 0; background: none; }
   .order-page .bar-title { color: var(--nd-forest); font: 700 28px/1.2 var(--nd-font-display); }

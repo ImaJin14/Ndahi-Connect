@@ -100,14 +100,44 @@ test("only the account's own unpaid orders can be changed", async (t) => {
   // Another account can't see or cancel it.
   assert.equal((await f.call("/api/account/store/cancel", { orderId: first.body.order.id }, "other")).status, 404);
   assert.equal((await f.store.snapshot()).storeOrders[0].status, "awaiting_payment");
-  // The public store has no cancel route, even with the order's link.
+  // An account's order can't be changed from the public store, even with its link.
   const guest = await fetch(`${f.base}/api/store/cancel`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: first.body.order.id, token: first.body.token }) });
   assert.equal(guest.status, 404);
+  assert.equal((await f.store.snapshot()).storeOrders[0].status, "awaiting_payment");
   // A paid order stays as it is.
   f.setProvider("paid");
   f.advance(31000);
   await f.call("/api/account/store/verify", { orderId: first.body.order.id });
   const paid = await f.call("/api/account/store/cancel", { orderId: first.body.order.id });
   assert.equal(paid.status, 200);
+  assert.equal(paid.body.order.status, "preparing");
+});
+
+// Guest checkout (PhoneGuestCheckout, #400; owner 26 Nov): Change payment on a
+// guest order works with the order's private link only, and asks the provider
+// first, as the account route does.
+test("a guest changes payment on their own order with its private link", async (t) => {
+  const f = await fixture(t);
+  const post = async (path, input) => { const r = await fetch(f.base + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }); return { status: r.status, body: await r.json() }; };
+  const guest = () => post("/api/store/checkout", { checkoutKey: randomUUID(), productId: "p1", quantity: 1, expectedPrice: 10000, name: "Paul", phone: "670000009", payerPhone: "670000009", network: "mtn" });
+  const first = await guest();
+  assert.equal(first.status, 200);
+  assert.equal(await f.available(), 0, "the unpaid order holds the device");
+  // Without the link, or with another one, nothing changes.
+  assert.equal((await post("/api/store/cancel", { orderId: first.body.order.id })).status, 404);
+  assert.equal((await post("/api/store/cancel", { orderId: first.body.order.id, token: "not-the-link" })).status, 404);
+  assert.equal((await f.store.snapshot()).storeOrders[0].status, "awaiting_payment");
+  // With it, the request is cancelled and the device is back for a fresh one.
+  const cancelled = await post("/api/store/cancel", { orderId: first.body.order.id, token: first.body.token });
+  assert.equal(cancelled.status, 200);
+  assert.equal(cancelled.body.order.status, "cancelled");
+  assert.equal(await f.available(), 1);
+  const again = await guest();
+  assert.equal(again.status, 200);
+  // Approved a moment ago: the provider is asked first, so it is settled, not cancelled.
+  f.setProvider("paid");
+  const paid = await post("/api/store/cancel", { orderId: again.body.order.id, token: again.body.token });
+  assert.equal(paid.status, 200);
+  assert.equal(paid.body.order.paymentStatus, "paid");
   assert.equal(paid.body.order.status, "preparing");
 });

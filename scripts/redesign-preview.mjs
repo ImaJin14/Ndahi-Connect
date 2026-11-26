@@ -181,7 +181,7 @@ export const SCREENS = [
     ["guest-product", "Guest product", "PhoneGuestProduct", "ProductDesktop", "/", "Redesigned",
       { open: ["[data-product]"], hash: "^#product/[^/]+$", expect: ["body[data-view=\"product\"] .detail-info #productTitle", "#buy:not([disabled])"] }],
     ["guest-checkout", "Guest checkout", "PhoneGuestCheckout", null, "/", "Redesigned",
-      { open: ["[data-product]", "#buy"], hash: "^#product/[^/]+$", expect: ["body[data-view=\"product\"] #productTitle", "#checkoutDialog[open] #checkoutForm"] }],
+      { open: ["[data-product]", "#buy"], hash: "^#product/[^/]+$", expect: ["body[data-view=\"product\"] #productTitle", "#checkoutDialog[open] #checkoutGuest"] }],
     // A guest's paid order, opened from its private tracking link.
     ["guest-order", "Guest order", "PhoneGuestOrder", null, "/#order/{guestOrderId}/{guestOrderToken}", "Redesigned",
       { hash: "^#order/[^/]+/[^/]+$", expect: ["body[data-view=\"order\"] .order-page", ".code-card__code", "#privateLink"] }],

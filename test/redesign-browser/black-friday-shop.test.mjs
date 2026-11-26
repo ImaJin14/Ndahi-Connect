@@ -166,6 +166,8 @@ test("shoppers see the Black Friday countdown, the offer and their free month, t
   assert.match(await text(page.locator(".promo-gift")), /^\+ 1 month Unlimited internet, free Unlimited Home · worth [\d,]+ FCFA · start it when you like$/);
   await check(page, "store-product-390");
   await page.locator("#buy").click();
+  // Guest checkout in steps (#400): continue as guest, then the details.
+  await page.locator("#checkoutGuest").click();
   await page.locator("#checkoutForm").waitFor();
   assert.match(await text(page.locator("#checkoutCost")), /\+ 1 month Unlimited \(Unlimited Home\) Free/);
   assert.equal(await text(page.locator(".promo-note")), "How you get your free month It's reserved for the Mobile Money number that pays. When you collect the router you get a slip with a code — claim it with that number and the code.");
