@@ -1391,7 +1391,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Passkey sign-in (#408, batch 11, 26 November 2026)
 
 - [-] **CUS-408 — Passkey sign-in, redesigned (batch 11)** ([#408](https://github.com/ImaJin14/Ndahi-Connect/issues/408)). Build note and owner decision: [#408 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/408#issuecomment-7195297195).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #405):
+  - **Implemented and tested** (PR #499, not merged yet; built on #405):
     - the drawn page: the forest card, "Your passkeys" with each passkey's name, "Added <date> · last used <day>" and Remove, the sage note when there are none, and "Add a passkey on this phone" at the foot; English and French;
     - the server records when each passkey last signed in or confirmed a change; new passkeys are named after the device (Android phone, iPhone, Windows computer…); no Rename on the rows (owner).
   - **Not yet:** merged, deployed, or a passkey added and used on a real phone.
