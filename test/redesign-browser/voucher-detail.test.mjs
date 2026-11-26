@@ -107,7 +107,7 @@ test("an Unlimited voucher's page is drawn as the board", { timeout: 180000 }, a
     s.customers.push({ id: "c-fon", name: "J. Fon", phone: "670004019", email: "fon@example.test", emailVerifiedAt: later(-60) });
     const base = { planId: "p2", generatedByAdmin: true, saleType: "gift", saleAmount: 0, faceValue: 3500, accessType: "personal_unlimited", deviceSlots: 2, deviceLimit: 2, validityHours: 168,
       quotaBytes: null, batchReference: "B-1029-01", createdAt: later(-10), useBy: later(80) };
-    s.vouchers.push({ ...base, id: "u-active", code: "K7PM-42XQ", status: "active", customerId: "c-fon", usedBytes: 1.8e9, activatedAt: later(-4.5), expiresAt: later(2.5),
+    s.vouchers.push({ ...base, id: "u-active", code: "NC-K7PM-42XQ", status: "active", customerId: "c-fon", usedBytes: 1.8e9, activatedAt: later(-4.5), expiresAt: later(2.5),
       redeemedDevice: "android_phone", redeemedPlace: "AP-Market", routerSyncStatus: "synchronized", emailStatus: "sent", emailSentAt: later(-4.5) },
     { ...base, id: "u-ended", code: "U5ED-9XQA", status: "expired", customerId: "c-fon", usedBytes: 6.4e9, activatedAt: later(-14), expiresAt: later(-7) },
     { ...base, id: "u-stock", code: "S7CK-4ABC", status: "available", usedBytes: 0 });
@@ -137,6 +137,8 @@ test("an Unlimited voucher's page is drawn as the board", { timeout: 180000 }, a
 
   // In use.
   await page.goto(`${admin}/dashboard#voucher/u-active`);
+  // The code shows without "NC-", as drawn (owner, 26 Nov).
+  await page.getByRole("heading", { name: "K7PM-42XQ", level: 1 }).waitFor();
   const ticket = page.getByRole("region", { name: "Voucher", exact: true });
   await ticket.waitFor();
   assert.match(await text(ticket), new RegExp(`Unlimited data · 7 days · 2 device slots.*Valid until ${useBy} if not used`));

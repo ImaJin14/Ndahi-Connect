@@ -43,7 +43,8 @@ export async function showVoucherDetail(host, { call, id, canManage, setHead, st
 
 function render(host, data, context) {
   const { call, id, canManage, setHead, statusHost, printPreview, notice } = context;
-  const v = data.voucher, d = data.detail || {}, plan = data.plan || {}, code = d.code || "";
+  // Codes show without "NC-", as drawn (owner, 26 Nov); typed either way, they work.
+  const v = data.voucher, d = data.detail || {}, plan = data.plan || {}, code = (d.code || "").replace(/^NC-/, "");
   const r = d.reservation, waiting = v.status === "available" && r?.status === "waiting", reservedPhone = r?.phone ? `+237 ${maskPhone(r.phone)}` : "";
   const personal = d.accessType === "personal_unlimited", homeWisp = d.accessType === "home_wisp_unlimited", unlimitedTerms = personal || homeWisp;
   const [statusKey, tone] = waiting ? ["adminVoucherWaitingClaim", "claim"] : unlimitedTerms && v.status === "expired" ? STATUS.exhausted : STATUS[v.status] || ["adminVoucherExpired", ""];
