@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openSecurityManager, useVoucherSignIn } from "./portal-tabs.mjs";
+import { openSecurityManager, useVoucherSignIn, uiV2 } from "./portal-tabs.mjs";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -141,7 +141,8 @@ try {
     assert.equal(await page.locator(button).getAttribute("aria-busy"), "true");
     request.release(); await idle(page, button);
     assert.equal(request.count(), 1);
-    assert.equal(await page.locator(button).textContent(), confirm ? "Reset PIN" : "Send reset link");
+    // v2 (canvas: PhoneForgotPin, #399) says "Save new PIN".
+    assert.equal(await page.locator(button).textContent(), confirm ? (uiV2 ? "Save new PIN" : "Reset PIN") : "Send reset link");
     await page.getByText("Fixture reset failure", { exact: true }).waitFor();
   });
 

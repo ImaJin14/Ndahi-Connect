@@ -50,3 +50,40 @@ body[data-login-mode="voucher"] .pin-only { display: none !important; }
 .confirm-email h1:focus { outline: none; }
 .confirm-email .nd-btn[hidden] { display: none; }
 .confirm-email #message:not(:empty) { margin-top: var(--nd-space-12); }
+
+/* ---------- Forgot PIN (canvas: PhoneForgotPin, #399) ----------
+   The back arrow 10px in, then each step with 22px sides: the request (title,
+   line, number, Send reset link, the no-email note), "Check your email",
+   "Reset your PIN" and "PIN changed". */
+.forgot-page .login-main { padding: 10px 22px 22px; }
+.forgot-page .recovery-panel { display: flex; flex-direction: column; }
+.forgot-page .portal-login__back { margin: 0 0 16px -12px; color: var(--nd-ink); }
+.forgot-page .forgot-step { display: flex; flex-direction: column; gap: 18px; }
+.forgot-page .forgot-step[hidden] { display: none; }
+.forgot-page .forgot-step h1 { margin: 0; color: var(--nd-ink); font: 600 30px/1.15 var(--nd-font-display); letter-spacing: 0; }
+.forgot-page .forgot-step h1:focus { outline: none; }
+.forgot-page .forgot-lede { margin: 8px 0 0; color: var(--nd-muted); font-size: 15px; line-height: 1.5; }
+.forgot-page .forgot-step form { display: flex; flex-direction: column; gap: 18px; margin: 0; }
+.forgot-page .forgot-step label { display: block; margin: 0; color: var(--nd-ink); font-size: 13px; font-weight: 600; line-height: normal; }
+.forgot-page .forgot-step label > span { display: block; margin: 0 0 6px; }
+.forgot-page .forgot-step input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; height: 48px; min-height: 48px; margin: 0; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: 10px; background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.forgot-page .forgot-step button, .forgot-page .forgot-step .button { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; height: 50px; min-height: 50px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 16px var(--nd-font-body); line-height: normal; text-decoration: none; }
+.forgot-page .forgot-step button.secondary { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+.forgot-page .forgot-note { margin: 0; padding: 14px; border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; }
+.forgot-page .forgot-note strong { color: var(--nd-ink); }
+.forgot-page .forgot-note a { color: var(--nd-forest); font-weight: 700; }
+.forgot-page .forgot-hint { margin: 0; color: var(--nd-muted); font-size: 14px; }
+.forgot-page #confirmReset, .forgot-page #confirmReset form { gap: 16px; }
+.forgot-page .forgot-support { border-top: 1px solid var(--nd-line); border-bottom: 1px solid var(--nd-line); }
+.forgot-page .forgot-support > summary { display: flex; align-items: center; min-height: 48px; color: var(--nd-ink); font-size: 14px; font-weight: 700; cursor: pointer; }
+.forgot-page .forgot-support > p { margin: 0 0 12px; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; }
+.forgot-page .forgot-support form { padding-bottom: 14px; }
+/* "Check your email" and "PIN changed": the icon and words centred. */
+.forgot-page .forgot-step--centre { align-items: center; gap: 14px; margin-top: 14px; text-align: center; }
+.forgot-page .forgot-step--centre p { margin: 0; color: var(--nd-ink-soft); font-size: 15px; line-height: 1.55; }
+.forgot-page .forgot-step--centre > button, .forgot-page .forgot-step--centre > .button { margin-top: 10px; }
+.forgot-page .forgot-icon { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; }
+.forgot-page .forgot-icon--mail { background: var(--nd-info-bg); color: var(--nd-info-fg); }
+.forgot-page .forgot-icon--done { background: var(--nd-success-bg); color: var(--nd-success-fg); }
+.forgot-page #message:not(:empty) { margin-top: 14px; }
+.forgot-page .recovery-panel form button:not(.pin-toggle) { height: 50px; }

@@ -1429,6 +1429,15 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [ ] Release: matching issue #198; merge/deployment evidence recorded in [cash release notes](releases/cash-collected-2026-11-08.md). Real provider statement reconciliation and physical-device acceptance remain pending.
 - [ ] MeSomb completed net settlements still need a supported provider reporting interface (#191); see [provider requirements](operations/provider-net-settlements.md).
 
+### Forgot PIN and the PIN rule (#399, batch 11, 26 November 2026)
+
+- [-] **CUS-399 — Forgot PIN, redesigned; PINs of 4 to 6 digits (batch 11)** ([#399](https://github.com/ImaJin14/Ndahi-Connect/issues/399)). Owner decisions: [#399 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/399#issuecomment-7193167473).
+  - **Implemented and tested** (PR #497, not merged yet):
+    - customer PINs are 4 to 6 digits everywhere (sign-in, setup, claim, change PIN, reset, Home sign-up, the QR and device checks); existing 4-digit PINs keep working; one shared rule in `lib/pin-policy.mjs`; staff PINs unchanged;
+    - the drawn Forgot PIN: the number typed on Sign in comes along, "No email on your account? Visit <the shop's pickup place> with your ID, or contact support", "Check your email" with Send again, "Reset your PIN" from the emailed link (the token leaves the address bar) and "PIN changed";
+    - the support recovery code from Admin's PIN recovery stays below the request; account backup codes are no longer offered here; no footer note or help link.
+  - **Not yet:** merged, deployed, or a real reset email opened on a phone.
+
 ## Initial store catalogue intake (8 November 2026)
 
 - [x] Recorded owner-requested stock: TP-Link AX1500 travel router10, CPE210 six, Wavlink AC1200 two and Wavlink Mini four (22 units). Checked official manufacturer sources and prepared [catalogue intake](store-catalogue-intake.md) with CPE210 EN/FR copy and conditional TP-Link travel-router copy.

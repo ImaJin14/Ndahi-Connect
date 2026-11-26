@@ -109,7 +109,7 @@ function requestEmail() {
     return;
   }
   dialog.querySelector("#setupBody").innerHTML =
-    `<form id="setupEmailForm"><h3>Step 1: Confirm your email address</h3><p>${c.email ? "We kept the email entered during signup. Check that it is correct." : "Add an email for account updates, receipts and PIN recovery."}</p><label>Email address<input name="email" type="email" autocomplete="email" maxlength="254" value="${h(pending()?.email || c.email || "")}" required></label><label>Current account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label><button type="submit">Send verification code</button></form>`;
+    `<form id="setupEmailForm"><h3>Step 1: Confirm your email address</h3><p>${c.email ? "We kept the email entered during signup. Check that it is correct." : "Add an email for account updates, receipts and PIN recovery."}</p><label>Email address<input name="email" type="email" autocomplete="email" maxlength="254" value="${h(pending()?.email || c.email || "")}" required></label><label>Current account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="current-password" required></label><button type="submit">Send verification code</button></form>`;
   const form = dialog.querySelector("#setupEmailForm");
   form.onsubmit = (event) => {
     event.preventDefault();

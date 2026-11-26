@@ -128,7 +128,7 @@ export function mountProfileEdit({call,customer,onChanged}) {
   };
   if(pinForm)pinForm.onsubmit=async event=>{
     event.preventDefault();
-    if(!/^[0-9]{4}$/.test(pinForm.elements.pin.value)){pinMessage.textContent=L("profilePinNeeded");pinForm.elements.pin.focus();return;}
+    if(!/^[0-9]{4,6}$/.test(pinForm.elements.pin.value)){pinMessage.textContent=L("profilePinNeeded");pinForm.elements.pin.focus();return;}
     try{await save({...values(),pin:pinForm.elements.pin.value},pinForm.querySelector('[type="submit"]'),{controls:Array.from(pinForm.elements),output:pinMessage});}
     catch(error){showError(pinMessage,error);}
     finally{pinForm.elements.pin.value="";}

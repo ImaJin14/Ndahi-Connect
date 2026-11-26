@@ -343,3 +343,31 @@ test("BILL-SUPPORT: reconciler classifies expired and cancelled payments paid at
     assert.ok(!p.reconciliation.issues.includes("payment_status_mismatch"), `payment ${p.id} should not have payment_status_mismatch`);
   }
 });
+
+// Customer PINs are 4 to 6 digits (#399; owner 26 Nov). A 6-digit PIN can be
+// set up, changed to, signed in with and used as proof; 3 and 7 digits are
+// refused; a PIN set before (4 digits) keeps working.
+test("AUTH-PIN: customer PINs are 4 to 6 digits everywhere, and 4-digit PINs keep working", async (t) => {
+  const f = await fixture(t);
+  const { phone } = await createCustomerAccount(f, { phone: "670010061", pin: "135790" });
+  const csrf = (await f.call("/api/account/dashboard")).json.csrfToken;
+  for (const newPin of ["123", "1234567", "12a4"]) {
+    const refused = await f.call("/api/account/security/pin", "POST", { currentPin: "135790", newPin, confirmPin: newPin }, { headers: { "x-csrf-token": csrf } });
+    assert.equal(refused.response.status, 400, newPin);
+    assert.equal(refused.json.error, "Enter matching PINs of 4 to 6 digits.");
+  }
+  // The 6-digit PIN is the proof for a change to 5 digits.
+  const changed = await f.call("/api/account/security/pin", "POST", { currentPin: "135790", newPin: "24680", confirmPin: "24680" }, { headers: { "x-csrf-token": csrf } });
+  assert.equal(changed.response.status, 200, JSON.stringify(changed.json));
+  delete f.jar.customer_session;
+  f.advance(2);
+  // Sign-in answers a malformed PIN as it does a wrong one.
+  assert.equal((await f.call("/api/account/login/pin", "POST", { phone, pin: "1234567" })).response.status, 401);
+  f.advance(2);
+  assert.equal((await f.call("/api/account/login/pin", "POST", { phone, pin: "24680" })).response.status, 200);
+  // A 4-digit PIN from before still signs in.
+  const old = await createCustomerAccount(f, { phone: "670010062", pin: "2468" });
+  delete f.jar.customer_session;
+  f.advance(2);
+  assert.equal((await f.call("/api/account/login/pin", "POST", { phone: old.phone, pin: "2468" })).response.status, 200);
+});

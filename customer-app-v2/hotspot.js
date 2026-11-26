@@ -78,7 +78,7 @@ async function protectedConnect(proof = {}) {
       if (replacement && document.querySelector("#recoverWifiOwner")) document.querySelector("#recoverWifiOwner").remove();
       if (!document.querySelector("#recoverWifiOwner")) {
         const recovery = document.createElement("details"); recovery.id = "recoverWifiOwner";
-        recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
+        recovery.innerHTML = '<summary>Lost your main device?</summary><p>Verify account ownership to connect a replacement. This revokes the previous browser’s approval control and its unused codes.</p><form><label>Account PIN<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="current-password"></label><button type="submit">Verify PIN and recover</button><button type="button" data-recover-passkey>Recover with passkey</button><p data-recovery-message role="status"></p></form>';
         if (single) {
           recovery.open = true;
           recovery.querySelector("summary").textContent = "Verify this device";
@@ -98,7 +98,7 @@ async function protectedConnect(proof = {}) {
             if (usePasskey) {
               const challenge = await call("/api/account/device-management/connect/options", { ...input, ...switchInput }, true), browser = await loadPasskeys();
               payload = { recover: true, ...switchInput, challengeId: challenge.challengeId, response: await browser.startAuthentication({ optionsJSON: challenge.options }) };
-            } else if (!/^\d{4}$/.test(pin)) throw Error("Enter your four-digit account PIN.");
+            } else if (!/^\d{4,6}$/.test(pin)) throw Error("Enter your account PIN (4 to 6 digits).");
             await protectedConnect(payload); form.reset();
           }, { controls: Array.from(form.elements) }); } catch (error) { showError(output, error); }
         };
