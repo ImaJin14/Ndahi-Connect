@@ -1359,6 +1359,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - English and French.
   - **Not yet:** used by the owner on the live admin.
 
+### Scan with no active bundle (#412, batch 10, 26 November 2026)
+
+- [-] **CUS-412 — Scan to connect without a bundle, redesigned (batch 10)** ([#412](https://github.com/ImaJin14/Ndahi-Connect/issues/412)). Owner decision: [#412 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/412#issuecomment-7182529569).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - the drawn screen: the scanned account as "Amina N." with its masked number (shown before any PIN, as the owner decided), the no-Wi-Fi icon, "No active bundle", when the last bundle ended, then Buy a bundle and "I have a voucher code" at the foot; English and French;
+    - the scan bar as drawn on every scan board (76 px, Help in soft white);
+    - a QR from a bundle that has ended now connects the same account's current bundle, still after the PIN or passkey and still tied to the scanned QR (replacing that QR stops it); before, it said there was no active bundle on that voucher;
+    - a purchase started from this screen comes back to the scan once paid (also after signing in), so the new bundle connects this device without a second scan. The scan is kept in the tab for 30 minutes.
+  - **Not yet:** merged, deployed, or tried on a phone at the hotspot with a real payment.
+
 ## Reseller ledger and automatic account repair (7 November 2026)
 
 - [x] Implemented: scoped reseller stock/sales balances, prospective commissions, immutable cash/correction retries, retained credits, owner correction UI and reload recovery.

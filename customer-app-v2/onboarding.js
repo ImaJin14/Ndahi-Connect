@@ -1,7 +1,7 @@
 import { groupBundles, chosenPeriod, PERIOD_LABELS } from "../shared-app/bundle-period.js";
 import { speedText } from "../shared-app/bundle-speed.js";
 import { funnelStep } from "./funnel.js";
-import { redirectLegacyVoucherScan } from "./voucher-qr-context.js";
+import { redirectLegacyVoucherScan, savedVoucherScan } from "./voucher-qr-context.js";
 redirectLegacyVoucherScan();
 import { purchaseVoucherDestination } from "./voucher-delivery.js";
 import { ApiError, responseError, saveReturnPath, showError } from "./errors.js";
@@ -28,6 +28,11 @@ mountPrivateMacAdvisory();
 void configurePairingLink(document.getElementById("assistedConnectionLink"));
 
 migrateLegacyCheckout();
+// A purchase started from a scan with no active bundle (PhoneScanNoBundle,
+// #412) goes back to that scan once paid, which then connects the new bundle
+// after the PIN: no second scan. Otherwise the voucher page, as before.
+const fromScan = new URLSearchParams(location.search).get("from") === "scan";
+const afterPaid = (paymentId) => (fromScan && savedVoucherScan() ? "/voucher-connect.html" : purchaseVoucherDestination(paymentId));
 const api = window.NDAHI_CONFIG.apiUrl,
   $ = (selector) => document.querySelector(selector),
   money = (value) => new Intl.NumberFormat("en-CM").format(value) + " FCFA",
@@ -444,7 +449,7 @@ async function recoverSavedCheckout(saved) {
       try {
         const setup = await exchangeSetup(saved.paymentId, saved.requestKey);
         clearRequestKey();
-        location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(purchaseVoucherDestination(saved.paymentId)) : "/verify.html?setup=checkout");
+        location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(afterPaid(saved.paymentId)) : "/verify.html?setup=checkout");
         return null;
       } catch { /* Expired/unknown requests retain neutral payment guidance below. */ }
     }
@@ -829,7 +834,7 @@ async function beginAccountSecurity(paid, phone) {
   if (account) {
     clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
-    location.href = withWifiHint(purchaseVoucherDestination(paid.payment.id));
+    location.href = withWifiHint(afterPaid(paid.payment.id));
     return;
   }
   const emailMessage = paid.email?.status === "sent"
@@ -841,7 +846,7 @@ async function beginAccountSecurity(paid, phone) {
   const setup = await exchangeSetup(paid.payment.id, requestKey);
   clearRequestKey();
   sessionStore.remove("ndahi-login-challenge");
-  location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(purchaseVoucherDestination(paid.payment.id)) : "/verify.html?setup=checkout");
+  location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(afterPaid(paid.payment.id)) : "/verify.html?setup=checkout");
 }
 async function checkPayment(paymentId, phone) {
   if (!account && paymentInProgress?.id === paymentId && paymentInProgress.status === "paid") {

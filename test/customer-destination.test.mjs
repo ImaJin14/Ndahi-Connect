@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { customerDestination, customerEntry } from '../customer-app/customer-destination.js';
+import { customerDestination as v2Destination } from '../customer-app-v2/customer-destination.js';
 const now = Date.now();
 const evidence = () => ({ version: 1, expiresAt: new Date(now + 45000).toISOString(), account: { state: 'authenticated' }, network: { state: 'confirmed' }, subscription: { state: 'active' }, router: { state: 'reachable' }, hotspot: { state: 'authenticated' } });
 test('default landing is Dashboard and validated necessary destinations retain only supported intent', () => {
@@ -42,4 +43,15 @@ test('request-review intent survives login without a connection detour or untrus
  for(const input of ['/pair-review.html','/pair-review.html?request=bad','//evil.test'+url])assert.equal(customerDestination(input),'/dashboard');
  const e=evidence();e.hotspot.state='unauthenticated';
  assert.equal(customerEntry({next:url,evidence:e,hasCandidate:true,hotspotEnabled:true,now}),url);
+});
+
+// A purchase started from a scan with no bundle comes back to the scan (#412).
+test("v2 sign-in can return to the scan page, with only a valid device hint", () => {
+  assert.equal(v2Destination("/voucher-connect.html"), "/voucher-connect.html");
+  assert.equal(v2Destination("/voucher-connect.html?mac=aa:bb:cc:dd:ee:31&address=10.20.0.31"), "/voucher-connect.html?mac=AA%3ABB%3ACC%3ADD%3AEE%3A31&address=10.20.0.31");
+  // Anything else on the address is dropped; the scan itself never travels in it.
+  assert.equal(v2Destination("/voucher-connect.html?mac=bad&address=10.20.0.31&qr=secret#legacy=NC-AAAA-1111"), "/voucher-connect.html");
+  assert.equal(v2Destination("//evil.test/voucher-connect.html"), "/dashboard");
+  // The frozen v1 portal has no such page to return to.
+  assert.equal(customerDestination("/voucher-connect.html"), "/dashboard");
 });

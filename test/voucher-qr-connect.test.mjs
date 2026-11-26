@@ -354,3 +354,60 @@ test("QR context and connection grants cannot be consumed as legacy account-acce
   assert.equal((await f.call("/api/account/access/complete", { token: proof.token, pin: "2468" }, { session: "" })).status, 401);
   assert.ok((await f.store.snapshot()).customerAccessChallenges.some(row => row.type === "qr_connect_grant" && !row.used));
 });
+// PhoneScanNoBundle (#412; owner 26 Nov): a QR from a bundle that has ended
+// connects the same account's current bundle, so a bundle bought after the
+// scan connects this device without a second scan. The PIN is still asked for
+// and every check stays tied to the scanned QR.
+async function endScannedBundle(f, { replacement = true } = {}) {
+  await f.store.transaction((s) => {
+    const v1 = s.vouchers.find((v) => v.id === "v1");
+    if (replacement) s.vouchers.push({ ...structuredClone(v1), id: "v2", code: "NC-BBBB-2222", qrConnectToken: undefined, activatedAt: f.now().toISOString(), wifiDevices: [] });
+    Object.assign(v1, { status: "expired", expiresAt: new Date(+f.now() - 3600000).toISOString() });
+  });
+}
+test("a QR from an ended bundle connects the account's current bundle, still bound to the scanned QR (#412)", async (t) => {
+  const f = await fixture(t);
+  await endScannedBundle(f);
+  const proof = await verifyPin(f);
+  const connected = await f.call("/api/account/device-management/connect", { ...target, qrAuthorization: proof.token }, proof);
+  assert.equal(connected.status, 202, JSON.stringify(connected.body));
+  let snapshot = await f.store.snapshot();
+  const request = snapshot.wifiPairingRequests[0];
+  assert.deepEqual([request.kind, request.voucherId, request.qrVoucherId], ["qr_owner", "v2", "v1"]);
+  await f.process();
+  snapshot = await f.store.snapshot();
+  assert.equal(snapshot.wifiPairingRequests[0].status, "connected");
+  assert.equal(f.calls.length, 1);
+});
+test("replacing the ended bundle's QR, or another account's bundle, never connects (#412)", async (t) => {
+  const f = await fixture(t);
+  await endScannedBundle(f);
+  const proof = await verifyPin(f);
+  // The ended voucher's QR is replaced: the grant made with the old one fails closed.
+  await f.store.transaction((s) => { s.vouchers.find((v) => v.id === "v1").qrConnectToken = "z".repeat(43); });
+  const connected = await f.call("/api/account/device-management/connect", { ...target, qrAuthorization: proof.token }, proof);
+  assert.equal(connected.body.code, "QR_AUTHORIZATION_EXPIRED");
+  assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
+  // Only the scanned account's bundles count: another customer's active bundle is never used.
+  const g = await fixture(t);
+  await endScannedBundle(g, { replacement: false });
+  await g.store.transaction((s) => { s.vouchers.push({ ...structuredClone(s.vouchers[0]), id: "v9", customerId: "c2", status: "active", expiresAt: new Date(+g.now() + 86400000).toISOString() }); });
+  assert.equal((await begin(g)).body.code, "BUNDLE_INACTIVE");
+});
+test("no active bundle shows the account as drawn, before any PIN, and nothing more (#412)", async (t) => {
+  const f = await fixture(t);
+  await endScannedBundle(f, { replacement: false });
+  const reply = await begin(f);
+  assert.equal(reply.status, 409);
+  assert.equal(reply.body.code, "BUNDLE_INACTIVE");
+  assert.deepEqual(reply.body.account, { name: "Imajin", phone: "+237 6•• •• 00 01" });
+  assert.equal(reply.body.endedAt, (await f.store.snapshot()).vouchers[0].expiresAt);
+  assert.doesNotMatch(JSON.stringify(reply.body), /670050001|pinHash|customerId|NC-AAAA|context/);
+  // A first name and surname read "First L.".
+  await f.store.transaction((s) => { s.customers[0].name = "Amina Nfor Tabe"; });
+  assert.equal((await begin(f)).body.account.name, "Amina T.");
+  // Only a Home bundle is active: that is said instead.
+  await f.store.transaction((s) => { s.vouchers.push({ ...structuredClone(s.vouchers[0]), id: "home", status: "active", accessMode: "home", expiresAt: new Date(+f.now() + 86400000).toISOString() }); });
+  assert.equal((await begin(f)).body.code, "HOME_ACCESS_SELECTED");
+  assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
+});

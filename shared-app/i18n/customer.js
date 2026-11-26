@@ -573,6 +573,12 @@ export const en = {
   portalReceiptTotal: "Total paid",
   portalReceiptHelp: "Questions about this payment? Keep this receipt number and",
   portalContactSupport: "contact support",
+  // Scan with no active bundle (canvas: PhoneScanNoBundle, #412).
+  scanNoBundleTitle: "No active bundle",
+  scanNoBundleEnded: "This account's last bundle ended on {date}. Buy one and this device connects right after — you won't need to scan again.",
+  scanNoBundleNone: "This account has no active bundle. Buy one and this device connects right after — you won't need to scan again.",
+  scanBuyBundle: "Buy a bundle",
+  scanHaveVoucher: "I have a voucher code",
   // Edit profile (canvas: PhoneEditProfile, #398).
   profileFullName: "Full name",
   profileEmail: "Email",
@@ -1406,6 +1412,12 @@ export const fr = {
   portalReceiptTotal: "Total payé",
   portalReceiptHelp: "Une question sur ce paiement ? Gardez ce numéro de reçu et",
   portalContactSupport: "contactez l'assistance",
+  // Scan sans forfait actif (canevas : PhoneScanNoBundle, #412).
+  scanNoBundleTitle: "Aucun forfait actif",
+  scanNoBundleEnded: "Le dernier forfait de ce compte s'est terminé le {date}. Achetez-en un et cet appareil se connecte aussitôt — inutile de scanner à nouveau.",
+  scanNoBundleNone: "Ce compte n'a aucun forfait actif. Achetez-en un et cet appareil se connecte aussitôt — inutile de scanner à nouveau.",
+  scanBuyBundle: "Acheter un forfait",
+  scanHaveVoucher: "J'ai un code de ticket",
   // Modifier le profil (canevas : PhoneEditProfile, #398).
   profileFullName: "Nom complet",
   profileEmail: "E-mail",
