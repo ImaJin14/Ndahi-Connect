@@ -1479,6 +1479,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Verified outgoing signed HTTP payloads through the real SDK with offline fixtures for MTN/Orange and internet/store cases. No real payment request or phone popup was triggered.
 - [ ] Deployment and actual MTN/Orange popup display remain to verify. Operator/gateway merchant display may use the configured MeSomb application/business name; its production value is not established by a synthetic fixture.
 
+### Product page on desktop, public store (#415, batch 10, 26 November 2026)
+
+- [-] **CUS-415 — Product page on desktop, redesigned (batch 10)** ([#415](https://github.com/ImaJin14/Ndahi-Connect/issues/415)). Owner decisions: [#415 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/415#issuecomment-7182529177).
+  - **Implemented and tested** (PR #495, not merged yet; built on #402):
+    - the drawn desktop product page: the 4:3 photo (with thumbnails when a product has several photos) beside the details, the 40 px title, the price with its pill, the words, quantity with Buy now, the pickup note and the spec rows;
+    - **key specs:** each product can have up to 12 label/value rows (English required, French optional), edited in Admin → Edit product → More product details; they fill the drawn rows, followed by the store's warranty and returns. Without key specs, the product's texts show as rows, as before. On phones, key specs lead "Specifications, box contents, warranty".
+  - **Not yet:** merged, deployed, or the key specs entered by the owner for the four products.
+
 ### Voucher print formats and follow-up work (9 November 2026)
 
 - Implemented: removed A4 voucher sheet rendering, selector, CSS and named page size (#208). Bulk and single vouchers default to the same 58mm thermal slip; 80mm remains available. Retired/unknown layout values safely fall back to 58mm.
