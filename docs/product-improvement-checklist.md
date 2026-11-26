@@ -1674,7 +1674,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Home WISP routers and the reconcile pass (#340, batch 13, 26 November 2026)
 
 - [-] **ADM-340 — Home WISP routers, redesigned, with a reconcile pass (batch 13)** ([#340](https://github.com/ImaJin14/Ndahi-Connect/issues/340)). Owner decisions: [#340 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/340#issuecomment-7202632406).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #514, not merged yet):
     - the drawn page (Admin → Network → Home WISP routers, now in every owner's and operator's menu): Reconcile now and when it last ran, the four counts, each router with its MAC masked to the last three octets, Online / Offline / Disconnected, Sharing / Sharing (idle) / Withheld / Removed with why, Revoke (a reason, confirmed, audited), recent changes and the rule; the NDAHI Home pilot import and readiness check left the new admin (owner; still in the old admin);
     - the reconcile pass (`lib/home-reconcile.mjs`): every 5 minutes, within a minute after a failed Home change and on Reconcile now, it reads the router's Home users (read only), revokes stale exceptions (ended, revoked or an older router's) and retries withheld changes, all through the Home worker's existing operations; off while Home WISP is off (owner: router work, no mock-router tests);
     - on-site plan: `docs/operations/home-wisp-reconcile-onsite-test.md`.
