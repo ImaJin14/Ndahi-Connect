@@ -85,3 +85,23 @@ main.login-shell > .surface .scan-note { order: 9; color: var(--nd-muted); font-
 .surface[data-no-bundle] > .eyebrow { display: none; }
 .surface[data-no-bundle] > h1 { display: none; }
 .surface[data-no-bundle] .portal-scan__none h2 { font-size: 28px; }
+/* The scan bar as drawn on every scan board: 20px in, 76px tall, Help soft on forest. */
+body > header.scan-bar { min-height: 76px; padding: 0 20px; }
+header.scan-bar .brand-mark { box-sizing: border-box; width: 38px; height: 38px; }
+.scan-bar__help { display: flex; align-items: center; min-height: 44px; color: var(--nd-on-forest-soft); font-weight: 600; }
+/* No active bundle (canvas: PhoneScanNoBundle, #412): the account, the icon,
+   the words centred, and the two actions at the foot. 28px 22px 22px, 14px apart. */
+main.login-shell:has(> .surface[data-no-bundle]) { padding: 0; }
+main.login-shell > .surface[data-no-bundle] { display: flex; flex-direction: column; min-height: calc(100dvh - 76px); margin: 0 auto; padding: 28px 22px 22px; }
+.surface[data-no-bundle] > :not(#qrNoBundle):not(#qrMessage) { display: none !important; }
+.surface[data-no-bundle] .portal-scan__none { display: flex; flex: 1; flex-direction: column; gap: 14px; margin: 0; }
+.portal-scan__who { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+.portal-scan__who[hidden] { display: none; }
+.portal-scan__avatar { display: grid; flex: none; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--nd-forest); color: var(--nd-lime); font-weight: 700; }
+.portal-scan__who strong { display: block; color: var(--nd-ink); font-size: 15px; line-height: normal; }
+.portal-scan__who strong + span { color: var(--nd-muted); font-size: 13px; line-height: normal; }
+.portal-scan__icon { display: grid; align-self: center; place-items: center; width: 80px; height: 80px; margin-top: 10px; border-radius: 50%; background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+.surface[data-no-bundle] .portal-scan__none h2 { margin: 0; color: var(--nd-ink); font: 600 28px/1.15 var(--nd-font-display); text-align: center; }
+main.login-shell > .surface[data-no-bundle] .portal-scan__none p { margin: 0; color: var(--nd-ink-soft); font-size: 15px; line-height: 1.55; text-align: center; }
+.surface[data-no-bundle] .portal-scan__none a.button { min-height: 50px; margin: 0; padding: 0 16px; border-radius: 10px; font-size: 16px; }
+.surface[data-no-bundle] .portal-scan__none a#qrBuyBundle { min-height: 52px; margin-top: auto; }

@@ -29,6 +29,14 @@ export function customerDestination(input, fallback = '/dashboard') {
       const payment = url.searchParams.get('payment');
       if (payment && !/^[A-Za-z0-9_-]{1,100}$/.test(payment)) return fallback;
       if (payment) clean.searchParams.set('payment', payment);
+    } else if (url.pathname === '/voucher-connect.html') {
+      // A purchase started from a scan comes back to it (#412). The scan is kept
+      // in this tab's session storage, never in the address.
+      clean.pathname = '/voucher-connect.html';
+      const mac = url.searchParams.get('mac'), address = url.searchParams.get('address');
+      if (/^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(mac || '') && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(address || '')) {
+        clean.searchParams.set('mac', mac.toUpperCase()); clean.searchParams.set('address', address);
+      }
     } else if (['/onboarding','/onboarding.html'].includes(url.pathname)) {
       const action = url.searchParams.get('action');
       if (action !== null && !['renew','switch'].includes(action)) return fallback;

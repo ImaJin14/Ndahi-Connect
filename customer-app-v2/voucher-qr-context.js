@@ -12,10 +12,10 @@ export function savedVoucherScan() {
     return null;
   }
 }
-export function saveVoucherScan(value) {
+export function saveVoucherScan(value, keepMs = 600000) {
   sessionStore.set(
     storageKey,
-    JSON.stringify({ ...value, until: Date.now() + 600000 }),
+    JSON.stringify({ ...value, until: Date.now() + keepMs }),
   );
 }
 export function clearVoucherScan() {

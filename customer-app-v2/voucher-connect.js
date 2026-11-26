@@ -1,4 +1,6 @@
 import { wifiHint } from "./wifi-pairing.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 import { loadPasskeys, randomId } from "./compat.js";
 import { routerLoginUrl } from "./wifi-completion.js";
 import {
@@ -53,6 +55,8 @@ async function request(path, input, owned = false) {
       value.error || "The request could not be completed. Try again.",
     );
     error.code = value.code;
+    error.account = value.account;
+    error.endedAt = value.endedAt;
     error.status = response.status;
     error.retryAfter = Math.max(
       1,
@@ -71,17 +75,35 @@ function buttons(enabled) {
   pinButton.disabled = !enabled;
   passkeyButton.disabled = !enabled;
 }
-// No active bundle on the scanned account (canvas: PhoneScanNoBundle): offer
-// buying one or entering a voucher code instead of the PIN form. The scan
-// stays saved, so Check again picks it up after a purchase.
+// No active bundle on the scanned account (canvas: PhoneScanNoBundle, #412;
+// owner 26 Nov): the account as drawn (first name and initial, masked number),
+// when its last bundle ended, then Buy a bundle or a voucher code. A purchase
+// started here comes back to this scan, which then connects the new bundle
+// after the PIN: no second scan.
 function noBundle(error) {
-  const none = document.querySelector("#qrNoBundle"), hint = wifiHint();
+  const none = document.querySelector("#qrNoBundle"), hint = wifiHint(), lang = currentLanguage();
   if (!none) return false;
-  // The status line keeps the message (announced, and journeys read it); the
-  // panel shows the same words visually beside its choices.
-  message.textContent = error.message;
-  document.querySelector("#qrNoBundleText").textContent = error.message;
+  const L = (key, values) => format(key, values || {}, lang);
+  const ended = Date.parse(error.endedAt), who = error.account || {};
+  const text = Number.isFinite(ended)
+    // "5 Nov"; French spells the month out ("5 novembre"), as "nov." would end on two stops.
+    ? L("scanNoBundleEnded", { date: new Date(ended).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: lang === "fr" ? "long" : "short" }) })
+    : L("scanNoBundleNone");
+  document.querySelector("#qrNoBundleWho").hidden = !who.name;
+  document.querySelector("#qrNoBundleInitial").textContent = String(who.name || "").charAt(0).toUpperCase();
+  document.querySelector("#qrNoBundleName").textContent = who.name || "";
+  document.querySelector("#qrNoBundlePhone").textContent = who.phone || "";
+  document.querySelector("#qrNoBundleTitle").textContent = L("scanNoBundleTitle");
+  document.querySelector(".scan-bar__help").textContent = L("navHelp");
+  document.querySelector("#qrBuyBundle").textContent = L("scanBuyBundle");
+  document.querySelector("#qrHaveVoucher").textContent = L("scanHaveVoucher");
+  // The status line keeps the words (announced); the panel shows them visually.
+  message.textContent = text;
+  document.querySelector("#qrNoBundleText").textContent = text;
+  // Kept long enough to pay with Mobile Money and come back.
+  saveVoucherScan({ ...attempt, until: undefined }, 1800000);
   const buy = new URL("/onboarding.html", location.origin);
+  buy.searchParams.set("from", "scan");
   if (hint) { buy.searchParams.set("mac", hint.mac); buy.searchParams.set("address", hint.address); }
   document.querySelector("#qrBuyBundle").href = buy.pathname + buy.search;
   document.querySelector("#qrConnectForm").hidden = true;
