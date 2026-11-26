@@ -121,6 +121,34 @@
 .pay-failed__checks { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 .pay-failed__foot { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: var(--nd-space-10); padding: var(--nd-space-12) var(--nd-space-16) var(--nd-space-18); border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
 .pay-failed__foot > * { box-sizing: border-box; width: 100%; }
+/* The six states as drawn (canvas: PhonePaymentFailed, #409): a 64px icon, a
+   26px title, the money line, the number to correct for a wrong network, the
+   details with a copyable reference, and the actions on the bottom bar. */
+.pay-failed__bar span { font-size: 15px; }
+.pay-failed__bar a { font-size: 14px; }
+.pay-failed__main { gap: 12px; padding: 22px 20px 14px; }
+.pay-failed__icon { width: 64px; height: 64px; }
+.pay-failed[data-tone="neutral"] .pay-failed__icon { background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); }
+.pay-failed[data-tone="neutral"] .pay-failed__money { background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+.pay-failed__title { font-size: 26px; }
+.pay-failed__body { font-size: 15px; line-height: 1.5; }
+.pay-failed__money { padding: 10px 12px; border-radius: 10px; font-size: 14px; }
+.pay-failed__field label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.pay-failed__number { position: relative; display: block; }
+.pay-failed__number input { box-sizing: border-box; width: 100%; min-height: 46px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: 10px; background: var(--nd-white); color: var(--nd-ink); font: 16px var(--nd-font-body); }
+.pay-failed__number input.pay-failed__number--masked { color: transparent; }
+.pay-failed__number-mask { position: absolute; inset: 0 15px; display: flex; align-items: center; color: var(--nd-ink); font: 16px var(--nd-font-body); pointer-events: none; }
+.pay-failed__number-mask:empty { display: none; }
+.pay-failed__details { padding: 2px 14px; border-radius: 12px; }
+.pay-failed__row { align-items: center; padding: 9px 0; font-size: 14px; }
+.pay-failed__row[hidden] { display: none; }
+.pay-failed__ref-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; color: inherit !important; }
+.pay-failed__ref { font: 700 13px ui-monospace, Menlo, monospace; }
+.pay-failed__copy { min-height: 32px; padding: 0 10px; border: 1px solid var(--nd-line-strong); border-radius: 8px; background: var(--nd-paper); color: var(--nd-forest); font: 700 12px var(--nd-font-body); cursor: pointer; }
+.pay-failed__checks { font-size: 13px; }
+.pay-failed__foot .nd-btn { min-height: 50px; border-radius: 10px; font-size: 15px; line-height: normal; }
+.pay-failed__foot .nd-btn--secondary { min-height: 48px; }
+.pay-failed__foot .nd-btn[hidden] { display: none; }
 /* Desktop has no artboard: the phone column, centred. */
 @media (min-width: 768px) {
   .pay-failed__main { max-width: 480px; margin: 0 auto; }

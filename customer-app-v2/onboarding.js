@@ -20,7 +20,7 @@ import { mountThemeToggle } from "./portal-nav.js";
 import { didntGoThroughButton, hidePaymentFailed, maskedNumber, paymentFailedOpen, showPaymentFailed } from "./payment-failed.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
-import { unlimitedCatalogue, deskCatalogue, deskChoiceCard, deskNetworks, deskCost, deskNotice, deskHeader, setDeskNetwork } from "./buy-desktop.js";
+import { unlimitedCatalogue, deskCatalogue, deskChoiceCard, deskNetworks, deskCost, deskNotice, deskHeader, setDeskNetwork, xaf } from "./buy-desktop.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -366,7 +366,7 @@ async function initialize() {
               paymentInProgress = undefined;
               $("#planNotice").textContent = "";
               renderPlans();
-              showFailure(result.payment);
+              showFailure(result.payment, undefined, result);
             } else location.reload();
           } else $("#planNotice p").textContent = result.payment.recoveryMessage || "This payment is still awaiting approval. Approve the existing Mobile Money prompt, then check its status again.";
         });
@@ -477,7 +477,7 @@ async function restoreSavedCheckout() {
     fillSavedDetails(recovered.details);
     notice(recovered.payment.failureReason || "Your previous payment did not complete. You can choose a package again.", false);
     renderPlans();
-    showFailure(recovered.payment);
+    showFailure(recovered.payment, undefined, recovered);
     return;
   }
   notice(recovered?.payment.status === "paid"
@@ -768,13 +768,20 @@ function releaseFailedPayment() {
 const didntGoThrough = didntGoThroughButton();
 let unresolvedCheckout, failedPaymentChecks = 0, failedPayment;
 function keepUnresolved(id, key) { if (key) unresolvedCheckout = { id, key }; }
-function showFailure(payment, reason = payment.failureCode) {
+// A payment the provider answered (#409): its failure code, or the server's
+// state for a request that ended without one. `status` carries the cheaper
+// bundle and the short codes from the payment's status.
+function showFailure(payment, reason = payment.failureCode || (["expired", "cancelled_or_pin", "invalid_subscriber", "insufficient_funds"].includes(payment.state) ? payment.state : undefined), status = {}) {
   if (!reason) return false;
   const same = failedPayment?.id === payment.id;
   if (!same) failedPaymentChecks = 0;
   failedPayment = same ? { ...failedPayment, ...payment } : { ...payment };
-  return showPaymentFailed(failedPayment, reason, paymentFailedActions, { money: fcfa, checks: Math.max(1, failedPaymentChecks) });
+  if (status.cheaperBundle !== undefined || status.shortCodes !== undefined) failedExtra = { cheaperBundle: status.cheaperBundle || null, shortCodes: status.shortCodes || null };
+  else if (!same) failedExtra = {};
+  // Amounts in XAF, as the board and the 24 Nov brief write them.
+  return showPaymentFailed(failedPayment, reason, paymentFailedActions, { money: xaf, checks: Math.max(1, failedPaymentChecks), ...failedExtra });
 }
+let failedExtra = {};
 function retryCheckout(payment, change) {
   hidePaymentFailed();
   failedPayment = undefined;
@@ -788,10 +795,15 @@ function retryCheckout(payment, change) {
     if (!number.value) { number.focus(); return; }
   }
   if (change === "number") { number.value = ""; number.focus(); return; }
+  // A number corrected on the failure screen (#409).
+  if (change && typeof change === "object" && change.number) number.value = String(change.number).replace(/^\+?237(?=6)/, "");
   $("#requestPayment").focus();
 }
 const paymentFailedActions = {
-  tryAgain: (payment) => retryCheckout(payment),
+  retry: (payment, content) => retryCheckout(payment, content.number ? { number: content.number } : undefined),
+  // The cheaper bundle after insufficient funds: its confirmation opens, and
+  // the customer still taps Pay Now (24 Nov brief).
+  switchBundle: (payment, content) => retryCheckout({ ...payment, planId: content.switchTo.planId }),
   otherNetwork: (payment) => retryCheckout(payment, "network"),
   differentNumber: (payment) => retryCheckout(payment, "number"),
   smallerBundle: () => {
@@ -800,7 +812,7 @@ const paymentFailedActions = {
     $("#packages").scrollIntoView({ block: "start" });
     $("#plans button[data-plan]:not([disabled])")?.focus();
   },
-  checkAgain: (payment) => runButton($("#paymentFailedPrimary"), "Checking…", async () => {
+  checkAgain: (payment) => runButton($("#paymentFailedCheck"), "Checking…", async () => {
     failedPaymentChecks = Math.max(1, failedPaymentChecks) + 1;
     if (!await checkPayment(payment.id, payment.payerPhone)) showFailure(failedPayment, "timeout");
   }).catch((error) => showError($("#paymentFailedChecks"), error)),
@@ -877,11 +889,11 @@ async function checkPayment(paymentId, phone) {
   if (["failed", "refunded", "expired"].includes(status.payment.status)) {
     if (status.payment.failureCode === "timeout") keepUnresolved(status.payment.id, checkoutKey);
     releaseFailedPayment();
-    if (showFailure(status.payment)) return true;
+    if (showFailure(status.payment, undefined, status)) return true;
     throw new ApiError(409, status.payment.failureReason || `Payment ${status.payment.status}. Return to packages to try again.`);
   }
   // Still open but the provider could not confirm it: the timeout view keeps counting.
-  if (paymentFailedOpen()) showFailure(status.payment, "timeout");
+  if (paymentFailedOpen()) showFailure(status.payment, "timeout", status);
   return false;
 }
 async function waitForPayment(paymentId, phone) {

@@ -65,21 +65,26 @@
   <section class="pay-failed" id="paymentFailed" role="dialog" aria-modal="true" aria-labelledby="paymentFailedTitle" hidden>
     <div class="pay-failed__bar"><span data-i18n="payFailedBar">Buy a bundle</span><a href="/help#payment" data-i18n="payFailedHelp">Help</a></div>
     <div class="pay-failed__main">
-      <div class="pay-failed__icon"><svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="paymentFailedIcon" d=""></path></svg></div>
+      <div class="pay-failed__icon"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="paymentFailedIcon" d=""></path></svg></div>
       <h1 class="pay-failed__title" id="paymentFailedTitle" tabindex="-1"></h1>
       <p class="pay-failed__body" id="paymentFailedBody"></p>
       <p class="pay-failed__money" id="paymentFailedMoney"></p>
+      <div class="pay-failed__field" id="paymentFailedNumberField" hidden><label for="paymentFailedNumber" data-i18n="deskBuyNumber">Mobile Money number</label><span class="pay-failed__number"><input id="paymentFailedNumber" type="tel" inputmode="tel" autocomplete="tel"><span class="pay-failed__number-mask" id="paymentFailedNumberMask" aria-hidden="true"></span></span></div>
       <section class="pay-failed__details" aria-label="Payment details" data-i18n-aria-label="payFailedDetails">
         <div class="pay-failed__row"><span data-i18n="payFailedBundle">Bundle</span><strong id="paymentFailedBundle"></strong></div>
-        <div class="pay-failed__row"><span id="paymentFailedFeeName">Mobile Money fee</span><strong id="paymentFailedFee"></strong></div>
-        <div class="pay-failed__row" id="paymentFailedTotalRow"><span data-i18n="payFailedTotal">Total asked</span><strong id="paymentFailedTotal"></strong></div>
+        <div class="pay-failed__row"><span data-i18n="deskBuyPrice">Bundle Price</span><strong id="paymentFailedPrice"></strong></div>
+        <div class="pay-failed__row" id="paymentFailedFeeRow"><span data-i18n="deskBuyFee">Mobile Payment Fee (2%)</span><strong id="paymentFailedFee"></strong></div>
+        <div class="pay-failed__row" id="paymentFailedTotalRow"><span data-i18n="deskBuyTotal">Total to Pay</span><strong id="paymentFailedTotal"></strong></div>
         <div class="pay-failed__row"><span data-i18n="payFailedPaidWith">Paid with</span><strong id="paymentFailedMethod"></strong></div>
-        <div class="pay-failed__row"><span data-i18n="payFailedReference">Reference</span><strong class="pay-failed__ref" id="paymentFailedReference"></strong></div>
+        <div class="pay-failed__row"><span data-i18n="payFailedReference">Reference</span><span class="pay-failed__ref-wrap"><strong class="pay-failed__ref" id="paymentFailedReference"></strong><button type="button" class="pay-failed__copy" id="paymentFailedCopy">Copy</button></span></div>
       </section>
       <p class="pay-failed__checks" id="paymentFailedChecks" hidden></p>
     </div>
     <div class="pay-failed__foot">
-      <button type="button" class="nd-btn nd-btn--block" id="paymentFailedPrimary"></button>
+      <button type="button" class="nd-btn nd-btn--block" id="paymentFailedCheck" data-i18n="payFailedCheckAgain" hidden>Check again</button>
+      <button type="button" class="nd-btn nd-btn--block" id="paymentFailedSwitch" hidden></button>
+      <button type="button" class="nd-btn nd-btn--block" id="paymentFailedRetry" data-i18n="payStateRetry">Retry</button>
+      <button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="paymentFailedOther" hidden></button>
       <button type="button" class="nd-btn nd-btn--secondary nd-btn--block" id="paymentFailedSecondary"></button>
       <a class="nd-btn nd-btn--secondary nd-btn--block" id="paymentFailedHelpLink" href="/help#payment" hidden></a>
     </div>

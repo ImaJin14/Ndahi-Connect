@@ -126,10 +126,11 @@ export const SCREENS = [
     ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true, expect: ["#resetRequest"] }],
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
-    // A returning guest whose saved checkout did not go through, one per reason
-    // (the canvas's `reason` prop). The cookie is the one the page saves.
-    ...[["declined", "declined", "checkoutDeclined", "declined by the provider"], ["low-balance", "lowBalance", "checkoutLowBalance", "provider reported a low balance"],
-      ["timeout", "timeout", "checkoutTimeout", "closed before the provider answered"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "an Orange-block number paid as MTN"]]
+    // A returning guest whose saved checkout did not go through, one per state
+    // (the canvas's `reason` prop; #409). The cookie is the one the page saves.
+    ...[["low-balance", "lowBalance", "checkoutLowBalance", "insufficient funds"], ["expired", "expired", "checkoutExpired", "the request expired"],
+      ["cancelled", "cancelled", "checkoutCancelled", "cancelled or a wrong PIN"], ["wrong-network", "wrongNetwork", "checkoutWrongNetwork", "a number not on MTN MoMo"],
+      ["unclear", "unclear", "checkoutUnclear", "held for review"]]
       .map(([id, reason, checkout, state]) => [`payment-failed-${id}`, `Payment failed: ${id.replace("-", " ")}`, "PhonePaymentFailed", null, "/onboarding.html", "Redesigned",
         { signedOut: true, design: `reason=${reason}`, checkout, state: `a guest's saved checkout, ${state}`, expect: ["#paymentFailed:not([hidden])", "#paymentFailedTitle:not(:empty)"] }]),
     // Claiming a reserved voucher (#254): a friend's gift and one from NDAHI (the canvas's `from` prop).
@@ -328,16 +329,16 @@ async function startApi() {
       demoPayment("expired-1", 26 * 60, 0, "237670772210", "mtn", { status: "expired" }),
       demoPayment("paid-3", 4 * 24 * 60, 2, "237670118802", "mtn", confirmed(4 * 24 * 60)),
     );
-    // Four guest checkouts that did not go through (Payment failed screens), with
+    // Five guest checkouts that did not go through (Payment problem screens), with
     // no customer record so the admin lists are unchanged. Each fixture is the
     // saved-checkout cookie the page writes; its key reads only the outcome.
     const failedAt = new Date(now - 2 * 60000).toISOString(), lateCheckUntil = new Date(now + 864e5).toISOString();
-    for (const [fixture, reason, phone] of [["checkoutDeclined", "declined", "670001245"], ["checkoutLowBalance", "low_balance", "670011245"],
-      ["checkoutTimeout", "timeout", "670021245"], ["checkoutWrongNetwork", "wrong_network", "699001245"]]) {
+    for (const [fixture, reason, phone] of [["checkoutLowBalance", "insufficient_funds", "670011245"], ["checkoutExpired", "expired", "670021245"],
+      ["checkoutCancelled", "cancelled_or_pin", "670001245"], ["checkoutWrongNetwork", "invalid_subscriber", "670041245"], ["checkoutUnclear", "unclear", "670051245"]]) {
       const requestKey = randomUUID() + randomUUID();
       const payment = demoPayment(randomUUID(), 3, 1, `237${phone}`, "mtn", { customerId: `preview-guest-${reason}`, provider: "mock", requestKey, checkoutAudience: "guest",
         guestCheckoutDetails: { name: "Demo buyer", phone, network: "mtn" }, creationState: "accepted", checkoutClosedAt: failedAt, lateCheckUntil,
-        ...(reason === "timeout" ? { status: "expired" } : { status: "failed", providerFailedAt: failedAt, failureCode: reason }) });
+        ...(reason === "expired" ? { status: "expired" } : reason === "unclear" ? { status: "expired", verificationHold: true } : { status: "failed", providerFailedAt: failedAt, failureState: reason }) });
       s.payments.push(payment);
       fixtures[fixture] = JSON.stringify({ value: JSON.stringify({ requestKey, planId: payment.planId, paymentId: payment.id }), expiresAt: now + 864e5 });
     }
