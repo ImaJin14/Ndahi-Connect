@@ -45,3 +45,8 @@ body[data-login-mode="voucher"] .pin-only { display: none !important; }
 
 /* "Someone gave you a bundle? Claim it" (#254, canvas: PhoneLogin). */
 .portal-login__claim { display: flex; align-items: center; align-self: center; justify-content: center; min-height: 44px; color: var(--nd-forest); font-size: 14px; font-weight: 700; }
+
+/* Confirm a new email (#398): the link's page, with one action. */
+.confirm-email h1:focus { outline: none; }
+.confirm-email .nd-btn[hidden] { display: none; }
+.confirm-email #message:not(:empty) { margin-top: var(--nd-space-12); }

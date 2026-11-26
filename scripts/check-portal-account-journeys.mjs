@@ -16,7 +16,9 @@ const api = `http://localhost:${apiPort}`, portal = `http://localhost:${portalPo
 const store = createStore({ persistent: false });
 let now = new Date();
 const email = new MockEmailAdapter(), verificationCodes = new Map();
-email.sendVerification = async ({ to, code }) => { verificationCodes.set(to, code); return { messageId: 'fixture-email-code' }; };
+// v2 (#398) sends a link token for a new address; older requests send a code.
+const verificationLinks = new Map();
+email.sendVerification = async ({ to, code, token }) => { if (token) verificationLinks.set(to, token); else verificationCodes.set(to, code); return { messageId: 'fixture-email-code' }; };
 const server = createServer({ store, email, now: () => now, env: {
   NODE_ENV: 'test', PAYMENT_MODE: 'mock', EMAIL_MODE: 'mock', MIKROTIK_MODE: 'mock', OMADA_MODE: 'mock',
   CUSTOMER_APP_URL: portal, SESSION_COOKIE_SECURE: 'false', BILLING_WORKER_ENABLED: 'false',
@@ -187,7 +189,8 @@ try {
     await openEditProfile(page);
     await page.locator('#profileEdit [name="name"]').fill('Marie Ndongo');
     await page.locator('#profileEdit [type="submit"]').click();
-    await page.getByText('Your profile was updated.', { exact: true }).waitFor();
+    if (uiV2) await page.locator('#profileEditMessage', { hasText: 'Saved.' }).waitFor();
+    else await page.getByText('Your profile was updated.', { exact: true }).waitFor();
     await openPortalView(page, 'home');
     await page.getByRole('heading', { name: 'Welcome back, Marie', exact: true }).waitFor();
     assert.deepEqual((await store.snapshot()).payments, before);
@@ -307,6 +310,15 @@ try {
     await page.goto(`${portal}/dashboard#account`);
     await openEditProfile(page);
     const form = page.locator('#profileEdit');
+    if (uiV2) {
+      // v2 (canvas: PhoneEditProfile, #398): the sign-in number is read-only and
+      // support changes it; v1 keeps its own form until it retires.
+      await form.locator('#profilePhone').waitFor();
+      assert.equal(await form.locator('#profilePhone').getAttribute('readonly'), '');
+      assert.equal(await form.locator('[name="phone"], [name="pin"]').count(), 0);
+      assert.equal(await form.getByRole('link', { name: 'contact support', exact: true }).getAttribute('href'), '/help#support');
+      return;
+    }
     await form.locator('[name="phone"]').fill('670050103'); await form.locator('[name="pin"]').fill('0000');
     await form.locator('[type="submit"]').click();
     await page.locator('#profileEditMessage .error-card').waitFor();
@@ -354,6 +366,7 @@ try {
     const key = totpSecret();
     await store.transaction((s) => { s.customers[0].totpSecret = key; });
     await page.reload(); await openEditProfile(page);
+    if (uiV2) { await page.locator('#profilePhone').waitFor(); assert.equal(await page.locator('#profileEdit [name="phone"]').count(), 0); return; }
     await page.locator('#profileEdit [name="phone"]').fill('670050104');
     assert.equal(await page.locator('#profileEdit [name="otp"]').count(), 0);
     await page.locator('#profileEditPasskey').click();
@@ -404,6 +417,26 @@ try {
     const before = (await store.snapshot()).customers.find((c) => c.phone === '670050188');
     assert.equal(before.email, ''); assert.equal(before.emailVerificationRequired, true);
     await page.locator('#profileEdit [name="email"]').fill('linked@example.test');
+    if (uiV2) {
+      // v2 (#398): the PIN after Save, then a link to the new mailbox.
+      await page.locator('#profileEdit [type="submit"]').click();
+      await page.locator('#profilePinDialog [name="pin"]').fill('2468');
+      await page.locator('#profilePinDialog [type="submit"]').click();
+      await page.getByText('Saved. Check linked@example.test to confirm it.', { exact: true }).waitFor();
+      await page.reload(); await page.getByText('Saved. Check linked@example.test to confirm it.', { exact: true }).waitFor();
+      await page.screenshot({ path: `${screenshots}/email-confirm-mobile.png`, fullPage: true });
+      await server.listeners("request")[0].transactionalEmails.run();
+      const mailbox = await context.newPage();
+      await mailbox.goto(`${portal}/confirm-email#${encodeURIComponent(verificationLinks.get('linked@example.test'))}`);
+      await mailbox.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      await mailbox.getByRole('heading', { name: 'Email confirmed', exact: true }).waitFor();
+      await mailbox.close();
+      // Every session ended: sign in again to go on.
+      const again = await post('/api/account/login/pin', { phone: '670050188', pin: '2468' });
+      await context.addCookies([{ name: 'customer_session', value: again.response.headers.get('set-cookie').split(';')[0].split('=')[1], domain: 'localhost', path: '/api/account', httpOnly: true, sameSite: 'Lax' }]);
+      // A new fragment alone would not reload the page.
+      await page.goto('about:blank'); await page.goto(`${portal}/dashboard#account`);
+    } else {
     await page.locator('#profileEdit [name="pin"]').fill('2468');
     await page.locator('#profileEdit [type="submit"]').click(); await page.locator('#confirmEmail').waitFor();
     await page.reload(); await page.locator('#confirmEmail').waitFor();
@@ -412,6 +445,7 @@ try {
     await page.locator('#confirmEmail [name="code"]').fill(verificationCodes.get('linked@example.test'));
     await page.locator('#confirmEmail [type="submit"]').click();
     await page.getByText('Email linked. Email updates are enabled. Your other portal sessions were signed out.', { exact: true }).waitFor();
+    }
     const after = (await store.snapshot()).customers.find((c) => c.id === before.id);
     assert.equal(after.email, 'linked@example.test'); assert.ok(after.emailVerifiedAt);
     assert.equal(after.pendingEmail, undefined);
@@ -430,6 +464,26 @@ try {
     await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
     await openEditProfile(page);
     await page.locator('#profileEdit [name="email"]').fill('passkey@example.test');
+    if (uiV2) {
+      // v2 (#398): the passkey is offered in the dialog Save opens; the link page
+      // recovers a lost reply, since the same link again reports the change done.
+      await page.locator('#profileEdit [type="submit"]').click();
+      await page.locator('#profileEditPasskey').click();
+      await page.getByText('Saved. Check passkey@example.test to confirm it.', { exact: true }).waitFor();
+      await server.listeners("request")[0].transactionalEmails.run();
+      const mailbox = await context.newPage();
+      let lost = 0;
+      await mailbox.route('**/api/account/profile/email/confirm-link', async (route) => { lost++; await route.fetch(); await route.abort('failed'); }, { times: 1 });
+      await mailbox.goto(`${portal}/confirm-email#${encodeURIComponent(verificationLinks.get('passkey@example.test'))}`);
+      await mailbox.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      await mailbox.locator('#message .error-card').waitFor();
+      assert.equal((await store.snapshot()).customers[0].email, 'passkey@example.test', 'confirmed although the reply was lost');
+      await mailbox.getByRole('button', { name: 'Confirm email', exact: true }).click();
+      await mailbox.getByRole('heading', { name: 'Email confirmed', exact: true }).waitFor();
+      assert.equal(lost, 1);
+      await mailbox.close();
+      return;
+    }
     await page.locator('#profileEditPasskey').click(); await page.locator('#confirmEmail').waitFor();
     let submissions = 0;
     await page.route('**/api/account/profile/email/confirm', async (route) => {

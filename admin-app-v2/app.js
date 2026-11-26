@@ -447,7 +447,7 @@ $("#app").onclick = async (e) => {
     prefillAssignedVoucher(button.dataset.replaceBundle);
     return;
   }
-  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment", "verifyOrder"].some((key) => button.dataset[key])) return;
+  if (!["resendEmail", "classify", "voucher", "printVoucher", "printCustomerVoucher", "resetAuthenticator", "removeCustomerPasskeys", "changeCustomerPhone", "customer", "wifiVoucher", "session", "replayWebhook", "replayCommand", "resolveCommand", "checkRefund", "refund", "verifyPayment", "verifyOrder"].some((key) => button.dataset[key])) return;
   await runAction(button, "Working…", async () => {
     if (button.dataset.printVoucher) {
       const result = await call("/api/admin/vouchers/print", {
@@ -482,6 +482,8 @@ $("#app").onclick = async (e) => {
       });
     } else if (button.dataset.resetAuthenticator) {
       openAuthenticatorRecovery({ customerId: button.dataset.resetAuthenticator, call, opener: button, retired: adminAuthenticatorRetired }); return;
+    } else if (button.dataset.changeCustomerPhone) {
+      openAuthenticatorRecovery({ customerId: button.dataset.changeCustomerPhone, call, opener: button, purpose: "phone" }); return;
     } else if (button.dataset.removeCustomerPasskeys) {
       openAuthenticatorRecovery({ customerId: button.dataset.removeCustomerPasskeys, call, opener: button, purpose: "passkeys" }); return;
     } else if (button.dataset.customer) {

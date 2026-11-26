@@ -1255,6 +1255,16 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
   - User-provided pilot hardware: D-Link DAP-1360 C1, firmware 3.00. Official RevC documentation describes WISP routing, but D-Link advisory SAP10495 lists RevC firmware 3.04 and earlier as affected and end-of-support. Limit this device to isolated functionality evaluation; it is not a supported production acceptance unit. The isolated UI check did not establish independent private Wi-Fi controls or NAT/isolation. A wired NAT topology with a separate LAN AP is an evaluation option; actual compatibility and long-term ether2 stability remain unverified.
   - Tracker: software issues #172/#173/#174/#176 are closed; parent #170 and database/gateway/operations/pilot issues #171/#175/#177/#178 retain their remaining acceptance gates.
 
+### Edit profile (#398, batch 9, 26 November 2026)
+
+- [-] **CUS-398 — Edit profile, redesigned (batch 9)** ([#398](https://github.com/ImaJin14/Ndahi-Connect/issues/398)). Owner decisions: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7180265409); build note: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7181641253).
+  - **Implemented and tested** (PR #489, not merged yet):
+    - the drawn page: full name, email with "We send a link to confirm a new address", the sign-in number read-only and masked with "To change it, contact support", and "Save changes" at the bottom; English and French;
+    - a name change saves at once. When the email changes, Save asks for the PIN (or a passkey) in a dialog, and the page then says "Saved. Check <email> to confirm it.";
+    - the new address gets a link (`/confirm-email`), single use and good for 30 minutes. It confirms on a tap, never on opening, and every portal session then ends so the customer signs in again. The same link again shortly after (a lost reply) reports the change done. Requests made with a code before this keep their code form;
+    - Admin's customer page has "Change number" for owners: a support case, the reason, the identity check, and the owner's fresh PIN or passkey tied to the new number. The customer keeps their PIN and account, their portal sessions end, and their linked email is told.
+  - **Not yet:** merged, deployed, a real link email opened from a phone's mail app, or a number changed by the owner in the live admin.
+
 ## Thermal POS slip and printable bulk voucher sheet layout (#116)
 
 - [-] **ADMIN-116 — Thermal POS slip (58mm/80mm) and printable bulk A4 voucher sheet (3×7 grid)** ([#116](https://github.com/ImaJin14/Ndahi-Connect/issues/116), [#196](https://github.com/ImaJin14/Ndahi-Connect/issues/196))

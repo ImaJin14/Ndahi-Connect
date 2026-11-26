@@ -154,6 +154,44 @@ test("support removes a customer's lost passkeys after the recorded identity che
   assert.ok(JSON.stringify(s).includes("Passkeys were removed from your NDAHI account"));
 });
 
+// #398 (owner 26 Nov): the portal shows the sign-in number read-only, so an
+// owner changes it after the recorded identity check, with fresh proof bound
+// to the exact new number. The customer keeps their PIN and account.
+test("support changes a customer's number after the identity check, bound to that number", async (t) => {
+  const f = await fixture(t);
+  const customerId = "c1";
+  await f.store.transaction((s) => { s.dashboardSessions.push({ id: "portal", customerId, tokenHash: "x", csrfToken: "c", expiresAt: new Date(+f.now() + 3600000).toISOString() }); });
+  const fields = { customerId, caseReference: "CASE-2026-398", reason: "New SIM; customer verified at the office.", verificationMethod: "in_person", confirmedIdentity: true };
+  // Checked before any proof: a bad number, the same number, a number in use.
+  assert.equal((await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "12" })).status, 400);
+  assert.equal((await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "670050001" })).status, 400);
+  assert.equal((await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "670050002" })).body.code, "PHONE_IN_USE");
+  // Operators cannot.
+  assert.equal((await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "677123456" }, "staff-6", "staff-csrf")).status, 403);
+  // A proof made for one number never changes it to another.
+  const proof = await f.prove("support_recovery", { ...fields, recoveryPurpose: "phone", phone: "677123456" });
+  const other = await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "677999888", ...proof });
+  assert.equal(other.body.code, "VERIFICATION_FAILED");
+  assert.equal((await f.store.snapshot()).customers.find((c) => c.id === customerId).phone, "670050001");
+  // A proof for another recovery action cannot change the number either.
+  const keysProof = await f.prove("support_recovery", { ...fields, recoveryPurpose: "passkeys" });
+  assert.equal((await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "677123456", ...keysProof })).body.code, "VERIFICATION_FAILED");
+  const good = await f.prove("support_recovery", { ...fields, recoveryPurpose: "phone", phone: "+237 677 12 34 56" });
+  const changed = await f.call("/api/admin/customers/recovery", { ...fields, purpose: "phone", phone: "+237 677 12 34 56", ...good });
+  assert.equal(changed.status, 200, JSON.stringify(changed.body));
+  assert.equal(changed.body.phone, "677123456");
+  assert.equal(changed.body.recoveryCode, undefined, "no PIN recovery code");
+  const s = await f.store.snapshot(), customer = s.customers.find((c) => c.id === customerId);
+  assert.equal(customer.phone, "677123456");
+  assert.equal(customer.phoneVerified, false);
+  assert.ok(customer.pinHash, "the PIN stays");
+  assert.equal(s.dashboardSessions.some((session) => session.customerId === customerId), false, "portal sessions end");
+  const entry = s.auditLogs.find((a) => a.action === "customer.support_phone_changed");
+  assert.equal(entry.meta.caseReference, "CASE-2026-398");
+  assert.ok(!JSON.stringify(entry).includes("670050001") && !JSON.stringify(entry).includes("677123456"), "the audit log keeps only the last digits");
+  assert.ok(s.securityAlerts.some((a) => a.customerId === customerId && a.kind === "phone_changed"));
+});
+
 // #245: a recovery proof authorizes exactly the action it was made for.
 test("a recovery proof made for one action never runs the other, and nothing changes", async (t) => {
   const f = await fixture(t), customerKey = keyFixture();

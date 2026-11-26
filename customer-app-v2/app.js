@@ -313,8 +313,10 @@ async function load() {
   mountPortalNavigation(result.payments.filter((p) => ["pending", "processing"].includes(p.status)).length, result.customer.name);
   mountProfileEdit({call,customer:result.customer,onChanged:async pending=>{
     await load();
-    if(pending){$("#confirmEmail")?.scrollIntoView({block:"center"});$("#confirmEmail input")?.focus();}
-    else {$("#dashboardMessage").textContent="Your profile was updated.";$("#editProfile summary")?.focus();}
+    // A link request shows "Saved. Check … to confirm it." (canvas); an older
+    // code request still focuses its code form.
+    if(pending){const saved=$("#profileEditSaved");if(saved)saved.focus();else{$("#confirmEmail")?.scrollIntoView({block:"center"});$("#confirmEmail input")?.focus();}}
+    else {const saved=$("#profileEditMessage");if(saved){saved.textContent=t("profileSaved",currentLanguage());saved.tabIndex=-1;saved.focus();}else $("#dashboardMessage").textContent="Your profile was updated.";}
   }});
   mountAccountSecurity({ call, customer: result.customer, restore: securityView, setup: securitySetup, onChanged: async view => {
     await load();

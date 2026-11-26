@@ -118,6 +118,37 @@ try {
   }
   console.log("PASS support removes a customer's lost passkeys with PIN or passkey proof at 390 and 1280"); checks++;
 
+  // Change number (#398): the portal shows the sign-in number read-only, so an
+  // owner changes it here with the same case, identity check and fresh proof.
+  const { phone: originalPhone } = (await f.store.snapshot()).customers[0];
+  for (const [width, proof, number] of [[390, "pin", "677123401"], [1280, "passkey", "677123402"]]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${admin}/dashboard#customer/${encodeURIComponent(customerId)}`);
+    await page.getByRole("button", { name: "Change number", exact: true }).click();
+    const form = page.locator("[data-authenticator-recovery]");
+    await form.getByRole("heading", { name: "Change number", exact: true }).waitFor();
+    await form.getByLabel("New number").fill(number);
+    await form.getByLabel("Support case reference").fill(`CASE-398-${width}`);
+    await form.getByLabel("Reason and verification notes").fill("New SIM; identity checked at the office.");
+    await form.getByLabel("I verified this customer's identity.").check();
+    assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: `${screenshots}/admin-change-number-${width}.png`, fullPage: true });
+    await form.getByRole("button", { name: "Verify and change number", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Verify administrator action" });
+    if (proof === "pin") {
+      await dialog.getByLabel("Current administrator PIN").fill(pin);
+      await dialog.getByRole("button", { name: "Verify PIN", exact: true }).click();
+    } else await dialog.getByRole("button", { name: "Verify with passkey", exact: true }).click();
+    await form.getByRole("heading", { name: "Number changed", exact: true }).waitFor();
+    const changed = (await f.store.snapshot()).customers[0];
+    assert.equal(changed.phone, number);
+    assert.equal(changed.phoneVerified, false);
+  }
+  // The steps below sign in with the original number.
+  await f.store.transaction((s) => { s.customers[0].phone = originalPhone; });
+  console.log("PASS support changes a customer's number with PIN or passkey proof at 390 and 1280"); checks++;
+
   // Customer sign-in leads with phone + PIN; the voucher code is the second path.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(portal + "/login");
