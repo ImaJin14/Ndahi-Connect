@@ -1498,7 +1498,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Change PIN (#396, batch 12, 26 November 2026)
 
 - [-] **CUS-396 — Change PIN, redesigned (batch 12)** ([#396](https://github.com/ImaJin14/Ndahi-Connect/issues/396)). Owner decision: [#396 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/396#issuecomment-7197229439).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #503, not merged yet):
     - the drawn page: Current PIN, New PIN, "Type the new PIN again", "4 to 6 digits. Other devices stay signed in unless you sign them out." and Save new PIN at the foot; the browser says when the two new PINs differ; English and French;
     - after saving, "PIN updated. Use it next time you sign in." with "Sign out other devices too →" to Signed-in devices;
     - the customer's other devices now stay signed in after a PIN change in the redesigned portal (owner); pending sign-in and reset requests and old backup codes still end, and the security email says the other devices stay signed in. The frozen v1 portal still signs them out, as its screen says;
