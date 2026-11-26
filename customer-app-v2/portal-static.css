@@ -109,7 +109,9 @@ body[data-hotspot-landing] main { padding: 0; }
 .portal-hotspot__icon { display: grid; flex-shrink: 0; place-items: center; width: 44px; height: 44px; border-radius: var(--nd-radius-panel); background: var(--nd-sage); color: var(--nd-forest); }
 .portal-hotspot__text { flex: 1; min-width: 0; }
 .portal-hotspot__text strong { display: block; font-size: var(--nd-fs-control); }
-.portal-hotspot__text span { display: block; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
+/* The hint runs inline in a 16px line under the title, as drawn (#404). */
+.portal-hotspot__text { font-size: 16px; }
+.portal-hotspot__text span { display: inline; color: var(--nd-muted); font-size: var(--nd-fs-meta); }
 .portal-hotspot__chevron { color: var(--nd-lime-text); font-size: 20px; }
 /* "I'm new" is the forest card, as drawn. */
 .portal-hotspot__opt--new, .portal-hotspot__opt--new:hover { border-color: var(--nd-forest); background: var(--nd-forest); color: var(--nd-on-forest); }
@@ -123,7 +125,7 @@ body[data-hotspot-landing] main { padding: 0; }
 .portal-hotspot__status[data-status="online"] .portal-hotspot__dot { background: var(--nd-meter); }
 .portal-hotspot__status[data-status="degraded"] .portal-hotspot__dot, .portal-hotspot__status[data-status="maintenance"] .portal-hotspot__dot { background: var(--nd-warning-fg); }
 .portal-hotspot__status[data-status="offline"] .portal-hotspot__dot { background: var(--nd-danger-fg); }
-.portal-hotspot__store { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 52px; margin-top: auto; padding: 0 var(--nd-space-4); border-top: 1px solid var(--nd-line); color: var(--nd-forest); font-size: var(--nd-fs-body); font-weight: 700; text-decoration: none; }
+.portal-hotspot__store { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 53px; /* 52px above its 1px line, as drawn */ margin-top: auto; padding: 0 var(--nd-space-4); border-top: 1px solid var(--nd-line); color: var(--nd-forest); font-size: var(--nd-fs-body); font-weight: 700; text-decoration: none; }
 .portal-rule__list { margin: 0 0 var(--nd-space-14); padding-left: 20px; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.55; }
 .portal-rules__full { margin-top: var(--nd-space-16); border-top: 1px solid var(--nd-line); }
 .portal-rules__full .portal-rule__body h3 { margin: var(--nd-space-12) 0 4px; color: var(--nd-ink); font: 700 14px var(--nd-font-body); }

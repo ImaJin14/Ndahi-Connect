@@ -1461,6 +1461,16 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: 44 focused print/PDF/email/provider tests and all three print browser journeys pass. Browser test exercises dedicated preview at 390px, direct print invocation and actual bulk PDF download. Physical phone printer picker and paper output remain unverified and tracked under #116.
 - Deployed: PR #211 merged at ea2a3fb; main CI and all four Render deployments passed. Exact live API/admin/customer revisions and print assets verified; six production smoke groups passed. Physical acceptance remains unverified. Account-aware QR connection is separate issue #207.
 
+### Wi-Fi page with the hotspot's name (#404, batch 9, 26 November 2026)
+
+- [-] **CUS-404 — Connect to Wi-Fi, redesigned (batch 9)** ([#404](https://github.com/ImaJin14/Ndahi-Connect/issues/404)). Owner decisions: [#404 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/404#issuecomment-7180266029).
+  - **Implemented and tested** (PR #486, not merged yet):
+    - the owner names the hotspot (English and French, up to 40 characters) in Admin → Network setup → More network tools; the change is audited, and the public `/api/status` gives the name to the Wi-Fi page;
+    - the page reads "Choose how you'd like to get online at <name>.", or "…to get online." without one; on NDAHI Wi-Fi it still says "You're on NDAHI Wi-Fi";
+    - the option hints and the store link measured to the board;
+    - English and French.
+  - **Not yet:** merged, deployed, the name entered by the owner, or the page opened from the RB5009's Wi-Fi sign-in on a real phone.
+
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
 - Implemented: account-specific, replaceable QR locators open a dedicated connection page. Scanning alone grants no account session; fresh owner PIN or user-verified passkey signs in and issues a single-use, 90-second connection authorization bound to the account, voucher, device and attempt. Main-device designation and existing device limits remain enforced.

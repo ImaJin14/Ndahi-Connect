@@ -16,13 +16,17 @@ export function networkStatusLabel(status) {
 // Public, unauthenticated endpoint — used by pages that have no other
 // authenticated payload to read the zone status from (login, onboarding).
 export async function fetchNetworkStatus(apiUrl) {
+  return (await fetchNetworkInfo(apiUrl)).status;
+}
+// The same public status with the hotspot's name, when the owner has set one (#404).
+export async function fetchNetworkInfo(apiUrl) {
   try {
     const response = await fetch(`${apiUrl}/api/status`);
-    if (!response.ok) return "unavailable";
+    if (!response.ok) return { status: "unavailable", hotspotName: null };
     const result = await response.json();
-    return LABELS[result.service] ? result.service : "unavailable";
+    return { status: LABELS[result.service] ? result.service : "unavailable", hotspotName: result.hotspotName || null };
   } catch {
-    return "unavailable";
+    return { status: "unavailable", hotspotName: null };
   }
 }
 
