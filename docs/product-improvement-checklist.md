@@ -1535,13 +1535,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Insights screen (#382, batch 7, 25 November 2026)
 
 - [-] **ADM-382 — Insights, redesigned (batch 7)** ([#382](https://github.com/ImaJin14/Ndahi-Connect/issues/382)). Owner decisions: [#382 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/382#issuecomment-7171758505).
-  - **Implemented and tested** (PR #477, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #477):
     - a new owner-only screen at `#insights` and its side-menu item, from `GET /api/admin/insights`; nothing is sample data;
     - the API adds the screen's figures (`lib/insights-summary.mjs`): revenue, bundles sold and paying customers, each against the previous period of the same length, and "bought again within 2 days" (of customers whose bundle ended, those who bought another no later than 2 days after it ended), in points;
     - revenue per day (weekly bars for 90 days), devices online by hour with the busiest three hours, access-point load "Not measured yet" with "Starlink at peak" from the Connections checks (#380), and Wi-Fi page → paid by design with the computed note (no guessed reason);
     - every chart has a text alternative; styles are set through the DOM, as the page's CSP refuses style attributes;
     - English and French.
-  - **Not yet:** merged, deployed, or read by the owner with a few weeks of recorded evenings; Starlink at peak appears once #380's uplink readings are live.
+  - **Not yet:** read by the owner with a few weeks of recorded evenings; Starlink at peak appears once #380's uplink readings are recorded on the live router.
 
 ### Open PRs taken over and merged (19 November 2026)
 
@@ -1656,13 +1656,13 @@ On 20 November the owner asked for ready PRs to be merged as work goes on, each 
 ### Outages screen to the artboard (#385, batch 7, 25 November 2026)
 
 - [-] **ADM-385 — Outages, redesigned (batch 7)** ([#385](https://github.com/ImaJin14/Ndahi-Connect/issues/385)). Owner decisions: [#385 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/385#issuecomment-7171757858).
-  - **Implemented and tested** (PR #474, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #474):
     - "Affected area" is the drawn list, "All sites · Bamenda" then "AP-Market only", from area names the owner keeps once (`GET`/`POST /api/admin/outages/areas`, owner only, audited; edited in Network setup, #384);
     - "Started" reads "Today 14:20" (or "Yesterday 23:10"), in Douala time, and asks again when it can't be read;
     - the detected-outage banner sits inside the panel; the panels are the drawn 766 / 768 px wide with no extra space under the two forms;
     - past outages say "All sites" for a whole-site outage, and the cause "Router not answering" when the notice was posted while the router had stopped answering;
     - English and French.
-  - **Not yet:** merged, deployed, the area names entered by the owner, or an outage posted on the live admin.
+  - **Not yet:** the area names entered by the owner, or an outage posted on the live admin.
 
 ### Black Friday store offer (#302, 21 November 2026)
 
@@ -1729,13 +1729,13 @@ On 21 November the owner also asked for the countdown in the customer portal.
 ### Connections checked every minute (#380, batch 7, 25 November 2026)
 
 - [-] **ADM-380 — Connections and security, redesigned (batch 7)** ([#380](https://github.com/ImaJin14/Ndahi-Connect/issues/380)). Owner decisions: [#380 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/380#issuecomment-7171673999).
-  - **Implemented and tested** (PR #475, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #475):
     - a new server check (`lib/service-health.mjs`), every minute in production (`SERVICE_HEALTH_ENABLED=false` turns it off) and on "Test connection" (`POST /api/admin/service-health/test`, owners and operators);
     - Starlink uplink: the router's ping and the traffic on its uplink port ("24 ms · 18 Mbps in use"), no speed test; MikroTik gateway: hotspot sessions; Mobile Money per network: how long recent payments took to confirm; Email: receipt-email results and every send since start; Omada while standalone: no test;
     - the router is read through the saved live connection with GETs and RouterOS's own ping and monitor-traffic, outside any store transaction; one uplink row an hour is kept for Insights;
     - Admin security shows the real sign-in policy ("PIN + passkey, required" after the cutover); router checks and Sync usage are closed below, opened by "N stuck";
     - English and French.
-  - **Not yet:** merged, deployed, or the router readings checked on-site against the RB5009 (ping, uplink port and hotspot sessions).
+  - **Not yet:** the router readings checked on-site against the RB5009 (ping, uplink port and hotspot sessions).
 
 ### Product photos up to 30 (#321, 21 November 2026)
 
@@ -1794,14 +1794,14 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Network setup in four drawn steps (#384, batch 7, 25 November 2026)
 
 - [-] **ADM-384 — Network setup, redesigned (batch 7)** ([#384](https://github.com/ImaJin14/Ndahi-Connect/issues/384)). Owner decisions: [first](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7171756340), [second](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7172610323).
-  - **Implemented and tested** (PR #476, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #476):
     - the drawn steps (Router, Access points, Wi-Fi, Review) and fields first; service username and password, AP port, gateway, DHCP range and DNS in a closed "More router settings" (secrets entered, never shown back);
     - "Discover router" saves a new or changed connection, then reads the router; "Next: access points" makes the router preview;
     - with standalone access points (production), the Access points and Wi-Fi steps carry a note only;
     - Review shows the latest preview as summary rows (one change set at a time); Apply is the confirmation; "Run simulation" only where simulation is allowed; after Apply, "Applied. A backup of the previous settings was saved." and Keep changes / Roll back;
     - voucher enforcement, assisted connections, the purchase-access check, the outage area names (#385) and the job history in a closed "More network tools";
     - every string through i18n, English and French (the screen was English only).
-  - **Not yet:** merged, deployed, or a router change previewed, applied and kept on the RB5009 on-site.
+  - **Not yet:** a router change previewed, applied and kept on the RB5009 on-site.
 
 ### Bundles arranged Daily, Weekly and Monthly (21 November 2026)
 
@@ -1926,7 +1926,7 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
 Owner decisions are on each issue (25 Nov).
 
 - [-] **ADM-378 — Audit log, redesigned (batch 7)** ([#378](https://github.com/ImaJin14/Ndahi-Connect/issues/378))
-  - **Implemented and tested** (PR #473, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #473):
     - the six drawn chips (Everything, Money, Store, Vouchers, Customers, Sign-ins), each mapped to its areas on the server; network, Home WISP and setup actions show under Everything;
     - a staff sign-in is one row, "Signed in with PIN + passkey", on "Admin": the PIN step it used is folded into it. Stored entries and the CSV export are unchanged;
     - "On" names the order (NS-…), the voucher batch (B-…), the product and "Bundle · 6•• •• 12 45";
@@ -1934,7 +1934,7 @@ Owner decisions are on each issue (25 Nov).
     - the chip, search and page live in the address (`#audit?type=signins&q=…&page=2`) and survive a reload;
     - search and Security events sit in a closed section below the log; one page shows no pager;
     - English and French.
-  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+  - **Not yet:** used by the owner on the live admin.
 
 ## Portal sign-in timeouts (#464, 25 November 2026)
 
