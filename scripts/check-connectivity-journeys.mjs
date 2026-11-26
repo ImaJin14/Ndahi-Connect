@@ -17,7 +17,9 @@ try{
   try{await work(page,()=>probes);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);console.log('PASS '+name);checks++;}catch(e){await page.screenshot({path:screenshots+'/failure-'+checks+'.png',fullPage:true}).catch(()=>{});throw e;}finally{await context.close();}
  }
  for(const width of [320,1280])await scenario('unpaid captive presence offers sign-in without a join-Wi-Fi instruction at '+width+'px',async(page,probes)=>{
-  await page.goto(portal+'/login');const banner=page.locator('#entryConnectivity');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();assert.equal(await banner.getByRole('link',{name:'Sign in',exact:true}).getAttribute('href'),'/login');assert.doesNotMatch(await banner.textContent(),/Join Wi-Fi|Starlink Active|Connected & Active/);assert.equal(probes(),0);
+  // v2's Sign in has no Wi-Fi line (canvas: PhoneLogin, #405; owner 26 Nov); the buy page keeps it.
+  await page.goto(portal+(uiV2?'/onboarding.html':'/login'));const banner=page.locator('#entryConnectivity');await banner.getByText('NDAHI network detected',{exact:true}).waitFor();if(!uiV2)assert.equal(await banner.getByRole('link',{name:'Sign in',exact:true}).getAttribute('href'),'/login');assert.doesNotMatch(await banner.textContent(),/Join Wi-Fi|Starlink Active|Connected & Active/);assert.equal(probes(),0);
+  if(uiV2){await page.goto(portal+'/login');await page.locator('#login').waitFor();assert.equal(await page.locator('#entryConnectivity').count(),0);}
   // A font fallback or larger text must not let a phone input set the grid's
   // minimum width. This reproduced the narrow-screen CI overflow before the fix.
   if (uiV2 && width === 320) await page.evaluate(() => { const input = document.querySelector('input[name="phone"]'); input.style.fontFamily = 'monospace'; input.style.fontSize = '20px'; });

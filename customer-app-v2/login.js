@@ -10,6 +10,13 @@ import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { randomId } from "./compat.js";
 import { mountThemeToggle } from "./portal-nav.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+// The page's words (canvas: PhoneLogin, #405) come from the shared strings.
+const L = (key, values) => format(key, values || {}, currentLanguage());
+document.documentElement.lang = currentLanguage();
+document.querySelectorAll("[data-l]").forEach((node) => { node.textContent = L(node.dataset.l); });
+document.querySelectorAll("[data-l-label]").forEach((node) => node.setAttribute("aria-label", L(node.dataset.lLabel)));
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -36,7 +43,7 @@ function toggleSecret(inputSelector, buttonSelector) {
   const input = $(inputSelector), button = $(buttonSelector),
     show = input.type === "password";
   input.type = show ? "text" : "password";
-  button.textContent = show ? "Hide" : "Show";
+  button.textContent = show ? L("signinHide") : L("signinShow");
   button.setAttribute("aria-pressed", String(show));
   input.focus();
 }
@@ -54,13 +61,13 @@ function setMode(mode) {
   form.code.required = mode === "voucher";
   $("#credentialStep").hidden = mode === "voucher";
   $("#customerPin").required = mode === "pin";
-  $("#pinLabel").textContent = "PIN";
+  $("#pinLabel").textContent = L("signinPin");
   $("#customerPin").autocomplete = "current-password";
   $("#forgotPin").hidden = false;
   $("#confirmPinLabel").hidden = true; $("#confirmPin").required = false;
   $("#changeDetails").hidden = true;
   $("#customerPin").value = ""; $("#confirmPin").value = "";
-  $("#loginSubmit").textContent = mode === "pin" ? "Sign in" : "Continue";
+  $("#loginSubmit").textContent = mode === "pin" ? L("signinSubmit") : L("signinContinue");
   $("#message").textContent = "";
 }
 $("#useVoucherCode").onclick = () => { setMode("voucher"); $("#login").code.focus(); };
@@ -76,7 +83,7 @@ function showAccountCredentials() {
   $("#credentialStep").hidden = false;
   $("#changeDetails").hidden = false;
   $("#customerPin").required = true;
-  $("#pinLabel").textContent = accessMode === "setup" ? "Create a PIN (4 to 6 digits)" : "PIN";
+  $("#pinLabel").textContent = accessMode === "setup" ? L("signinCreatePin") : L("signinPin");
   $("#customerPin").autocomplete = accessMode === "setup" ? "new-password" : "current-password";
   $("#forgotPin").hidden = accessMode === "setup";
   $("#confirmPinLabel").hidden = accessMode !== "setup";
@@ -147,8 +154,8 @@ $("#login").onsubmit = async (event) => {
   } catch (error) {
     showError($("#message"), error);
   } finally {
-    if (!button.disabled) button.textContent = loginMode === "pin" ? "Sign in" : accessToken
-      ? accessMode === "setup" ? "Get Started" : "Sign in" : "Continue";
+    if (!button.disabled) button.textContent = loginMode === "pin" ? L("signinSubmit") : accessToken
+      ? accessMode === "setup" ? "Get Started" : L("signinSubmit") : L("signinContinue");
   }
 };
 $("#changeDetails").onclick = () => {
