@@ -1364,6 +1364,15 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Verified 14 active-bundle browser scenarios at 320px/1280px, including server-confirmed expiry, local expiry uncertainty, stale/offline reads, exhaustion, reload and no-bundle accounts; syntax/diff and existing UI checks pass.
 - [ ] Deployment and physical-device acceptance of this message change remain pending.
 
+### Shop tab on phones (#414, batch 8, 26 November 2026)
+
+- [-] **CUS-414 — Shop, redesigned (batch 8)** ([#414](https://github.com/ImaJin14/Ndahi-Connect/issues/414)). Owner decisions: [#414 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/414#issuecomment-7178824016).
+  - **Implemented and tested** (PR pending, not merged yet):
+    - the drawn phone list: "My orders" beside the title, the category chips in one row, 80px photo boxes, and the stock line ("Only 2 left" from two units down);
+    - each category has an optional short name (English and French) in Admin → Products → Categories. Phone chips use it, or the full name when it is blank; desktop keeps the full names, as its board does. Saving a category from the frozen v1 admin keeps the short name;
+    - English and French.
+  - **Not yet:** merged, deployed, or the short names (Travel / Outdoor / Wi-Fi and the French) entered by the owner on the live admin.
+
 ## Email setup, provider settlements and store receipts (8 November 2026)
 
 - [x] Implemented locally: optional signup-email completion popup after PIN setup, prefilled email, PIN proof and mailbox code, resend/change and dismiss/reopen. Existing unverified accounts get a setup reminder. Arbitrary signup email is never marked verified automatically; original account identity remains unchanged.

@@ -399,13 +399,13 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
     w.innerHTML = `<div class="admin-store__catlist">${state.categories.map((c) => `<div class="admin-row"><span><strong>${h(c.name.en)}</strong> / ${h(c.name.fr)} · ${h(L(c.hidden ? "adminProductsCatHidden" : "adminProductsCatVisible"))} · ${h(L("adminProductsCatPosition", { position: c.position }))}</span><span class="admin-actions"><button type="button" class="nd-btn nd-btn--compact nd-btn--secondary" data-edit-category="${h(c.id)}">${h(L("adminProductsEdit"))}</button><button type="button" class="nd-btn nd-btn--compact nd-btn--quiet admin-btn--danger" data-delete-category="${h(c.id)}">${h(L("adminProductsDelete"))}</button></span></div>`).join("")}</div><button type="button" class="nd-btn nd-btn--secondary" id="newStoreCategory">${h(L("adminProductsAddCategory"))}</button><div id="categoryEditor"></div>`;
     const edit = (c) => {
       $("#categoryEditor").innerHTML =
-        `<form id="categoryForm" class="admin-form">${bilingual("name", L("adminProductsCategoryName"), c.name)}${field("position", L("adminProductsSortPosition"), c.position, "number", 'min="0" max="1000"')}${checkbox("hidden", L("adminProductsHideCategory"), c.hidden)}<button class="nd-btn">${h(L("adminProductsSaveCategory"))}</button></form>`;
+        `<form id="categoryForm" class="admin-form">${bilingual("name", L("adminProductsCategoryName"), c.name)}${bilingual("shortName", L("adminProductsCategoryShort"), c.shortName)}${field("position", L("adminProductsSortPosition"), c.position, "number", 'min="0" max="1000"')}${checkbox("hidden", L("adminProductsHideCategory"), c.hidden)}<button class="nd-btn">${h(L("adminProductsSaveCategory"))}</button></form>`;
       $("#categoryForm").onsubmit = (e) => {
         e.preventDefault();
         run(e.submitter, () => save("categories/save", { ...values(e.target), id: c.id, version: c.version, position: Number(e.target.elements.position.value), hidden: e.target.elements.hidden.checked }));
       };
     };
-    $("#newStoreCategory").onclick = () => edit({ name: loc(), position: 0, hidden: false });
+    $("#newStoreCategory").onclick = () => edit({ name: loc(), shortName: loc(), position: 0, hidden: false });
     root.querySelectorAll("[data-edit-category]").forEach((b) => (b.onclick = () => edit(state.categories.find((c) => c.id === b.dataset.editCategory))));
     root.querySelectorAll("[data-delete-category]").forEach((b) => (b.onclick = () => run(b, async () => {
       if (!confirm(L("adminProductsDeleteCategory"))) return;
