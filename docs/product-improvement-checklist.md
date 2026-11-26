@@ -1671,6 +1671,15 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Deployed: merged as `f31cd8f`, live on all four services at 17:39 UTC on 18 November; production smoke checks pass. Production sample after warm-up (median, before → after): plans 821 → 166 ms, status 620 → 172 ms, signed-out bundle status 1,061 → 168 ms, signed-out dashboards ~1,070–1,100 → 349–446 ms, against a 155–159 ms network floor. Occasional ~2 s spikes remain behind workers' exclusive lock (phase 3).
 - Not yet verified: signed-in timings in production, a busy evening, and error-rate or expiry monitoring after the switch. The dashboard, account/admin pages, workers and customer writes are later phases in the plan.
 
+### Home WISP routers and the reconcile pass (#340, batch 13, 26 November 2026)
+
+- [-] **ADM-340 — Home WISP routers, redesigned, with a reconcile pass (batch 13)** ([#340](https://github.com/ImaJin14/Ndahi-Connect/issues/340)). Owner decisions: [#340 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/340#issuecomment-7202632406).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - the drawn page (Admin → Network → Home WISP routers, now in every owner's and operator's menu): Reconcile now and when it last ran, the four counts, each router with its MAC masked to the last three octets, Online / Offline / Disconnected, Sharing / Sharing (idle) / Withheld / Removed with why, Revoke (a reason, confirmed, audited), recent changes and the rule; the NDAHI Home pilot import and readiness check left the new admin (owner; still in the old admin);
+    - the reconcile pass (`lib/home-reconcile.mjs`): every 5 minutes, within a minute after a failed Home change and on Reconcile now, it reads the router's Home users (read only), revokes stale exceptions (ended, revoked or an older router's) and retries withheld changes, all through the Home worker's existing operations; off while Home WISP is off (owner: router work, no mock-router tests);
+    - on-site plan: `docs/operations/home-wisp-reconcile-onsite-test.md`.
+  - **Not yet:** merged, deployed, Home WISP turned on, or the reconcile checked on the test HotSpot.
+
 ### Receipt emails waiting on the customer — PR #291 (18 November 2026)
 
 - Implemented (owner-approved): a receipt blocked on a missing email or on transactional email being off is checked hourly instead of every 30-second billing pass, and on the next pass once the customer confirms an email or turns transactional email back on. Receipts whose delivery stopped for good, or that wait for a retry or a live lease, are no longer picked.

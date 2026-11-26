@@ -63,7 +63,8 @@ function canAccess(menu, role) {
   if (menu === "payments" || menu === "customers" || menu === "audit" || menu === "bundles") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));
   if (menu === "resellers") return Boolean(document.getElementById("resellerLedger"));
-  if (menu === "homerouters") return homeRouters;
+  // Home WISP routers (canvas: AdminHomeRouters, #340): owners and operators, as every board draws the menu.
+  if (menu === "homerouters") return homeRouters || STORE_ROLES.indexOf(who) >= 0;
   if (menu === "outages") return who !== "reseller";
   return true;
 }

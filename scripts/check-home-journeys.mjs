@@ -68,7 +68,18 @@ try{
    offline=false;f.advance(65);await f.handler.homeService.run();await page.locator("#refreshHome").click();await page.locator("#homeStatus").getByText(/Router authorization confirmed/).waitFor();checks++;
    await f.store.transaction(s=>{s.adminUsers.push({id:"home-owner",username:"owner",role:"owner",active:true});s.adminSessions.push({id:"home-admin",userId:"home-owner",role:"owner",tokenHash:hashSecret("home-admin","home-admin-fixture"),csrfToken:"admin-csrf",expiresAt:new Date(+f.now()+3600000).toISOString()});});
    await context.addCookies([{name:"admin_session",value:"home-admin",domain:"localhost",path:"/api/admin",httpOnly:true,sameSite:"Lax"}]);
-   await page.goto(admin+"/home-routers.html");await page.locator(uiV2?"#homeAdminList tbody tr":"#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
+   await page.goto(admin+"/home-routers.html");
+   if(uiV2){
+    // Home WISP routers as drawn (canvas: AdminHomeRouters, #340; owner 26 Nov): the
+    // router's MAC masked, Reconcile now with its result, no pilot tools here.
+    await page.locator("#wispRouters tbody tr").first().waitFor();
+    const table=await page.locator("#wispRouters").textContent();
+    assert.equal(table.includes("AA:BB:CC:DD:EE:90"),false);assert.match(table,/••:••:••:DD:EE:90/);checks++;
+    await page.locator("#reconcileNow").click();await page.locator("#wispLast").getByText(/^Reconciled just now: \d+ subscriptions and routers checked/).waitFor();
+    assert.equal(await page.locator("#homePilotImport, #checkHomeReadiness").count(),0);checks++;
+    checks++;
+   }else{
+   await page.locator("#homeAdminList h2").filter({hasText:"Family router"}).waitFor();assert.equal((await page.locator("#homeAdminList").textContent()).includes("AA:BB:CC:DD:EE:90"),false);checks++;
    await page.locator("#homeQueueAge").waitFor();
    await page.route(api+"/api/admin/home/readiness",route=>route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({error:"Synthetic readiness failure"})}));
    await page.locator("#checkHomeReadiness").focus();await page.keyboard.press("Enter");
@@ -80,6 +91,7 @@ try{
    await page.locator("#homePilotReason").fill("Synthetic browser fixture; no physical acceptance");
    await page.locator("#homePilotImport button[type=submit]").click();
    await page.locator("#homePilotStatus").getByText("Incomplete or failed checks",{exact:true}).waitFor();checks++;
+   }
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,"Home operations must fit the viewport");
    await page.screenshot({path:`${output}/home-admin-${width}.png`,fullPage:true});
    const key=securityKey(),cdp=await context.newCDPSession(page);await cdp.send("WebAuthn.enable");
