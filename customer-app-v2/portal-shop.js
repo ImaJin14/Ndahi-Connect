@@ -94,39 +94,74 @@ function productView(data, p) {
   </div>`;
 }
 
-// The item, the Mobile Money fee for the chosen network and the total to approve
-// (#297, canvas: PhoneCheckout). The fee and total are the server's quote for this
-// quantity (paymentQuotes[network][quantity - 1]); without one, the fee is "in the prompt".
+// Checkout (canvas: PhoneCheckout, #397): the item, your details, collection,
+// Pay with, then price · Mobile Payment Fee (2%) · Total to Pay, the wallet
+// notice and Pay Now (#297, 24 Nov). The fee and total are the server's quote
+// for this quantity (paymentQuotes[network][quantity - 1]); without one the fee
+// is shown in the operator prompt. Paying opens the drawn "Waiting for
+// payment" and "Order placed" screens at #checkout/<id>/<quantity>/<order>.
 const METHOD_NAMES = { mtn: "MTN MoMo", orange: "Orange Money" };
 const shopQuote = (p, network, quantity) => { const q = p.paymentQuotes && p.paymentQuotes[network] && p.paymentQuotes[network][quantity - 1]; return q && Number.isFinite(q.total) ? q : null; };
+// "Amina N." and "+237 6•• •• 12 45", as drawn: the details are the account's.
+const shortName = (name) => { const words = String(name || "").trim().split(/\s+/).filter(Boolean); return words.length > 1 ? `${words[0]} ${words.at(-1)[0]}.` : words[0] || ""; };
+const nine = (phone) => String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, "");
+const maskedPhone = (phone, country = true) => { const d = nine(phone); return d.length === 9 ? `${country ? "+237 " : ""}${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : phone || ""; };
+// The price without the currency, as the item line draws it.
+const amount = (value) => (value == null ? L("homePriceTbc") : Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM"));
 function costView(p, quantity, network) {
   const q = shopQuote(p, network, quantity), price = q ? q.price : p.price * quantity;
+  const notice = h(L(q ? "deskBuyNotice" : "deskBuyNoticeNoFee", { amount: "\u0000", wallet: METHOD_NAMES[network] })).replace("\u0000", `<strong>${h(money(q ? q.total : price))}</strong>`);
   return `<div class="portal-shop__cost" id="shopCost">
     <div class="portal-shop__cost-row"><span>${h(L("shopItem"))}</span><span>${h(money(price))}</span></div>
     ${promo.checkoutExtras(p).line}
-    <div class="portal-shop__cost-row"><span>${h(L("shopFee", { method: METHOD_NAMES[network] }))}</span><span>${h(q ? money(q.fee) : L("shopFeeInPrompt"))}</span></div>
-    ${q ? `<div class="portal-shop__total"><span>${h(L("shopTotalToApprove"))}</span><strong>${h(money(q.total))}</strong></div>` : ""}
-    <p class="portal-shop__balance">${h(q ? L("shopBalanceNote", { amount: money(q.total) }) : L("shopBalanceNoteNoFee", { amount: money(price) }))}</p>
+    <div class="portal-shop__cost-row"><span>${h(L(q ? "deskBuyFee" : "deskBuyFeePlain"))}</span><span>${h(q ? money(q.fee) : L("deskBuyFeeInPrompt"))}</span></div>
+    ${q ? `<div class="portal-shop__total"><span>${h(L("deskBuyTotal"))}</span><strong>${h(money(q.total))}</strong></div>` : ""}
+    <p class="portal-shop__balance" role="note">${notice}</p>
   </div>`;
 }
-const payLabel = (p, quantity, network) => { const q = shopQuote(p, network, quantity); return q ? L("shopPay", { amount: money(q.total) }) : L("shopPayNoFee", { amount: money(p.price * quantity) }); };
 
 function checkoutView(data, p, quantity, who) {
-  const total = p.price * quantity, pickup = text(data.settings && data.settings.pickup);
+  const pickup = text(data.settings && data.settings.pickup);
   return `${bar(`/dashboard#product/${encodeURIComponent(p.id)}`, L("shopBackProduct"), L("shopCheckout"))}
   <form class="portal-shop__checkout" id="shopCheckout" novalidate>
-    <div class="portal-shop__line">${photo(p, "portal-shop__thumb")}<span><strong>${h(text(p.name))}</strong><span class="nd-meta">${h(L("shopQuantityN", { count: quantity }))}</span></span><strong>${h(money(total))}</strong></div>
-    <section aria-labelledby="shopContact"><div class="portal-shop__section-head"><h3 id="shopContact">${h(L("shopYourDetails"))}</h3><span class="nd-meta">${h(L("shopFromAccount"))}</span></div><p>${h([who.name, who.phone].filter(Boolean).join(" · "))}</p></section>
-    ${pickup ? `<section aria-labelledby="shopPickup"><h3 id="shopPickup">${h(L("shopCollection"))}</h3><p><strong>${h(pickup)}</strong><br><span class="nd-meta">${h(L("shopCodeNote"))}</span></p></section>` : ""}
-    <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${[["mtn", "MTN Mobile Money"], ["orange", "Orange Money"]].map(([value, label], i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
-      <label class="portal-shop__field">${h(L("shopPayNumber"))}<input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required></label></fieldset>
+    <div class="portal-shop__checkout-main">
+    <div class="portal-shop__line">${photo(p, "portal-shop__thumb")}<span><strong>${h(text(p.name))}</strong><span class="nd-meta">${h(L("shopQuantityN", { count: quantity }))}</span></span><strong>${h(amount(p.price * quantity))}</strong></div>
+    <section aria-labelledby="shopContact"><div class="portal-shop__section-head"><h3 id="shopContact">${h(L("shopYourDetails"))}</h3><span class="nd-pill nd-pill--success portal-shop__from">${h(L("shopFromAccount"))}</span></div><p>${h([shortName(who.name), maskedPhone(who.phone)].filter(Boolean).join(" · "))}</p></section>
+    ${pickup ? `<section aria-labelledby="shopPickup"><h3 id="shopPickup">${h(L("shopCollection"))}</h3><p><strong>${h(pickup)}</strong><span class="nd-meta">${h(L("shopCodeNote"))}</span></p></section>` : ""}
+    <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${["mtn", "orange"].map((value, i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${METHOD_NAMES[value]}</span></label>`).join("")}</div>
+      <label class="portal-shop__field">${h(L("shopPayNumber"))}<span class="portal-shop__payer"><input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required><span class="portal-shop__mask" id="shopPayerMask" aria-hidden="true"></span></span></label></fieldset>
+    </div>
+    <div class="portal-shop__foot">
     ${costView(p, quantity, "mtn")}
     ${promo.checkoutExtras(p).note}
-    <button type="submit" class="nd-btn nd-btn--block">${h(payLabel(p, quantity, "mtn"))}</button>
+    <button type="submit" class="nd-btn nd-btn--block">${h(L("deskBuyPayNow"))}</button>
     <p class="nd-meta portal-shop__fine">${h(L("shopApproveNote"))}</p>
     <div id="shopCheckoutMessage" role="alert"></div>
+    </div>
   </form>`;
 }
+
+// Waiting for payment and Order placed (canvas: PhoneCheckout): a bar without
+// a back arrow, the state, and its two actions at the bottom.
+const STATE_ICONS = { wait: "M5 2h14v20H5ZM10 18h4M12 7v4l2 2", done: CHECK };
+const stateBar = (title) => `<div class="portal-shop__bar portal-shop__bar--state"><h2 class="portal-shop__bar-title" id="shopTitle" tabindex="-1">${h(title)}</h2></div>`;
+function waitView(o) {
+  const method = METHOD_NAMES[o.network] || "Mobile Money", fee = Number.isFinite(o.total) && Number.isFinite(o.fee);
+  const body = h(L(fee ? "shopWaitBody" : "shopWaitBodyNoFee", { method, amount: "\u0000", fee: fee ? money(o.fee) : "" })).replace("\u0000", `<strong>${h(money(fee ? o.total : o.amount))}</strong>`);
+  return `${stateBar(L("shopWaitingTitle"))}
+  <div class="portal-shop__state portal-shop__state--wait"><span class="portal-shop__state-icon" aria-hidden="true">${icon(STATE_ICONS.wait, 38)}</span><h1 class="portal-shop__state-title">${h(L("shopApproveTitle"))}</h1><p>${body}</p></div>
+  <div class="portal-shop__foot portal-shop__foot--actions"><button type="button" class="nd-btn nd-btn--block" data-shop-check>${h(L("shopCheckStatus"))}</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-change>${h(L("shopChangePayment"))}</button><div id="shopCheckoutMessage" role="status" aria-live="polite"></div></div>`;
+}
+function doneView(o) {
+  const body = h(L("shopPlacedBody", { reference: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`);
+  const saved = h(L("shopPlacedSaved", { activity: "\u0000" })).replace("\u0000", `<strong>${h(L("uiTabActivity"))}</strong>`);
+  return `${stateBar(L("shopConfirmedTitle"))}
+  <div class="portal-shop__state portal-shop__state--done"><span class="portal-shop__state-icon" aria-hidden="true">${icon(STATE_ICONS.done, 40)}</span><h1 class="portal-shop__state-title">${h(L("shopPlacedTitle"))}</h1><p>${body}</p><p class="portal-shop__saved">${saved}</p></div>
+  <div class="portal-shop__foot portal-shop__foot--actions"><a class="nd-btn nd-btn--block" href="/dashboard#order/${encodeURIComponent(o.id)}">${h(L("shopViewOrder"))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#shop">${h(L("shopBackToShop"))}</a></div>`;
+}
+// Which screen a placed order shows: paid, waiting, or (cancelled, failed,
+// expired or in review) its order page.
+const placedState = (o) => (o.paymentStatus === "paid" && o.status !== "review" ? "done" : o.status === "awaiting_payment" && !["failed", "expired"].includes(o.paymentStatus) ? "wait" : "order");
 
 function orderView(o) {
   // Once paid: Paid is done and Preparing current, then Ready, then all done when Collected.
@@ -147,9 +182,14 @@ function orderView(o) {
 
 async function render() {
   if (!panel) return;
-  const [route, id, extra] = location.hash.slice(1).split("/").map((part) => decodeURIComponent(part || ""));
+  const [route, id, extra, ...rest] = location.hash.slice(1).split("/").map((part) => decodeURIComponent(part || ""));
   if (!["shop", "product", "checkout", "order"].includes(route)) return;
   try {
+    // A placed order on its checkout screens (#397).
+    if (route === "checkout" && id && rest[0]) {
+      const { order } = await call("/api/account/store/order", { method: "POST", body: JSON.stringify({ orderId: rest[0] }) });
+      return showPlaced(order, id, extra);
+    }
     if (route === "order" && id) {
       const { order } = await call("/api/account/store/order", { method: "POST", body: JSON.stringify({ orderId: id }) });
       panel.innerHTML = orderView(order); wireOrder(order);
@@ -195,23 +235,28 @@ function wireProduct(p) {
 }
 function wireCheckout(p, quantity, who) {
   const form = document.getElementById("shopCheckout"), message = document.getElementById("shopCheckoutMessage");
-  // The breakdown and the Pay button follow the chosen network.
+  // The number shows masked, as drawn ("6•• •• 12 45"), until the field is used.
+  const payer = form.elements.payerPhone, mask = document.getElementById("shopPayerMask");
+  const showMask = () => { const masked = document.activeElement === payer ? "" : maskedPhone(payer.value, false); mask.textContent = masked; payer.classList.toggle("portal-shop__payer--masked", Boolean(masked) && masked !== payer.value); };
+  for (const type of ["focus", "blur", "input", "change"]) payer.addEventListener(type, showMask);
+  showMask();
+  // The breakdown and the wallet notice follow the chosen network.
   form.querySelectorAll('input[name="network"]').forEach((radio) => { radio.onchange = () => {
     document.getElementById("shopCost").outerHTML = costView(p, quantity, form.elements.network.value);
-    form.querySelector('[type="submit"]').textContent = payLabel(p, quantity, form.elements.network.value);
   }; });
   form.onsubmit = async (event) => {
     event.preventDefault();
     message.textContent = "";
-    const network = form.elements.network.value, payerPhone = form.elements.payerPhone.value.trim();
-    if (!payerPhone) { message.textContent = L("shopNeedNumber"); form.elements.payerPhone.focus(); return; }
+    const network = form.elements.network.value, payerPhone = payer.value.trim();
+    if (!payerPhone) { message.textContent = L("shopNeedNumber"); payer.focus(); return; }
     try {
       await runButton(form.querySelector('[type="submit"]'), L("shopSending"), async () => {
         const result = await post("/api/account/store/checkout", {
           checkoutKey: checkout.key, productId: p.id, quantity, expectedPrice: p.price,
           name: who.name || "", phone: who.phone || "", email: who.email || "", payerPhone, network });
         checkout = null; account = null; load(true);
-        location.hash = `order/${encodeURIComponent(result.order.id)}`;
+        // The drawn waiting screen; Back still leads to the product.
+        location.replace(`#checkout/${encodeURIComponent(p.id)}/${quantity}/${encodeURIComponent(result.order.id)}`);
       }, { controls: Array.from(form.elements) });
     } catch (error) {
       // A new key only when no order was created; otherwise a retry finds the same order.
@@ -219,6 +264,33 @@ function wireCheckout(p, quantity, who) {
       message.textContent = error.message;
     }
   };
+}
+// The waiting and placed screens. Check status asks the provider; Change
+// payment cancels the unpaid order (owner, 26 Nov) and opens the form again
+// with a fresh request.
+function showPlaced(o, productId, quantity) {
+  const state = placedState(o);
+  if (state === "order") { location.replace(`#order/${encodeURIComponent(o.id)}`); return; }
+  panel.innerHTML = state === "done" ? doneView(o) : waitView(o);
+  document.getElementById("shopTitle")?.focus({ preventScroll: true });
+  if (state !== "wait") return;
+  const message = document.getElementById("shopCheckoutMessage"), check = panel.querySelector("[data-shop-check]"), change = panel.querySelector("[data-shop-change]");
+  const controls = [check, change];
+  check.onclick = () => runButton(check, L("shopChecking"), async () => {
+    try {
+      const { order } = await call("/api/account/store/verify", { method: "POST", body: JSON.stringify({ orderId: o.id }) });
+      if (placedState(order) === "wait") message.textContent = L("shopStillWaiting");
+      else showPlaced(order, productId, quantity);
+    } catch (error) { message.textContent = error.message; }
+  }, { controls });
+  change.onclick = () => runButton(change, L("shopChanging"), async () => {
+    try {
+      const { order } = await post("/api/account/store/cancel", { orderId: o.id });
+      if (placedState(order) === "done") { showPlaced(order, productId, quantity); return; }
+      account = null; load(true);
+      location.replace(`#checkout/${encodeURIComponent(productId)}/${encodeURIComponent(quantity || 1)}`);
+    } catch (error) { message.textContent = error.message; }
+  }, { controls });
 }
 function wireOrder(o) {
   const message = document.getElementById("shopOrderMessage"), verify = panel.querySelector("[data-shop-verify]"), receipt = panel.querySelector("[data-shop-receipt]");

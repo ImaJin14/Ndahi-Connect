@@ -122,8 +122,11 @@ try {
     let checkout;
     await page.route('**/api/store/catalogue', (route) => route.fulfill({ json: catalogue }));
     await page.route('**/api/account/store/checkout', (route) => { checkout = route.request().postDataJSON(); return route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }); });
-    await page.route('**/api/account/store/order', (route) => route.fulfill({ headers: cors, json: { order: order('awaiting_payment', 'pending') } }));
-    await page.route('**/api/account/store/verify', (route) => route.fulfill({ headers: cors, json: { order: order('ready', 'paid', { collectionCode: 'ABC123' }) } }));
+    // Paid once Check status asks the provider.
+    let paid = false;
+    const current = () => (paid ? order('ready', 'paid', { collectionCode: 'ABC123' }) : order('awaiting_payment', 'pending'));
+    await page.route('**/api/account/store/order', (route) => route.fulfill({ headers: cors, json: { order: current() } }));
+    await page.route('**/api/account/store/verify', (route) => { paid = true; return route.fulfill({ headers: cors, json: { order: current() } }); });
     await page.goto(`${portal}/dashboard#shop`);
     await page.locator(`${portalTab('shop')}[aria-current="page"]`).waitFor();
     await page.locator('.portal-shop__item').first().waitFor();
@@ -135,12 +138,17 @@ try {
     await page.getByRole('link', { name: 'Buy now', exact: true }).click();
     await page.waitForURL('**/dashboard#checkout/router/2');
     // The mocked catalogue carries no fee quote (no PAYMENT_FEE_* rule), so the fee is "in the prompt" (#297).
-    await page.getByRole('button', { name: 'Pay 200,000 FCFA + fee', exact: true }).click();
-    await page.waitForURL('**/dashboard#order/order-1');
+    await page.locator('.portal-shop__cost-row', { hasText: 'Shown in the operator prompt' }).waitFor();
+    await page.getByRole('button', { name: 'Pay Now', exact: true }).click();
+    // The drawn waiting screen (PhoneCheckout, #397), then Order placed.
+    await page.waitForURL('**/dashboard#checkout/router/2/order-1');
     assert.deepEqual([checkout.productId, checkout.quantity, checkout.expectedPrice, checkout.network], ['router', 2, 100000, 'mtn']);
     assert.ok(checkout.name && checkout.phone && checkout.payerPhone, 'details come from the account');
     await page.getByRole('heading', { name: 'Approve on your phone', exact: true }).waitFor();
     await page.getByRole('button', { name: 'Check status', exact: true }).click();
+    await page.getByRole('heading', { name: 'Order placed', exact: true }).waitFor();
+    await page.getByRole('link', { name: 'View order', exact: true }).click();
+    await page.waitForURL('**/dashboard#order/order-1');
     await page.getByText('ABC123', { exact: true }).waitFor();
     assert.equal(await page.locator('.portal-shop__steps [aria-current="step"]').textContent(), 'Ready to collect');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
