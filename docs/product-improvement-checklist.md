@@ -1382,13 +1382,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Guest checkout (#400, batch 11, 26 November 2026)
 
 - [-] **STORE-400 — Guest checkout in four steps, redesigned (batch 11)** ([#400](https://github.com/ImaJin14/Ndahi-Connect/issues/400)). Owner decisions: [#400 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/400#issuecomment-7193169291).
-  - **Implemented and tested** (PR #500, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #500):
     - the drawn steps in the store's checkout sheet: "How would you like to check out?" (Continue as guest, or Sign in to NDAHI), the details, "Approve on your phone" and "Order placed"; the bar's title follows the step; Back goes from the details to the choice; once a request is sent the bar has no back and Escape opens the order;
     - one number: the Mobile Money number that pays is also the order's contact; email is optional; "Collect at <pickup>"; MTN MoMo or Orange Money; Item, Mobile Payment Fee (2%), Total to Pay and the wallet note at the foot with Pay Now (the server's quote, as in the portal);
     - Check status, and Change payment for guests: the unpaid request is cancelled with the order's private link (a new `/api/store/cancel` route, guest orders only, the provider asked first so a payment approved a moment ago is kept), then the details come back as typed;
     - "Order placed" with the order reference, the private-link note, "Want this in an account?" with Save to an account, and Track my order; on desktop the same steps in a centred sheet;
     - the Black Friday offer's note and free-month line show in the details step; `store-app/promo.js` is unchanged.
-  - **Not yet:** merged, deployed, or a real Mobile Money payment made from a phone.
+  - **Not yet:** a real Mobile Money payment made from a phone.
 
 ## Reseller ledger and automatic account repair (7 November 2026)
 
@@ -1402,10 +1402,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Passkey sign-in (#408, batch 11, 26 November 2026)
 
 - [-] **CUS-408 — Passkey sign-in, redesigned (batch 11)** ([#408](https://github.com/ImaJin14/Ndahi-Connect/issues/408)). Build note and owner decision: [#408 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/408#issuecomment-7195297195).
-  - **Implemented and tested** (PR #499, not merged yet; built on #405):
+  - **Implemented, tested, merged and deployed** (PR #499):
     - the drawn page: the forest card, "Your passkeys" with each passkey's name, "Added <date> · last used <day>" and Remove, the sage note when there are none, and "Add a passkey on this phone" at the foot; English and French;
     - the server records when each passkey last signed in or confirmed a change; new passkeys are named after the device (Android phone, iPhone, Windows computer…); no Rename on the rows (owner).
-  - **Not yet:** merged, deployed, or a passkey added and used on a real phone.
+  - **Not yet:** a passkey added and used on a real phone.
 
 ## Customer bundle expiry message (8 November 2026)
 
@@ -1436,11 +1436,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Guest order and the short private link (#401, batch 11, 26 November 2026)
 
 - [-] **STORE-401 — A guest's order, redesigned, with a short private link (batch 11)** ([#401](https://github.com/ImaJin14/Ndahi-Connect/issues/401)). Owner decisions: [#401 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/401#issuecomment-7193170186).
-  - **Implemented and tested** (PR #501, not merged yet; built on #500):
+  - **Implemented, tested, merged and deployed** (PR #501):
     - the drawn order page: the bar (Back to the shop), the item with how it was paid and its status, the code shown "739 204", each step with when it happened and "Held for you until <date>", "Keep this private link" with Copy (which says Copied), and Receipt with Save to an account at the foot; no Local pickup or Store policies sections;
     - short private links: `store.ndahiconnect.net/o/<token>` opens the order with the same private token, without the order id; the page shows it, and a guest's order emails carry it with a Track my order button; long `#order/<id>/<token>` links keep working;
     - new orders' tokens are derived from data the server keeps (with its secret), so emails can rebuild the link; orders placed before this, and links staff rotated, keep the link they were given and their emails keep the old wording.
-  - **Not yet:** merged, deployed, or a real order email opened on a phone.
+  - **Not yet:** a real order email opened on a phone.
 
 ## Email setup, provider settlements and store receipts (8 November 2026)
 
@@ -1453,10 +1453,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Sign in (#405, batch 11, 26 November 2026)
 
 - [-] **CUS-405 — Sign in, redesigned (batch 11)** ([#405](https://github.com/ImaJin14/Ndahi-Connect/issues/405)). Owner decisions: [#405 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/405#issuecomment-7193168371).
-  - **Implemented and tested** (PR #498, not merged yet; built on #399):
+  - **Implemented, tested, merged and deployed** (PR #498):
     - the drawn sign-in page: the back arrow to the hotspot page, the +237 chip beside the number, the PIN (4 to 6 digits) with Show and "Forgot PIN?" (which takes the typed number to Forgot PIN), Sign in, "or", the passkey and voucher-code buttons, the Claim link and "New to NDAHI? Buy your first bundle" at the foot;
     - no Wi-Fi status line, help link or footer note (owner); the buy and hotspot pages keep the Wi-Fi status.
-  - **Not yet:** merged, deployed, or signed in on a phone at the hotspot.
+  - **Not yet:** signed in on a phone at the hotspot.
 
 ## Cash collected from November 2026 onward (8 November 2026)
 
@@ -1468,11 +1468,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Forgot PIN and the PIN rule (#399, batch 11, 26 November 2026)
 
 - [-] **CUS-399 — Forgot PIN, redesigned; PINs of 4 to 6 digits (batch 11)** ([#399](https://github.com/ImaJin14/Ndahi-Connect/issues/399)). Owner decisions: [#399 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/399#issuecomment-7193167473).
-  - **Implemented and tested** (PR #497, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #497):
     - customer PINs are 4 to 6 digits everywhere (sign-in, setup, claim, change PIN, reset, Home sign-up, the QR and device checks); existing 4-digit PINs keep working; one shared rule in `lib/pin-policy.mjs`; staff PINs unchanged;
     - the drawn Forgot PIN: the number typed on Sign in comes along, "No email on your account? Visit <the shop's pickup place> with your ID, or contact support", "Check your email" with Send again, "Reset your PIN" from the emailed link (the token leaves the address bar) and "PIN changed";
     - the support recovery code from Admin's PIN recovery stays below the request; account backup codes are no longer offered here; no footer note or help link.
-  - **Not yet:** merged, deployed, or a real reset email opened on a phone.
+  - **Not yet:** a real reset email opened on a phone.
 
 ## Initial store catalogue intake (8 November 2026)
 
