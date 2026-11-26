@@ -1876,6 +1876,21 @@ Owner decisions are on each issue (25 Nov). The payments list, today's money and
     - "keeps N% of each sale" is the one rate every reseller earns (ADM-390), written for the language ("12.5%", "12,5 %").
   - **Not yet:** used by a reseller on their phone.
 
+## Admin screens (batch 7, 25 November 2026)
+
+Owner decisions are on each issue (25 Nov).
+
+- [-] **ADM-378 — Audit log, redesigned (batch 7)** ([#378](https://github.com/ImaJin14/Ndahi-Connect/issues/378))
+  - **Implemented and tested** (PR #473, not merged yet):
+    - the six drawn chips (Everything, Money, Store, Vouchers, Customers, Sign-ins), each mapped to its areas on the server; network, Home WISP and setup actions show under Everything;
+    - a staff sign-in is one row, "Signed in with PIN + passkey", on "Admin": the PIN step it used is folded into it. Stored entries and the CSV export are unchanged;
+    - "On" names the order (NS-…), the voucher batch (B-…), the product and "Bundle · 6•• •• 12 45";
+    - stock and order entries now record what changed ("Changed stock 3 → 2", "Handed over order after code check");
+    - the chip, search and page live in the address (`#audit?type=signins&q=…&page=2`) and survive a reload;
+    - search and Security events sit in a closed section below the log; one page shows no pager;
+    - English and French.
+  - **Not yet:** merged, deployed, or used by the owner on the live admin.
+
 ## Portal sign-in timeouts (#464, 25 November 2026)
 
 - [-] **PERF-464 — Sign-in timed out while the notification worker blocked the API** ([#464](https://github.com/ImaJin14/Ndahi-Connect/issues/464))

@@ -363,13 +363,22 @@ body[data-admin-view="devices"] main.nd-admin-shell__main { gap: var(--nd-space-
    the canvas), with the search at the end of their row; the table and its
    pager are the card. Same records kit and hooks as before. */
 .nd-panel.admin-audit__list { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
-.admin-audit__list .records-toolbar--kit { margin: 0 0 var(--nd-space-16); padding: 0; border: 0; }
+.admin-audit__list .records-toolbar--kit { margin: 0 0 var(--nd-space-20); padding: 0; border: 0; }
+/* As drawn (#378): 20 px between the head, the chips and the log; Export is
+   44 px with 14 px text; chips are 600 weight; the log has no white table. */
+body[data-admin-view="audit"] main.nd-admin-shell__main { gap: var(--nd-space-20); }
+.admin-dashboard #adminHeadActions #auditExport { min-height: 44px; padding: 0 var(--nd-space-16); border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
+.admin-audit__list .nd-chips { gap: var(--nd-space-8); }
+.admin-audit__list .nd-chip { font-weight: 600; line-height: normal; }
+.admin-audit__list table { background: none; }
+/* Search and Security events (owner, 25 Nov, #378), closed below the log. */
+.admin-audit__search input[type="search"] { width: 240px; max-width: 100%; }
 .admin-audit__list .records-filter--kit { display: flex; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10) var(--nd-space-16); width: 100%; }
 .admin-audit__list .records-filter--kit .nd-chips { order: -1; flex: 1 1 auto; }
 .admin-audit__list .records-filter--kit > input[type="search"] { width: 240px; max-width: 100%; }
 .admin-audit__list .nd-table-wrap { padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-6); border: 1px solid var(--nd-line); border-bottom: 0; border-radius: var(--nd-radius-card-lg) var(--nd-radius-card-lg) 0 0; background: var(--nd-paper); }
 .admin-audit__list .records-pager { margin: 0; padding: var(--nd-space-10) var(--nd-space-22) var(--nd-space-18); border: 1px solid var(--nd-line); border-top: 0; border-radius: 0 0 var(--nd-radius-card-lg) var(--nd-radius-card-lg); background: var(--nd-paper); }
-.admin-audit__list .nd-table-wrap:has(+ .records-pager[hidden]), .admin-audit__list .nd-table-wrap:last-child { border-bottom: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); }
+.admin-audit__list .nd-table-wrap:has(+ .records-pager[hidden]), .admin-audit__list .nd-table-wrap:last-child { padding-bottom: var(--nd-space-18); border-bottom: 1px solid var(--nd-line); border-radius: var(--nd-radius-card-lg); }
 @media (max-width: 767.98px) {
   .admin-audit__list .records-filter--kit > input[type="search"] { width: 100%; }
   .admin-audit__list .nd-table-wrap { padding: var(--nd-space-6) var(--nd-space-14) var(--nd-space-4); }
