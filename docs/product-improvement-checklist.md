@@ -1422,6 +1422,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 - [x] Tested locally: 33 targeted store/payment/reporting/receipt API tests passed; 20 follow-up report/receipt tests include unauthorized settlement access and mock-money exclusion. Store browser suite passes 40 checks at 320px/1280px including saved PDF signature/filename, admin controls and guest checkout. Email setup passes mobile/desktop PIN/code flows with mocked delivery. Syntax/build and diff checks pass.
 - [ ] Deployment of these follow-ups remains pending. Real provider settlement reconciliation, real mailbox delivery/attachment opening, real Mobile Money purchase/refund, saved receipt inspection on a physical phone and pickup acceptance remain unverified. Policies remain unpublished and store checkout remains closed.
 
+### Sign in (#405, batch 11, 26 November 2026)
+
+- [-] **CUS-405 — Sign in, redesigned (batch 11)** ([#405](https://github.com/ImaJin14/Ndahi-Connect/issues/405)). Owner decisions: [#405 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/405#issuecomment-7193168371).
+  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #399):
+    - the drawn sign-in page: the back arrow to the hotspot page, the +237 chip beside the number, the PIN (4 to 6 digits) with Show and "Forgot PIN?" (which takes the typed number to Forgot PIN), Sign in, "or", the passkey and voucher-code buttons, the Claim link and "New to NDAHI? Buy your first bundle" at the foot;
+    - no Wi-Fi status line, help link or footer note (owner); the buy and hotspot pages keep the Wi-Fi status.
+  - **Not yet:** merged, deployed, or signed in on a phone at the hotspot.
+
 ## Cash collected from November 2026 onward (8 November 2026)
 
 - [x] Implemented: fixed 1 November 2026 Africa/Douala baseline; saved real gateway-confirmed internet/store XAF collections less completed full refunds. Before fees, not gateway net settlements or balance. Excludes older/future/unconfirmed/mock/offline-voucher/gift values; rejects invalid/conflicting confirmed evidence.
