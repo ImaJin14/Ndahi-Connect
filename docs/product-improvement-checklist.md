@@ -1458,7 +1458,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Product page on phones, public store (#402, batch 10, 26 November 2026)
 
 - [-] **CUS-402 — Product for guests on phones, redesigned (batch 10)** ([#402](https://github.com/ImaJin14/Ndahi-Connect/issues/402)). Owner decisions: [#402 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/402#issuecomment-7182528746).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #418):
+  - **Implemented and tested** (PR #494, not merged yet; built on #418):
     - the drawn phone product page: the bar, the 240 px photo, the price with its stock pill at the row's end, the "Needs" tile (the product's Needs line from Admin) beside "Internet: Sold separately", "Specifications, box contents, warranty" (now also holding the store's warranty and returns texts), and the quantity with "Buy now" on the bottom bar;
     - "Buy now" replaces "Buy this device" on phones and desktop; an offer that includes internet (#302) leaves out the Internet tile.
   - **Not yet:** merged, deployed, or the products' Needs lines entered by the owner on the live admin.
