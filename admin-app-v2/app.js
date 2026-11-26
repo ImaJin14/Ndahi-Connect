@@ -9,6 +9,8 @@ import { liveSummaryText, mountLiveDevices } from "/devices.js";
 import { adminSecurity, mountServiceTests, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
 import { mountProfile, profileMarkup, deviceLabel } from "/profile.js";
+// Registers the service worker (offline launch, updates); Profile no longer shows the install card (#389).
+import "/install.js";
 import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
 import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
 import { mountStore } from '/store.js';
