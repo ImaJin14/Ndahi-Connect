@@ -361,6 +361,29 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
 .portal-shop__head { display: flex; justify-content: flex-end; margin: -44px 0 var(--nd-space-14); min-height: 44px; align-items: center; }
 .portal-shop__item-body .nd-meta:first-child { color: var(--nd-lime-text); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .portal-shop__pickup { padding: var(--nd-space-12) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink); font-size: 14px; }
+/* Shop list on phones (canvas: PhoneShop, #414): My orders beside the title,
+   the chips in one row, 80px photos and the list's stock line. */
+@media (max-width: 767.98px) {
+  body[data-current-tab="shop"]:not([data-portal-sub]) .dashboard-shell { position: relative; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { gap: 0; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head__title { line-height: normal; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) #shopPanel { padding: 0 2px; }
+  .portal-shop__head { position: absolute; top: var(--nd-space-20); right: 18px; margin: 0; }
+  .portal-shop__orders { display: flex; align-items: center; min-height: 44px; }
+  .portal-shop__chips { flex-wrap: nowrap; gap: var(--nd-space-8); margin: 0 -18px var(--nd-space-4); padding: 6px 18px 10px; overflow-x: auto; scrollbar-width: none; }
+  .portal-shop__chips::-webkit-scrollbar { display: none; }
+  .portal-shop__chips .nd-chip { flex-shrink: 0; min-height: 40px; padding: 0 14px; font-weight: 600; line-height: normal; white-space: nowrap; }
+  .portal-shop__item { padding: var(--nd-space-10); }
+  .portal-shop__item .portal-shop__thumb { width: 80px; height: 80px; }
+  .portal-shop__item .portal-shop__item-body { gap: 0; }
+  .portal-shop__item-body .nd-meta:first-child { font-size: 10px; letter-spacing: .1em; }
+  .portal-shop__item-body strong { margin-top: 2px; font-size: 15px; }
+  .portal-shop__item .portal-shop__price { margin-top: 4px; color: var(--nd-ink); font-size: 14px; }
+  .portal-shop__stock { color: var(--nd-success-fg); font-size: 12px; font-weight: 600; }
+  .portal-shop__stock--low { color: #8a4a00; }
+  .portal-shop__item .portal-shop__chevron { color: var(--nd-lime-text); font-size: 20px; }
+  .portal-shop__pickup { margin-top: var(--nd-space-16); color: var(--nd-ink-soft); font-size: 13px; line-height: 1.45; }
+}
 .portal-shop__trust { display: flex; flex-wrap: wrap; gap: var(--nd-space-8) var(--nd-space-20); margin: 0 0 var(--nd-space-14); padding: var(--nd-space-10) var(--nd-space-14); border-radius: 12px; background: var(--nd-sage); list-style: none; color: var(--nd-ink); font-size: 13px; font-weight: 600; }
 .portal-shop__friends { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-16); margin-top: var(--nd-space-18); padding: var(--nd-space-16) var(--nd-space-18); border-radius: var(--nd-radius-card); background: var(--nd-forest); color: var(--nd-on-forest-soft); }
 .portal-shop__friends p { margin: 0; font-size: 13px; }

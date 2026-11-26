@@ -62,6 +62,15 @@ async function context() {
 }
 const category$ = (data, product) => text((data.categories || []).find((c) => c.id === product.categoryId)?.name);
 const stock = (product) => (product.available > 0 ? L("shopInStock", { count: product.available }) : L("shopOutOfStock"));
+// The list's stock line (canvas: PhoneShop): "Only 2 left" from two units down.
+const LOW_STOCK = 2;
+const listStock = (product) => (product.available > 0 && product.available <= LOW_STOCK ? L("shopOnlyLeft", { count: product.available }) : stock(product));
+// A chip's label on phones: the category's short name (canvas: PhoneShop;
+// #414, owner 26 Nov), else its name. Desktop (canvas: Shop) keeps the name.
+const chipLabel = (c) => {
+  const full = text(c.name), short = text(c.shortName);
+  return short && short !== full ? `<span class="nd-narrow-only">${h(short)}</span><span class="nd-wide-only">${h(full)}</span>` : h(full);
+};
 
 function list(data) {
   const cats = (data.categories || []).filter((c) => (data.products || []).some((p) => p.categoryId === c.id));
@@ -70,9 +79,9 @@ function list(data) {
   const place$ = place(data.settings && data.settings.pickup);
   return `${promo.banner(data, "shopPromoTitle")}<div class="portal-shop__head"><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
   <ul class="portal-shop__trust nd-wide-only"><li>${h(L("shopTrustPay"))}</li>${place$ ? `<li>${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${h(L("shopTrustSigned"))}</li></ul>
-  ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", L("shopAll")], ...cats.map((c) => [c.id, text(c.name)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${h(label)}</button>`).join("")}</div>` : ""}
+  ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", h(L("shopAll"))], ...cats.map((c) => [c.id, chipLabel(c)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${label}</button>`).join("")}</div>` : ""}
   ${closed ? `<p class="portal-shop__note" role="status">${h(L("shopClosed"))}</p>` : ""}
-  <div class="portal-shop__list">${products.length ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta${p.available > 0 ? "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : stock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
+  <div class="portal-shop__list">${products.length ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta portal-shop__stock${p.available > 0 ? p.available <= LOW_STOCK ? " portal-shop__stock--low" : "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : listStock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
   ${place$ ? `<p class="portal-shop__note portal-shop__pickup nd-narrow-only">${h(L("shopPickupNote", { place: place$ }))}</p>` : ""}
   <div class="portal-shop__friends nd-wide-only"><p><strong>${h(L("shopFriendsTitle"))}</strong> ${h(L("shopFriendsBody"))}</p><a class="nd-btn nd-btn--sm" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">${h(L("shopFriendsLink"))}</a></div>`;
 }
