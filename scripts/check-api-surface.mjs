@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 const root = process.cwd();
 const appDirs = ["customer-app-v2", "customer-app", "admin-app-v2", "admin-app", "store-app", "shared-app"];
 const htmlDirs = ["customer-app-v2", "customer-app", "admin-app-v2", "admin-app", "store-app"];
-const staticRewrites = new Set(["/", "/login", "/dashboard", "/hotspot", "/pair", "/forgot-pin", "/help", "/config.js", "/version.json", "/healthz", "/favicon.ico"]);
+const staticRewrites = new Set(["/", "/login", "/dashboard", "/hotspot", "/pair", "/forgot-pin", "/confirm-email", "/help", "/config.js", "/version.json", "/healthz", "/favicon.ico"]);
 const virtualAssets = new Set(["/vendor/webauthn.js", "/vendor/web-vitals.js"]);
 
 function listFiles(dir, exts) {

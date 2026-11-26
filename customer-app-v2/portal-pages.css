@@ -85,7 +85,7 @@ body[data-portal-sub="devices"] #manageDevices > summary { display: none; }
 body[data-portal-sub="editProfile"] .account-layout { display: block; }
 body[data-portal-sub="editProfile"] .account-layout > :not(#emailAccount) { display: none !important; }
 body[data-portal-sub="editProfile"] #emailAccount { position: relative; display: flex; flex-direction: column; gap: var(--nd-space-14); width: 100%; max-width: 560px; padding: 0; border: 0; background: none; box-shadow: none; }
-body[data-portal-sub="editProfile"] #emailAccount > :not(.portal-sub__back):not(#editProfile):not(#confirmEmail) { display: none; }
+body[data-portal-sub="editProfile"] #emailAccount > :not(.portal-sub__back):not(#editProfile):not(#confirmEmail):not(#profilePinDialog) { display: none; }
 body[data-portal-sub="editProfile"] #emailAccount > .portal-sub__back { position: absolute; top: 0; left: 0; z-index: 1; }
 body[data-portal-sub="editProfile"] #editProfile { order: 1; margin: 0; padding: 0; border: 0; }
 body[data-portal-sub="editProfile"] #profileEdit { margin-top: 0; }
@@ -102,6 +102,33 @@ body[data-portal-sub="editProfile"] #editProfile > summary:focus { outline: none
 .portal-profile #profileEdit > p { margin: -6px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); line-height: 1.45; }
 .portal-profile #profileEdit > p:empty { display: none; }
 .portal-profile #profileEdit > button { margin-top: var(--nd-space-4); }
+/* Fields, hints, the read-only sign-in number and the saved note (canvas:
+   PhoneEditProfile, #398): 16px between groups, 13px labels 6px above 48px
+   inputs, 13px hints 6px below. */
+.portal-profile #profileEdit { gap: var(--nd-space-16); }
+.portal-profile .portal-profile__field { display: block; margin: 0; color: var(--nd-ink); font-size: var(--nd-fs-meta); font-weight: 600; line-height: normal; }
+.portal-profile .portal-profile__field > label:not(.portal-profile__check) { display: block; margin: 0 0 6px; }
+.portal-profile #profileEdit .portal-profile__field > input { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px; margin: 0; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+.portal-profile #profileEdit .portal-profile__field > input.portal-profile__readonly { background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); }
+.portal-profile .portal-profile__hint { margin: 6px 0 0; color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 400; line-height: normal; }
+.portal-profile .portal-profile__hint a { color: var(--nd-forest); font-weight: 700; }
+.portal-profile .portal-profile__check { display: flex; align-items: flex-start; gap: var(--nd-space-8); margin: var(--nd-space-10) 0 0; font-size: 14px; font-weight: 400; }
+.portal-profile .portal-profile__check[hidden] { display: none; }
+.portal-profile .portal-profile__check > input { margin: 2px 0 0; }
+.portal-profile .portal-profile__saved { padding: 12px 14px; border-radius: 12px; background: var(--nd-success-bg); color: var(--nd-success-fg); font-size: 14px; font-weight: 600; line-height: normal; }
+.portal-profile .portal-profile__saved:empty { display: none; }
+.portal-profile .portal-profile__saved:focus { outline: none; }
+/* The PIN, asked after "Save changes" when the email changes. */
+.portal-pin-dialog { box-sizing: border-box; width: min(100% - 32px, 400px); max-width: none; padding: var(--nd-space-20); border: 0; border-radius: var(--nd-radius-card); background: var(--nd-paper); color: var(--nd-ink); font-family: var(--nd-font-body); }
+.portal-pin-dialog::backdrop { background: rgb(16 36 28 / 50%); }
+.portal-pin-dialog form { display: flex; flex-direction: column; gap: var(--nd-space-12); margin: 0; }
+.portal-pin-dialog form > * { margin: 0; }
+.portal-pin-dialog h2 { margin: 0; font: 700 18px var(--nd-font-body); }
+.portal-pin-dialog p { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.portal-pin-dialog label { display: block; font-size: var(--nd-fs-meta); font-weight: 600; }
+.portal-pin-dialog input { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: 6px; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); letter-spacing: .3em; }
+.portal-pin-dialog .portal-pin-dialog__message { color: var(--nd-danger); }
+.portal-pin-dialog .portal-pin-dialog__message:empty { display: none; }
 
 /* ---------- Shared page head (Change PIN, Passkey sign-in, Signed-in devices) ---------- */
 .portal-sub-head { display: flex; align-items: center; gap: var(--nd-space-6); min-height: 44px; margin: 0 0 var(--nd-space-12); }
@@ -113,6 +140,11 @@ body[data-portal-sub="editProfile"] #editProfile > summary:focus { outline: none
   /* The main portal head is empty on a sub-page; only the sub-page bar shows. */
   body[data-portal-sub] #portalHead { display: none; }
   body[data-portal-sub] .portal-sub-head { margin: 0 calc(-1 * var(--nd-space-16)) var(--nd-space-12); padding: 0 var(--nd-space-10); min-height: 64px; border-bottom: 1px solid var(--nd-line); }
+  /* Edit profile's head is its summary: the same bar, with the back arrow in it;
+     the fields sit 22px in and 20px below it (canvas: PhoneEditProfile). */
+  body[data-portal-sub="editProfile"] #editProfile > summary { margin: 0 calc(-1 * var(--nd-space-16)) 20px; padding: 0 var(--nd-space-10) 0 62px; min-height: 65px; border-bottom: 1px solid var(--nd-line); font-size: 15px; }
+  body[data-portal-sub="editProfile"] #emailAccount > .portal-sub__back { top: 10px; left: -6px; margin-left: 0; }
+  body[data-portal-sub="editProfile"] #profileEdit { padding: 0 var(--nd-space-6); }
   /* Voucher (canvas: PhoneVoucher) sets its content 22px in. */
   body[data-portal-sub="redeem"] #activateDevice { padding: var(--nd-space-10) var(--nd-space-6) 0; }
 }
@@ -336,6 +368,8 @@ body[data-portal-sub="accountSecurity"] #securityManager { margin: 0; padding: 0
   body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"],
   body[data-portal-sub="passkeys"] #addCustomerPasskey { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-weight: 700; }
   body[data-portal-sub="sessions"] #logoutEverywhere { left: 16px; right: 16px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); min-height: 52px; padding: 0; border: 1px solid var(--nd-danger-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+  /* Save sits 22px in and 20px up, as the board's main padding sets it. */
+  body[data-portal-sub="editProfile"] #profileEdit > button[type="submit"] { left: 22px; right: 22px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); padding: 0 16px; line-height: normal; }
 }
 /* Devices: count as plain text, Disconnect in red (canvas). */
 .portal-devices__count { padding: 0; background: none; color: var(--nd-muted); font-size: 13px; font-weight: 600; }

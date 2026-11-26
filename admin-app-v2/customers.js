@@ -269,6 +269,9 @@ export async function showCustomerDetail(host, { call, id, role, canManage, stor
   const actions = [
     c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-print-customer-voucher="${h(c.id)}">${h(L("adminPrintActiveVoucher"))}</button>` : "",
     role === "owner" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-reset-authenticator="${h(c.id)}">${h(L("adminRecoverPin"))}</button>` : "",
+    // #398: the portal shows the sign-in number read-only; owners change it here
+    // after the same case and identity check.
+    role === "owner" && c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-change-customer-phone="${h(c.id)}">${h(L("adminChangeCustomerPhone"))}</button>` : "",
     // Phase 6 (canvas: AdminCustomerDetail): owners remove lost passkeys after an identity check.
     role === "owner" && c.passkeys > 0 ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-remove-customer-passkeys="${h(c.id)}">${h(L("adminRemoveCustomerPasskeys"))}</button>` : "",
     canManage && c.status !== "suspended" ? `<button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-replace-bundle="${h(c.id)}" data-replace-phone="${h(c.phone || "")}">${h(L("adminGiveVoucher"))}</button>` : "",

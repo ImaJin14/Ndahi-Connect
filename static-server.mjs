@@ -128,6 +128,7 @@ export function createStaticServer(
     if (path === "/hotspot" && kind === "customer") path = "/hotspot.html";
     if (path === "/pair" && kind === "customer") path = "/pair.html";
     if (path === "/forgot-pin") path = "/forgot-pin.html";
+    if (path === "/confirm-email" && kind === "customer") path = "/confirm-email.html";
     if (path === "/admin" && kind === "customer") {
       res.writeHead(404, headers);
       return res.end("Not found");

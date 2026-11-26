@@ -139,6 +139,40 @@ try {
     await page
       .locator('#profileEdit [name="email"]')
       .fill("replacement@example.test");
+    if (uiV2) {
+      // v2 (canvas: PhoneEditProfile, #398): the PIN is asked after Save and
+      // the new mailbox gets a link, not a code.
+      await page.locator('#profileEdit [type="submit"]').click();
+      await page.locator('#profilePinDialog [name="pin"]').fill("2468");
+      await page.locator('#profilePinDialog [type="submit"]').click();
+      await page.getByText("Saved. Check replacement@example.test to confirm it.", { exact: true }).waitFor();
+      assert.equal(messages.length, 0);
+      await handler.transactionalEmails.run();
+      assert.equal(messages.length, 1);
+      assert.equal(messages[0].kind, "Verification");
+      assert.equal(messages[0].to, "replacement@example.test");
+      assert.equal(messages[0].code, undefined);
+      assert.match(messages[0].token, /^[0-9a-f-]{36}\.[0-9a-f]{40}$/);
+      assert.equal((await f.store.snapshot()).customers[0].email, "owner@example.test");
+      const mailbox = await context.newPage();
+      mailbox.on("pageerror", (e) => errors.push(e.message));
+      const [id, signature] = messages[0].token.split(".");
+      await mailbox.goto(`${portal}/confirm-email#${id}.${signature.replace(/.$/, (x) => (x === "0" ? "1" : "0"))}`);
+      await mailbox.getByRole("button", { name: "Confirm email", exact: true }).click();
+      await mailbox.getByRole("heading", { name: "This link has expired", exact: true }).waitFor();
+      assert.equal((await f.store.snapshot()).customers[0].email, "owner@example.test", "a tampered link confirms nothing");
+      // A new fragment alone would not reload the page.
+      await mailbox.goto("about:blank");
+      await mailbox.goto(`${portal}/confirm-email#${encodeURIComponent(messages[0].token)}`);
+      await mailbox.getByRole("button", { name: "Confirm email", exact: true }).click();
+      await mailbox.getByRole("heading", { name: "Email confirmed", exact: true }).waitFor();
+      await mailbox.close();
+      // Every portal session ended; this journey signs "main" back in to go on.
+      assert.equal((await f.store.snapshot()).dashboardSessions.some((a) => a.customerId === initial.customers[0].id), false);
+      await f.store.transaction((st) => { st.dashboardSessions.push(...structuredClone(initial.dashboardSessions.filter((a) => a.id === "main"))); });
+      await page.reload();
+      await page.locator("#emailAccount").getByText("replacement@example.test (confirmed)", { exact: true }).waitFor({ state: "attached" });
+    } else {
     await page.locator('#profileEdit [name="pin"]').fill("2468");
     await page.locator('#profileEdit [type="submit"]').click();
     await page.locator("#confirmEmail").waitFor();
@@ -190,6 +224,7 @@ try {
       .getByText("replacement@example.test (confirmed)", { exact: true })
       // v2's Edit profile page shows the form only (canvas), so the facts stay rendered but hidden.
       .waitFor(uiV2 ? { state: "attached" } : {});
+    }
     await handler.transactionalEmails.run();
     assert.equal(
       messages.length,

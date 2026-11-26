@@ -109,7 +109,8 @@ test("email linking verifies fresh credentials and mailbox, keeps secrets privat
   assert.ok(!JSON.stringify(requested.body).includes(delivered.code));
   const dashboard = await f.call("/api/account/dashboard");
   assert.equal(dashboard.body.customer.email, "owner@example.test", "keep the old address until confirmation");
-  assert.deepEqual(Object.keys(dashboard.body.customer.pendingEmail).sort(), ["email", "expiresAt", "status"]);
+  assert.deepEqual(Object.keys(dashboard.body.customer.pendingEmail).sort(), ["email", "expiresAt", "method", "status"]);
+  assert.equal(dashboard.body.customer.pendingEmail.method, "code", "a code request (#398 sends links for new requests from v2)");
   const pending = (await f.store.snapshot()).customers[0].pendingEmail;
   assert.notEqual(pending.codeHash, delivered.code);
   assert.equal((await f.call("/api/account/profile/email/confirm", { session: "other-session", input: { code: delivered.code } })).status, 400);
