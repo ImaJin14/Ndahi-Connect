@@ -1470,7 +1470,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Activity on desktop (#394, batch 8, 26 November 2026)
 
 - [-] **CUS-394 — Activity on desktop, redesigned (batch 8)** ([#394](https://github.com/ImaJin14/Ndahi-Connect/issues/394)). Owner decisions: [#394 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/394#issuecomment-7178823165).
-  - **Implemented and tested** (PR pending, not merged yet; built on #395):
+  - **Implemented and tested** (PR #483, not merged yet; built on #395):
     - the drawn desktop page: the 12 px eyebrow and 40 px "Payments and orders." with the filter beside them, the banner in the desktop's words ("1 payment waiting for approval. Approve the prompt on your phone, then check it here."), and the table card with the board's column widths;
     - the rows named as drawn ("Order NS-2611-0088 · TP-Link CPE210", "Voucher K7PM-42XQ redeemed"), with a last column of Check, Track, Receipt or View: Check and Receipt open the payment in place, Track and View open the order, View opens Internet's vouchers for a code (owner, 26 Nov);
     - between 768 and 1280 px every row shares the same columns, and long names are cut short with an ellipsis;
