@@ -720,7 +720,7 @@ body[data-admin-view="product"] #adminHeadActions .admin-pedit__save { min-heigh
 .admin-voucher__top { padding: var(--nd-space-22) var(--nd-space-22) var(--nd-space-18); }
 .admin-voucher__brand { display: flex; align-items: center; gap: var(--nd-space-8); }
 .admin-voucher__brand strong { font: 700 17px var(--nd-font-display); }
-.admin-voucher__mark { display: grid; place-items: center; box-sizing: border-box; width: 28px; height: 28px; border: 2px solid var(--nd-lime); border-radius: 50%; color: var(--nd-lime); font-size: 10px; font-weight: 700; }
+.admin-voucher__mark { display: grid; place-items: center; box-sizing: content-box; width: 28px; height: 28px; border: 2px solid var(--nd-lime); border-radius: 50%; color: var(--nd-lime); font-size: 10px; font-weight: 700; }
 .admin-voucher__kind { margin-left: auto; color: var(--nd-lime); font-size: var(--nd-fs-eyebrow); font-weight: 700; letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
 .admin-voucher__plan { margin: var(--nd-space-18) 0 2px; font: 600 26px var(--nd-font-display); }
 .admin-voucher__facts { margin: 0; color: var(--nd-on-forest-muted); font-size: var(--nd-fs-small); }
@@ -729,13 +729,18 @@ body[data-admin-view="product"] #adminHeadActions .admin-pedit__save { min-heigh
 .admin-voucher__tear::before { left: -26px; }
 .admin-voucher__tear::after { right: -26px; }
 .admin-voucher__bottom { display: flex; flex-direction: column; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-18) var(--nd-space-22) var(--nd-space-22); }
-.admin-voucher__qr { width: 150px; height: 150px; border: 8px solid var(--nd-white); border-radius: var(--nd-radius-control); background: var(--nd-white); }
+.admin-voucher__qr { box-sizing: content-box; width: 150px; height: 150px; border: 8px solid var(--nd-white); border-radius: var(--nd-radius-control); background: var(--nd-white); }
 .admin-voucher__ticket--dim .admin-voucher__qr { opacity: 0.35; }
 .admin-voucher__code { margin: 0; font: 700 22px var(--nd-font-mono); letter-spacing: 0.08em; }
 .admin-voucher__valid { margin: 0; color: var(--nd-on-forest-muted); font-size: var(--nd-fs-caption); }
 .admin-voucher__ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-10); }
 .admin-voucher__go { display: flex; align-items: center; justify-content: center; gap: var(--nd-space-8); min-height: var(--nd-touch); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-small) var(--nd-font-body); text-decoration: none; cursor: pointer; }
 .admin-voucher__go:hover { border-color: var(--nd-forest); }
+/* As drawn (#344): 9px corners, and the ticket's Print slip and Copy code 46px tall. */
+.nd-admin-shell__main:has(#panel-voucher:not([hidden])) { row-gap: 20px; }
+.admin-head-title--inline .nd-pill { padding: 4px 12px; font-size: 13px; line-height: normal; }
+.admin-voucher__go { border-radius: 9px; }
+.admin-voucher__ticket-actions .admin-voucher__go { min-height: 46px; }
 .admin-voucher__go--danger { border-color: var(--nd-danger-line); color: var(--nd-danger); }
 .admin-voucher__panel { padding: var(--nd-space-22); }
 .admin-voucher__h2 { margin: 0 0 var(--nd-space-14); font: 600 20px var(--nd-font-display); }

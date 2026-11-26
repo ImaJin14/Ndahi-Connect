@@ -65,7 +65,10 @@ export function mountVoucherRecords(container, { call, canManagePayments, resell
     if (v.batchReference) return h([L("adminVoucherBatchFor", { batch: v.batchReference }), resellerName(v.assignedResellerId)].filter(Boolean).join(" · "));
     return v.permissions?.manage ? h(L("adminGiveUnassigned")) : "—";
   };
-  const status = (v) => v.reservation?.status === "waiting" && v.status === "available" ? `<span class="nd-pill nd-pill--claim">${h(L("adminVoucherStatusWaiting"))}</span>` : voucherStatus(v.status);
+  // An Unlimited voucher whose time ran out reads "Used up" (owner, 26 Nov, #344).
+  const unlimitedTerms = (v) => ["personal_unlimited", "home_wisp_unlimited"].includes(v.accessType);
+  const status = (v) => v.reservation?.status === "waiting" && v.status === "available" ? `<span class="nd-pill nd-pill--claim">${h(L("adminVoucherStatusWaiting"))}</span>`
+    : voucherStatus(unlimitedTerms(v) && v.status === "expired" ? "exhausted" : v.status);
   const ready = mountRecords(container, {
     call: listCall,
     collection: "vouchers",
