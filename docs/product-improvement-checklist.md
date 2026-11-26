@@ -1532,6 +1532,17 @@ Owner requested all unknown business details remain blank for now. Review this l
 - **Deployed** on 20 November; the production smoke check passed on `b44a8f9` at 18:47 UTC. Data collects from then on.
 - **Still to do:** the AdminInsights screen, the rest of #262, once a few busy evenings are recorded.
 
+### Insights screen (#382, batch 7, 25 November 2026)
+
+- [-] **ADM-382 — Insights, redesigned (batch 7)** ([#382](https://github.com/ImaJin14/Ndahi-Connect/issues/382)). Owner decisions: [#382 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/382#issuecomment-7171758505).
+  - **Implemented and tested** (PR #477, not merged yet):
+    - a new owner-only screen at `#insights` and its side-menu item, from `GET /api/admin/insights`; nothing is sample data;
+    - the API adds the screen's figures (`lib/insights-summary.mjs`): revenue, bundles sold and paying customers, each against the previous period of the same length, and "bought again within 2 days" (of customers whose bundle ended, those who bought another no later than 2 days after it ended), in points;
+    - revenue per day (weekly bars for 90 days), devices online by hour with the busiest three hours, access-point load "Not measured yet" with "Starlink at peak" from the Connections checks (#380), and Wi-Fi page → paid by design with the computed note (no guessed reason);
+    - every chart has a text alternative; styles are set through the DOM, as the page's CSP refuses style attributes;
+    - English and French.
+  - **Not yet:** merged, deployed, or read by the owner with a few weeks of recorded evenings; Starlink at peak appears once #380's uplink readings are live.
+
 ### Open PRs taken over and merged (19 November 2026)
 
 The owner asked for every open PR to be made ready and merged. The four Codex drafts came from the other PC; their claims were reclaimed on the owner's instruction. Owner decisions are recorded in `docs/redesign/decisions.md`: outage time back, shared speed limits, early-redeemed reseller codes, and issue price and commission.
