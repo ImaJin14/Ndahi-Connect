@@ -1258,12 +1258,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 ### Edit profile (#398, batch 9, 26 November 2026)
 
 - [-] **CUS-398 — Edit profile, redesigned (batch 9)** ([#398](https://github.com/ImaJin14/Ndahi-Connect/issues/398)). Owner decisions: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7180265409); build note: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7181641253).
-  - **Implemented and tested** (PR #489, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #489):
     - the drawn page: full name, email with "We send a link to confirm a new address", the sign-in number read-only and masked with "To change it, contact support", and "Save changes" at the bottom; English and French;
     - a name change saves at once. When the email changes, Save asks for the PIN (or a passkey) in a dialog, and the page then says "Saved. Check <email> to confirm it.";
     - the new address gets a link (`/confirm-email`), single use and good for 30 minutes. It confirms on a tap, never on opening, and every portal session then ends so the customer signs in again. The same link again shortly after (a lost reply) reports the change done. Requests made with a code before this keep their code form;
     - Admin's customer page has "Change number" for owners: a support case, the reason, the identity check, and the owner's fresh PIN or passkey tied to the new number. The customer keeps their PIN and account, their portal sessions end, and their linked email is told.
-  - **Not yet:** merged, deployed, a real link email opened from a phone's mail app, or a number changed by the owner in the live admin.
+  - **Not yet:** a real link email opened from a phone's mail app, or a number changed by the owner in the live admin.
 
 ## Thermal POS slip and printable bulk voucher sheet layout (#116)
 
@@ -1386,13 +1386,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Shop on desktop (#417, batch 9, 26 November 2026)
 
 - [-] **CUS-417 — Shop on desktop, redesigned (batch 9)** ([#417](https://github.com/ImaJin14/Ndahi-Connect/issues/417)).
-  - **Implemented and tested** (PR #485, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #485):
     - the drawn page in 1200 px: the 12 px eyebrow, 40 px title and the lede "Devices we have tested on our network. Internet access is bought separately in Internet.", with an outlined "My orders" beside them (the head's action, as Home's "Bundles & vouchers" is);
     - the trust strip with its three icons, "All devices" and the full category names on 44 px chips;
     - cards with the kicker, name and description, then the price and stock beside a lime View at their foot;
     - the friends banner with an outlined "See the public store";
     - English and French.
-  - **Not yet:** merged, deployed, or the products' photos and short descriptions entered by the owner.
+  - **Not yet:** the products' photos and short descriptions entered by the owner.
 
 ## Email setup, provider settlements and store receipts (8 November 2026)
 
@@ -1474,12 +1474,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Wi-Fi page with the hotspot's name (#404, batch 9, 26 November 2026)
 
 - [-] **CUS-404 — Connect to Wi-Fi, redesigned (batch 9)** ([#404](https://github.com/ImaJin14/Ndahi-Connect/issues/404)). Owner decisions: [#404 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/404#issuecomment-7180266029).
-  - **Implemented and tested** (PR #486, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #486):
     - the owner names the hotspot (English and French, up to 40 characters) in Admin → Network setup → More network tools; the change is audited, and the public `/api/status` gives the name to the Wi-Fi page;
     - the page reads "Choose how you'd like to get online at <name>.", or "…to get online." without one; on NDAHI Wi-Fi it still says "You're on NDAHI Wi-Fi";
     - the option hints and the store link measured to the board;
     - English and French.
-  - **Not yet:** merged, deployed, the name entered by the owner, or the page opened from the RB5009's Wi-Fi sign-in on a real phone.
+  - **Not yet:** the name entered by the owner, or the page opened from the RB5009's Wi-Fi sign-in on a real phone.
 
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
@@ -1592,12 +1592,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Order tracking on phones (#406, batch 9, 26 November 2026)
 
 - [-] **CUS-406 — Order tracking, redesigned (batch 9)** ([#406](https://github.com/ImaJin14/Ndahi-Connect/issues/406)). Owner decisions: [#406 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/406#issuecomment-7180264893).
-  - **Implemented and tested** (PR #487, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #487):
     - the drawn page: the item with how it was paid ("38,000 FCFA · Orange Money"), the centred collection code, the steps with when each happened ("Paid 8 Nov, 10:14", "Prepared and tested 9 Nov, 16:02"), and Receipt and Get help at the foot;
     - new orders get a 6-digit collection code, shown "739 204", unique among open orders; older orders keep their 10-character codes (owner, 26 Nov);
     - "Held for you until <date>" on a ready order, from "Days we hold a ready order" in the store settings (default 14, 1 to 90); nothing happens automatically when it passes (owner, 26 Nov). Saving the settings from the frozen v1 admin keeps the value;
     - the order's view gives the paid, ready and collected times; English and French.
-  - **Not yet:** merged, deployed, or a real order collected with a 6-digit code at the shop.
+  - **Not yet:** a real order collected with a 6-digit code at the shop.
 
 ### Insights data recording (#262, 20 November 2026)
 
@@ -1702,13 +1702,13 @@ On 19 November the owner closed these issues as implemented: their code is merge
 ### Payment problems in six states (#409, batch 9, 26 November 2026)
 
 - [-] **CUS-409 — Payment problems, redesigned (batch 9)** ([#409](https://github.com/ImaJin14/Ndahi-Connect/issues/409)). Owner decisions: [#409 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/409#issuecomment-7180266640).
-  - **Implemented and tested** (PR #488, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #488):
     - the buy flow's failure screen shows the server's six states (#433) as drawn: not enough balance, request expired, cancelled or wrong PIN, number not recognised, waiting for confirmation, and unclear, each with the 24 Nov brief's words in English and French and amounts in XAF;
     - not enough balance with a verified fee offers "Switch to <cheaper bundle> (<total>)", which opens that bundle's checkout; without a verified fee the body speaks of the fee in the operator prompt;
     - Retry only once the server says the attempt is over; waiting and unclear say not to pay again and offer Check again; a wrong network lets the customer correct the number or pay with the other network;
     - every state shows the provider's reference, or NDAHI's payment id, with Copy;
     - "Payment request expired" now names *126# (MTN) and #150# (Orange), which the owner confirmed for Cameroon (`PAYMENT_SHORT_CODES=off` turns them off); a returning guest's saved checkout gets the codes and the cheaper bundle too.
-  - **Not yet:** merged, deployed, or each state met with a real MTN or Orange payment.
+  - **Not yet:** each state met with a real MTN or Orange payment.
 
 ### Merges and production fix (20 November 2026)
 
