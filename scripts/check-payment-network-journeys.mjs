@@ -58,10 +58,11 @@ try{
    const requestKey=key(),created=await post('/api/purchase',{phone:'670123457',name:'Saved Guest',planId:'weekly',network:'orange',requestKey});
    await seedSaved(context,{requestKey,planId:'weekly',paymentId:created.json.payment.id});await page.goto(portal+'/onboarding.html');await page.getByRole('button',{name:'Resume saved payment',exact:true}).click();await page.locator('#resumeRecheck').waitFor();
    assert.equal(await page.locator('[name=network]').inputValue(),'orange');assert.equal(await page.locator('[name=network]').isDisabled(),true);await page.locator('#paymentNetworkHint').getByText(/original number and network/).waitFor();
-   await store.transaction(s=>{const p=s.payments.find(p=>p.id===created.json.payment.id);p.status='failed';p.providerFailedAt=now.toISOString();p.failureReason='Synthetic decline';});
+   // A known cause (#433): v2 shows "Payment not approved" with Retry; an unknown one reads as unclear, with no Retry (#409).
+   await store.transaction(s=>{const p=s.payments.find(p=>p.id===created.json.payment.id);p.status='failed';p.providerFailedAt=now.toISOString();p.failureReason='Synthetic decline';p.failureState='cancelled_or_pin';});
    await page.locator('#resumeRecheck').click();
-   // v2 shows why it failed (#251, canvas: PhonePaymentFailed); "Try again" opens a fresh checkout.
-   if(uiV2){await page.getByRole('heading',{name:'Payment not approved',exact:true}).waitFor();await page.getByRole('button',{name:'Try again',exact:true}).click();}
+   // v2 shows why it failed (#251, canvas: PhonePaymentFailed); Retry opens a fresh checkout.
+   if(uiV2){await page.getByRole('heading',{name:'Payment not approved',exact:true}).waitFor();await page.getByRole('button',{name:'Retry',exact:true}).click();}
    else{await page.locator('#message .error-card').waitFor();await page.locator('#closeCheckout').click();await page.locator('[data-plan="weekly"]').click();}
    await page.getByLabel('Payment phone number',{exact:true}).fill('690123457');await page.waitForFunction(()=>document.querySelector('[name=network]').value==='orange');assert.equal(await page.locator('[name=network]').isDisabled(),false);
    assert.equal((await store.snapshot()).payments.length,baseline.payments.length+1);
