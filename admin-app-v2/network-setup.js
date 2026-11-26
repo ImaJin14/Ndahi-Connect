@@ -1,237 +1,317 @@
+// Network setup (canvas: AdminNetworkSetup, #384; owner decisions 25 Nov).
+// Four steps — Router, Access points, Wi-Fi, Review — each showing the drawn
+// fields first; the other fields a setup needs sit in a closed "More … settings"
+// inside the step (secrets are entered, never shown back). Nothing is applied
+// before Review: "Next: access points" and "Preview Wi-Fi changes" make a
+// preview, Review shows it as summary rows (one change set at a time), and
+// "Apply reviewed changes" queues it. A live change still rolls back unless
+// kept after testing. While the access points run standalone (production),
+// their steps carry a note only. Voucher enforcement, assisted connections, the
+// purchase-access check, the outage area names and the job history sit in a
+// closed "More network tools" below.
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { isPending, runButton } from "/shared/pending.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
+const STEPS = [["router", "adminSetupRouter"], ["aps", "adminSetupAps"], ["wifi", "adminSetupWifi"], ["review", "adminSetupReview"]];
+const ACTIVE = new Set(["queued", "running", "awaiting_confirmation", "confirming", "rolling_back", "recovery_required"]);
+// "50:C7:BF:••:••:21", as drawn.
+export const maskMac = (mac) => String(mac || "").toUpperCase().split(/[:-]/).map((part, i, all) => (all.length === 6 && (i === 3 || i === 4) ? "••" : part)).join(":");
 
-// v2 (canvas: AdminNetworkSetup): the same forms and logic, grouped into four
-// steps — Router, Access points, Wi-Fi, Review. Status, voucher enforcement,
-// assisted connections and history stay visible under the steps.
-const STEPS = [
-  ["router", "adminSetupRouter", ["#networkRouterConnection", "#networkRouterConfig"]],
-  ["aps", "adminSetupAps", ["#networkOmadaConnection", "#networkAdopt"]],
-  ["wifi", "adminSetupWifi", ["#networkWifiConfig"]],
-  ["review", "adminSetupReview", ["#networkPreview"]],
-];
 export function showSetupStep(root, name) {
-  root.querySelectorAll("[data-setup-step]").forEach((button) => {
-    const on = button.dataset.setupStep === name;
-    if (on) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
+  const at = STEPS.findIndex(([step]) => step === name);
+  root.querySelectorAll("[data-setup-step]").forEach((button, i) => {
+    if (i === at) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
+    // Steps before the current one read ✓, as drawn.
+    button.classList.toggle("is-done", i < at);
+    button.querySelector(".admin-steps__num").textContent = i < at ? "✓" : String(i + 1);
   });
   root.querySelectorAll("[data-setup-panel]").forEach((panel) => { panel.hidden = panel.dataset.setupPanel !== name; });
-  const empty = root.querySelector(".admin-setup__empty"), preview = root.querySelector("#networkPreview");
-  if (empty && preview) empty.hidden = !preview.hidden;
 }
-function arrangeSteps(root) {
-  root.querySelector(".section-heading")?.remove();
-  const nav = document.createElement("ol"), panels = document.createElement("div");
-  nav.className = "admin-steps"; nav.setAttribute("aria-label", L("adminSetupSteps"));
-  panels.className = "admin-setup__steps";
-  STEPS.forEach(([name, label, parts], index) => {
-    const item = document.createElement("li"), button = document.createElement("button"), panel = document.createElement("section");
-    button.type = "button"; button.dataset.setupStep = name;
-    button.innerHTML = `<span class="admin-steps__num" aria-hidden="true">${index + 1}</span>${h(L(label))}`;
-    button.onclick = () => showSetupStep(root, name);
-    item.appendChild(button); nav.appendChild(item);
-    panel.className = "nd-panel admin-setup__step"; panel.dataset.setupPanel = name; panel.setAttribute("aria-label", L(label));
-    parts.forEach((selector) => { const part = root.querySelector(selector); if (part) panel.appendChild(part); });
-    if (name === "review") panel.insertAdjacentHTML("afterbegin", `<p class="nd-meta admin-setup__empty">${h(L("adminSetupReviewEmpty"))}</p>`);
-    panels.appendChild(panel);
-  });
-  root.querySelectorAll(".network-setup-grid").forEach((grid) => { if (!grid.children.length) grid.remove(); });
-  const anchor = root.querySelector("#networkPrerequisites");
-  anchor.after(nav, panels, root.querySelector("#networkInventory"), root.querySelector("#networkMessage"));
-  showSetupStep(root, "router");
+
+const field = (id, label, control) => `<div><label class="admin-setup__label" for="${id}">${h(label)}</label>${control}</div>`;
+const input = (id, attrs) => `<input class="admin-setup__input" id="${id}" ${attrs}>`;
+const select = (id, attrs, options) => `<select class="admin-setup__input" id="${id}" ${attrs}>${options}</select>`;
+
+function markup() {
+  return `<ol class="admin-steps" aria-label="${h(L("adminSetupSteps"))}">${STEPS.map(([step, label], i) => `<li><button type="button" class="admin-steps__step" data-setup-step="${step}"><span class="admin-steps__num" aria-hidden="true">${i + 1}</span>${h(L(label))}</button></li>`).join("")}</ol>
+<section class="admin-setup__panel" aria-label="${h(L("adminNetStepDetails"))}">
+  <form id="networkRouterConnection" hidden></form><form id="networkRouterConfig" hidden></form><form id="networkOmadaConnection" hidden></form><form id="networkWifiConfig" hidden></form>
+  <div class="admin-setup__step" data-setup-panel="router">
+    <h2 class="admin-setup__h2">${h(L("adminNetRouterTitle"))}</h2>
+    <div class="admin-setup__grid">
+      ${field("netRouterUrl", L("adminNetRouterAddress"), input("netRouterUrl", `name="url" form="networkRouterConnection" type="url" placeholder="https://router.management.example" autocomplete="off"`))}
+      ${field("netRouterMode", L("adminNetConnectionMode"), select("netRouterMode", `name="mode" form="networkRouterConnection"`, `<option value="live">${h(L("adminNetModeLive"))}</option><option value="simulation">${h(L("adminNetModeSimulation"))}</option>`))}
+      ${field("netWan", L("adminNetUplink"), select("netWan", `name="wan" form="networkRouterConfig" required`, `<option value="">${h(L("adminNetDiscoverFirst"))}</option>`))}
+      ${field("netHotspot", L("adminNetHotspotName"), input("netHotspot", `name="hotspotName" form="networkRouterConfig" required value="connect.ndahi.local" autocomplete="off"`))}
+    </div>
+    <details class="admin-options admin-setup__more"><summary>${h(L("adminNetMoreRouter"))}</summary><div class="admin-setup__grid">
+      ${field("netRouterUser", L("adminNetServiceUser"), input("netRouterUser", `name="username" form="networkRouterConnection" autocomplete="off"`))}
+      ${field("netRouterPassword", L("adminNetServicePassword"), input("netRouterPassword", `name="password" form="networkRouterConnection" type="password" autocomplete="new-password" placeholder="${h(L("adminNetKeepPassword"))}"`))}
+      ${field("netApPort", L("adminNetApPort"), select("netApPort", `name="apPort" form="networkRouterConfig" required`, `<option value="">${h(L("adminNetDiscoverFirst"))}</option>`))}
+      ${field("netGateway", L("adminNetGateway"), input("netGateway", `name="gateway" form="networkRouterConfig" required value="10.20.0.1/22"`))}
+      ${field("netPoolStart", L("adminNetPoolStart"), input("netPoolStart", `name="poolStart" form="networkRouterConfig" required value="10.20.0.20"`))}
+      ${field("netPoolEnd", L("adminNetPoolEnd"), input("netPoolEnd", `name="poolEnd" form="networkRouterConfig" required value="10.20.3.250"`))}
+      ${field("netDns", L("adminNetDns"), input("netDns", `name="dns" form="networkRouterConfig" required value="1.1.1.1,8.8.8.8"`))}
+    </div><p class="nd-meta" id="networkInventory" aria-live="polite"></p></details>
+    <div class="admin-setup__buttons"><button type="button" class="admin-setup__go2" data-discover="router">${h(L("adminNetDiscoverRouter"))}</button><button type="button" class="admin-setup__go" data-setup-next="router">${h(L("adminNetNextAps"))}</button></div>
+  </div>
+  <div class="admin-setup__step" data-setup-panel="aps" hidden>
+    <h2 class="admin-setup__h2">${h(L("adminNetApsTitle"))}</h2>
+    <p class="admin-setup__note" data-standalone>${h(L("adminNetApsStandalone"))}</p>
+    <div id="networkApRows" data-controller></div>
+    <details class="admin-options admin-setup__more" data-controller><summary>${h(L("adminNetMoreAps"))}</summary><div class="admin-setup__grid">
+      ${field("netOmadaUrl", L("adminNetControllerAddress"), input("netOmadaUrl", `name="url" form="networkOmadaConnection" type="url" placeholder="https://controller.management.example:8043" autocomplete="off"`))}
+      ${field("netOmadaController", L("adminNetControllerId"), input("netOmadaController", `name="controllerId" form="networkOmadaConnection"`))}
+      ${field("netOmadaSite", L("adminNetSiteId"), input("netOmadaSite", `name="siteId" form="networkOmadaConnection"`))}
+      ${field("netOmadaWlan", L("adminNetWlanId"), input("netOmadaWlan", `name="wlanId" form="networkOmadaConnection"`))}
+      ${field("netOmadaClient", L("adminNetClientId"), input("netOmadaClient", `name="clientId" form="networkOmadaConnection" autocomplete="off"`))}
+      ${field("netOmadaSecret", L("adminNetClientSecret"), input("netOmadaSecret", `name="clientSecret" form="networkOmadaConnection" type="password" autocomplete="new-password" placeholder="${h(L("adminNetKeepSecret"))}"`))}
+    </div></details>
+    <div class="admin-setup__buttons"><button type="button" class="admin-setup__go2" data-discover="omada" data-controller>${h(L("adminNetDiscoverAps"))}</button><button type="button" class="admin-setup__go" data-setup-next="aps">${h(L("adminNetNextWifi"))}</button></div>
+  </div>
+  <div class="admin-setup__step" data-setup-panel="wifi" hidden>
+    <h2 class="admin-setup__h2">${h(L("adminNetWifiTitle"))}</h2>
+    <p class="admin-setup__note" data-standalone>${h(L("adminNetWifiStandalone"))}</p>
+    <div class="admin-setup__grid" data-controller>
+      ${field("netSsid", L("adminNetSsid"), input("netSsid", `name="name" form="networkWifiConfig" required maxlength="32" value="NDAHI Connect"`))}
+      ${field("netVlan", L("adminNetVlan"), input("netVlan", `name="vlan" form="networkWifiConfig" type="number" min="0" max="4094" value="0"`))}
+      ${field("netIsolation", L("adminNetIsolation"), select("netIsolation", "", `<option>${h(L("adminNetIsolationOn"))}</option>`))}
+    </div>
+    <details class="admin-options admin-setup__more" data-controller><summary>${h(L("adminNetMoreWifi"))}</summary><div class="admin-setup__grid">
+      ${field("netSsidId", L("adminNetSsidChoice"), select("netSsidId", `name="ssidId" form="networkWifiConfig"`, `<option value="">${h(L("adminNetSsidNew"))}</option>`))}
+      ${field("netSecurity", L("adminNetSecurity"), select("netSecurity", `name="security" form="networkWifiConfig"`, `<option value="open">${h(L("adminNetSecurityOpen"))}</option><option value="wpa2">${h(L("adminNetSecurityWpa2"))}</option>`))}
+      ${field("netWifiPassword", L("adminNetWifiPassword"), input("netWifiPassword", `name="password" form="networkWifiConfig" type="password" autocomplete="new-password"`))}
+    </div><p class="nd-meta" id="networkWifiSupport">${h(L("adminNetWifiDiscover"))}</p></details>
+    <div class="admin-setup__buttons"><button type="button" class="admin-setup__go" data-controller data-wifi-preview disabled>${h(L("adminNetPreviewWifi"))}</button><button type="button" class="admin-setup__go" data-standalone data-setup-next="wifi">${h(L("adminNetNextReview"))}</button></div>
+  </div>
+  <div class="admin-setup__step" data-setup-panel="review" hidden>
+    <h2 class="admin-setup__h2">${h(L("adminNetReviewTitle"))}</h2>
+    <p class="admin-setup__note admin-setup__empty">${h(L("adminSetupReviewEmpty"))}</p>
+    <div id="networkPreview" class="admin-setup__review" hidden></div>
+    <div id="networkApplied" class="admin-setup__review"></div>
+    <div class="admin-setup__buttons" id="networkReviewButtons" hidden><button type="button" class="admin-setup__go2" id="networkSimulate">${h(L("adminNetRunSimulation"))}</button><button type="button" class="admin-setup__go" id="networkApply">${h(L("adminNetApply"))}</button></div>
+    <p class="nd-meta" id="networkApplyNote" hidden></p>
+  </div>
+  <p class="admin-setup__message" id="networkMessage" role="status" aria-live="polite"></p>
+</section>
+<details class="admin-options admin-legacy admin-setup__tools" id="networkTools"><summary>${h(L("adminNetTools"))}</summary><div class="admin-setup__tools-body">
+  <section><p>${h(L("adminNetIntro"))}</p><p id="networkPrerequisites" role="status">${h(L("adminNetChecking"))}</p></section>
+  <section><h3>${h(L("adminNetPurchaseTitle"))}</h3><p>${h(L("adminNetPurchaseText"))}</p><button type="button" id="networkPurchaseCheck">${h(L("adminNetPurchaseCheck"))}</button><div id="networkPurchaseReport" aria-live="polite"></div></section>
+  <section><h3>${h(L("adminNetEnforcementTitle"))}</h3><p id="networkEnforcementStatus"></p><p>${h(L("adminNetEnforcementText"))}</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> ${h(L("adminNetEnforcementTested"))}</label><button type="button" id="networkActivate" disabled>${h(L("adminNetActivate"))}</button></section>
+  <section><h3>${h(L("adminNetPairingTitle"))}</h3><p id="networkPairingStatus"></p><p>${h(L("adminNetPairingText"))}</p><label class="network-checkbox"><input type="checkbox" id="networkPairingTested"> ${h(L("adminNetPairingTested"))}</label><button type="button" id="networkPairingEnable">${h(L("adminNetPairingEnable"))}</button><button type="button" id="networkPairingDisable" class="secondary-action">${h(L("adminNetPairingDisable"))}</button><p>${h(L("adminNetPairingNote"))}</p></section>
+  <section><h3>${h(L("adminNetAreasTitle"))}</h3><p>${h(L("adminNetAreasText"))}</p><form id="networkAreas" class="admin-setup__areas"><label>${h(L("adminNetAreasSite"))}<input name="site" maxlength="40" autocomplete="off"></label><label>${h(L("adminNetAreasList"))}<textarea name="areas" rows="4"></textarea></label><button type="submit">${h(L("adminNetAreasSave"))}</button></form></section>
+  <section><h3>${h(L("adminNetHistory"))}</h3><button type="button" id="networkRefresh" class="secondary-action">${h(L("adminNetRefreshJobs"))}</button><div id="networkJobs"></div></section>
+  <section id="networkRecovery" hidden></section>
+</div></details>`;
 }
 
 let stopPrevious = () => {};
 export async function mountNetworkSetup(root, call) {
   stopPrevious();
   if (!root) return;
-  let stopped = false, timer, state, selectedJob;
+  let stopped = false, timer, state, reviewed = null;
   stopPrevious = () => { stopped = true; clearTimeout(timer); };
   const request = (action, data = {}) => call(`/api/admin/network/setup/${action}`, action === "status" ? {} : { method: "POST", body: JSON.stringify(data) });
-  root.innerHTML = `<div class="section-heading"><div><p class="section-kicker">Network setup</p><h2>Connect and configure your equipment</h2></div></div>
-    <p>Start with a wired management connection. Connect the server to your router and controller through a private tunnel, and enable their HTTPS management APIs.</p>
-    <p id="networkPrerequisites" role="status">Checking setup…</p>
-    <section><h3>Buying with no active data</h3><p>Inspect the saved router's access rules and routes for the portal and API. This check does not change router settings. Users must be able to buy on NDAHI Wi-Fi before their first bundle and after their data runs out.</p><button type="button" id="networkPurchaseCheck">Check purchase access</button><div id="networkPurchaseReport" aria-live="polite"></div></section>
-    <div class="network-setup-grid">
-    <form id="networkRouterConnection"><h3>1. Connect MikroTik</h3>
-      <label>Connection mode<select name="mode"><option value="live">Live equipment</option><option value="simulation">Simulation — no equipment changes</option></select></label>
-      <label>Router HTTPS address<input name="url" type="url" placeholder="https://router.management.example"></label>
-      <label>Service username<input name="username" autocomplete="off"></label>
-      <label>Service password<input name="password" type="password" autocomplete="new-password" placeholder="Leave blank to keep saved password"></label>
-      <button>Save router connection</button><button type="button" data-discover="router" class="secondary-action">Discover router</button>
-    </form>
-    <form id="networkOmadaConnection"><h3>1. Connect Omada</h3><p id="networkOmadaNote" hidden></p>
-      <label>Controller HTTPS address<input name="url" type="url" required placeholder="https://controller.management.example:8043"></label>
-      <label>Controller ID<input name="controllerId" required></label><label>Site ID<input name="siteId" required></label>
-      <label>WLAN group ID<input name="wlanId" required></label><label>Open API client ID<input name="clientId" required autocomplete="off"></label>
-      <label>Open API client secret<input name="clientSecret" type="password" autocomplete="new-password" placeholder="Leave blank to keep saved secret"></label>
-      <button>Save controller connection</button><button type="button" data-discover="omada" class="secondary-action">Discover access points</button>
-    </form></div>
-    <div id="networkInventory" aria-live="polite"></div>
-    <section><h3>Voucher enforcement</h3><p id="networkEnforcementStatus"></p><p>Activate a tested hotspot to send vouchers, quotas, and expiry limits to this router. A hotspot configured manually is checked for HTTPS login, guest DHCP, clock synchronization, and scheduler support before activation. Individual device disconnection requires a trusted hotspot MAC mapping; browser device IDs are not sufficient.</p><label class="network-checkbox"><input type="checkbox" id="networkEnforcementTested"> I tested Wi-Fi, hotspot login and internet access, and verified the router clock is synchronized.</label><button type="button" id="networkActivate" disabled>Use saved router for vouchers</button></section>
-    <section><h3>Assisted device connections</h3><p id="networkPairingStatus"></p><p>Require approval for additional devices. The main browser issues a five-minute code that the requesting device enters. Enabling rotates router passwords away from public voucher codes and clears old remembered logins; current connected devices are retained as approved. Verify pre-login portal/API access and test on site before enabling.</p><label class="network-checkbox"><input type="checkbox" id="networkPairingTested"> I verified portal access before Wi-Fi login and will test pairing and device limits on site.</label><button type="button" id="networkPairingEnable">Enable assisted connections</button><button type="button" id="networkPairingDisable" class="secondary-action">Disable assisted connections</button><p>Disabling stops new requests and approvals. Devices already connected keep their current Wi-Fi sessions.</p></section>
-    <div class="network-setup-grid">
-    <form id="networkRouterConfig"><h3>2. Configure hotspot</h3>
-      <label>Internet uplink<select name="wan" required><option value="">Discover router first</option></select></label>
-      <label>Dedicated AP port<select name="apPort" required><option value="">Discover router first</option></select></label>
-      <label>Gateway / prefix<input name="gateway" required value="10.20.0.1/22"></label>
-      <label>DHCP range start<input name="poolStart" required value="10.20.0.20"></label>
-      <label>DHCP range end<input name="poolEnd" required value="10.20.3.250"></label>
-      <label>DNS servers<input name="dns" required value="1.1.1.1,8.8.8.8"></label>
-      <label>Hotspot DNS name<input name="hotspotName" required value="connect.ndahi.local"></label>
-      <button>Preview router changes</button>
-    </form>
-    <form id="networkWifiConfig"><h3>2. Configure Wi-Fi</h3>
-      <p id="networkWifiSupport">Discover the controller to check supported actions.</p>
-      <label>SSID<select name="ssidId"><option value="">Create a new SSID</option></select></label>
-      <label>Wi-Fi name<input name="name" required maxlength="32" value="NDAHI Connect"></label>
-      <label>Wireless security<select name="security"><option value="open">Open hotspot — voucher login</option><option value="wpa2">WPA2 personal plus voucher login</option></select></label>
-      <label>Wi-Fi password<input name="password" type="password" autocomplete="new-password"></label>
-      <label>VLAN ID (0 for untagged)<input name="vlan" type="number" min="0" max="4094" value="0"></label>
-      <p>Client isolation is enabled. Tagged VLANs need matching gateway and switch configuration.</p>
-      <button disabled>Preview Wi-Fi changes</button>
-    </form></div>
-    <form id="networkAdopt"><h3>Adopt an access point</h3><label>AP MAC address<select name="mac" required><option value="">Discover access points first</option></select></label><button disabled>Preview adoption</button></form>
-    <p id="networkMessage" role="status" aria-live="polite"></p>
-    <section id="networkPreview" hidden></section>
-    <section><h3>Provisioning history</h3><button type="button" id="networkRefresh" class="secondary-action">Refresh jobs</button><div id="networkJobs"></div></section>
-    <section id="networkRecovery" hidden></section>`;
+  root.innerHTML = markup();
   const $ = (s) => root.querySelector(s);
-  arrangeSteps(root);
-  const message = (text) => { $("#networkMessage").textContent = text; };
+  root.querySelectorAll("[data-setup-step]").forEach((button) => { button.onclick = () => showSetupStep(root, button.dataset.setupStep); });
+  showSetupStep(root, "router");
+  const message = (text) => { $("#networkMessage").textContent = text || ""; };
   async function busy(button, task) {
-    try { await runButton(button, "Working…", task); }
-    catch (error) { message(error.message || "Network request failed."); }
+    try { await runButton(button, L("adminNetWorking"), task); }
+    catch (error) { message(error.message || L("adminNetFailed")); }
     finally {
-      if (button.id === "networkActivate" && state) {
-        button.disabled = isPending(button) || state.runtimeRouterEnabled || !state.enabled;
-      }
+      if (button.id === "networkActivate" && state) button.disabled = isPending(button) || state.runtimeRouterEnabled || !state.enabled;
       if (button.id === "networkPairingEnable" && state) button.disabled = isPending(button) || state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
       if (button.id === "networkPairingDisable" && state) button.disabled = isPending(button) || !state.assistedConnectionsEnabled;
     }
   }
-  function renderPreview(job) {
-    selectedJob = job;
-    const plan = job.plan, target = $("#networkPreview");
-    target.hidden = false;
-    showSetupStep(root, "review");
-    target.innerHTML = `<h3>3. Review ${h(job.kind)} changes</h3><p>${job.mode === "simulation" ? "SIMULATION — this will not configure physical equipment." : "These changes will be sent to your equipment."}</p>
-      ${plan.conflicts.length ? `<h4>Resolve these conflicts</h4><ul>${plan.conflicts.map((v) => `<li>${h(v)}</li>`).join("")}</ul>` : ""}
-      <ul>${(plan.warnings || []).map((v) => `<li>${h(v)}</li>`).join("")}</ul>
-      ${plan.operations ? `<div class="network-table"><table><thead><tr><th>Action</th><th>Resource</th><th>Settings</th></tr></thead><tbody>${plan.operations.map((op) => `<tr><td>${h(op.action)}</td><td>${h(op.path)}</td><td><pre>${h(JSON.stringify(op.values, null, 2))}</pre></td></tr>`).join("")}</tbody></table></div>` : `<ul>${(plan.changes || []).map((v) => `<li>${h(v)}</li>`).join("")}</ul>`}
-      <label class="network-checkbox"><input type="checkbox" id="networkReviewed"> I reviewed these changes and have a wired recovery connection.</label>
-      <button type="button" id="networkApply" ${plan.conflicts.length || (job.mode === "live" && !state.enabled) ? "disabled" : ""}>${job.mode === "simulation" ? "Run simulation" : "Apply reviewed changes"}</button>`;
-    $("#networkApply").onclick = () => busy($("#networkApply"), async () => {
-      if (!$("#networkReviewed").checked) throw Error("Review and acknowledge the proposed changes first.");
-      await request("apply", { jobId: selectedJob.id, reviewed: true });
-      target.hidden = true; message("Provisioning job queued. Progress appears below."); await refresh();
-    });
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Review: the latest preview as the drawn summary rows (one change set at a time).
+  function rows(job) {
+    const c = job.plan?.config || {}, row = (label, value) => `<div class="admin-setup__row"><span>${h(label)}</span><span>${h(value)}</span></div>`;
+    if (job.kind === "router" && job.planKind === "sharing") return row(L("adminNetSharingRules"), L("adminNetSharingRulesValue"));
+    if (job.kind === "router") return [
+      row(L("adminNetHotspotName"), c.hotspotName), row(L("adminNetUplink"), c.wan), row(L("adminNetApPort"), c.apPort),
+      row(L("adminNetHotspotNetwork"), c.network || c.gateway), row(L("adminNetPool"), `${c.poolStart} – ${c.poolEnd}`), row(L("adminNetDns"), c.dns),
+    ].join("");
+    if (c.action === "adopt") return row(L("adminNetAdoptRow"), maskMac(c.mac));
+    return row(L("adminNetSsidRow", { name: c.name, vlan: c.vlan || 0 }), L("adminNetIsolationRow"));
   }
-  async function refresh() {
-    state = await request("status");
-    if (stopped) return;
-    root.dataset.setupPending = String(state.jobs.some((j) => ["queued", "running", "awaiting_confirmation", "recovery_required"].includes(j.status)));
-    $("#networkPrerequisites").textContent = !state.encryptionReady ? "Server setup required: configure NETWORK_CONFIG_KEY before saving connections." : `Live provisioning ${state.enabled ? "enabled" : "disabled"}. Approved management addresses: ${state.allowedOrigins.join(", ") || "none — configure NETWORK_ALLOWED_ORIGINS on the server"}.`;
-    $("#networkEnforcementStatus").textContent = state.runtimeRouterEnabled ? "The saved router is active for voucher enforcement." : "Voucher operations currently use the existing server integration.";
-    $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
-    $("#networkPairingStatus").textContent = state.assistedConnectionsEnabled ? "Main-device approval is required for additional devices. New access requests are enabled." : state.deviceApprovalRequired
-      ? "New access requests are not being accepted. Existing device-approval requirements remain enforced."
-      : "Mandatory device approval has not been enabled. Devices still use the existing voucher and PIN sign-in flow. Verify Wi-Fi sign-in and enable assisted connections to require main-device approval.";
-    $("#networkPairingEnable").disabled = state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
-    $("#networkPairingDisable").disabled = !state.assistedConnectionsEnabled;
-    if (state.omadaStandalone) {
-      for (const id of ["#networkOmadaConnection", "#networkWifiConfig", "#networkAdopt"]) $(id).querySelectorAll("input, select, button").forEach((control) => { control.disabled = true; });
-      $("#networkOmadaNote").hidden = false;
-      $("#networkOmadaNote").textContent = "Access points run standalone (OMADA_MODE=standalone), so no controller is connected.";
-      $("#networkWifiSupport").textContent = "Configure the SSID, VLAN and client isolation on the access point itself.";
-    }
-    $("#networkJobs").innerHTML = state.jobs.length ? state.jobs.map((j) => `<article class="network-job"><h4>${h(j.kind)} · ${h(j.mode)} · ${h(j.status.replaceAll("_", " "))}</h4><p>${h(j.step || "Preview ready")}</p><small>${h(new Date(j.at).toLocaleString())} · ${h(j.id)}</small>
-      ${j.confirmBefore && j.status === "awaiting_confirmation" ? `<p>Keep changes before ${h(new Date(j.confirmBefore).toLocaleTimeString())}; otherwise the router rolls back.</p><label class="network-checkbox"><input type="checkbox" data-tested="${h(j.id)}"> I tested Wi-Fi, voucher login, internet access, and management connectivity.</label><button data-job-action="confirm" data-id="${h(j.id)}">Keep changes</button>` : ""}
-      ${["awaiting_confirmation", "recovery_required"].includes(j.status) ? `<button class="secondary-action" data-job-action="rollback" data-id="${h(j.id)}">Roll back</button><button class="secondary-action" data-job-action="refresh" data-id="${h(j.id)}">Check device status</button>` : ""}
-      ${j.status === "recovery_required" ? `<label class="network-checkbox"><input type="checkbox" data-resolved="${h(j.id)}"> I completed and verified recovery directly on the equipment.</label><button class="secondary-action" data-job-action="resolve" data-id="${h(j.id)}">Record manual recovery</button>` : ""}
-      ${["preview", "queued"].includes(j.status) ? `<button class="secondary-action" data-job-action="cancel" data-id="${h(j.id)}">Cancel job</button>` : ""}
-      ${j.backup ? `<button class="secondary-action" data-job-action="recovery" data-id="${h(j.id)}">Backup recovery details</button>` : ""}</article>`).join("") : "<p>No provisioning jobs yet.</p>";
-    root.querySelectorAll("[data-job-action]").forEach((button) => { button.onclick = () => busy(button, async () => {
+  function renderReview(job) {
+    reviewed = job;
+    const target = $("#networkPreview"), conflicts = job.plan?.conflicts || [];
+    target.hidden = false;
+    target.innerHTML = `${rows(job)}${conflicts.length ? `<div class="admin-setup__conflicts" role="alert"><strong>${h(L("adminNetConflicts"))}</strong><ul>${conflicts.map((v) => `<li>${h(v)}</li>`).join("")}</ul></div>` : ""}
+      <details class="admin-setup__every"><summary>${h(L("adminNetEveryChange"))}</summary>${job.plan?.operations ? `<div class="network-table"><table><thead><tr><th>${h(L("adminNetColAction"))}</th><th>${h(L("adminNetColResource"))}</th><th>${h(L("adminNetColSettings"))}</th></tr></thead><tbody>${job.plan.operations.map((op) => `<tr><td>${h(op.action)}</td><td>${h(op.path)}</td><td><pre>${h(JSON.stringify(op.values, null, 2))}</pre></td></tr>`).join("")}</tbody></table></div>` : `<ul>${(job.plan?.changes || []).map((v) => `<li>${h(v)}</li>`).join("")}</ul>`}<ul>${(job.plan?.warnings || []).map((v) => `<li>${h(v)}</li>`).join("")}</ul></details>`;
+    renderButtons();
+  }
+  // Apply is the confirmation (no checkbox, owner 25 Nov). "Run simulation" only
+  // where simulation is allowed (never production); each acts on its own kind of preview.
+  function renderButtons() {
+    const job = reviewed && reviewed.status === "preview" ? reviewed : null, buttons = $("#networkReviewButtons"), note = $("#networkApplyNote");
+    $(".admin-setup__empty").hidden = Boolean(job || $("#networkApplied").innerHTML);
+    buttons.hidden = !job;
+    $("#networkPreview").hidden = !job;
+    if (!job) { note.hidden = true; return; }
+    const blocked = (job.plan?.conflicts || []).length > 0, simulation = job.mode === "simulation";
+    $("#networkSimulate").hidden = !state?.simulationAllowed;
+    $("#networkSimulate").disabled = blocked || !simulation || isPending($("#networkSimulate"));
+    $("#networkApply").disabled = blocked || simulation || !state?.enabled || isPending($("#networkApply"));
+    const why = blocked ? L("adminNetBlockedConflicts") : simulation ? L("adminNetBlockedSimulation") : !state?.enabled ? L("adminNetBlockedDisabled") : "";
+    note.textContent = why; note.hidden = !why;
+  }
+  // After Apply: progress, then "Applied. A backup of the previous settings was
+  // saved." with Keep changes / Roll back for a live change (it rolls back otherwise).
+  function renderApplied() {
+    const job = (state?.jobs || []).find((j) => ACTIVE.has(j.status)) || (reviewed && (state?.jobs || []).find((j) => j.id === reviewed.id && j.status === "completed"));
+    const target = $("#networkApplied");
+    if (!job) { target.innerHTML = ""; renderButtons(); return; }
+    const applied = ["awaiting_confirmation", "completed"].includes(job.status) && job.backup;
+    target.innerHTML = `${applied ? `<p class="admin-setup__applied" role="status">${h(L("adminNetApplied"))}</p>` : `<p class="admin-setup__progress" role="status">${h(L("adminNetProgress", { step: job.step || job.status.replaceAll("_", " ") }))}</p>`}
+      ${job.status === "awaiting_confirmation" && job.confirmBefore ? `<p>${h(L("adminNetKeepBefore", { time: new Date(job.confirmBefore).toLocaleTimeString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" }) }))}</p><label class="network-checkbox"><input type="checkbox" data-tested="${h(job.id)}"> ${h(L("adminNetTestedKeep"))}</label><div class="admin-setup__buttons"><button type="button" class="admin-setup__go" data-job-action="confirm" data-id="${h(job.id)}">${h(L("adminNetKeep"))}</button><button type="button" class="admin-setup__go2" data-job-action="rollback" data-id="${h(job.id)}">${h(L("adminNetRollback"))}</button></div>` : ""}
+      ${job.status === "recovery_required" ? `<div class="admin-setup__buttons"><button type="button" class="admin-setup__go2" data-job-action="rollback" data-id="${h(job.id)}">${h(L("adminNetRollback"))}</button><button type="button" class="admin-setup__go2" data-job-action="refresh" data-id="${h(job.id)}">${h(L("adminNetCheckDevice"))}</button></div><label class="network-checkbox"><input type="checkbox" data-resolved="${h(job.id)}"> ${h(L("adminNetRecovered"))}</label><button type="button" class="secondary-action" data-job-action="resolve" data-id="${h(job.id)}">${h(L("adminNetRecordRecovery"))}</button>` : ""}`;
+    bindJobActions(target);
+    renderButtons();
+  }
+  function bindJobActions(scope) {
+    scope.querySelectorAll("[data-job-action]").forEach((button) => { button.onclick = () => busy(button, async () => {
       const action = button.dataset.jobAction, jobId = button.dataset.id;
       const result = await request(action, { jobId, tested: root.querySelector(`[data-tested="${CSS.escape(jobId)}"]`)?.checked === true, recovered: root.querySelector(`[data-resolved="${CSS.escape(jobId)}"]`)?.checked === true });
       if (action === "recovery") {
         const target = $("#networkRecovery"); target.hidden = false; target.setAttribute("data-sensitive-output", "");
-        target.innerHTML = `<h3>Backup recovery</h3><p>${h(result.instructions)}</p><p>File: <code>${h(result.backup)}</code></p><label>Backup password<input readonly type="password" value="${h(result.password)}"></label><button type="button" id="networkShowBackup">Show password</button><button type="button" id="networkHideRecovery">Close recovery details</button>`;
-        $("#networkShowBackup").onclick = () => { const field = target.querySelector("input"); field.type = field.type === "password" ? "text" : "password"; };
+        target.innerHTML = `<h3>${h(L("adminNetBackupRecovery"))}</h3><p>${h(result.instructions)}</p><p>${h(L("adminNetBackupFile"))} <code>${h(result.backup)}</code></p><label>${h(L("adminNetBackupPassword"))}<input readonly type="password" value="${h(result.password)}"></label><button type="button" id="networkShowBackup">${h(L("adminNetShowPassword"))}</button><button type="button" id="networkHideRecovery">${h(L("adminNetCloseRecovery"))}</button>`;
+        $("#networkShowBackup").onclick = () => { const f = target.querySelector("input"); f.type = f.type === "password" ? "text" : "password"; };
         $("#networkHideRecovery").onclick = () => { target.replaceChildren(); target.hidden = true; };
       } else { message(result.job.step); await refresh(); }
     }); });
+  }
+
+  async function refresh() {
+    state = await request("status");
+    if (stopped) return;
+    root.dataset.setupPending = String(state.jobs.some((j) => ["queued", "running", "awaiting_confirmation", "recovery_required"].includes(j.status)));
+    root.dataset.standalone = String(Boolean(state.omadaStandalone));
+    root.querySelectorAll("[data-standalone]").forEach((el) => { el.hidden = !state.omadaStandalone; });
+    root.querySelectorAll("[data-controller]").forEach((el) => { el.hidden = Boolean(state.omadaStandalone); });
+    if (!state.simulationAllowed) $('#netRouterMode option[value="simulation"]')?.remove();
+    const router = (state.connections || []).find((c) => c.kind === "router");
+    if (router && document.activeElement?.form?.id !== "networkRouterConnection") {
+      if (!$("#netRouterUrl").value && router.url !== "simulation") $("#netRouterUrl").value = router.url;
+      if ($(`#netRouterMode option[value="${router.mode}"]`)) $("#netRouterMode").value = router.mode;
+    }
+    $("#networkPrerequisites").textContent = !state.encryptionReady ? L("adminNetNeedsKey") : L(state.enabled ? "adminNetLiveOn" : "adminNetLiveOff", { origins: state.allowedOrigins.join(", ") || L("adminNetNoOrigins") });
+    $("#networkEnforcementStatus").textContent = L(state.runtimeRouterEnabled ? "adminNetEnforcementOn" : "adminNetEnforcementOff");
+    $("#networkActivate").disabled = isPending($("#networkActivate")) || state.runtimeRouterEnabled || !state.enabled;
+    $("#networkPairingStatus").textContent = L(state.assistedConnectionsEnabled ? "adminNetPairingOn" : state.deviceApprovalRequired ? "adminNetPairingPaused" : "adminNetPairingOff");
+    $("#networkPairingEnable").disabled = state.assistedConnectionsEnabled || !state.runtimeRouterEnabled;
+    $("#networkPairingDisable").disabled = !state.assistedConnectionsEnabled;
+    // The latest unapplied preview stays in Review after a reload.
+    const latest = state.jobs.find((j) => j.status === "preview" && Date.parse(j.expiresAt) > Date.now());
+    if (latest && (!reviewed || reviewed.status !== "preview" || reviewed.id !== latest.id)) renderReview(latest);
+    else if (reviewed) { const now = state.jobs.find((j) => j.id === reviewed.id); if (now) reviewed = now; }
+    renderApplied();
+    const current = state.jobs.find((j) => ACTIVE.has(j.status));
+    $("#networkJobs").innerHTML = state.jobs.length ? state.jobs.map((j) => `<article class="network-job"><h4>${h(j.kind)} · ${h(j.mode)} · ${h(j.status.replaceAll("_", " "))}</h4><p>${h(j.step || L("adminNetPreviewReady"))}</p><small>${h(new Date(j.at).toLocaleString(currentLanguage() === "fr" ? "fr-FR" : "en-GB"))} · ${h(j.id)}</small>
+      ${["preview", "queued"].includes(j.status) && j !== current ? `<button type="button" class="secondary-action" data-job-action="cancel" data-id="${h(j.id)}">${h(L("adminNetCancelJob"))}</button>` : ""}
+      ${j.backup ? `<button type="button" class="secondary-action" data-job-action="recovery" data-id="${h(j.id)}">${h(L("adminNetBackupDetails"))}</button>` : ""}</article>`).join("") : `<p>${h(L("adminNetNoJobs"))}</p>`;
+    bindJobActions($("#networkJobs"));
     clearTimeout(timer);
-    // Do not replace confirmation checkboxes while an owner is testing/reviewing.
-    if (state.jobs.some((j) => ["queued", "running"].includes(j.status))) timer = setTimeout(() => refresh().catch((e) => message(e.message)), 2500);
+    // Never replace the confirmation checkbox while the owner is testing.
+    if (state.jobs.some((j) => ["queued", "running", "confirming", "rolling_back"].includes(j.status))) timer = setTimeout(() => refresh().catch((e) => message(e.message)), 2500);
   }
-  for (const [kind, id] of [["router", "#networkRouterConnection"], ["omada", "#networkOmadaConnection"]]) {
-    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.target.querySelector("button:not([type]), button[type=submit]"), async () => {
-      const data = Object.fromEntries(new FormData(e.target));
-      await request("connection", { ...data, kind });
-      e.target.querySelectorAll('input[type="password"]').forEach((v) => { v.value = ""; });
-      message(`${kind} connection saved. Discover equipment to continue.`); await refresh();
-    }); };
+
+  async function preview(kind, config, next) {
+    const result = await request("preview", { kind, config });
+    root.querySelectorAll('input[type="password"][form="networkWifiConfig"]').forEach((v) => { v.value = ""; });
+    renderReview(result.job);
+    showSetupStep(root, next);
+    message(L("adminNetPreviewed"));
   }
+  const formData = (id) => Object.fromEntries(new FormData($(id)));
+
+  // Discover: saves a new or changed connection first, then reads the equipment.
   root.querySelectorAll("[data-discover]").forEach((button) => { button.onclick = () => busy(button, async () => {
-    const kind = button.dataset.discover, result = await request("discover", { kind }), d = result.discovery;
+    const kind = button.dataset.discover, form = kind === "router" ? "#networkRouterConnection" : "#networkOmadaConnection", data = formData(form);
+    const saved = (state?.connections || []).find((c) => c.kind === kind);
+    const changed = !saved || (data.mode || "live") !== saved.mode || ((data.mode || "live") === "live" && data.url && data.url !== saved.url) || Object.entries(data).some(([k, v]) => !["url", "mode"].includes(k) && v);
+    if (changed) {
+      await request("connection", { ...data, kind });
+      root.querySelectorAll(`input[type="password"][form="${form.slice(1)}"]`).forEach((v) => { v.value = ""; });
+      await refresh();
+    }
+    const result = await request("discover", { kind }), d = result.discovery;
     if (kind === "router") {
-      $("#networkInventory").textContent = `${result.mode}: ${d.identity} — ${d.model}, RouterOS ${d.version}`;
-      for (const field of ["wan", "apPort"]) $("#networkRouterConfig").elements[field].innerHTML = d.interfaces.map((v) => `<option value="${h(v.name)}">${h(v.name)}${v.running ? " (connected)" : ""}</option>`).join("");
-      if (d.interfaces.length > 1) $("#networkRouterConfig").elements.apPort.selectedIndex = 1;
+      $("#networkInventory").textContent = L("adminNetInventory", { mode: result.mode, identity: d.identity, model: d.model, version: d.version });
+      const options = d.interfaces.map((v) => `<option value="${h(v.name)}">${h(v.name)}${v.running ? h(L("adminNetConnected")) : ""}</option>`).join("");
+      $("#netWan").innerHTML = options; $("#netApPort").innerHTML = options;
+      if (d.interfaces.length > 1) $("#netApPort").selectedIndex = 1;
     } else {
       $("#networkWifiSupport").textContent = d.message;
-      $("#networkWifiConfig button").disabled = !d.capabilities.configureSsid;
-      $("#networkAdopt button").disabled = !d.capabilities.adopt;
-      $("#networkWifiConfig").elements.ssidId.innerHTML = '<option value="">Create a new SSID</option>' + d.ssids.map((s) => `<option value="${h(s.id)}">${h(s.name)}</option>`).join("");
-      $("#networkAdopt").elements.mac.innerHTML = d.accessPoints.map((ap) => `<option value="${h(ap.mac)}">${h(ap.name || ap.mac)} — ${h(ap.model)} (${h(ap.status)})</option>`).join("");
-      $("#networkInventory").textContent = `${d.accessPoints.length} access points; ${d.ssids.length} SSIDs.`;
+      root.querySelector("[data-wifi-preview]").disabled = !d.capabilities.configureSsid;
+      $("#netSsidId").innerHTML = `<option value="">${h(L("adminNetSsidNew"))}</option>` + d.ssids.map((s) => `<option value="${h(s.id)}">${h(s.name)}</option>`).join("");
+      $("#networkApRows").innerHTML = d.accessPoints.map((ap) => `<div class="admin-setup__row"><span><strong>${h(ap.name || L("adminNetNewDevice"))}</strong> · ${h(ap.model || maskMac(ap.mac))}</span>${/adopted|connected/i.test(String(ap.status)) ? `<span class="admin-setup__ok">${h(L("adminNetAdopted"))}</span>` : `<button type="button" class="admin-setup__go2 admin-setup__adopt" data-adopt-mac="${h(ap.mac)}" ${d.capabilities.adopt ? "" : "disabled"}>${h(L("adminNetAdopt"))}</button>`}</div>`).join("");
+      root.querySelectorAll("[data-adopt-mac]").forEach((adopt) => { adopt.onclick = () => busy(adopt, () => preview("omada", { action: "adopt", mac: adopt.dataset.adoptMac }, "review")); });
     }
-    message("Discovery completed.");
+    message(L("adminNetDiscovered"));
   }); });
-  for (const [id, kind, action] of [["#networkRouterConfig", "router", null], ["#networkWifiConfig", "omada", "ssid"], ["#networkAdopt", "omada", "adopt"]]) {
-    $(id).onsubmit = (e) => { e.preventDefault(); busy(e.target.querySelector("button:not([type]), button[type=submit]"), async () => {
-      const config = { ...Object.fromEntries(new FormData(e.target)), ...(action ? { action } : {}) };
-      const result = await request("preview", { kind, config });
-      e.target.querySelectorAll('input[type="password"]').forEach((v) => { v.value = ""; });
-      renderPreview(result.job); message("Review the proposed changes before applying.");
-    }); };
-  }
+  // "Next: access points" previews the router changes; the other Next buttons move on.
+  root.querySelector('[data-setup-next="router"]').onclick = (event) => busy(event.currentTarget, () => preview("router", formData("#networkRouterConfig"), "aps"));
+  root.querySelector('[data-setup-next="aps"]').onclick = () => showSetupStep(root, "wifi");
+  root.querySelector('[data-setup-next="wifi"]').onclick = () => showSetupStep(root, "review");
+  root.querySelector("[data-wifi-preview]").onclick = (event) => busy(event.currentTarget, () => preview("omada", { ...formData("#networkWifiConfig"), action: "ssid" }, "review"));
+  const apply = (button) => busy(button, async () => {
+    await request("apply", { jobId: reviewed.id, reviewed: true });
+    message(L("adminNetQueued")); await refresh();
+  });
+  $("#networkApply").onclick = () => apply($("#networkApply"));
+  $("#networkSimulate").onclick = () => apply($("#networkSimulate"));
+
   $("#networkActivate").onclick = () => busy($("#networkActivate"), async () => {
     await request("activate", { tested: $("#networkEnforcementTested").checked });
-    message("Saved router activated. New voucher commands now use this connection."); await refresh();
+    message(L("adminNetActivated")); await refresh();
   });
   $("#networkRefresh").onclick = () => busy($("#networkRefresh"), refresh);
   $("#networkPairingEnable").onclick = () => busy($("#networkPairingEnable"), async () => {
     await request("assisted-connections", { enabled: true, tested: $("#networkPairingTested").checked });
-    message("Assisted connection pilot enabled. Test a new device before wider use."); await refresh();
+    message(L("adminNetPairingEnabled")); await refresh();
   });
   $("#networkPairingDisable").onclick = () => busy($("#networkPairingDisable"), async () => {
     await request("assisted-connections", { enabled: false });
-    message("New assisted connections disabled."); await refresh();
+    message(L("adminNetPairingDisabled")); await refresh();
   });
+  // Outage area names (#385): the outage form offers "All sites · <site>", then "<area> only".
+  const areas = $("#networkAreas");
+  call("/api/admin/outages").then((data) => {
+    if (stopped || !data.areas) return;
+    areas.elements.site.value = data.areas.site || "";
+    areas.elements.areas.value = (data.areas.areas || []).join("\n");
+  }).catch(() => {});
+  areas.onsubmit = (event) => { event.preventDefault(); busy(areas.querySelector("button"), async () => {
+    const result = await call("/api/admin/outages/areas", { method: "POST", body: JSON.stringify({ site: areas.elements.site.value, areas: areas.elements.areas.value.split("\n") }) });
+    areas.elements.areas.value = result.areas.areas.join("\n");
+    message(L("adminNetAreasSaved"));
+  }); };
   $("#networkPurchaseCheck").onclick = () => busy($("#networkPurchaseCheck"), async () => {
     const target = $("#networkPurchaseReport");
     target.setAttribute("aria-busy", "true");
-    target.textContent = "Reading router configuration…";
+    target.textContent = L("adminNetReadingRouter");
     try {
       const { report } = await request("purchase-access");
       if (stopped) return;
       target.setAttribute("data-review-output", "");
-      target.innerHTML = `<p>Checked ${h(new Date(report.checkedAt).toLocaleString())}. No router changes made.</p><ul>${report.findings.map((f) => `<li><strong>${h(f.status === "configured" ? "Found" : "Review")}: ${h(f.label)}</strong> — ${h(f.detail)}</li>`).join("")}</ul><p>${h(report.nextStep)}</p><button type="button" id="networkCopyPurchaseReport">Copy diagnostic report</button><button type="button" id="networkClosePurchaseReport" class="secondary-action">Close report</button><label>Diagnostic report<textarea id="networkPurchaseReportText" readonly rows="8"></textarea></label>`;
+      target.innerHTML = `<p>${h(L("adminNetPurchaseChecked", { at: new Date(report.checkedAt).toLocaleString(currentLanguage() === "fr" ? "fr-FR" : "en-GB") }))}</p><ul>${report.findings.map((f) => `<li><strong>${h(L(f.status === "configured" ? "adminNetFound" : "adminNetReviewWord"))}: ${h(f.label)}</strong> — ${h(f.detail)}</li>`).join("")}</ul><p>${h(report.nextStep)}</p><button type="button" id="networkCopyPurchaseReport">${h(L("adminNetCopyReport"))}</button><button type="button" id="networkClosePurchaseReport" class="secondary-action">${h(L("adminNetCloseReport"))}</button><label>${h(L("adminNetReport"))}<textarea id="networkPurchaseReportText" readonly rows="8"></textarea></label>`;
       $("#networkPurchaseReportText").value = JSON.stringify(report, null, 2);
       $("#networkClosePurchaseReport").onclick = () => { target.replaceChildren(); target.removeAttribute("data-review-output"); };
       $("#networkCopyPurchaseReport").onclick = () => busy($("#networkCopyPurchaseReport"), async () => {
         const text = $("#networkPurchaseReportText");
-        try { await navigator.clipboard.writeText(text.value); message("Diagnostic report copied. You can share it with support."); }
-        catch { text.focus(); text.select(); message(document.execCommand("copy") ? "Diagnostic report copied." : "Select and copy the diagnostic report below."); }
+        try { await navigator.clipboard.writeText(text.value); message(L("adminNetReportCopied")); }
+        catch { text.focus(); text.select(); message(document.execCommand("copy") ? L("adminNetReportCopiedShort") : L("adminNetReportSelect")); }
       });
-    } catch (error) { target.removeAttribute("data-review-output"); target.textContent = error.message || "Purchase access check unavailable. Verify the saved live router connection."; }
+    } catch (error) { target.removeAttribute("data-review-output"); target.textContent = error.message || L("adminNetPurchaseUnavailable"); }
     finally { target.removeAttribute("aria-busy"); }
   });
   try { await refresh(); } catch (e) { message(e.message); }

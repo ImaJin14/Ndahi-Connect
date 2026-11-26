@@ -218,6 +218,8 @@ try {
   console.log("PASS offline saved-device removal works after bundle expiry, requires fresh PIN, escapes names and awaits router confirmation at 320px");
   await administrator.keyboard.press("Escape");
   await openAdminMore(administrator, "Network setup");
+  // v2 keeps assisted connections in the closed "More network tools" (#384).
+  if (await administrator.locator("#networkTools").count()) await administrator.locator("#networkTools > summary").click();
   await administrator.locator("#networkPairingStatus").filter({ hasText: "Main-device approval is required" }).waitFor();
   await f.store.transaction((s) => { delete s.networkSetup.deviceApproval; s.networkSetup.assistedConnections.enabled = false; });
   await administrator.getByRole("button", { name: "Refresh jobs", exact: true }).click();

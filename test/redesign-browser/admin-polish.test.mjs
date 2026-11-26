@@ -111,8 +111,9 @@ test("admin v2 lists, Audit, Home, router checks and network setup read as desig
 
     // Network setup: the step panel and the checks below share one width.
     await page.goto(`${admin}/dashboard#network-setup`);
-    await page.locator(".admin-setup__step:not([hidden])").waitFor();
-    const widths = await page.evaluate(() => [...document.querySelectorAll(".admin-setup__step:not([hidden]), #networkSetup > section")].map((el) => Math.round(el.getBoundingClientRect().width)).filter((w) => w > 0));
+    await page.locator(".admin-setup__panel").waitFor();
+    await page.locator("#networkTools > summary").click();
+    const widths = await page.evaluate(() => [...document.querySelectorAll(".admin-setup__panel, .admin-setup__tools-body > section")].map((el) => Math.round(el.getBoundingClientRect().width)).filter((w) => w > 0));
     assert.ok(widths.length >= 2 && widths.every((w) => w <= 810), `setup cards at most 810px: ${widths}`);
     if (width === 1280) assert.equal(new Set(widths).size, 1, `one column: ${widths}`);
     await check("network-setup");

@@ -1780,6 +1780,18 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 - **Deployed:** PR #325 merged as `ce1875d`. By 07:37 UTC on 21 November the portal, store and admin served `shared-app/bundle-speed.js`.
 - Limits are enforced on the router only once `ROUTER_SPEED_LIMITS=on` (see the #263 item above). Until then, a bundle's description states a limit the router doesn't yet apply, so set a bundle's speed only when the switch is going on.
 
+### Network setup in four drawn steps (#384, batch 7, 25 November 2026)
+
+- [-] **ADM-384 — Network setup, redesigned (batch 7)** ([#384](https://github.com/ImaJin14/Ndahi-Connect/issues/384)). Owner decisions: [first](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7171756340), [second](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7172610323).
+  - **Implemented and tested** (PR #476, not merged yet):
+    - the drawn steps (Router, Access points, Wi-Fi, Review) and fields first; service username and password, AP port, gateway, DHCP range and DNS in a closed "More router settings" (secrets entered, never shown back);
+    - "Discover router" saves a new or changed connection, then reads the router; "Next: access points" makes the router preview;
+    - with standalone access points (production), the Access points and Wi-Fi steps carry a note only;
+    - Review shows the latest preview as summary rows (one change set at a time); Apply is the confirmation; "Run simulation" only where simulation is allowed; after Apply, "Applied. A backup of the previous settings was saved." and Keep changes / Roll back;
+    - voucher enforcement, assisted connections, the purchase-access check, the outage area names (#385) and the job history in a closed "More network tools";
+    - every string through i18n, English and French (the screen was English only).
+  - **Not yet:** merged, deployed, or a router change previewed, applied and kept on the RB5009 on-site.
+
 ### Bundles arranged Daily, Weekly and Monthly (21 November 2026)
 
 On 21 November the owner asked to "auto arrange bundles based on monthly, weekly and daily plans with filters on the bundle page", on both the customer buy page and Admin → Bundles.

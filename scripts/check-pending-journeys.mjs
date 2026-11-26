@@ -212,6 +212,8 @@ try {
         return structuredClone(state);
       });
     });
+    // v2 keeps voucher enforcement in the closed "More network tools" (#384).
+    if (await page.locator("#networkTools").count()) await page.locator("#networkTools > summary").click();
     await page.locator("#networkEnforcementTested").check();
     await page.locator("#networkActivate").click();
     await page.waitForFunction(() => window.activationCalls === 1);
