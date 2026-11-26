@@ -108,9 +108,9 @@ test("the phone Shop shows short chip names, My orders beside the title and the 
   assert.deepEqual(errors, []);
   await context.close();
 
-  // Desktop (canvas: Shop) keeps the full names.
+  // Desktop (canvas: Shop, #417) keeps the full names, after "All devices".
   ({ context, page, errors } = await open(1280));
-  assert.deepEqual(await chips(page), ["All", "Travel routers", "Outdoor networking", "Wi-Fi devices"]);
+  assert.deepEqual(await chips(page), ["All devices", "Travel routers", "Outdoor networking", "Wi-Fi devices"]);
   await page.screenshot({ path: `${screenshots}/shop-1280.png`, fullPage: true });
   assert.deepEqual(errors, []);
   await context.close();
