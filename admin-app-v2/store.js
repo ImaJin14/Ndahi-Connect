@@ -31,6 +31,7 @@ const emptyProduct = () => ({
   warranty: loc(),
   setup: loc(),
   needs: loc(),
+  keySpecs: [],
 });
 const field = (name, label, value = "", type = "text", extra = "") =>
   `<label class="nd-field"><span class="nd-label">${h(label)}</span><input class="nd-input" name="${h(name)}" type="${type}" value="${h(value ?? "")}" ${extra}></label>`;
@@ -458,6 +459,14 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
   const textField = (name, label, value, large = false) => LANGS.map((code) => `<div class="admin-pedit__field" data-lang="${code}"><label class="admin-pedit__label" for="product-${name}-${code}">${h(L(label, { language: L("adminProductEditLanguage_" + code) }))}</label>${large
     ? `<textarea class="admin-pedit__input admin-pedit__textarea" id="product-${name}-${code}" name="${name}.${code}" rows="4" maxlength="4000">${h(value?.[code] || "")}</textarea>`
     : `<input class="admin-pedit__input" id="product-${name}-${code}" name="${name}.${code}" value="${h(value?.[code] || "")}" maxlength="${name === "warranty" ? 3000 : name === "needs" ? 60 : 120}">`}</div>`).join("");
+  // Key specs (ProductDesktop, #415; owner 26 Nov): short label/value rows for
+  // the product page's spec table, up to 12, in the language chosen above.
+  const specRow = (row = {}, n = 1) => `<li class="admin-pedit__spec" data-key-spec>${LANGS.map((code) => `<div class="admin-pedit__field admin-pedit__spec-field" data-lang="${code}"><label class="admin-pedit__label" for="spec-label-${n}-${code}">${h(L("adminProductEditKeySpecLabel", { language: L("adminProductEditLanguage_" + code) }))}</label><input class="admin-pedit__input" id="spec-label-${n}-${code}" data-spec-label="${code}" value="${h(row.label?.[code] || "")}" maxlength="40"></div><div class="admin-pedit__field admin-pedit__spec-field" data-lang="${code}"><label class="admin-pedit__label" for="spec-value-${n}-${code}">${h(L("adminProductEditKeySpecValue", { language: L("adminProductEditLanguage_" + code) }))}</label><input class="admin-pedit__input" id="spec-value-${n}-${code}" data-spec-value="${code}" value="${h(row.value?.[code] || "")}" maxlength="120"></div>`).join("")}<button type="button" class="nd-btn nd-btn--secondary nd-btn--compact admin-pedit__spec-remove" data-remove-key-spec aria-label="${h(L("adminProductEditKeySpecRemoveN", { n }))}">${h(L("adminProductEditKeySpecRemove"))}</button></li>`;
+  const keySpecsEditor = (rows) => `<fieldset class="admin-pedit__specs" id="productKeySpecs"><legend class="admin-pedit__label">${h(L("adminProductEditKeySpecs"))}</legend><p class="nd-meta">${h(L("adminProductEditKeySpecsHint"))}</p><ol class="admin-pedit__spec-list">${rows.map((row, i) => specRow(row, i + 1)).join("")}</ol><button type="button" class="nd-btn nd-btn--secondary nd-btn--compact" data-add-key-spec ${rows.length >= 12 ? "disabled" : ""}>${h(L("adminProductEditKeySpecAdd"))}</button></fieldset>`;
+  const keySpecsInput = (form) => [...form.querySelectorAll("[data-key-spec]")].map((li) => ({
+    label: Object.fromEntries(LANGS.map((code) => [code, li.querySelector(`[data-spec-label="${code}"]`).value])),
+    value: Object.fromEntries(LANGS.map((code) => [code, li.querySelector(`[data-spec-value="${code}"]`).value])),
+  }));
   function productView() {
     const p = productId === "new" ? emptyProduct() : state.products.find((x) => x.id === productId);
     if (!p) { location.replace("/dashboard#products"); return; }
@@ -469,7 +478,7 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
 <div class="admin-pedit__col admin-pedit__col--main">
   <section class="nd-panel admin-pedit__panel" aria-labelledby="productTextTitle"><div class="admin-pedit__panelhead"><h2 class="admin-pedit__h2" id="productTextTitle">${h(L("adminProductEditTextTitle"))}</h2><div class="admin-pedit__langs" role="tablist" aria-label="${h(L("adminProductEditLanguage"))}">${LANGS.map((code) => `<button type="button" role="tab" class="admin-pedit__lang" aria-selected="${lang === code}" data-product-lang="${code}">${code.toUpperCase()}</button>`).join("")}</div></div>
   ${textField("name", "adminProductEditName", p.name)}${textField("description", "adminProductEditDescription", p.description, true)}
-  <details class="admin-options admin-pedit__more" id="productMoreDetails"><summary>${h(L("adminProductEditMoreDetails"))}</summary><div class="admin-options__body">${textField("specifications", "adminProductEditSpecifications", p.specifications, true)}${textField("compatibility", "adminProductEditCompatibility", p.compatibility, true)}${textField("contents", "adminProductEditContents", p.contents, true)}${textField("setup", "adminProductEditSetup", p.setup, true)}${textField("needs", "adminProductEditNeeds", p.needs)}</div></details></section>
+  <details class="admin-options admin-pedit__more" id="productMoreDetails"><summary>${h(L("adminProductEditMoreDetails"))}</summary><div class="admin-options__body">${textField("specifications", "adminProductEditSpecifications", p.specifications, true)}${textField("compatibility", "adminProductEditCompatibility", p.compatibility, true)}${textField("contents", "adminProductEditContents", p.contents, true)}${textField("setup", "adminProductEditSetup", p.setup, true)}${textField("needs", "adminProductEditNeeds", p.needs)}${keySpecsEditor(p.keySpecs || [])}</div></details></section>
   <section class="nd-panel admin-pedit__panel" aria-labelledby="productPhotosTitle"><h2 class="admin-pedit__h2" id="productPhotosTitle">${h(L("adminProductEditPhotos"))}</h2><div id="storeImages" class="admin-pedit__photos"></div><p class="admin-pedit__caption">${h(L("adminProductEditPhotoTypes"))}</p>
   <details class="admin-options admin-pedit__more" id="productPhotoDetails"><summary>${h(L("adminProductEditPhotoDetails"))}</summary><div class="admin-options__body" id="storePhotoDetails"></div></details></section>
 </div>
@@ -502,6 +511,22 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
       };
     });
     showLang(lang);
+    const specs = root.querySelector("#productKeySpecs");
+    const renumber = () => {
+      const rows = specs.querySelectorAll("[data-key-spec]");
+      rows.forEach((li, i) => li.querySelector("[data-remove-key-spec]").setAttribute("aria-label", L("adminProductEditKeySpecRemoveN", { n: i + 1 })));
+      specs.querySelector("[data-add-key-spec]").disabled = rows.length >= 12;
+    };
+    specs.onclick = (e) => {
+      const remove = e.target.closest("[data-remove-key-spec]");
+      if (remove) { remove.closest("[data-key-spec]").remove(); renumber(); specs.querySelector("[data-add-key-spec]").focus(); return; }
+      if (!e.target.closest("[data-add-key-spec]")) return;
+      const list = specs.querySelector("ol"), n = list.children.length + 1;
+      list.insertAdjacentHTML("beforeend", specRow({}, n));
+      showLang(lang);
+      renumber();
+      list.lastElementChild.querySelector(`[data-spec-label="${lang}"]`).focus();
+    };
     renderImages();
     const del = root.querySelector("#productMoreSettings [data-delete-product]");
     if (del) del.onclick = () => run(del, async () => {
@@ -523,6 +548,7 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
           cost: Number(input.cost || 0),
           status,
           featured: form.featured.checked,
+          keySpecs: keySpecsInput(e.target),
           // Stored photos by id; a photo saved inside the product before stays as it is.
           images: images.map(({ id, data, alt }) => (id ? { id, alt } : { data, alt })),
         }, { quiet: true });

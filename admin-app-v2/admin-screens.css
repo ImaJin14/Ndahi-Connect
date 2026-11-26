@@ -1065,3 +1065,11 @@ body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space
 @media (max-width: 767.98px) {
   .admin-insights__frow { grid-template-columns: 1fr; gap: 6px; }
 }
+/* Key specs in Edit product (#415): label and value side by side, then Remove. */
+.admin-pedit__specs { min-width: 0; margin: var(--nd-space-14) 0 0; padding: 0; border: 0; }
+.admin-pedit__specs > .nd-meta { margin: 2px 0 0; }
+.admin-pedit__spec-list { display: flex; flex-direction: column; gap: var(--nd-space-10); margin: var(--nd-space-10) 0; padding: 0; list-style: none; }
+.admin-pedit__spec { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: var(--nd-space-8); align-items: end; }
+.admin-pedit__spec-field { min-width: 0; margin: 0; }
+.admin-pedit__spec-remove { min-height: 44px; }
+@media (max-width: 600px) { .admin-pedit__spec { grid-template-columns: minmax(0, 1fr); } }

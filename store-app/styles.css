@@ -414,6 +414,35 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .stepper output { min-width: 22px; }
   #buy { min-height: 50px; border-radius: 10px; font-size: 16px; }
 }
+/* Desktop product (canvas: ProductDesktop, #415): the 1200px page, the 4:3
+   photo beside the details, 16px between the eyebrow, the 40px title, the price
+   row, the words, quantity with Buy now, the pickup note and the key-spec rows. */
+@media (min-width: 768px) {
+  body[data-view="product"] main { max-width: 1256px; padding: 28px 28px 64px; }
+  .crumbs { margin: 0 0 22px; font-size: 14px; line-height: normal; }
+  .crumbs a { font-weight: 600; }
+  .detail-grid { display: flex; flex-wrap: wrap; gap: 36px; align-items: flex-start; }
+  .detail-media { display: flex; flex: 1 1 440px; flex-direction: column; gap: 12px; }
+  .detail-media .product-visual { height: auto; aspect-ratio: 4 / 3; border-radius: 18px; }
+  .gallery { margin: 0; }
+  .thumb { border-radius: 10px; }
+  .detail-info { display: flex; flex: 1 1 400px; flex-direction: column; gap: 16px; min-width: 0; }
+  .detail-info > * { margin: 0; }
+  .detail-info .eyebrow { font-size: 12px; letter-spacing: .14em; line-height: normal; }
+  #productTitle { margin: 0; color: var(--nd-ink); font: 600 40px var(--nd-font-display); line-height: normal; letter-spacing: 0; }
+  .price-row { gap: 14px; margin: 0; }
+  .price-row .price { font-size: 28px; line-height: normal; }
+  .price-row .stock { padding: 4px 10px; font-size: 13px; line-height: normal; }
+  .details { margin: 0; color: var(--nd-ink-soft); font-size: 16px; line-height: 1.6; }
+  .buy-bar { flex-wrap: wrap; gap: 12px; align-items: center; }
+  .stepper { border-radius: 10px; }
+  .stepper button { width: 48px; min-height: 52px; font-size: 22px; }
+  .stepper output { min-width: 28px; font-size: 17px; line-height: normal; }
+  #buy { flex: 1 1 220px; min-height: 54px; padding: 0 16px; border-radius: 10px; font-size: 17px; }
+  .buy-note { margin: 0; padding: 14px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .spec-table--keys > div { padding: 12px 0; font-size: 14px; line-height: normal; }
+  .spec-table--keys dd { font-weight: 600; }
+}
 /* Store promotions (#302, canvas: StorePromo, PhonePromoBuy). */
 .promo-badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #10241c; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .promo-hero { display: flex; flex-wrap: wrap; gap: var(--nd-space-20) var(--nd-space-32); align-items: center; margin: 0 0 var(--nd-space-20); padding: 28px 32px; border-radius: 24px; background: #10241c; color: #ffffff; }
