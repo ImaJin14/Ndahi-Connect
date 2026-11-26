@@ -124,7 +124,8 @@ test("the dashboard carries the cards, and Test connection is for owners and ope
     }
     s.payments.push({ id: "p1", network: "orange", status: "paid", createdAt: ago(30), confirmedAt: ago(29.5) });
   });
-  const server = createServer({ store, validateConfig: false, routerFetch: routerFetch().fetcher, env: { ...env, NODE_ENV: "test", ADMIN_SESSION_SECRET: secret, SECRET_PEPPER: secret,
+  // The server reads the same fixed clock as the seeded payments, so the test does not expire a day later.
+  const server = createServer({ store, now: () => now, validateConfig: false, routerFetch: routerFetch().fetcher, env: { ...env, NODE_ENV: "test", ADMIN_SESSION_SECRET: secret, SECRET_PEPPER: secret,
     SESSION_COOKIE_SECURE: "false", ADMIN_APP_URL: "http://admin.test", ALLOWED_ADMIN_ORIGINS: "http://admin.test", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); }));
