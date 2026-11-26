@@ -1367,11 +1367,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Shop tab on phones (#414, batch 8, 26 November 2026)
 
 - [-] **CUS-414 — Shop, redesigned (batch 8)** ([#414](https://github.com/ImaJin14/Ndahi-Connect/issues/414)). Owner decisions: [#414 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/414#issuecomment-7178824016).
-  - **Implemented and tested** (PR #479, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #479):
     - the drawn phone list: "My orders" beside the title, the category chips in one row, 80px photo boxes, and the stock line ("Only 2 left" from two units down);
     - each category has an optional short name (English and French) in Admin → Products → Categories. Phone chips use it, or the full name when it is blank; desktop keeps the full names, as its board does. Saving a category from the frozen v1 admin keeps the short name;
     - English and French.
-  - **Not yet:** merged, deployed, or the short names (Travel / Outdoor / Wi-Fi and the French) entered by the owner on the live admin.
+  - **Not yet:** the short names (Travel / Outdoor / Wi-Fi and the French) entered by the owner on the live admin.
 
 ## Email setup, provider settlements and store receipts (8 November 2026)
 
@@ -1468,23 +1468,23 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Activity on phones (#395, batch 8, 26 November 2026)
 
 - [-] **CUS-395 — Activity, redesigned (batch 8)** ([#395](https://github.com/ImaJin14/Ndahi-Connect/issues/395)). Owner decisions: [#395 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/395#issuecomment-7178822585).
-  - **Implemented and tested** (PR #482, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #482):
     - the drawn phone list: the filter in its sage track, the waiting banner ("Approve it on your phone, then tap here to check", which opens the waiting payment), and rows with their date and how they were paid ("Today · MTN MoMo", "5 Nov · MTN MoMo · Receipt", "8 Nov · Orange Money") and their status pills;
     - payments still open in place, with the status check, receipt and refund request (owner, 26 Nov). A waiting row the customer has opened now updates when its payment window ends;
     - "Voucher redeemed" rows for the codes the customer entered (not those bought with their own payment, a store order's free month or a bulk gift from staff), dated when first used, opening Internet's vouchers;
     - the rules link under the list removed, as drawn; status words capitalised on the first letter only, so French reads "En attente";
     - English and French.
-  - **Not yet:** merged, deployed, or checked by the owner on a phone with real payments and orders.
+  - **Not yet:** checked by the owner on a phone with real payments and orders.
 
 ### Activity on desktop (#394, batch 8, 26 November 2026)
 
 - [-] **CUS-394 — Activity on desktop, redesigned (batch 8)** ([#394](https://github.com/ImaJin14/Ndahi-Connect/issues/394)). Owner decisions: [#394 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/394#issuecomment-7178823165).
-  - **Implemented and tested** (PR #483, not merged yet; built on #395):
+  - **Implemented, tested, merged and deployed** (PR #483):
     - the drawn desktop page: the 12 px eyebrow and 40 px "Payments and orders." with the filter beside them, the banner in the desktop's words ("1 payment waiting for approval. Approve the prompt on your phone, then check it here."), and the table card with the board's column widths;
     - the rows named as drawn ("Order NS-2611-0088 · TP-Link CPE210", "Voucher K7PM-42XQ redeemed"), with a last column of Check, Track, Receipt or View: Check and Receipt open the payment in place, Track and View open the order, View opens Internet's vouchers for a code (owner, 26 Nov);
     - between 768 and 1280 px every row shares the same columns, and long names are cut short with an ellipsis;
     - English and French.
-  - **Not yet:** merged, deployed, or checked by the owner on a desktop browser with real payments and orders.
+  - **Not yet:** checked by the owner on a desktop browser with real payments and orders.
 
 ### Sign-in cutover to PIN and passkey — redesign Phase 6 (13 November 2026)
 
@@ -1551,12 +1551,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Shop checkout on phones (#397, batch 8, 26 November 2026)
 
 - [-] **CUS-397 — Shop checkout, redesigned (batch 8)** ([#397](https://github.com/ImaJin14/Ndahi-Connect/issues/397)). Owner decisions: [#397 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/397#issuecomment-7178824960).
-  - **Implemented and tested** (PR #481, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #481):
     - the drawn checkout: the account's details masked ("Amina N. · +237 6•• •• 12 45"), the collection box, MTN MoMo or Orange Money, and the number masked until it is used; then price · Mobile Payment Fee (2%) · Total to Pay, the wallet notice and Pay Now on a bar at the bottom, as the bundle checkout shows them (24 Nov brief). Without a fee quote, the fee is shown in the operator prompt;
     - after Pay Now, the drawn "Waiting for payment" screen (Check status, Change payment) and "Order placed" screen (View order, Back to shop), at `#checkout/<product>/<quantity>/<order>`, so a refresh keeps them;
     - Change payment (owner, 26 Nov): a new `POST /api/account/store/cancel` asks the provider first, then cancels the account's own unpaid order and puts its device back into stock, and the form opens for a fresh request. A payment approved anyway goes to review for a refund, as a late payment on an expired order does;
     - English and French.
-  - **Not yet:** merged, deployed, or a real Mobile Money checkout, Change payment and collection tried on the live portal.
+  - **Not yet:** a real Mobile Money checkout, Change payment and collection tried on the live portal.
 
 ### Insights data recording (#262, 20 November 2026)
 
@@ -1809,11 +1809,11 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Product page on phones (#410, batch 8, 26 November 2026)
 
 - [-] **CUS-410 — Product, redesigned (batch 8)** ([#410](https://github.com/ImaJin14/Ndahi-Connect/issues/410)). Owner decisions: [#410 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/410#issuecomment-7178824515).
-  - **Implemented and tested** (PR #480, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #480):
     - the drawn phone page: a bar across the top, the photo edge to edge, the price beside a green stock pill, the details as a plain disclosure, and quantity with Buy now on a bar at the bottom;
     - each product has an optional "Needs" line (English and French, up to 60 characters) in Admin → Edit product → More product details. Its tile shows when it is filled in, beside "Internet: Sold separately" on every product. Desktop has no tiles, as its board has none. Saving a product from the frozen v1 admin keeps the line;
     - English and French.
-  - **Not yet:** merged, deployed, or the Needs lines (such as the CPE210's "Installation + alignment") entered by the owner on the live admin.
+  - **Not yet:** the Needs lines (such as the CPE210's "Installation + alignment") entered by the owner on the live admin.
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
