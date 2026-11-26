@@ -124,7 +124,8 @@ try {
     await page.locator("#adminPassword").fill("fixture-pin");
     await submitTwice(page, "#login"); await credentials.started;
     if (!adminV2) assert.equal(await page.locator("#passkeyLogin").isDisabled(), true);
-    assert.equal(await page.locator("#togglePassword").textContent(), "Show");
+    // v2 has no Show toggle on admin sign in (canvas: AdminLogin, #383).
+    if (!adminV2) assert.equal(await page.locator("#togglePassword").textContent(), "Show");
     credentials.release(); await page.waitForURL("**/dashboard");
     assert.equal(credentials.count(), 1);
   });

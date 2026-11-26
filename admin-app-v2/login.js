@@ -21,14 +21,6 @@ if (loginNotice) {
   try { sessionStorage.removeItem("ndahi-admin-login-notice"); } catch (_) { /* Optional storage. */ }
 }
 
-$("#togglePassword").onclick = () => {
-  const input = $("#adminPassword"), button = $("#togglePassword"),
-    showing = input.type === "text";
-  input.type = showing ? "password" : "text";
-  button.textContent = showing ? "Show" : "Hide";
-  button.setAttribute("aria-label", showing ? "Show PIN" : "Hide PIN");
-  button.setAttribute("aria-pressed", String(!showing));
-};
 
 async function post(path, payload) {
   const response = await fetch(api + path, {
@@ -51,6 +43,8 @@ function showStep(result) {
   $("#passkeyStepTitle").textContent = L(setup ? "adminSetupStepTitle" : "adminPasskeyStepTitle");
   $("#passkeyStepLede").textContent = L(setup ? "adminSetupStepLede" : "adminPasskeyStepLede");
   $("#usePasskey").textContent = L(setup ? "adminAddPasskeyButton" : "adminUsePasskey");
+  // The lost-device note is for confirming with a passkey (canvas: AdminLogin, step 2).
+  $("#lostPasskeyNote").hidden = setup;
   $("#passkeyStepTitle").focus();
 }
 function showCredentials() {
