@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminGenerateName, uiV2, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
+import { adminGenerateName, generatedText, uiV2, closeGeneratedCodes, openAdminCustomer, openGeneratedPrint, openVoucherOptions, printVouchersName } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false });
 const secret = randomUUID();
@@ -112,7 +112,7 @@ try {
     await page.locator('#generate [name="quantity"]').fill("24");
     await page.getByRole("button", { name: adminGenerateName("resale"), exact: true }).click();
 
-    await page.getByText("24 vouchers generated", { exact: true }).waitFor();
+    await page.getByText(generatedText(24)).waitFor();
     await openGeneratedPrint(page);
     await page.locator("#voucherPrintPreview").waitFor();
 
@@ -180,10 +180,16 @@ try {
     assert.equal(await page.locator("#voucherPrintSurface").isVisible(), true);
     await page.emulateMedia({ media: "screen" });
 
-    // Close codes clears print preview and resets body attribute
-    await closeGeneratedCodes(page);
-    assert.equal(await page.locator("#voucherPrintPreview").count(), 0);
-    assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
+    // v1: Close codes clears print preview and resets body attribute. v2 has no
+    // Close codes (canvas: AdminVouchers, #343; owner 26 Nov): back on Vouchers the batch box stays.
+    if (uiV2) {
+      await page.getByRole("link", { name: "Back to Vouchers", exact: true }).click();
+      await page.locator("#generated .admin-batch--ready").waitFor();
+    } else {
+      await closeGeneratedCodes(page);
+      assert.equal(await page.locator("#voucherPrintPreview").count(), 0);
+      assert.equal(await page.evaluate(() => document.body.dataset.voucherPrintLayout || ""), "");
+    }
   });
 
   await scenario("single assigned voucher defaults to 58mm thermal POS slip and never leaks customer PII onto printed slips", async (page) => {
@@ -259,24 +265,32 @@ try {
 
     await page.goto(`${admin}/dashboard#vouchers`);
     await page.locator('[data-voucher-record="v-active-user-1"]').waitFor();
+    // v2 (canvas: AdminVouchers, #343; owner 26 Nov): the list has no row actions;
+    // each code opens its page, which prints. v1 prints from the row's Details.
+    const printHost = uiV2 ? "#voucherDetailPrint" : "#activeVoucherPrint";
+    if (uiV2) {
+      assert.equal(await page.locator("#voucherRecords [data-print-voucher], #voucherRecords .voucher-record-actions").count(), 0);
+      await page.locator('[data-voucher-record="v-active-user-1"] a.admin-code-link').click();
+      await page.getByText("Confidential Customer Name", { exact: true }).first().waitFor();
+      await page.getByRole("button", { name: "Print slip", exact: true }).click();
+    } else {
+      // Active voucher row exposes Print voucher; expired voucher row does not
+      assert.equal(await page.locator('[data-voucher-record="v-active-user-1"] [data-print-voucher="v-active-user-1"]').count(), 1);
+      assert.equal(await page.locator('[data-voucher-record="v-expired-user-2"] [data-print-voucher]').count(), 0);
+      // Expand Details to verify ownership, then click Print voucher slip from inside Details
+      await page.getByRole("button", { name: "Details for voucher NC-USER-ONE1", exact: true }).click();
+      const detailsPanel = page.locator('[data-voucher-panel="v-active-user-1"]');
+      await detailsPanel.getByText("Confidential Customer Name", { exact: true }).waitFor();
+      await detailsPanel.getByRole("button", { name: "Print voucher slip", exact: true }).click();
+    }
 
-    // Active voucher row exposes Print voucher; expired voucher row does not
-    assert.equal(await page.locator('[data-voucher-record="v-active-user-1"] [data-print-voucher="v-active-user-1"]').count(), 1);
-    assert.equal(await page.locator('[data-voucher-record="v-expired-user-2"] [data-print-voucher]').count(), 0);
-
-    // Expand Details to verify ownership, then click Print voucher slip from inside Details
-    await page.getByRole("button", { name: "Details for voucher NC-USER-ONE1", exact: true }).click();
-    const detailsPanel = page.locator('[data-voucher-panel="v-active-user-1"]');
-    await detailsPanel.getByText("Confidential Customer Name", { exact: true }).waitFor();
-    await detailsPanel.getByRole("button", { name: "Print voucher slip", exact: true }).click();
-
-    await page.locator("#activeVoucherPrint").getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
+    await page.locator(printHost).getByText("Voucher slip ready to print (NC-USER-ONE1)", { exact: true }).waitFor();
     assert.equal(await page.locator("#voucherPrintLayout").inputValue(), "thermal-58");
-    assert.equal(await page.locator("#activeVoucherPrint .thermal-slip").count(), 1);
-    assert.match(await page.locator("#activeVoucherPrint .thermal-slip").textContent(), /Expires 2030-01-08/);
+    assert.equal(await page.locator(`${printHost} .thermal-slip`).count(), 1);
+    assert.match(await page.locator(`${printHost} .thermal-slip`).textContent(), /Expires 2030-01-08/);
 
     // Verify QR code decodes to exact onboarding redemption link for NC-USER-ONE1
-    const pixels = await page.locator("#activeVoucherPrint .thermal-slip img").first().evaluate(async (img) => {
+    const pixels = await page.locator(`${printHost} .thermal-slip img`).first().evaluate(async (img) => {
       await img.decode();
       const canvas = document.createElement("canvas");
       canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;

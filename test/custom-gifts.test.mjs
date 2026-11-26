@@ -45,7 +45,7 @@ test("the owner gives a custom Personal Unlimited gift: its own terms on the vou
   assert.equal(given.status, 201, JSON.stringify(given.body));
   const s = await f.store.snapshot(), v = s.vouchers.find((x) => x.id === given.body.voucher.id);
   assert.deepEqual([v.customTerms.name, v.accessType, v.deviceSlots, v.deviceLimit, v.sharing, v.quotaBytes, v.saleType, v.saleAmount, v.faceValue],
-    ["Gift from NDAHI · 7 days · 2 devices", "personal_unlimited", 2, 2, false, null, "gift", 0, null]);
+    ["Gift from NDAHI · Unlimited · 7 days · 2 devices", "personal_unlimited", 2, 2, false, null, "gift", 0, null]);
   assert.equal(v.customTerms.validityHours, 168);
   assert.equal(s.bundles.some((b) => b.id === v.planId), false, "not written to the catalogue");
   await f.call("/api/admin/catalogue/mode", { mode: "unlimited" }, "owner");
@@ -60,7 +60,7 @@ test("a custom Home WISP gift is one router with household sharing, whatever is 
   const given = await f.call("/api/admin/vouchers/generate", custom({}, { accessType: "home_wisp_unlimited", validityValue: 30, deviceSlots: 6 }), "owner");
   assert.equal(given.status, 201, JSON.stringify(given.body));
   const v = (await f.store.snapshot()).vouchers.find((x) => x.id === given.body.voucher.id);
-  assert.deepEqual([v.customTerms.name, v.accessType, v.deviceSlots, v.sharing], ["Gift from NDAHI · 30 days · household sharing", "home_wisp_unlimited", 1, true]);
+  assert.deepEqual([v.customTerms.name, v.accessType, v.deviceSlots, v.sharing], ["Gift from NDAHI · Home WISP Unlimited · 30 days", "home_wisp_unlimited", 1, true]);
 });
 
 test("owners only: an operator's custom request is refused even sent straight to the API; catalogue gifts still work for them", async (t) => {
@@ -92,7 +92,7 @@ test("reserved for a number with no account: claimed with the code, then started
   const code = (await f.store.snapshot()).vouchers.find((x) => x.id === given.body.voucher.id).code;
   const check = await f.call("/api/account/claim/check", { phone: "699112233", code });
   assert.equal(check.status, 200, JSON.stringify(check.body));
-  assert.deepEqual([check.body.gift.plan.name, check.body.gift.plan.validityHours], ["Gift from NDAHI · 7 days · 2 devices", 168]);
+  assert.deepEqual([check.body.gift.plan.name, check.body.gift.plan.validityHours], ["Gift from NDAHI · Unlimited · 7 days · 2 devices", 168]);
   assert.equal((await f.call("/api/account/claim/complete", { token: check.body.token, pin: "4829", confirmPin: "4829", name: "Guest" })).status, 200);
   const started = await f.call("/api/vouchers/redeem", { phone: "699112233", code, deviceId: "phone-1" });
   assert.equal(started.status, 200, JSON.stringify(started.body));

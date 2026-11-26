@@ -54,6 +54,8 @@ export function adminGenerateName(kind = "resale") {
   if (!uiV2) return kind === "resale" ? "Generate resale vouchers" : "Generate assigned voucher";
   return kind === "resale" ? /^Create \d+ vouchers?$/ : "Create and assign voucher";
 }
+// The batch result: v1 "3 vouchers generated"; v2 "Batch B-1126-01 ready · 3 codes" (canvas: AdminVouchers, #343).
+export const generatedText = (count) => (!uiV2 ? (count === 1 ? "1 voucher generated" : `${count} vouchers generated`) : new RegExp(`^Batch \\S+ ready · ${count} codes?$`));
 export async function openVoucherOptions(page) {
   if (uiV2 && !(await page.locator("#voucherOptions").evaluate((details) => details.open))) await page.locator("#voucherOptions > summary").click();
 }

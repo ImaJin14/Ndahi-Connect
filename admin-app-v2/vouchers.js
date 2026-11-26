@@ -1,7 +1,6 @@
-// Redesigned Vouchers list (canvas: AdminVouchers, "Recent vouchers"): codes
-// with their bundle, when they were made and a status pill. v1's filters,
-// row actions and ownership details are kept; the dashboard's delegated click
-// handler runs the actions.
+// Redesigned Vouchers list (canvas: AdminVouchers, "Recent vouchers", #343):
+// each code with its bundle, who it's for, Sold or Gift and a status pill, and
+// one search for a code, name or number. Actions are on each voucher's page.
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
@@ -28,7 +27,7 @@ export const voucherStatus = (status) => {
 };
 export const saleLabel = (v) => { const key = v.paymentId ? "adminSaleOnline" : v.saleType === "sold" ? "adminSaleSoldShort" : v.saleType === "gift" ? "adminSaleGiftShort" : v.generatedByAdmin ? "adminSaleUnclassified" : null; return key ? L(key) : ""; };
 
-export function mountVoucherRecords(container, { call, canManagePayments }) {
+export function mountVoucherRecords(container, { call, canManagePayments, resellerName = () => "" }) {
   // The voucher list exposes only customerId. Resolve labels through the
   // existing scoped customer search, for owners/operators only; no contact
   // reads or persistent cache for restricted roles.
@@ -52,20 +51,35 @@ export function mountVoucherRecords(container, { call, canManagePayments }) {
     const names = new Map(labels);
     return { ...result, items: result.items.map(v => ({ ...v, customerName: names.get(v.customerId) })) };
   };
-  const button = (attrs, label, quiet) => `<button type="button" class="nd-btn nd-btn--compact ${quiet ? "nd-btn--quiet" : "nd-btn--secondary"}" ${attrs}>${h(label)}</button>`;
+  // Recent vouchers (canvas: AdminVouchers, #343; owner 26 Nov): Code, Bundle,
+  // For, Type and Status with one search; actions live on each voucher's page.
+  const short = (phone) => { const d = String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, ""); return d.length === 9 ? `${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : ""; };
+  const bundleName = (v) => {
+    const name = v.plan?.name || "—";
+    // A custom gift reads "Custom · 10 days · 3 devices" (its terms without "Gift from NDAHI · Unlimited").
+    return v.plan?.catalogue === "custom_gift" || /^Gift from NDAHI · /.test(name) ? `${L("adminGiveCustomShort")} · ${name.replace(/^Gift from NDAHI · /, "").replace(/^Unlimited · /, "")}` : name;
+  };
+  const forWhom = (v) => {
+    if (v.customerId) return `<a href="/dashboard#customer/${encodeURIComponent(v.customerId)}">${h(v.customerName || L("adminGiveCustomerAccount"))}</a>`;
+    if (v.reservation?.status === "waiting" && v.reservation.phone) return h(L("adminVoucherNoAccountYet", { number: short(v.reservation.phone) }));
+    if (v.batchReference) return h([L("adminVoucherBatchFor", { batch: v.batchReference }), resellerName(v.assignedResellerId)].filter(Boolean).join(" · "));
+    return v.permissions?.manage ? h(L("adminGiveUnassigned")) : "—";
+  };
+  const status = (v) => v.reservation?.status === "waiting" && v.status === "available" ? `<span class="nd-pill nd-pill--claim">${h(L("adminVoucherStatusWaiting"))}</span>` : voucherStatus(v.status);
   const ready = mountRecords(container, {
     call: listCall,
     collection: "vouchers",
     title: L("adminRecentVouchers"),
-    headers: [L("adminColCode"), L("adminFieldBundle"), ...(canManagePayments ? [L("adminGiveFor")] : []), L("adminGiveType"), L("adminColStatus"), { label: L("adminColAction") }],
+    headers: [L("adminColCode"), L("adminFieldBundle"), ...(canManagePayments ? [L("adminGiveFor")] : []), L("adminGiveType"), L("adminColStatus")],
     empty: L("adminVouchersNone"),
+    voucherDetails: false,
     kit: {
       titleId: "voucherRecordsTitle",
-      searchLabel: L("adminVouchersSearch"),
-      placeholder: L("adminVouchersPlaceholder"),
-      statusLabel: L("adminVouchersFilter"),
-      allStatuses: L("adminAllStatuses"),
-      dates: { from: L("adminVouchersFrom"), through: L("adminVouchersThrough"), fromText: L("adminActivatedFrom"), throughText: L("adminActivatedThrough"), apply: L("adminApplyDates") },
+      searchLabel: L("adminVoucherSearchLabel"),
+      placeholder: L("adminVoucherSearchPlaceholder"),
+      statusFilter: false,
+      // The pager shows only when there is more than one page.
+      singlePage: "hide",
       previous: L("adminPagePrevious"),
       next: L("adminPageNext"),
       text: {
@@ -76,25 +90,8 @@ export function mountVoucherRecords(container, { call, canManagePayments }) {
         summary: (page, pages, total) => L("adminPageSummary", { page, pages, total }),
       },
     },
-    row: (v) => {
-      const printable = ["active", "available"].includes(v.status) && v.permissions?.code !== false && v.code && v.code !== "Restricted";
-      const actions = [
-        printable ? button(`data-print-voucher="${h(v.id)}" aria-label="${h(L("adminPrintVoucherCode", { code: v.code }))}"`, L("adminPrintShort")) : "",
-        v.status === "active" ? button(`data-voucher="${h(v.id)}"`, L("adminRevoke"), true) : "",
-        v.paymentId && v.emailStatus !== "sent" ? button(`data-resend-email="${h(v.id)}"`, L("adminRetryEmail"), true) : "",
-        v.generatedByAdmin && !v.paymentId && canManagePayments ? ["sold", "gift"].filter((type) => v.saleType !== type).map((type) => button(`data-classify="${h(v.id)}" data-sale-type="${type}"`, L(type === "sold" ? "adminMarkSold" : "adminMarkGift"), true)).join("") : "",
-      ].join("");
-      const forCustomer = v.customerId ? `<a href="/dashboard#customer/${encodeURIComponent(v.customerId)}">${h(v.customerName || L("adminGiveCustomerAccount"))}</a>` : v.permissions?.manage ? h(L("adminGiveUnassigned")) : "—";
-      // Each code opens its detail page (canvas: AdminVoucherDetail, #258).
-      return `<tr><td><a class="admin-code-link" href="/dashboard#voucher/${encodeURIComponent(v.id)}"><code class="admin-code">${h(v.code)}</code></a></td><td>${h(v.plan?.name || "—")}</td>${canManagePayments ? `<td>${forCustomer}</td>` : ""}<td>${h(saleLabel(v) || "—")}</td><td>${voucherStatus(v.status)}</td><td><div class="voucher-record-cell"><span data-voucher-details-slot></span>${actions ? `<details class="voucher-record-actions"><summary class="nd-btn nd-btn--compact nd-btn--secondary">${h(L("adminGiveActions"))}</summary><div class="admin-actions">${actions}</div></details>` : ""}</div></td></tr>`;
-    },
+    // Each code opens its detail page (canvas: AdminVoucherDetail, #258), which has the actions.
+    row: (v) => `<tr data-voucher-record="${h(v.id)}"><td><a class="admin-code-link" href="/dashboard#voucher/${encodeURIComponent(v.id)}"><code class="admin-code">${h(v.code)}</code></a></td><td>${h(bundleName(v))}</td>${canManagePayments ? `<td>${forWhom(v)}</td>` : ""}<td>${h(saleLabel(v) || "—")}</td><td>${status(v)}</td></tr>`,
   });
-  // Keep the source's compact default list while retaining operational tools.
-  const filters = container.querySelector('.records-filters');
-  if (filters) {
-    const disclosure = document.createElement('details'), summary = document.createElement('summary');
-    disclosure.className = 'voucher-record-filters'; summary.className = 'nd-btn nd-btn--compact nd-btn--secondary'; summary.textContent = L('adminGiveFilters');
-    filters.before(disclosure); disclosure.append(summary, filters);
-  }
   return ready;
 }
