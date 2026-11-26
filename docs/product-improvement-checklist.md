@@ -1636,7 +1636,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Voucher slip as a colour card (#368, batch 13, 26 November 2026)
 
 - [-] **ADM-368 — The voucher slip, redesigned as the colour card (batch 13)** ([#368](https://github.com/ImaJin14/Ndahi-Connect/issues/368)). Owner decisions: [#368 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/368#issuecomment-7202630710).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #344):
+  - **Implemented and tested** (PR #512, not merged yet; built on #344):
     - on screen (the batch print page and the voucher page's print preview) each slip is the drawn card: NDAHI Connect, WI-FI VOUCHER and the price; the QR beside the plan, "Unlimited · 7 days · 2 devices", the code without "NC-" and its three steps ("tap I have a voucher", as drawn); "Use before [date] · single use" and "Batch B-1105-02 · [reseller]" (owner);
     - the voucher's own PDF (the account download and the email attachment) is the same card on an A6 page, with the board's fonts bundled (DM Sans and Playfair Display, open licence; owner);
     - printing stays thermal (owner): the Print button's preview, its Download PDF (which phones open in a thermal printer's app) and printing the page itself give the 58 or 80 mm thermal slips as before;
