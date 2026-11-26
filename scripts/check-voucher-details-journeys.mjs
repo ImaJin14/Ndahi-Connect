@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { hashSecret } from "../lib/security.mjs";
-import { adminSignOutName } from "./admin-nav.mjs";
+import { adminSignOutName, uiV2 } from "./admin-nav.mjs";
 
 const store = createStore({ persistent: false }), secret = randomUUID(), token = randomUUID();
 const at = new Date("2030-01-01T12:00:00Z");
@@ -33,13 +33,47 @@ try {
     await context.addCookies([{ name: "admin_session", value: token, url: api, httpOnly: true, sameSite: "Lax" }]);
     const page = await context.newPage(), errors = []; page.setDefaultTimeout(12000); page.on("pageerror", (e) => errors.push(e.message));
     try {
-      await page.goto(`${admin}/dashboard#vouchers`); await page.getByRole("button", { name: "Details for voucher NC-LINKED", exact: true }).waitFor();
+      await page.goto(`${admin}/dashboard#vouchers`);
+      await (uiV2 ? page.locator('[data-voucher-record="linked"]') : page.getByRole("button", { name: "Details for voucher NC-LINKED", exact: true })).waitFor();
       await work(page, context); assert.deepEqual(errors, []); checks++; console.log(`PASS ${name}`);
     } finally { await context.close(); }
   }
   const panel = (page, id = "linked") => page.locator(`[data-voucher-panel="${id}"]`);
+  // The inline Details panel is v1's. On v2 each code opens its voucher page
+  // (AdminVouchers, #343; owner 26 Nov), tested in test/redesign-browser/voucher-detail.test.mjs,
+  // so v2 checks what the list shows each role and that opening a voucher changes nothing.
+  const inline = (name, work) => uiV2 ? null : scenario(name, work);
+  if (uiV2) {
+    await scenario("each code opens its voucher page; the list names the customer, shows no contact numbers and changes no record at 320px", async (page) => {
+      const before = await store.snapshot(), list = page.locator("#voucherRecords");
+      assert.equal(await page.getByRole("button", { name: /^Details for voucher/ }).count(), 0);
+      await list.locator('[data-voucher-record="linked"]').getByRole("link", { name: "Linked customer", exact: true }).waitFor();
+      for (const number of ["670000001", "699999999"]) assert.equal(await list.getByText(number).count(), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await list.getByRole("link", { name: "NC-LINKED", exact: true }).click();
+      await page.waitForFunction(() => location.hash === "#voucher/linked");
+      await page.locator(".admin-voucher__kv").getByRole("link", { name: "Linked customer", exact: true }).waitFor();
+      // The page's ticket QR mints its connect token (#258); nothing else changes.
+      const after = await store.snapshot(), plain = (vouchers) => vouchers.map(({ qrConnectToken, qrConnectVersion, ...v }) => v);
+      assert.deepEqual(plain(after.vouchers), plain(before.vouchers));
+      for (const key of ["payments", "routerCommands", "auditLogs"]) assert.deepEqual(after[key], before[key]);
+    });
+    await scenario("an auditor's list has no For column and no customer names", async (page) => {
+      await store.transaction((s) => { s.adminUsers[0].role = "auditor"; });
+      await page.reload(); await page.locator('[data-voucher-record="linked"]').waitFor();
+      assert.deepEqual(await page.locator("#voucherRecords thead th").allTextContents(), ["Code", "Bundle", "Type", "Status"]);
+      assert.equal(await page.locator("#voucherRecords").getByText("Linked customer", { exact: true }).count(), 0);
+    });
+    await scenario("visibility revalidation sends disabled staff to sign-in and clears the list", async (page) => {
+      await page.locator("#voucherRecords").getByRole("link", { name: "Linked customer", exact: true }).waitFor();
+      await store.transaction((s) => { s.adminUsers[0].active = false; });
+      await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      await page.waitForFunction(() => location.pathname === "/login");
+      assert.equal(await page.getByText("Linked customer", { exact: true }).count(), 0);
+    });
+  }
   const expand = (page, code = "NC-LINKED") => page.getByRole("button", { name: `Details for voucher ${code}`, exact: true });
-  await scenario("lazy ownership expansion is accessible and read-only at 320px; refresh follows current customer not payer", async (page) => {
+  await inline("lazy ownership expansion is accessible and read-only at 320px; refresh follows current customer not payer", async (page) => {
     let reads = 0; page.on("request", (request) => { if (request.url().endsWith("/linked/details")) reads++; });
     assert.equal(reads, 0); const before = await store.snapshot(), button = expand(page);
     await button.focus(); await page.keyboard.press("Enter");
@@ -60,7 +94,7 @@ try {
     const after = await store.snapshot();
     for (const key of ["vouchers", "payments", "routerCommands", "auditLogs"]) assert.deepEqual(after[key], before[key]);
   });
-  await scenario("failed expansion retries locally; background refresh preserves panel and keyboard focus", async (page) => {
+  await inline("failed expansion retries locally; background refresh preserves panel and keyboard focus", async (page) => {
     await page.clock.install(); let count = 0;
     await page.route("**/api/admin/vouchers/linked/details", async (route) => {
       if (++count === 1) return route.fulfill({ status: 502, contentType: "application/json", body: JSON.stringify({ error: "Synthetic read failed" }) });
@@ -74,7 +108,7 @@ try {
     assert.equal(await button.getAttribute("aria-expanded"), "true"); assert.equal(await button.evaluate((b) => b === document.activeElement), true);
     assert.equal(await panel(page).getByText("Linked customer", { exact: true }).count(), 1);
   });
-  await scenario("a delayed detail cannot fill a filtered replacement row", async (page) => {
+  await inline("a delayed detail cannot fill a filtered replacement row", async (page) => {
     let release, started; const gate = new Promise((r) => { release = r; }), begun = new Promise((r) => { started = r; });
     await page.route("**/api/admin/vouchers/linked/details", async (route) => {
       const response = await route.fetch(); started(); await gate; await route.fulfill({ response }).catch(() => {});
@@ -87,7 +121,7 @@ try {
     assert.equal(await page.locator("#voucherRecords").getByText("Linked customer", { exact: true }).count(), 0);
     assert.equal(await page.locator("#voucherRecords").getByText("670000001", { exact: true }).count(), 0);
   });
-  await scenario("pagination drops the previous row and delayed details cannot reappear on another page", async (page) => {
+  await inline("pagination drops the previous row and delayed details cannot reappear on another page", async (page) => {
     await store.transaction((s) => {
       for (let n = 0; n < 28; n++) s.vouchers.push({ id: `page-${n}`, code: `NC-PAGE-${n}`, planId: "weekly", status: "available", quotaBytes: null, usedBytes: 0, deviceLimit: 1 });
     });
@@ -103,7 +137,7 @@ try {
     await expand(page, "NC-PAGE-23").click(); await panel(page, "page-23").getByText("Not linked yet", { exact: true }).waitFor();
     assert.equal(await page.locator("#voucherRecords").getByText("670000001", { exact: true }).count(), 0);
   });
-  await scenario("demotion while details are delayed rechecks authority before rendering contacts", async (page) => {
+  await inline("demotion while details are delayed rechecks authority before rendering contacts", async (page) => {
     let release, started; const gate = new Promise((r) => { release = r; }), begun = new Promise((r) => { started = r; });
     await page.route("**/api/admin/vouchers/linked/details", async (route) => {
       const response = await route.fetch(); started(); await gate; await route.fulfill({ response }).catch(() => {});
@@ -115,7 +149,7 @@ try {
     assert.equal(await page.locator("#voucherRecords").getByText("670000001", { exact: true }).count(), 0);
     assert.equal(await page.locator("#voucherRecords [data-voucher]").count(), 0);
   });
-  await scenario("logout invalidates an in-flight detail and removes all contact DOM", async (page) => {
+  await inline("logout invalidates an in-flight detail and removes all contact DOM", async (page) => {
     let release, started; const gate = new Promise((r) => { release = r; }), begun = new Promise((r) => { started = r; });
     await page.route("**/api/admin/vouchers/linked/details", async (route) => {
       const response = await route.fetch(); started(); await gate; await route.fulfill({ response }).catch(() => {});
@@ -126,7 +160,7 @@ try {
     assert.equal(await page.getByText("670000001", { exact: true }).count(), 0);
     const state = await store.snapshot(); assert.equal(state.adminSessions.length, 0);
   });
-  await scenario("visibility revalidation clears old contact DOM and disabled staff redirect to sign-in", async (page) => {
+  await inline("visibility revalidation clears old contact DOM and disabled staff redirect to sign-in", async (page) => {
     await expand(page).click(); await panel(page).getByText("Linked customer", { exact: true }).waitFor();
     await store.transaction((s) => { s.adminUsers[0].active = false; });
     await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));

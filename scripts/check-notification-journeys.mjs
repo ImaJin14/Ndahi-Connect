@@ -352,18 +352,28 @@ try {
   await administrator.goto(administration + "/dashboard#vouchers");
   await administrator.reload();
   const records = administrator.locator("#voucherRecords");
-  if (uiV2) await records.locator(".voucher-record-filters > summary").click();
-  await records.getByLabel("Filter vouchers by status", { exact: true }).selectOption("expired");
-  await records.getByLabel("Vouchers from date", { exact: true }).fill("2026-09-01");
-  await records.getByLabel("Vouchers through date", { exact: true }).fill("2026-09-01");
-  await records.getByRole("button", { name: "Apply dates", exact: true }).click();
-  await records.getByLabel("Search vouchers", { exact: true }).fill("NC-HIST-2222");
-  await records.locator(".records-pager").getByText("Page 1 of 1 · 1 total", { exact: true }).waitFor();
-  await records.locator("tbody").getByText("NC-HIST-2222", { exact: true }).waitFor();
-  assert.equal(await records.getByLabel("Vouchers from date", { exact: true }).inputValue(), "2026-09-01");
+  if (uiV2) {
+    // Recent vouchers as drawn (AdminVouchers, #343; owner 26 Nov): one search
+    // for a code, name or number and no Filters; an older voucher is found by its code.
+    assert.equal(await records.locator(".voucher-record-filters").count(), 0);
+    await records.getByRole("searchbox", { name: "Find a code, name or number", exact: true }).fill("NC-HIST-2222");
+    const historic = records.locator('[data-voucher-record="admin-history"]');
+    await historic.getByText("Expired", { exact: true }).waitFor();
+    assert.equal(await records.locator("tbody [data-voucher-record]").count(), 1);
+  } else {
+    await records.getByLabel("Filter vouchers by status", { exact: true }).selectOption("expired");
+    await records.getByLabel("Vouchers from date", { exact: true }).fill("2026-09-01");
+    await records.getByLabel("Vouchers through date", { exact: true }).fill("2026-09-01");
+    await records.getByRole("button", { name: "Apply dates", exact: true }).click();
+    await records.getByLabel("Search vouchers", { exact: true }).fill("NC-HIST-2222");
+    await records.locator(".records-pager").getByText("Page 1 of 1 · 1 total", { exact: true }).waitFor();
+    await records.locator("tbody").getByText("NC-HIST-2222", { exact: true }).waitFor();
+    assert.equal(await records.getByLabel("Vouchers from date", { exact: true }).inputValue(), "2026-09-01");
+  }
   assert.equal((await f.store.snapshot()).vouchers.find((v) => v.id === "admin-history").status, "expired");
   assert.equal(await administrator.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  console.log("PASS admin voucher date/status/search filters combine before paging and preserve history at 320px");
+  console.log(uiV2 ? "PASS admin voucher search reaches an older expired voucher by its code at 320px"
+    : "PASS admin voucher date/status/search filters combine before paging and preserve history at 320px");
 
   for (const context of contexts) { await context.unrouteAll({ behavior: "wait" }); await context.close(); }
 } finally {
