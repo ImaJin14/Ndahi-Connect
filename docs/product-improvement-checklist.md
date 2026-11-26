@@ -1661,7 +1661,7 @@ On 19 November the owner closed these issues as implemented: their code is merge
 ### Payment problems in six states (#409, batch 9, 26 November 2026)
 
 - [-] **CUS-409 — Payment problems, redesigned (batch 9)** ([#409](https://github.com/ImaJin14/Ndahi-Connect/issues/409)). Owner decisions: [#409 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/409#issuecomment-7180266640).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #488, not merged yet):
     - the buy flow's failure screen shows the server's six states (#433) as drawn: not enough balance, request expired, cancelled or wrong PIN, number not recognised, waiting for confirmation, and unclear, each with the 24 Nov brief's words in English and French and amounts in XAF;
     - not enough balance with a verified fee offers "Switch to <cheaper bundle> (<total>)", which opens that bundle's checkout; without a verified fee the body speaks of the fee in the operator prompt;
     - Retry only once the server says the attempt is over; waiting and unclear say not to pay again and offer Check again; a wrong network lets the customer correct the number or pay with the other network;
