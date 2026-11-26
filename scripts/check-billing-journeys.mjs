@@ -251,7 +251,8 @@ try {
     const mtnRow = page.locator(paymentRows).filter({ hasText: "Weekly" }),
       orangeRow = page.locator(paymentRows).filter({ hasText: "Orange package" });
     await mtnRow.waitFor(); await orangeRow.waitFor();
-    assert.match(await mtnRow.textContent(), /MTN Mobile Money/);
+    // v2 rows name the wallet as drawn (PhoneActivity, #395): "MTN MoMo".
+    assert.match(await mtnRow.textContent(), process.env.NDAHI_UI_VARIANT === "v2" ? /MTN MoMo/ : /MTN Mobile Money/);
     assert.match(await orangeRow.textContent(), /Orange Money/);
     assert.doesNotMatch(await page.locator("#billing").textContent(), /mesomb/i);
     await mtnRow.getByRole("button", { name: "View receipt" }).click();
