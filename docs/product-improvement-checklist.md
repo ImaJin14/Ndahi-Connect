@@ -1453,7 +1453,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Wi-Fi page with the hotspot's name (#404, batch 9, 26 November 2026)
 
 - [-] **CUS-404 — Connect to Wi-Fi, redesigned (batch 9)** ([#404](https://github.com/ImaJin14/Ndahi-Connect/issues/404)). Owner decisions: [#404 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/404#issuecomment-7180266029).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #486, not merged yet):
     - the owner names the hotspot (English and French, up to 40 characters) in Admin → Network setup → More network tools; the change is audited, and the public `/api/status` gives the name to the Wi-Fi page;
     - the page reads "Choose how you'd like to get online at <name>.", or "…to get online." without one; on NDAHI Wi-Fi it still says "You're on NDAHI Wi-Fi";
     - the option hints and the store link measured to the board;
