@@ -1315,12 +1315,12 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 ### Public store on phones (#403, batch 10, 26 November 2026)
 
 - [-] **CUS-403 — NDAHI Store on phones, redesigned (batch 10)** ([#403](https://github.com/ImaJin14/Ndahi-Connect/issues/403)). Owner decisions: [#403 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/403#issuecomment-7182528320).
-  - **Implemented and tested** (PR #492, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #492):
     - the drawn phone shop: the forest head with "No account needed. Pay with Mobile Money, collect locally.", the short category chips in one row (the full name when a category has no short name), rows with an 80 px photo and a centred chevron, and "Looking for internet packages?" at the foot;
     - the head shows the boards' fixed words on phones and desktop, so Admin's store "Introduction" field is removed (a save keeps the stored text);
     - no footer, on phones or desktop: the store's warranty and returns texts now show in each product's details;
     - offer cards (Black Friday, #302) keep their own layout until the offer ends; the store stays English-only, as the owner asked, with French kept for later.
-  - **Not yet:** merged, deployed, or the short category names entered by the owner on the live admin.
+  - **Not yet:** the short category names entered by the owner on the live admin.
 
 ## Device store (8 November 2026)
 
@@ -1372,12 +1372,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Scan with no active bundle (#412, batch 10, 26 November 2026)
 
 - [-] **CUS-412 — Scan to connect without a bundle, redesigned (batch 10)** ([#412](https://github.com/ImaJin14/Ndahi-Connect/issues/412)). Owner decision: [#412 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/412#issuecomment-7182529569).
-  - **Implemented and tested** (PR #491, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #491):
     - the drawn screen: the scanned account as "Amina N." with its masked number (shown before any PIN, as the owner decided), the no-Wi-Fi icon, "No active bundle", when the last bundle ended, then Buy a bundle and "I have a voucher code" at the foot; English and French;
     - the scan bar as drawn on every scan board (76 px, Help in soft white);
     - a QR from a bundle that has ended now connects the same account's current bundle, still after the PIN or passkey and still tied to the scanned QR (replacing that QR stops it); before, it said there was no active bundle on that voucher;
     - a purchase started from this screen comes back to the scan once paid (also after signing in), so the new bundle connects this device without a second scan. The scan is kept in the tab for 30 minutes.
-  - **Not yet:** merged, deployed, or tried on a phone at the hotspot with a real payment.
+  - **Not yet:** tried on a phone at the hotspot with a real payment.
 
 ## Reseller ledger and automatic account repair (7 November 2026)
 
@@ -1445,10 +1445,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Public store on desktop (#418, batch 10, 26 November 2026)
 
 - [-] **CUS-418 — NDAHI Store on desktop, redesigned (batch 10)** ([#418](https://github.com/ImaJin14/Ndahi-Connect/issues/418)). Owner decisions: [#418 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/418#issuecomment-7182527943).
-  - **Implemented and tested** (PR #493, not merged yet; built on #403):
+  - **Implemented, tested, merged and deployed** (PR #493):
     - the drawn desktop store: a 1200 px page, the forest bar with soft links and the current one in lime, the board's line beside the three steps, four 4:3 photo cards a row with the price and stock beside View, and the "Already an NDAHI customer?" banner;
     - no category chips on desktop, as drawn (phones keep them), and no footer.
-  - **Not yet:** merged, deployed, or the products' own photos seen on the live store.
+  - **Not yet:** the products' own photos seen on the live store.
 
 ## Owner-approved live initial catalogue (8 November 2026)
 
@@ -1468,10 +1468,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Product page on phones, public store (#402, batch 10, 26 November 2026)
 
 - [-] **CUS-402 — Product for guests on phones, redesigned (batch 10)** ([#402](https://github.com/ImaJin14/Ndahi-Connect/issues/402)). Owner decisions: [#402 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/402#issuecomment-7182528746).
-  - **Implemented and tested** (PR #494, not merged yet; built on #418):
+  - **Implemented, tested, merged and deployed** (PR #494):
     - the drawn phone product page: the bar, the 240 px photo, the price with its stock pill at the row's end, the "Needs" tile (the product's Needs line from Admin) beside "Internet: Sold separately", "Specifications, box contents, warranty" (now also holding the store's warranty and returns texts), and the quantity with "Buy now" on the bottom bar;
     - "Buy now" replaces "Buy this device" on phones and desktop; an offer that includes internet (#302) leaves out the Internet tile.
-  - **Not yet:** merged, deployed, or the products' Needs lines entered by the owner on the live admin.
+  - **Not yet:** the products' Needs lines entered by the owner on the live admin.
 
 ## MoMo customer payment message (9 November 2026)
 
@@ -1482,10 +1482,10 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Product page on desktop, public store (#415, batch 10, 26 November 2026)
 
 - [-] **CUS-415 — Product page on desktop, redesigned (batch 10)** ([#415](https://github.com/ImaJin14/Ndahi-Connect/issues/415)). Owner decisions: [#415 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/415#issuecomment-7182529177).
-  - **Implemented and tested** (PR #495, not merged yet; built on #402):
+  - **Implemented, tested, merged and deployed** (PR #495):
     - the drawn desktop product page: the 4:3 photo (with thumbnails when a product has several photos) beside the details, the 40 px title, the price with its pill, the words, quantity with Buy now, the pickup note and the spec rows;
     - **key specs:** each product can have up to 12 label/value rows (English required, French optional), edited in Admin → Edit product → More product details; they fill the drawn rows, followed by the store's warranty and returns. Without key specs, the product's texts show as rows, as before. On phones, key specs lead "Specifications, box contents, warranty".
-  - **Not yet:** merged, deployed, or the key specs entered by the owner for the four products.
+  - **Not yet:** the key specs entered by the owner for the four products.
 
 ### Voucher print formats and follow-up work (9 November 2026)
 
