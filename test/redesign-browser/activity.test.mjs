@@ -235,10 +235,11 @@ test("activity tab interleaves payments and orders, filters rows and never hides
         assert.deepEqual(rows.filter((row) => row.refund).map((row) => row.id).sort(), ["activity-pay-a", "activity-pay-c"], `${label}: paid rows keep the refund request form`);
         assert.equal(await page.locator('#billing details[data-payment-row="activity-pay-a"] .portal-activity__pill').innerText().then((text) => text.toLowerCase()), "paid");
 
-        const orders = await page.locator("#billing a[data-order-row]").evaluateAll((nodes) => nodes.map((node) => ({ id: node.dataset.orderRow, kind: node.dataset.activityKind, href: node.getAttribute("href"), title: node.querySelector("strong")?.textContent })));
+        const orders = await page.locator("#billing a[data-order-row]").evaluateAll((nodes) => nodes.map((node) => ({ id: node.dataset.orderRow, kind: node.dataset.activityKind, href: node.getAttribute("href"), title: node.querySelector("strong")?.innerText })));
         assert.deepEqual(orders, [
-          { id: "activity-order-1", kind: "orders", href: "/dashboard#order/activity-order-1", title: "Order · Synthetic Router" },
-          { id: "activity-order-2", kind: "orders", href: "/dashboard#order/activity-order-2", title: "Order · Synthetic Antenna" },
+          // Desktop names the order as drawn (DesktopActivity, #394): "Order NS-… · product".
+          { id: "activity-order-1", kind: "orders", href: "/dashboard#order/activity-order-1", title: width < 768 ? "Order · Synthetic Router" : "Order REF-activity-order-1 · Synthetic Router" },
+          { id: "activity-order-2", kind: "orders", href: "/dashboard#order/activity-order-2", title: width < 768 ? "Order · Synthetic Antenna" : "Order REF-activity-order-2 · Synthetic Antenna" },
         ], `${label}: order links intact`);
         assert.equal(await page.locator("#activityOrders [data-orders-note]").count(), 0, `${label}: no orders note when orders exist`);
 

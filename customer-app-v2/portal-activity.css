@@ -164,3 +164,33 @@ a.portal-activity__order:focus-visible { outline: var(--nd-focus-width) solid va
   .portal-activity__status .nd-pill { padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: normal; white-space: nowrap; }
   .portal-activity__list > .portal-activity__order:last-child, .portal-activity__list > .portal-activity__item:last-child { border-bottom: 1px solid var(--nd-line); }
 }
+
+/* ---------- Activity on desktop (canvas: DesktopActivity, #394) ----------
+   The eyebrow and title as drawn with the filter beside them, the waiting
+   banner, then a table card: Date, What, Paid with, Amount, Status and a
+   link (Check, Track, Receipt or View) that opens what the row opens. */
+@media (min-width: 768px) {
+  body[data-current-tab="activity"]:not([data-portal-sub]) .dashboard-shell { position: relative; }
+  body[data-current-tab="activity"]:not([data-portal-sub]) .portal-head { padding: 36px 0 22px; }
+  /* Fixed line heights (the board's, with its fonts) keep the filter level
+     with the title's foot whatever font the browser ends up using. */
+  body[data-current-tab="activity"]:not([data-portal-sub]) .portal-head__eyebrow { font-size: 12px; line-height: 16px; letter-spacing: .16em; }
+  body[data-current-tab="activity"]:not([data-portal-sub]) .portal-head__title { font-size: 40px; line-height: 53px; }
+  body[data-current-tab="activity"]:not([data-portal-sub]) .dashboard-grid { row-gap: 22px; }
+  .portal-activity__filters { position: absolute; top: var(--activity-filter-top, 63px); right: 40px; width: auto; margin: 0; }
+  .portal-activity__filters .nd-segmented__option { flex: 0 0 auto; min-height: 40px; padding: 0 16px; font-size: 14px; line-height: normal; }
+  .portal-activity__waiting { padding: 14px 18px; font-size: 15px; }
+  #billing .portal-activity__list { padding: 10px 22px 18px; border-radius: 18px; }
+  #billing .portal-activity__list > .portal-activity__item { margin: 0; }
+  /* The board's column widths at 1280 px, shared by every row at any width. */
+  .portal-activity__columns, .portal-activity__summary, .portal-activity__list > .portal-activity__order { grid-template-columns: minmax(80px, 98fr) minmax(0, 420fr) minmax(112px, 175fr) minmax(104px, 152fr) minmax(136px, 199fr) minmax(84px, 110fr); gap: 0; }
+  .portal-activity__columns { padding: 0; font-size: 13px; font-weight: 600; }
+  .portal-activity__columns > *, .portal-activity__summary > :not(.portal-activity__icon), .portal-activity__list > .portal-activity__order > :not(.portal-activity__icon) { padding: 14px 10px; white-space: nowrap; }
+  .portal-activity__list .portal-activity__summary, .portal-activity__list > .portal-activity__order { min-height: 0; padding: 0; font-size: 14px; }
+  .portal-activity__list > .portal-activity__order:last-child, .portal-activity__list > .portal-activity__item:last-child { border-bottom: 1px solid var(--nd-line); }
+  .portal-activity__columns > *, .portal-activity__date, .portal-activity__main, .portal-activity__method, .portal-activity__amount, .portal-activity__open { overflow: hidden; text-overflow: ellipsis; }
+  .portal-activity__main strong { font-size: 14px; }
+  /* Its padding stays out of the row's height, as an inline pill in a table cell does. */
+  .portal-activity__status .nd-pill { margin: -3px 0; padding: 3px 9px; font-size: 12px; font-weight: 700; line-height: normal; }
+  .portal-activity__open { color: var(--nd-forest); font-weight: 700; text-decoration: underline; }
+}

@@ -22,6 +22,11 @@ const ICONS = {
   shop: "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7",
   ticket: "M3 5h18v5a2 2 0 0 0 0 4v5H3v-5a2 2 0 0 0 0-4Zm12 0v14",
 };
+// One thing said two ways: the phone board's words and the desktop board's.
+const both = (narrow, wide) => (narrow === wide ? h(narrow) : `<span class="nd-narrow-only">${h(narrow)}</span><span class="nd-wide-only">${h(wide)}</span>`);
+// The desktop table's last column (canvas: DesktopActivity): Check, Track,
+// Receipt or View. It sits inside the row, so it opens what the row opens.
+export const activityOpen = (key) => `<span class="portal-activity__open nd-wide-only">${h(L(key))}</span>`;
 // How it was paid, as the rows name it: "MTN MoMo", "Orange Money".
 const METHODS = { mtn: "MTN MoMo", orange: "Orange Money" };
 export const activityMethod = (network) => METHODS[network] || "Mobile Money";
@@ -37,7 +42,7 @@ export const paymentMeta = (payment) => [activityDay(payment.createdAt, { today:
 export function voucherRows(vouchers, payments) {
   const own = new Set((payments || []).map((p) => p.id));
   return (vouchers || []).filter((v) => v.code && v.activatedAt && !own.has(v.paymentId) && !v.orderId && !v.giftBatchId).map((v) =>
-    `<a class="portal-activity__order portal-activity__voucher" data-voucher-row="${h(v.id)}" data-activity-kind="internet" data-activity-at="${h(v.activatedAt)}" href="/dashboard#vouchers">${activityIcon("ticket")}<span class="portal-activity__date nd-wide-only">${h(activityDay(v.activatedAt))}</span><span class="portal-activity__main"><strong>${h(L("portalVoucherRedeemed"))}</strong><span class="nd-meta">${h([activityDay(v.activatedAt, { today: true }), v.code].join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">—</span><span class="portal-activity__amount nd-wide-only">—</span><span class="portal-activity__status"><span class="nd-pill">${h(L("portalVoucherUsed"))}</span></span></a>`).join("");
+    `<a class="portal-activity__order portal-activity__voucher" data-voucher-row="${h(v.id)}" data-activity-kind="internet" data-activity-at="${h(v.activatedAt)}" href="/dashboard#vouchers">${activityIcon("ticket")}<span class="portal-activity__date nd-wide-only">${h(activityDay(v.activatedAt))}</span><span class="portal-activity__main"><strong>${both(L("portalVoucherRedeemed"), L("portalVoucherRedeemedWide", { code: v.code }))}</strong><span class="nd-meta">${h([activityDay(v.activatedAt, { today: true }), v.code].join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">—</span><span class="portal-activity__amount nd-wide-only">—</span><span class="portal-activity__status"><span class="nd-pill">${h(L("portalVoucherUsed"))}</span></span>${activityOpen("portalActivityView")}</a>`).join("");
 }
 export const activityIcon = (name) => `<span class="portal-activity__icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[name]}"></path></svg></span>`;
 // Payment pills: the word stays lower case in the page (journeys read it) and CSS capitalises it.
@@ -45,6 +50,9 @@ const PAY = { paid: "success", pending: "warning", processing: "warning", failed
 // Order pills (canvas): Ready to collect in blue, Collected grey.
 const ORDER = { ready: "info", preparing: "warning", awaiting_payment: "warning", review: "danger" };
 export const paymentPill = (status) => `<span class="nd-pill portal-activity__pill${PAY[status] ? " nd-pill--" + PAY[status] : ""}">${h(L("portalPay_" + String(status || "").replace(/-/g, "_")) || status)}</span>`;
+
+// The desktop table's headings; the last column, the row's link, has none on screen.
+export const activityColumns = () => ["portalColDate", "portalColWhat", "portalColPaidWith", "portalColAmount", "adminColStatus"].map((key) => `<span>${h(L(key))}</span>`).join("") + "<span></span>";
 
 export function activityFilters() {
   return `<div class="nd-segmented portal-activity__filters full" role="group" aria-label="${h(L("portalActivityShow"))}" data-portal-view="payments">${[["all", "portalActivityAll"], ["internet", "portalInternetLabel"], ["orders", "portalActivityOrders"]].map(([id, key], index) => `<button type="button" class="nd-segmented__option" aria-pressed="${index ? "false" : "true"}" data-activity-filter="${id}">${h(L(key))}</button>`).join("")}</div>`;
@@ -60,7 +68,8 @@ document.addEventListener("click", (event) => {
 export function waitingBanner(payments) {
   const waiting = payments.filter((p) => ["pending", "processing"].includes(p.status));
   if (!waiting.length) return "";
-  return `<a class="portal-activity__waiting full" data-portal-view="payments" data-activity-kind="internet" href="#billing"><strong>${h(waiting.length === 1 ? L("portalWaitingOne") : L("portalWaitingMany", { count: waiting.length }))}</strong> ${h(L("portalWaitingHint"))}</a>`;
+  const one = waiting.length === 1;
+  return `<a class="portal-activity__waiting full" data-portal-view="payments" data-activity-kind="internet" href="#billing"><strong>${both(one ? L("portalWaitingOne") : L("portalWaitingMany", { count: waiting.length }), one ? L("portalWaitingOneWide") : L("portalWaitingManyWide", { count: waiting.length }))}</strong> ${both(L("portalWaitingHint"), L("portalWaitingHintWide"))}</a>`;
 }
 
 export function mountActivity({ call }) {
@@ -89,7 +98,7 @@ export function mountActivity({ call }) {
     list.querySelectorAll("[data-order-row]").forEach((row) => row.remove());
     host.innerHTML = orders.length ? "" : `<p class="nd-meta portal-activity__empty" data-orders-note="empty">${h(L("portalNoOrders"))}</p>`;
     if (!orders.length) return;
-    if (!list.querySelector(".portal-activity__columns")) list.insertAdjacentHTML("afterbegin", `<div class="portal-activity__columns nd-wide-only" aria-hidden="true">${["portalColDate", "portalColWhat", "portalColPaidWith", "portalColAmount", "adminColStatus"].map((key) => `<span>${h(L(key))}</span>`).join("")}</div>`);
+    if (!list.querySelector(".portal-activity__columns")) list.insertAdjacentHTML("afterbegin", `<div class="portal-activity__columns nd-wide-only" aria-hidden="true">${activityColumns()}</div>`);
     const lang = currentLanguage();
     list.insertAdjacentHTML("beforeend", orders.map((o) => {
       const product = o.product && (typeof o.product.name === "object" ? o.product.name[lang] || o.product.name.en : o.product.name);
@@ -97,7 +106,7 @@ export function mountActivity({ call }) {
       const amount = Number.isFinite(Number(o.amount)) ? `${Number(o.amount).toLocaleString()} FCFA` : "—";
       // Date and how it was paid (canvas: "8 Nov · Orange Money").
       const method = o.network ? activityMethod(o.network) : "—";
-      return `<a class="portal-activity__order" data-order-row="${h(o.id)}" data-activity-kind="orders" data-activity-at="${h(o.createdAt || "")}" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__date nd-wide-only">${h(activityDay(o.createdAt))}</span><span class="portal-activity__main"><strong>${h(L("portalOrderTitle", { product: product || o.reference }))}</strong><span class="nd-meta">${h([activityDay(o.createdAt, { today: true }), o.network ? method : o.reference].filter(Boolean).join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">${h(method)}</span><span class="portal-activity__amount nd-wide-only">${h(amount)}</span><span class="portal-activity__status"><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></span></a>`;
+      return `<a class="portal-activity__order" data-order-row="${h(o.id)}" data-activity-kind="orders" data-activity-at="${h(o.createdAt || "")}" href="/dashboard#order/${encodeURIComponent(o.id)}">${activityIcon("shop")}<span class="portal-activity__date nd-wide-only">${h(activityDay(o.createdAt))}</span><span class="portal-activity__main"><strong>${both(L("portalOrderTitle", { product: product || o.reference }), product ? L("portalOrderTitleWide", { reference: o.reference, product }) : o.reference)}</strong><span class="nd-meta">${h([activityDay(o.createdAt, { today: true }), o.network ? method : o.reference].filter(Boolean).join(" · "))}</span></span><span class="portal-activity__method nd-wide-only">${h(method)}</span><span class="portal-activity__amount nd-wide-only">${h(amount)}</span><span class="portal-activity__status"><span class="nd-pill${tone ? " nd-pill--" + tone : ""}">${h(L("portalOrder_" + o.status) || o.status)}</span></span>${activityOpen(["collected", "cancelled", "expired"].includes(o.status) ? "portalActivityView" : "portalActivityTrack")}</a>`;
     }).join(""));
     sortActivity(list);
   }).catch(() => {
