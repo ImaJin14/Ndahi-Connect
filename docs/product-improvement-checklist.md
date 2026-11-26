@@ -1382,7 +1382,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Guest checkout (#400, batch 11, 26 November 2026)
 
 - [-] **STORE-400 — Guest checkout in four steps, redesigned (batch 11)** ([#400](https://github.com/ImaJin14/Ndahi-Connect/issues/400)). Owner decisions: [#400 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/400#issuecomment-7193169291).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #500, not merged yet):
     - the drawn steps in the store's checkout sheet: "How would you like to check out?" (Continue as guest, or Sign in to NDAHI), the details, "Approve on your phone" and "Order placed"; the bar's title follows the step; Back goes from the details to the choice; once a request is sent the bar has no back and Escape opens the order;
     - one number: the Mobile Money number that pays is also the order's contact; email is optional; "Collect at <pickup>"; MTN MoMo or Orange Money; Item, Mobile Payment Fee (2%), Total to Pay and the wallet note at the foot with Pay Now (the server's quote, as in the portal);
     - Check status, and Change payment for guests: the unpaid request is cancelled with the order's private link (a new `/api/store/cancel` route, guest orders only, the provider asked first so a payment approved a moment ago is kept), then the details come back as typed;
