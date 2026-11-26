@@ -1315,7 +1315,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 ### Public store on phones (#403, batch 10, 26 November 2026)
 
 - [-] **CUS-403 — NDAHI Store on phones, redesigned (batch 10)** ([#403](https://github.com/ImaJin14/Ndahi-Connect/issues/403)). Owner decisions: [#403 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/403#issuecomment-7182528320).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #492, not merged yet):
     - the drawn phone shop: the forest head with "No account needed. Pay with Mobile Money, collect locally.", the short category chips in one row (the full name when a category has no short name), rows with an 80 px photo and a centred chevron, and "Looking for internet packages?" at the foot;
     - the head shows the boards' fixed words on phones and desktop, so Admin's store "Introduction" field is removed (a save keeps the stored text);
     - no footer, on phones or desktop: the store's warranty and returns texts now show in each product's details;
