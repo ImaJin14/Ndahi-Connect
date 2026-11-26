@@ -1766,6 +1766,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
   - the store page's CSP allows images from `https://api.ndahiconnect.net`.
 - **Not physically verified:** no real product photo has been uploaded yet, and the production store was still closed.
 
+### Product page on phones (#410, batch 8, 26 November 2026)
+
+- [-] **CUS-410 — Product, redesigned (batch 8)** ([#410](https://github.com/ImaJin14/Ndahi-Connect/issues/410)). Owner decisions: [#410 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/410#issuecomment-7178824515).
+  - **Implemented and tested** (PR pending, not merged yet):
+    - the drawn phone page: a bar across the top, the photo edge to edge, the price beside a green stock pill, the details as a plain disclosure, and quantity with Buy now on a bar at the bottom;
+    - each product has an optional "Needs" line (English and French, up to 60 characters) in Admin → Edit product → More product details. Its tile shows when it is filled in, beside "Internet: Sold separately" on every product. Desktop has no tiles, as its board has none. Saving a product from the frozen v1 admin keeps the line;
+    - English and French.
+  - **Not yet:** merged, deployed, or the Needs lines (such as the CPE210's "Installation + alignment") entered by the owner on the live admin.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
