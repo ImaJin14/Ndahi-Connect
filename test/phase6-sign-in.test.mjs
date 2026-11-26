@@ -246,3 +246,22 @@ test("a passkey-only challenge from before the cutover is refused after it, once
   assert.equal(replay.status, 401, "the challenge was spent");
   assert.equal((await f.store.snapshot()).adminSessions.length, sessions);
 });
+
+// PhonePasskey (#408): each passkey row says when it was last used, so a
+// passkey sign-in records it, and the security view returns it.
+test("a customer passkey sign-in records when the passkey was last used", async (t) => {
+  const f = await fixture(t), customerKey = keyFixture();
+  await f.store.transaction((s) => { s.customers[0].passkeys = [{ ...customerKey.key, label: "Android phone", createdAt: "2026-11-02T09:00:00.000Z" }]; });
+  const customer = (await f.store.snapshot()).customers[0];
+  assert.equal(customer.passkeys[0].lastUsedAt, undefined);
+  const options = await f.request("/api/account/passkey/options", { phone: customer.phone });
+  assert.equal(options.status, 200, JSON.stringify(options.body));
+  const signedIn = await f.request("/api/account/passkey/verify", { challengeId: options.body.challengeId, response: customerKey.assertion(options.body.options) });
+  assert.equal(signedIn.status, 200, JSON.stringify(signedIn.body));
+  const used = (await f.store.snapshot()).customers[0].passkeys[0].lastUsedAt;
+  assert.ok(Number.isFinite(Date.parse(used)));
+  // The security view lists it with the date it was added.
+  const cookie = signedIn.cookie.match(/customer_session=[^;]+/)[0];
+  const security = await fetch(f.api + "/api/account/security", { headers: { cookie } }).then((r) => r.json());
+  assert.deepEqual(security.passkeys, [{ id: customerKey.key.id, label: "Android phone", createdAt: "2026-11-02T09:00:00.000Z", lastUsedAt: used }]);
+});

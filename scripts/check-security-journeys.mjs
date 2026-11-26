@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openSecurityManager, openSessions } from "./portal-tabs.mjs";
+import { openSecurityManager, openSessions, uiV2 } from "./portal-tabs.mjs";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -69,17 +69,20 @@ try {
     });
     await page.goto(`${portal}/dashboard#account`);
     await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click();
-    await page.locator('details.rename-passkey:has(form[data-rename-passkey="preview-key"]) summary').click();
-    await page.locator('[data-rename-passkey="preview-key"] input[name="label"]').fill("Work laptop");
-    await page.locator('[data-rename-passkey="preview-key"]').getByRole("button", { name: "Save name" }).click();
-    await page.getByText("Passkey renamed.").waitFor();
-    await page.getByText("Work laptop").waitFor();
+    // v2 rows have no Rename (canvas: PhonePasskey, #408; owner 26 Nov).
+    if (!uiV2) {
+      await page.locator('details.rename-passkey:has(form[data-rename-passkey="preview-key"]) summary').click();
+      await page.locator('[data-rename-passkey="preview-key"] input[name="label"]').fill("Work laptop");
+      await page.locator('[data-rename-passkey="preview-key"]').getByRole("button", { name: "Save name" }).click();
+      await page.getByText("Passkey renamed.").waitFor();
+      await page.getByText("Work laptop").waitFor();
+    }
     page.on("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Remove" }).click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468");
     await page.locator("[data-passkey-owner-proof]").getByRole("button", { name: "Confirm with PIN", exact: true }).click();
     await page.getByText("Passkey removed.").waitFor();
-    assert.equal(await page.getByText("No passkeys saved yet. Your PIN remains available.").count(), 1);
+    assert.equal(await page.getByText(uiV2 ? "No passkeys yet. You'll sign in with your PIN." : "No passkeys saved yet. Your PIN remains available.").count(), 1);
     const queued = (await store.snapshot()).securityAlerts;
     assert.ok(queued.some((a) => a.kind === "passkey_removed"), "removal must queue a security alert");
   });

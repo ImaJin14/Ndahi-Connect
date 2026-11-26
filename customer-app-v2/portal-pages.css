@@ -654,3 +654,26 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
 .portal-promo__order p { margin: 0; }
 .portal-promo__code { display: flex; align-items: baseline; gap: 10px; }
 .portal-promo__code strong { font-family: ui-monospace, Menlo, monospace; font-size: 18px; letter-spacing: .08em; color: #10241c; }
+
+/* ---------- Passkey sign-in, as drawn (canvas: PhonePasskey, #408) ----------
+   18px sides and 20px below the bar; the forest card, "Your passkeys", rows
+   with the key icon, the name and "Added … · last used …", Remove in red, the
+   sage note when there are none, and "Add a passkey on this phone" at the foot. */
+body[data-portal-sub="passkeys"] .security-manager-body { box-sizing: border-box; min-height: calc(100dvh - 77px); padding: 9px 2px 20px; }
+body[data-portal-sub="passkeys"] #security-passkeys:not([hidden]) { flex: 1; gap: 14px; }
+.account-passkey-intro { gap: 8px; padding: 18px; border-radius: 16px; }
+.account-passkey-intro strong { font: 600 24px var(--nd-font-display); line-height: normal; }
+.account-passkey-intro span { color: var(--nd-on-forest-muted); font-size: 14px; line-height: 1.5; }
+body[data-portal-sub] #security-passkeys > p.account-passkeys__label { margin: 4px 0 0; color: var(--nd-ink); font-size: 15px; font-weight: 700; line-height: normal; }
+.account-passkeys .account-passkey { flex-wrap: nowrap; gap: 12px; border-radius: 14px; }
+.account-passkey__icon { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-forest); }
+.account-passkey__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.account-passkeys .account-passkey b { font-size: 15px; line-height: normal; }
+.account-passkeys .account-passkey small { margin-top: 0; font-size: 13px; line-height: 1.6; }
+.account-passkeys .account-passkey .account-passkey__remove { flex: none; min-height: 44px; padding: 0 12px; border: 1px solid var(--nd-line); border-radius: 9px; background: var(--nd-white); color: var(--nd-danger); font: 700 13px var(--nd-font-body); }
+#security-passkeys .account-passkeys { margin: 0; }
+.account-passkeys__none { margin: 0; padding: 14px; border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink-soft); font-size: 14px; }
+#security-passkeys > #addCustomerPasskey { min-height: 52px; margin-top: auto; padding: 0 16px; border-radius: 10px; font: 700 16px var(--nd-font-body); line-height: normal; }
+@media (max-width: 767.98px) {
+  body[data-portal-sub="passkeys"] #security-passkeys > #addCustomerPasskey { left: 18px; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+}

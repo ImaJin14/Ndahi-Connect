@@ -72,7 +72,7 @@ try {
     await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
     await page.goto(portal + '/dashboard#account'); await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468'); await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    await page.waitForFunction(() => !!document.querySelector('#accountSecurity [data-remove-passkey]'));
     await page.goto('about:blank'); await context.clearCookies({ name: 'customer_session' });
     await page.goto(portal + '/login'); await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#customerPasskeyLogin').click(); await page.waitForURL(portal + '/dashboard');
   });
