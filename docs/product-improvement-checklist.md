@@ -1362,7 +1362,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Scan with no active bundle (#412, batch 10, 26 November 2026)
 
 - [-] **CUS-412 — Scan to connect without a bundle, redesigned (batch 10)** ([#412](https://github.com/ImaJin14/Ndahi-Connect/issues/412)). Owner decision: [#412 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/412#issuecomment-7182529569).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #491, not merged yet):
     - the drawn screen: the scanned account as "Amina N." with its masked number (shown before any PIN, as the owner decided), the no-Wi-Fi icon, "No active bundle", when the last bundle ended, then Buy a bundle and "I have a voucher code" at the foot; English and French;
     - the scan bar as drawn on every scan board (76 px, Help in soft white);
     - a QR from a bundle that has ended now connects the same account's current bundle, still after the PIN or passkey and still tied to the scanned QR (replacing that QR stops it); before, it said there was no active bundle on that voucher;
