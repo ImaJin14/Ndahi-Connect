@@ -76,7 +76,7 @@ function showAccountCredentials() {
   $("#credentialStep").hidden = false;
   $("#changeDetails").hidden = false;
   $("#customerPin").required = true;
-  $("#pinLabel").textContent = accessMode === "setup" ? "Create a 4-digit PIN" : "4-digit PIN";
+  $("#pinLabel").textContent = accessMode === "setup" ? "Create a PIN (4 to 6 digits)" : "PIN";
   $("#customerPin").autocomplete = accessMode === "setup" ? "new-password" : "current-password";
   $("#forgotPin").hidden = accessMode === "setup";
   $("#confirmPinLabel").hidden = accessMode !== "setup";
@@ -193,3 +193,7 @@ markReady();
 if (new URLSearchParams(location.search).get("payment") === "confirmed") {
   document.querySelector("#message").textContent = "Payment confirmed. Sign in with your account PIN to view your voucher and bundle.";
 }
+// "Forgot PIN?" takes the number already typed along (PhoneForgotPin, #399).
+document.getElementById("forgotPin")?.addEventListener("click", () => {
+  try { const phone = document.querySelector('#login [name="phone"]')?.value.trim(); if (phone) sessionStorage.setItem("ndahi-forgot-phone", phone); } catch {}
+});

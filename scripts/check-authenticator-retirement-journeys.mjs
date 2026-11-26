@@ -199,7 +199,9 @@ try {
     await page.locator('#supportReset [name="token"]').fill(token);
     await page.locator('#supportReset [name="pin"]').fill("5830"); await page.locator('#supportReset [name="confirmPin"]').fill("5830");
     await page.getByRole("button", { name: "Recover with support code", exact: true }).click();
-    await page.locator("#supportReset [data-recovery-message]").getByText(/PIN.*reset|sign in/i).first().waitFor();
+    // v2 (canvas: PhoneForgotPin, #399): the page moves on to "PIN changed".
+    if (uiV2) await page.getByRole("heading", { name: "PIN changed", exact: true }).waitFor();
+    else await page.locator("#supportReset [data-recovery-message]").getByText(/PIN.*reset|sign in/i).first().waitFor();
     assert.equal(await argon2.verify((await f.store.snapshot()).customers[0].pinHash, "5830"), true);
     assert.ok((await f.store.snapshot()).auditLogs.some((record) => record.action === "customer.support_recovery.approved"));
   }, { adminUser: true });

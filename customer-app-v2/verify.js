@@ -15,7 +15,7 @@ if (!challenge) sessionStore.remove("ndahi-login-challenge");
 function showSetup() {
   $("#step").textContent = "Account setup";
   $("#title").textContent = "Create your PIN.";
-  $("#instructions").textContent = "Choose exactly four numeric digits. You will use this PIN to sign in.";
+  $("#instructions").textContent = "Choose 4 to 6 digits. You will use this PIN to sign in.";
   $("#verify").hidden = false;
   $("#confirmLabel").hidden = false;
   $("#confirm").required = true;

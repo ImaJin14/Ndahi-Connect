@@ -4,7 +4,7 @@ import { ApiError, showError } from "./errors.js";
 
 export const passkeysAvailable = () => Boolean(window.isSecureContext && window.PublicKeyCredential && navigator.credentials);
 export function proofFields(customer, name = "currentPin") {
-  return customer.pinConfigured === false ? "" : `<label>Current PIN<input name="${name}" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required></label>`;
+  return customer.pinConfigured === false ? "" : `<label>Current PIN<input name="${name}" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" autocomplete="current-password" required></label>`;
 }
 export function proofButtons(customer, label) {
   return `${customer.pinConfigured === false ? "" : `<button type="submit">${label} with PIN</button>`}${customer.passkeys ? `<button type="button" data-proof-passkey>${label} with passkey</button>` : ""}`;
