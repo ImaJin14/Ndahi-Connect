@@ -139,15 +139,19 @@ try {
       path: `/tmp/ndahi-store-${width}.png`,
       fullPage: true,
     });
-    await page
-      .getByRole("button", { name: "Travel routers", exact: true })
-      .click();
-    assert.equal(await page.locator(".product").count(), 1);
+    // Phones filter by category; the desktop store has no chips (canvas:
+    // StoreGuest, #418), so its card opens the device directly.
+    if (width < 768) {
+      await page
+        .getByRole("button", { name: "Travel routers", exact: true })
+        .click();
+      assert.equal(await page.locator(".product").count(), 1);
+    } else assert.equal(await page.locator(".filters").isVisible(), false);
     checks++;
     assert.equal(await page.locator("#language").count(), 0);
     assert.equal(await page.locator("html").getAttribute("lang"), "en");
     checks++;
-    await page.getByRole("button", { name: "View device" }).click();
+    await page.locator(".product", { hasText: "Travel routers" }).getByRole("button", { name: /^View device/ }).click();
     await page.locator("#productTitle").waitFor();
     await page.getByRole("button", { name: "Buy this device" }).click();
     await page.getByLabel("Full name").fill("Guest browser buyer");

@@ -342,6 +342,48 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
   .product:not(.product--promo) .product-bottom button { grid-column: 3; grid-row: 1 / -1; align-self: center; min-width: 0; min-height: 44px; padding: 0; color: var(--nd-lime-text); font: 400 20px var(--nd-font-body); }
   .internet-row { box-sizing: content-box; min-height: 48px; margin: auto 6px 0; font-size: 14px; }
 }
+/* Desktop store (canvas: StoreGuest, #418): a 1200px page, the forest bar with
+   soft links and the current one in lime, the hero beside the three steps, no
+   category chips, 4:3 photo cards with the price and stock beside View, and
+   the "Already an NDAHI customer?" banner. */
+@media (min-width: 768px) {
+  /* The board's 1200px is the content width, inside 28px sides. */
+  header { gap: 16px 28px; padding: 14px max(28px, calc((100% - 1200px) / 2)); }
+  .brand { gap: 12px; margin-right: 0; font-size: 22px; line-height: normal; letter-spacing: .03em; }
+  .brand-mark { width: 44px; height: 44px; font-size: 13px; letter-spacing: 0; }
+  .brand-sub { margin-top: 0; font-size: 10px; letter-spacing: .3em; }
+  header nav { flex: 1 1 auto; gap: 4px; }
+  header nav a { min-height: 44px; padding: 0 12px; border-radius: 8px; color: var(--nd-on-forest-soft); font-weight: 600; }
+  header nav a:hover { color: var(--nd-white); }
+  header nav a[aria-current="page"] { background: rgba(185, 238, 46, .14); color: var(--nd-lime); }
+  .header-signin { min-height: 46px; padding: 0 16px; border-color: rgba(255, 255, 255, .3); border-radius: 9px; }
+  body[data-view="shop"] main { max-width: 1256px; padding: 36px 28px 64px; }
+  body[data-view="shop"] #view { display: flex; flex-direction: column; gap: 26px; }
+  .hero { display: flex; flex-wrap: wrap; align-items: stretch; gap: 24px; margin: 0; }
+  .hero > div { flex: 999 1 520px; min-width: 0; }
+  .hero .hero-domain { margin: 0 0 6px; font-size: 12px; letter-spacing: .16em; line-height: normal; }
+  .hero h1 { margin: 0 0 10px; color: var(--nd-ink); font: 600 44px/1.05 var(--nd-font-display); letter-spacing: -.01em; }
+  .hero p { max-width: 560px; color: var(--nd-muted); font-size: 17px; line-height: 1.55; }
+  .steps { display: flex; flex: 1 1 340px; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; font-size: 14px; }
+  .steps li { gap: 12px; font-size: 14px; line-height: normal; }
+  .steps li span { font-size: 14px; line-height: normal; }
+  #devices { margin-top: 0; }
+  .filters { display: none; }
+  .products { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+  .product { display: flex; flex-direction: column; align-items: stretch; border-radius: 16px; }
+  .product .product-visual { height: auto; aspect-ratio: 4 / 3; }
+  .product .product-body { display: flex; flex: 1; flex-direction: column; gap: 6px; padding: 18px; }
+  .product-category { font-size: 12px; letter-spacing: .08em; line-height: normal; }
+  .product h3 { min-height: 0; margin: 0; font-size: 18px; line-height: normal; }
+  .product .product-bottom { margin-top: auto; padding-top: 12px; }
+  .product .price { font-size: 18px; line-height: normal; }
+  .product-stock { margin-top: 2px; font-size: 13px; font-weight: 600; line-height: normal; }
+  .product-bottom button { min-height: 44px; padding: 0 16px; border-radius: 9px; font-size: 14px; }
+  .customer-bar { margin-top: 0; padding: 22px 26px; border-radius: 14px; }
+  .customer-bar h2 { margin: 0 0 4px; color: var(--nd-ink); font: 600 22px var(--nd-font-display); line-height: normal; }
+  .customer-bar p { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: normal; }
+  .customer-bar .button { min-height: 44px; padding: 0 18px; border-radius: 9px; font-size: 14px; }
+}
 /* Store promotions (#302, canvas: StorePromo, PhonePromoBuy). */
 .promo-badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #10241c; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .promo-hero { display: flex; flex-wrap: wrap; gap: var(--nd-space-20) var(--nd-space-32); align-items: center; margin: 0 0 var(--nd-space-20); padding: 28px 32px; border-radius: 24px; background: #10241c; color: #ffffff; }
