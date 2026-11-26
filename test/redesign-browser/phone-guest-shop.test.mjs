@@ -104,10 +104,10 @@ test("the phone store is drawn with its head, short chips, rows and internet row
   assert.deepEqual(errors, []);
   await context.close();
 
-  // Desktop keeps the full category names and has no footer either.
+  // Desktop has no category chips (canvas: StoreGuest, #418) and no footer either.
   const desk = await open(1280, shop + "/");
   await desk.page.locator(".product").first().waitFor();
-  assert.deepEqual(await desk.page.locator(".filters button").evaluateAll((nodes) => nodes.map((n) => n.innerText)), ["All", "Travel routers", "Outdoor networking", "Wi-Fi devices"]);
+  assert.equal(await desk.page.locator(".filters").isVisible(), false);
   assert.equal(await desk.page.locator(".hero p").innerText(), "Routers and extenders we've tested on our network. Buy without an account — pay with Mobile Money and collect locally.");
   assert.equal(await desk.page.locator("footer").count(), 0);
   await desk.context.close();
