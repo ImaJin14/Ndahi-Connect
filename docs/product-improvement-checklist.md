@@ -1258,7 +1258,7 @@ These are seventeen additional P1 tasks in progress beyond the legacy totals abo
 ### Edit profile (#398, batch 9, 26 November 2026)
 
 - [-] **CUS-398 — Edit profile, redesigned (batch 9)** ([#398](https://github.com/ImaJin14/Ndahi-Connect/issues/398)). Owner decisions: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7180265409); build note: [#398 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/398#issuecomment-7181641253).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #489, not merged yet):
     - the drawn page: full name, email with "We send a link to confirm a new address", the sign-in number read-only and masked with "To change it, contact support", and "Save changes" at the bottom; English and French;
     - a name change saves at once. When the email changes, Save asks for the PIN (or a passkey) in a dialog, and the page then says "Saved. Check <email> to confirm it.";
     - the new address gets a link (`/confirm-email`), single use and good for 30 minutes. It confirms on a tap, never on opening, and every portal session then ends so the customer signs in again. The same link again shortly after (a lost reply) reports the change done. Requests made with a code before this keep their code form;
