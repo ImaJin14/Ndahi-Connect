@@ -145,9 +145,18 @@ function render(host, data, context) {
     button.focus();
   };
   document.querySelectorAll("[data-voucher-copy]").forEach((button) => { button.onclick = () => void copy(button); });
-  host.querySelector("[data-voucher-print]")?.addEventListener("click", (event) => run(event.currentTarget, async () => {
-    printPreview?.(host.querySelector("#voucherDetailPrint"), await call("/api/admin/vouchers/print", { method: "POST", body: JSON.stringify({ voucherId: id }) }));
-  }));
+  // Print slip: the page refreshes (its history gains "Printed") and the preview
+  // goes into the refreshed page; before, the refresh wiped it (#343).
+  host.querySelector("[data-voucher-print]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const result = await call("/api/admin/vouchers/print", { method: "POST", body: JSON.stringify({ voucherId: id }) });
+      await showVoucherDetail(host, context);
+      printPreview?.(host.querySelector("#voucherDetailPrint"), result);
+    } catch (error) { if (message) message.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
   host.querySelector("[data-voucher-classify]")?.addEventListener("click", (event) => run(event.currentTarget, () =>
     call("/api/admin/vouchers/classify", { method: "POST", body: JSON.stringify({ voucherId: id, saleType: event.currentTarget.dataset.voucherClassify }) })));
   host.querySelector("[data-voucher-resend]")?.addEventListener("click", (event) => run(event.currentTarget, async () => {

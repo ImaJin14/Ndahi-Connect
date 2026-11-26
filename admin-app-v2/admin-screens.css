@@ -1073,3 +1073,13 @@ body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space
 .admin-pedit__spec-field { min-width: 0; margin: 0; }
 .admin-pedit__spec-remove { min-height: 44px; }
 @media (max-width: 600px) { .admin-pedit__spec { grid-template-columns: minmax(0, 1fr); } }
+/* Printing from a voucher's own page (#258, #343): only the slips, as from the list. */
+@media print {
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher__ticket,
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher__ticket-actions,
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher__right,
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher__message,
+  body:has(.tab-panel[data-voucher-print-host="true"]) #voucherStatusHost { display: none !important; }
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher,
+  .tab-panel[data-voucher-print-host="true"] .admin-voucher__left { display: block !important; margin: 0 !important; padding: 0 !important; }
+}

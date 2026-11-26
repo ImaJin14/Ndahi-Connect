@@ -677,7 +677,9 @@ try {
     await page.evaluate(() => { document.querySelector("#networkSetup").dataset.setupPending = "false"; });
     await page.clock.fastForward(61000); assert.equal(reloads, 0, "generated codes must not disappear on an automatic update");
     available = false;
-    await page.getByRole("button", { name: "Close codes", exact: true }).click();
+    // v2 has no Close codes (canvas: AdminVouchers, #343): switching to "For one customer" clears the batch result.
+    if (uiV2) await page.getByRole("tab", { name: "For one customer", exact: true }).click();
+    else await page.getByRole("button", { name: "Close codes", exact: true }).click();
     await page.clock.fastForward(61000);
     await page.waitForFunction(() => !document.querySelector(".update-notice:not([hidden])"));
     await page.waitForLoadState("load");

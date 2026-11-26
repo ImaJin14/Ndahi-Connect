@@ -47,7 +47,7 @@ let lastBatch = null, voucherRecords, prefillAssignedVoucher = () => {};
 function clearPrintContainers() {
   activePrintController?.destroy();
   activePrintController = null;
-  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint", "#voucherPrintTray", "#voucherPrintActions"]) {
+  for (const selector of ["#generated", "#activeVoucherPrint", "#customerVoucherPrint", "#voucherDetailPrint", "#voucherPrintTray", "#voucherPrintActions"]) {
     $(selector)?.replaceChildren();
   }
 }
@@ -71,6 +71,10 @@ function openSingleVoucherPrintPreview(targetContainer, result) {
 // Print screen (canvas: AdminVoucherPrint): the batch's slips, mounted while the
 // screen is open. Without a batch in memory (after a reload) it goes back to Vouchers.
 function showBatchPrint(view) {
+  // The batch result is transient (canvas: AdminVouchers, #343; no Close codes):
+  // leaving Vouchers for anything but its print screen clears it, so held app
+  // updates can apply.
+  if (lastBatch && !["vouchers", "voucher-create", "voucher-print"].includes(view)) { clearPrintContainers(); lastBatch = null; }
   const tray = $("#voucherPrintTray");
   if (!tray) return;
   if (view !== "voucher-print") {
@@ -349,6 +353,8 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   };
   customerVoucher = mountCustomerVoucher($("#customerVoucher"), {
     call, plans: x.bundles.filter(p => !p.resale && p.discontinued !== true), role: adminRole,
+    // Switching to "For one customer" clears a batch result too.
+    onMode: mode => { if (mode === "customer" && lastBatch) { clearPrintContainers(); lastBatch = null; } },
     onReady: result => {
       clearPrintContainers(); lastBatch = result ? { vouchers: result.vouchers || [result.voucher], plan: result.plan, reseller: "" } : null;
       // Voucher-list reads preserve this receipt during temporary outages.
