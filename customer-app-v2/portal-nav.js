@@ -64,6 +64,10 @@ function subHead(sub, lang) {
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
 const PHONE_TITLES = { internet: ["uiTabInternet", "portalLedeInternet"], shop: ["uiTabShop", "portalLedeShop"], activity: ["uiTabActivity", "portalLedeActivity"] };
 const EYEBROWS = { internet: "uiTabInternet", shop: "portalEyebrowShop", activity: "uiTabActivity" };
+// From 768px: a lede under the title, and the head's action button (canvas:
+// Main's "Bundles & vouchers", Shop's "My orders", #417).
+const WIDE_LEDES = { shop: "portalLedeShopWide" };
+const HEAD_ACTIONS = { home: ["/dashboard#internet", "homeBundlesVouchers"], shop: ["/dashboard#activity", "shopMyOrders"] };
 // Opening one of these routes scrolls to that part of its tab.
 const SECTIONS = { vouchers: "voucherHistory", payments: "billing", billing: "billing" };
 let mounted = false;
@@ -128,6 +132,10 @@ function applyView(scroll = false) {
     if (!lede) { lede = document.createElement("p"); lede.id = "portalLede"; lede.className = "portal-head__lede nd-narrow-only"; title.after(lede); }
     lede.textContent = phone ? t(phone[1], lang) : "";
     lede.hidden = !phone;
+    let wideLede = document.getElementById("portalLedeWide");
+    if (!wideLede) { wideLede = document.createElement("p"); wideLede.id = "portalLedeWide"; wideLede.className = "portal-head__lede portal-head__lede--wide nd-wide-only"; lede.after(wideLede); }
+    wideLede.textContent = WIDE_LEDES[tab] ? t(WIDE_LEDES[tab], lang) : "";
+    wideLede.hidden = !WIDE_LEDES[tab];
   }
   // Brand bar on phones: Home only (canvas: PhoneHome); other tabs start with their title.
   document.querySelector("header.nd-topnav")?.classList.toggle("nd-topnav--phone-bar", tab === "home" && !SUBPAGES[hash.split("/")[0]]);
@@ -137,7 +145,11 @@ function applyView(scroll = false) {
     eyebrow.hidden = !eyebrow.textContent;
   }
   const headAction = document.getElementById("portalHeadAction");
-  if (headAction) headAction.hidden = tab !== "home";
+  if (headAction) {
+    const action = HEAD_ACTIONS[tab];
+    headAction.hidden = !action;
+    if (action) { headAction.href = action[0]; headAction.textContent = t(action[1], lang); headAction.dataset.tab = tab; }
+  }
   if (sub) {
     const details = document.getElementById(sub.open);
     if (details) details.open = true;

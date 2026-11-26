@@ -16,6 +16,8 @@ const text = (value) => (value && typeof value === "object" ? value[currentLangu
 const money = (value) => (value == null ? L("homePriceTbc") : `${Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM")} FCFA`);
 const icon = (d, size = 22) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${d}"></path></svg>`;
 const BACK = icon("M15 18 9 12l6-6"), SHOP = "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7", CHECK = "m5 12 5 5 9-10";
+// The desktop trust strip's icons (canvas: Shop, #417): phone, pin, person.
+const TRUST = { pay: "M5 2h14v20H5ZM10 18h4", place: "M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", signed: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 6 0 0 1 16 0v2" };
 // A product photo's address: the API serves photos by path; a photo saved
 // before photos were stored on their own is a data URL.
 const photoSrc = (image) => {
@@ -78,8 +80,8 @@ function list(data) {
   const closed = data.settings && data.settings.open === false;
   const place$ = place(data.settings && data.settings.pickup);
   return `${promo.banner(data, "shopPromoTitle")}<div class="portal-shop__head"><a class="portal-shop__orders" href="/dashboard#activity">${h(L("shopMyOrders"))}</a></div>
-  <ul class="portal-shop__trust nd-wide-only"><li>${h(L("shopTrustPay"))}</li>${place$ ? `<li>${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${h(L("shopTrustSigned"))}</li></ul>
-  ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", h(L("shopAll"))], ...cats.map((c) => [c.id, chipLabel(c)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${label}</button>`).join("")}</div>` : ""}
+  <ul class="portal-shop__trust nd-wide-only"><li>${icon(TRUST.pay, 18)}${h(L("shopTrustPay"))}</li>${place$ ? `<li>${icon(TRUST.place, 18)}${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${icon(TRUST.signed, 18)}${h(L("shopTrustSigned"))}</li></ul>
+  ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", `<span class="nd-narrow-only">${h(L("shopAll"))}</span><span class="nd-wide-only">${h(L("shopAllDevices"))}</span>`], ...cats.map((c) => [c.id, chipLabel(c)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${label}</button>`).join("")}</div>` : ""}
   ${closed ? `<p class="portal-shop__note" role="status">${h(L("shopClosed"))}</p>` : ""}
   <div class="portal-shop__list">${products.length ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta portal-shop__stock${p.available > 0 ? p.available <= LOW_STOCK ? " portal-shop__stock--low" : "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : listStock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
   ${place$ ? `<p class="portal-shop__note portal-shop__pickup nd-narrow-only">${h(L("shopPickupNote", { place: place$ }))}</p>` : ""}

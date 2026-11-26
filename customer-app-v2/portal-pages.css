@@ -502,6 +502,43 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
   .portal-shop__head { margin-top: -56px; }
   .portal-shop__item .portal-shop__item-body { gap: 4px; }
 }
+/* Shop on desktop (canvas: Shop, #417): the head with its lede and My orders,
+   the trust strip with icons, 44px chips, cards with the price, stock and View
+   at their foot, and the friends banner, 26px apart in 1200px. */
+@media (min-width: 768px) {
+  body[data-current-tab="shop"]:not([data-portal-sub]) #shopPanel { max-width: none; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { padding: 36px 0 26px; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head__eyebrow { font-size: 12px; line-height: 16px; letter-spacing: .16em; }
+  /* 8px to the lede, counting the head's 6px gap. */
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head__title { margin-bottom: 2px; font-size: 40px; line-height: 53px; letter-spacing: -.01em; }
+  .portal-head__lede--wide { max-width: 620px; margin: 0; color: var(--nd-muted); font-size: 16px; line-height: 1.55; }
+  /* Beside the eyebrow, title and lede, its foot on the lede's; 44px inside its border, as drawn. */
+  .portal-head__action[data-tab="shop"] { grid-row: 1 / span 3; align-self: end; min-height: 46px; padding: 0 18px; border: 1px solid var(--nd-line-strong); border-radius: 9px; background: none; color: var(--nd-forest); font-size: 14px; font-weight: 700; }
+  body[data-current-tab="shop"]:not([data-portal-sub]) .portal-shop__head { display: none; }
+  .portal-shop__trust { gap: 14px 24px; margin: 0 0 26px; padding: 16px 20px; border-radius: 14px; font-size: 14px; font-weight: 400; }
+  .portal-shop__trust li { display: flex; align-items: center; gap: 8px; }
+  .portal-shop__trust svg { flex-shrink: 0; color: var(--nd-forest); }
+  .portal-shop__chips { gap: 8px; margin: 0 0 26px; }
+  .portal-shop__chips .nd-chip { min-height: 44px; padding: 0 18px; font-size: 14px; font-weight: 600; line-height: normal; }
+  .portal-shop__list { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+  .portal-shop__item { gap: 0; border-radius: 16px; }
+  .portal-shop__item .portal-shop__thumb { color: var(--nd-muted); }
+  /* Kicker, name and description, then the price and stock beside View at the foot. */
+  .portal-shop__item .portal-shop__item-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto 1fr auto auto; gap: 0; padding: 18px; }
+  .portal-shop__item-body > * { grid-column: 1 / -1; }
+  .portal-shop__item-body .nd-meta:first-child { font-size: 12px; letter-spacing: .08em; }
+  .portal-shop__item .portal-shop__item-body strong { grid-row: 2; margin-top: 6px; font-size: 18px; line-height: normal; }
+  .portal-shop__item .portal-shop__desc-short { grid-row: 3; margin-top: 6px; color: var(--nd-muted); font-size: 14px; line-height: 1.5; }
+  .portal-shop__item .portal-shop__price { grid-row: 5; grid-column: 1; margin-top: 18px; color: var(--nd-ink); font-size: 18px; line-height: normal; }
+  .portal-shop__item .portal-shop__stock { grid-row: 6; grid-column: 1; margin-top: 2px; color: var(--nd-success-fg); font-size: 13px; font-weight: 600; }
+  .portal-shop__item .portal-shop__stock--low { color: #8a4a00; }
+  .portal-shop__item .portal-shop__out { color: var(--nd-danger); }
+  .portal-shop__item .portal-shop__view { display: inline-flex; grid-row: 5 / 7; grid-column: 2; align-self: end; align-items: center; min-height: 44px; margin: 0; padding: 0 16px; border-radius: 9px; font-size: 14px; }
+  .portal-shop__friends { margin-top: 26px; padding: 22px 26px; border-radius: 14px; color: var(--nd-white); }
+  .portal-shop__friends p { font-size: 14px; color: #c8d8d0; }
+  .portal-shop__friends strong { margin-bottom: 4px; font-size: 22px; font-weight: 600; }
+  .portal-shop__friends .nd-btn { min-height: 46px; padding: 0 18px; border: 1px solid rgba(255, 255, 255, .3); border-radius: 9px; background: none; color: var(--nd-white); font-size: 14px; font-weight: 600; }
+}
 
 /* Desktop gutters (#231): the canvas's desktop screens (Main, DesktopInternet,
    DesktopActivity, DesktopAccount) put the bar and the page 40px from the
