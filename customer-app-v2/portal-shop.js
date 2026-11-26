@@ -86,6 +86,14 @@ function list(data) {
   <div class="portal-shop__friends nd-wide-only"><p><strong>${h(L("shopFriendsTitle"))}</strong> ${h(L("shopFriendsBody"))}</p><a class="nd-btn nd-btn--sm" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">${h(L("shopFriendsLink"))}</a></div>`;
 }
 
+// The phone product page's tiles (canvas: PhoneProduct, #410; owner 26 Nov):
+// what the device needs, when the owner has written it, and that internet is
+// sold separately, which is true of every device in the shop.
+const facts$ = (p) => {
+  const tiles = [...(text(p.needs) ? [[L("shopNeeds"), text(p.needs)]] : []), [L("shopInternet"), L("shopSoldSeparately")]];
+  return `<dl class="portal-shop__facts nd-narrow-only">${tiles.map(([k, v]) => `<div><dt>${h(k)}</dt><dd>${h(v)}</dd></div>`).join("")}</dl>`;
+};
+
 function productView(data, p) {
   // An offer limits how many one phone number may buy (#302).
   const max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)), closed = data.settings && data.settings.open === false, x = promo.productExtras(p);
@@ -96,6 +104,7 @@ function productView(data, p) {
     <p class="portal-shop__price-row"><strong>${h(money(p.price))}</strong><span class="nd-pill${p.available > 0 ? "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : stock(p))}</span></p>
     ${x ? x.bonus : ""}
     ${text(p.description) ? `<p class="portal-shop__desc">${h(text(p.description))}</p>` : ""}
+    ${facts$(p)}
     ${x ? x.terms : ""}
     ${facts.length ? `<details class="portal-rule"><summary><span>${h(L("shopDetailsAll"))}</span><span class="portal-rule__chevron" aria-hidden="true"></span></summary>${facts.map(([k, v]) => `<p><strong>${h(k)}:</strong> ${h(v)}</p>`).join("")}</details>` : ""}
   <div class="portal-shop__buy">${p.available > 0 && !closed ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}"${max <= 1 ? " disabled" : ""}>+</button></div><a class="nd-btn portal-shop__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(x ? x.button : L("shopBuyNow"))}</a>` : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>

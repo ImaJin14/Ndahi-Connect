@@ -391,6 +391,38 @@ body[data-current-tab="shop"]:not([data-portal-sub]) .portal-head { position: re
 .portal-shop__desc-short { display: -webkit-box; overflow: hidden; color: var(--nd-muted); font-size: 12px; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .portal-shop__view { align-self: flex-end; margin-top: var(--nd-space-6); padding: 4px 14px; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font-size: 13px; font-weight: 700; }
 .portal-shop__product .nd-meta:first-of-type { color: var(--nd-lime-text); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+/* Product on phones (canvas: PhoneProduct, #410): a bar across the top, the
+   photo edge to edge, the facts as two tiles, quantity and Buy now on a bar. */
+.portal-shop__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nd-space-8); margin: 0; }
+.portal-shop__facts > div { padding: var(--nd-space-10) var(--nd-space-12); border: 1px solid var(--nd-line); border-radius: var(--nd-radius-control); background: var(--nd-paper); }
+.portal-shop__facts dt { color: var(--nd-muted); font-size: 12px; }
+.portal-shop__facts dd { margin: 2px 0 0; color: var(--nd-ink); font-size: 13px; font-weight: 600; }
+@media (max-width: 767.98px) {
+  body[data-portal-sub="product"] .portal-head { padding: 0; }
+  body[data-portal-sub="product"] .portal-shop__bar { gap: var(--nd-space-8); margin: 0 -16px; padding: var(--nd-space-10); border-bottom: 1px solid var(--nd-line); }
+  body[data-portal-sub="product"] .portal-shop__bar { background: var(--nd-ivory); }
+  body[data-portal-sub="product"] .portal-shop__bar .portal-sub__back { margin: 0; color: var(--nd-forest); }
+  body[data-portal-sub="product"] #shopPanel .portal-shop__bar-title { font-size: 15px; }
+  body[data-portal-sub="product"] .portal-shop__product { display: flex; flex-direction: column; gap: var(--nd-space-10); padding: 0 2px; }
+  body[data-portal-sub="product"] .portal-shop__product > * { margin-top: 0; margin-bottom: 0; }
+  body[data-portal-sub="product"] .portal-shop__media { margin: 0 -18px 8px; }
+  body[data-portal-sub="product"] .portal-shop__photo { height: 250px; aspect-ratio: auto; border-radius: 0; }
+  body[data-portal-sub="product"] .portal-shop__shots { padding: 2px 18px; }
+  body[data-portal-sub="product"] .portal-shop__name { color: var(--nd-ink); font-weight: 600; line-height: normal; }
+  body[data-portal-sub="product"] .portal-shop__price-row { justify-content: space-between; }
+  body[data-portal-sub="product"] .portal-shop__price-row strong { font-size: 22px; }
+  body[data-portal-sub="product"] .portal-shop__price-row .nd-pill:not(.portal-shop__out):not(.portal-promo__left) { background: var(--nd-success-bg); color: var(--nd-success-fg); }
+  body[data-portal-sub="product"] .portal-shop__price-row .nd-pill { padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: normal; }
+  body[data-portal-sub="product"] .portal-shop__facts { margin-top: 4px; }
+  body[data-portal-sub="product"] #shopPanel .portal-rule { padding-top: 6px; border-bottom: 0; }
+  body[data-portal-sub="product"] #shopPanel .portal-rule > summary { min-height: 44px; font-size: 14px; }
+  body[data-portal-sub="product"] #shopPanel .portal-rule__chevron { display: none; }
+  body[data-portal-sub="product"] #shopPanel .portal-shop__buy { padding: var(--nd-space-12) var(--nd-space-16) calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--nd-paper); }
+  body[data-portal-sub="product"] .portal-shop__qty { background: none; }
+  body[data-portal-sub="product"] .portal-shop__qty button { border-radius: 0; font-weight: 400; }
+  body[data-portal-sub="product"] .portal-shop__qty output { min-width: 22px; }
+  body[data-portal-sub="product"] .portal-shop__cta { font-size: 16px; line-height: normal; }
+}
 /* Checkout: collection as a chosen box, two payment options (canvas: PhoneCheckout). */
 .portal-shop__checkout section[aria-labelledby="shopPickup"] p { padding: var(--nd-space-12) var(--nd-space-14); border: 1.5px solid var(--nd-forest); border-radius: 12px; background: var(--nd-paper); }
 .portal-shop__methods { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-10); margin: 6px 0 var(--nd-space-12); }

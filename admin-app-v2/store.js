@@ -30,6 +30,7 @@ const emptyProduct = () => ({
   contents: loc(),
   warranty: loc(),
   setup: loc(),
+  needs: loc(),
 });
 const field = (name, label, value = "", type = "text", extra = "") =>
   `<label class="nd-field"><span class="nd-label">${h(label)}</span><input class="nd-input" name="${h(name)}" type="${type}" value="${h(value ?? "")}" ${extra}></label>`;
@@ -456,7 +457,7 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
   // One field per language; the EN/FR switch shows one of them.
   const textField = (name, label, value, large = false) => LANGS.map((code) => `<div class="admin-pedit__field" data-lang="${code}"><label class="admin-pedit__label" for="product-${name}-${code}">${h(L(label, { language: L("adminProductEditLanguage_" + code) }))}</label>${large
     ? `<textarea class="admin-pedit__input admin-pedit__textarea" id="product-${name}-${code}" name="${name}.${code}" rows="4" maxlength="4000">${h(value?.[code] || "")}</textarea>`
-    : `<input class="admin-pedit__input" id="product-${name}-${code}" name="${name}.${code}" value="${h(value?.[code] || "")}" maxlength="${name === "warranty" ? 3000 : 120}">`}</div>`).join("");
+    : `<input class="admin-pedit__input" id="product-${name}-${code}" name="${name}.${code}" value="${h(value?.[code] || "")}" maxlength="${name === "warranty" ? 3000 : name === "needs" ? 60 : 120}">`}</div>`).join("");
   function productView() {
     const p = productId === "new" ? emptyProduct() : state.products.find((x) => x.id === productId);
     if (!p) { location.replace("/dashboard#products"); return; }
@@ -468,7 +469,7 @@ ${owner && refund?.status === "uncertain" && !refund.providerReference ? `<form 
 <div class="admin-pedit__col admin-pedit__col--main">
   <section class="nd-panel admin-pedit__panel" aria-labelledby="productTextTitle"><div class="admin-pedit__panelhead"><h2 class="admin-pedit__h2" id="productTextTitle">${h(L("adminProductEditTextTitle"))}</h2><div class="admin-pedit__langs" role="tablist" aria-label="${h(L("adminProductEditLanguage"))}">${LANGS.map((code) => `<button type="button" role="tab" class="admin-pedit__lang" aria-selected="${lang === code}" data-product-lang="${code}">${code.toUpperCase()}</button>`).join("")}</div></div>
   ${textField("name", "adminProductEditName", p.name)}${textField("description", "adminProductEditDescription", p.description, true)}
-  <details class="admin-options admin-pedit__more" id="productMoreDetails"><summary>${h(L("adminProductEditMoreDetails"))}</summary><div class="admin-options__body">${textField("specifications", "adminProductEditSpecifications", p.specifications, true)}${textField("compatibility", "adminProductEditCompatibility", p.compatibility, true)}${textField("contents", "adminProductEditContents", p.contents, true)}${textField("setup", "adminProductEditSetup", p.setup, true)}</div></details></section>
+  <details class="admin-options admin-pedit__more" id="productMoreDetails"><summary>${h(L("adminProductEditMoreDetails"))}</summary><div class="admin-options__body">${textField("specifications", "adminProductEditSpecifications", p.specifications, true)}${textField("compatibility", "adminProductEditCompatibility", p.compatibility, true)}${textField("contents", "adminProductEditContents", p.contents, true)}${textField("setup", "adminProductEditSetup", p.setup, true)}${textField("needs", "adminProductEditNeeds", p.needs)}</div></details></section>
   <section class="nd-panel admin-pedit__panel" aria-labelledby="productPhotosTitle"><h2 class="admin-pedit__h2" id="productPhotosTitle">${h(L("adminProductEditPhotos"))}</h2><div id="storeImages" class="admin-pedit__photos"></div><p class="admin-pedit__caption">${h(L("adminProductEditPhotoTypes"))}</p>
   <details class="admin-options admin-pedit__more" id="productPhotoDetails"><summary>${h(L("adminProductEditPhotoDetails"))}</summary><div class="admin-options__body" id="storePhotoDetails"></div></details></section>
 </div>
