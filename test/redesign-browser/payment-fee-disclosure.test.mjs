@@ -165,28 +165,30 @@ test("customers see the price, the Mobile Money fee and the total before they pa
   assert.deepEqual(errors, []);
   await context.close();
 
-  // Guest checkout in the public store (English only): item, fee, total, Pay button.
+  // Guest checkout in the public store (English only; canvas PhoneGuestCheckout,
+  // #400): item, Mobile Payment Fee, Total to Pay and the wallet note above Pay
+  // Now, then "Approve on your phone" with the amounts recorded on the order.
   ({ context, page, errors } = await open());
   await page.goto(`${shop}/`);
   await page.getByRole("button", { name: "View device" }).click();
   await page.getByRole("button", { name: "Buy now", exact: true }).click();
+  await page.getByRole("button", { name: /^Continue as guest/ }).click();
   await page.getByLabel("Full name").fill("Guest buyer");
-  await page.getByLabel("Contact phone").fill("670000099");
   await page.getByLabel("Mobile Money number").fill("670000099");
-  assert.equal(await text(page.locator("#checkoutCost")), "Item 18,000 FCFA MTN MoMo fee 360 FCFA Total to approve 18,360 FCFA Your balance needs at least 18,360 FCFA, or the payment fails and nothing is taken.");
-  assert.equal(await text(page.locator("#payButton")), "Pay 18,360 FCFA");
+  assert.equal(await text(page.locator("#checkoutCost")), "Item 18,000 FCFA Mobile Payment Fee (2%) 360 FCFA Total to Pay 18,360 FCFA Ensure you have at least 18,360 FCFA in your MTN MoMo wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.");
+  assert.equal(await text(page.locator("#payButton")), "Pay Now");
+  // The other network's quote (3% in this test's synthetic rules).
   await page.getByText("Orange Money", { exact: true }).click();
-  assert.equal(await text(page.locator("#checkoutCost")), "Item 18,000 FCFA Orange Money fee 540 FCFA Total to approve 18,540 FCFA Your balance needs at least 18,540 FCFA, or the payment fails and nothing is taken.");
-  assert.equal(await text(page.locator("#payButton")), "Pay 18,540 FCFA");
-  await page.getByText("MTN Mobile Money", { exact: true }).click();
-  await page.locator("#checkoutCost").scrollIntoViewIfNeeded();
+  assert.equal(await text(page.locator("#checkoutCost .checkout-cost__row:nth-child(2) span:last-child")), "540 FCFA");
+  assert.equal(await text(page.locator("#total")), "18,540 FCFA");
+  assert.match(await text(page.locator(".checkout-cost__balance")), /^Ensure you have at least 18,540 FCFA in your Orange Money wallet/);
+  await page.getByText("MTN MoMo", { exact: true }).click();
+  assert.equal(await text(page.locator("#total")), "18,360 FCFA");
   await check(page, "guest-checkout-en");
-  await page.locator("#payButton").scrollIntoViewIfNeeded();
-  await check(page, "guest-checkout-button-en");
-  await page.getByRole("button", { name: "Pay 18,360 FCFA" }).click();
-  await page.waitForURL(/#order\//);
-  assert.equal(await text(page.locator("#paymentRequest")), "A MTN MoMo request for 18,360 FCFA (incl. 360 FCFA fee) was sent. If this page closes, reopen the store in the same browser to pick up where you left off.");
-  await check(page, "guest-order-waiting-en");
+  await page.getByRole("button", { name: "Pay Now", exact: true }).click();
+  await page.getByRole("heading", { name: "Approve on your phone", exact: true }).waitFor();
+  assert.equal(await text(page.locator(".checkout-state > p").first()), "A MTN MoMo request for 18,360 FCFA (incl. 360 FCFA fee) was sent to 6•• •• 00 99. If this page closes, reopen the store in the same browser to pick up where you left off.");
+  await check(page, "guest-checkout-waiting-en");
   const order = (await store.snapshot()).storeOrders[0];
   assert.deepEqual([order.payment.amount, order.payment.fee, order.payment.total], [18000, 360, 18360], "the order keeps the quote; MeSomb is asked for the price");
   assert.deepEqual(errors, []);

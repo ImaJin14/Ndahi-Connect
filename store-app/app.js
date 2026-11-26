@@ -85,9 +85,7 @@ const words = {
     more: "More",
     buyNote: "Pay with MTN MoMo or Orange Money. Collect at {place} with your order code. No account needed.",
     checkoutHow: "How would you like to check out?",
-    payerHint: "The number that pays.",
     collectAt: "Collect at {place}",
-    deliveryLater: "Delivery comes later.",
     payWith: "Pay with",
     keepLink: "Keep this private link",
     keepLinkText: "You bought as a guest. This link is the only way back to this order — copy or bookmark it.",
@@ -96,7 +94,39 @@ const words = {
     codeHelp: "Show this at {place}. Staff check it before handing over.",
     specsAll: "Specifications, box contents, warranty",
     signInstead: "Sign in to NDAHI",
-    signInsteadHelp: "Details filled in, order saved in your account.",
+    signInsteadHelp: "Details filled in, order saved in Activity.",
+    // Checkout in four steps (canvas: PhoneGuestCheckout, #400).
+    checkoutBar: "Checkout",
+    guestCheckoutBar: "Guest checkout",
+    backProduct: "Back to product",
+    backStep: "Back",
+    waitingBar: "Waiting for payment",
+    confirmedBar: "Order confirmed",
+    payerNote: "— the one that pays",
+    emailLabel: "Email",
+    emailNote: "— optional, for order updates",
+    deliveryLaterShort: "Delivery comes later",
+    feeLabel: "Mobile Payment Fee (2%)",
+    feeLabelPlain: "Mobile Payment Fee",
+    totalToPay: "Total to Pay",
+    walletNote: "Ensure you have at least {total} in your {method} wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.",
+    walletNoteNoFee: "Ensure you have {price} plus the Mobile Money fee in your {method} wallet. Keep your screen unlocked to enter your PIN.",
+    payNow: "Pay Now",
+    approveTitle: "Approve on your phone",
+    approveText: "A {method} request for {total} (incl. {fee} fee) was sent to {number}. If this page closes, reopen the store in the same browser to pick up where you left off.",
+    approveTextNoFee: "A {method} request for {price} plus the Mobile Money fee was sent to {number}. If this page closes, reopen the store in the same browser to pick up where you left off.",
+    checkStatus: "Check status",
+    changePayment: "Change payment",
+    stillWaiting: "Not confirmed yet. Approve the request on your phone, then check again.",
+    paymentEnded: "This payment didn't go through. Choose Change payment to try again.",
+    placedTitle: "Order placed",
+    placedText: "Order {ref} is paid. Your tracking link shows when it's ready to collect.",
+    keepTitle: "Save your private tracking link",
+    keepText: "Copy or bookmark it — we also email it if you gave an address. Anyone with the link can see this order.",
+    accountTitle: "Want this in an account?",
+    accountText: "Sign in or sign up with the same number and the order moves into Activity.",
+    saveToAccount: "Save to an account",
+    trackOrder: "Track my order",
     progress: "Order progress",
     stepPaid: "Paid",
     stepPreparing: "Prepared and tested",
@@ -104,24 +134,16 @@ const words = {
     stepCollected: "Collected",
     signed: "You are signed in. This purchase will appear in your account.",
     name: "Full name",
-    phone: "Contact phone",
     email: "Email (optional, for order updates)",
     payer: "Mobile Money number",
     network: "Payment network",
     quantity: "Quantity",
     // Price, Mobile Money fee and total, all from the server (#297, canvas: PhoneGuestCheckout).
     pay: "Pay {total}",
-    payNoFee: "Pay {price} + fee",
     item: "Item",
-    fee: "{method} fee",
     feeInPrompt: "Shown in your prompt",
-    totalApprove: "Total to approve",
-    balanceNote: "Your balance needs at least {total}, or the payment fails and nothing is taken.",
-    balanceNoteNoFee: "Your balance needs {price} plus the Mobile Money fee shown in your prompt, or the payment fails and nothing is taken.",
     requestSent: "A {method} request for {total} (incl. {fee} fee) was sent. If this page closes, reopen the store in the same browser to pick up where you left off.",
     requestSentNoFee: "A {method} request for {price} plus the Mobile Money fee shown in your prompt was sent. If this page closes, reopen the store in the same browser to pick up where you left off.",
-    payHelp:
-      "Approve the request on your phone. We never ask for your Mobile Money PIN.",
     total: "Total",
     returns: "Returns",
     policies: "Store policies",
@@ -230,9 +252,7 @@ const words = {
     more: "Plus",
     buyNote: "Payez avec MTN MoMo ou Orange Money. Retirez à {place} avec votre code de commande. Aucun compte requis.",
     checkoutHow: "Comment souhaitez-vous payer ?",
-    payerHint: "Le numéro qui paie.",
     collectAt: "Retrait à {place}",
-    deliveryLater: "La livraison viendra plus tard.",
     payWith: "Payer avec",
     keepLink: "Gardez ce lien privé",
     keepLinkText: "Vous avez acheté en invité. Ce lien est le seul moyen de revenir à cette commande — copiez-le ou ajoutez-le aux favoris.",
@@ -241,7 +261,38 @@ const words = {
     codeHelp: "Montrez-le à {place}. L’équipe le vérifie avant la remise.",
     specsAll: "Caractéristiques, contenu, garantie",
     signInstead: "Se connecter à NDAHI",
-    signInsteadHelp: "Coordonnées remplies, commande enregistrée dans votre compte.",
+    signInsteadHelp: "Coordonnées remplies, commande enregistrée dans Activité.",
+    checkoutBar: "Paiement",
+    guestCheckoutBar: "Paiement en invité",
+    backProduct: "Retour au produit",
+    backStep: "Retour",
+    waitingBar: "En attente du paiement",
+    confirmedBar: "Commande confirmée",
+    payerNote: "— celui qui paie",
+    emailLabel: "E-mail",
+    emailNote: "— facultatif, pour le suivi de commande",
+    deliveryLaterShort: "La livraison viendra plus tard",
+    feeLabel: "Frais de paiement mobile (2 %)",
+    feeLabelPlain: "Frais de paiement mobile",
+    totalToPay: "Total à payer",
+    walletNote: "Assurez-vous d'avoir au moins {total} sur votre portefeuille {method} (frais de paiement mobile de 2 % inclus). Gardez l'écran déverrouillé pour saisir votre code.",
+    walletNoteNoFee: "Assurez-vous d'avoir {price} plus les frais Mobile Money sur votre portefeuille {method}. Gardez l'écran déverrouillé pour saisir votre code.",
+    payNow: "Payer",
+    approveTitle: "Validez sur votre téléphone",
+    approveText: "Une demande {method} de {total} (dont {fee} de frais) a été envoyée au {number}. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
+    approveTextNoFee: "Une demande {method} de {price} plus les frais Mobile Money a été envoyée au {number}. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
+    checkStatus: "Vérifier le statut",
+    changePayment: "Changer de paiement",
+    stillWaiting: "Pas encore confirmé. Validez la demande sur votre téléphone, puis vérifiez à nouveau.",
+    paymentEnded: "Ce paiement n'a pas abouti. Choisissez Changer de paiement pour réessayer.",
+    placedTitle: "Commande passée",
+    placedText: "La commande {ref} est payée. Votre lien de suivi indique quand elle est prête à retirer.",
+    keepTitle: "Gardez votre lien de suivi privé",
+    keepText: "Copiez-le ou ajoutez-le aux favoris — nous l'envoyons aussi par e-mail si vous en avez donné un. Toute personne ayant le lien peut voir cette commande.",
+    accountTitle: "Vous voulez la retrouver dans un compte ?",
+    accountText: "Connectez-vous ou créez un compte avec le même numéro et la commande passe dans Activité.",
+    saveToAccount: "Enregistrer dans un compte",
+    trackOrder: "Suivre ma commande",
     how: "Comment acheter",
     step1: "Choisissez un appareil",
     step2: "Payez en invité ou connecté",
@@ -254,23 +305,15 @@ const words = {
     stepCollected: "Retirée",
     signed: "Vous êtes connecté. Cet achat apparaîtra dans votre compte.",
     name: "Nom complet",
-    phone: "Téléphone de contact",
     email: "Email (facultatif)",
     payer: "Numéro Mobile Money",
     network: "Réseau de paiement",
     quantity: "Quantité",
     pay: "Payer {total}",
-    payNoFee: "Payer {price} + frais",
     item: "Article",
-    fee: "Frais {method}",
     feeInPrompt: "Indiqués dans la demande",
-    totalApprove: "Total à valider",
-    balanceNote: "Votre solde doit être d’au moins {total}, sinon le paiement échoue et rien n’est prélevé.",
-    balanceNoteNoFee: "Votre solde doit couvrir {price}, plus les frais Mobile Money indiqués dans la demande, sinon le paiement échoue et rien n’est prélevé.",
     requestSent: "Une demande {method} de {total} (dont {fee} de frais) a été envoyée. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
     requestSentNoFee: "Une demande {method} de {price}, plus les frais Mobile Money indiqués dans la demande, a été envoyée. Si cette page se ferme, rouvrez la boutique dans le même navigateur pour reprendre.",
-    payHelp:
-      "Validez la demande sur votre téléphone. Nous ne demandons jamais votre code PIN Mobile Money.",
     total: "Total",
     returns: "Retours",
     policies: "Conditions de la boutique",
@@ -412,8 +455,11 @@ const ICON = {
   back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"/></svg>',
   chevron: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 18 6-6-6-6"/></svg>',
   check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>',
-  store: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9h18l-1.5-5h-15L3 9Z"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg>',
-  person: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  store: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7"/></svg>',
+  person: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 6 0 0 1 16 0v2"/></svg>',
+  // The checkout's waiting and placed steps (canvas: PhoneGuestCheckout).
+  phone: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 2h14v20H5ZM10 18h4M12 7v4l2 2"/></svg>',
+  done: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 5 5 9-10"/></svg>',
 };
 const category_ = (p) => l(data.categories.find((c) => c.id === p.categoryId)?.name);
 // Stock as the canvas words it: "6 in stock", "Only 2 left" (amber), "Out of stock".
@@ -538,80 +584,118 @@ function renderProduct(id) {
   promo.tick($("#view"), () => void reloadCatalogue());
   scrollTo(0, 0);
 }
+// Checkout (canvas: PhoneGuestCheckout, #400; owner 26 Nov) in four steps in
+// the sheet: how to check out, the details (one Mobile Money number, which is
+// also the contact), "Approve on your phone" with Check status and Change
+// payment, and "Order placed" with the private link and Track my order.
+let checkoutCount = 1, checkoutPending = null, checkoutPlaced = null;
+const sheetTitle = (key, back) => {
+  $("#checkoutDialog .sheet-bar__title").textContent = t(key);
+  if (back) $("#checkoutDialog .close").setAttribute("aria-label", t(back));
+};
+const maskedNumber = (value) => { const d = String(value || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, ""); return d.length === 9 ? `${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : value || ""; };
 function showCheckout() {
   const pending = pendingCheckout();
+  checkoutPending = pending;
+  checkoutPlaced = null;
   if (pending) {
     selected = pending.product;
     checkoutKey = pending.input.checkoutKey;
   } else checkoutKey = crypto.randomUUID();
-  const c = pending ? pending.input : account.customer || {};
-  const count = Number(c.quantity) || qty || 1;
+  checkoutCount = Number(pending?.input?.quantity) || qty || 1;
+  if (pending || account.authenticated) checkoutDetails(pending ? pending.input : account.customer || {});
+  else checkoutChoose();
+  $("#checkoutDialog").showModal();
+}
+function checkoutChoose() {
+  sheetTitle("checkoutBar", "backProduct");
+  $("#checkoutDialog").dataset.step = "choose";
+  $("#checkoutDetail").innerHTML = `<div class="checkout-main"><h2 id="checkoutTitle" tabindex="-1">${h(t("checkoutHow"))}</h2><p class="checkout-line">${h(l(selected.name))} × ${h(checkoutCount)} · ${h(money(selected.price * checkoutCount))}</p><div class="checkout-choice"><button type="button" class="choice is-chosen" id="checkoutGuest"><span class="choice__icon">${ICON.store}</span><span><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></span></button><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><span class="choice__icon">${ICON.person}</span><span><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></span></a></div></div>`;
+  $("#checkoutGuest").onclick = () => checkoutDetails({});
+  $("#checkoutTitle").focus();
+}
+function checkoutDetails(c) {
+  const pending = checkoutPending, guest = !(pending ? pending.account : account.authenticated);
+  // Back goes to the choice for a guest, otherwise back to the product.
+  sheetTitle(guest ? "guestCheckoutBar" : "checkoutBar", guest && !pending ? "backStep" : "backProduct");
+  $("#checkoutDialog").dataset.step = "details";
+  const network = c.network === "orange" ? "orange" : "mtn", count = checkoutCount;
   $("#checkoutDetail").innerHTML =
-    `<h2 id="checkoutTitle">${h(t("checkoutHow"))}</h2><p class="checkout-line">${h(l(selected.name))} × ${h(count)} · ${h(money(selected.price * count))}</p>${account.authenticated ? `<p class="notice notice--quiet">${h(t("signed"))}</p>` : `<div class="checkout-choice"><div class="choice is-chosen"><span class="choice__icon">${ICON.store}</span><span><strong>${h(t("guestTitle"))}</strong><span>${h(t("guestChoice"))}</span></span></div><a class="choice" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener"><span class="choice__icon">${ICON.person}</span><span><strong>${h(t("signInstead"))}</strong><span>${h(t("signInsteadHelp"))}</span></span></a></div>`}<form id="checkoutForm"><div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="phone">${h(t("phone"))}</label><input id="phone" name="phone" type="tel" required autocomplete="tel" value="${h(c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="payerPhone">${h(t("payer"))}</label><input id="payerPhone" name="payerPhone" type="tel" required aria-describedby="payerHint" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"><p class="form-help" id="payerHint">${h(t("payerHint"))}</p></div><div><label for="email">${h(t("email"))}</label><input id="email" name="email" type="email" autocomplete="email" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(l(data.settings.hours))}</span><span>${h(t("deliveryLater"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><label class="method"><input type="radio" name="network" value="mtn" ${c.network === "orange" ? "" : "checked"}><span>MTN Mobile Money</span></label><label class="method"><input type="radio" name="network" value="orange" ${c.network === "orange" ? "checked" : ""}><span>Orange Money</span></label></fieldset>${checkoutCost(selected, count, c.network === "orange" ? "orange" : "mtn")}${promo.checkout(selected, account.authenticated).note}<p class="form-help">${h(t("payHelp"))}</p><p class="form-help">${h(t("reserved"))}</p>${selected.promotion?.bonus ? "" : `<p class="form-help">${h(t("separate"))}</p>`}<details class="policy"><summary>${h(t("policies"))}</summary><p>${h(l(selected.warranty) || l(data.settings.warranty))}</p><p>${h(l(data.settings.returns))}</p></details><div class="actions"><button type="submit" id="payButton">${h(payLabel(selected, count, c.network === "orange" ? "orange" : "mtn"))}</button></div><p id="checkoutError" class="error" role="alert"></p></form>`;
-  // The breakdown and the Pay button follow the chosen network.
+    `<form id="checkoutForm" class="checkout-step"><div class="checkout-main"><h2 id="checkoutTitle" class="visually-hidden" tabindex="-1">${h(t(guest ? "guestCheckoutBar" : "checkoutBar"))}</h2>${guest ? "" : `<p class="notice notice--quiet">${h(t("signed"))}</p>`}<div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="payerPhone">${h(t("payer"))} <span class="label-note">${h(t("payerNote"))}</span></label><input id="payerPhone" name="payerPhone" type="tel" required autocomplete="tel" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("emailLabel"))} <span class="label-note">${h(t("emailNote"))}</span></label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(t("deliveryLaterShort"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><div class="pay-with__methods"><label class="method"><input type="radio" name="network" value="mtn" ${network === "mtn" ? "checked" : ""}><span>MTN MoMo</span></label><label class="method"><input type="radio" name="network" value="orange" ${network === "orange" ? "checked" : ""}><span>Orange Money</span></label></div></fieldset>${promo.checkout(selected, !guest).note}</div><div class="checkout-foot">${checkoutCost(selected, count, network)}<button type="submit" id="payButton">${h(t("payNow"))}</button><p id="checkoutError" class="error" role="alert"></p></div></form>`;
+  // The breakdown and the wallet note follow the chosen network.
   $("#checkoutForm").querySelectorAll('input[name="network"]').forEach((radio) => {
-    radio.onchange = () => {
-      $("#checkoutCost").outerHTML = checkoutCost(selected, count, radio.value);
-      $("#payButton").textContent = payLabel(selected, count, radio.value);
-    };
+    radio.onchange = () => { $("#checkoutCost").outerHTML = checkoutCost(selected, count, radio.value); };
   });
-  if (pending)
-    $("#checkoutForm")
-      .querySelectorAll("input,select")
-      .forEach((el) => (el.disabled = true));
+  if (pending) $("#checkoutForm").querySelectorAll("input,select").forEach((el) => (el.disabled = true));
   $("#checkoutForm").onsubmit = async (e) => {
     e.preventDefault();
-    const button = e.submitter;
-    await action(button, async () => {
+    await action(e.submitter, async () => {
       try {
         const fields = Object.fromEntries(new FormData(e.target));
-        const input = pending
-          ? pending.input
-          : {
-              ...fields,
-              quantity: Number(fields.quantity),
-              productId: selected.id,
-              expectedPrice: selected.price,
-              checkoutKey,
-            };
-        sessionStorage.setItem(
-          "ndahi-store-checkout",
-          JSON.stringify({
-            input,
-            product: selected,
-            account: pending ? pending.account : account.authenticated,
-          }),
-        );
-        const result = await call(
-          (pending ? pending.account : account.authenticated)
-            ? "/api/account/store/checkout"
-            : "/api/store/checkout",
-          input,
-        );
+        // One number: the paying number is also the contact (owner, 26 Nov).
+        const input = pending ? pending.input : { ...fields, phone: fields.payerPhone, quantity: Number(fields.quantity), productId: selected.id, expectedPrice: selected.price, checkoutKey };
+        sessionStorage.setItem("ndahi-store-checkout", JSON.stringify({ input, product: selected, account: pending ? pending.account : account.authenticated }));
+        const result = await call((pending ? pending.account : account.authenticated) ? "/api/account/store/checkout" : "/api/store/checkout", input);
         remember(result.order.id, result.token);
         sessionStorage.removeItem("ndahi-store-checkout");
-        $("#checkoutDialog").close();
-        location.hash = orderHash(result.order.id, result.token);
+        checkoutPending = null;
+        checkoutWait({ order: result.order, token: result.token, input, account: !guest });
       } catch (err) {
-        if (err.checkoutNotCreated) {
-          sessionStorage.removeItem("ndahi-store-checkout");
-        }
+        if (err.checkoutNotCreated) sessionStorage.removeItem("ndahi-store-checkout");
         $("#checkoutError").textContent = err.message;
         throw err;
       }
     });
   };
-  $("#checkoutDialog").showModal();
 }
-// Item, the Mobile Money fee for the network and the total to approve. Without a
-// quote from the server the fee is "shown in your prompt", never worked out here.
+function checkoutWait(placed) {
+  checkoutPlaced = placed;
+  const o = placed.order, method = METHODS[o.network] || "Mobile Money";
+  sheetTitle("waitingBar");
+  $("#checkoutDialog").dataset.step = "wait";
+  const words = Number.isFinite(o.fee) && Number.isFinite(o.total)
+    ? tf("approveText", { method, total: money(o.total), fee: money(o.fee), number: maskedNumber(placed.input.payerPhone) })
+    : tf("approveTextNoFee", { method, price: money(o.amount), number: maskedNumber(placed.input.payerPhone) });
+  $("#checkoutDetail").innerHTML = `<div class="checkout-main checkout-state"><span class="checkout-state__icon checkout-state__icon--wait" aria-hidden="true">${ICON.phone}</span><h2 id="checkoutTitle" tabindex="-1">${h(t("approveTitle"))}</h2><p>${h(words).replace(h(money(o.total)), `<strong>${h(money(o.total))}</strong>`)}</p><p id="checkoutError" class="error" role="alert"></p></div><div class="checkout-foot checkout-foot--actions"><button type="button" id="checkStatus">${h(t("checkStatus"))}</button><button type="button" class="secondary" id="changePayment">${h(t("changePayment"))}</button></div>`;
+  $("#checkoutTitle").focus();
+  const order = () => ({ orderId: o.id, ...(placed.account ? {} : { token: placed.token }) });
+  $("#checkStatus").onclick = (e) => action(e.currentTarget, async () => {
+    const result = await call(placed.account ? "/api/account/store/verify" : "/api/store/verify", order());
+    const now = result.order;
+    if (now.paymentStatus === "paid") return checkoutDone({ ...placed, order: now });
+    $("#checkoutError").textContent = ["failed", "cancelled", "expired"].includes(now.paymentStatus) ? t("paymentEnded") : t("stillWaiting");
+  });
+  // Change payment (owner, 26 Nov; as #397): the unpaid request is cancelled,
+  // unless the provider has just confirmed it, then the details come back.
+  $("#changePayment").onclick = (e) => action(e.currentTarget, async () => {
+    const result = await call(placed.account ? "/api/account/store/cancel" : "/api/store/cancel", order());
+    if (result.order.paymentStatus === "paid") return checkoutDone({ ...placed, order: result.order });
+    checkoutKey = crypto.randomUUID();
+    checkoutPlaced = null;
+    checkoutDetails(placed.input);
+  });
+}
+function checkoutDone(placed) {
+  checkoutPlaced = placed;
+  const o = placed.order;
+  sheetTitle("confirmedBar");
+  $("#checkoutDialog").dataset.step = "done";
+  $("#checkoutDetail").innerHTML = `<div class="checkout-main checkout-state checkout-state--done"><span class="checkout-state__icon checkout-state__icon--done" aria-hidden="true">${ICON.done}</span><h2 id="checkoutTitle" tabindex="-1">${h(t("placedTitle"))}</h2><p>${h(tf("placedText", { ref: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`)}</p>${placed.account ? "" : `<div class="checkout-keep"><strong>${h(t("keepTitle"))}</strong><p>${h(t("keepText"))}</p></div><div class="checkout-account"><strong>${h(t("accountTitle"))}</strong><p>${h(t("accountText"))}</p><a class="button secondary" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("saveToAccount"))}</a></div>`}</div><div class="checkout-foot checkout-foot--actions"><button type="button" id="trackOrder">${h(t("trackOrder"))}</button></div>`;
+  $("#checkoutTitle").focus();
+  $("#trackOrder").onclick = () => openPlacedOrder();
+}
+// Track my order, or closing the sheet once a request was sent, opens the order.
+function openPlacedOrder() {
+  const placed = checkoutPlaced;
+  checkoutPlaced = null;
+  $("#checkoutDialog").close();
+  if (placed) location.hash = orderHash(placed.order.id, placed.token);
+}
+// Item, the Mobile Money fee and the total to pay, then the wallet note. Without
+// a quote from the server the fee is "shown in your prompt", never worked out here.
 function checkoutCost(p, count, network) {
-  const q = quoteOf(p, network, count), price = p.price * count;
-  return `<div class="checkout-cost" id="checkoutCost"><div class="checkout-cost__row"><span>${h(t("item"))}</span><span>${h(money(price))}</span></div>${promo.checkout(p, account.authenticated).line}<div class="checkout-cost__row"><span>${h(tf("fee", { method: METHODS[network] }))}</span><span>${h(q ? money(q.fee) : t("feeInPrompt"))}</span></div>${q ? `<div class="checkout-summary"><span>${h(t("totalApprove"))}</span><strong id="total">${h(money(q.total))}</strong></div>` : ""}<p class="checkout-cost__balance">${h(q ? tf("balanceNote", { total: money(q.total) }) : tf("balanceNoteNoFee", { price: money(price) }))}</p></div>`;
-}
-function payLabel(p, count, network) {
-  const q = quoteOf(p, network, count);
-  return q ? tf("pay", { total: money(q.total) }) : tf("payNoFee", { price: money(p.price * count) });
+  const q = quoteOf(p, network, count), price = p.price * count, method = METHODS[network];
+  return `<div class="checkout-cost" id="checkoutCost"><div class="checkout-cost__row"><span>${h(t("item"))}</span><span>${h(money(price))}</span></div>${promo.checkout(p, account.authenticated).line}<div class="checkout-cost__row"><span>${h(q ? t("feeLabel") : t("feeLabelPlain"))}</span><span>${h(q ? money(q.fee) : t("feeInPrompt"))}</span></div>${q ? `<div class="checkout-summary"><span>${h(t("totalToPay"))}</span><strong id="total">${h(money(q.total))}</strong></div>` : ""}<p class="checkout-cost__balance" role="note">${q ? h(tf("walletNote", { total: "\u0000", method })).replace("\u0000", `<strong>${h(money(q.total))}</strong>`) : h(tf("walletNoteNoFee", { price: money(price), method }))}</p></div>`;
 }
 // The request that was sent, with the amounts recorded on the order.
 function requestSent(o) {
@@ -715,7 +799,14 @@ async function route() {
 
 document
   .querySelectorAll(".close")
-  .forEach((b) => (b.onclick = () => b.closest("dialog").close()));
+  .forEach((b) => (b.onclick = () => {
+    const dialog = b.closest("dialog");
+    if (dialog.id === "checkoutDialog" && checkoutPlaced) return openPlacedOrder();
+    if (dialog.id === "checkoutDialog" && dialog.dataset.step === "details" && !checkoutPending && !account.authenticated) return checkoutChoose();
+    dialog.close();
+  }));
+// Escape once a request was sent opens the order instead of losing it.
+$("#checkoutDialog")?.addEventListener("cancel", (event) => { if (checkoutPlaced) { event.preventDefault(); openPlacedOrder(); } });
 // The product page closes like the sheet it replaces: Escape returns to the shop.
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && document.body.dataset.view === "product" && !document.querySelector("dialog[open]")) location.hash = "#shop";

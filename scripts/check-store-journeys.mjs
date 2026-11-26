@@ -153,13 +153,18 @@ try {
     checks++;
     await page.locator(".product", { hasText: "Travel routers" }).getByRole("button", { name: /^View device/ }).click();
     await page.locator("#productTitle").waitFor();
+    // Guest checkout (canvas: PhoneGuestCheckout, #400): continue as guest, one
+    // Mobile Money number, Pay Now, approve, Check status, then Track my order.
     await page.getByRole("button", { name: "Buy now", exact: true }).click();
+    await page.getByRole("button", { name: /^Continue as guest/ }).click();
     await page.getByLabel("Full name").fill("Guest browser buyer");
-    await page.getByLabel("Contact phone").fill("670000099");
     await page.getByLabel("Mobile Money number").fill("690000099");
-    await page.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
+    await page.getByRole("button", { name: "Pay Now", exact: true }).click();
+    await page.getByRole("heading", { name: "Approve on your phone", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Check status", exact: true }).click();
+    await page.getByRole("heading", { name: "Order placed", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Track my order", exact: true }).click();
     await page.waitForURL(/#order\//);
-    await page.getByRole("button", { name: "Check payment" }).click();
     await page.getByText("Preparing your order", { exact: true }).waitFor();
     checks++;
     const receiptDownload = page.waitForEvent("download");
@@ -531,11 +536,9 @@ try {
   await recovery.goto("http://127.0.0.1:9193/");
   await recovery.locator('[data-product="test-cable"]').click();
   await recovery.getByRole("button", { name: "Buy now", exact: true }).click();
+  await recovery.getByRole("button", { name: /^Continue as guest/ }).click();
   await recovery.getByLabel("Full name").fill("Lost response buyer");
-  await recovery.getByLabel("Contact phone", { exact: true }).fill("670000098");
-  await recovery
-    .getByLabel("Mobile Money number", { exact: true })
-    .fill("690000098");
+  await recovery.getByLabel("Mobile Money number").fill("690000098");
   await recovery.route(
     "**/api/store/checkout",
     async (route) => {
@@ -544,16 +547,17 @@ try {
     },
     { times: 1 },
   );
-  await recovery.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
+  await recovery.getByRole("button", { name: "Pay Now", exact: true }).click();
   await recovery
     .locator("#checkoutError")
     .filter({ hasText: /fetch/i })
     .waitFor();
   await recovery.reload();
   await recovery.getByRole("button", { name: "Resume checkout" }).click();
-  await recovery.getByRole("button", { name: /^Pay [\d,]+ FCFA/ }).click();
+  await recovery.getByRole("button", { name: "Pay Now", exact: true }).click();
+  await recovery.getByRole("button", { name: "Check status", exact: true }).click();
+  await recovery.getByRole("button", { name: "Track my order", exact: true }).click();
   await recovery.waitForURL(/#order\//);
-  await recovery.getByRole("button", { name: "Check payment" }).click();
   await recovery.getByText("Preparing your order", { exact: true }).waitFor();
   checks++;
   await recoveryContext.close();
