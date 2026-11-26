@@ -1678,7 +1678,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Customer detail for Unlimited (#341, batch 13, 26 November 2026)
 
 - [-] **ADM-341 — Customer detail, redesigned for Unlimited (batch 13)** ([#341](https://github.com/ImaJin14/Ndahi-Connect/issues/341)). Owner decisions: [#341 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/341#issuecomment-7203772390).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #344):
+  - **Implemented and tested** (PR #513, not merged yet; built on #344):
     - the head shows the number masked ("+237 6•• •• 12 45"), as drawn (owner); Overview has Time left ("2 days 14 h"), Device slots ("2 of 2 used"), Ends and Home WISP router ("None registered"); data-capped bundles keep data left and devices;
     - the board's support actions, each confirmed and audited: Send PIN reset email (the customer's own Forgot PIN link to their confirmed email, or the reason it can't; owner), Remove lost passkeys (for every customer; with none it says so), Give a voucher, Revoke current subscription and Suspend; Change number stays for owners (owner, after a correction: it's the only place to change a customer's number); Print active voucher and the support code left (the voucher's page prints; the support code is in the old admin);
     - Devices lists each Personal Unlimited slot as drawn ("Slot 1 · Android phone · ••:••:••:4F:A2:10 · online at AP-Market since 08:12" or "offline, last seen 09:40") with Revoke device (a reason, then "being removed" until the router confirms) and the customer's replacements; the last time a device was seen is kept when the router's device list drops it.
