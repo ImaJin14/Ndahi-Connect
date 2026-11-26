@@ -1642,6 +1642,17 @@ On 20 November the owner asked for ready PRs to be merged as work goes on, each 
   - Fix: without a session cookie, these requests answer the same 401 straight away.
   - Merged as `f25b071`; #313 closed. Deployed. On 21 November, signed-out requests on production answered 401 in 0.74–1.44 s.
 
+### Outages screen to the artboard (#385, batch 7, 25 November 2026)
+
+- [-] **ADM-385 — Outages, redesigned (batch 7)** ([#385](https://github.com/ImaJin14/Ndahi-Connect/issues/385)). Owner decisions: [#385 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/385#issuecomment-7171757858).
+  - **Implemented and tested** (PR #474, not merged yet):
+    - "Affected area" is the drawn list, "All sites · Bamenda" then "AP-Market only", from area names the owner keeps once (`GET`/`POST /api/admin/outages/areas`, owner only, audited; edited in Network setup, #384);
+    - "Started" reads "Today 14:20" (or "Yesterday 23:10"), in Douala time, and asks again when it can't be read;
+    - the detected-outage banner sits inside the panel; the panels are the drawn 766 / 768 px wide with no extra space under the two forms;
+    - past outages say "All sites" for a whole-site outage, and the cause "Router not answering" when the notice was posted while the router had stopped answering;
+    - English and French.
+  - **Not yet:** merged, deployed, the area names entered by the owner, or an outage posted on the live admin.
+
 ### Black Friday store offer (#302, 21 November 2026)
 
 The owner's rules (20 November):
