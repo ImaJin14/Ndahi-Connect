@@ -153,7 +153,7 @@ try {
     checks++;
     await page.locator(".product", { hasText: "Travel routers" }).getByRole("button", { name: /^View device/ }).click();
     await page.locator("#productTitle").waitFor();
-    await page.getByRole("button", { name: "Buy this device" }).click();
+    await page.getByRole("button", { name: "Buy now", exact: true }).click();
     await page.getByLabel("Full name").fill("Guest browser buyer");
     await page.getByLabel("Contact phone").fill("670000099");
     await page.getByLabel("Mobile Money number").fill("690000099");
@@ -530,7 +530,7 @@ try {
     recovery = await recoveryContext.newPage();
   await recovery.goto("http://127.0.0.1:9193/");
   await recovery.locator('[data-product="test-cable"]').click();
-  await recovery.getByRole("button", { name: "Buy this device" }).click();
+  await recovery.getByRole("button", { name: "Buy now", exact: true }).click();
   await recovery.getByLabel("Full name").fill("Lost response buyer");
   await recovery.getByLabel("Contact phone", { exact: true }).fill("670000098");
   await recovery

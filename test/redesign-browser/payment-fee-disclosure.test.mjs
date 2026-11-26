@@ -169,7 +169,7 @@ test("customers see the price, the Mobile Money fee and the total before they pa
   ({ context, page, errors } = await open());
   await page.goto(`${shop}/`);
   await page.getByRole("button", { name: "View device" }).click();
-  await page.getByRole("button", { name: "Buy this device" }).click();
+  await page.getByRole("button", { name: "Buy now", exact: true }).click();
   await page.getByLabel("Full name").fill("Guest buyer");
   await page.getByLabel("Contact phone").fill("670000099");
   await page.getByLabel("Mobile Money number").fill("670000099");
