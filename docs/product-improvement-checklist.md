@@ -1459,7 +1459,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Activity on phones (#395, batch 8, 26 November 2026)
 
 - [-] **CUS-395 — Activity, redesigned (batch 8)** ([#395](https://github.com/ImaJin14/Ndahi-Connect/issues/395)). Owner decisions: [#395 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/395#issuecomment-7178822585).
-  - **Implemented and tested** (PR pending, not merged yet):
+  - **Implemented and tested** (PR #482, not merged yet):
     - the drawn phone list: the filter in its sage track, the waiting banner ("Approve it on your phone, then tap here to check", which opens the waiting payment), and rows with their date and how they were paid ("Today · MTN MoMo", "5 Nov · MTN MoMo · Receipt", "8 Nov · Orange Money") and their status pills;
     - payments still open in place, with the status check, receipt and refund request (owner, 26 Nov). A waiting row the customer has opened now updates when its payment window ends;
     - "Voucher redeemed" rows for the codes the customer entered (not those bought with their own payment, a store order's free month or a bulk gift from staff), dated when first used, opening Internet's vouchers;
