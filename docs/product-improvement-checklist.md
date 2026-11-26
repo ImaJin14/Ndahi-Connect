@@ -1425,7 +1425,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Sign in (#405, batch 11, 26 November 2026)
 
 - [-] **CUS-405 — Sign in, redesigned (batch 11)** ([#405](https://github.com/ImaJin14/Ndahi-Connect/issues/405)). Owner decisions: [#405 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/405#issuecomment-7193168371).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #399):
+  - **Implemented and tested** (PR #498, not merged yet; built on #399):
     - the drawn sign-in page: the back arrow to the hotspot page, the +237 chip beside the number, the PIN (4 to 6 digits) with Show and "Forgot PIN?" (which takes the typed number to Forgot PIN), Sign in, "or", the passkey and voucher-code buttons, the Claim link and "New to NDAHI? Buy your first bundle" at the foot;
     - no Wi-Fi status line, help link or footer note (owner); the buy and hotspot pages keep the Wi-Fi status.
   - **Not yet:** merged, deployed, or signed in on a phone at the hotspot.

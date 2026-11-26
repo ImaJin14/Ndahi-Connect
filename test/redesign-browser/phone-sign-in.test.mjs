@@ -72,4 +72,18 @@ test("Sign in is drawn as the board and signs in with a 6-digit PIN", { timeout:
   await page.waitForURL(/\/dashboard/);
   assert.deepEqual(errors, []);
   await context.close();
+
+  // French.
+  const fr = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await fr.route("**/*", (route) => [api, portal].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+  await fr.addInitScript(() => {
+    const set = () => { if (document.documentElement && document.documentElement.lang !== "fr") document.documentElement.lang = "fr"; };
+    new MutationObserver(set).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ["lang"] }); set();
+  });
+  const frPage = await fr.newPage();
+  await frPage.goto(portal + "/login");
+  await frPage.locator("#loginTitle", { hasText: "Bon retour" }).waitFor();
+  assert.equal(await frPage.locator("#useVoucherCode").innerText(), "Utiliser un code de ticket");
+  assert.equal(await frPage.locator("#forgotPin").innerText(), "PIN oublié ?");
+  await fr.close();
 });
