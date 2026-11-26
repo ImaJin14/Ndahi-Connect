@@ -146,7 +146,7 @@ try {
   const enrollmentProof = page.locator("[data-passkey-owner-proof]");
   await enrollmentProof.getByLabel("Current PIN", { exact: true }).fill("2468");
   await enrollmentProof.getByRole("button", { name: "Confirm with PIN", exact: true }).click();
-  await page.waitForFunction(() => document.querySelector("#accountSecurity").textContent.includes("Rename"));
+  await page.waitForFunction(() => !!document.querySelector("#accountSecurity [data-remove-passkey]"));
   await page.goto("about:blank");
   await context.clearCookies({ name: "customer_session" });
   await page.goto(portal + "/login?account=1");

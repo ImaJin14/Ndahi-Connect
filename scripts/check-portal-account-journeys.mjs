@@ -362,7 +362,7 @@ try {
     await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    await page.waitForFunction(() => !!document.querySelector('#accountSecurity [data-remove-passkey]'));
     const key = totpSecret();
     await store.transaction((s) => { s.customers[0].totpSecret = key; });
     await page.reload(); await openEditProfile(page);
@@ -383,7 +383,7 @@ try {
     await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    await page.waitForFunction(() => !!document.querySelector('#accountSecurity [data-remove-passkey]'));
     // Stop authenticated polling before clearing cookies; its 401 redirect can
     // otherwise race the explicit login navigation on slower CI runners.
     await page.goto('about:blank');
@@ -461,7 +461,7 @@ try {
     await page.goto(`${portal}/dashboard#account`); await openSecurityManager(page); await page.locator('[data-security-panel="passkeys"]').click(); await page.locator('#addCustomerPasskey').click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill('2468');
     await page.locator('[data-passkey-owner-proof]').getByRole('button', { name: 'Confirm with PIN', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#accountSecurity').textContent.includes('Rename'));
+    await page.waitForFunction(() => !!document.querySelector('#accountSecurity [data-remove-passkey]'));
     await openEditProfile(page);
     await page.locator('#profileEdit [name="email"]').fill('passkey@example.test');
     if (uiV2) {

@@ -78,7 +78,9 @@ try {
   await scenario("real passkey enrollment, rename and removal use the same confirmation/status experience", async ({ page, context }) => {
     await virtualKey(page, context); await open(page, "passkeys"); await page.locator("#addCustomerPasskey").click();
     await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468"); await page.getByRole("button", { name: "Confirm with PIN", exact: true }).click(); await success(page, "Passkey added.");
-    await page.locator(".rename-passkey>summary").click(); await page.locator('[data-rename-passkey] [name="label"]').fill("My phone"); await page.getByRole("button", { name: "Save name", exact: true }).click(); await success(page, "Passkey renamed.");
+    // v2 rows have no Rename (canvas: PhonePasskey, #408; owner 26 Nov): the device names the passkey.
+    if (uiV2) assert.match(await page.locator(".account-passkey b").first().textContent(), /^(Linux computer|Mac|Windows computer|Chromebook|Android phone|Android tablet|iPhone|iPad|This device)$/);
+    else { await page.locator(".rename-passkey>summary").click(); await page.locator('[data-rename-passkey] [name="label"]').fill("My phone"); await page.getByRole("button", { name: "Save name", exact: true }).click(); await success(page, "Passkey renamed."); }
     await page.locator("[data-remove-passkey]").click(); await page.locator('[data-passkey-owner-proof] [name="pin"]').fill("2468"); await page.getByRole("button", { name: "Confirm with PIN", exact: true }).click(); await success(page, "Passkey removed.");
     assert.equal((await f.store.snapshot()).customers[0].passkeys.length, 0);
   });

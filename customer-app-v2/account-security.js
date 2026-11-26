@@ -1,8 +1,33 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { loadPasskeys } from "./compat.js";
-import { runButton } from "/shared/pending.js";
 import { credentialRequest, mountVerifiedForm, passkeysAvailable, proofFields, proofButtons, securityError } from "./security-actions.js";
 import { pinControls, recoveryControls, mountAccountRecovery } from "./account-recovery.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
+
+const L = (key, values) => format(key, values || {}, currentLanguage());
+const KEY_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 7a4 4 0 1 1-3.9 5H8v3H5v-3H3V9h8.1A4 4 0 0 1 15 7Z"/></svg>';
+// "Added 2 Nov · last used today" (canvas: PhonePasskey, #408).
+const dayLabel = (iso) => new Date(iso).toLocaleDateString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
+function passkeyMeta(key) {
+  const added = Number.isFinite(Date.parse(key.createdAt)) ? L("passkeyAdded", { date: dayLabel(key.createdAt) }) : "";
+  const used = Date.parse(key.lastUsedAt);
+  if (!Number.isFinite(used)) return added;
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(used).setHours(0, 0, 0, 0)) / 86400000);
+  const when = days <= 0 ? L("passkeyToday") : days === 1 ? L("passkeyYesterday") : dayLabel(key.lastUsedAt);
+  return [added, L("passkeyLastUsed", { when })].filter(Boolean).join(" · ");
+}
+// A new passkey is named after the device it was made on (owner, 26 Nov).
+export function deviceLabel(agent = navigator.userAgent || "") {
+  if (/iPhone/i.test(agent)) return "iPhone";
+  if (/iPad/i.test(agent)) return "iPad";
+  if (/Android/i.test(agent)) return /Mobile/i.test(agent) ? "Android phone" : "Android tablet";
+  if (/CrOS/i.test(agent)) return "Chromebook";
+  if (/Windows/i.test(agent)) return "Windows computer";
+  if (/Macintosh|Mac OS X/i.test(agent)) return "Mac";
+  if (/Linux/i.test(agent)) return "Linux computer";
+  return "This device";
+}
 
 export function accountSecurityCard(customer, security, setup = false) {
   const passkeys = security.passkeys || [];
@@ -21,8 +46,8 @@ export function accountSecurityCard(customer, security, setup = false) {
         <p id="securityMessage" role="status" aria-live="polite" tabindex="-1"></p>
         <p class="account-hint" data-passkey-unavailable hidden>Passkeys are unavailable in this browser. Use your PIN, open the secure portal in your browser, or use Recovery.</p>
         <section id="security-pin" data-security-content="pin" aria-label="Manage PIN">${pinControls(customer)}</section>
-        <section id="security-passkeys" data-security-content="passkeys" aria-label="Manage passkeys" hidden><h3>Passkeys</h3><div class="account-passkey-intro"><strong>Sign in with your fingerprint or face</strong><span>A passkey stays on your phone. Nobody can steal it the way they can guess a PIN.</span></div><p>Use your device lock, fingerprint or security key. Adding or removing a passkey requires your current PIN or a fresh passkey check.</p><button type="button" id="addCustomerPasskey">Add a passkey</button>
-          <p class="account-passkeys__label">Your passkeys</p><div class="account-passkeys">${passkeys.length ? passkeys.map(key => `<div class="device"><div><b>${h(key.label)}</b><br><small>Added ${h(new Date(key.createdAt).toLocaleDateString())}</small></div><div class="device-actions"><details class="rename-passkey"><summary>Rename</summary><form data-rename-passkey="${h(key.id)}"><label>New name<input name="label" value="${h(key.label)}" maxlength="60" required></label><button>Save name</button></form></details><button type="button" class="danger-action" data-remove-passkey="${h(key.id)}">Remove</button></div></div>`).join("") : `<p class="account-hint">${customer.pinConfigured !== false ? "No passkeys saved yet. Your PIN remains available." : "Use Recovery if you have no working sign-in method."}</p>`}</div>
+        <section id="security-passkeys" data-security-content="passkeys" aria-label="Manage passkeys" hidden><h3>Passkeys</h3><div class="account-passkey-intro"><strong>${h(L("passkeyHeroTitle"))}</strong><span>${h(L("passkeyHeroText"))}</span></div><button type="button" id="addCustomerPasskey">${h(L("passkeyAdd"))}</button>
+          <p class="account-passkeys__label">${h(L("passkeyYours"))}</p><div class="account-passkeys">${passkeys.length ? passkeys.map(key => `<div class="device account-passkey"><span class="account-passkey__icon">${KEY_ICON}</span><span class="account-passkey__text"><b>${h(key.label)}</b><small>${h(passkeyMeta(key))}</small></span><button type="button" class="danger-action account-passkey__remove" data-remove-passkey="${h(key.id)}" aria-label="${h(L("passkeyRemoveNamed", { name: key.label }))}">${h(L("passkeyRemove"))}</button></div>`).join("") : `<p class="account-passkeys__none">${h(customer.pinConfigured !== false ? L("passkeyNone") : L("passkeyNoneNoPin"))}</p>`}</div>
           <div id="securityOwnerProof"></div>
         </section>
         <section id="security-recovery" data-security-content="recovery" aria-label="Account recovery" hidden>${recoveryControls(customer)}</section>
@@ -82,26 +107,13 @@ export function mountAccountSecurity({ call, customer, onChanged, restore, setup
         if (purpose === "passkey_remove") return credentialRequest(call, "/api/account/passkeys/remove", { passkeyId, ...proof }, "passkey_remove");
         const browser = await loadPasskeys(), challenge = await call("/api/account/passkeys/options", { method: "POST", body: JSON.stringify(proof) });
         const response = await browser.startRegistration({ optionsJSON: challenge.options });
-        return credentialRequest(call, "/api/account/passkeys/verify", { challengeId: challenge.challengeId, response }, "passkey_add");
+        return credentialRequest(call, "/api/account/passkeys/verify", { challengeId: challenge.challengeId, response, label: deviceLabel() }, "passkey_add");
       },
       onSuccess: () => onChanged({ panel: "passkeys", message: purpose === "passkey_add" ? "Passkey added." : "Passkey removed." }),
     });
   }
   root.querySelector("#addCustomerPasskey").onclick = event => ownerProof("passkey_add", event.currentTarget);
   root.querySelectorAll("[data-remove-passkey]").forEach(button => { button.onclick = () => ownerProof("passkey_remove", button, button.dataset.removePasskey); });
-  root.querySelectorAll("[data-rename-passkey]").forEach(form => { form.onsubmit = async event => {
-    event.preventDefault(); event.stopPropagation();
-    if (root.hasAttribute("aria-busy")) return;
-    const label = form.elements.label.value;
-    try {
-      await runButton(form.querySelector("button"), "Saving…", async () => {
-        root.setAttribute("aria-busy", "true");
-        await call("/api/account/passkeys/rename", { method: "POST", body: JSON.stringify({ passkeyId: form.dataset.renamePasskey, label }) });
-        await onChanged({ panel: "passkeys", message: "Passkey renamed." });
-      }, { controls: Array.from(root.querySelectorAll("button, input")) });
-    } catch (error) { securityError(status, error); }
-    finally { root.removeAttribute("aria-busy"); }
-  }; });
   if (restore || setup) openSecurityManager(restore || { panel: "passkeys" });
 }
 
