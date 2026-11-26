@@ -376,24 +376,39 @@ try {
   for (const role of ["owner", "operator"]) if (uiV2) await scenario(`redesigned Profile & security shows you, your passkeys and (owners) staff as ${role}`, async (page) => {
     await page.goto(`${admin}/dashboard#profile`);
     await page.getByRole("heading", { name: "Profile and security.", exact: true }).waitFor();
-    assert.match(await page.getByRole("region", { name: "You", exact: true }).innerText(), new RegExp(`fixture-${role}[\\s\\S]*${role === "owner" ? "Owner" : "Operator"}`));
+    // You (canvas: AdminProfile, #389): Name and Email, Save and Change PIN.
+    const you = page.getByRole("region", { name: "You", exact: true });
+    await you.getByLabel("Name", { exact: true }).waitFor();
+    await you.getByLabel("Email", { exact: true }).waitFor(); // Phase 6: staff sign in with their email
     await page.getByRole("button", { name: "Change PIN", exact: true }).waitFor();
-    await page.getByRole("region", { name: "You", exact: true }).getByLabel("Email", { exact: true }).waitFor(); // Phase 6: staff sign in with their email
-    await page.getByRole("heading", { name: "Your passkeys", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Passkeys", exact: true }).waitFor();
     await page.getByRole("button", { name: "Add a passkey on this device", exact: true }).waitFor();
     const staff = page.getByRole("region", { name: "Staff (owner only)", exact: true });
     if (role === "owner") {
-      assert.match(await staff.innerText(), /fixture-owner · owner[^\n]*\s*You/);
-      assert.equal(await staff.getByRole("button", { name: "Deactivate", exact: true }).count(), 3);
-      await staff.getByText("Add a staff account", { exact: true }).click();
-      await staff.getByLabel("Temporary PIN", { exact: true }).waitFor();
+      assert.match(await staff.innerText(), /· owner\s*You/);
+      // Remove opens the choice: their passkeys (lost device) or the account (owner, 26 Nov).
+      const remove = staff.getByRole("button", { name: /^Remove / });
+      assert.equal(await remove.count(), 3);
+      await remove.first().click();
+      const choice = page.getByRole("dialog", { name: /^Remove / });
+      await choice.getByRole("button", { name: /Remove from staff/ }).waitFor();
+      await choice.getByRole("button", { name: "Cancel", exact: true }).click();
+      // Invite an operator opens today's add form.
+      await staff.getByRole("button", { name: "Invite an operator", exact: true }).click();
+      const invite = page.getByRole("dialog", { name: "Invite an operator", exact: true });
+      await invite.getByLabel("Temporary PIN", { exact: true }).waitFor();
+      assert.equal(await invite.locator('[name="role"]').inputValue(), "operator");
+      await invite.getByRole("button", { name: "Cancel", exact: true }).click();
     } else assert.equal(await staff.count(), 0, "only owners manage staff");
-    // Mismatched PINs never reach the verification step.
-    await page.getByLabel("New PIN", { exact: true }).fill("123456");
-    await page.getByLabel("Confirm new PIN", { exact: true }).fill("654321");
+    // Change PIN opens its dialog; mismatched PINs never reach the verification step.
     await page.getByRole("button", { name: "Change PIN", exact: true }).click();
-    await page.getByText("The two PINs don't match.", { exact: true }).waitFor();
-    assert.equal(await page.getByRole("dialog").count(), 0);
+    const pin = page.getByRole("dialog", { name: "Change PIN", exact: true });
+    await pin.getByLabel("New PIN", { exact: true }).fill("123456");
+    await pin.getByLabel("Confirm new PIN", { exact: true }).fill("654321");
+    await pin.getByRole("button", { name: "Change PIN", exact: true }).click();
+    await pin.getByText("The two PINs don't match.", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("dialog", { name: "Verify administrator action" }).count(), 0);
+    await pin.getByRole("button", { name: "Cancel", exact: true }).click();
     assert.deepEqual(await lowContrastText(page), [], "rendered text contrast");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/profile-${role}.png`, fullPage: true });
@@ -629,7 +644,9 @@ try {
     assert.match(response.headers.get("content-type"), /manifest\+json/); assert.equal(manifest.name, "NDAHI Admin");
     for (const icon of manifest.icons) { const r = await fetch(admin + icon.src); assert.equal(r.status, 200); assert.match(r.headers.get("content-type"), /image\/png/); }
     await page.goto(`${admin}/dashboard#more`);
-    await page.getByRole("heading", { name: "Install NDAHI Admin" }).waitFor();
+    // v2 has no install card on Profile (canvas: AdminProfile, #389; owner 26 Nov).
+    if (!uiV2) await page.getByRole("heading", { name: "Install NDAHI Admin" }).waitFor();
+    else await page.locator("#panel-profile .admin-passkeys").waitFor();
     await page.evaluate(() => navigator.serviceWorker.ready);
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
     assert.deepEqual(await page.evaluate(() => caches.keys()), []);
@@ -638,7 +655,7 @@ try {
     await context.setOffline(false); await page.getByRole("link", { name: "Try again" }).click();
     await page.getByRole("link", { name: adminLinkName("Devices"), exact: true }).click(); await page.locator(uiV2 ? "#liveDevices" : "#wifiRecords").waitFor();
   });
-  await scenario("the admin install button invokes the available browser prompt and hides after installation", async (page) => {
+  if (!uiV2) await scenario("the admin install button invokes the available browser prompt and hides after installation", async (page) => {
     await page.goto(`${admin}/dashboard#more`);
     await page.locator("#adminInstall").waitFor();
     await page.evaluate(() => {
@@ -653,7 +670,7 @@ try {
     await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
     await page.locator("#adminInstall").waitFor({ state: "hidden" });
   });
-  await scenario("Apple installation gives manual Home Screen instructions", async (page) => {
+  if (!uiV2) await scenario("Apple installation gives manual Home Screen instructions", async (page) => {
     await page.goto(`${admin}/dashboard#more`); await page.getByText(/tap Share, then Add to Home Screen/).waitFor();
   }, { apple: true });
   await scenario("admin updates preserve edits and pending network setup, then refresh when idle", async (page) => {

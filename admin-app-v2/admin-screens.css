@@ -399,6 +399,33 @@ body[data-admin-view="audit"] main.nd-admin-shell__main { gap: var(--nd-space-20
 .admin-profile__card .nd-h2 { margin: 0; }
 .admin-passkeys__list li > span { font-size: var(--nd-fs-small); }
 @media (max-width: 767.98px) { .admin-profile__grid { grid-template-columns: minmax(0, 1fr); } }
+/* Profile and security (canvas: AdminProfile, #389): 22px panels, 12px apart
+   inside; 22px Playfair heads; 44px fields and buttons; rows 10px tall-padded
+   with a compact Remove; Add and Invite keep their own width. */
+#panel-profile .admin-profile__card { gap: var(--nd-space-12); }
+#panel-profile .admin-profile__card .nd-h2 { font-size: 22px; line-height: normal; }
+#panel-profile .admin-profile__card > .admin-form { gap: var(--nd-space-12); }
+#panel-profile .admin-profile__card .nd-label { line-height: normal; }
+#panel-profile .admin-profile__card .nd-input { min-height: 44px; padding: 0 var(--nd-space-12); border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
+#panel-profile .admin-profile__card .nd-btn { min-height: 44px; padding: 0 var(--nd-space-16); border-radius: 9px; font-size: var(--nd-fs-small); line-height: normal; }
+#panel-profile .admin-profile__card .nd-btn:not(.nd-btn--secondary) { border: 0; }
+#panel-profile .admin-profile__card .nd-btn--compact { min-height: 36px; }
+#panel-profile .admin-passkeys > .nd-meta { color: var(--nd-muted); font-size: var(--nd-fs-small); line-height: normal; }
+#panel-profile .admin-passkeys__list li, #panel-profile .admin-staff .admin-row { padding: var(--nd-space-10) 0; border-bottom: 1px solid var(--nd-line); font-size: var(--nd-fs-small); line-height: normal; }
+#panel-profile .admin-passkeys__list li:last-child { border-bottom: 1px solid var(--nd-line); }
+#panel-profile .admin-passkeys__list { display: flex; flex-direction: column; gap: var(--nd-space-12); }
+#panel-profile [data-pin-changed]:empty { display: none; }
+#panel-profile .admin-staff .admin-row:last-of-type { border-bottom: 1px solid var(--nd-line); }
+#panel-profile .admin-staff .admin-row__label { color: var(--nd-muted); font-size: var(--nd-fs-small); }
+#panel-profile #adminPasskeys, #panel-profile .admin-staff__invite { align-self: flex-start; }
+#panel-profile .admin-callout { margin: 0; padding: var(--nd-space-10) var(--nd-space-12); border-radius: var(--nd-radius-control); font-size: var(--nd-fs-meta); }
+/* Change PIN, Remove (their passkeys or the account) and Invite open dialogs. */
+.admin-dialog { box-sizing: border-box; width: 440px; max-width: calc(100% - 40px); margin: 90px auto auto; padding: var(--nd-space-22); border: 0; border-radius: var(--nd-radius-card-lg); background: var(--nd-paper); color: var(--nd-ink); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25); }
+.admin-dialog::backdrop { background: rgba(16, 36, 28, 0.45); }
+.admin-dialog .nd-h3 { margin: 0; font: 600 22px var(--nd-font-display); }
+.admin-dialog .admin-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; height: auto; min-height: 56px; padding: var(--nd-space-10) var(--nd-space-14); text-align: left; white-space: normal; }
+.admin-dialog .admin-choice span { color: var(--nd-muted); font-size: var(--nd-fs-meta); font-weight: 400; }
+.admin-dialog .admin-choice[hidden] { display: none; }
 /* The install prompt keeps v1's markup; v1's --muted is 4.46:1 on this background. */
 .admin-profile #adminInstall p { color: var(--nd-muted); }
 

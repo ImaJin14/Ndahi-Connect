@@ -8,7 +8,9 @@ import { mountCatalogue } from "/bundle-catalogue.js";
 import { liveSummaryText, mountLiveDevices } from "/devices.js";
 import { adminSecurity, mountServiceTests, serviceCards } from "/connections.js";
 import { exportAudit, mountAuditRecords } from "/audit.js";
-import { mountProfile, profileMarkup } from "/profile.js";
+import { mountProfile, profileMarkup, deviceLabel } from "/profile.js";
+// Registers the service worker (offline launch, updates); Profile no longer shows the install card (#389).
+import "/install.js";
 import { downloadPaymentsExport, mountPaymentRecords, showPaymentFigures } from "/payments.js";
 import { homeMetricsMarkup, loadHomeAttention, loadHomePayments } from "/admin-home.js";
 import { mountStore } from '/store.js';
@@ -19,7 +21,6 @@ import { mountCustomerPicker, mountRecords } from "/records.js";
 import { runButton } from "/shared/pending.js";
 import { startUpdates } from "/shared/updates.js";
 import { activeAdminView, adminViewParam, mountAdminNavigation, setAdminHead } from "/navigation.js";
-import { mountAdminInstall } from "/install.js";
 import { mountNotifications } from "/shared/notifications.js";
 import { openAuthenticatorRecovery } from "/authenticator-recovery.js";
 import { mountIncidentDetails } from "/incident-details.js";
@@ -181,7 +182,7 @@ ${x.deployment?.mode === "setup" ? `<section class="setup-banner" role="status">
 ${access.contacts ? `<section class="nd-panel admin-home__payments" aria-labelledby="homePaymentsTitle"><div class="nd-panel__head"><h2 class="nd-h2" id="homePaymentsTitle">${h(L("adminLatestPayments"))}</h2><a class="admin-link" href="/dashboard#payments">${h(L("adminAllPayments"))}</a></div><div class="nd-table-wrap" id="homePayments"></div></section>` : ""}</div></section>
 ${x.profile.role === "owner" ? `<section class="tab-panel admin-insights" data-tab-panel="insights" id="panel-insights" aria-labelledby="adminTitle" ${activeAdminTab === "insights" ? "" : "hidden"}><div id="insightsHost" aria-live="polite"></div></section>` : ""}
 <section class="tab-panel admin-devices" data-tab-panel="devices" id="panel-devices" aria-labelledby="adminTitle" ${activeAdminTab === "devices" ? "" : "hidden"}><p id="wifiMessage" class="nd-meta" role="status" aria-live="polite"></p><div id="liveDevices"></div></section>
-<section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div><div id="adminInstall"></div></section><div class="tab-panels">
+<section class="tab-panel admin-profile" id="panel-profile" aria-labelledby="adminTitle" data-tab-panel="profile" ${activeAdminTab === "profile" ? "" : "hidden"}><div class="admin-profile__grid">${profileMarkup(x)}</div></section><div class="tab-panels">
 <section class="tab-panel admin-outages" id="panel-outages" aria-labelledby="adminTitle" data-tab-panel="outages" ${activeAdminTab === "outages" ? "" : "hidden"}><div id="outagesHost"></div></section>
 ${storeRole ? `<section class="tab-panel admin-promotions" id="panel-promotions" aria-labelledby="adminTitle" data-tab-panel="promotions" ${activeAdminTab === "promotions" ? "" : "hidden"}><div id="promotionsHost"></div></section>` : ""}
 <section class="tab-panel admin-connections" id="panel-connections" aria-labelledby="adminTitle" data-tab-panel="connections" ${activeAdminTab === "connections" ? "" : "hidden"}><div class="admin-connections__grid" id="serviceCards">${serviceCards(x)}</div>
@@ -275,7 +276,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
   if (access.contacts) void loadHomePayments(call);
   void updateHomeRouterMenu(adminRole, api);
   if (access.contacts) showPaymentFigures(x, { storeRole });
-  mountAdminInstall($("#adminInstall"));
+  // No install card on Profile (canvas: AdminProfile, #389; owner 26 Nov): staff install from the browser menu.
   mountProfile({ call, runAction, reload: load });
   // Live devices (#381): the router is read automatically; the screen has no Refresh, as drawn.
   renderWifiSummary(x.wifi);
@@ -403,7 +404,7 @@ ${x.sales ? `<section class="tab-panel admin-cash" id="panel-cash" aria-labelled
         throw Error(`Open the admin panel at http://${result.options.rp.id}:8081 before enrolling this passkey.`);
       }
       const credential = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: result.options });
-      result = await call("/api/admin/profile/passkeys/verify", { method: "POST", body: JSON.stringify({ challengeId: result.challengeId, response: credential }) });
+      result = await call("/api/admin/profile/passkeys/verify", { method: "POST", body: JSON.stringify({ challengeId: result.challengeId, response: credential, label: deviceLabel() }) });
       $("#integrationMessage").textContent = `Passkey enrolled. This account now has ${result.passkeys} passkey${result.passkeys === 1 ? "" : "s"}.`;
     } catch (error) {
       $("#integrationMessage").textContent = error.name === "AbortError" || /abort signal/i.test(error.message)
