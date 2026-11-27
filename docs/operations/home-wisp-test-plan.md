@@ -42,6 +42,8 @@ NDAHI shows no device or router count for Home WISP (owner, 24 Nov): how many de
 | 11 | **Personal stays restricted** | With Phone P on Personal Unlimited, share its hotspot to another phone. | The second phone can't browse through ordinary forwarding (#335). Phone P can't be switched to Home mode. |
 | 12 | **Legacy NDAHI Home untouched** | Throughout, watch the legacy NDAHI Home household. | It keeps working exactly as before: same bundle, same data allowance and end date, never disconnected by these tests. |
 | 13 | **Live devices: the router and Disconnect** (#381) | With Router B registered and browsing, open Admin → Live devices. Then open the household's row and press **Disconnect** on the router. | The household is one row, "1 router", with today's data and "online since" matching the router's session. Disconnect ends only the router's session (`/ip hotspot active`): it signs in again within a minute or two and the household browses again. The registration, the end date and the router binding are unchanged, and the request is in the audit log. If the router doesn't come back by itself, note it: the step must not be relied on until it does. |
+| 14 | **The page finds the router before registering** (#351) | From a phone on Router A's LAN, open Account → Home WISP router and follow the three steps, then tap **I've done this — find my router**. Then tap **That's not my router** once, and find it again. | After the router's sign-in the page shows **Router found**: "Upstream address ••:••:••:" with the last three pairs of Router A's upstream MAC (as RouterOS reports it, never from the phone), "Seen just now" and, with device places on, the access point it is on. Nothing is registered until **Register this router** with the PIN; "That's not my router" goes back to the steps. |
+| 15 | **The page follows the router's state** (#351) | With Router A registered, open the page. Then run test 8's outage while it is open, and restore. Then tap **Replace this router**. | Registered: "Sharing with your household", **Online**, the router's masked address and the subscription's end. During the outage: **Checking**, "Sharing is paused… last try N min ago. You don't need to pay again." within about 15 seconds, and back to Online after it. Replace shows the explanation and **I've done this — find my router**, which leads to test 6. No device or router count anywhere. |
 
 ## Record the results
 
@@ -60,5 +62,7 @@ NDAHI shows no device or router count for Home WISP (owner, 24 Nov): how many de
 | 11 | | | | | | |
 | 12 | | | | | | |
 | 13 | | | | | | |
+| 14 | | | | | | |
+| 15 | | | | | | |
 
 Also note which WISP router models worked. Only routers that pass belong in "supported routers" in customer copy.

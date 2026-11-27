@@ -2185,6 +2185,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - server: the scan's answer adds the first name, the bundle's end, data left (earlier bundles) and slots (Personal Unlimited); a different signed-in account is answered with both short names; English and French.
   - **Not yet:** merged, deployed, or a slip scanned on a real phone on NDAHI Wi-Fi.
 
+### Home WISP router, as drawn (#351, batch 16, 27 November 2026)
+
+- [-] **CUS-351 — Home WISP router page, redesigned (batch 16)** ([#351](https://github.com/ImaJin14/Ndahi-Connect/issues/351)). Owner decisions: [extend the Home API](https://github.com/ImaJin14/Ndahi-Connect/issues/351#issuecomment-7214192390), [no end date until registered; find my router while replacing](https://github.com/ImaJin14/Ndahi-Connect/issues/351#issuecomment-7215726060).
+  - **Implemented and tested** (PR #540, not merged yet):
+    - for a Home WISP Unlimited bundle, Account → Home WISP router follows PhoneHomeRouter: "Register your home router" with the three steps and I've done this — find my router; "Router found" with the router's masked upstream address, "Seen just now" and its access point; the PIN and Register this router or That's not my router; then the status card, Online or "Sharing paused" with "We keep retrying automatically — last try 2 min ago. You don't need to pay again.", Replace this router and Get help. No device or router count;
+    - server: `POST /api/account/home/detect` reads the router this local sign-in came through (read only, nothing registered) with its access point when device places are on; the Home view adds the Home WISP bundle's state and the last automatic try; English and French;
+    - earlier NDAHI Home bundles keep today's page.
+  - **Not yet:** merged, deployed, or tests 14 and 15 of `docs/operations/home-wisp-test-plan.md` on the test HotSpot.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
