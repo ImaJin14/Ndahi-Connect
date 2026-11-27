@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Builds the customer quick-start guide (#434) as print-ready A4 PDFs in
-// English and French, from the design canvas board `Brochure` (its EN/FR
-// switch), the way the first edition was printed (Chromium's PDF).
+// English and French, from the design canvas boards `BrochureEN` and
+// `BrochureFR` (the `Brochure` board in each language, as rendered in
+// docs/redesign/screens/png), the way the first edition was printed
+// (Chromium's PDF).
 //
 //   node scripts/brochure-pdf.mjs --whatsapp "+237 671 493 902" [--phone "+237 …"] [--out docs/brochure]
 //
@@ -35,10 +37,13 @@ const server = http.createServer(async (req, res) => {
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const { chromium } = await import("playwright");
-const browser = await chromium.launch({ headless: true });
+// Unhinted glyph widths, as the board was rendered and the first edition
+// printed: headless Chromium's default hinting rounds every glyph's width,
+// which sets DM Sans about 3% wider and re-wraps lines.
+const browser = await chromium.launch({ headless: true, args: ["--font-render-hinting=none"] });
 await mkdir(out, { recursive: true });
 try {
-  for (const [lang, file] of [["en", "NDAHI-Connect-Pay-Get-Online-EN.pdf"], ["fr", "NDAHI-Connect-Pay-Get-Online-FR.pdf"]]) {
+  for (const [lang, board, file] of [["en", "BrochureEN", "NDAHI-Connect-Pay-Get-Online-EN.pdf"], ["fr", "BrochureFR", "NDAHI-Connect-Pay-Get-Online-FR.pdf"]]) {
     const page = await browser.newPage({ viewport: { width: 794, height: 1123 } });
     // Only the board and its fonts; nothing else is fetched. The font
     // stylesheet is asked for as a plain client, so Google sends each weight as
@@ -49,15 +54,22 @@ try {
       if (url.startsWith("https://fonts.googleapis.com/")) return route.continue({ headers: { ...route.request().headers(), "user-agent": "brochure-pdf" } });
       return url.startsWith(base) || url.startsWith("https://fonts.gstatic.com/") ? route.continue() : route.abort();
     });
-    await page.goto(`${base}/Brochure.dc.html?lang=${lang}`);
+    await page.goto(`${base}/${board}.dc.html`);
     await page.waitForSelector("html[data-dc-ready]", { state: "attached", timeout: 20000 });
     // The board's typefaces (Google Fonts): wait for every face it uses, and
     // never print the fallback font.
+    // The imported board adds its font stylesheet after the canvas is ready, so
+    // wait for every stylesheet first. (document.fonts.check() can't tell: it
+    // answers true while no face of the family is known yet.)
     const missing = await page.evaluate(async () => {
-      const faces = ["400 16px 'DM Sans'", "500 16px 'DM Sans'", "600 16px 'DM Sans'", "700 16px 'DM Sans'", "600 16px 'Playfair Display'", "700 16px 'Playfair Display'"];
-      await Promise.all(faces.map((face) => document.fonts.load(face, "Aé")));
+      const sheets = [...document.querySelectorAll('link[rel="stylesheet"]')].filter((link) => !link.sheet)
+        .map((link) => new Promise((done) => { link.addEventListener("load", done, { once: true }); link.addEventListener("error", done, { once: true }); }));
+      await Promise.race([Promise.all(sheets), new Promise((done) => setTimeout(done, 20000))]);
+      const faces = [["DM Sans", "400"], ["DM Sans", "500"], ["DM Sans", "600"], ["DM Sans", "700"], ["Playfair Display", "600"], ["Playfair Display", "700"]];
+      await Promise.all(faces.map(([family, weight]) => document.fonts.load(`${weight} 16px '${family}'`, "Aé").catch(() => [])));
       await document.fonts.ready;
-      return faces.filter((face) => !document.fonts.check(face, "Aé"));
+      const loaded = new Set([...document.fonts].filter((face) => face.status === "loaded").map((face) => `${face.family.replace(/["']/g, "")} ${face.weight}`));
+      return faces.map(([family, weight]) => `${family} ${weight}`).filter((face) => !loaded.has(face));
     });
     if (missing.length) throw new Error(`The ${lang} board's fonts didn't load: ${missing.join(", ")}.`);
     const filled = await page.evaluate(({ whatsapp, phone }) => {

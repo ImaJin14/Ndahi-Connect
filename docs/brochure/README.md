@@ -20,7 +20,7 @@ node scripts/brochure-pdf.mjs --whatsapp "+237 …" --phone "+237 …"     # if 
 node scripts/brochure-pdf.mjs --whatsapp "+237 …" --out /tmp/brochure  # a trial copy elsewhere
 ```
 
-It prints the `Brochure` board in English and French (A4, no margins, backgrounds on) with Chromium, the way the first edition was printed. The board keeps its `[SUPPORT NUMBER]` and `[WHATSAPP NUMBER]` placeholders, and the script fills them in only in the printed copy. It stops if a placeholder is left or a typeface didn't load. It fetches the board's fonts from Google Fonts, so it needs internet. The fonts are embedded as static TrueType faces (DM Sans, Playfair Display), as in the first edition.
+It prints the `BrochureEN` and `BrochureFR` boards (the `Brochure` board in each language, as rendered in `docs/redesign/screens/png/`) with Chromium: A4, no margins, backgrounds on, the way the first edition was printed. The board keeps its `[SUPPORT NUMBER]` and `[WHATSAPP NUMBER]` placeholders, and the script fills them in only in the printed copy. It stops if a placeholder is left or a typeface didn't load. It fetches the board's fonts from Google Fonts, so it needs internet. The fonts are embedded as static TrueType faces (DM Sans, Playfair Display), as in the first edition.
 
 ## Before public release
 
