@@ -1159,3 +1159,27 @@ body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space
   .tab-panel[data-voucher-print-host="true"] .admin-voucher,
   .tab-panel[data-voucher-print-host="true"] .admin-voucher__left { display: block !important; margin: 0 !important; padding: 0 !important; }
 }
+/* Customer detail's Devices for Personal Unlimited, as drawn (canvas: AdminCustomerDetail, #341). */
+.admin-slots__head { margin: 0 0 6px; color: #3d4a44; font-size: 14px; }
+.admin-slots__head strong { color: var(--nd-ink); }
+.admin-slot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--nd-line); font-size: 14px; }
+.admin-slot__mac { font-family: var(--nd-font-mono); font-size: 13px; }
+.admin-slot__revoke { flex-shrink: 0; min-height: 36px; padding: 0 16px; border: 1px solid #b8c7bd; border-radius: 9px; background: #fffef9; color: #a73535; font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-slot__revoke:disabled { opacity: 0.6; cursor: default; }
+.admin-slots__note { margin: 10px 0 0; color: var(--nd-muted); font-size: 13px; }
+/* Customer detail as drawn (canvas: AdminCustomerDetail, #341): the head's
+   type and pill, the rows panel's padding and the support buttons. */
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminTitle { font-size: 32px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminLede { font-size: 14px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .nd-pagehead .nd-pill { padding: 3px 9px; font-size: 13px; line-height: normal; }
+#panel-customer .admin-customer__overview > .admin-rows, #panel-customer [data-customer-devices], #panel-customer [data-customer-money] { padding: 22px; }
+#panel-customer .admin-support .nd-btn { min-height: 44px; padding: 0 16px; border-radius: 9px; font-size: 14px; line-height: normal; }
+#panel-customer .admin-support [data-support-message]:empty { display: none; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .nd-pagehead { margin-top: -2px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminLede { margin-top: 2px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminHeadActions { margin-bottom: 20px; }
+#panel-customer #customerSupportTitle { line-height: normal; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) { row-gap: 20px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .admin-head-title { margin-top: 6px; }
+#panel-customer .admin-support > .nd-meta { margin-top: 2px; }
+#panel-customer [data-slots-message]:empty { display: none; }
