@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { useVoucherSignIn } from "./portal-tabs.mjs";
+import { useVoucherSignIn, uiV2 } from "./portal-tabs.mjs";
+// v2's device request is drawn (#370): the reference reads "PR-7Q4" on both
+// screens, the buttons are Approve and Deny, and approving shows "… approved".
+const REF = uiV2 ? /^PR-[2-9A-HJKMNP-Z]{3}$/ : /\d{3} \d{3}/, APPROVE = uiV2 ? "Approve" : "Codes match — allow device", DECLINE = uiV2 ? "Deny" : "Decline";
+const reviewReference = (page) => uiV2 ? page.locator("[data-reference]") : page.getByLabel("Matching request code", { exact: true });
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import jsQR from "jsqr";
@@ -55,18 +59,21 @@ try {
       const posted = guest.waitForRequest(r => r.url().endsWith(ownerRoot + "/request"));
       await guest.getByRole("button", { name: "Request Wi-Fi access", exact: true }).click();
       const payload = (await posted).postDataJSON(); assert.equal(payload.phone, undefined); assert.equal(payload.code, undefined); assert.equal(payload.pin, undefined);
-      await guest.locator("#pairingReferenceCode").filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      await guest.locator("#pairingReferenceCode").filter({ hasText: REF }).waitFor();
       assert.equal(await guest.locator("#pairingRedeem").isVisible(), false);
       const pixels = await guest.locator("#pairingQr").evaluate(async img => { await img.decode(); const canvas = document.createElement("canvas"); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0); return { width: canvas.width, height: canvas.height, data: Array.from(ctx.getImageData(0, 0, canvas.width, canvas.height).data) }; });
       const qr = jsQR(Uint8ClampedArray.from(pixels.data), pixels.width, pixels.height); assert.ok(qr);
       const review = new URL(qr.data); assert.equal(review.origin, h.portal); assert.equal(review.pathname, "/pair-review.html"); assert.equal(review.searchParams.size, 1); assert.equal(review.hash, "");
       await wrong.goto(qr.data); await wrong.getByText(/Use the browser or installed app registered as your main device/).waitFor();
-      assert.equal(await wrong.getByRole("button", { name: "Codes match — allow device" }).count(), 0); assert.equal(h.f.calls.length, 0);
-      await main.goto(qr.data); const approval = main.getByRole("button", { name: "Codes match — allow device", exact: true }); await approval.waitFor();
+      assert.equal(await wrong.getByRole("button", { name: APPROVE }).count(), 0); assert.equal(h.f.calls.length, 0);
+      await main.goto(qr.data); const approval = main.getByRole("button", { name: APPROVE, exact: true }); await approval.waitFor();
       await main.route("**" + ownerRoot + "?request=*", route => route.fulfill({ status: 503, headers: { "access-control-allow-origin": h.portal, "access-control-allow-credentials": "true" }, contentType: "application/json", body: JSON.stringify({ error: "Synthetic temporary review failure" }) }), { times: 1 });
-      await main.getByRole("button", { name: "Refresh request", exact: true }).click(); await main.getByText("Service temporarily unavailable", { exact: true }).waitFor();
+      // v2 offers Refresh request only after a failed read; coming back to the page reads again.
+      if (uiV2) await main.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+      else await main.getByRole("button", { name: "Refresh request", exact: true }).click();
+      await main.getByText("Service temporarily unavailable", { exact: true }).waitFor();
       await main.getByRole("button", { name: "Refresh request", exact: true }).click(); await main.waitForFunction(() => document.getElementById("pairingReviewMessage").textContent === "");
-      assert.equal(await main.getByLabel("Matching request code", { exact: true }).textContent(), await guest.getByLabel("Matching request code", { exact: true }).textContent());
+      assert.equal(await reviewReference(main).textContent(), await guest.getByLabel("Matching request code", { exact: true }).textContent());
       assert.equal((await h.f.store.snapshot()).routerCommands.filter(c => c.action === "connect_wifi_device").length, 0);
       await noOverflow(guest, main, wrong);
       const steps = await progressContrast(guest), waiting = steps.filter(s => s.current);
@@ -74,7 +81,9 @@ try {
       for (const s of steps) assert.ok(s.ratio >= s.minimum, `pairing step "${s.text}" contrast ${s.ratio}:1 is below ${s.minimum}:1 at ${width}px`);
       await guest.screenshot({ path: `/tmp/ndahi-matching-access-screens/request-${width}.png`, fullPage: true });
       await main.screenshot({ path: `/tmp/ndahi-matching-access-screens/review-${width}.png`, fullPage: true });
-      await approval.focus(); await main.keyboard.press("Enter"); await main.getByText("Connecting — waiting for the router to confirm.", { exact: true }).waitFor();
+      await approval.focus(); await main.keyboard.press("Enter");
+      if (uiV2) await main.getByRole("heading", { name: /approved$/, level: 1 }).waitFor();
+      else await main.getByText("Connecting — waiting for the router to confirm.", { exact: true }).waitFor();
       assert.equal(h.f.calls.length, 0); assert.equal(h.handoffs.length, 0);
       await h.f.process(); await guest.waitForURL(h.portal + "/wifi-connected.html");
       assert.equal(h.f.calls.length, 1); assert.equal(h.handoffs.length, 1); assert.equal(new URL(guest.url()).hash, "");
@@ -88,8 +97,8 @@ try {
       await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).click();
       await page.locator('#pairingMessage [role="alert"]').waitFor();
       const pending = (await h.f.store.snapshot()).wifiPairingRequests[0]; assert.ok(pending);
-      await page.reload(); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
-      await page.reload(); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      await page.reload(); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: REF }).waitFor();
+      await page.reload(); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: REF }).waitFor();
       assert.equal((await h.f.store.snapshot()).wifiPairingRequests.length, 1); assert.equal(new URLSearchParams(new URL(page.url()).hash.slice(1)).get("request"), pending.id);
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false);
       h.f.advance(301); await page.reload(); await page.locator("#pairingStatus").filter({ hasText: /expired/ }).waitFor();
@@ -99,7 +108,7 @@ try {
       await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).waitFor();
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false);
       await page.getByRole("button", { name: "Request Wi-Fi access", exact: true }).click();
-      await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: REF }).waitFor();
       let release, captured;
       const held = new Promise(resolve => { release = resolve; }), observed = new Promise(resolve => { captured = resolve; });
       await page.route("**" + publicRoot + "/status", async route => {
@@ -124,11 +133,11 @@ try {
       await useVoucherSignIn(page); await page.locator('input[name="phone"]').fill("670050001"); await page.locator('input[name="code"]').fill("NC-AAAA-1111");
       await page.getByRole("button", { name: "Continue", exact: true }).click();
       await page.getByRole("button", { name: "Request access", exact: true }).click();
-      await page.waitForURL(u => u.pathname === "/pair"); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      await page.waitForURL(u => u.pathname === "/pair"); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: REF }).waitFor();
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false); assert.equal((await context.cookies()).some(c => c.name === "customer_session"), false);
       const row = (await h.f.store.snapshot()).wifiPairingRequests[0]; assert.equal(row.protocol, 3);
       await main.goto(h.portal + "/pair-review.html?request=" + row.id);
-      await main.getByRole("button", { name: "Decline", exact: true }).click();
+      await main.getByRole("button", { name: DECLINE, exact: true }).click();
       await page.locator("#pairingStatus").filter({ hasText: /declined/ }).waitFor(); assert.equal(h.f.calls.length, 0); assert.equal(h.handoffs.length, 0);
       await noOverflow(page, main); assert.deepEqual(h.errors, []);
       console.log(`PASS captive details carried forward once, no account session/PIN, and main decline at ${width}px`); checks++;
@@ -140,14 +149,14 @@ try {
       const started = page.waitForRequest(r => r.url().endsWith(ownerRoot + "/request"));
       await page.getByRole("link", { name: "Request access", exact: true }).click();
       assert.equal((await started).postDataJSON().phone, undefined);
-      await page.waitForURL(u => u.pathname === "/pair"); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /\d{3} \d{3}/ }).waitFor();
+      await page.waitForURL(u => u.pathname === "/pair"); await page.getByLabel("Matching request code", { exact: true }).filter({ hasText: REF }).waitFor();
       assert.equal(await page.getByLabel("Account phone number", { exact: true }).isVisible(), false);
       const pending = (await h.f.store.snapshot()).wifiPairingRequests[0];
       await main.goto(h.portal + "/dashboard"); await main.getByRole("button", { name: /^Notifications/ }).click();
       const item = main.locator('[data-notification-id="device:' + pending.id + '"]');
       const open = item.getByRole("link", { name: "Review", exact: true });
       assert.equal(await open.getAttribute("href"), "/pair-review.html?request=" + pending.id);
-      await open.click(); await main.getByRole("button", { name: "Codes match — allow device", exact: true }).waitFor();
+      await open.click(); await main.getByRole("button", { name: APPROVE, exact: true }).waitFor();
       assert.equal((await h.f.store.snapshot()).routerCommands.filter(c => c.action === "connect_wifi_device").length, 0);
       await noOverflow(page, main); assert.deepEqual(h.errors, []);
       console.log(`PASS signed-in HotSpot action and exact notification review without repeated details or scan/navigation authorization at ${width}px`); checks++;
