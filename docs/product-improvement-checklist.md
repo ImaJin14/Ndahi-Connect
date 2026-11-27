@@ -2270,8 +2270,8 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 
 ### Promotions, as drawn (#345, batch 20, 27 November 2026)
 
-- [-] **ADM-345 — Promotions with an Unlimited free bundle, as drawn (batch 20; merges from 1 Dec)** ([#345](https://github.com/ImaJin14/Ndahi-Connect/issues/345)). Owner decisions: [one product, one name, Give it, opening and starting promotions, the crossed-out price, units at this price, new customers](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7226915423).
-  - **Implemented and tested** (PR #557):
+- [-] **ADM-345 — Promotions with an Unlimited free bundle, as drawn (batch 20)** ([#345](https://github.com/ImaJin14/Ndahi-Connect/issues/345)). Owner decisions: [one product, one name, Give it, opening and starting promotions, the crossed-out price, units at this price, new customers](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7226915423).
+  - **Implemented, tested, merged and deployed** (PR #557; live 27 Nov at 09dfa9c7, merged before 1 Dec at the owner's request, [owner, 27 Nov](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7228635824)):
     - the free bundle is an Unlimited catalogue bundle: its length is the bundle's, the order keeps a copy, and it's issued with the bundle's own terms (as kits do); promotions saved earlier with a plan keep working;
     - "Give it": when the router is collected (the default) or as soon as the payment is confirmed; a refund before it starts cancels it;
     - "Units at this price": a cap beside stock; the sale stops when either runs out; checkout never sells more than are left;
@@ -2279,26 +2279,26 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - a live offer also shows on the Wi-Fi sign-in page (the portal Home's countdown banner under the lede), as the preview note says ([owner, 27 Nov](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7227374558));
     - the admin screen as drawn: Set up and While it runs tabs; one name and one product; the bundle picker lists Unlimited bundles ("Personal Unlimited · Unlimited · 30 days · 1 device"); Schedule promotion, Save as draft, and New promotion; the preview; while it runs, the offer with End early, units sold of the cap, revenue, free months given and started, new customers (first paid purchase with NDAHI), and the orders (linking to Store orders) with each free month's state; All promotions, where a name opens the promotion;
     - English and French.
-  - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
+  - **Not yet:** a promotion set up in the admin with an Unlimited bundle and sold. The running Black Friday promotion was saved earlier with a plan and several products; it keeps both.
 
 ### The deal on phones, as drawn (#411, batch 20, 27 November 2026)
 
-- [-] **CUS-411 — PhonePromoBuy for account holders and guests (batch 20; merges from 1 Dec)** ([#411](https://github.com/ImaJin14/Ndahi-Connect/issues/411)). Owner decisions: [checkout in the drawn order with Pay with and the number; the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/411#issuecomment-7226915791).
-  - **Implemented and tested** (PR #558):
+- [-] **CUS-411 — PhonePromoBuy for account holders and guests (batch 20)** ([#411](https://github.com/ImaJin14/Ndahi-Connect/issues/411)). Owner decisions: [checkout in the drawn order with Pay with and the number; the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/411#issuecomment-7226915791).
+  - **Implemented, tested, merged and deployed** (PR #558; live 27 Nov at 09dfa9c7):
     - the deal's product page, in the portal (Shop) and the store (guests): the badge and "Ends Mon 30 Nov · 2 d 14 h left" on the photo, the price with the regular price crossed out only after real sales at it, "N left at this price" (units or stock, whichever is fewer), the free bundle, the description and Offer terms; Get the deal and "Limit 1 per customer"; no quantity for one per number, and no "sold separately" tiles;
     - the deal's checkout: the order with its free bundle, the Mobile Payment Fee (2%) and Total to Pay; how the free bundle arrives (at collection or at payment; a guest's reserved for the number typed); "Collect at …" with who's buying; then Pay with and the number, the wallet note and Pay Now; guests go straight to it;
     - "Order placed" with the timeline of the router and its free bundle; Track my order, and "Create an account to keep it together" for guests;
     - English and French.
-  - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
+  - **Not yet:** a deal bought on a phone with real Mobile Money.
 
 ### The store during a deal, as drawn (#419, batch 20, 27 November 2026)
 
-- [-] **STORE-419 — StorePromo (batch 20; merges from 1 Dec)** ([#419](https://github.com/ImaJin14/Ndahi-Connect/issues/419)). Owner decision: [the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/419#issuecomment-7226916185).
-  - **Implemented and tested** (PR #559):
+- [-] **STORE-419 — StorePromo (batch 20)** ([#419](https://github.com/ImaJin14/Ndahi-Connect/issues/419)). Owner decision: [the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/419#issuecomment-7226916185).
+  - **Implemented, tested, merged and deployed** (PR #559; live 27 Nov at 09dfa9c7):
     - the offer's hero as drawn: its badge, headline, words and Get the deal; "7 of 20 left at this price · 1 per customer" (units at the price, or the stock); the countdown with no label while it runs; the fine print with the units, when the free bundle is given (at collection or payment) and the terms;
     - the deal's card: the badge on the photo, "+ 1 month Unlimited free", the price with the regular price crossed out only after real sales at it, what's left at the price, and Get deal;
     - English and French.
-  - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
+  - **Not yet:** a deal bought in the store with real Mobile Money.
 
 ### Kits & installs in the admin (#347, batch 19, 27 November 2026)
 
