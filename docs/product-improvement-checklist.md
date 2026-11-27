@@ -2219,6 +2219,19 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - Saved vouchers on desktop is the drawn list: each code with "[plan] · not used" or "Redeemed [date]", then Open or Used. Open goes to the voucher page, which now opens any of the account's own saved codes by id (copy, Print slip with its PDF, QR). Phones keep the list with its filter and paging.
   - **Not yet:** merged, deployed, or seen on a real phone and desktop.
 
+### Kits: catalogue, admin API and kit checkout (#424, batch 18, 27 November 2026)
+
+- [-] **STORE-424 — Kits on the server (batch 18)** ([#424](https://github.com/ImaJin14/Ndahi-Connect/issues/424)); rules in `docs/redesign/decisions.md` → "Kits, installations and payment plans (23 Nov)". The screens are #347 and #373 (batch 19).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - kit records (`storeKits`): name and description in English and French, store products with quantities, a first bundle from the Unlimited catalogue, a price in whole FCFA, draft / on sale / archived, and the options Set up for the buyer's account (Home WISP only), Offer installation and Allow Pay in 3;
+    - Admin API (`/api/admin/store/kits/save`, `kits/status`), audited; a kit goes on sale only when its products are published with prices and its bundle is published; the admin list shows "Bought separately", the saving, stock and sold this month;
+    - the shop's catalogue lists kits on sale with each network's fee and total; "Bought separately" and the saving come from current prices and show only when the saving is real;
+    - kit checkout (signed-in accounts): priced by the server (a changed price is refused), one kit at a time, every product reserved and taken from stock when paid, idempotent on its checkout key, with an immutable copy of the products, bundle and price; installation and Pay in 3 are refused until #425 and #426;
+    - a kit set up for the buyer's account adds a Set up step that staff complete before the order can be made ready;
+    - the first bundle is given at collection, unstarted, in the buyer's account (Home WISP starts on its router's first connection); a refund before it starts takes it back; a bundle in a kit is archived, never removed;
+    - stored in the existing events table (`store_kit`), no migration.
+  - **Not yet:** merged, deployed, the admin and shop screens (#347, #373, batch 19), installation (#425) and Pay in 3 (#426).
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
