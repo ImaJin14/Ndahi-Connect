@@ -8,8 +8,9 @@ export function purchaseVoucherDestination(paymentId) {
 export function purchasedVoucher(result, paymentId) {
   const payments = (result.payments || []).filter(p => p.status === 'paid' && p.confirmedAt && p.fulfillmentStatus !== 'needs_review' && (!paymentId || p.id === paymentId));
   const ids = new Set(payments.map(p => p.id));
-  return (result.vouchers || []).filter(v => ids.has(v.paymentId) && /^NC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(v.code || '') && ['active', 'expired', 'exhausted'].includes(v.status))
-    .sort((a, b) => Date.parse(b.activatedAt) - Date.parse(a.activatedAt))[0] || null;
+  // A Personal Unlimited voucher waits, not yet used, until its first connection (#367).
+  return (result.vouchers || []).filter(v => ids.has(v.paymentId) && /^NC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(v.code || '') && ['available', 'active', 'expired', 'exhausted'].includes(v.status))
+    .sort((a, b) => (Date.parse(b.activatedAt || b.createdAt) || 0) - (Date.parse(a.activatedAt || a.createdAt) || 0))[0] || null;
 }
 export async function downloadVoucherPdf({ api, id, fetcher = fetch, document: doc = document, urls = URL }) {
   const response = await fetcher(api + '/api/account/vouchers/' + encodeURIComponent(id) + '/download', { credentials: 'include', cache: 'no-store', headers: { accept: 'application/pdf' } });

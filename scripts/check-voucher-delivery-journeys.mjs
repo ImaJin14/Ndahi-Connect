@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { useVoucherSignIn } from "./portal-tabs.mjs";
+import { useVoucherSignIn, uiV2, savedVoucherReady } from "./portal-tabs.mjs";
 import http from 'node:http';
 import { createStaticServer } from '../static-server.mjs';
 import { pairingFixture, mainMac } from '../test/helpers/wifi-pairing-fixture.mjs';
@@ -28,7 +28,22 @@ try {
     try { await work(page, context); assert.deepEqual(errors, []); checks++; console.log('PASS ' + name); }
     finally { await context.close(); }
   }
-  for (const width of [320, 1280]) await scenario(`blocked PDF, retry, reload and history retain confirmed voucher at ${width}px`, async (page, context) => {
+  // v2's saved voucher is drawn without a download (#367, owner): the code as on
+  // the slip, Print slip (its page has Download PDF), and the saved list keeps its download.
+  if (uiV2) for (const width of [320, 1280]) await scenario(`saved voucher shows the code and Print slip, and history keeps it at ${width}px`, async (page) => {
+    let offers = 0; page.on('download', () => offers++);
+    await page.goto(portal + '/voucher-ready.html?payment=p1'); await savedVoucherReady(page);
+    assert.equal(await page.locator('[data-voucher-code]').textContent(), 'AAAA-1111');
+    assert.equal(await page.getByRole('link', { name: 'Print slip', exact: true }).getAttribute('href'), '/voucher-print.html#ids=v1&width=58');
+    await page.getByRole('link', { name: 'Use it on this device now', exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.closeCalls), 0);
+    await page.reload(); await savedVoucherReady(page); assert.equal(offers, 0, 'no automatic download');
+    await page.goto(portal + '/dashboard#vouchers');
+    await page.locator('[data-voucher-id="v1"]').waitFor(); const again = page.waitForEvent('download'); await page.locator('[data-voucher-id="v1"] [data-download-voucher]').click(); await again;
+    assert.equal((await f.store.snapshot()).payments[0].status, 'paid'); assert.equal((await f.store.snapshot()).vouchers.length, 1);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  }, { width });
+  if (!uiV2) for (const width of [320, 1280]) await scenario(`blocked PDF, retry, reload and history retain confirmed voucher at ${width}px`, async (page, context) => {
     await page.goto(portal + '/voucher-ready.html?payment=p1'); await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
     assert.equal(await page.getByLabel('Voucher code', { exact: true }).inputValue(), 'NC-AAAA-1111');
     assert.equal(await page.evaluate(() => window.closeCalls), 0);
@@ -42,14 +57,21 @@ try {
     assert.equal((await f.store.snapshot()).payments[0].status, 'paid'); assert.equal((await f.store.snapshot()).vouchers.length, 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   }, { width });
-  await scenario('supported standalone context offers one PDF without closing or redirecting the window', async page => {
+  if (!uiV2) await scenario('supported standalone context offers one PDF without closing or redirecting the window', async page => {
     let offers = 0; page.on('download', () => offers++);
     const download = page.waitForEvent('download'); await page.goto(portal + '/voucher-ready.html?payment=p1'); await download;
     await page.locator('#downloadStatus').filter({ hasText: 'offered to your browser' }).waitFor();
     assert.equal(new URL(page.url()).pathname, '/voucher-ready.html'); assert.equal(await page.evaluate(() => window.closeCalls), 0);
     await page.reload(); await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor(); assert.equal(offers, 1, 'reload does not repeatedly offer automatic downloads');
   }, { standalone: true });
-  await scenario('captive identity and denied storage use explicit download and preserve continuation', async page => {
+  if (uiV2) await scenario('captive identity keeps its Wi-Fi details on the saved voucher, with no automatic download', async page => {
+    let automatic = 0; page.on('download', () => automatic++);
+    const path = '/voucher-ready.html?payment=p1&mac=' + encodeURIComponent(mainMac) + '&address=10.20.0.1';
+    await page.goto(portal + path); await savedVoucherReady(page);
+    assert.equal(automatic, 0); assert.equal(await page.evaluate(() => closeCalls), 0);
+    assert.equal(new URL(page.url()).searchParams.get('mac'), mainMac);
+  }, { standalone: true, storage: false });
+  if (!uiV2) await scenario('captive identity and denied storage use explicit download and preserve continuation', async page => {
     let automatic = 0; page.on('download', () => automatic++);
     const path = '/voucher-ready.html?payment=p1&mac=' + encodeURIComponent(mainMac) + '&address=10.20.0.1';
     await page.goto(portal + path); await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
@@ -59,13 +81,13 @@ try {
   }, { standalone: true, storage: false });
   await scenario('a separate app session must sign in before any PDF or voucher code is available', async page => {
     await page.goto(portal + '/voucher-ready.html?payment=p1'); await page.waitForURL(url => url.pathname === '/login');
-    assert.equal(await page.locator('body').innerText().then(t => t.includes('NC-AAAA-1111')), false);
+    assert.equal(await page.locator('body').innerText().then(t => t.includes('AAAA-1111')), false);
     assert.equal(new URL(page.url()).searchParams.get('next'), '/voucher-ready.html?payment=p1');
   }, { signedIn: false });
   await scenario('an unrelated purchase ID is not replaced by another account voucher', async page => {
     await page.goto(portal + '/voucher-ready.html?payment=not-owned'); await page.locator('#voucherStatus').filter({ hasText: 'No confirmed voucher' }).waitFor();
-    assert.equal(await page.getByRole('button', { name: 'Download Voucher', exact: true }).isHidden(), true);
-    assert.equal(await page.locator('body').innerText().then(t => t.includes('NC-AAAA-1111')), false);
+    assert.equal(await page.getByRole(uiV2 ? 'link' : 'button', { name: uiV2 ? 'Print slip' : 'Download Voucher', exact: true }).isHidden(), true);
+    assert.equal(await page.locator('body').innerText().then(t => t.includes('AAAA-1111')), false);
   });
   await scenario('a paid saved checkout for an established account returns through owner sign-in to the exact voucher', async (page, context) => {
     await f.store.transaction(s => { s.vouchers[0].status = 'exhausted'; s.vouchers[0].usedBytes = s.vouchers[0].quotaBytes; });
@@ -89,13 +111,15 @@ try {
     const stored = await f.store.snapshot(), voucher = stored.vouchers.find(v => v.paymentId === id);
     await useVoucherSignIn(page); await page.locator('#login [name="phone"]').fill('670050001'); await page.locator('#login [name="code"]').fill(voucher.code); await page.locator('#loginSubmit').click();
     await page.locator('#customerPin').fill('2468'); await page.locator('#loginSubmit').click(); await page.waitForURL(portal + next);
-    await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor(); assert.equal(await page.getByLabel('Voucher code', { exact: true }).inputValue(), voucher.code);
+    await savedVoucherReady(page);
+    if (uiV2) assert.equal(await page.locator('[data-voucher-code]').textContent(), voucher.code.replace(/^NC-/, ''));
+    else assert.equal(await page.getByLabel('Voucher code', { exact: true }).inputValue(), voucher.code);
   }, { signedIn: false });
   await scenario('history restoration after session loss reauthenticates before displaying a voucher', async (page, context) => {
-    await page.goto(portal + '/voucher-ready.html?payment=p1'); await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
+    await page.goto(portal + '/voucher-ready.html?payment=p1'); await savedVoucherReady(page);
     await page.goto(portal + '/wifi-connected.html'); await context.clearCookies({ name: 'customer_session' });
     await page.goBack(); await page.waitForURL(url => url.pathname === '/login');
-    assert.equal(await page.locator('body').innerText().then(t => t.includes('NC-AAAA-1111')), false);
+    assert.equal(await page.locator('body').innerText().then(t => t.includes('AAAA-1111')), false);
   });
   console.log(`PASS ${checks} retained voucher browser journeys; physical captive/download and real email delivery remain separate`);
 } finally { await browser?.close(); await f.close(); await new Promise(r => { website.close(r); website.closeAllConnections(); }); }
