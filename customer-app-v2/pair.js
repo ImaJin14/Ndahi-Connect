@@ -3,6 +3,7 @@ import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { wifiCompletionUrl } from "./wifi-completion.js";
+import { matchingCodeText } from "./pairing-review.js";
 
 const config = window.NDAHI_CONFIG, $ = id => document.getElementById(id), form = $("pairingRequest"), message = $("pairingMessage"),
   progress = $("pairingProgress"), status = $("pairingStatus"), redeem = $("pairingRedeem"), cancel = $("pairingCancel"), retry = $("pairingRetry"),
@@ -40,7 +41,7 @@ function render(value) {
   retry.hidden = pending(value) || ready; completion.hidden = !ready; redeem.hidden = value.status !== "awaiting_code";
   $("pairingReference").hidden = !matching;
   if (matching) {
-    $("pairingReferenceCode").textContent = value.comparisonCode ? value.comparisonCode.slice(0, 3) + " " + value.comparisonCode.slice(3) : "Unavailable";
+    $("pairingReferenceCode").textContent = matchingCodeText(value.comparisonCode);
     if (value.qrDataUrl && /^data:image\/png;base64,/.test(value.qrDataUrl)) { $("pairingQr").src = value.qrDataUrl; $("pairingQr").hidden = false; qrUrl = value.reviewUrl; }
     if (value.referenceUnavailable) { retry.hidden = false; $("pairingQr").hidden = true; }
   } else { $("pairingQr").removeAttribute("src"); $("pairingQr").hidden = true; qrUrl = null; }

@@ -1,3 +1,4 @@
+import { uiV2 } from "./portal-tabs.mjs";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
@@ -76,7 +77,8 @@ try {
   const row = owner.locator("[data-request]").first();
   await row.getByText("Galaxy Note 8 · ending EE:03", { exact: true }).waitFor();
   const displayed = await row.getByLabel("Matching request code", { exact: true }).textContent();
-  assert.match(displayed, /^\d{3} \d{3}$/);
+  // v2 shows the reference as "PR-" and 3 characters (#370); v1 keeps the 6 digits.
+  assert.match(displayed, uiV2 ? /^PR-[2-9A-HJKMNP-Z]{3}$/ : /^\d{3} \d{3}$/);
   assert.equal(displayed, await guest.getByLabel("Matching request code", { exact: true }).textContent());
   assert.equal(f.calls.length, 0, "displaying a reference must not connect the guest");
   assert.equal(handoffs.length, 0, "displaying a reference must not finish captive sign-in");
