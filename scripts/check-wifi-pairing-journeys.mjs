@@ -69,7 +69,7 @@ try {
   await waitForOwnerApproval(guest);
   assert.equal(new URL(guest.url()).searchParams.get("mac"), guestMac);
   assert.equal(new URL(guest.url()).searchParams.get("address"), "10.20.0.30"); assert.doesNotMatch(guest.url(), /670050001|NC-AAAA/);
-  assert.equal(await guest.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
+  assert.equal(await guest.locator("#wifiSignIn").getAttribute("href"), "https://connect.hotspot.test/login");
   assert.equal((await guestContext.cookies()).some((c) => c.name === "customer_session"), false);
   console.log("PASS lost-response retry and reload preserve one request with storage and AbortSignal.timeout unavailable");
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
