@@ -2197,7 +2197,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Home with a running Unlimited bundle (#352, #353, batch 17, 27 November 2026)
 
 - [-] **CUS-352 — Home, redesigned for Unlimited (batch 17)** ([#352](https://github.com/ImaJin14/Ndahi-Connect/issues/352), [#353](https://github.com/ImaJin14/Ndahi-Connect/issues/353)). Owner decisions: [Connected only while this device is online; "Welcome back." as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7216862269).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #542, not merged yet):
     - a running Personal Unlimited (or Home WISP) bundle's card reads "Personal Unlimited · 7 days", **Connected** while the network confirms this device is signed in on NDAHI Wi-Fi (otherwise Active), "2 days 14 h left · unlimited data", a bar of the time gone, then "Ends Wed 25 Nov · 18:03" and "2 of 2 device slots"; no data-left figure. French as PhoneHomeFR: "2 j 14 h restants · données illimitées", "Se termine mer. 25 nov.", "2 appareils sur 2";
     - Home's greeting is "Welcome back." without the name; fully online, the header's network line reads just "Network online" (the other states keep their explanation);
     - server: the bundle status adds a Personal Unlimited bundle's slots taken; fixed-data bundles keep their card.
