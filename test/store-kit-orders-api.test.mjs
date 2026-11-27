@@ -76,12 +76,20 @@ test("a Home kit with installation and Pay in 3, through the API: booked, paid i
   snap = (await call("/api/admin/store", undefined, { role: "owner" })).body;
   assert.equal(snap.orders.find((x) => x.id === id).nextAction, "await_plan");
   assert.equal(snap.plans.metrics.running, 1);
+  assert.ok(snap.kitBundles.some((b) => b.id === "home-wisp-30d" && b.accessType === "home_wisp_unlimited"), "the Unlimited bundles a kit can give");
+  // The plan screen's buttons: the next payment and the rest, with the deposit's network fee.
+  const tracked = (await call("/api/account/store/order", { orderId: id }, { customer: true })).body;
+  assert.deepEqual([tracked.planQuotes.network, tracked.planQuotes.next.price, tracked.planQuotes.rest.price], ["mtn", 21000, 42000]);
+  assert.ok("fee" in tracked.planQuotes.rest, "a fee when the fee rules are set");
 
   // The customer moves the visit (more than 24 h before), then pays the rest at once.
   const moved = await call("/api/account/store/installation", { orderId: id, action: "move", day: "2026-11-23", slot: "afternoon" }, { customer: true });
   assert.deepEqual([moved.status, moved.body.order.installation.day, moved.body.order.installation.status], [200, "2026-11-23", "moved"]);
-  const rest = await call("/api/account/store/plan/pay", { orderId: id, which: "rest", expectedAmount: 42000, payerPhone: "690000002", network: "mtn", checkoutKey: randomUUID() }, { customer: true });
+  // Charged to the deposit's number and network, straight from the button (owner, 27 Nov, #375).
+  const rest = await call("/api/account/store/plan/pay", { orderId: id, which: "rest", expectedAmount: 42000, checkoutKey: randomUUID() }, { customer: true });
   assert.equal(rest.status, 200, JSON.stringify(rest.body));
+  assert.equal(rest.body.order.payment?.network ?? (await order(store, rest.body.order.id)).payment.network, "mtn");
+  assert.equal((await order(store, rest.body.order.id)).payment.payerPhone, (await order(store, id)).payment.payerPhone);
   assert.deepEqual([rest.body.order.kind, rest.body.order.covers, rest.body.parent.id], ["plan_payment", [2, 3], id]);
   await call("/api/account/store/verify", { orderId: rest.body.order.id }, { customer: true });
   o = await order(store, id);
