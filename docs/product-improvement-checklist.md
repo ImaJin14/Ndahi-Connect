@@ -2136,6 +2136,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - on-site plan: `docs/operations/device-replace-onsite-test.md`.
   - **Not yet:** merged, deployed, or the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
 
+### Account, with shop order updates (#357, batch 16, 27 November 2026)
+
+- [-] **CUS-357 — Account, redesigned (batch 16)** ([#357](https://github.com/ImaJin14/Ndahi-Connect/issues/357)). Owner decisions: [shop order updates built as drawn, off by default; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/357#issuecomment-7214190225).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - phones follow PhoneAccount: Security, Notifications with three switches (Low data alerts, Bundle ending soon, Shop order updates), Language as the English | Français control, then Home WISP router with "Not registered" / "Registered", Help & support and Sign out;
+    - shop order updates: a new "orders" notification setting, off until switched on, and one in-app/push notice per paid shop order that follows it from "Order placed" to "Order ready to collect" to "Order collected". The collection code stays on the order page. Not emailed: order emails are unchanged;
+    - server: the dashboard's `homeRouter.registered` comes from the registered Home router; notification settings accept `orders`; English and French.
+  - **Not yet:** merged, deployed, or a real order's notices seen on a phone.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
