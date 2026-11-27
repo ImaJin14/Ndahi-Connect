@@ -1772,7 +1772,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Buy for someone else, Unlimited and the 2% fee (#364, batch 14, 27 November 2026)
 
 - [-] **BUY-364 — Buy for someone else, updated for Unlimited and the Mobile Money fee (batch 14)** ([#364](https://github.com/ImaJin14/Ndahi-Connect/issues/364)). Owner decisions: [every offer as a card](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7210693173), [keep #255's wording](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7211152463).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #519, not merged yet):
     - step 2 lists every offer on sale as a card; an Unlimited card reads "Unlimited · 7 days · 2 devices" (Home WISP: "Unlimited · 30 days · household sharing", shown only while Home WISP is on); prices in XAF;
     - over the button: Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote, the wallet notice with the total in bold, and Pay Now; a network without a verified fee shows the price and says the fee is in the operator prompt;
     - the waiting screen says "An MTN MoMo request for 4,080 XAF (incl. 80 XAF fee) …"; failure messages use XAF;
