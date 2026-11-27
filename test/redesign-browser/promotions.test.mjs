@@ -103,6 +103,16 @@ test("the owner sets up, follows and ends the Black Friday promotion", { timeout
   assert.match(await text(page.locator("#promoAllTitle").locator("xpath=..").locator("tbody tr")), /^Black Friday AX1500 · 100,000 FCFA \+ Personal Unlimited free 27 Nov – 30 Nov 0 \/ 20 Scheduled · 27 Nov$/);
   await page.locator('[data-promo-tab="live"]').click();
   assert.match(await text(page.locator(".admin-promo__live")), /Scheduled · starts Fri 27 Nov at 00:00/);
+  // A promotion saved earlier with several products keeps them all when edited (Black Friday's AX1500 models).
+  await store.transaction((s) => { s.storeSettings.promotions[0].productIds = ["ax1500", "ax1500-outdoor"]; });
+  await page.reload();
+  await page.locator("#promoForm").waitFor();
+  await page.locator("#promoForm").getByLabel("Terms (English)").fill("1 per customer. While stocks last.");
+  await page.locator("#promoForm").getByRole("button", { name: "Save changes" }).click();
+  await page.getByText("Scheduled — goes live Fri 27 Nov at 00:00. Logged in the audit trail.").waitFor();
+  await page.waitForFunction(() => !document.querySelector("#promoForm button[disabled]"));
+  assert.deepEqual((await store.snapshot()).storeSettings.promotions[0].productIds, ["ax1500", "ax1500-outdoor"]);
+  await store.transaction((s) => { s.storeSettings.promotions[0].productIds = ["ax1500"]; });
   assert.deepEqual(errors, []);
   await context.close();
 

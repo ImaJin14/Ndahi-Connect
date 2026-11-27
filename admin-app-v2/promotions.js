@@ -267,7 +267,9 @@ function bind(host, data, context) {
       const legacy = p?.bonus && !p.bonus.bundleId && !draft.bundleId ? p.bonus : null;
       const result = await context.call("/api/admin/store/promotions/save", { method: "POST", body: JSON.stringify({
         ...(p ? { id: p.id, version: p.version } : {}), enabled, name: { en: draft.name, fr: draft.name }, terms: { en: draft.termsEn, fr: draft.termsFr },
-        productIds: draft.productId ? [draft.productId] : [], salePrice: draft.salePrice, perNumberLimit: draft.perNumberLimit, showWas: draft.showWas,
+        // One product per promotion (owner, 27 Nov); a promotion saved earlier with
+        // several (Black Friday's AX1500 models) keeps them all unless the product is changed.
+        productIds: p && p.productIds.length > 1 && draft.productId === p.productIds[0] ? p.productIds : draft.productId ? [draft.productId] : [], salePrice: draft.salePrice, perNumberLimit: draft.perNumberLimit, showWas: draft.showWas,
         units: draft.units === "" ? null : Number(draft.units), startsAt: fromLocal(draft.startsAt), endsAt: fromLocal(draft.endsAt),
         bonus: !draft.hasBonus ? null : legacy ? { ...legacy, startWithinDays: draft.within } : { bundleId: draft.bundleId, givenAt: draft.givenAt, startWithinDays: draft.within } }) });
       const saved = (result.promotions || []).find((x) => name(x.name) === draft.name && x.startsAt === fromLocal(draft.startsAt)) || null;

@@ -46,7 +46,7 @@ const WORDS = {
     orderPending: "{days} days of {plan}: given when your payment is confirmed.",
     orderEnded: "The free {days} days ended with the refund.", orderExpired: "The free {days} days have ended.",
     orderReview: "The free {days} days are being checked by NDAHI. You'll be contacted.",
-    gift: "Free bundle", deliveryGuestPaidPlain: "It's reserved for the Mobile Money number that pays as soon as the payment is confirmed. Claim it with that number and the code on your order.",
+    gift: "Free bundle", getDealShort: "Get deal", fineBonusPaid: "{Gift} given when your payment is confirmed; start within {within} days.", perCustomer: "{n} per customer", leftOf: "{n} of {units} left at this price", fineUnits: "Ends {day} at {time} or when the {units} units are gone.", deliveryGuestPaidPlain: "It's reserved for the Mobile Money number that pays as soon as the payment is confirmed. Claim it with that number and the code on your order.",
     limitCustomer: "Limit {n} per customer", regular: "Regular price {price}", yourOrder: "Your order",
     deliveryGuestNumber: "It's reserved for the Mobile Money number that pays ({number}). When you collect the router you get a slip with a code — claim it with that number and the code.",
     deliveryGuestPaid: "It's reserved for the Mobile Money number that pays ({number}) as soon as the payment is confirmed. Claim it with that number and the code on your order.",
@@ -91,7 +91,7 @@ const WORDS = {
     orderPending: "{days} jours de {plan} : donnés quand votre paiement est confirmé.",
     orderEnded: "Les {days} jours offerts ont pris fin avec le remboursement.", orderExpired: "Les {days} jours offerts sont terminés.",
     orderReview: "Les {days} jours offerts sont en cours de vérification par NDAHI. Vous serez contacté.",
-    gift: "Forfait offert", deliveryGuestPaidPlain: "Il est réservé au numéro Mobile Money qui paie dès que le paiement est confirmé. Réclamez-le avec ce numéro et le code de votre commande.",
+    gift: "Forfait offert", getDealShort: "J’en profite", fineBonusPaid: "{Gift} donné dès que le paiement est confirmé ; à démarrer dans les {within} jours.", perCustomer: "{n} par client", leftOf: "Plus que {n} sur {units} à ce prix", fineUnits: "Se termine le {day} à {time} ou quand les {units} unités sont parties.", deliveryGuestPaidPlain: "Il est réservé au numéro Mobile Money qui paie dès que le paiement est confirmé. Réclamez-le avec ce numéro et le code de votre commande.",
     limitCustomer: "Limite : {n} par client", regular: "Prix normal {price}", yourOrder: "Votre commande",
     deliveryGuestNumber: "Il est réservé au numéro Mobile Money qui paie ({number}). Au retrait du routeur, vous recevez un bon avec un code — réclamez-le avec ce numéro et le code.",
     deliveryGuestPaid: "Il est réservé au numéro Mobile Money qui paie ({number}) dès que le paiement est confirmé. Réclamez-le avec ce numéro et le code de votre commande.",
@@ -136,7 +136,9 @@ export function createPromo({ lang, money, l }) {
       const p = announced(data);
       if (!p) return "";
       const live = p.status === "live", first = data.products.find((x) => x.id === p.productIds[0]);
-      const left = p.productIds.reduce((n, id) => n + (data.products.find((x) => x.id === id)?.available || 0), 0);
+      // What's left at the price: the units at it (#345) or the stock, whichever is fewer.
+      const stock = p.productIds.reduce((n, id) => n + (data.products.find((x) => x.id === id)?.available || 0), 0);
+      const left = p.unitsLeft == null ? stock : Math.min(p.unitsLeft, stock);
       const b = p.bonus, values = { price: money(p.salePrice), name: l(p.name), products: productNames(data, p),
         ...(b ? { plan: b.planName, data: dataWord(b), free: freeWord(b.days), gift: giftWord(b.days) } : {}) };
       const headline = b ? w("headline", { ...values, length: length(b.days, "monthA") }) : w("headlineNoBonus", values);
@@ -144,10 +146,10 @@ export function createPromo({ lang, money, l }) {
       return `<section class="promo-hero" aria-labelledby="promoHeroTitle"><div class="promo-hero__main"><span class="promo-badge">${h(l(p.name))} · ${h(`${new Date(p.startsAt).toLocaleDateString(locale, { day: "numeric", timeZone: ZONE })} – ${new Date(lastMinute(p.endsAt)).toLocaleDateString(locale, { day: "numeric", month: "short", timeZone: ZONE })}`)}</span>
         <h1 id="promoHeroTitle">${h(headline)}</h1><p>${h(lede)}</p>
         <div class="promo-hero__cta">${live ? `<a class="button promo-hero__go" href="#product/${h(encodeURIComponent(first?.id || ""))}">${h(w("getDeal"))}</a>` : `<span class="promo-hero__soon">${h(w("startsOn", { day: `${day(p.startsAt)} · ${time(p.startsAt)}` }))}</span>`}
-          <span class="promo-hero__left">${h([live ? w("left", { n: left }) : "", w("limit", { n: p.perNumberLimit })].filter(Boolean).join(" · "))}</span></div></div>
-        <div class="promo-hero__side"><p class="promo-hero__when">${h(w(live ? "endsIn" : "upcoming"))}</p>${blocks(live ? p.endsAt : p.startsAt)}
-          <p class="promo-hero__fine">${h([w("fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)) }),
-            b && b.startsAt === "customer_start" ? w("fineBonus", { Gift: giftWord(b.days, true), within: b.startWithinDays }) : "", l(p.terms)].filter(Boolean).join(" "))}</p></div></section>`;
+          <span class="promo-hero__left">${h([live ? (p.units ? w("leftOf", { n: left, units: p.units }) : w("left", { n: left })) : "", w("perCustomer", { n: p.perNumberLimit })].filter(Boolean).join(" · "))}</span></div></div>
+        <div class="promo-hero__side">${live ? "" : `<p class="promo-hero__when">${h(w("upcoming"))}</p>`}${blocks(live ? p.endsAt : p.startsAt)}
+          <p class="promo-hero__fine">${h([w(p.units ? "fineUnits" : "fine", { day: day(lastMinute(p.endsAt)), time: time(lastMinute(p.endsAt)), units: p.units }),
+            b && b.startsAt === "customer_start" ? w(b.givenAt === "payment" ? "fineBonusPaid" : "fineBonus", { Gift: giftWord(b.days, true), within: b.startWithinDays }) : "", l(p.terms)].filter(Boolean).join(" "))}</p></div></section>`;
     },
     // A product card's extras: the badge on the photo, the free-bundle chip and
     // what is left at the price.
@@ -156,7 +158,9 @@ export function createPromo({ lang, money, l }) {
       return { badge: `<span class="promo-badge promo-badge--photo">${h(l(p.promotion.name))}</span>`,
         // Phone rows show the name here; cards show it on the photo.
         chip: `<span class="promo-badge narrow">${h(l(p.promotion.name))}</span>${p.promotion.bonus ? `<p class="promo-chip">${h(w("bonusChip", { length: length(p.promotion.bonus.days), data: dataWord(p.promotion.bonus), free: freeWord(p.promotion.bonus.days) }))}</p>` : ""}`,
-        stock: w("left", { n: p.available }), button: w("getDeal") };
+        stock: w("left", { n: p.promotion.unitsLeft == null ? p.available : Math.min(p.promotion.unitsLeft, p.available) }), button: w("getDealShort"),
+        // The regular price crossed out only after real sales at it (#345).
+        regular: Number.isFinite(p.promotion.regularPrice) ? `<s class="promo-was promo-was--card" aria-label="${h(w("regular", { price: money(p.promotion.regularPrice) }))}">${h(money(p.promotion.regularPrice).replace(/\s*FCFA$/, ""))}</s>` : "" };
     },
     // Product page (canvas: PhonePromoBuy, product).
     product(p) {

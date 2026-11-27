@@ -602,3 +602,28 @@ textarea { padding: var(--nd-space-10) var(--nd-space-14); }
 }
 .buy-done__text { line-height: normal !important; }
 .checkout-step + .checkout-foot .button.secondary, .buy-done + .checkout-foot .button.secondary { min-height: 50px; font-size: 16px; }
+/* The store during a deal (canvas: StorePromo, #419). */
+.promo-was--card { margin-left: 8px; font-size: 13px; }
+.promo-hero { gap: 28px; padding: 30px 32px; border-radius: 22px; background: #10241c; font-size: 16px; line-height: normal; }
+.promo-hero .promo-badge { padding: 4px 10px; color: #10241c; letter-spacing: .14em; line-height: normal; }
+.promo-hero h1 { font-size: 46px; font-weight: 600; letter-spacing: normal; line-height: 1.05; }
+.promo-hero .promo-hero__main > p { color: #c8d8d0; font-size: 17px; line-height: 1.5; }
+.promo-hero .promo-hero__cta { margin-top: 4px; gap: 12px; }
+.promo-hero .promo-hero__go { padding: 0 24px; border-radius: 10px; font-size: 16px; }
+.promo-hero .promo-hero__left { color: #c8d8d0; font-size: 14px; line-height: normal; }
+.promo-hero__side { gap: 12px; }
+.promo-hero .promo-count { gap: 8px; }
+.promo-hero .promo-count__cell { padding: 14px 6px; border-radius: 12px; background: rgba(255, 255, 255, .08); line-height: normal; }
+.promo-hero .promo-count__cell strong { font-size: 30px; line-height: normal; }
+.promo-hero .promo-count__cell span { color: #c8d8d0; }
+.promo-hero .promo-hero__fine { color: #9fb8ad; font-size: 12px; line-height: 1.5; }
+.product--promo .price { font-size: 18px; white-space: nowrap; }
+.product--promo .promo-chip { margin: 4px 0 0; padding: 7px 10px; border-radius: 9px; font-size: 13px; line-height: normal; }
+.product--promo .product-stock { margin-top: 2px; color: #8a4a00; font-size: 13px; font-weight: 600; }
+@media (max-width: 767.98px) {
+  .promo-hero { padding: 22px 20px; border-radius: 18px; }
+  .promo-hero h1 { font-size: 30px; }
+}
+.promo-hero .promo-count__cell { display: block; text-align: center; }
+.promo-hero .promo-count__cell strong { display: block; }
+.promo-hero .promo-count__cell span { font-size: 12px; }

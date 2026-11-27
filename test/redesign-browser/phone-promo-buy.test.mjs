@@ -68,8 +68,22 @@ test("a deal on a phone: checkout and order placed as drawn, for an account and 
     await page.screenshot({ path: `${screenshots}/${label}.png`, fullPage: true });
   };
 
+  // The store during the deal (StorePromo, #419): units in the hero and the fine print, the crossed-out price on the card.
+  let { context, page, errors } = await open(false);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${shop}/`);
+  await page.locator(".promo-hero").waitFor();
+  assert.equal(await text(page.locator(".promo-hero__left")), "6 of 20 left at this price · 1 per customer");
+  assert.match(await text(page.locator(".promo-hero__fine")), /^Ends Sun 6 Dec at 00:59 or when the 20 units are gone\. Free month given when your payment is confirmed; start within 60 days\./);
+  assert.equal(await page.locator(".promo-hero__when").count(), 0, "no label over the countdown while it runs");
+  const card = page.locator(".product--promo");
+  assert.match(await text(card), /^CYBER MONDAY TP-Link AX1500 Travel Router \+ 1 month Unlimited free 100,000 FCFA120,000 6 left at this price Get deal$/);
+  await check(page, "store-promo-1280");
+  assert.deepEqual(errors, []);
+  await context.close();
+
   // The account holder in the portal.
-  let { context, page, errors } = await open(true);
+  ({ context, page, errors } = await open(true));
   await page.goto(`${portal}/dashboard#product/ax1500`);
   await page.locator(".portal-buy__price").waitFor();
   assert.equal(await text(page.locator(".portal-buy__price")), "100,000 FCFA 120,000 6 left at this price", "the regular price, crossed out after real sales at it");

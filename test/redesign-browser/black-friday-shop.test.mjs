@@ -153,12 +153,14 @@ test("shoppers see the Black Friday countdown, the offer and their free month, t
   ({ context, page, errors } = await open(1280, false));
   await page.goto(`${shop}/`);
   await page.locator(".promo-hero").waitFor();
-  assert.equal(await text(page.locator(".promo-hero__when")), "ENDS IN");
+  // As drawn (StorePromo, #419): no label over the countdown while it runs; "N left · 1 per customer".
+  assert.equal(await page.locator(".promo-hero__when").count(), 0);
+  assert.equal(await text(page.locator(".promo-hero__left")), "10 left at this price · 1 per customer");
   const card = page.locator(".product--promo").filter({ hasText: "TP-Link AX1500 Travel Router" });
   assert.match(await text(page.locator(".promo-hero h1")), /^TP-Link AX1500 Travel Router or TP-Link AX1500 Outdoor \+ a month of Unlimited, for 100,000 FCFA\.$/);
   assert.match(await text(page.locator(".promo-hero p").first()), /plus one month of Unlimited internet \(Unlimited Home\) free\. Start the free month whenever you like\.$/);
   assert.equal(await text(page.locator(".promo-hero__fine")), "Ends Mon 30 Nov at 23:59 or when stock runs out. Free month given when you collect the router; start within 60 days. One per phone number. While stocks last.");
-  assert.match(await text(card), /BLACK FRIDAY .*TP-Link AX1500 Travel Router \+ 1 month Unlimited free 100,000 FCFA 6 left at this price Get the deal/);
+  assert.match(await text(card), /BLACK FRIDAY .*TP-Link AX1500 Travel Router \+ 1 month Unlimited free 100,000 FCFA 6 left at this price Get deal/);
   assert.match(await text(page.locator(".product").filter({ hasText: "Network cable" })), /2,000 FCFA/);
   await check(page, "store-live-1280");
   await context.close();
