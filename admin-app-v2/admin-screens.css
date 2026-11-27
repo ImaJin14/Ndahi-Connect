@@ -946,6 +946,29 @@ body[data-admin-view="outages"] main.nd-admin-shell__main { gap: var(--nd-space-
 .admin-promo__pill--scheduled { background: #e5eefb; color: #1f4b8f; }
 .admin-promo__pill--waiting { background: #efe8fb; color: #4a2b86; }
 .admin-promo__pill--quiet { background: #eef0ee; color: #3d4a44; }
+/* As drawn (#345): drafts orange; Set up's crossed-out price, Give it and the name links. */
+.admin-promo__pill--draft { background: #fff4e0; color: #6b3a00; }
+.admin-promo .admin-promo__pill--scheduled { background: #e3f0ff; color: #1d4f86; }
+.admin-promo .admin-promo__pill--waiting { background: #f1e8fb; color: #5b2d86; }
+.admin-promo .admin-promo__pill--danger { background: #fbe4e4; color: #8a2a2a; }
+body[data-admin-view="promotions"] .nd-admin-shell__main { row-gap: 20px; }
+.admin-promo__was { display: flex; flex-direction: column; justify-content: center; }
+.admin-promo__hint--block { display: block; margin-top: 2px; font-weight: 400; }
+.admin-promo__bonus { display: flex; flex-direction: column; gap: 14px; }
+.admin-promo__bonus[hidden] { display: none; }
+.admin-promo__when { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.admin-promo__when legend { padding: 0 2px; }
+.admin-promo .admin-promo__note { line-height: normal; }
+.admin-promo__radio { box-sizing: content-box; display: flex; gap: 10px; align-items: center; min-height: 56px; padding: 8px 12px; border: 1px solid #dfe5dc; border-radius: 10px; background: #ffffff; cursor: pointer; }
+.admin-promo__radio:has(input:checked) { border: 2px solid #003b2b; background: #f3f9e8; }
+.admin-promo__radio input { flex: none; width: 18px; height: 18px; min-width: 0; margin: 0; accent-color: #003b2b; }
+.admin-promo__radio strong { display: block; font-size: 14px; }
+.admin-promo__radio span span { color: #5c6963; font-size: 13px; }
+.admin-promo__card-price s { color: #5c6963; font-size: 14px; }
+.admin-promo__panel--table { gap: 6px; }
+.admin-promo .admin-promo__name { padding: 0; border: 0; background: none; color: #10241c; font: 700 14px var(--nd-font-body); text-align: left; cursor: pointer; }
+.admin-promo .admin-promo__name:hover { color: #003b2b; text-decoration: underline; }
+.admin-promo .admin-promo__name:focus-visible { outline: 3px solid #6f9500; outline-offset: 3px; }
 .admin-promo__pill--danger { background: #fbe9e9; color: #a73535; }
 .admin-promo__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
 .admin-promo__metric { display: flex; flex-direction: column; gap: 2px; padding: 18px; border-radius: 16px; }
@@ -955,7 +978,6 @@ body[data-admin-view="outages"] main.nd-admin-shell__main { gap: var(--nd-space-
 .admin-promo__table table { width: 100%; border-collapse: collapse; }
 .admin-promo__table td, .admin-promo__table th { text-align: left; padding: 11px 10px; border-bottom: 1px solid #dfe5dc; font-size: 14px; white-space: nowrap; }
 .admin-promo__table th { color: #5c6963; font-weight: 600; font-size: 13px; }
-.admin-promo__table tr[aria-current] td { background: #f3f9e8; }
 .admin-promo .admin-promo__link { min-height: 32px; padding: 0 4px; border: 0; background: none; color: #003b2b; font: 700 14px var(--nd-font-body); text-decoration: underline; cursor: pointer; }
 .admin-promo .admin-promo__go:focus-visible, .admin-promo .admin-promo__go2:focus-visible, .admin-promo .admin-promo__end:focus-visible, .admin-promo .admin-promo__link:focus-visible { outline: 3px solid #6f9500; outline-offset: 3px; }
 .admin-promo__table a { color: #003b2b; font-weight: 700; }
