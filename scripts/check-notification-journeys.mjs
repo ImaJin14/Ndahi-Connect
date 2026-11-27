@@ -85,7 +85,7 @@ try {
   assert.equal(await missingHint.locator("#customerPin").isHidden(), true);
   assert.equal(await missingHint.locator("#customerPin").evaluate((input) => input.required), false);
   assert.equal(await missingHint.locator("[data-request-access]").isHidden(), true);
-  assert.equal(await missingHint.locator("#wifiSignIn").getAttribute("href"), "https://connect.hotspot.test/login");
+  assert.equal(await missingHint.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
   assert.equal((await missingHint.context().cookies()).some((c) => c.name === "customer_session"), false);
   await missingHint.getByRole("button", { name: "Sign in to account settings", exact: true }).click();
   await missingHint.locator("#customerPin").fill("2468");
