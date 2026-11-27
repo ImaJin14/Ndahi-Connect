@@ -4,6 +4,25 @@
 //   768px. Bundles and Vouchers live under Internet, Payments under Activity.
 // scripts/ui-v2-journeys.mjs sets NDAHI_UI_VARIANT=v2 for `npm run test:browser:v2`.
 export const uiV2 = process.env.NDAHI_UI_VARIANT === "v2";
+// Use a bundle from another phone (#407): v2 types the owner's pairing code,
+// fetched here from the owner's signed-in page; v1 keeps the number and voucher.
+export async function pairingCodeFrom(owner) {
+  const api = await owner.evaluate(() => window.NDAHI_CONFIG.apiUrl);
+  return owner.evaluate(async (base) => {
+    const { csrfToken } = await (await fetch(base + "/api/account/dashboard", { credentials: "include" })).json();
+    const reply = await fetch(base + "/api/account/device-management/pairing/code", { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-csrf-token": csrfToken }, body: "{}" });
+    const body = await reply.json(); if (!reply.ok) throw Error(body.error || "No pairing code");
+    return body.code;
+  }, api);
+}
+export async function fillPairingRequest(page, { owner, phone, code }) {
+  if (uiV2) await page.getByLabel("Pairing code", { exact: true }).fill(await pairingCodeFrom(owner));
+  else { await page.getByLabel("Account phone number", { exact: true }).fill(phone); await page.getByLabel("Active voucher code", { exact: true }).fill(code); }
+}
+export const pairingSubmitName = uiV2 ? "Send request" : "Request access";
+// v2's waiting screen is ready once its reference shows (a throttled read shows the title first).
+export const waitForOwnerApproval = (page) => uiV2 ? page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /^PR-/ }).waitFor()
+  : page.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
 // Your saved voucher (#367, owner: exactly as drawn): v2 shows Print slip and
 // "Use it on this device now"; v1 keeps Download Voucher and "Continue to Dashboard / Wi-Fi".
 export const savedVoucherReady = (page) => (uiV2 ? page.getByRole("link", { name: "Print slip", exact: true })

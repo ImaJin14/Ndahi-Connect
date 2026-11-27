@@ -76,9 +76,12 @@ try {
       assert.equal(await reviewReference(main).textContent(), await guest.getByLabel("Matching request code", { exact: true }).textContent());
       assert.equal((await h.f.store.snapshot()).routerCommands.filter(c => c.action === "connect_wifi_device").length, 0);
       await noOverflow(guest, main, wrong);
-      const steps = await progressContrast(guest), waiting = steps.filter(s => s.current);
-      assert.equal(waiting.length, 1, "exactly one current pairing step"); assert.equal(waiting[0].step, "waiting"); assert.equal(waiting[0].visible, true);
-      for (const s of steps) assert.ok(s.ratio >= s.minimum, `pairing step "${s.text}" contrast ${s.ratio}:1 is below ${s.minimum}:1 at ${width}px`);
+      // v2's drawn waiting screen has no progress list (owner, #407).
+      if (!uiV2) {
+        const steps = await progressContrast(guest), waiting = steps.filter(s => s.current);
+        assert.equal(waiting.length, 1, "exactly one current pairing step"); assert.equal(waiting[0].step, "waiting"); assert.equal(waiting[0].visible, true);
+        for (const s of steps) assert.ok(s.ratio >= s.minimum, `pairing step "${s.text}" contrast ${s.ratio}:1 is below ${s.minimum}:1 at ${width}px`);
+      }
       await guest.screenshot({ path: `/tmp/ndahi-matching-access-screens/request-${width}.png`, fullPage: true });
       await main.screenshot({ path: `/tmp/ndahi-matching-access-screens/review-${width}.png`, fullPage: true });
       await approval.focus(); await main.keyboard.press("Enter");

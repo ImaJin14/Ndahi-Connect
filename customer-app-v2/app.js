@@ -383,7 +383,7 @@ async function load() {
   mountActivity({ call });
   document.querySelectorAll("details[data-payment-row]").forEach((row) => { row.ontoggle = () => { if (row.open) openPayments.add(row.dataset.paymentRow); else openPayments.delete(row.dataset.paymentRow); }; });
   mountAccountHub(call);
-  mountDevicesAdd();
+  mountDevicesAdd(call);
   mountShop({ call, api });
   // A promotion's free month waiting to be started (#423), then the store
   // promotion and its countdown on Home (#302).
