@@ -2141,7 +2141,7 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Device request review, as drawn (#370, batch 15, 27 November 2026)
 
 - [-] **CUS-370 — Review Wi-Fi access, redesigned (batch 15)** ([#370](https://github.com/ImaJin14/Ndahi-Connect/issues/370)). Owner decision: [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/370#issuecomment-7212185682).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #524, not merged yet):
     - "A device wants to use your bundle", the reference card ("PR-7Q4 · Only approve if the other screen shows the same reference."), Device ("Laptop · Windows", from what its browser reported), Asked ("2 minutes ago") and, for Personal Unlimited, After approving ("2 of 2 device slots used"); Deny and Approve;
     - then "Laptop approved — It can use your bundle now…" or "Request denied — … If you didn't expect this request, change your PIN.", with Back to devices;
     - the reference reads "PR-" and 3 characters on both v2 screens (the request, the review and the Devices list), derived from the request's 6-digit code, which the server still checks in full; v1 keeps the 6 digits;
