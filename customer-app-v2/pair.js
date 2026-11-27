@@ -4,13 +4,23 @@ import { responseError, showError } from "./errors.js";
 import { runButton } from "/shared/pending.js";
 import { wifiCompletionUrl } from "./wifi-completion.js";
 import { matchingCodeText } from "./pairing-review.js";
+import { format, getPreferredLanguage } from "/shared/i18n.js";
+// Use a bundle from another phone (#407, canvas: PhonePairRequest; owner 27 Nov):
+// type the owner's pairing code and Send request (a device signed in to the
+// account keeps its one-tap request); then "Waiting for approval" with the
+// reference and its QR, Check again and Cancel request; then "Approved — you're
+// online". The page follows the customer's language.
+const lang = getPreferredLanguage();
+document.documentElement.lang = lang;
+const L = (key, values) => format(key, values || {}, lang);
 
 const config = window.NDAHI_CONFIG, $ = id => document.getElementById(id), form = $("pairingRequest"), message = $("pairingMessage"),
   progress = $("pairingProgress"), status = $("pairingStatus"), redeem = $("pairingRedeem"), cancel = $("pairingCancel"), retry = $("pairingRetry"),
   done = $("pairingDone"), completion = $("pairingCompletion"), account = $("pairingAccount"), hint = wifiHint();
-let request = null, key, timer, countdown, polling = false, finishing = false, csrfToken, authenticated = false, generation = 0, qrUrl;
+let completionTimer, request = null, key, timer, countdown, polling = false, finishing = false, csrfToken, authenticated = false, generation = 0, qrUrl;
 const signIn = $("wifiSignIn");
-if (config.hotspotLoginUrl) { signIn.href = config.hotspotLoginUrl; signIn.hidden = false; }
+// "Open Wi-Fi sign-in" only helps a device the sign-in page couldn't identify (#407: not drawn otherwise).
+if (config.hotspotLoginUrl) { signIn.href = config.hotspotLoginUrl; signIn.hidden = Boolean(hint); }
 const pending = value => value && ["pending", "awaiting_code", "awaiting_confirmation", "connecting"].includes(value.status);
 async function call(path, input) {
   const result = await requestJson(config.apiUrl + "/api/wifi/pairing/" + path, { cache: "no-store", credentials: "omit", ...(input ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) } : {}) });
@@ -37,8 +47,18 @@ function render(value) {
   request = value; progress.hidden = false; form.hidden = true; account.hidden = true;
   cancel.hidden = !["pending", "awaiting_code", "awaiting_confirmation"].includes(value.status);
   const ready = value.status === "connected" && value.completionReady === true, matching = value.protocol === 3 && value.status === "awaiting_confirmation";
-  document.querySelector(".pair-progress").hidden = !pending(value) && !ready;
-  retry.hidden = pending(value) || ready; completion.hidden = !ready; redeem.hidden = value.status !== "awaiting_code";
+  // Approved: who shares the bundle; the device finishes its Wi-Fi sign-in from here.
+  const approved = value.status === "connected" && value.completionReady === true;
+  $("pairingApproved").hidden = !approved;
+  if (approved) $("pairingApprovedText").textContent = value.sharedWith?.owner ? L("pairApprovedBody", { owner: value.sharedWith.owner, plan: value.sharedWith.plan || L("pairTheBundle") }) : L("pairApprovedBodyAnon");
+  progress.hidden = approved;
+  $("pairingWaitTitle").textContent = L(value.status === "connecting" ? "pairConnectingTitle" : pending(value) ? "pairWaitTitle" : "pairEndedTitle");
+  $("pairingCheck").hidden = !pending(value);
+  // The drawn waiting screen has no progress list (owner, #407); its steps still track the state.
+  document.querySelector(".pair-progress").hidden = true;
+  retry.hidden = pending(value) || ready; clearTimeout(completionTimer); completion.hidden = true;
+  // Approved, as drawn; Done appears only if this window hasn't moved on to the Wi-Fi sign-in.
+  if (ready) completionTimer = setTimeout(() => { if (request === value) completion.hidden = false; }, 3000); redeem.hidden = value.status !== "awaiting_code";
   $("pairingReference").hidden = !matching;
   if (matching) {
     $("pairingReferenceCode").textContent = matchingCodeText(value.comparisonCode);
@@ -46,7 +66,9 @@ function render(value) {
     if (value.referenceUnavailable) { retry.hidden = false; $("pairingQr").hidden = true; }
   } else { $("pairingQr").removeAttribute("src"); $("pairingQr").hidden = true; qrUrl = null; }
   const text = ["pending", "awaiting_confirmation"].includes(value.status) ? value.mainRequired ? "The account owner must set a main device before approving access. This device is waiting." : value.referenceUnavailable ? "This request reference is unavailable. Request access again." : matching ? "Waiting for your main device to approve." : (value.name || "Unnamed device") + " is waiting for the main device to approve access." : value.status === "awaiting_code" ? "Approved by your main device. Ask its owner for the six-digit code and enter it below." : value.status === "connecting" ? "Connecting… Wait for the router to confirm this device." : ready ? "Connected — this device's Wi-Fi access was confirmed by the router." : value.status === "connected" ? "This earlier connection is no longer confirmed. Request access again to check this device's current connection." : value.message || "Request " + value.status + ". Request access again.";
-  if (status.textContent !== text) status.textContent = text;
+  // The drawn waiting screen says it with the reference; other states keep their line.
+  const shown = matching && !value.mainRequired && !value.referenceUnavailable ? "" : text;
+  if (status.textContent !== shown) status.textContent = shown;
   for (const step of document.querySelectorAll("[data-pair-step]")) {
     const current = step.dataset.pairStep === (ready ? "connected" : value.status === "connecting" ? "connecting" : "waiting");
     if (current) step.setAttribute("aria-current", "step"); else step.removeAttribute("aria-current");
@@ -84,8 +106,8 @@ async function identifyAccount() {
   }
 }
 function showStart() {
-  form.hidden = !hint || authenticated; account.hidden = !hint || !authenticated;
-  message.textContent = !hint ? "The Wi-Fi sign-in page could not identify this device. Open Wi-Fi sign-in below; if it still fails, use Connection help. You do not need the account owner's PIN to request access." : authenticated ? "Your account is already signed in. Request access without entering its number or voucher again." : "Use the account number and active voucher to request access. Your main device confirms the matching code.";
+  form.hidden = !hint || authenticated; account.hidden = !hint || !authenticated; $("pairLede").hidden = authenticated;
+  message.textContent = !hint ? "The Wi-Fi sign-in page could not identify this device. Open Wi-Fi sign-in below; if it still fails, use Connection help. You do not need the account owner's PIN to request access." : "";
 }
 retry.onclick = async () => {
   generation++; clearTimeout(timer); clearInterval(countdown); forget(); request = null; key = null; qrUrl = null; finishing = false; redeem.reset(); progress.hidden = true; completion.hidden = true; $("pairingQr").removeAttribute("src");
@@ -106,7 +128,18 @@ async function begin(input, button) {
     render(result.request); message.textContent = ""; status.tabIndex = -1; status.focus(); clearTimeout(timer); timer = setTimeout(poll, 5000);
   }, { controls: authenticated ? [button] : Array.from(form.elements) }); } catch (error) { showError(message, error); }
 }
-form.onsubmit = event => { event.preventDefault(); void begin(formValues(form), form.querySelector('[type="submit"]')); };
+form.onsubmit = event => { event.preventDefault(); void begin({ pairingCode: formValues(form).pairingCode }, form.querySelector('[type="submit"]')); };
+$("pairingCheck").onclick = () => { clearTimeout(timer); void poll(); };
+// The drawn words, in the customer's language.
+$("pairTitle").textContent = L("pairBar"); $("pairBack").setAttribute("aria-label", L("pairBack"));
+$("pairHeading").textContent = L("pairTitle");
+$("pairLede").innerHTML = L("pairLede", { where: "\u0000" }).split("\u0000").map((part) => part.replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";")).join("<strong>" + L("pairWhere").replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";") + "</strong>");
+$("pairCodeLabel").textContent = L("pairCodeLabel"); $("pairSend").textContent = L("pairSend");
+$("pairAccountText").textContent = L("pairAccountText"); $("pairingAccountRequest").textContent = L("pairAccountRequest");
+$("pairingCheck").textContent = L("pairCheck"); $("pairingCancel").textContent = L("pairCancel"); $("pairingRetry").textContent = L("pairRetry");
+$("pairingApprovedTitle").textContent = L("pairApprovedTitle");
+$("pairRefText").firstChild.textContent = L("pairRefBefore") + " ";
+$("pairRefText").lastChild.textContent = L("pairRefAfter");
 $("pairingAccountRequest").onclick = event => { void begin({}, event.currentTarget); };
 // Compatibility for an already-started legacy request. New requests never use
 // this credential-entry step; a displayed reference cannot redeem one.

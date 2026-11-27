@@ -2086,6 +2086,17 @@ On 21 November the owner also asked for the countdown in the customer portal.
     - English and French.
   - **Not yet:** the router readings checked on-site against the RB5009 (ping, uplink port and hotspot sessions).
 
+### Device slots on the Devices page (#349, batch 15, 27 November 2026)
+
+- [-] **CUS-349 — Device slots, redesigned (batch 15)** ([#349](https://github.com/ImaJin14/Ndahi-Connect/issues/349)). Owner decisions: [Remove asks for the PIN inline; Replace only on a device without a slot](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7212011980), [main-device setup folded under the FAQ; "Being removed" until the router confirms](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7213908126).
+  - **Implemented and tested** (PR #534, not merged yet; built on #533 and #525):
+    - a running Personal Unlimited bundle's Devices page is "Device slots · 2 of 2 used": the plan, its length and device count, then one card per slot (the device, online now or last seen, its masked Wi-Fi address), an empty slot as a dashed card, "All slots are in use …" when full, and "Private Wi-Fi address on my phone?";
+    - on a device without a slot, each slot has Replace and the foot is "Replace a device" (both open Replace a device, #350); on the phone holding a slot it is "This phone", Replace goes, and the foot is "Show a pairing code" (#407);
+    - Remove opens the drawn inline confirm with the PIN; the slot shows "Being removed — the slot frees once the router confirms" and stays counted until the router confirms;
+    - main-device setup and connection requests aren't drawn but approvals need them: they fold into "Main device and connection requests" under the FAQ, open by themselves while no main device is set;
+    - server: the device list's `slots` adds the plan's name and length and marks the slot held by this browser's device (on the current router only); other bundles keep today's Devices page; English and French.
+  - **Not yet:** merged, deployed, or checked on a real phone on NDAHI Wi-Fi (the "This phone" slot, Remove with the router confirming).
+
 ### Product photos up to 30 (#321, 21 November 2026)
 
 On 21 November the owner asked for products to take up to 30 photos instead of 4. Codex had raised the limits; Claude took the work over.
@@ -2192,6 +2203,17 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
     - voucher enforcement, assisted connections, the purchase-access check, the outage area names (#385) and the job history in a closed "More network tools";
     - every string through i18n, English and French (the screen was English only).
   - **Not yet:** a router change previewed, applied and kept on the RB5009 on-site.
+
+### Use a bundle from another phone, with a pairing code (#407, batch 15, 27 November 2026)
+
+- [-] **CUS-407 — Use a bundle from another phone, redesigned with a pairing code (batch 15)** ([#407](https://github.com/ImaJin14/Ndahi-Connect/issues/407)). Owner decisions: [build the pairing code](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212011525), [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212186185), [waiting with the QR, they/them, the code card, the signed-in shortcut](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212468449).
+  - **Implemented and tested** (PR #525, not merged yet; built on #370):
+    - the owner's Devices → "Add another device" shows a pairing code on a forest card ("PAIRING CODE · 482 913 · Type it on the other device. It works once, for 10 minutes."), a countdown, New code and Close; a bundle that doesn't share keeps its old help;
+    - the new device types the code and taps Send request; the code names the account, so it no longer asks for the account's number and a voucher; a device signed in to the account keeps its one-tap "Request Wi-Fi access";
+    - "Waiting for approval" with the reference ("PR-7Q4") and its QR, Check again and Cancel request; then "Approved — you're online. This device shares Amina's Personal Unlimited bundle. They can remove it any time from Devices."; Done shows only if the Wi-Fi sign-in doesn't take over;
+    - server: `POST /api/account/device-management/pairing/code` issues a 6-digit code (10 minutes, stored hashed, unique among codes in use, once only); a request with it always asks the owner to approve with a reference; wrong codes count against the address (5 in 15 minutes); an approved device learns the owner's first name and the plan;
+    - the sign-in page's own "Request access" (number and voucher) is unchanged; English and French; the page follows the customer's language.
+  - **Not yet:** merged, deployed, or a code shown on one real phone and typed on another on NDAHI Wi-Fi.
 
 ### Bundles arranged Daily, Weekly and Monthly (21 November 2026)
 

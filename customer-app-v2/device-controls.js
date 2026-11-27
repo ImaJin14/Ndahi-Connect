@@ -3,6 +3,9 @@ import { formValues, loadPasskeys } from "./compat.js";
 import { runButton } from "/shared/pending.js";
 import { showError } from "./errors.js";
 import { mountPairingControls } from "./wifi-pairing.js";
+import { deviceSlotsContent, mountDeviceSlots, slotsCount } from "./device-slots.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 // A passkey is an alternative proof; stale PIN text must not block its prompt.
 function validProofForm(form, usePasskey) {
@@ -17,6 +20,8 @@ export async function mountDeviceControls({ container, call, onChanged }) {
   message.setAttribute("role", "status");
   try {
     info = await call("/api/account/device-management");
+    // A running Personal Unlimited bundle shows its slots as drawn (#349).
+    showSlots(container, info, call, onChanged);
     const supportsMain = (!info.deviceCapabilities || info.deviceCapabilities.mainDeviceSupported !== false);
     const main = supportsMain && info.mainDevice;
     container.innerHTML = `${supportsMain ? `<p>${main ? `Main device: <strong>${h(main.name || "Unnamed device")} · ending ${h(main.mac.slice(-5))}</strong>. ${info.isMainController ? "This browser controls connection approvals." : "Use its controlling browser for connection approvals."}${main.routerChanged ? " Router settings changed; select the main device again." : ""}` : "Choose a main device to control assisted connections."}</p>
@@ -135,4 +140,32 @@ export async function mountDeviceControls({ container, call, onChanged }) {
     if (forget) void showForget(forget.dataset.forgetDevice).catch((error) => showError(message, error));
   });
   return { disconnect: (mac) => showProof(mac, true).catch((error) => showError(message, error)) };
+}
+
+// The slots view replaces the device list and the saved approvals. Main-device
+// setup and connection requests aren't drawn but stay needed for approvals: they
+// fold into one row under the FAQ, open by itself while setup is needed.
+function showSlots(container, info, call, onChanged) {
+  const section = container.closest("section");
+  if (!section) return;
+  const old = section.querySelector("[data-device-slots]"), fold = container.closest("[data-slots-more]");
+  if (fold) { (old || fold).before(container); fold.remove(); }
+  old?.remove();
+  if (!info.slots) { delete document.body.dataset.deviceSlots; return; }
+  document.body.dataset.deviceSlots = "true";
+  const title = document.getElementById("devicesTitle"), count = document.getElementById("devicesCount");
+  if (title) title.textContent = format("slotsTitle", {}, currentLanguage());
+  if (count) count.textContent = slotsCount(info.slots);
+  const holder = document.createElement("div");
+  holder.innerHTML = deviceSlotsContent(info.slots);
+  const view = holder.firstElementChild, head = section.querySelector(".portal-devices__head");
+  if (head) head.after(view); else section.prepend(view);
+  const more = document.createElement("details"), main = info.mainDevice;
+  more.className = "portal-slots__faq portal-slots__more"; more.dataset.slotsMore = "";
+  more.innerHTML = `<summary>${h(format("slotsMore", {}, currentLanguage()))}</summary>`;
+  more.hidden = info.deviceCapabilities?.mainDeviceSupported === false;
+  more.open = !more.hidden && Boolean(!main || info.setupRequired || main.routerChanged);
+  more.append(container);
+  view.querySelector(".portal-slots__foot").before(more);
+  mountDeviceSlots(view, { call, onChanged: async () => { const next = await call("/api/account/device-management"); showSlots(container, next, call, onChanged); if (onChanged) await onChanged(); } });
 }
