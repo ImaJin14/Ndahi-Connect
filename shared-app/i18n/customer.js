@@ -173,6 +173,18 @@ export const en = {
   claimNextTime: "Next time, just sign in with your number and PIN. You can add a passkey in Account to sign in with your fingerprint.",
   claimHome: "Go to my home",
   // Your saved voucher (#367, canvas: PhoneVoucherReady).
+  // Notifications (#362, canvas PhoneNotifications).
+  notifTitle: "Notifications",
+  notifMarkAll: "Mark all read",
+  notifBack: "Back to home",
+  notifFoot: "Choose which notifications you get",
+  notifEmpty: "No notifications yet.",
+  notifNow: "Just now",
+  notifMinutes: "{count} min ago",
+  notifHours: "{count} h ago",
+  notifYesterday: "Yesterday",
+  notifUnread: "Unread",
+  notifRetry: "It will try again shortly.",
   // Package rules (#360, canvas PhoneBillingTerms).
   rulesBar: "Payment rules",
   rulesTitle: "Payments and package rules",
@@ -1612,6 +1624,18 @@ export const fr = {
   claimStartedUnlimited: "{plan} a démarré sur ce téléphone. Il se termine le {date}.",
   claimNextTime: "La prochaine fois, connectez-vous avec votre numéro et votre PIN. Vous pouvez ajouter une clé d’accès dans Compte pour vous connecter avec votre empreinte.",
   claimHome: "Aller à mon accueil",
+  // Notifications (#362, canvas PhoneNotifications).
+  notifTitle: "Notifications",
+  notifMarkAll: "Tout marquer comme lu",
+  notifBack: "Retour à l’accueil",
+  notifFoot: "Choisir les notifications que vous recevez",
+  notifEmpty: "Aucune notification pour l’instant.",
+  notifNow: "À l’instant",
+  notifMinutes: "il y a {count} min",
+  notifHours: "il y a {count} h",
+  notifYesterday: "Hier",
+  notifUnread: "Non lu",
+  notifRetry: "Nouvel essai dans un instant.",
   // Package rules (#360, canvas PhoneBillingTerms).
   rulesBar: "Règles de paiement",
   rulesTitle: "Paiements et règles des forfaits",

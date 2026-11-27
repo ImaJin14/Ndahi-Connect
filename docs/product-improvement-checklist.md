@@ -2240,6 +2240,16 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French.
   - **Not yet:** merged, deployed, or the private-address row seen with a real phone on NDAHI Wi-Fi.
 
+### Notifications for Unlimited (#362, batch 18, 27 November 2026)
+
+- [-] **CUS-362 — Notifications, redesigned for Unlimited (batch 18)** ([#362](https://github.com/ImaJin14/Ndahi-Connect/issues/362)). Owner decision: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/362#issuecomment-7220081254).
+  - **Implemented and tested** (PR #548, not merged yet):
+    - in the portal (v2), Notifications is the drawn list: back, "Notifications", "Mark all read", then the newest 25 items (tile, title, text, "12 min ago" / "Yesterday" / "5 Nov", unread dot); tapping an item marks it read and opens where it points; "Choose which notifications you get" opens Account;
+    - the View and Category filters, dates, Archive and paging leave the portal's panel; the full settings form stays reachable from Account → Notification settings; v1 and the admin keep the full inbox;
+    - server: "Bundle ends tomorrow" (or today) with "[plan] ends tomorrow at 18:03. You can buy your next bundle once it ends.", opening Internet;
+    - the panel's labels in English and French (the items' own text is still English, as before).
+  - **Not yet:** merged, deployed, or seen on a real phone.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
