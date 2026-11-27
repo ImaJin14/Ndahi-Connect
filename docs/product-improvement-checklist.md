@@ -2150,7 +2150,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Finish Wi-Fi sign-in, tap to connect (#372, batch 16, 27 November 2026)
 
 - [-] **CUS-372 — Finish Wi-Fi sign-in, redesigned (batch 16)** ([#372](https://github.com/ImaJin14/Ndahi-Connect/issues/372)). Owner decision: [as drawn, tap to connect](https://github.com/ImaJin14/Ndahi-Connect/issues/372#issuecomment-7214678269).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #538, not merged yet):
     - after a PIN or passkey sign-in on NDAHI Wi-Fi with a running bundle, the device sees "Finish Wi-Fi sign-in." with this device ("Android phone"), the bundle and its time left (or data left for an earlier bundle) and a Personal Unlimited bundle's device slots, then Connect this device or Not now — just view my account. Nothing connects until the tap;
     - after connecting, "You're online" (with the private Wi-Fi address tip and Go to my home) shows on `/wifi-connected.html` only once the network confirms the device; a saved tab without that keeps the old instructions;
     - paying, a voucher code, a renewal and pairing still connect at once, as their paths are drawn; English and French.
