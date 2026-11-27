@@ -65,7 +65,8 @@ test("a scan with no active bundle shows the account as drawn, and a purchase ma
   assert.equal(await page.locator("#qrNoBundleText").innerText(), "This account's last bundle ended on 5 Nov. Buy one and this device connects right after — you won't need to scan again.");
   assert.equal(await page.locator("#qrMessage").innerText(), await page.locator("#qrNoBundleText").innerText(), "announced as well");
   // Nothing else of the PIN step shows.
-  for (const hidden of ["#qrConnectForm", "#restartQr", "main h1"]) assert.equal(await page.locator(hidden).isVisible(), false, hidden);
+  for (const hidden of ["#qrConnectForm", "#restartQr"]) assert.equal(await page.locator(hidden).isVisible(), false, hidden);
+  assert.equal(await page.locator("main h1:visible").count(), 0, "no other state's heading");
   const buy = page.locator("#qrBuyBundle");
   assert.equal(await buy.getAttribute("href"), "/onboarding.html?from=scan&mac=AA%3ABB%3ACC%3ADD%3AEE%3A31&address=10.20.0.31");
   assert.equal(await page.locator("#qrHaveVoucher").getAttribute("href"), "/dashboard#redeem");
@@ -94,7 +95,8 @@ test("a scan with no active bundle shows the account as drawn, and a purchase ma
   // Signed in on this phone: scan, buy from here, and the page comes back to the
   // scan once paid, now offering the new bundle with the PIN.
   await store.transaction((s) => { s.dashboardSessions.push({ id: "sess", customerId: "amina", tokenHash: hashSecret("amina", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" }); });
-  const buyer = await open("/voucher-connect.html#legacy=NC-HIST-0001", { session: "amina" });
+  // On NDAHI Wi-Fi (the portal knows this device), as a scan to connect needs (#371).
+  const buyer = await open("/voucher-connect.html?mac=AA:BB:CC:DD:EE:32&address=10.20.0.32#legacy=NC-HIST-0001", { session: "amina" });
   await buyer.page.locator("#qrNoBundle").waitFor({ state: "visible" });
   await buyer.page.locator("#qrBuyBundle").click();
   await buyer.page.waitForURL(/\/onboarding\.html\?from=scan/);
@@ -103,10 +105,13 @@ test("a scan with no active bundle shows the account as drawn, and a purchase ma
   if (await consent.isVisible()) await consent.check();
   await buyer.page.locator("#requestPayment").click();
   await buyer.page.getByRole("button", { name: "Simulate payment approval" }).click();
-  await buyer.page.waitForURL(/\/voucher-connect\.html$/);
+  await buyer.page.waitForURL(/\/voucher-connect\.html(\?|$)/);
   // The new bundle is ready once the router has it.
   await store.transaction((s) => { for (const v of s.vouchers) if (v.customerId === "amina" && v.status === "active") v.routerSyncStatus = "synchronized"; });
-  await buyer.page.locator("#restartQr").click();
+  // Once the scan has been checked: if the bundle wasn't ready yet, Check again.
+  await buyer.page.waitForFunction(() => document.body.dataset.scanState && document.body.dataset.scanState !== "checking");
+  const again = buyer.page.getByRole("button", { name: "Check again" });
+  if (await again.isVisible()) await again.click();
   await buyer.page.locator("#qrConnectForm").waitFor({ state: "visible" });
   assert.equal(await buyer.page.locator("#qrNoBundle").isVisible(), false);
   assert.match(await buyer.page.locator("#bundleName").innerText(), /Weekly/i);

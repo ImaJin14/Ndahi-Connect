@@ -12,7 +12,7 @@ import { currentLanguage } from '/shared/ui/dom.js';
 const L = (key, values) => format(key, values || {}, currentLanguage());
 // Preserve the established English hooks while formatting French values without
 // changing the underlying API evidence or byte units (decimal, like v1).
-function fmt(bytes) {
+export function fmt(bytes) {
   if (currentLanguage() !== 'fr') return formatDataBalance(bytes);
   if (bytes === null) return L('homeDataUnlimited');
   if (!Number.isFinite(bytes)) return L('homeValueUnavailable');
@@ -93,7 +93,7 @@ export function unlimitedTerms(v) {
   return parts.filter(Boolean).join(' · ');
 }
 // "1 day 2 h", "19 h", then "35 min" in the last hour: whole hours, as drawn.
-function timeLeft(ms) {
+export function timeLeft(ms) {
   const minutes = Math.max(0, Math.floor(ms / 60000)), days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60);
   if (days) return [L(days === 1 ? 'homeRenewOneDayLeft' : 'homeRenewDaysLeft', { count: days }), hours ? L('homeRenewHoursShort', { count: hours }) : ''].filter(Boolean).join(' ');
   return hours ? L('homeRenewHoursShort', { count: hours }) : L('homeRenewMinutesShort', { count: minutes });

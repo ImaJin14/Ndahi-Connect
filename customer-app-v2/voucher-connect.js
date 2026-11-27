@@ -3,6 +3,8 @@ import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { loadPasskeys, randomId } from "./compat.js";
 import { routerLoginUrl } from "./wifi-completion.js";
+import { escapeHtml as h } from "/shared/safe-html.js";
+import { fmt, timeLeft } from "./active-bundle.js";
 import {
   savedVoucherScan,
   saveVoucherScan,
@@ -29,6 +31,53 @@ let attempt,
   csrf = "",
   busy = false,
   stopped = false;
+// Scan to connect (#371, canvas PhoneScanConnect): checking, the account's card
+// before the PIN (owner 27 Nov: first name, time left and slots, as drawn),
+// Join NDAHI Wi-Fi first, Someone else is signed in here, no active bundle
+// (#412) and You're online. One state shows at a time.
+const lang = currentLanguage(), L = (key, values) => format(key, values || {}, lang);
+document.documentElement.lang = lang;
+document.querySelectorAll("[data-scan-l]").forEach((node) => { node.textContent = L(node.dataset.scanL); });
+// "Open Wi-Fi settings and join NDAHI", with the network's name in bold.
+const bold = (key, values) => {
+  const marks = Object.fromEntries(Object.keys(values).map((name, i) => [name, "\u0001" + i + "\u0002"]));
+  let html = h(L(key, marks));
+  Object.values(values).forEach((value, i) => { html = html.replace("\u0001" + i + "\u0002", "<strong>" + h(value) + "</strong>"); });
+  return html;
+};
+document.querySelectorAll("[data-scan-html]").forEach((node) => { node.innerHTML = bold(node.dataset.scanHtml, { network: "NDAHI" }); });
+let scanned = null;
+function state(name) {
+  document.querySelectorAll("[data-scan]").forEach((node) => { node.hidden = node.dataset.scan !== name; });
+  document.querySelectorAll("[data-scan-only]").forEach((node) => { node.hidden = node.dataset.scanOnly !== name; });
+  document.querySelector("#qrNoBundle").hidden = name !== "nobundle";
+  if (name) document.body.dataset.scanState = name; else delete document.body.dataset.scanState;
+}
+// The card before the PIN: "Hi Amina — confirm it's you", "Active · Personal
+// Unlimited", the time left (an earlier bundle: its data left), and "Ends 25
+// Nov · 1 of 2 device slots used".
+function fillReady(result) {
+  const first = result.account?.first, bundle = result.bundle || {}, ends = Date.parse(bundle.expiresAt);
+  document.querySelector("#readyTitle").textContent = first ? L("scanHi", { name: first }) : L("scanConfirm");
+  document.querySelector("#bundleName").textContent = L("scanActivePlan", { plan: result.planName });
+  const left = Number.isFinite(bundle.remainingBytes) ? fmt(bundle.remainingBytes) : Number.isFinite(ends) ? timeLeft(ends - Date.now()) : "";
+  document.querySelector("#bundleLeft").textContent = left ? L("scanLeft", { left }) : "";
+  const date = Number.isFinite(ends) ? new Date(ends).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: lang === "fr" ? "long" : "short" }) : "";
+  document.querySelector("#bundleEnds").textContent = [date ? L("scanEnds", { date }) : "", bundle.slots ? L("scanSlots", { used: bundle.slots.used, total: bundle.slots.total }) : ""].filter(Boolean).join(" · ");
+}
+// Someone else is signed in here: both accounts by first name and initial.
+function wrongAccount(error) {
+  const account = error.account || {}, current = error.current || {};
+  const stop = (name) => /\.$/.test(name) ? name : name + ".";
+  // An account without a name on file still gets the drawn screen, in plain words.
+  document.querySelector("#wrongText").innerHTML = bold("scanWrongText", { current: stop(current.name || L("scanAnotherAccount")), account: stop(account.name || L("scanAnotherAccount")) });
+  document.querySelector("#wrongNote").textContent = current.first ? L("scanWrongNote", { name: current.first }) : L("scanWrongNotePlain");
+  document.querySelector("#switchAccount").textContent = account.first ? L("scanSwitch", { name: account.first }) : L("scanSwitchPlain");
+  document.querySelector("#stayAccount").textContent = current.first ? L("scanStay", { name: current.first }) : L("scanStayPlain");
+  message.textContent = "";
+  state("wrong");
+  return true;
+}
 window.addEventListener("pagehide", () => {
   stopped = true;
   document.querySelector("#accountPin").value = "";
@@ -56,6 +105,7 @@ async function request(path, input, owned = false) {
     );
     error.code = value.code;
     error.account = value.account;
+    error.current = value.current;
     error.endedAt = value.endedAt;
     error.status = response.status;
     error.retryAfter = Math.max(
@@ -106,16 +156,21 @@ function noBundle(error) {
   buy.searchParams.set("from", "scan");
   if (hint) { buy.searchParams.set("mac", hint.mac); buy.searchParams.set("address", hint.address); }
   document.querySelector("#qrBuyBundle").href = buy.pathname + buy.search;
-  document.querySelector("#qrConnectForm").hidden = true;
   none.closest("section.surface")?.setAttribute("data-no-bundle", "");
-  none.hidden = false;
+  state("nobundle");
   return true;
 }
 function show(error) {
   if (error.code === "BUNDLE_INACTIVE" && noBundle(error)) return;
+  if (error.code === "DIFFERENT_ACCOUNT" && wrongAccount(error)) return;
+  // Every slot is full: this device can take another one's slot (#371 → #350).
+  if (error.code === "DEVICE_SLOTS_FULL" && attempt?.mac && attempt?.address) {
+    location.assign("/replace-device.html?" + new URLSearchParams({ mac: attempt.mac, address: attempt.address }));
+    return;
+  }
+  // Any other answer to the scan: the reason, and Check again.
+  if (document.body.dataset.scanState === "checking") state("error");
   message.textContent = error.message;
-  document.querySelector("#switchAccount").hidden =
-    error.code !== "DIFFERENT_ACCOUNT";
   if (error.code === "VOUCHER_NOT_ASSIGNED") {
     const link = document.createElement("a");
     link.href = "/login";
@@ -144,9 +199,14 @@ async function poll(id) {
     }
     const current = result.request;
     if (current.status === "connected" && current.completionReady !== false) {
-      message.textContent = "The router confirmed this device is connected.";
+      // You're online (#371): "This device now uses Amina's Personal Unlimited
+      // bundle. It shows up in Amina's Devices list." (owner: names, not pronouns).
       clearVoucherScan();
-      location.replace("/dashboard#home");
+      message.textContent = "";
+      const first = scanned?.account?.first;
+      document.querySelector("#doneText").textContent = first ? L("scanDoneText", { name: first, plan: scanned.planName }) : L("scanDoneTextYour");
+      state("done");
+      document.querySelector("#scanDone").focus();
       return;
     }
     if (
@@ -176,24 +236,23 @@ async function begin() {
   if (busy) return;
   buttons(false);
   context = null;
-  document.querySelector("#switchAccount").hidden = true;
-  document.querySelector("#qrNoBundle").hidden = true;
+  message.textContent = "";
+  state("checking");
   document.querySelector("#qrNoBundle").closest("section.surface")?.removeAttribute("data-no-bundle");
-  document.querySelector("#qrConnectForm").hidden = false;
   const hint = wifiHint();
   attempt = voucherScanAttempt(selection, hint);
   try {
     const result = await request("/api/account/qr-connect/begin", attempt);
     context = result.context;
-    document.querySelector("#bundleName").textContent = result.planName;
+    scanned = result;
+    fillReady(result);
     passkeyButton.hidden =
       !result.passkeyAvailable || !window.PublicKeyCredential;
-    document.querySelector("#wifiGuidance").hidden = result.wifiReady;
+    document.querySelector("#passkeyOr").hidden = passkeyButton.hidden;
     if (!result.wifiReady) {
-      // #213: the PIN or passkey still signs in to the account here; connecting
-      // this device waits until Wi-Fi sign-in identifies it.
-      message.textContent =
-        "NDAHI Wi-Fi has not identified this device yet. You can sign in with your PIN now, then open Wi-Fi sign-in to connect this device.";
+      // Join NDAHI Wi-Fi first (#371, as drawn): the steps, Open Wi-Fi sign-in
+      // and Check again; this device connects once Wi-Fi identifies it.
+      state("wifi");
       const login = routerLoginUrl(window.NDAHI_CONFIG.hotspotLoginUrl),
         link = document.querySelector("#openWifi");
       if (login) {
@@ -205,17 +264,15 @@ async function begin() {
         link.href = login.href;
         link.hidden = false;
       }
-      buttons(true);
       return;
     }
+    state("ready");
     if (attempt.requestId) {
       busy = true;
       await poll(attempt.requestId);
       busy = false;
       return;
     }
-    message.textContent =
-      "Your active voucher is ready. Authorize this device with your account PIN or passkey.";
     buttons(true);
   } catch (error) {
     busy = false;
@@ -245,7 +302,7 @@ async function authorize(passkey = false) {
     // Signed in, but Wi-Fi has not identified this device: no connection yet.
     if (verified.wifiRequired) {
       context = null;
-      document.querySelector("#wifiGuidance").hidden = false;
+      state("wifi");
       message.textContent =
         "You're signed in. Open Wi-Fi sign-in on this device to connect it, then confirm with your PIN again.";
       return;
@@ -290,6 +347,7 @@ form.onsubmit = (event) => {
 passkeyButton.onclick = () => {
   void authorize(true);
 };
+document.querySelector("#retryScan").onclick = () => { void begin(); };
 document.querySelector("#restartQr").onclick = () => {
   void begin();
 };
@@ -305,7 +363,7 @@ document.querySelector("#switchAccount").onclick = async () => {
 };
 if (selection.qr || selection.legacyCode) begin();
 else
-  message.textContent =
+  state(null), message.textContent =
     "Scan your active voucher QR, or open a new QR from Vouchers in your account.";
 
 window.addEventListener("pageshow", (event) => {
