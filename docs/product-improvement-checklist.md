@@ -2113,6 +2113,18 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French.
   - **Not yet:** the Needs lines (such as the CPE210's "Installation + alignment") entered by the owner on the live admin.
 
+### Replace a device (#350, batch 15, 27 November 2026)
+
+- [-] **CUS-350 — Replace a device, new (batch 15)** ([#350](https://github.com/ImaJin14/Ndahi-Connect/issues/350)). Owner decision: [it runs on the new device](https://github.com/ImaJin14/Ndahi-Connect/issues/350#issuecomment-7212012491).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - the device refused because every Personal Unlimited slot is full opens Replace a device (from the "all slots in use" error, or `/replace-device.html`): "Both device slots are in use", this device and its Wi-Fi address, each device with its slot, masked address and "online now" / "offline 2 h", the PIN, and "Replace HP laptop" / Cancel;
+    - the steps (disconnecting it, clearing its saved sign-in, the router confirms it's off, connecting this phone); the slot frees only when the router confirms, then this phone connects with the same PIN as proof;
+    - if the router can't confirm: "Replacement paused … Nothing changed" and Try again, which asks the router again (a removal still waiting is left alone);
+    - "This phone is connected … Your bundle still ends Wed 25 Nov at 18:03. Replacing a device never restarts or extends it.";
+    - server: `POST /api/account/device-management/replace` (PIN or passkey, like removing a device) and the device list's slot rows (`slots`: total, each slot's masked address, online or last seen, removal pending, the bundle's end); English and French;
+    - on-site plan: `docs/operations/device-replace-onsite-test.md`.
+  - **Not yet:** merged, deployed, or the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").

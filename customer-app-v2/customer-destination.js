@@ -37,6 +37,15 @@ export function customerDestination(input, fallback = '/dashboard') {
       if (/^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(mac || '') && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(address || '')) {
         clean.searchParams.set('mac', mac.toUpperCase()); clean.searchParams.set('address', address);
       }
+    } else if (url.pathname === '/replace-device.html') {
+      // Replace a device (#350) comes back to itself after sign-in, with this
+      // device's Wi-Fi details and the slot chosen; it grants nothing by itself.
+      clean.pathname = '/replace-device.html';
+      const mac = url.searchParams.get('mac'), address = url.searchParams.get('address'), slot = url.searchParams.get('slot');
+      if (/^(?:[A-F0-9]{2}:){5}[A-F0-9]{2}$/i.test(mac || '') && /^(?:\d{1,3}\.){3}\d{1,3}$/.test(address || '')) {
+        clean.searchParams.set('mac', mac.toUpperCase()); clean.searchParams.set('address', address);
+      }
+      if (/^[A-Za-z0-9_:-]{1,120}$/.test(slot || '')) clean.searchParams.set('slot', slot);
     } else if (['/onboarding','/onboarding.html'].includes(url.pathname)) {
       const action = url.searchParams.get('action');
       if (action !== null && !['renew','switch'].includes(action)) return fallback;
@@ -53,7 +62,7 @@ export function customerEntry({ next, evidence, accountOnly, hasCandidate, hotsp
   const target = customerDestination(next);
   const fresh = evidence && evidence.version === 1 && Number.isFinite(Date.parse(evidence.expiresAt)) && Date.parse(evidence.expiresAt) > now;
   if (!fresh || !evidence.account || !evidence.network || !evidence.subscription || !evidence.router || !evidence.hotspot || evidence.account.state !== 'authenticated') return target;
-  if (target.startsWith('/voucher-ready.html') || target.startsWith('/pair-review.html')) return target; // retain the voucher before connection handoff
+  if (target.startsWith('/voucher-ready.html') || target.startsWith('/pair-review.html') || target.startsWith('/replace-device.html')) return target; // retain the voucher (or the replacement) before connection handoff
   const inside = evidence.network.state === 'confirmed';
   if (inside && ['expired','exhausted','none'].includes(evidence.subscription.state) && target === '/dashboard') return '/dashboard#bundles';
   if (!accountOnly && hotspotEnabled && hasCandidate && inside && evidence.subscription.state === 'active' && evidence.router.state === 'reachable' && evidence.hotspot.state !== 'authenticated') {

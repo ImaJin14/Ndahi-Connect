@@ -68,6 +68,14 @@ export function showError(target, error, { context = "general", actions = [], in
   title.textContent = copy.title;
   body.textContent = copy.message;
   card.append(title, body);
+  // Every Personal Unlimited slot is full (#350): the device being refused can
+  // take another device's slot, from its own screen.
+  if (error instanceof ApiError && error.code === "DEVICE_SLOTS_FULL") {
+    const here = new URLSearchParams(location.search), mac = here.get("mac"), address = here.get("address"), link = document.createElement("a");
+    link.className = "button secondary-action"; link.textContent = "Replace a device";
+    link.href = "/replace-device.html" + (mac && address ? "?mac=" + encodeURIComponent(mac) + "&address=" + encodeURIComponent(address) : "");
+    card.append(link);
+  }
   const waUrl = whatsappSupportUrl();
   if (actions.length || (waUrl && includeSupport)) {
     const controls = document.createElement("div");
