@@ -27,6 +27,7 @@ test("Package rules reads as drawn: Unlimited copy, the bar's line, the PIN note
   assert.deepEqual(await page.locator(".portal-rule").nth(1).locator("li").allTextContents(),
     ["Use it until it expires. Data is unlimited. You can't buy or switch packages before then.", "After that, buy any package at its full price — there's no partial credit."]);
   assert.equal(await page.locator(".portal-rule__chevron").first().isVisible(), false, "rows without chevrons, as drawn");
+  assert.deepEqual(await page.locator(".portal-rule summary").allInnerTexts(), ["Buying and renewing", "While a bundle is active", "Interrupted or pending payments", "Cancellation and refunds", "Receipts and help"], "the five drawn rows, no Full rules");
   // Collapsed again, the PIN note sits 18px above the foot of the screen.
   await page.getByRole("heading", { name: "While a bundle is active" }).click();
   const pin = await page.locator(".portal-rules__pin").boundingBox();

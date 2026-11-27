@@ -2224,7 +2224,8 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 - [-] **CUS-360 — Package rules, redesigned for Unlimited (batch 18)** ([#360](https://github.com/ImaJin14/Ndahi-Connect/issues/360)). Owner decision: [exactly as drawn, for everyone](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220082541).
   - **Implemented and tested** (PR #PRNUM, not merged yet):
     - "While a bundle is active" reads "Use it until it expires. Data is unlimited. You can't buy or switch packages before then.", shown to everyone (the owner was told customers on data bundles read it too, and that "Validity starts when the payment is confirmed" differs from the Unlimited start at first connection);
-    - the page follows PhoneBillingTerms: the bar edge to edge with its line, 26px title, rows without chevrons, and the PIN note at the foot of the screen; "Full rules" (the full text) stays as the last row.
+    - the page follows PhoneBillingTerms: the bar edge to edge with its line, 26px title, rows without chevrons, and the PIN note at the foot of the screen;
+    - "Full rules" (the full v1 rules text) is removed as drawn ([owner](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220205695)).
   - **Not yet:** merged, deployed, or seen on a real phone.
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
