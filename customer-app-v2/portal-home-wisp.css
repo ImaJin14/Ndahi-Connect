@@ -1,0 +1,42 @@
+/* Home WISP router (#351, canvas: PhoneHomeRouter): the bar, the setup steps,
+   "Router found", the status card (Online or Sharing paused) and the fixed foot. */
+body[data-home-wisp] { margin: 0; background: #fbfaf5; }
+body[data-home-wisp] main.portal-home-router { max-width: none; margin: 0; padding: 0; }
+.home-wisp { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; color: #10241c; font-family: var(--nd-font-body); }
+.home-wisp__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc; }
+.home-wisp__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: #10241c; text-decoration: none; }
+.home-wisp__name { flex: 1; font-size: 15px; font-weight: 700; }
+.home-wisp__ends { padding-right: 8px; color: #5c6963; font-size: 12px; }
+.home-wisp__main { display: flex; flex: 1; flex-direction: column; gap: 14px; padding: 18px; }
+.home-wisp__h1 { margin: 0; color: #10241c; font: 600 26px/1.15 var(--nd-font-display); }
+.home-wisp__lede { margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5; }
+.home-wisp__steps { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.home-wisp__steps li { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; line-height: 1.45; }
+.home-wisp__steps a { color: #003b2b; font-weight: 700; }
+.home-wisp__n { display: grid; flex: 0 0 26px; place-items: center; height: 26px; border-radius: 50%; background: #003b2b; color: #b9ee2e; font-size: 13px; font-weight: 700; }
+.home-wisp__tip { margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px; }
+.home-wisp__status ~ .home-wisp__tip { font-size: 14px; line-height: 1.5; }
+.home-wisp__note { margin: 0; padding: 12px 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px; line-height: 1.5; }
+.home-wisp__found { display: flex; flex-direction: column; gap: 6px; padding: 16px; border: 2px solid #003b2b; border-radius: 14px; background: #fffef9; }
+.home-wisp__found strong { font-size: 16px; }
+.home-wisp__mono { font-family: ui-monospace, Menlo, monospace; }
+.home-wisp__found .home-wisp__mono { color: #3d4a44; font-size: 13px; }
+.home-wisp__seen { color: #5c6963; font-size: 13px; }
+.home-wisp__label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.home-wisp__pin { box-sizing: border-box; width: 100%; height: 48px; min-height: 48px; padding: 0 14px; border: 1px solid #b8c7bd; border-radius: 10px; background: #ffffff; color: #10241c; font: 18px var(--nd-font-body); letter-spacing: .3em; }
+.home-wisp__status { padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; }
+.home-wisp__status--paused { background: #4a3a1a; }
+.home-wisp__status-top { display: flex; align-items: center; justify-content: space-between; }
+.home-wisp__kicker { margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.home-wisp__pill { padding: 3px 9px; border-radius: 999px; background: rgba(185, 238, 46, .18); color: #b9ee2e; font-size: 12px; font-weight: 700; }
+.home-wisp__status--paused .home-wisp__pill { background: #fff4e0; color: #6b3a00; }
+.home-wisp__status-title { margin: 8px 0 4px; font-size: 20px; font-weight: 700; }
+.home-wisp__row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid rgba(255, 255, 255, .14); font-size: 14px; }
+.home-wisp__row:last-child { border-bottom: 0; }
+.home-wisp__row > span:first-child { color: #c8d8d0; }
+.home-wisp__alert { margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.5; }
+.home-wisp__small { margin: 0; color: #5c6963; font-size: 13px; }
+.home-wisp__foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 18px; border-top: 1px solid #dfe5dc; background: #fffef9; }
+.home-wisp__btn, .home-wisp__btn2 { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; padding: 0 16px; border-radius: 10px; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.home-wisp__btn { min-height: 52px; border: 0; background: #b9ee2e; color: #15210c; }
+.home-wisp__btn2 { min-height: 48px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font-size: 15px; }

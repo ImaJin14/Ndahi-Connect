@@ -93,6 +93,7 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/devices/disconnect",
     "/api/account/gift/recipient",
     "/api/account/home/confirm",
+    "/api/account/home/detect",
     "/api/account/home/enroll",
     "/api/account/home/mode",
     "/api/account/home/options",

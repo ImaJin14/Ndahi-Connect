@@ -1,6 +1,7 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { loadPasskeys, formValues } from "./compat.js";
 import { runButton } from "/shared/pending.js";
+import { mountHomeWisp } from "./home-wisp-router.js";
 
 const api=window.NDAHI_CONFIG.apiUrl,$=q=>document.querySelector(q);
 const words={
@@ -13,7 +14,8 @@ const words={
 };
 let language=new URLSearchParams(location.search).get("lang")==="fr"?"fr":"en",csrf="",info,account,paymentId;
 const t=key=>words[language][key]||key, post=(path,input)=>call(path,{method:"POST",body:JSON.stringify(input)});
-const message=text=>{$("#homeMessage").textContent=text;};
+// The Home WISP view (#351) has no status line of this page's own.
+const message=text=>{const node=$("#homeMessage");if(node)node.textContent=text;};
 async function call(path,options={}){
  const {allowAnonymous,...requestOptions}=options;
  const response=await fetch(api+path,{credentials:"include",...requestOptions,headers:{"content-type":"application/json",...(csrf?{"x-csrf-token":csrf}:{}),...(options.headers||{})}}),data=await response.json();
@@ -32,6 +34,9 @@ function renderSetup(){
  $("#homeSetup").innerHTML=`<h2>${h(t("setup"))}</h2><p>${h(t("steps"))}</p><p>${h(t("setupNotice"))}</p><section id="homeCompatibility"><h3>${h(t("compatTitle"))}</h3><ul><li>${h(t("compatNetwork"))}</li><li>${h(t("compatWifi"))}</li><li>${h(t("compatIdentity"))}</li></ul></section><p><a href="/dashboard#payments">${h(t("receipt"))}</a></p>`;
 }
 function render(){
+ // A Home WISP Unlimited bundle gets the PhoneHomeRouter page (#351); earlier
+ // NDAHI Home bundles keep this one.
+ if(info.homeWisp){mountHomeWisp(document.querySelector("main"),{info,post,refresh,loginUrl:window.NDAHI_CONFIG.hotspotLoginUrl});return;}
  document.documentElement.lang=language;$("#back").setAttribute("aria-label",t("back"));
  const v=info.bundle,link=info.link;
  renderStatus();
@@ -94,4 +99,7 @@ async function registration(){
 void guard(boot);
 // Keep unfinished forms stable: refresh is explicit, and polling updates status
 // text only. Never rerender a PIN/payment form while the customer is typing.
-setInterval(()=>{if(document.hidden||!info||(document.activeElement && document.activeElement.matches("input,select")))return;call("/api/account/home").then(next=>{info=next;const v=next.bundle;if(v)renderStatus();}).catch(()=>{});},15000);
+setInterval(()=>{if(document.hidden||!info||(document.activeElement && document.activeElement.matches("input,select")))return;call("/api/account/home").then(next=>{
+  // Home WISP (#351): redraw only when its state changes, never during "Router found".
+  if(next.homeWisp){const key=JSON.stringify([next.homeWisp,next.link&&next.link.identifierTail]),before=JSON.stringify([info.homeWisp,info.link&&info.link.identifierTail]);info=next;if(key!==before && !new URLSearchParams(location.search).has("enrollment"))render();return;}
+  info=next;const v=next.bundle;if(v)renderStatus();}).catch(()=>{});},15000);
