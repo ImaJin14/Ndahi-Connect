@@ -2276,6 +2276,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - "Give it": when the router is collected (the default) or as soon as the payment is confirmed; a refund before it starts cancels it;
     - "Units at this price": a cap beside stock; the sale stops when either runs out; checkout never sells more than are left;
     - "Show the regular price crossed out": only when ticked AND the product sold at its regular price in the 30 days before the sale;
+    - a live offer also shows on the Wi-Fi sign-in page (the portal Home's countdown banner under the lede), as the preview note says ([owner, 27 Nov](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7227374558));
     - the admin screen as drawn: Set up and While it runs tabs; one name and one product; the bundle picker lists Unlimited bundles ("Personal Unlimited · Unlimited · 30 days · 1 device"); Schedule promotion, Save as draft, and New promotion; the preview; while it runs, the offer with End early, units sold of the cap, revenue, free months given and started, new customers (first paid purchase with NDAHI), and the orders (linking to Store orders) with each free month's state; All promotions, where a name opens the promotion;
     - English and French.
   - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
