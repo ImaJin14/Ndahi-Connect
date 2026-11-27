@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin rewards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbfaf5}
+a{color:#003b2b}a:hover{color:#062a20}
+.panel{background:#fffef9;border:1px solid #dfe5dc;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0;box-sizing:border-box}
+.h2{margin:0;font-family:'Playfair Display',serif;font-weight:600;font-size:22px}
+.sub{margin:4px 0 0;color:#5c6963;font-size:14px}
+.lbl{display:block;margin:0 0 6px;font-size:13px;font-weight:600}
+.in{box-sizing:border-box;width:100%;min-height:42px;padding:0 12px;border-radius:9px;border:1px solid #b8c7bd;background:#fff;font:14px 'DM Sans',sans-serif;color:#10241c}
+.hint{margin:6px 0 0;color:#5c6963;font-size:12px}
+.metric{flex:1 1 180px;background:#fffef9;border:1px solid #dfe5dc;border-radius:14px;padding:14px 16px}
+.metric strong{display:block;font-size:22px}
+.metric span{font-size:12px;color:#5c6963}
+td,th{text-align:left;padding:10px 8px;border-bottom:1px solid #dfe5dc;font-size:14px;white-space:nowrap;vertical-align:middle}
+th{color:#5c6963;font-weight:600;font-size:13px}
+.pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.go2{min-height:34px;padding:0 10px;border-radius:8px;border:1px solid #b8c7bd;background:#fffef9;color:#003b2b;font:700 12px 'DM Sans',sans-serif;cursor:pointer}
+</style>
+</helmet>
+<div style="font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; min-height: 1700px; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 240px; background: #003b2b">
+    <dc-import name="AdminSide" current="rewards" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; padding: 32px 32px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; max-width: 1120px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px">
+      <div>
+        <p style="margin: 0 0 6px; color: #4d6b00; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase">People · owners only</p>
+        <h1 style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 36px">Rewards.</h1>
+        <p class="sub" style="font-size: 15px">Points customers earn on bundles and referrals, and swap for bundles. Points are never cash.</p>
+      </div>
+      <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}"><span role="status" style="color: #345000; font-weight: 700; font-size: 14px">Saved · applies to new points from now. Logged in the audit trail.</span></sc-if>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px">
+      <div class="metric"><strong>184,300</strong><span>Points outstanding · about 921,500 XAF in bundles</span></div>
+      <div class="metric"><strong>12,400</strong><span>Points redeemed this month · 62 bundles</span></div>
+      <div class="metric"><strong>38</strong><span>Friends joined this month · 7,600 points to referrers</span></div>
+      <div class="metric"><strong>3</strong><span>Referrals flagged for review</span></div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="pt" class="panel" style="flex: 1 1 380px">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><h2 id="pt" class="h2">Points</h2><button type="button" role="switch" aria-checked="{{pointsOn}}" aria-label="Points programme" onClick="{{flipPoints}}" style="{{pointsTrack}}"><span style="{{pointsKnob}}"></span></button></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><label class="lbl" for="er">XAF paid for 1 point</label><input class="in" id="er" inputmode="numeric" value="100"><p class="hint">On the bundle price only, never the Mobile Money fee.</p></div>
+          <div><label class="lbl" for="pv">Value of 1 point (XAF)</label><input class="in" id="pv" inputmode="numeric" value="5"><p class="hint">Suggests redemption prices: bundle price ÷ 5.</p></div>
+          <div><label class="lbl" for="ex">Points expire after</label><select class="in" id="ex"><option>6 months</option><option selected="">12 months</option><option>24 months</option></select></div>
+          <div><label class="lbl" for="rw">Redeemed bundle must start within</label><select class="in" id="rw"><option>30 days</option><option selected="">60 days</option><option>90 days</option></select></div>
+        </div>
+        <p class="hint" style="margin: 0">No points on redeemed bundles, gifts, custom bundles or promotion bonuses. A refund takes back the points it earned.</p>
+      </section>
+
+      <section aria-labelledby="rf" class="panel" style="flex: 1 1 380px">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px"><h2 id="rf" class="h2">Referrals</h2><button type="button" role="switch" aria-checked="{{refOn}}" aria-label="Referral programme" onClick="{{flipRef}}" style="{{refTrack}}"><span style="{{refKnob}}"></span></button></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><label class="lbl" for="rr">Points to the referrer</label><input class="in" id="rr" inputmode="numeric" value="200"></div>
+          <div><label class="lbl" for="rn">Points to the new customer</label><input class="in" id="rn" inputmode="numeric" value="100"></div>
+          <div><label class="lbl" for="rc">Most friends per referrer a month</label><input class="in" id="rc" inputmode="numeric" value="10"></div>
+          <div><label class="lbl" for="rm">Smallest first bundle that counts (XAF)</label><input class="in" id="rm" inputmode="numeric" value="500"></div>
+        </div>
+        <p class="hint" style="margin: 0">Paid once per new phone number, when the friend's first payment is confirmed. A friend's number, devices or payment number can't belong to the referrer.</p>
+      </section>
+    </div>
+
+    <section aria-labelledby="rb" class="panel">
+      <div><h2 id="rb" class="h2">Bundles customers can redeem</h2><p class="sub">Published bundles only. The points price is fixed when a customer redeems.</p></div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse">
+          <thead><tr><th scope="col">Bundle</th><th scope="col">Price (XAF)</th><th scope="col">Points</th><th scope="col">Redeemed (30 days)</th><th scope="col">Redeemable</th></tr></thead>
+          <tbody>
+            <sc-for list="{{bundles}}" as="b" hint-placeholder-count="6">
+              <tr><td><strong>{{b.name}}</strong><br><span style="font-size: 12px; color: #5c6963">{{b.terms}}</span></td><td>{{b.price}}</td><td><input class="in" aria-label="{{b.aria}}" inputmode="numeric" value="{{b.pts}}" style="width: 100px; min-height: 36px"></td><td>{{b.used}}</td><td><button type="button" role="switch" aria-checked="{{b.on}}" aria-label="{{b.swAria}}" onClick="{{b.flip}}" style="{{b.track}}"><span style="{{b.knob}}"></span></button></td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div><button type="button" onClick="{{save}}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px 'DM Sans', sans-serif; cursor: pointer">Save rewards settings</button></div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="fl" class="panel" style="flex: 1 1 420px">
+        <div><h2 id="fl" class="h2">Referrals to review</h2><p class="sub">Held: no points are paid until you approve.</p></div>
+        <sc-for list="{{flags}}" as="f" hint-placeholder-count="3">
+          <div style="{{f.style}}">
+            <span style="flex: 1"><strong style="display: block; font-size: 14px">{{f.who}}</strong><span style="font-size: 13px; color: #6b3a00">{{f.why}}</span></span>
+            <sc-if value="{{f.open}}" hint-placeholder-val="{{ true }}"><span style="display: inline-flex; gap: 6px"><button type="button" class="go2" onClick="{{f.ok}}">Approve</button><button type="button" class="go2" style="color: #a73535; border-color: #e3b4b4" onClick="{{f.no}}">Reject</button></span></sc-if>
+            <sc-if value="{{f.closed}}" hint-placeholder-val="{{ false }}"><span class="pill" style="{{f.pill}}">{{f.result}}</span></sc-if>
+          </div>
+        </sc-for>
+      </section>
+      <section aria-labelledby="ac" class="panel" style="flex: 1 1 420px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px"><h2 id="ac" class="h2">Recent activity</h2><a href="AdminAudit.dc.html" style="font-size: 13px; font-weight: 700">Full ledger</a></div>
+        <table style="width: 100%; border-collapse: collapse">
+          <tbody>
+            <sc-for list="{{ledger}}" as="l" hint-placeholder-count="6"><tr><td><strong style="font-size: 13px">{{l.who}}</strong><br><span style="font-size: 12px; color: #5c6963">{{l.what}}</span></td><td style="text-align: right"><strong style="{{l.style}}">{{l.pts}}</strong><br><span style="font-size: 12px; color: #5c6963">{{l.when}}</span></td></tr></sc-for>
+          </tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { points: true, ref: true, saved: false, off: ['wisp'], flags: {} }; }
+  renderVals() {
+    const s = this.state;
+    const sw = (on) => ({ track: 'position: relative; width: 50px; height: 30px; flex-shrink: 0; border: 0; border-radius: 999px; cursor: pointer; padding: 0; ' + (on ? 'background: #003b2b;' : 'background: #c9d3cd;'),
+      knob: 'position: absolute; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: ' + (on ? '#b9ee2e; left: 23px;' : '#ffffff; left: 3px;') });
+    const P = sw(s.points), Rf = sw(s.ref);
+    const B = [['p24-1', 'Personal Unlimited', '24 hours · 1 device', 500, 100, 31], ['p7-1', 'Personal Unlimited', '7 days · 1 device', 2500, 500, 14], ['p7-2', 'Personal Unlimited', '7 days · 2 devices', 4000, 800, 9], ['p30-1', 'Personal Unlimited', '30 days · 1 device', 6000, 1200, 6], ['p30-2', 'Personal Unlimited', '30 days · 2 devices', 10000, 2000, 2], ['wisp', 'Home WISP Unlimited', '30 days', 50000, 10000, 0]];
+    const bundles = B.map(([id, name, terms, price, pts, used]) => { const on = !s.off.includes(id), x = sw(on); return { name, terms, price: price.toLocaleString('en-US'), pts: String(pts), used: used ? `${used}` : '—', aria: `Points for ${name} ${terms}`, swAria: `${name} ${terms} redeemable`, on: on ? 'true' : 'false', track: x.track, knob: x.knob,
+      flip: () => this.setState({ off: on ? [...s.off, id] : s.off.filter((y) => y !== id), saved: false }) }; });
+    const F = [['f1', 'AMINA-7K2 → 6•• •• 51 08', 'Same Wi-Fi device as the referrer signed in with the new number'], ['f2', 'KOFI-3QP → 6•• •• 12 77, 6•• •• 12 78, +5', '7 friends in one day, all paid from the same Mobile Money number'], ['f3', 'GRACE-9XA → 6•• •• 03 41', 'New number paid only the smallest first bundle, then nothing for 30 days']];
+    const flags = F.map(([id, who, why]) => { const r = s.flags[id]; return { who, why, open: !r, closed: !!r, result: r === 'ok' ? 'Approved · points paid' : 'Rejected · no points',
+      pill: r === 'ok' ? 'background: #eaf6d5; color: #345000;' : 'background: #fbe4e4; color: #8a2a2a;',
+      style: 'display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 12px; ' + (r ? 'background: #f6f7f2;' : 'background: #fff4e0;'),
+      ok: () => this.setState({ flags: { ...s.flags, [id]: 'ok' } }), no: () => this.setState({ flags: { ...s.flags, [id]: 'no' } }) }; });
+    const ledger = [['Amina N.', 'Earned · Personal Unlimited 7 days · 2 devices', '+40', '24 Nov'], ['Amina N.', 'Referral · 6•• •• 88 21 joined', '+200', '12 Nov'], ['6•• •• 88 21', 'Welcome bonus · invited by AMINA-7K2', '+100', '12 Nov'], ['J. Fon', 'Redeemed · Personal Unlimited 24 hours · 1 device', '−100', '11 Nov'], ['Grace T.', 'Refund · points earned on the payment taken back', '−20', '10 Nov'], ['System', 'Expired · points older than 12 months (41 customers)', '−3,120', '1 Nov']]
+      .map(([who, what, pts, when]) => ({ who, what, pts, when, style: pts.startsWith('+') ? 'color: #345000;' : 'color: #8a2a2a;' }));
+    return {
+      pointsOn: s.points ? 'true' : 'false', pointsTrack: P.track, pointsKnob: P.knob, flipPoints: () => this.setState({ points: !s.points, saved: false }),
+      refOn: s.ref ? 'true' : 'false', refTrack: Rf.track, refKnob: Rf.knob, flipRef: () => this.setState({ ref: !s.ref, saved: false }),
+      bundles, flags, ledger, saved: s.saved, save: () => this.setState({ saved: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

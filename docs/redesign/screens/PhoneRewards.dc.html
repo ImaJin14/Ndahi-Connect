@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rewards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn[disabled]{background:#e4e9e1;color:#5c6963;cursor:not-allowed}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.back{width:44px;height:44px;display:grid;place-items:center;border-radius:10px;text-decoration:none;color:#10241c}
+.card{background:#fffef9;border:1px solid #dfe5dc;border-radius:14px}
+.offer{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #dfe5dc}
+.offer:last-child{border-bottom:0}
+.redeem{min-height:36px;padding:0 12px;border-radius:9px;border:0;background:#003b2b;color:#ffffff;font:700 13px 'DM Sans',sans-serif;cursor:pointer;white-space:nowrap}
+.redeem[disabled]{background:#e4e9e1;color:#5c6963;cursor:not-allowed}
+.hist{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #dfe5dc;font-size:14px}
+.n{flex:0 0 24px;height:24px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-size:12px;font-weight:700}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc">
+    <a class="back" href="PhoneAccount.dc.html" aria-label="{{t.back}}"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18 9 12l6-6"></path></svg></a>
+    <span style="font-weight: 700; font-size: 15px">{{t.title}}</span>
+  </div>
+
+  <main style="flex: 1; overflow: hidden; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px">
+    <section aria-label="{{t.balanceLabel}}" style="padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff">
+      <p style="margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase">{{t.yourPoints}}</p>
+      <p style="margin: 4px 0 2px; font-size: 34px; font-weight: 700">{{balanceText}}</p>
+      <p style="margin: 0; color: #c8d8d0; font-size: 13px">{{worthLine}}</p>
+      <p style="margin: 8px 0 0; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.14); color: #dce8e2; font-size: 12px">{{expiryLine}}</p>
+    </section>
+
+    <div role="tablist" aria-label="{{t.title}}" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9">
+      <sc-for list="{{tabs}}" as="x" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{x.sel}}" onClick="{{x.pick}}" style="{{x.style}}">{{x.label}}</button></sc-for>
+    </div>
+
+    <sc-if value="{{isRedeem}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.redeemIntro}}</p>
+        <div class="card" style="padding: 0 4px">
+          <sc-for list="{{offers}}" as="o" hint-placeholder-count="5">
+            <div class="offer"><span style="flex: 1"><strong style="display: block; font-size: 14px">{{o.name}}</strong><span style="font-size: 12px; color: #5c6963">{{o.line}}</span></span><button type="button" class="redeem" disabled="{{o.off}}" onClick="{{o.pick}}" aria-label="{{o.aria}}">{{o.pts}}</button></div>
+          </sc-for>
+        </div>
+        <p style="margin: 0; color: #5c6963; font-size: 12px">{{t.earnLine}}</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isInvite}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div class="card" style="padding: 14px; text-align: center">
+          <p style="margin: 0; color: #5c6963; font-size: 13px">{{t.yourCode}}</p>
+          <p style="margin: 4px 0 10px; font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .12em">AMINA-7K2</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px"><button type="button" class="btn" style="min-height: 44px; font-size: 14px" onClick="{{share}}">{{shareLabel}}</button><button type="button" class="btn2" style="min-height: 44px; font-size: 14px" onClick="{{copy}}">{{copyLabel}}</button></div>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.4">
+          <li style="display: flex; gap: 10px"><span class="n">1</span><span>{{t.s1}}</span></li>
+          <li style="display: flex; gap: 10px"><span class="n">2</span><span>{{t.s2}}</span></li>
+          <li style="display: flex; gap: 10px"><span class="n">3</span><span>{{t.s3}}</span></li>
+        </ol>
+        <div class="card" style="padding: 2px 14px">
+          <sc-for list="{{friends}}" as="f" hint-placeholder-count="3"><div class="hist"><span><strong style="display: block; font-size: 14px">{{f.who}}</strong><span style="font-size: 12px; color: #5c6963">{{f.when}}</span></span><span style="{{f.style}}">{{f.pts}}</span></div></sc-for>
+        </div>
+        <p style="margin: 0; color: #5c6963; font-size: 12px">{{t.inviteRules}}</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isHistory}}" hint-placeholder-val="{{ false }}">
+      <div class="card" style="padding: 2px 14px">
+        <sc-for list="{{history}}" as="h" hint-placeholder-count="6"><div class="hist"><span><strong style="display: block; font-size: 14px">{{h.what}}</strong><span style="font-size: 12px; color: #5c6963">{{h.when}}</span></span><strong style="{{h.style}}">{{h.pts}}</strong></div></sc-for>
+      </div>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{isConfirm}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(16,36,28,.45); display: flex; align-items: flex-end">
+      <section role="dialog" aria-modal="true" aria-labelledby="cfT" style="width: 100%; box-sizing: border-box; background: #fffef9; border-radius: 18px 18px 0 0; padding: 20px 18px 22px; display: flex; flex-direction: column; gap: 12px">
+        <h2 id="cfT" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">{{t.confirmTitle}}</h2>
+        <div style="padding: 12px 14px; border-radius: 12px; background: #f3f9e8; border: 2px solid #003b2b"><strong style="display: block">Personal Unlimited · {{t.d7}} · {{t.dev1}}</strong><span style="font-size: 13px; color: #3d4a44">{{t.unlimitedData}}</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #3d4a44">
+          <div style="display: flex; justify-content: space-between"><span>{{t.cost}}</span><strong style="color: #10241c">500 {{t.pts}}</strong></div>
+          <div style="display: flex; justify-content: space-between"><span>{{t.after}}</span><span style="color: #10241c">740 {{t.pts}}</span></div>
+        </div>
+        <p style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.45">{{t.confirmNote}}</p>
+        <button type="button" class="btn" onClick="{{toDone}}">{{t.redeemBtn}}</button>
+        <button type="button" class="btn2" onClick="{{toOverview}}">{{t.cancel}}</button>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(16,36,28,.45); display: flex; align-items: flex-end">
+      <section role="dialog" aria-modal="true" aria-labelledby="dnT" style="width: 100%; box-sizing: border-box; background: #fffef9; border-radius: 18px 18px 0 0; padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; text-align: center; align-items: center">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg></div>
+        <h2 id="dnT" style="margin: 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px">{{t.doneTitle}}</h2>
+        <p style="margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5">{{t.doneLine}}</p>
+        <button type="button" class="btn" disabled="" style="align-self: stretch">{{t.startNow}}</button>
+        <p style="margin: -4px 0 0; color: #5c6963; font-size: 12px">{{t.startNote}}</p>
+        <a class="btn2" href="PhoneHome.dc.html" style="align-self: stretch">{{t.goHome}}</a>
+      </section>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["redeem","invite","history"],"default":"redeem"},"view":{"editor":"enum","options":["overview","confirm","done"],"default":"overview"},"lang":{"editor":"enum","options":["en","fr"],"default":"en"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: props.tab ?? 'redeem', view: props.view ?? 'overview', shared: false, copied: false }; }
+  renderVals() {
+    const s = this.state, fr = (this.props.lang ?? 'en') === 'fr';
+    const num = (n) => n.toLocaleString(fr ? 'fr-FR' : 'en-US').replace(/ /g, ' ');
+    const T = fr ? {
+      back: 'Retour au compte', title: 'Récompenses', balanceLabel: 'Vos points', yourPoints: 'Vos points', pts: 'points',
+      redeem: 'Échanger', invite: 'Inviter des amis', history: 'Historique',
+      redeemIntro: 'Échangez vos points contre un forfait. Il est enregistré sur votre compte et démarre quand vous le choisissez.',
+      earnLine: "Vous gagnez 1 point pour 100 XAF payés pour un forfait (hors frais Mobile Money), et 200 points pour chaque ami qui achète son premier forfait.",
+      yourCode: 'Votre code de parrainage', share: 'Partager', shared: 'Lien partagé', copy: 'Copier le lien', copied: 'Copié',
+      s1: 'Partagez votre code ou votre lien avec un ami qui n’a pas encore de compte NDAHI.',
+      s2: 'Votre ami achète son premier forfait avec son propre numéro.',
+      s3: 'Dès que son paiement est confirmé, vous recevez 200 points et votre ami 100 points.',
+      inviteRules: "Un ami par nouveau numéro, jusqu'à 10 par mois. Les points ne s'échangent pas contre de l'argent.",
+      confirmTitle: 'Échanger vos points ?', d7: '7 jours', dev1: '1 appareil', unlimitedData: 'Données illimitées · 1 appareil enregistré', cost: 'Coût', after: 'Solde après',
+      confirmNote: "Le forfait est enregistré sur votre compte. Démarrez-le quand vous voulez, dans les 60 jours — vous pourrez le démarrer quand votre forfait actuel sera terminé.",
+      redeemBtn: 'Échanger 500 points', cancel: 'Annuler', doneTitle: 'Forfait enregistré',
+      doneLine: 'Personal Unlimited · 7 jours · 1 appareil est sur votre compte. À démarrer avant le 26 janv. 2027.',
+      startNow: 'Démarrer maintenant', startNote: 'Disponible quand votre forfait actuel se termine (mer. 25 nov.).', goHome: "Aller à l'accueil"
+    } : {
+      back: 'Back to account', title: 'Rewards', balanceLabel: 'Your points', yourPoints: 'Your points', pts: 'points',
+      redeem: 'Redeem', invite: 'Invite friends', history: 'History',
+      redeemIntro: 'Swap points for a bundle. It’s saved to your account and starts when you choose.',
+      earnLine: 'You earn 1 point for every 100 XAF you pay for a bundle (not the Mobile Money fee), and 200 points for each friend who buys their first bundle.',
+      yourCode: 'Your referral code', share: 'Share', shared: 'Link shared', copy: 'Copy link', copied: 'Copied',
+      s1: 'Share your code or link with a friend who doesn’t have an NDAHI account yet.',
+      s2: 'Your friend buys their first bundle with their own number.',
+      s3: 'Once their payment is confirmed, you get 200 points and they get 100.',
+      inviteRules: 'One friend per new number, up to 10 a month. Points can’t be exchanged for cash.',
+      confirmTitle: 'Redeem your points?', d7: '7 days', dev1: '1 device', unlimitedData: 'Unlimited data · 1 registered device', cost: 'Cost', after: 'Balance after',
+      confirmNote: 'The bundle is saved to your account. Start it whenever you like within 60 days — you can start it once your current bundle has ended.',
+      redeemBtn: 'Redeem 500 points', cancel: 'Cancel', doneTitle: 'Bundle saved',
+      doneLine: 'Personal Unlimited · 7 days · 1 device is on your account. Start it by 26 Jan 2027.',
+      startNow: 'Start now', startNote: 'Available when your current bundle ends (Wed 25 Nov).', goHome: 'Go to my home'
+    };
+    const balance = 1240;
+    const tb = 'flex: 1; min-height: 38px; border: 0; border-radius: 9px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; ';
+    const tabs = [['redeem', T.redeem], ['invite', T.invite], ['history', T.history]].map(([id, label]) => ({ label, sel: s.tab === id ? 'true' : 'false', style: tb + (s.tab === id ? 'background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08);' : 'background: transparent; color: #3d4a44;'), pick: () => this.setState({ tab: id }) }));
+    const d = fr ? { h24: '24 heures', d7: '7 jours', d30: '30 jours', dev: (n) => `${n} appareil${n > 1 ? 's' : ''}` } : { h24: '24 hours', d7: '7 days', d30: '30 days', dev: (n) => `${n} device${n > 1 ? 's' : ''}` };
+    const offers = [
+      ['Personal Unlimited', `${d.h24} · ${d.dev(1)}`, 100], ['Personal Unlimited', `${d.d7} · ${d.dev(1)}`, 500], ['Personal Unlimited', `${d.d7} · ${d.dev(2)}`, 800],
+      ['Personal Unlimited', `${d.d30} · ${d.dev(1)}`, 1200], ['Home WISP Unlimited', d.d30, 10000]
+    ].map(([name, line, pts]) => { const off = pts > balance; return { name, line: off ? `${line} · ${fr ? 'encore' : 'need'} ${num(pts - balance)} ${T.pts}${fr ? '' : ' more'}` : line, pts: `${num(pts)} pts`, off, aria: `${fr ? 'Échanger' : 'Redeem'} ${num(pts)} ${T.pts}: ${name}, ${line}`, pick: () => { if (!off && pts === 500) this.setState({ view: 'confirm' }); } }; });
+    const friends = (fr ? [['6•• •• 88 21', 'A rejoint le 12 nov.', '+200', 'g'], ['6•• •• 40 19', 'A rejoint le 3 nov.', '+200', 'g'], ['6•• •• 77 31', 'Invité · premier forfait pas encore acheté', 'En attente', 'w']]
+                         : [['6•• •• 88 21', 'Joined 12 Nov', '+200', 'g'], ['6•• •• 40 19', 'Joined 3 Nov', '+200', 'g'], ['6•• •• 77 31', 'Invited · hasn’t bought a first bundle yet', 'Pending', 'w']])
+      .map(([who, when, pts, k]) => ({ who, when, pts, style: 'font-size: 13px; font-weight: 700; white-space: nowrap; ' + (k === 'g' ? 'color: #345000;' : 'color: #6b3a00;') }));
+    const history = (fr ? [['Paiement d’un forfait', '24 nov. · 7 jours · 2 appareils', '+40'], ['Ami parrainé', '12 nov. · 6•• •• 88 21', '+200'], ['Échangé', '5 nov. · 24 heures · 1 appareil', '−100'], ['Paiement d’un forfait', '28 oct. · 30 jours · 1 appareil', '+60'], ['Points expirés', '1 oct. · gagnés en oct. 2025', '−30'], ['Bonus de bienvenue', '1 sept. · invité par J. Fon', '+100']]
+                         : [['Bundle payment', '24 Nov · 7 days · 2 devices', '+40'], ['Friend joined', '12 Nov · 6•• •• 88 21', '+200'], ['Redeemed', '5 Nov · 24 hours · 1 device', '−100'], ['Bundle payment', '28 Oct · 30 days · 1 device', '+60'], ['Points expired', '1 Oct · earned Oct 2025', '−30'], ['Welcome bonus', '1 Sep · invited by J. Fon', '+100']])
+      .map(([what, when, pts]) => ({ what, when, pts, style: 'font-size: 15px; ' + (pts.startsWith('+') ? 'color: #345000;' : 'color: #8a2a2a;') }));
+    return {
+      t: T, tabs, offers, friends, history,
+      balanceText: `${num(balance)} ${T.pts}`,
+      worthLine: fr ? `Environ ${num(balance * 5)} XAF en forfaits` : `Worth about ${num(balance * 5)} XAF in bundles`,
+      expiryLine: fr ? '180 points expirent le 12 févr. 2027 · les points durent 12 mois' : '180 points expire on 12 Feb 2027 · points last 12 months',
+      isRedeem: s.tab === 'redeem', isInvite: s.tab === 'invite', isHistory: s.tab === 'history',
+      isConfirm: s.view === 'confirm', isDone: s.view === 'done',
+      toDone: () => this.setState({ view: 'done' }), toOverview: () => this.setState({ view: 'overview' }),
+      shareLabel: s.shared ? T.shared : T.share, share: () => this.setState({ shared: true }),
+      copyLabel: s.copied ? T.copied : T.copy, copy: () => this.setState({ copied: true })
+    };
+  }
+}
+</script>
+</body>
+</html>
