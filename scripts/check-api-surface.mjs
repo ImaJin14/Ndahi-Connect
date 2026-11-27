@@ -31,7 +31,7 @@ const knownBackendMatchers = [
   /^\/api\/account\/push(?:\/[^/]+)?$/,
   /^\/api\/account\/qr-connect\/(?:begin|options|verify|rotate)$/,
   /^\/api\/account\/home(?:\/(?:register|enroll|confirm|mode|revoke|retry|options))?$/,
-  /^\/api\/account\/device-management(?:\/(?:main|main\/options|disconnect|disconnect\/options|forget|forget\/options|current|current\/identify|current\/reset|nickname|connect|connect\/options|pairing|pairing\/request|pairing\/manual|pairing\/approve|pairing\/decline))?$/,
+  /^\/api\/account\/device-management(?:\/(?:main|main\/options|disconnect|disconnect\/options|forget|forget\/options|replace|replace\/options|current|current\/identify|current\/reset|nickname|connect|connect\/options|pairing|pairing\/request|pairing\/manual|pairing\/approve|pairing\/decline))?$/,
   /^\/api\/wifi\/pairing\/(?:config|request|status|cancel|redeem)$/,
   /^\/api\/account\/authentication-migration\/(?:options|confirm|pin\/start|pin\/confirm|pin\/cancel)$/,
   /^\/api\/admin\/authentication-migration\/(?:options|confirm|review)$/,
