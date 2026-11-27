@@ -2214,7 +2214,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Internet with a running Unlimited bundle (#355, #356, batch 17, 27 November 2026)
 
 - [-] **CUS-355 — Internet, redesigned for Unlimited (batch 17)** ([#355](https://github.com/ImaJin14/Ndahi-Connect/issues/355), [#356](https://github.com/ImaJin14/Ndahi-Connect/issues/356)). Owner decisions: [no Buy for someone else on Internet](https://github.com/ImaJin14/Ndahi-Connect/issues/355#issuecomment-7216863785); [Saved vouchers as drawn on desktop](https://github.com/ImaJin14/Ndahi-Connect/issues/356#issuecomment-7217622287).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #354):
+  - **Implemented and tested** (PR #544, not merged yet; built on #354):
     - phones (PhoneInternet): the card reads "Active · Personal Unlimited", "Ends Wed 25 Nov", "2 days 14 h left · unlimited data" and a bar of the time gone; "You can buy your next bundle once this one ends."; earlier bundles show amounts as "1.8 GB"; no Buy for someone else;
     - desktop (DesktopInternet): the card ("Active bundle" over the plan, "2 days 14 h left · unlimited data · 2 of 2 device slots", the bar and the next-bundle line) beside Got a voucher?, then Bundle history beside Saved vouchers, each row level; below 1024px they stack as the board's rows wrap;
     - Saved vouchers on desktop is the drawn list: each code with "[plan] · not used" or "Redeemed [date]", then Open or Used. Open goes to the voucher page, which now opens any of the account's own saved codes by id (copy, Print slip with its PDF, QR). Phones keep the list with its filter and paging.
