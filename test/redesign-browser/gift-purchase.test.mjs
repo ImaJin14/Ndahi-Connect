@@ -8,7 +8,8 @@ import { hashSecret } from "../../lib/security.mjs";
 import { seedCatalogue } from "../../lib/catalogue.mjs";
 import { lowContrastText } from "../../scripts/ui-checks.mjs";
 
-// Buy for someone else (#255, canvas: PhoneBuyForOther): from Internet, the
+// Buy for someone else (#255, canvas: PhoneBuyForOther): at /gift.html (Internet
+// no longer links to it, as drawn: owner, 27 Nov, #355), the
 // number shows the one case that applies; pick a bundle and a note; pay with
 // your own number; the done screen says what happened and gives the code and
 // QR. Each kind of number: no account, an account, a bundle running.
@@ -76,10 +77,8 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
     return caseText;
   };
 
-  // From Internet.
-  await page.goto(`${portal}/dashboard#internet`);
-  await page.getByRole("link", { name: "Buy for someone else" }).click();
-  await page.waitForURL(/\/gift\.html$/);
+  // At /gift.html; Internet no longer links to it (owner, #355).
+  await page.goto(`${portal}/gift.html`);
   await page.getByRole("heading", { name: "Who is it for?" }).waitFor();
   assert.equal(await text(page.locator("#giftStep")), "Step 1 of 3");
 
