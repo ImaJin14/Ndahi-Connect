@@ -1792,7 +1792,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Receipt with payment and Wi-Fi apart (#369, batch 14, 27 November 2026)
 
 - [-] **BILL-369 — The receipt, redesigned: payment vs Wi-Fi, the confirmed fee and debit, a copyable reference (batch 14)** ([#369](https://github.com/ImaJin14/Ndahi-Connect/issues/369)). Owner decisions: [short numbers, "Total paid" for a quoted fee, "Starts at first connection"](https://github.com/ImaJin14/Ndahi-Connect/issues/369#issuecomment-7210694009).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #521, not merged yet):
     - two tiles: Payment ("Confirmed · 24 Nov, 14:32") and Wi-Fi ("Active since 14:33", "Activating…", or "Starts at first connection" for a bundle saved until it's first used); a receipt never says Wi-Fi is active before it is;
     - new receipts are numbered "NC-2411-0457" (per month, Douala time), with the NDAHI payment ID "NC-PAY-2411-0457"; the month's counter is a store setting, so two receipts at once never share a number; receipts already issued keep theirs (owner);
     - "Total debited (confirmed by MTN)" with Bundle Price, Mobile Payment Fee and Total debited when the provider reported its charge; otherwise "Total paid" with the quoted amounts (owner); amounts in XAF;
