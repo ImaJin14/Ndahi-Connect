@@ -30,7 +30,11 @@ const kind = () => { const ua = navigator.userAgent; return /iPhone/.test(ua) ? 
 const ago = (at) => { const minutes = Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60000)); return minutes < 60 ? L("replaceMinutes", { count: Math.max(1, minutes) }) : minutes < 2880 ? L("replaceHours", { count: Math.round(minutes / 60) }) : L("replaceDays", { count: Math.round(minutes / 1440) }); };
 const meta = (row, n) => [L("replaceSlot", { n }), row.mac, row.online ? L("replaceOnlineNow") : row.lastSeenAt ? L("replaceOffline", { ago: ago(row.lastSeenAt) }) : L("replaceOfflineOnly")].join(" · ");
 const rows = () => (slots?.rows || []).filter((row) => !row.removing);
-const oldName = () => rows().concat(slots?.rows || []).find((row) => row.id === chosen)?.name || L("replaceTheDevice");
+// The replaced device leaves the slot list once the router confirms, so its
+// name is remembered when the replacement starts.
+let chosenName = "";
+const listedName = () => rows().concat(slots?.rows || []).find((row) => row.id === chosen)?.name || "";
+const oldName = () => listedName() || chosenName || L("replaceTheDevice");
 const ends = () => slots?.endsAt ? new Date(slots.endsAt).toLocaleString(lang === "fr" ? "fr-FR" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).replace(",", "").replace(/(\d{2}:\d{2})$/, L("replaceAt") + " $1") : "";
 const title = (text, tag = "h1") => `<${tag} class="replace__h1" tabindex="-1">${h(text)}</${tag}>`;
 function showFoot(html) { foot.innerHTML = html; foot.hidden = !html; }
@@ -48,7 +52,7 @@ function pick() {
   const ready = () => { const button = $("replaceStart"); if (button) button.disabled = !chosen || !/^\d{4,6}$/.test($("replacePin").value); };
   showFoot(`<button type="button" class="replace__btn" id="replaceStart" disabled>${h(L("replaceDo", { name: oldName() }))}</button><a class="replace__btn2" href="/dashboard#devices">${h(L("replaceCancel"))}</a>`);
   for (const button of main.querySelectorAll("[data-slot]")) button.onclick = () => {
-    chosen = button.dataset.slot;
+    chosen = button.dataset.slot; chosenName = "";
     for (const other of main.querySelectorAll("[data-slot]")) other.setAttribute("aria-checked", String(other === button));
     $("replaceStart").textContent = L("replaceDo", { name: oldName() }); ready();
   };
@@ -76,6 +80,7 @@ function done(home) {
 }
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function run() {
+  chosenName = listedName() || chosenName;
   work(); main.querySelector("h1").focus();
   try {
     // 1–2: remove the old device (its session and saved sign-in). Repeating is safe.

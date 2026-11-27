@@ -72,6 +72,13 @@ test("a device replaces another's slot, through a router failure and a retry", {
   await page.locator("h1").filter({ hasText: "Replacement paused" }).waitFor();
   assert.equal(await text(page.locator(".replace__alert")), "We couldn't confirm HP laptop is disconnected. Nothing changed: it still holds the slot and this phone isn't connected. It's safe to try again.");
   assert.equal(connects, 0);
+  // The retry's reply can already leave the old device out of the slots (the
+  // router confirmed meanwhile); the page still names it.
+  await page.route("**/api/account/device-management/replace", async (route) => {
+    const response = await route.fetch(), body = await response.json();
+    if (body.slots?.rows) body.slots.rows = body.slots.rows.filter((row) => row.id !== "g2");
+    await route.fulfill({ response, json: body });
+  }, { times: 1 });
   await page.getByRole("button", { name: "Try again" }).click();
   await page.locator("h1").filter({ hasText: "Moving the slot to this phone…" }).waitFor();
   grant = (await f.store.snapshot()).wifiDeviceGrants.find((g) => g.id === "g2");
