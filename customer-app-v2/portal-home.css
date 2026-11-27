@@ -7,7 +7,6 @@
 .portal-head__title { margin: 0; color: var(--nd-ink); font-family: var(--nd-font-display); font-size: var(--nd-fs-h1); font-weight: 600; line-height: var(--nd-lh-tight); }
 /* Focus is moved here by script after a tab change; it is not a control. */
 .portal-head__title:focus { outline: none; }
-.portal-account__language .nd-input { width: auto; max-width: 60%; min-width: 0; }
 .portal-head__notices { display: flex; flex-direction: column; gap: var(--nd-space-8); margin-top: var(--nd-space-8); }
 .portal-head__notices:empty { display: none; }
 .portal-head__notices .network-state-banner { margin: 0; }

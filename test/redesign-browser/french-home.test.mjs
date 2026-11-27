@@ -33,13 +33,14 @@ test('optional French: English default, Account preference, persistent translate
   assert.equal(await page.locator('html').getAttribute('lang'), 'en', 'French browser alone must not change the default');
   assert.match(await page.locator('[data-remaining-data]').innerText(), /3\.20 GB/);
   await page.locator('[data-portal-tab="account"]').click();
-  const language = page.getByRole('combobox', { name: 'Language' }); await language.focus();
-  await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
-  // Native keyboard change must retain focus through the dashboard refresh.
-  await page.waitForFunction(() => document.documentElement.lang === 'fr' && document.querySelector('[data-account-language] option[value=fr][selected]'));
-  assert.equal(await page.locator('[data-account-language]').evaluate(n => n === document.activeElement), true, 'keyboard language change preserves focus');
+  // Phones pick the language on the drawn English | Français control (#357).
+  const language = page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Français' }); await language.focus();
+  await page.keyboard.press('Enter');
+  // A keyboard change must retain focus through the dashboard refresh.
+  await page.waitForFunction(() => document.documentElement.lang === 'fr' && document.querySelector('[data-account-lang=fr][aria-pressed=true]'));
+  assert.equal(await page.locator('.portal-account__languages [data-account-lang="fr"]').evaluate(n => n === document.activeElement), true, 'keyboard language change preserves focus');
   await page.waitForFunction(() => document.documentElement.lang === 'fr');
-  await page.locator('[data-account-language] option[value="fr"][selected]').waitFor({ state: 'attached' });
+  assert.equal(await page.locator('.portal-account__languages [data-account-lang="en"]').getAttribute('aria-pressed'), 'false');
   await page.locator('.account-setup-reminder strong').filter({ hasText: 'Terminez la configuration du compte' }).waitFor();
   assert.equal(await page.locator('#portalHeadAction').textContent(), 'Forfaits et tickets');
   assert.equal(await page.locator('#portalNav').getAttribute('aria-label'), 'Principal');
@@ -109,27 +110,27 @@ test('optional French: English default, Account preference, persistent translate
   assert.equal(await page.locator('#pendingPayment .ussd-waiting-header strong').textContent(), 'Validez la demande sur votre téléphone');
   if (captureDir) await page.screenshot({ path: `${captureDir}/payment-pending-fr-360.png`, fullPage: true });
   await page.locator('[data-portal-tab="account"]').click();
-  await page.locator('[data-account-language]').waitFor(); await page.waitForTimeout(100);
-  await page.locator('[data-account-language]').focus(); assert.equal(await page.locator('[data-account-language]').evaluate(n => n === document.activeElement), true);
-  assert.deepEqual((await lowContrastText(page)).filter(item => item.includes('SELECT') || item.includes('Language') || item.includes('Langue')), []);
-  await page.locator('[data-account-language]').selectOption('en'); await page.waitForFunction(() => document.documentElement.lang === 'en');
-  await page.reload(); await page.locator('[data-account-language] option[value="en"][selected]').waitFor({ state: 'attached' });
+  await page.locator('.portal-account__languages [data-account-lang="en"]').waitFor(); await page.waitForTimeout(100);
+  await page.locator('.portal-account__languages [data-account-lang="en"]').focus(); assert.equal(await page.locator('.portal-account__languages [data-account-lang="en"]').evaluate(n => n === document.activeElement), true);
+  assert.deepEqual((await lowContrastText(page)).filter(item => item.includes('BUTTON') || item.includes('Language') || item.includes('Langue') || item.includes('English') || item.includes('Français')), []);
+  await page.locator('.portal-account__languages [data-account-lang="en"]').click(); await page.waitForFunction(() => document.documentElement.lang === 'en');
+  await page.reload(); await page.locator('.portal-account__languages [data-account-lang="en"][aria-pressed="true"]').waitFor({ state: 'attached' });
   await page.locator('[data-portal-tab="home"]').click(); assert.match(await page.locator('[data-remaining-data]').innerText(), /3\.20 GB/);
   await page.locator('[data-portal-tab="account"]').click();
   await page.locator('body[data-current-tab="account"]').waitFor();
   await context.route('**/api/account/dashboard', route => route.fulfill({ status: 500, json: { error: 'Synthetic refresh failure' } }));
-  await page.locator('[data-account-language]').focus(); await page.locator('[data-account-language]').selectOption('fr');
+  await page.locator('.portal-account__languages [data-account-lang="fr"]').focus(); await page.keyboard.press('Enter');
   await page.locator('#dashboardMessage').filter({ hasText: 'Impossible d’actualiser' }).waitFor();
-  assert.equal(await page.locator('[data-account-language]').evaluate(n => n === document.activeElement), true, await page.evaluate(() => document.activeElement.outerHTML));
+  assert.equal(await page.locator('.portal-account__languages [data-account-lang="fr"]').evaluate(n => n === document.activeElement), true, await page.evaluate(() => document.activeElement.outerHTML));
   assert.deepEqual(errors, []); await context.close();
   const restricted = await browser.newContext({ locale: 'fr-CM', viewport: { width: 360, height: 844 } });
   await restricted.route('**/*', route => [api, portal].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort('blockedbyclient'));
   await restricted.addCookies([{ name: 'customer_session', value: 'fr-token', url: `${api}/api/account`, httpOnly: true, sameSite: 'Lax' }]);
   await restricted.addInitScript(() => { for (const method of ['getItem', 'setItem']) Storage.prototype[method] = () => { throw new DOMException('Blocked storage', 'SecurityError'); }; });
   const restrictedPage = await restricted.newPage(); restrictedPage.on('pageerror', error => errors.push(error.message));
-  await restrictedPage.goto(`${portal}/dashboard#account`); await restrictedPage.locator('[data-account-language]').waitFor();
+  await restrictedPage.goto(`${portal}/dashboard#account`); await restrictedPage.locator('.portal-account__languages [data-account-lang="fr"]').waitFor();
   assert.equal(await restrictedPage.locator('html').getAttribute('lang'), 'en', 'blocked storage with French browser defaults to English');
-  await restrictedPage.locator('[data-account-language]').selectOption('fr');
+  await restrictedPage.locator('.portal-account__languages [data-account-lang="fr"]').click();
   await restrictedPage.locator('[data-portal-tab="home"]').click(); await restrictedPage.locator('[data-remaining-data]').filter({ hasText: '3,2 Go' }).waitFor();
   assert.deepEqual(errors, [], 'unavailable storage must not prevent in-page French'); await restricted.close();
 });
