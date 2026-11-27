@@ -40,3 +40,18 @@ test('a slow response body remains bounded and opaque/public API success is not 
  const result=await probeBrowserInternet({request:async()=>({ok:true,redirected:false,headers:new Headers({'content-type':'text/plain'}),text:()=>new Promise(()=>{})})});assert.equal(result.state,'unavailable');
  const opaque=await probeBrowserInternet({request:async()=>({ok:false,type:'opaque',headers:new Headers(),text:async()=>''})});assert.equal(opaque.state,'unavailable');
 });
+test("Help's check (#361): a private Wi-Fi address is answered yes/no from this session's router-confirmed identity only, never with the address",async t=>{
+ const { privateWifiAddress } = await import('../lib/connectivity-state.mjs');
+ for (const [mac, expected] of [['AA:BB:CC:DD:EE:FF', true], ['7A:11:22:33:44:55', true], ['00:11:22:33:44:55', false], ['F4:8C:50:01:02:03', false], ['', false]]) assert.equal(privateWifiAddress(mac), expected, mac);
+ const f=await fixture(t);
+ let r=await f.call(publicPath);assert.equal(r.body.device.privateAddress,null,'unknown until this device is identified');
+ await identify(f);r=await f.call(publicPath);assert.equal(r.body.device.privateAddress,privateWifiAddress(mainMac));
+ assert.doesNotMatch(JSON.stringify(r.body),new RegExp(mainMac.replace(/:/g,'.?'),'i'),'the address itself never leaves the server');
+ await f.store.transaction(s=>{const session=s.dashboardSessions.find(x=>x.currentWifi);session.currentWifi.mac='02:00:00:00:00:01';});
+ r=await f.call(publicPath);assert.equal(r.body.device.privateAddress,true);
+ await f.store.transaction(s=>{const session=s.dashboardSessions.find(x=>x.currentWifi);session.currentWifi.mac='00:1A:2B:3C:4D:5E';});
+ r=await f.call(publicPath);assert.equal(r.body.device.privateAddress,false);
+ assert.equal((await f.call(publicPath,undefined,{session:'secondary'})).body.device.privateAddress,null,'another session learns nothing');
+ assert.equal((await f.call(publicPath,undefined,{session:''})).body.device.privateAddress,null,'signed out learns nothing');
+ f.advance(901);assert.equal((await f.call(publicPath)).body.device.privateAddress,null,'a stale identity answers nothing');
+});
