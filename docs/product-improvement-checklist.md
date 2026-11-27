@@ -2271,7 +2271,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Promotions, as drawn (#345, batch 20, 27 November 2026)
 
 - [-] **ADM-345 — Promotions with an Unlimited free bundle, as drawn (batch 20; merges from 1 Dec)** ([#345](https://github.com/ImaJin14/Ndahi-Connect/issues/345)). Owner decisions: [one product, one name, Give it, opening and starting promotions, the crossed-out price, units at this price, new customers](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7226915423).
-  - **Implemented and tested** (PR #PRNUM):
+  - **Implemented and tested** (PR #557):
     - the free bundle is an Unlimited catalogue bundle: its length is the bundle's, the order keeps a copy, and it's issued with the bundle's own terms (as kits do); promotions saved earlier with a plan keep working;
     - "Give it": when the router is collected (the default) or as soon as the payment is confirmed; a refund before it starts cancels it;
     - "Units at this price": a cap beside stock; the sale stops when either runs out; checkout never sells more than are left;
