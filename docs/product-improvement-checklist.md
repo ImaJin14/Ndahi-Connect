@@ -1665,6 +1665,17 @@ Owner requested all unknown business details remain blank for now. Review this l
     - one model (`shared-app/voucher-card.js`) gives the screen and the PDF the same words; a long plan name ends in an ellipsis; phones get the card without sideways scrolling.
   - **Not yet:** a PDF printed and a slip read on paper.
 
+### Your saved voucher, as drawn (#367, batch 15, 27 November 2026)
+
+- [-] **CUS-367 — Your saved voucher, redesigned for Unlimited (batch 15)** ([#367](https://github.com/ImaJin14/Ndahi-Connect/issues/367)). Owner decision: [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/367#issuecomment-7212012909).
+  - **Implemented and tested** (PR #523, not merged yet):
+    - the forest card: "Personal Unlimited · 7 days · 2 devices" (a fixed-data voucher keeps "Weekly · 5 GB · 7 days"), the code without NC- as on the slip, its QR, "Not used yet · valid until 10 Feb 2027" (or "In use · ends …"), and "See what scanning opens →", the page its QR opens;
+    - Copy code and Print slip (the slip page has Download PDF), the note, and "Use it on this device now", which resumes this device's connection as Continue did;
+    - Download Voucher, the automatic download, "Continue to Dashboard / Wi-Fi", the two links, the long note and the install card are gone (owner);
+    - a Personal Unlimited voucher not yet used now opens here (it used to say no voucher was found); the page follows the customer's language; English and French;
+    - journeys reach the page through new helpers in `scripts/portal-tabs.mjs`; v1 keeps its page.
+  - **Not yet:** merged, deployed, or a voucher bought, printed and used on a real phone.
+
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
 - Implemented: account-specific, replaceable QR locators open a dedicated connection page. Scanning alone grants no account session; fresh owner PIN or user-verified passkey signs in and issues a single-use, 90-second connection authorization bound to the account, voucher, device and attempt. Main-device designation and existing device limits remain enforced.
