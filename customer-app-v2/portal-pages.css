@@ -765,3 +765,126 @@ body[data-device-slots] #devicesCount { padding: 0 8px 0 0; border-radius: 0; ba
   body[data-device-slots] .portal-slots { margin-top: 2px; padding-bottom: 96px; }
   body[data-device-slots] .portal-slots__foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; }
 }
+/* Kits (canvas: PhoneStarterKit #373, PhoneInstallBooking #374, PhoneInstalments
+   #375): a bar, the screen, and its actions on a bar at the foot. The kit's
+   payment step is the drawn Checkout (portal-kits.js marks it as checkout). */
+#shopPanel .portal-kit-screen { display: flex; flex-direction: column; color: var(--nd-ink); font-family: var(--nd-font-body); background: var(--nd-ivory); }
+#shopPanel .portal-kit { display: flex; flex: 1; flex-direction: column; }
+#shopPanel .portal-kit__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid var(--nd-line); }
+#shopPanel .portal-kit__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: var(--nd-ink); text-decoration: none; }
+#shopPanel .portal-kit__back:hover { background: var(--nd-sage); }
+#shopPanel .portal-kit__bar-title { margin: 0; color: var(--nd-ink); font: 700 15px var(--nd-font-body); }
+#shopPanel .portal-kit__bar-title:focus { outline: none; }
+#shopPanel .portal-kit__bar-title:not(:last-child) { flex: 1; }
+#shopPanel .portal-kit__step { padding-right: 8px; color: var(--nd-muted); font-size: 13px; }
+#shopPanel .portal-kit__main { display: flex; flex: 1; flex-direction: column; }
+#shopPanel .portal-kit__main--pad { gap: 14px; padding: 18px; }
+#shopPanel .portal-kit__main--where { gap: 12px; }
+#shopPanel .portal-kit__hero { padding: 18px 18px 14px; background: var(--nd-forest); color: var(--nd-white); }
+#shopPanel .portal-kit__eyebrow { margin: 0; color: var(--nd-lime); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+#shopPanel .portal-kit__title { margin: 6px 0 4px; color: var(--nd-white); font: 600 27px/1.1 var(--nd-font-display); }
+#shopPanel .portal-kit__body { display: flex; flex-direction: column; gap: 10px; padding: 10px 18px 0; }
+#shopPanel .portal-kit__inside { padding: 2px 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+#shopPanel .portal-kit__inc { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--nd-line); font-size: 14px; }
+#shopPanel .portal-kit__inc:last-child { border-bottom: 0; }
+#shopPanel .portal-kit__ico { display: grid; flex: 0 0 36px; place-items: center; height: 36px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-forest); }
+#shopPanel .portal-kit__inc-text { flex: 1; }
+#shopPanel .portal-kit__inc-text span { color: var(--nd-muted); font-size: 13px; }
+#shopPanel .portal-kit__set { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+#shopPanel .portal-kit__set legend { margin-bottom: 6px; padding: 0 2px; font-size: 14px; font-weight: 700; }
+#shopPanel .portal-kit__opt { box-sizing: border-box; display: flex; gap: 10px; align-items: center; width: 100%; min-height: 56px; margin: 0; padding: 8px 12px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); color: var(--nd-ink); font: 14px var(--nd-font-body); text-align: left; cursor: pointer; }
+#shopPanel .portal-kit__opt[aria-pressed="true"] { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+#shopPanel .portal-kit__opt:disabled { cursor: default; opacity: .6; }
+#shopPanel .portal-kit__opt strong { display: block; }
+#shopPanel .portal-kit__opt span span, #shopPanel .portal-kit__opt-main > span { color: var(--nd-muted); font-size: 12px; }
+#shopPanel .portal-kit__opt-main { flex: 1; }
+#shopPanel .portal-kit__opt .portal-kit__opt-price { display: inline; white-space: nowrap; }
+#shopPanel .portal-kit__pays { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#shopPanel .portal-kit__foot { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
+#shopPanel .portal-kit__foot--total { gap: 0; }
+#shopPanel .portal-kit__total { display: flex; justify-content: space-between; align-items: baseline; }
+#shopPanel .portal-kit__total span { color: var(--nd-muted); font-size: 14px; }
+#shopPanel .portal-kit__total strong { font-size: 22px; }
+#shopPanel .portal-kit__total + .portal-kit__btn { margin-top: 10px; }
+#shopPanel .portal-kit__save { margin: 2px 0 10px; color: var(--nd-success-fg); font-size: 13px; font-weight: 600; }
+#shopPanel .portal-kit__btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin: 0; padding: 0 16px; border: 0; border-radius: 10px; background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+#shopPanel .portal-kit__btn--two { flex-direction: column; padding: 4px 16px; }
+#shopPanel .portal-kit__btn--two span { font-size: 12px; font-weight: 600; }
+#shopPanel .portal-kit__btn2 { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 1px solid var(--nd-line-strong); border-radius: 10px; background: var(--nd-paper); color: var(--nd-forest); font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+#shopPanel .portal-kit-screen--plan .portal-kit__btn2 { min-height: 48px; font-size: 15px; }
+#shopPanel .portal-kit-screen--plan .portal-kit__btn, #shopPanel .portal-kit-screen--paid .portal-kit__btn { flex-direction: column; padding: 4px 16px; }
+#shopPanel .portal-kit__btn:disabled, #shopPanel .portal-kit__btn2:disabled { cursor: default; opacity: .7; }
+#shopPanel .portal-kit__link { min-height: 44px; margin: 0; padding: 0; border: 0; background: none; color: var(--nd-forest); font: 700 14px var(--nd-font-body); text-decoration: underline; cursor: pointer; }
+#shopPanel .portal-kit__message { color: var(--nd-danger); font-size: 14px; }
+#shopPanel .portal-kit__message:empty { display: none; }
+#shopPanel .portal-kit__error { margin: 18px; }
+/* Booking */
+#shopPanel .portal-kit__h1 { margin: 0; color: var(--nd-ink); font: 600 26px/1.15 var(--nd-font-display); }
+#shopPanel .portal-kit__lede { margin: 0; color: var(--nd-muted); font-size: 14px; }
+#shopPanel .portal-kit__days { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+#shopPanel .portal-kit__day { min-height: 64px; margin: 0; padding: 1px 6px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); color: var(--nd-ink); font: 400 13.3333px/normal var(--nd-font-body); cursor: pointer; }
+#shopPanel .portal-kit__day[aria-pressed="true"] { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+#shopPanel .portal-kit__day--full { border: 1px dashed var(--nd-line); background: #f4f5f2; color: #6f7a75; cursor: not-allowed; }
+#shopPanel .portal-kit__dow { display: block; font-size: 11px; font-weight: 600; }
+#shopPanel .portal-kit__day strong { display: block; font-size: 17px; }
+#shopPanel .portal-kit__note { display: block; font-size: 10px; }
+#shopPanel .portal-kit__slots { display: flex; flex-direction: column; gap: 8px; }
+#shopPanel .portal-kit__slot { display: flex; align-items: center; width: 100%; min-height: 56px; margin: 0; padding: 8px 14px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); color: var(--nd-ink); font: 14px var(--nd-font-body); text-align: left; cursor: pointer; }
+#shopPanel .portal-kit__slot[aria-pressed="true"] { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+#shopPanel .portal-kit__slot:disabled { cursor: not-allowed; opacity: .6; }
+#shopPanel .portal-kit__slot > span { flex: 1; }
+#shopPanel .portal-kit__slot strong { display: block; }
+#shopPanel .portal-kit__slot span span { color: var(--nd-muted); font-size: 12px; }
+#shopPanel .portal-kit__form { display: flex; flex: 1; flex-direction: column; margin: 0; }
+#shopPanel .portal-kit__lbl { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+#shopPanel .portal-kit__in { box-sizing: border-box; width: 100%; min-height: 46px; margin: 0; padding: 0 12px; border: 1px solid var(--nd-line-strong); border-radius: 10px; background: var(--nd-white); color: var(--nd-ink); font: 15px var(--nd-font-body); }
+#shopPanel .portal-kit__area { min-height: 72px; padding: 10px 12px; line-height: 1.4; resize: vertical; }
+#shopPanel .portal-kit__payer { margin-top: 0; }
+#shopPanel .portal-kit__in.portal-shop__payer--masked { color: transparent; }
+#shopPanel .portal-kit__payer .portal-shop__mask { inset: 0 13px; font-size: 15px; }
+#shopPanel .portal-kit__hint { margin: 6px 0 0; color: var(--nd-muted); font-size: 12px; }
+#shopPanel .portal-kit__summary { padding: 4px 14px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); }
+#shopPanel .portal-kit__row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--nd-line); font-size: 14px; }
+#shopPanel .portal-kit__row:last-child { border-bottom: 0; }
+#shopPanel .portal-kit__row span { color: var(--nd-muted); }
+#shopPanel .portal-kit__fine { margin: 0; color: var(--nd-muted); font-size: 12px; text-align: center; }
+#shopPanel .portal-kit__main--done { gap: 14px; padding: 24px 20px; }
+#shopPanel .portal-kit__done-head { display: flex; align-items: center; gap: 12px; }
+#shopPanel .portal-kit__done-icon { display: grid; flex: 0 0 auto; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--nd-success-bg); }
+#shopPanel .portal-kit__card { padding: 16px; border-radius: 14px; background: var(--nd-forest); color: var(--nd-white); }
+#shopPanel .portal-kit__card-big { margin: 8px 0 2px; font-size: 22px; font-weight: 700; }
+#shopPanel .portal-kit__card-line { margin: 0; color: var(--nd-on-forest-muted); font-size: 14px; }
+#shopPanel .portal-kit__tip { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-sage); color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; }
+#shopPanel .portal-kit__notice { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 14px; line-height: 1.5; }
+/* Pay in 3 */
+#shopPanel .portal-kit__intro { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; }
+#shopPanel .portal-kit__plan { padding: 4px 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+#shopPanel .portal-kit__sch { margin: 0; padding: 0; list-style: none; }
+#shopPanel .portal-kit__sch li { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--nd-line); font-size: 14px; }
+#shopPanel .portal-kit__sch li:last-child { border-bottom: 0; }
+#shopPanel .portal-kit__sch-text { flex: 1; }
+#shopPanel .portal-kit__n { display: grid; flex: 0 0 28px; place-items: center; height: 28px; border-radius: 50%; background: var(--nd-sage); font-size: 12px; font-weight: 700; }
+#shopPanel .portal-kit__n--now { background: var(--nd-lime); color: var(--nd-lime-ink); }
+#shopPanel .portal-kit__n--paid { background: var(--nd-success-bg); color: var(--nd-success-fg); }
+#shopPanel .portal-kit__n--next { background: var(--nd-warning-bg); color: var(--nd-warning-fg); }
+#shopPanel .portal-kit__fee { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 13px; line-height: 1.5; }
+#shopPanel .portal-kit__faq { border-top: 1px solid var(--nd-line); }
+#shopPanel .portal-kit__faq summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700; cursor: pointer; }
+#shopPanel .portal-kit__faq p { margin: 0 0 8px; color: var(--nd-ink-soft); font-size: 13px; line-height: 1.5; }
+#shopPanel .portal-kit__progress { padding: 16px; border-radius: 16px; background: var(--nd-forest); color: var(--nd-white); }
+#shopPanel .portal-kit__paid { margin: 8px 0 2px; font-size: 26px; font-weight: 700; }
+#shopPanel .portal-kit__of { margin: 0 0 10px; color: var(--nd-on-forest-muted); font-size: 13px; }
+#shopPanel .portal-kit__track { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .18); }
+#shopPanel .portal-kit__fill { width: 0; height: 100%; border-radius: 999px; background: var(--nd-lime); }
+#shopPanel .portal-kit__held { margin: 0; color: var(--nd-muted); font-size: 13px; }
+#shopPanel .portal-kit__main--center { align-items: center; gap: 14px; padding: 24px 20px; text-align: center; }
+#shopPanel .portal-kit__big-icon { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: var(--nd-success-bg); }
+#shopPanel .portal-kit__center-text { margin: 0; color: var(--nd-ink-soft); font-size: 15px; line-height: 1.5; }
+#shopPanel .portal-kit__code { margin: 0; padding: 14px 22px; border-radius: 12px; background: var(--nd-forest); color: var(--nd-white); font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .14em; }
+@media (max-width: 767.98px) {
+  body[data-portal-sub="kit"] .dashboard-shell, body[data-portal-sub="booking"] .dashboard-shell, body[data-portal-sub="plan"] .dashboard-shell { margin-bottom: 0; padding-bottom: 0; }
+  body[data-portal-sub="kit"] .portal-head, body[data-portal-sub="booking"] .portal-head, body[data-portal-sub="plan"] .portal-head { padding: 0; }
+  body[data-portal-sub="kit"] #shopPanel, body[data-portal-sub="booking"] #shopPanel, body[data-portal-sub="plan"] #shopPanel { display: flex; flex-direction: column; min-height: 100dvh; padding: 0; }
+  #shopPanel .portal-kit-screen { flex: 1; margin: 0 -16px; }
+  #shopPanel .portal-kit__foot { position: sticky; bottom: 0; z-index: 5; }
+}
