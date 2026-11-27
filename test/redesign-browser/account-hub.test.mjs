@@ -68,3 +68,44 @@ test("the phone Account is drawn with its switches, language control and router 
   assert.deepEqual(await lowContrastText(page), []);
   assert.deepEqual(errors, []);
 });
+
+// DesktopAccount (#358): three panels; Home and help reads Home WISP router,
+// Payment and package rules, Help & support, then Language as "English ·
+// Français" with the other language as a link that keeps focus after the switch.
+test("the desktop Account is drawn with Home and help and the Language row", { timeout: 180000 }, async (t) => {
+  const website = await listen(http.createServer()), portal = `http://127.0.0.1:${website.address().port}`;
+  const f = await pairingFixture({ origin: portal, now: new Date(), liveClock: true, env: { NETWORK_QUEUE_ENABLED: "false" } });
+  await f.store.transaction((s) => { s.customers.find((c) => c.id === "c1").name = "Amina Ndi"; });
+  const assets = createStaticServer("customer", { apiUrl: f.api, env: { NODE_ENV: "test", CUSTOMER_UI_DEFAULT: "v2" } });
+  website.on("request", (req, res) => assets.emit("request", req, res));
+  const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
+  t.after(async () => { await browser.close(); await f.close(); await new Promise((r) => { website.close(r); website.closeAllConnections(); }); });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.route("**/*", (route) => {
+    const u = new URL(route.request().url());
+    if (![portal, f.api].includes(u.origin)) return route.abort("blockedbyclient");
+    return route.continue(u.origin === f.api ? { headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } } : {});
+  });
+  await context.addCookies([{ name: "customer_session", value: "main", domain: "127.0.0.1", path: "/api/account", httpOnly: true, sameSite: "Lax" }]);
+  const page = await context.newPage(), errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(portal + "/dashboard#account");
+  await page.getByRole("switch", { name: "Shop order updates" }).and(page.locator(":enabled")).waitFor();
+  assert.deepEqual(await page.locator(".portal-account__panel:visible h3").allTextContents(), ["Security", "Notifications", "Home and help"]);
+  assert.deepEqual(await rows(page.locator(".portal-account__panel--home .portal-account__item:visible")),
+    ["Home WISP router Not registered", "Payment and package rules ›", "Help & support ›", "Language English · Français"]);
+  assert.equal(await page.getByRole("group", { name: "Language" }).isVisible(), false, "the phone control isn't shown");
+  assert.equal(await page.locator(".portal-account__signout--button").isVisible(), true);
+  assert.deepEqual(await lowContrastText(page), []);
+  const french = page.getByRole("button", { name: "Français" });
+  await french.focus(); await page.keyboard.press("Enter");
+  await page.waitForFunction(() => document.documentElement.lang === "fr");
+  await page.locator(".portal-account__language").filter({ hasText: /^Langue\s*English · Français$/ }).waitFor();
+  const english = page.getByRole("button", { name: "English" });
+  await page.waitForFunction(() => document.activeElement?.matches(".portal-account__langlink[data-account-lang=en]"));
+  assert.equal(await english.evaluate((el) => el === document.activeElement), true, "focus moves to the link that switches back");
+  await english.click();
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+  assert.deepEqual(errors, []);
+});

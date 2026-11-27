@@ -21,7 +21,8 @@ const item = (href, label, value, extra = "") => `<a class="portal-account__item
 // alerts are the Data / bundles category, bundle ending soon the expiry
 // warnings, shop order updates the Shop orders category (#357, off until
 // switched on). English remains the default; French is an explicit preference:
-// phones pick it on the drawn English | Français control (#357).
+// phones pick it on the drawn English | Français control (#357); from 768px the
+// Language row reads "English · Français" with the other language as a link (#358).
 const toggle = (key, label) => `<label class="portal-account__item portal-account__toggle"><span>${h(label)}</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input" data-account-pref="${key}" disabled><span class="nd-switch__track" aria-hidden="true"></span></span></label>`;
 export function accountHub(customer, security, { homeRegistered = false } = {}) {
   const name = customer.name || L("portalYourAccount");
@@ -46,10 +47,10 @@ export function accountHub(customer, security, { homeRegistered = false } = {}) 
     </section>
     <section class="portal-account__panel portal-account__panel--home" aria-labelledby="accountHomeGroup"><h3 class="portal-account__group nd-wide-only" id="accountHomeGroup">${h(L("portalHomeAndHelp"))}</h3>
       <div class="portal-account__list">
-        <label class="portal-account__item portal-account__language nd-wide-only"><span>${h(L("uiLanguage"))}</span><select class="nd-input" data-account-language><option value="en" ${currentLanguage() === "en" ? "selected" : ""}>${h(L("uiLanguageEnglish"))}</option><option value="fr" ${currentLanguage() === "fr" ? "selected" : ""}>${h(L("uiLanguageFrench"))}</option></select></label>
         ${item("/home-router.html", L("portalHomeWispRouter"), h(L(homeRegistered ? "portalRouterRegistered" : "portalRouterNotRegistered")))}
         <span class="nd-wide-only">${item("/billing-terms.html", L("portalPackageRulesLink"), "")}</span>
         ${item("/help.html", L("portalHelpSupport"), "")}
+        <span class="nd-wide-only"><div class="portal-account__item portal-account__language"><span>${h(L("uiLanguage"))}</span><span class="portal-account__value">${[["en", L("uiLanguageEnglish")], ["fr", L("uiLanguageFrench")]].map(([code, label]) => currentLanguage() === code ? `<span lang="${code}">${h(label)}</span>` : `<button type="button" class="portal-account__langlink" lang="${code}" data-account-lang="${code}">${h(label)}</button>`).join(" · ")}</span></div></span>
         ${signOut("nd-narrow-only")}
       </div>
     </section>
@@ -89,8 +90,6 @@ export function mountAccountHub(call) {
     for (const button of document.querySelectorAll("[data-account-lang]")) button.setAttribute("aria-pressed", String(button.dataset.accountLang === selected));
     window.dispatchEvent(new CustomEvent("ndahi:language", { detail: selected }));
   };
-  const language = document.querySelector("[data-account-language]");
-  if (language) language.onchange = () => choose(language.value);
   for (const button of document.querySelectorAll("[data-account-lang]")) button.onclick = () => choose(button.dataset.accountLang);
   document.querySelectorAll("[data-account-open]").forEach((link) => {
     link.onclick = (event) => {

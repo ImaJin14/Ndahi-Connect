@@ -633,19 +633,23 @@ function mountLanguagePreference() {
 mountLanguagePreference();
 window.addEventListener("ndahi:language", async (event) => {
   const selected = event.detail === "fr" ? "fr" : "en";
-  // The focused language control (the desktop picker, or the phone's English | Français
-  // button, #357) keeps focus through the translated refresh.
-  const focused = document.activeElement, restoreFocus = focused?.matches('[data-account-language]') ? '[data-account-language]'
-    : focused?.matches('[data-account-lang]') ? `[data-account-lang="${focused.dataset.accountLang}"]` : null;
+  // The focused language control keeps focus through the translated refresh: the
+  // phone's English | Français button (#357), or on desktop the Language row's
+  // link, which then names the other language (#358).
+  const focused = document.activeElement?.matches('[data-account-lang]') ? document.activeElement.dataset.accountLang : null;
+  const restoreFocus = focused && (() => {
+    const shown = [...document.querySelectorAll('[data-account-lang]')].filter((el) => el.getClientRects().length);
+    (shown.find((el) => el.dataset.accountLang === focused) || shown[0])?.focus();
+  });
   applyLanguage(selected);
   try {
     await load();
-    if (restoreFocus && activePortalView() === "account") document.querySelector(restoreFocus)?.focus();
+    if (restoreFocus && activePortalView() === "account") restoreFocus();
   } catch (error) {
     // Keep the existing view and picker usable when a translated data refresh fails.
     const message = $("#dashboardMessage");
     message.textContent = t("homeLanguageRefreshFailed", selected);
-    if (restoreFocus) document.querySelector(restoreFocus)?.focus();
+    if (restoreFocus) restoreFocus();
   }
 });
 
