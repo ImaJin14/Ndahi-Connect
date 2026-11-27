@@ -9,15 +9,17 @@ import { funnelStep } from "./funnel.js";
 import { requestJson } from "./compat.js";
 import { responseError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { format } from "/shared/i18n.js";
+import { format, getPreferredLanguage } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { suggestedPaymentNetwork } from "/shared/cameroon-phone.js";
+import { xaf, WALLET_NAMES } from "./buy-desktop.js";
 
+// The page follows the customer's language choice; gift.html is served as English (#364).
+document.documentElement.lang = getPreferredLanguage();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr-FR" : "en-GB");
 const day = (at) => new Date(at).toLocaleDateString(locale(), { day: "numeric", month: "short" });
-const price = (amount) => Number(amount).toLocaleString(locale());
 const masked = (phone) => {
   const d = String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, "");
   // Kept on one line (no-break spaces).
@@ -26,6 +28,8 @@ const masked = (phone) => {
 const STEPS = { who: "giftStep1", plan: "giftStep2", wait: "giftStep3", done: "giftStepDone" };
 const METHODS = { mtn: "giftMtn", orange: "giftOrange" };
 const state = { phone: "", name: "", case: null, endsAt: null, plans: [], plan: null, note: "", csrf: "", buyer: null, payment: null, result: null, timer: 0 };
+// The catalogue's access types (#333): an Unlimited card reads "Unlimited · 7 days · 2 devices".
+const PERSONAL = "personal_unlimited", HOME = "home_wisp_unlimited";
 
 async function call(path, data) {
   const { response, body } = await requestJson(api + path, data === undefined ? { credentials: "include" } : {
@@ -37,6 +41,15 @@ async function call(path, data) {
 const who = () => state.name || masked(state.phone);
 const duration = (hours) => hours % 24 === 0 ? (hours === 24 ? L("giftOneDay") : L("giftDays", { count: hours / 24 })) : L("giftHours", { count: hours });
 const data = (plan) => plan.quotaGb === null ? L("giftUnlimited") : `${plan.quotaGb} GB`;
+// An Unlimited bundle's card line, as drawn: "Unlimited · 24 h · 1 device",
+// "Unlimited · 7 days · 2 devices"; Home WISP: "Unlimited · 30 days · household sharing".
+function unlimitedDetail(plan) {
+  const hours = Number(plan.validityHours), days = hours / 24;
+  const length = hours <= 24 ? L("giftHoursShort", { count: hours }) : Number.isInteger(days) ? (days === 1 ? L("giftOneDay") : L("giftDays", { count: days })) : L("giftHours", { count: hours });
+  const what = plan.accessType === HOME ? L("giftHousehold") : plan.deviceSlots === 1 ? L("giftOneDevice") : L("giftDevicesCount", { count: plan.deviceSlots });
+  return [L("giftUnlimitedShort"), length, what].join(" · ");
+}
+const cardDetail = (p) => [PERSONAL, HOME].includes(p.accessType) ? unlimitedDetail(p) : [data(p), duration(p.validityHours), speed(p)].filter(Boolean).join(" · ");
 // A bundle's speed limit, if it has one (#263).
 const speed = (plan) => speedText(plan, { lang: currentLanguage(), devices: plan.deviceLimit });
 const network = () => suggestedPaymentNetwork(state.buyer.phone) || "mtn";
@@ -44,7 +57,7 @@ const network = () => suggestedPaymentNetwork(state.buyer.phone) || "mtn";
 // server (#297): the plan's quote before paying, the payment's record after.
 const quote = (plan) => { const q = plan?.paymentQuotes?.[network()]; return Number.isFinite(q?.total) ? q : null; };
 const amounts = (payment) => Number.isFinite(payment?.fee) && Number.isFinite(payment?.total)
-  ? { price: price(payment.amount), fee: price(payment.fee), total: price(payment.total) } : null;
+  ? { price: xaf(payment.amount), fee: xaf(payment.fee), total: xaf(payment.total) } : null;
 const icon = (path, colour, size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="${colour}" stroke-width="${size > 30 ? 1.8 : 2.4}" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"></path></svg>`;
 
 // The one case that applies, under the number (the canvas shows all three as a design note).
@@ -75,26 +88,24 @@ function show(step) {
     body.innerHTML = `<form class="gift__form" id="giftPlan" novalidate><main class="gift__main gift__main--plans">
       <h1 class="gift__h1" id="giftHeading">${h(state.name ? L("giftPlanTitle", { name: state.name }) : L("giftPlanTitleAnon"))}</h1>
       <div class="gift__plans" role="radiogroup" aria-labelledby="giftHeading">${state.plans.map((p) => `<button type="button" class="gift__card${p.id === state.plan?.id ? " gift__card--on" : ""}" role="radio" aria-checked="${p.id === state.plan?.id}" data-plan="${h(p.id)}">
-        <span><strong class="gift__plan-name">${h(p.name)}</strong><span>${h([data(p), duration(p.validityHours), speed(p)].filter(Boolean).join(" · "))}</span></span><strong>${h(L("giftPrice", { price: price(p.price) }))}</strong></button>`).join("")}</div>
+        <span><strong class="gift__plan-name">${h(p.name)}</strong><span>${h(cardDetail(p))}</span></span><strong>${h(xaf(p.price))}</strong></button>`).join("")}</div>
       <div class="gift__note-field"><label class="gift__label" for="giftNote">${h(L("giftNote"))} <span class="gift__label-note">${h(L("giftOptional"))}</span></label><input class="gift__input" id="giftNote" name="note" maxlength="140" autocomplete="off" value="${h(state.note)}"></div>
       <p class="gift__alert" id="giftError" role="alert" hidden></p>
-    </main><div class="gift__foot">${state.plan ? costLine(net) : ""}<button class="gift__btn" type="submit"${state.plan ? "" : " disabled"}>${h(!state.plan ? L("giftChoose")
-        : quote(state.plan) ? L("giftPay", { total: price(quote(state.plan).total), method: L(METHODS[net]) }) : L("giftPayNoFee", { price: price(state.plan.price), method: L(METHODS[net]) }))}</button>
-      ${state.plan ? `<p class="gift__charged">${h(quote(state.plan) ? L("giftCharged", { number: masked(state.buyer.phone), total: price(quote(state.plan).total) })
-        : L("giftChargedNoFee", { number: masked(state.buyer.phone), price: price(state.plan.price) }))}</p>` : ""}</div></form>`;
+    </main><div class="gift__foot">${state.plan ? costLine(net) : ""}<button class="gift__btn" type="submit"${state.plan ? "" : " disabled"}>${h(L(state.plan ? "giftPayNow" : "giftChoose"))}</button></div></form>`;
   }
   if (step === "wait") {
     // The total actually requested, from the payment record; bold as on the canvas.
     const paid = amounts(state.payment), method = L(METHODS[state.payment?.network] || METHODS[network()]);
-    const body2 = paid ? h(L("giftWaitBody", { method, total: "\u0000", fee: paid.fee })).replace("\u0000", `<strong>${h(L("giftPrice", { price: paid.total }))}</strong>`)
-      : h(L("giftWaitBodyNoFee", { method, price: "\u0000" })).replace("\u0000", `<strong>${h(L("giftPrice", { price: price(state.plan.price) }))}</strong>`);
+    const body2 = paid ? h(L("giftWaitBody", { method, total: "\u0000", fee: paid.fee })).replace("\u0000", `<strong>${h(paid.total)}</strong>`)
+      : h(L("giftWaitBodyNoFee", { method, price: "\u0000" })).replace("\u0000", `<strong>${h(xaf(state.plan.price))}</strong>`);
     body.innerHTML = `<main class="gift__main gift__main--center"><div class="gift__badge gift__badge--wait">${icon("M5 2h14v20H5ZM10 18h4M12 7v4l2 2", "currentColor", 38)}</div>
       <h1 class="gift__h1" id="giftHeading">${h(L("giftWaitTitle"))}</h1><p class="gift__text">${body2}</p>
       <p class="gift__alert" id="giftError" role="alert" hidden></p></main>
     <div class="gift__foot"><button class="gift__btn" type="button" id="giftCheck">${h(L("giftCheck"))}</button><a class="gift__btn gift__btn--secondary" href="/help#payment">${h(L("giftDidntGo"))}</a></div>`;
   }
   if (step === "done") {
-    const g = state.result.gift, code = state.result.access.code, name = who();
+    // The code as on the slip and the board, without "NC-" (owner, #368); either form claims it.
+    const g = state.result.gift, code = String(state.result.access.code || "").replace(/^NC-(?=[0-9A-Z]{4}-[0-9A-Z]{4}$)/, ""), name = who();
     const [title, text] = g.outcome === "reserved" ? [L("giftDoneReserved"), L("giftDoneReservedBody", { name, number: masked(g.recipientPhone), duration: duration(state.plan.validityHours) })]
       : g.outcome === "savedUntilEnd" ? [L("giftDoneUntilEnd", { name }), L("giftDoneUntilEndBody", { date: day(g.recipientBundleEndsAt) })]
       : [L("giftDoneSaved", { name }), L("giftDoneSavedBody")];
@@ -109,11 +120,19 @@ function show(step) {
   bind(step);
 }
 
-// "Bundle 1 500 + MTN MoMo fee 30 · 1 530 FCFA" over the Pay button (canvas: PhoneBuyForOther).
+// Over Pay Now (canvas: PhoneBuyForOther, 24 Nov): Bundle Price, Mobile Payment
+// Fee (2%) and Total to Pay from the server's quote (#297), then the wallet
+// notice. A network whose fee isn't verified shows the price and says the fee
+// appears in the operator prompt (#432).
 function costLine(net) {
-  const q = quote(state.plan);
-  return `<div class="gift__cost">${q ? `<span>${h(L("giftCost", { price: price(q.price), method: L(METHODS[net]), fee: price(q.fee) }))}</span><strong>${h(L("giftCostTotal", { total: price(q.total) }))}</strong>`
-    : `<span>${h(L("giftCostNoFee", { price: price(state.plan.price) }))}</span>`}</div>`;
+  const q = quote(state.plan), wallet = WALLET_NAMES[net] || L(METHODS[net]), amount = `<strong>${h(xaf(q ? q.total : state.plan.price))}</strong>`;
+  const rows = q ? `<div class="gift__qrow"><span>${h(L("giftBundlePrice"))}</span><span>${h(xaf(q.price))}</span></div>
+      <div class="gift__qrow"><span>${h(L("giftFeeRow"))}</span><span>${h(xaf(q.fee))}</span></div>
+      <div class="gift__qrow gift__qrow--total"><strong>${h(L("giftTotalRow"))}</strong><strong>${h(xaf(q.total))}</strong></div>`
+    : `<div class="gift__qrow"><span>${h(L("giftBundlePrice"))}</span><span>${h(xaf(state.plan.price))}</span></div>
+      <p class="gift__fee-note">${h(L("giftFeeInPrompt"))}</p>`;
+  return `<div class="gift__cost" aria-label="${h(L("giftWhatPay"))}" role="group">${rows}</div>
+    <p class="gift__notice" role="note">${h(L(q ? "giftNotice" : "giftNoticeNoFee", { amount: "\u0000", wallet })).replace("\u0000", amount)}</p>`;
 }
 
 // Why a gift payment did not go through: a balance answer names the total that was asked.
@@ -121,7 +140,7 @@ function failedMessage(payment) {
   const code = payment?.failureCode;
   if (!["low_balance", "check_balance"].includes(code)) return L("giftPaymentFailed");
   const paid = amounts(payment), key = code === "check_balance" ? "giftPaymentCheckBalance" : "giftPaymentLowBalance";
-  return paid ? L(key, paid) : L(key + "NoFee", { price: price(payment.amount) });
+  return paid ? L(key, paid) : L(key + "NoFee", { price: xaf(payment.amount) });
 }
 const fail = (error) => {
   const box = $("#giftError");
@@ -208,8 +227,10 @@ function poll() {
 
 async function start() {
   try {
-    const dashboard = await call("/api/account/dashboard");
-    Object.assign(state, { csrf: dashboard.csrfToken, buyer: dashboard.customer, plans: (dashboard.availablePlans || []).filter((p) => p.price > 0 && !p.discontinued) });
+    const [dashboard, home] = await Promise.all([call("/api/account/dashboard"), call("/api/home/config").catch(() => ({ enabled: false }))]);
+    // Every offer on sale is a card (owner, #364); Home WISP only while Home is on.
+    Object.assign(state, { csrf: dashboard.csrfToken, buyer: dashboard.customer,
+      plans: (dashboard.availablePlans || []).filter((p) => p.price > 0 && !p.discontinued && (p.accessType !== HOME || home.enabled === true)) });
     // The buyer's own plan is chosen to start with (the canvas has one chosen).
     state.plan = state.plans.find((p) => p.id === dashboard.currentPlan?.plan?.id) || state.plans[0] || null;
     show("who");
