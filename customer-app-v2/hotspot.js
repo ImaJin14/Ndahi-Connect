@@ -12,6 +12,7 @@ import { wifiHint, startWifiRequest } from "./wifi-pairing.js";
 import { fetchNetworkInfo } from "./network-status.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage, localize } from "/shared/ui/dom.js";
+import { finishFacts } from "./wifi-finish.js";
 
 if (!resumeVoucherScanFromWifi(wifiHint())) {
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
@@ -19,6 +20,13 @@ const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);
 let destination = new URL("/dashboard", location.origin), csrfToken = "", submitted = false, devicePoll, controlsMounted = false, watchedDisconnect;
 destination = new URL(customerDestination(params.get("next")), location.origin);
+// A PIN or passkey sign-in on NDAHI Wi-Fi asks first (#372, canvas:
+// PhoneWifiConnected; owner: tap to connect). Other arrivals (after paying, a
+// voucher, a renewal) still connect at once, as their paths are drawn.
+const finishStep = params.get("step") === "finish";
+// After the step, "You're online" (#372) shows once the network confirms this
+// device, then Go to my home opens the destination.
+const onlineUrl = () => new URL("/wifi-connected.html?next=" + encodeURIComponent(destination.pathname + destination.search + destination.hash), location.origin).href;
 
 
 async function protectedConnect(proof = {}) {
@@ -125,7 +133,7 @@ async function protectedConnect(proof = {}) {
   }
   if ((!request.deviceCapabilities || request.deviceCapabilities.mainDeviceSupported !== false) && (request.firstDevice || proof.recover)) { destination.searchParams.set("main-device", hint.mac); destination.hash = "home"; }
   if (request.deviceCapabilities && request.deviceCapabilities.mainDeviceSupported === false) destination.searchParams.delete("main-device");
-  location.replace(destination.href);
+  location.replace(finishStep ? onlineUrl() : destination.href);
 }
 
 async function connect() {
@@ -172,7 +180,9 @@ async function connect() {
         form.action = login.href;
         form.elements.username.value = result.body.username;
         form.elements.password.value = result.body.password;
-        form.elements.dst.value = destination.href;
+        // After the step, the router returns to "You're online" (#372), which
+        // shows only once the network confirms this device; then Go to my home.
+        form.elements.dst.value = finishStep ? onlineUrl() : destination.href;
         submitted = true;
         message.textContent = "Activating internet access…";
         HTMLFormElement.prototype.submit.call(form);
@@ -241,6 +251,27 @@ devices.onclick = async (event) => {
   } catch (error) { showError(message, error); }
 };
 button.onclick = connect;
+// Finish Wi-Fi sign-in (#372): this device, the bundle and what's left of it,
+// and a Personal Unlimited bundle's device slots; Connect this device or Not now.
+async function showFinish() {
+  const dashboard = await requestJson(config.apiUrl + "/api/account/dashboard", { credentials: "include", cache: "no-store" });
+  if (!dashboard.response.ok) throw responseError(dashboard.response, dashboard.body);
+  const bundle = dashboard.body.activeBundle || null;
+  let slots = null;
+  if (bundle?.accessType === "personal_unlimited") {
+    try {
+      const devices = await requestJson(config.apiUrl + "/api/account/device-management", { credentials: "include", cache: "no-store" });
+      if (devices.response.ok) slots = devices.body.slots || null;
+    } catch (_) { /* The step still shows without its slots row. */ }
+  }
+  const lang = currentLanguage(), L = (key) => format(key, {}, lang), card = document.getElementById("wifiConnect"), facts = document.getElementById("finishFacts"), later = document.getElementById("finishLater");
+  card.querySelectorAll("[data-finish-l]").forEach((node) => { node.textContent = L(node.dataset.finishL); });
+  facts.innerHTML = finishFacts({ bundle, slots }); facts.hidden = !facts.children.length;
+  message.textContent = ""; button.textContent = L("finishConnect");
+  later.textContent = L("finishLater"); later.href = destination.pathname + destination.search + destination.hash;
+  document.documentElement.lang = lang;
+  document.body.setAttribute("data-wifi-finish", "");
+}
 // Hotspot landing: how to get online, each choice carrying this device's Wi-Fi details.
 function showLanding(evidence) {
   const landing = document.getElementById("hotspotLanding");
@@ -286,7 +317,7 @@ else if (params.has("router-error")) {
     }
     if (evidence.network.state !== "confirmed" || evidence.hotspot.state === "authenticated" || !wifiHint()) { location.replace(destination.href); return; }
     if (["expired", "exhausted", "none"].includes(evidence.subscription.state)) { location.replace("/dashboard#bundles"); return; }
-    await connect();
+    if (finishStep) await showFinish(); else await connect();
   } catch (error) {
     if (!wifiHint()) { location.replace(destination.href); return; }
     showError(message, error, { actions: [{ label: "Try connecting again", run: connect }, { label: "Open dashboard", run: () => location.replace(destination.href) }] });

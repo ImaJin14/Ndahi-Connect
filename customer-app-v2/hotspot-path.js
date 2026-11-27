@@ -21,7 +21,9 @@ export function hotspotPath(next = "/dashboard") {
   return window.NDAHI_CONFIG.hotspotLoginUrl && wifiHint() ? withWifiHint(`/hotspot?next=${encodeURIComponent(safe)}`) : safe;
 }
 
-export async function afterSignInPath(accountOnly = new URLSearchParams(location.search).get("account") === "1") {
+// A PIN or passkey sign-in (path 1) asks before connecting on NDAHI Wi-Fi
+// ({ finishStep: true }, #372); paying or a voucher still connects at once.
+export async function afterSignInPath(accountOnly = new URLSearchParams(location.search).get("account") === "1", { finishStep = false } = {}) {
   funnelStep("signed_in");
   const params = new URLSearchParams(location.search);
   // account=1 is emitted by explicit account-settings/recovery links. Ordinary
@@ -30,5 +32,5 @@ export async function afterSignInPath(accountOnly = new URLSearchParams(location
   let evidence;
   try { evidence = await fetchConnectivity(window.NDAHI_CONFIG.apiUrl); } catch (_) { /* Dashboard displays unavailable evidence and preserves account access. */ }
   const target = customerEntry({ next, evidence, accountOnly, hasCandidate: Boolean(wifiHint()), hotspotEnabled: Boolean(window.NDAHI_CONFIG.hotspotLoginUrl) });
-  return target.indexOf("/hotspot?") === 0 ? withWifiHint(target) : target;
+  return target.indexOf("/hotspot?") === 0 ? withWifiHint(finishStep ? target + "&step=finish" : target) : target;
 }
