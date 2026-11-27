@@ -104,6 +104,32 @@ body[data-current-tab="account"]:not([data-portal-sub]) .account-layout > :not(.
 .portal-receipt__details dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .portal-receipt__actions { padding: var(--nd-space-12) var(--nd-space-16) var(--nd-space-18); border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
 .portal-receipt #receiptMessage:empty { display: none; }
+/* The 24 Nov receipt (#369, canvas: PhoneReceipt): the tighter page, the two
+   status tiles, the number and total, the rows and the reference with Copy. */
+.portal-receipt__close { color: var(--nd-ink); }
+.portal-receipt .receipt-preview { gap: 12px; padding: 14px 18px; }
+.portal-receipt__brand { padding: 14px 16px; border-radius: 12px; }
+.portal-receipt__tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.portal-receipt__tile { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: normal; }
+.portal-receipt__tile > span:first-child { font-weight: 700; }
+.portal-receipt__tile strong { display: block; }
+.portal-receipt__tile--done { background: #eaf6d5; color: #345000; }
+.portal-receipt__tile--busy { background: #fff4e0; color: #6b3a00; }
+.portal-receipt__tile--idle { background: #eef0ee; color: #3d4a44; }
+.portal-receipt__head > p { margin: 0; }
+.portal-receipt__head .portal-receipt__meta { color: #5c6963; font-size: 13px; line-height: normal; }
+.portal-receipt__debited { margin-top: 6px !important; color: #5c6963; font-size: 13px; }
+.portal-receipt__amount { color: var(--nd-forest); font-size: 30px; font-weight: 700; line-height: normal; }
+.portal-receipt__details > div { align-items: center; gap: 16px; padding: 8px 0; font-size: 14px; line-height: normal; }
+.portal-receipt__details dt { color: #5c6963; }
+.portal-receipt__details > div:last-child { border-bottom: 0; }
+.portal-receipt__ref dd { display: flex; flex-shrink: 0; align-items: center; gap: 8px; max-width: 75%; }
+.portal-receipt__ref [data-receipt-ref] { font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.portal-receipt__copy { flex: none; min-height: 32px; padding: 0 10px; border: 1px solid #b8c7bd; border-radius: 8px; background: var(--nd-paper); color: var(--nd-forest); font: 700 12px var(--nd-font-body); cursor: pointer; }
+.portal-receipt .portal-receipt__help { color: #5c6963; font-size: 12px; line-height: 1.45; }
+.portal-receipt__help a { color: var(--nd-forest); font-weight: 700; }
+.portal-receipt__actions > button { min-height: 50px; border-radius: 10px; font-size: 16px; line-height: normal; }
+.portal-receipt__actions > #receiptDownload { border: 0; }
 .portal-receipt[open] { display: flex; flex-direction: column; }
 .portal-receipt .receipt-preview { flex: 1 1 auto; overflow-y: auto; }
 /* Phones: a full page with a back arrow, as on the canvas, not v1's bottom sheet. */

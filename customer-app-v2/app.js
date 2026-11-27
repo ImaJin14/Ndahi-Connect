@@ -77,30 +77,59 @@ function paymentRow(payment, customer) {
   return `<details class="portal-activity__item" data-payment-row="${h(payment.id)}" data-activity-kind="internet" data-activity-at="${h(payment.createdAt || "")}"${["pending", "processing"].includes(payment.status) ? " data-waiting" : ""}${openPayments.has(payment.id) ? " open" : ""}><summary class="portal-activity__summary">${activityIcon("wifi")}<span class="portal-activity__date nd-wide-only">${h(activityDay(payment.createdAt))}</span><span class="portal-activity__main"><strong>${h(title)}</strong><span class="nd-meta nd-narrow-only">${h(paymentMeta(payment))}</span></span><span class="portal-activity__method nd-wide-only">${h(payment.provider === "mock" ? payment.methodLabel : activityMethod(payment.network))}</span><span class="portal-activity__amount nd-wide-only">${h(payment.amount.toLocaleString())} FCFA</span><span class="portal-activity__status">${paymentPill(payment.status)}</span>${activityOpen(["pending", "processing"].includes(payment.status) ? "portalActivityCheck" : payment.receiptAvailable ? "portalActivityReceipt" : "portalActivityView")}</summary><div class="portal-activity__body"><span class="nd-meta">${h(payment.amount.toLocaleString())} ${h(payment.currency)} · ${h(payment.providerReference || "Awaiting provider reference")}</span><small>Payment number: ${h(payment.payerPhone || "Not recorded")}</small>${paymentClock(payment)}${payment.attention ? `<p role="status">${payment.attention === "refund_overdue" ? "Refund delayed—support review needed." : "Payment received—activation needs support review."}</p>` : ""}${payment.fulfillmentStatus === "needs_review" ? '<p>Payment received. Activation needs support review; do not pay again.</p>' : ""}${payment.recoveryMessage ? `<p>${h(payment.recoveryMessage)}</p>` : ""}${payment.refund ? `<p><strong>Refund: ${h(payment.refund.status)}</strong><br>${h(payment.refund.message || "")}</p>` : ""}<div class="portal-activity__actions">${paymentActions(payment, customer.emailLinked)}</div></div></details>`;
 }
 
-// Receipt (canvas: PhoneReceipt): brand card, number and paid date, total,
-// then the details; each value stays its own element for support and tests.
-function receiptPreview(receipt) {
-  const lang = currentLanguage(), L = (key) => t(key, lang);
-  const details = [
-    ["portalReceiptBilledTo", receipt.customerName || L("portalReceiptCustomer")],
-    ["portalReceiptBundle", receipt.plan?.name || L("portalNotRecorded")],
-    ["portalReceiptData", receipt.dataLabel || L("portalNotRecorded")],
-    ["portalReceiptValidity", receipt.validityLabel || L("portalNotRecorded")],
-    ["portalReceiptDevices", receipt.deviceLabel || L("portalNotRecorded")],
-    // The bundle's speed limit, when it had one (#263).
-    ...(receipt.speedLabel ? [["portalReceiptSpeed", receipt.speedLabel]] : []),
-    ["portalReceiptPaidWith", receipt.methodLabel || "Mobile Money"],
-    ["portalReceiptNumber", receipt.payerPhone || L("portalNotRecorded")],
-    ["portalReceiptReference", receipt.providerReference || L("portalReceiptNoReference")],
-  ];
-  if (receipt.refundStatus) details.push(["portalReceiptRefund", receipt.refundStatus]);
-  return `<div class="portal-receipt__brand nd-on-forest"><span class="nd-brand__mark" aria-hidden="true">NC</span><span><strong>NDAHI Connect</strong><small>${h(L("portalReceiptWord"))}</small></span></div>
-<p class="portal-receipt__meta">${h(L("portalReceiptLine").replace("{number}", receipt.number).replace("{date}", receipt.paidAtLabel || L("portalNotRecorded")))}</p>
-<div class="portal-receipt__total"><span>${h(L("portalReceiptTotal"))}</span><strong>${h(receipt.amountLabel)}</strong></div>
-<dl class="portal-receipt__details">${details.map(([key, value]) => `<div><dt>${h(L(key))}</dt><dd>${h(value)}</dd></div>`).join("")}</dl>
-${receipt.refundMessage ? `<p class="portal-receipt__help">${h(receipt.refundMessage)}</p>` : ""}
-<p class="portal-receipt__help">${h(L("portalReceiptHelp"))} <a href="/help.html">${h(L("portalContactSupport"))}</a>.</p>`;
+// Receipt (canvas: PhoneReceipt, 24 Nov; #369): the brand card, a Payment
+// tile and a Wi-Fi tile, the receipt number, the total debited as the provider
+// confirmed it (or "Total paid" with the quoted amounts), the rows, and the
+// provider reference (or the NDAHI payment ID) with Copy. Each value stays its
+// own element for support and tests. Every term comes from the receipt.
+const DOUALA = "Africa/Douala";
+const receiptXaf = (value, lang) => `${Number(value).toLocaleString(lang === "fr" ? "fr-FR" : "en-US").replace(/[\u202f\u00a0]/g, " ")} XAF`;
+const receiptDay = (at, lang) => new Date(at).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", timeZone: DOUALA });
+const receiptTime = (at, lang) => new Date(at).toLocaleTimeString(lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: DOUALA });
+const receiptWhen = (at, lang) => `${receiptDay(at, lang)}, ${receiptTime(at, lang)}`;
+const WALLETS = { mtn: "MTN MoMo", orange: "Orange Money" }, NETWORKS = { mtn: "MTN", orange: "Orange" };
+function receiptBundle(receipt, L) {
+  const terms = receipt.terms || {}, hours = Number(terms.validityHours), days = hours / 24, name = receipt.plan?.name || L("portalNotRecorded");
+  const length = !Number.isFinite(hours) || hours <= 0 ? "" : Number.isInteger(days) ? L(days === 1 ? "portalReceiptOneDay" : "portalReceiptDays").replace("{count}", days) : L(hours === 1 ? "portalReceiptOneHour" : "portalReceiptHours").replace("{count}", hours);
+  const devices = (count) => L(count === 1 ? "portalReceiptOneDevice" : "portalReceiptDevicesCount").replace("{count}", count);
+  if (terms.accessType === "personal_unlimited") return { bundle: [name, length, Number.isInteger(terms.deviceSlots) ? devices(terms.deviceSlots) : ""].filter(Boolean).join(" · "), validity: length ? L("portalReceiptFromFirst").replace("{length}", length) : L("portalNotRecorded") };
+  if (terms.accessType === "home_wisp_unlimited") return { bundle: [name, length].filter(Boolean).join(" · "), validity: length ? L("portalReceiptFromFirst").replace("{length}", length) : L("portalNotRecorded") };
+  // A fixed-data bundle keeps its own terms: its data and device rule.
+  return { bundle: [name, receipt.dataLabel, Number.isInteger(terms.deviceLimit) ? devices(terms.deviceLimit) : ""].filter(Boolean).join(" · "), validity: length || receipt.validityLabel || L("portalNotRecorded") };
 }
+function receiptPreview(receipt) {
+  const lang = currentLanguage(), L = (key) => t(key, lang), a = receipt.amounts || {}, fee = Number.isFinite(a.fee) && Number.isFinite(a.total);
+  const total = receiptXaf(fee ? a.total : a.price, lang), { bundle, validity } = receiptBundle(receipt, L);
+  const confirmed = fee && a.confirmed && NETWORKS[receipt.network];
+  const act = receipt.activation || {}, actLine = act.state === "active"
+    ? L("portalReceiptActiveSince").replace("{time}", receipt.paidAt && receiptDay(act.at, lang) === receiptDay(receipt.paidAt, lang) ? receiptTime(act.at, lang) : receiptWhen(act.at, lang))
+    : L({ activating: "portalReceiptActivating", waiting: "portalReceiptStarts", none: "portalReceiptNotActive" }[act.state] || "portalReceiptActivating");
+  const actTone = act.state === "active" ? "done" : act.state === "activating" ? "busy" : "idle", actIcon = { done: "✓", busy: "…", idle: "○" }[actTone];
+  const wallet = receipt.test ? receipt.methodLabel : WALLETS[receipt.network] || "Mobile Money";
+  const ref = receipt.providerRef || receipt.paymentNumber || receipt.paymentId, provider = Boolean(receipt.providerRef);
+  const rows = [
+    ["portalReceiptBundle", h(bundle)],
+    ["portalReceiptPrice", h(receiptXaf(a.price, lang))],
+    ...(fee ? [["portalReceiptFee", h(receiptXaf(a.fee, lang))], [confirmed ? "portalReceiptDebited" : "portalReceiptTotal", h(total)]] : []),
+    ["portalReceiptValidity", h(validity)],
+    ["portalReceiptPaidWith", h([wallet, receipt.payerPhoneMasked].filter(Boolean).join(" · "))],
+    ...(receipt.refundStatus ? [["portalReceiptRefund", h(receipt.refundStatus)]] : []),
+  ];
+  return `<div class="portal-receipt__brand nd-on-forest"><span class="nd-brand__mark" aria-hidden="true">NC</span><span><strong>NDAHI Connect</strong><small>${h(L("portalReceiptWord"))}</small></span></div>
+<div class="portal-receipt__tiles"><p class="portal-receipt__tile portal-receipt__tile--done" data-receipt-payment><span aria-hidden="true">✓</span><span><strong>${h(L("portalReceiptPayment"))}</strong>${h(L("portalReceiptConfirmed").replace("{when}", receipt.paidAt ? receiptWhen(receipt.paidAt, lang) : L("portalNotRecorded")))}</span></p><p class="portal-receipt__tile portal-receipt__tile--${actTone}" data-receipt-wifi data-state="${h(act.state || "activating")}"><span aria-hidden="true">${actIcon}</span><span><strong>${h(L("portalReceiptWifi"))}</strong>${h(actLine)}</span></p></div>
+<div class="portal-receipt__head"><p class="portal-receipt__meta">${h(L("portalReceiptNo").replace("{number}", receipt.number))}</p><p class="portal-receipt__debited">${h(confirmed ? L("portalReceiptDebitedBy").replace("{network}", NETWORKS[receipt.network]) : L("portalReceiptTotal"))}</p><p class="portal-receipt__amount">${h(total)}</p></div>
+<dl class="portal-receipt__details">${rows.map(([key, value]) => `<div><dt>${h(L(key))}</dt><dd>${value}</dd></div>`).join("")}<div class="portal-receipt__ref"><dt>${h(L(provider ? "portalReceiptReference" : "portalReceiptNdahiId"))}</dt><dd><span data-receipt-ref>${h(ref)}</span><button type="button" class="portal-receipt__copy" data-copy-receipt-ref="${h(ref)}">${h(L("portalReceiptCopy"))}</button></dd></div></dl>
+${receipt.refundMessage ? `<p class="portal-receipt__help">${h(receipt.refundMessage)}</p>` : ""}
+<p class="portal-receipt__help">${h(L("portalReceiptHelp"))} <a href="/help.html">${h(L("portalReceiptContact"))}</a>.</p>`;
+}
+// Copy puts the exact reference on the clipboard.
+$("#receiptPreview").addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-copy-receipt-ref]");
+  if (!button) return;
+  const lang = currentLanguage();
+  try { await navigator.clipboard.writeText(button.dataset.copyReceiptRef); button.textContent = t("portalReceiptCopied", lang); }
+  catch (_) { button.textContent = t("portalReceiptCopyFailed", lang); }
+});
 
 async function openReceipt(button) {
   const request = ++receiptRequest;
@@ -112,8 +141,11 @@ async function openReceipt(button) {
   $("#receiptDownload").hidden = true;
   $("#receiptDownload").disabled = false;
   $("#receiptShare").hidden = true;
-  $("#receiptShare").textContent = "Share";
-  $("#receiptDownload").textContent = "Download PDF";
+  { const lang = currentLanguage();
+    $("#receiptShare").textContent = t("portalReceiptShare", lang);
+    $("#receiptDownload").textContent = t("portalReceiptDownload", lang);
+    $("#receiptTitle").textContent = t("portalReceiptTitle", lang);
+    $("#receiptClose").setAttribute("aria-label", t("portalReceiptBack", lang)); }
   $("#receiptMessage").replaceChildren();
   $("#receiptPreview").textContent = "Loading your receipt…";
   $("#receiptPreview").setAttribute("aria-busy", "true");
@@ -152,7 +184,7 @@ $("#receiptShare").onclick = async () => {
   const text = [`NDAHI Connect receipt ${r.number}`, `${r.plan?.name || "Bundle"} · ${r.amountLabel}`, `Paid ${r.paidAtLabel || ""}`, `Paid with ${r.methodLabel || "Mobile Money"}${r.providerReference ? ` · ${r.providerReference}` : ""}`].join("\n");
   try {
     if (navigator.share) await navigator.share({ title: `Receipt ${r.number}`, text });
-    else { await navigator.clipboard.writeText(text); $("#receiptShare").textContent = "Copied"; }
+    else { await navigator.clipboard.writeText(text); $("#receiptShare").textContent = t("portalReceiptShared", currentLanguage()); }
   } catch (_) { /* Sharing was cancelled or isn't allowed; Download PDF still works. */ }
 };
 $("#receiptDownload").onclick = async (event) => {
@@ -186,7 +218,7 @@ $("#receiptDownload").onclick = async (event) => {
   } catch (error) {
     if (request === receiptRequest && $("#receiptDialog").open) showError($("#receiptMessage"), error);
   } finally {
-    if (request === receiptRequest) { button.disabled = false; button.textContent = "Download PDF"; }
+    if (request === receiptRequest) { button.disabled = false; button.textContent = t("portalReceiptDownload", currentLanguage()); }
   }
 };
 
