@@ -70,10 +70,41 @@ const figure = (bytes) => (bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' GB' : fmt
 const short = (bytes) => (bytes >= 1e9 ? +(bytes / 1e9).toFixed(1) + ' GB' : Math.round(bytes / 1e6) + ' MB');
 // "18:03 tomorrow" / "18:03 today" (a moment only ever ends today or tomorrow).
 const whenOf = (at, now) => L(sameDay(at, now) ? 'homeRenewWhenToday' : 'homeRenewWhenTomorrow', { time: timeOf(at) });
-function endedPhrase(at, now) {
-  if (!Number.isFinite(Date.parse(at))) return L('homeRenewEndedUnknown');
-  const time = timeOf(at);
-  return sameDay(at, now) ? L('homeRenewEndedToday', { time }) : sameDay(Date.parse(at) + 864e5, now) ? L('homeRenewEndedYesterday', { time }) : L('homeRenewEndedOn', { date: dateOf(at), time });
+// "ended today at 18:03"; after the big "Ended" of an Unlimited card, just "today at 18:03".
+function endedPhrase(at, now, bare = false) {
+  if (!Number.isFinite(Date.parse(at))) return bare ? '' : L('homeRenewEndedUnknown');
+  const time = timeOf(at), key = sameDay(at, now) ? 'Today' : sameDay(Date.parse(at) + 864e5, now) ? 'Yesterday' : 'On';
+  return L((bare ? 'homeRenewAt' : 'homeRenewEnded') + key, { date: dateOf(at), time });
+}
+
+// An Unlimited bundle's moment (#359, 24 Nov board): its terms on the card
+// ("Personal Unlimited · 7 days · 2 devices"), the time left and a bar of the
+// time gone, never data.
+export const isUnlimited = (v) => ['personal_unlimited', 'home_wisp_unlimited'].includes(v?.accessType);
+function lengthOf(hours) {
+  const days = hours / 24;
+  if (hours > 24 && Number.isInteger(days)) return L('homeRenewDays', { count: days });
+  return L(hours === 1 ? 'homeRenewOneHour' : 'homeRenewHours', { count: hours });
+}
+export function unlimitedTerms(v) {
+  const hours = Number(v.plan?.validityHours), parts = [v.plan?.name || ''];
+  if (Number.isFinite(hours) && hours > 0) parts.push(lengthOf(hours));
+  if (v.accessType === 'personal_unlimited' && Number.isInteger(v.deviceSlots)) parts.push(L(v.deviceSlots === 1 ? 'homeRenewOneDevice' : 'homeRenewDevices', { count: v.deviceSlots }));
+  return parts.filter(Boolean).join(' · ');
+}
+// "1 day 2 h", "19 h", then "35 min" in the last hour: whole hours, as drawn.
+function timeLeft(ms) {
+  const minutes = Math.max(0, Math.floor(ms / 60000)), days = Math.floor(minutes / 1440), hours = Math.floor((minutes % 1440) / 60);
+  if (days) return [L(days === 1 ? 'homeRenewOneDayLeft' : 'homeRenewDaysLeft', { count: days }), hours ? L('homeRenewHoursShort', { count: hours }) : ''].filter(Boolean).join(' ');
+  return hours ? L('homeRenewHoursShort', { count: hours }) : L('homeRenewMinutesShort', { count: minutes });
+}
+function unlimitedMoment(v, ended, now) {
+  const ends = Date.parse(v.expiresAt), started = Date.parse(v.activatedAt);
+  const gone = ended ? 100 : Number.isFinite(started) && ends > started ? Math.min(100, Math.max(0, (now - started) / (ends - started) * 100)) : 0;
+  const big = ended ? `<span data-time-left>${h(L('homeRenewPillEnded'))}</span> <span class="nd-figure__unit">${h(endedPhrase(v.endedAt, now, true))}</span>`
+    : `<span data-time-left>${h(timeLeft(ends - now))}</span> <span class="nd-figure__unit">${h(L('homeRenewLeft', { when: L('homeRenewEnds', { when: whenOf(v.expiresAt, now) }) }))}</span>`;
+  return { big, meter: `<progress class="nd-meter-bar home-renew__meter${ended ? ' home-renew__meter--ended' : ''}" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>`,
+    note: L(ended ? 'homeRenewNoteEnded' : 'homeRenewNoteSoonTime') };
 }
 
 // The moment's card: plan, pill, the figure and its meter, and one line on what
@@ -95,8 +126,10 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
     : `<span data-remaining-data>${h(remaining === undefined ? L('homeValueUnavailable') : figure(remaining))}</span> <span class="nd-figure__unit">${h(moment === 'lowData' ? L('homeRenewOfLeft', { quota: short(v.quotaBytes) }) : L('homeRenewLeft', { when: L('homeRenewEnds', { when: whenOf(v.expiresAt, now) }) }))}</span>`;
   const meter = unlimited || (!ended && remaining === undefined) ? ''
     : `<progress class="nd-meter-bar home-renew__meter" max="100" value="${ended ? 0 : (remaining / v.quotaBytes * 100).toFixed(1)}" aria-hidden="true"></progress>`;
-  const note = ended ? L('homeRenewNoteEnded') : moment === 'lowData' ? L('homeRenewNoteLow', { date: dateOf(v.expiresAt) })
+  let note = ended ? L('homeRenewNoteEnded') : moment === 'lowData' ? L('homeRenewNoteLow', { date: dateOf(v.expiresAt) })
     : L(unlimited ? 'homeRenewNoteSoonUnlimited' : 'homeRenewNoteSoon', { when: whenOf(v.expiresAt, now) });
+  let shown = { big, meter };
+  if (isUnlimited(v)) ({ big: shown.big, meter: shown.meter, note } = unlimitedMoment(v, ended, now));
   const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
   const fresh = unavailable ? 'homeFreshUnavailable' : paused ? 'homeFreshPaused' : ended ? ''
     : evidenceExpired ? 'homeFreshExpired' : v.usage.state === 'stale' ? 'homeFreshStale' : v.usage.state === 'unavailable' ? 'homeFreshNone' : '';
@@ -106,8 +139,8 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
   // A bundle that ran out of data says so, as the "data used up" notice does.
   const message = [fresh ? L(fresh) : '', ended && v.status === 'exhausted' ? L('homeDataUsedUp') : '', warning === 'low' ? L('homeLowData', { amount: fmt(remaining) }) : warning === '90' ? L('homeOver90') : ''].filter(Boolean).join(' ');
   const provisioning = ended ? '' : v.provisioning === 'dead_letter' ? `<p class="nd-error" role="alert">${h(L('homeProvisionFailed'))}</p>` : v.provisioning === 'pending' ? `<p class="nd-meta">${h(L('homeProvisionPending'))}</p>` : '';
-  return `<div class="home-card__top"><div><p class="nd-eyebrow">${h(L(ended ? 'homeRenewLastBundle' : 'activeBundle'))}</p><h2 class="home-card__plan">${h(v.plan.name)}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''}" data-bundle-status role="status">${h(pill)}</p></div>
-    <p class="nd-figure home-card__figure">${big}</p>${meter}
+  return `<div class="home-card__top"><div><p class="nd-eyebrow">${h(L(ended ? 'homeRenewLastBundle' : 'activeBundle'))}</p><h2 class="home-card__plan">${h(isUnlimited(v) ? unlimitedTerms(v) : v.plan.name)}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''}" data-bundle-status role="status">${h(pill)}</p></div>
+    <p class="nd-figure home-card__figure">${shown.big}</p>${shown.meter}
     <p class="home-renew__note">${h(note)}</p>
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${provisioning}`;
 }

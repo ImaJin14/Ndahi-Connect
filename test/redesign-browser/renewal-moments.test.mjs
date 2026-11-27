@@ -5,6 +5,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../../server.mjs";
 import { createStaticServer } from "../../static-server.mjs";
 import { hashSecret } from "../../lib/security.mjs";
+import { seedCatalogue } from "../../lib/catalogue.mjs";
 import { lowContrastText } from "../../scripts/ui-checks.mjs";
 
 // Home's renewal moments (#252, canvas: PhoneRenew): running low, ending soon
@@ -128,7 +129,7 @@ test("Home shows each renewal moment as on the canvas and acts on it", { timeout
     const when = day(endedAt) === day(Date.now()) ? "today" : "yesterday";
     assert.equal(await text(card(page).locator(".home-card__figure")), `0 GB ended ${when} at ${time(endedAt)}`);
     assert.equal(await text(card(page).locator(".home-renew__note")), "Buy again and you're back online straight away on this device.");
-    const buy = card(page).getByRole("button", { name: "Buy Connect Family again 10,200 FCFA incl. fee · MTN MoMo 6•• •• 12 45", exact: true });
+    const buy = card(page).getByRole("button", { name: "Buy the same bundle again 10,200 XAF incl. 2% payment fee · MTN MoMo 6•• •• 12 45", exact: true });
     await buy.waitFor();
     await card(page).getByRole("link", { name: "Choose a different plan", exact: true }).waitFor();
     assert.equal(await text(page.getByRole("region", { name: "Buying for the family?" })), "Buying for the family? A bundle covers up to 3 devices.");
@@ -141,6 +142,82 @@ test("Home shows each renewal moment as on the canvas and acts on it", { timeout
       await page.waitForFunction(() => document.querySelector("#purchase [name=payerPhone]")?.value === "670001245");
       assert.equal(await form.locator("[name=network]").inputValue(), "mtn", "the same network as last time");
     }
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+});
+
+// Unlimited moments (#359, 24 Nov board): the bundle's terms on the card, the
+// time left and a bar of the time gone, never data; ended, "Buy the same bundle
+// again" with the 2% total and the slot counts on sale.
+test("Home shows an Unlimited bundle's renewal moments as drawn", { timeout: 180000 }, async (t) => {
+  const secret = "redesign-renewal-unlimited", store = createStore({ persistent: false });
+  await store.transaction((s) => {
+    seedCatalogue(s, new Date()); s.catalogue.mode = "unlimited";
+    const customer = (id, phone) => {
+      s.customers.push({ id, name: "Amina Nfor", phone, email: `${id}@example.test`, emailVerifiedAt: hours(-200), passkeys: [] });
+      s.dashboardSessions.push({ id: `${id}-session`, customerId: id, tokenHash: hashSecret(id, secret), csrfToken: `${id}-csrf`, expiresAt: FAR });
+    };
+    const bundle = (id, customerId, extra) => s.vouchers.push({ id, customerId, planId: "unlimited-7d-2", code: `NC-${id.toUpperCase()}`, status: "active", deviceLimit: 2, quotaBytes: null, usedBytes: 9e9,
+      accessType: "personal_unlimited", deviceSlots: 2, routerSyncStatus: "synchronized", ...extra });
+    customer("c-usoon", "670071245"); bundle("v-usoon", "c-usoon", { activatedAt: hours(-148), expiresAt: hours(20) });
+    customer("c-uended", "670081245"); bundle("v-uended", "c-uended", { status: "expired", activatedAt: hours(-169), expiresAt: hours(-1), paymentId: "pay-uended" });
+    s.payments.push({ id: "pay-uended", customerId: "c-uended", status: "paid", amount: 4000, currency: "XAF", provider: "mesomb", providerReference: "pay-uended-ref", network: "mtn",
+      payerPhone: "237670001245", planId: "unlimited-7d-2", createdAt: hours(-170), confirmedAt: hours(-169) });
+  });
+  const apiPort = await reservePort(), api = `http://127.0.0.1:${apiPort}`;
+  const staticServer = await listen(createStaticServer("customer", { apiUrl: api, env: { NODE_ENV: "test" } }));
+  const portal = `http://127.0.0.1:${staticServer.address().port}`;
+  const apiServer = createServer({ store, validateConfig: false, env: { NODE_ENV: "test", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false", CUSTOMER_APP_URL: portal,
+    PAYMENT_MODE: "mock", PAYMENT_FEE_MTN: "percent=2,on=price,round=nearest", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
+  await new Promise((resolve) => apiServer.listen(apiPort, "127.0.0.1", resolve));
+  const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
+  t.after(async () => { await browser.close(); await close(apiServer); await close(staticServer); });
+  const open = async (customerId) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: ZONE });
+    await context.route("**/*", (route) => [api, portal].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+    await context.addCookies([{ name: "customer_session", value: customerId, url: `${api}/api/account`, httpOnly: true, sameSite: "Lax" }, { name: "ndahi_ui", value: "v2", url: portal, sameSite: "Lax" }]);
+    const page = await context.newPage(), errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`${portal}/dashboard#home`);
+    await page.locator("#dataBalance [data-bundle-status]").waitFor();
+    return { context, page, errors };
+  };
+  const card = (page) => page.getByRole("region", { name: "Active bundle" });
+  const settle = (page) => page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 300)));
+
+  // Ends soon: the terms, the time left, a bar of the time gone, no data.
+  {
+    const { context, page, errors } = await open("c-usoon");
+    await card(page).locator(".home-renew__note").waitFor();
+    await settle(page);
+    assert.equal(await card(page).locator(".home-card__plan").textContent(), "Personal Unlimited · 7 days · 2 devices");
+    assert.match(await text(card(page).locator("[data-bundle-status]")), /^Ends (today|tomorrow)$/);
+    assert.match(await text(card(page).locator(".home-card__figure")), /^(19|20) h left · ends \d{2}:\d{2} (today|tomorrow)$/);
+    assert.equal(await card(page).locator("[data-used-data], [data-remaining-data]").count(), 0, "no data figure for Unlimited");
+    const gone = Number(await card(page).locator(".home-renew__meter").getAttribute("value"));
+    assert.ok(gone > 85 && gone < 90, `time gone ${gone}`);
+    assert.equal(await text(card(page).locator(".home-renew__note")), "Data is unlimited until then. Your next bundle can be bought the moment this one ends.");
+    await card(page).getByRole("checkbox", { name: "Remind me the moment it ends" }).waitFor();
+    assert.equal(await text(page.getByRole("region", { name: "Next bundle" })), "Next bundle When it ends we'll show a one-tap button to buy Personal Unlimited again with the same Mobile Money number.");
+    assert.deepEqual(await lowContrastText(page), []);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+  // Ended: "Ended today at …", the full grey bar, the same bundle again with its 2% total, and the slot counts on sale.
+  {
+    const { context, page, errors } = await open("c-uended");
+    const buy = card(page).getByRole("button", { name: "Buy the same bundle again 4,080 XAF incl. 2% payment fee · MTN MoMo 6•• •• 12 45", exact: true });
+    await buy.waitFor();
+    assert.equal(await card(page).locator(".home-card__plan").textContent(), "Personal Unlimited · 7 days · 2 devices");
+    assert.equal(await text(card(page).locator("[data-bundle-status]")), "Ended");
+    assert.match(await text(card(page).locator(".home-card__figure")), /^Ended (today|yesterday) at \d{2}:\d{2}$/);
+    assert.equal(await card(page).locator(".home-renew__meter--ended").getAttribute("value"), "100.0");
+    assert.equal(await text(page.getByRole("region", { name: "Buying for the family?" })),
+      "Buying for the family? Personal Unlimited comes with 1, 2, 3, 4, 5 or 6 device slots. For a home router, choose Home WISP Unlimited.");
+    await buy.click();
+    await page.waitForURL(/\/onboarding\.html\?action=renew&plan=unlimited-7d-2&quick=1&payer=pay-uended/);
     assert.deepEqual(errors, []);
     await context.close();
   }
