@@ -2294,7 +2294,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### The store during a deal, as drawn (#419, batch 20, 27 November 2026)
 
 - [-] **STORE-419 — StorePromo (batch 20; merges from 1 Dec)** ([#419](https://github.com/ImaJin14/Ndahi-Connect/issues/419)). Owner decision: [the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/419#issuecomment-7226916185).
-  - **Implemented and tested** (PR #PRNUM):
+  - **Implemented and tested** (PR #559):
     - the offer's hero as drawn: its badge, headline, words and Get the deal; "7 of 20 left at this price · 1 per customer" (units at the price, or the stock); the countdown with no label while it runs; the fine print with the units, when the free bundle is given (at collection or payment) and the terms;
     - the deal's card: the badge on the photo, "+ 1 month Unlimited free", the price with the regular price crossed out only after real sales at it, what's left at the price, and Get deal;
     - English and French.
