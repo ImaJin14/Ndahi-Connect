@@ -143,3 +143,16 @@ body[data-hotspot-landing] main { padding: 0; }
 #homeStatus dd { color: var(--nd-white); border-color: var(--nd-line-on-forest); }
 #homeStatus #refreshHome { border-color: var(--nd-line-on-forest); background: transparent; color: var(--nd-lime); }
 .portal-static__langs button { min-width: 40px; min-height: 32px; }
+/* Package rules as drawn (PhoneBillingTerms, #360): the bar edge to edge with
+   its line, an 18px column, rows without chevrons, and the PIN note at the
+   foot of the screen. "Full rules" (the full text) stays as the last row. */
+.portal-static--drawn { display: flex; flex-direction: column; min-height: 100vh; padding: 0; }
+.portal-static--drawn .portal-static__bar { gap: 8px; min-height: 0; margin: 0; padding: 10px; border-bottom: 1px solid #dfe5dc; }
+.portal-static--drawn .portal-static__back { margin-left: 0; }
+.portal-static--drawn .portal-static__main { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; padding: 18px; }
+.portal-static--drawn .portal-static__main > h1 { margin: 0; color: #10241c; font: 600 26px/normal var(--nd-font-display); }
+.portal-static--drawn .portal-static__meta { margin: 6px 0 10px; color: #5c6963; font-size: 13px; }
+.portal-static--drawn .portal-rule__chevron { display: none; }
+.portal-static--drawn .portal-rules__full { margin-top: 0; border-top: 0; }
+.portal-static--drawn .portal-rules__pin { margin: auto 0 0; }
+
