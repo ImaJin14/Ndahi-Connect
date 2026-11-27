@@ -2257,7 +2257,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).
-  - **Checked and tested** (PR #PRNUM; [audit](reviews/connect-flow-393.md)):
+  - **Checked and tested** (PR #562; [audit](reviews/connect-flow-393.md)):
     - every step of the board (join NDAHI Wi-Fi; I have an account; I have a code; scan a QR; I'm new, buy; use someone's bundle; the five recoveries) is built and walked by a passing journey; nothing differs from the board, so no code changes;
     - the board's rules hold: a PIN or a passkey only; a scan or a pairing code never connects a device on its own; nobody can buy while a bundle is active;
     - v2: the flow's 15 redesign browser tests, and the hotspot, billing and pending-state suites with v2 forced; v1: the same three suites. All pass, on local servers with mock payments and a mock router.
