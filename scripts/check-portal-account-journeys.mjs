@@ -202,12 +202,21 @@ try {
   });
   await scenario('public FAQs work without login and open the requested answer with configured support', async (page, context) => {
     await context.clearCookies(); await page.goto(`${portal}/help#payment`);
-    await page.getByRole('heading', { name: 'Frequently asked questions', exact: true }).waitFor();
-    // v2 adds "How do I connect by scanning a voucher QR?" (#250).
-    assert.equal(await page.locator('details').count(), uiV2 ? 14 : 13);
-    assert.equal(await page.locator('#payment').getAttribute('open'), '');
-    await page.getByRole('link', { name: 'Email support: support@example.test', exact: true }).waitFor();
-    assert.equal(await page.locator('a[href="tel:+237670000001"]').count(), 1);
+    if (uiV2) {
+      // v2 Help is drawn (#361, owner 27 Nov): five questions, plus the answers
+      // other pages link to, hidden until linked; Call and WhatsApp.
+      await page.getByRole('heading', { name: 'Common questions', exact: true }).waitFor();
+      assert.equal(await page.locator('details:visible').count(), 5);
+      assert.equal(await page.locator('#payment').getAttribute('open'), '');
+      assert.equal(await page.locator('a[href="tel:+237670000001"]').count(), 1);
+      await page.getByRole('link', { name: 'WhatsApp', exact: true }).waitFor();
+    } else {
+      await page.getByRole('heading', { name: 'Frequently asked questions', exact: true }).waitFor();
+      assert.equal(await page.locator('details').count(), 13);
+      assert.equal(await page.locator('#payment').getAttribute('open'), '');
+      await page.getByRole('link', { name: 'Email support: support@example.test', exact: true }).waitFor();
+      assert.equal(await page.locator('a[href="tel:+237670000001"]').count(), 1);
+    }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: `${screenshots}/help-mobile.png`, fullPage: true });
   }, 320);

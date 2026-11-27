@@ -2196,28 +2196,49 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Home with a running Unlimited bundle (#352, #353, batch 17, 27 November 2026)
 
 - [-] **CUS-352 — Home, redesigned for Unlimited (batch 17)** ([#352](https://github.com/ImaJin14/Ndahi-Connect/issues/352), [#353](https://github.com/ImaJin14/Ndahi-Connect/issues/353)). Owner decisions: [Connected only while this device is online; "Welcome back." as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7216862269).
-  - **Implemented and tested** (PR #542, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #542):
     - a running Personal Unlimited (or Home WISP) bundle's card reads "Personal Unlimited · 7 days", **Connected** while the network confirms this device is signed in on NDAHI Wi-Fi (otherwise Active), "2 days 14 h left · unlimited data", a bar of the time gone, then "Ends Wed 25 Nov · 18:03" and "2 of 2 device slots"; no data-left figure. French as PhoneHomeFR: "2 j 14 h restants · données illimitées", "Se termine mer. 25 nov.", "2 appareils sur 2";
     - Home's greeting is "Welcome back." without the name; fully online, the header's network line reads just "Network online" (the other states keep their explanation);
     - server: the bundle status adds a Personal Unlimited bundle's slots taken; fixed-data bundles keep their card.
-  - **Not yet:** merged, deployed, or seen on a real phone on NDAHI Wi-Fi.
+  - **Not yet:** seen on a real phone on NDAHI Wi-Fi.
 
 ### Desktop Home with a running Unlimited bundle (#354, batch 17, 27 November 2026)
 
 - [-] **CUS-354 — Desktop Home, redesigned for Unlimited (batch 17)** ([#354](https://github.com/ImaJin14/Ndahi-Connect/issues/354)). Owner decisions: [Connected only while online; record daily usage for "Used this week"; "Welcome back." as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/354#issuecomment-7216862730).
-  - **Implemented and tested** (PR #543, not merged yet; built on #352):
+  - **Implemented, tested, merged and deployed** (PR #543; built on #352):
     - from 768px Home follows Main: "Tuesday, 10 November", "Welcome back." at 40px and Bundles & vouchers; the forest card with "Active bundle" over the plan's name, the pill, "2 days 14 h left · unlimited data" with "Ends Wed 25 Nov · 18:03" beside it, the time bar, and tiles "2 of 2 · Device slots used", "1.8 GB · Used this week", "25 Nov · Validity ends"; fully online the banner gives way to the top bar's "Network online";
     - server: each router reading's increase is recorded per day (Douala time, last 8 days kept) for direct and Home router bundles, and the bundle status gives the last 7 days; it fills in from the day this ships.
-  - **Not yet:** merged, deployed, or a week of real readings seen on desktop.
+  - **Not yet:** a week of real readings seen on desktop.
 
 ### Internet with a running Unlimited bundle (#355, #356, batch 17, 27 November 2026)
 
 - [-] **CUS-355 — Internet, redesigned for Unlimited (batch 17)** ([#355](https://github.com/ImaJin14/Ndahi-Connect/issues/355), [#356](https://github.com/ImaJin14/Ndahi-Connect/issues/356)). Owner decisions: [no Buy for someone else on Internet](https://github.com/ImaJin14/Ndahi-Connect/issues/355#issuecomment-7216863785) ([reconfirmed knowing it was the only entry](https://github.com/ImaJin14/Ndahi-Connect/issues/355#issuecomment-7219698478)); [Saved vouchers as drawn on desktop](https://github.com/ImaJin14/Ndahi-Connect/issues/356#issuecomment-7217622287).
-  - **Implemented and tested** (PR #544, not merged yet; built on #354):
+  - **Implemented, tested, merged and deployed** (PR #544; built on #354):
     - phones (PhoneInternet): the card reads "Active · Personal Unlimited", "Ends Wed 25 Nov", "2 days 14 h left · unlimited data" and a bar of the time gone; "You can buy your next bundle once this one ends."; earlier bundles show amounts as "1.8 GB"; no Buy for someone else, so the portal no longer links to that flow (it still works at `/gift.html`);
     - desktop (DesktopInternet): the card ("Active bundle" over the plan, "2 days 14 h left · unlimited data · 2 of 2 device slots", the bar and the next-bundle line) beside Got a voucher?, then Bundle history beside Saved vouchers, each row level; below 1024px they stack as the board's rows wrap;
     - Saved vouchers on desktop is the drawn list: each code with "[plan] · not used" or "Redeemed [date]", then Open or Used. Open goes to the voucher page, which now opens any of the account's own saved codes by id (copy, Print slip with its PDF, QR). Phones keep the list with its filter and paging.
-  - **Not yet:** merged, deployed, or seen on a real phone and desktop.
+  - **Not yet:** seen on a real phone and desktop.
+
+### Package rules for Unlimited (#360, batch 18, 27 November 2026)
+
+- [-] **CUS-360 — Package rules, redesigned for Unlimited (batch 18)** ([#360](https://github.com/ImaJin14/Ndahi-Connect/issues/360)). Owner decision: [exactly as drawn, for everyone](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220082541).
+  - **Implemented and tested** (PR #546, not merged yet):
+    - "While a bundle is active" reads "Use it until it expires. Data is unlimited. You can't buy or switch packages before then.", shown to everyone (the owner was told customers on data bundles read it too, and that "Validity starts when the payment is confirmed" differs from the Unlimited start at first connection);
+    - the page follows PhoneBillingTerms: the bar edge to edge with its line, 26px title, rows without chevrons, and the PIN note at the foot of the screen;
+    - the page follows the customer's language choice, with every line in English and French;
+    - "Full rules" (the full v1 rules text) is removed as drawn ([owner](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220205695)).
+  - **Not yet:** merged, deployed, or seen on a real phone.
+
+### Help for Unlimited (#361, batch 18, 27 November 2026)
+
+- [-] **CUS-361 — Help, redesigned for Unlimited (batch 18)** ([#361](https://github.com/ImaJin14/Ndahi-Connect/issues/361)). Owner decisions: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220081886); [linked answers stay, hidden until linked](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220205003).
+  - **Implemented and tested** (PR #547, not merged yet; built on #360):
+    - the five drawn questions with the Unlimited answers (device slots, no buying before it ends, Personal bundles restrict hotspot sharing, the shop's pickup place), and "Still need help?" with Call and WhatsApp;
+    - "Check my connection" answers in rows: "Joined NDAHI Wi-Fi" (or not), "Bundle active — 2 days 14 h left" (or data left, no bundle, sign in), and "Private Wi-Fi address is on — turn it off for NDAHI" when known;
+    - server: the connectivity evidence adds whether this session's router-confirmed device uses a private Wi-Fi address (yes/no only; never the address; unknown until identified);
+    - the answers other pages link to (`#connect`, `#scan-qr`, `#recovery`) stay hidden until linked; the other questions, the latency check and email support leave the page;
+    - English and French.
+  - **Not yet:** merged, deployed, or the private-address row seen with a real phone on NDAHI Wi-Fi.
 
 ### Notifications for Unlimited (#362, batch 18, 27 November 2026)
 
