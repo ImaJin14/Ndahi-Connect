@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, openSessions, openSecurityHistory, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
+import { uiV2 as portalV2, openManageDevices, openSessions, openSecurityHistory, notificationLink, waitForAccount, manageNotificationSettings, openNotifications, openPortalView, useVoucherSignIn } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
@@ -100,11 +100,16 @@ try {
   await openNotifications(owner);
   const panel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await panel.getByRole("heading", { name: "Set your main device", exact: true }).waitFor();
-  await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
+  // v2 is the drawn list (#362): no view filter; settings open from Account.
+  if (!portalV2) await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
   await panel.getByRole("button", { name: "Mark all read", exact: true }).click();
   assert.ok(await panel.locator("[data-notification-id]").count() >= 1);
   assert.equal((await f.store.snapshot()).wifiPairingRequests.find((p) => p.mac.endsWith("04")).status, "awaiting_confirmation");
-  await panel.getByRole("button", { name: "Settings", exact: true }).click();
+  if (portalV2) {
+    await owner.waitForFunction(() => !document.querySelector(".notification-panel--drawn .notification-unread"));
+    assert.equal(await panel.getByRole("link", { name: "Choose which notifications you get", exact: true }).getAttribute("href"), "/dashboard#account");
+    await owner.keyboard.press("Escape"); await owner.locator('[data-portal-tab="account"]').click(); await manageNotificationSettings(owner);
+  } else await panel.getByRole("button", { name: "Settings", exact: true }).click();
   await panel.getByLabel("Email security notices", { exact: true }).uncheck();
   await panel.getByRole("button", { name: "Save notification settings", exact: true }).click();
   await panel.getByText("Notification settings saved.", { exact: true }).waitFor();
@@ -112,14 +117,16 @@ try {
   assert.equal(await owner.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await owner.screenshot({ path: screenshots + "/customer-notifications-320.png", fullPage: true });
   await owner.keyboard.press("Escape");
-  assert.equal(await owner.getByRole("button", { name: /^Notifications/ }).evaluate((el) => el === document.activeElement), true);
-  await owner.reload(); await openNotifications(owner);
-  await panel.getByRole("button", { name: "Settings", exact: true }).click();
+  // Focus returns to what opened the panel: the bell, or v2's "Manage notification settings".
+  assert.equal(await owner.getByRole("button", { name: portalV2 ? "Manage notification settings" : /^Notifications/ }).first().evaluate((el) => el === document.activeElement), true);
+  await owner.reload();
+  if (portalV2) await manageNotificationSettings(owner);
+  else { await openNotifications(owner); await panel.getByRole("button", { name: "Settings", exact: true }).click(); }
   assert.equal(await panel.getByLabel("Email security notices", { exact: true }).isChecked(), false);
   await owner.keyboard.press("Escape");
   console.log("PASS notification filters, durable read/preferences, pending actions, focus restoration and 320px layouts");
 
-  await openNotifications(owner);
+  if (portalV2) await manageNotificationSettings(owner); else await openNotifications(owner);
   await owner.evaluate(async () => {
     await navigator.serviceWorker.register("/sw.js"); await navigator.serviceWorker.ready;
     window.syntheticPush = { permission: "default", permissionCalls: 0, active: false, allowed: false, subscribed: false };
@@ -152,7 +159,7 @@ try {
   await panel.getByRole("button", { name: "Enable on this device", exact: true }).click();
   await panel.getByText("Browser notifications are not supported here. Use the in-app inbox.", { exact: true }).waitFor();
   await panel.getByRole("button", { name: "Back to notifications", exact: true }).click();
-  await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
+  if (!portalV2) await panel.getByLabel("Notification view", { exact: true }).selectOption("action");
   await panel.getByRole("heading", { name: "Set your main device", exact: true }).waitFor();
   await owner.keyboard.press("Escape");
   console.log("PASS permission is requested only by a user gesture; denied/unsupported push preserves the inbox; synthetic subscribe/unsubscribe persists on the real API");
@@ -241,7 +248,7 @@ try {
   const securityPanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
   await securityPanel.getByRole("heading", { name: "Account security changed", exact: true }).waitFor();
   await securityPanel.getByRole("heading", { name: /PIN sign-in/ }).waitFor();
-  await securityPanel.getByRole("link", { name: "Review sessions", exact: true }).first().click();
+  await notificationLink(securityPanel, /PIN sign-in/, "Review sessions").click();
   await owner.waitForURL(/#sessions$/);
   await owner.locator("#sessionActivity [data-revoke-session]:visible").first().waitFor(); // v2 marks this device "You" instead
   assert.equal(await owner.locator("#sessionActivity").evaluate((el) => el.open), true);
@@ -260,6 +267,15 @@ try {
     await page.goto(origin + "/dashboard");
     await openNotifications(page);
     const centre = page.getByRole("dialog", { name: "Notifications", exact: true });
+    if (portalV2 && page === owner) {
+      // v2's drawn list (#362, owner 27 Nov): the newest 25, no filters or pages; a failed refresh says so and recovers.
+      await page.waitForFunction(() => document.querySelectorAll(".notification-panel--drawn [data-notification-id]").length === 25);
+      assert.equal(await centre.locator("[data-notification-view], [data-page-next], [data-archive]").count(), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await page.keyboard.press("Escape");
+      assert.equal(await page.getByRole("button", { name: /^Notifications/ }).evaluate((el) => el === document.activeElement), true);
+      continue;
+    }
     await centre.getByLabel("Notification view", { exact: true }).selectOption("all");
     await centre.getByLabel("Notification category", { exact: true }).selectOption("security");
     await centre.getByLabel("Notifications from date", { exact: true }).fill("2026-09-01");
@@ -339,8 +355,10 @@ try {
   await owner.locator("#dataBalanceMessage").filter({ hasText: "data is used up" }).waitFor();
   await openNotifications(owner);
   const usagePanel = owner.getByRole("dialog", { name: "Notifications", exact: true });
-  await usagePanel.getByLabel("Notification view", { exact: true }).selectOption("all");
-  await usagePanel.getByLabel("Notification category", { exact: true }).selectOption("usage");
+  if (!portalV2) {
+    await usagePanel.getByLabel("Notification view", { exact: true }).selectOption("all");
+    await usagePanel.getByLabel("Notification category", { exact: true }).selectOption("usage");
+  }
   await usagePanel.getByRole("heading", { name: "Bundle data used up", exact: true }).waitFor();
   assert.equal(await usagePanel.getByRole("heading", { name: "Bundle data used up", exact: true }).count(), 1);
   await usagePanel.getByRole("heading", { name: "Low-data warning", exact: true }).waitFor();

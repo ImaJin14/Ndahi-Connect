@@ -131,10 +131,14 @@ export async function openNotifications(page) {
 // Security, All.
 export async function openSecurityHistory(page) {
   if (!uiV2) { await openSessions(page); return page.getByRole("button", { name: "View security history", exact: true }).click(); }
+  // v2 Notifications is the drawn list (#362): every category, newest first.
   await openNotifications(page);
-  const panel = page.getByRole("dialog", { name: "Notifications", exact: true });
-  await panel.locator("[data-notification-view]").selectOption("all");
-  await panel.locator("[data-notification-category]").selectOption("security");
+}
+// A notification's own link: v1 and the admin have "Review sessions" and similar
+// links in each row; v2's drawn row is itself the link (#362).
+export function notificationLink(panel, title, label) {
+  const row = panel.locator("[data-notification-id]").filter({ has: panel.page().getByRole("heading", { name: title }) }).first();
+  return uiV2 ? row : row.getByRole("link", { name: label, exact: true });
 }
 
 // v2 sign-in leads with phone + PIN (Phase 6, canvas: PhoneLogin); journeys

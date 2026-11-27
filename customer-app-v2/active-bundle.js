@@ -36,7 +36,8 @@ export function homeExpiryCountdown(expiresAt, now = Date.now()) {
   return hours ? L('homeEndsHours', { count: hours, minutes }) : L('homeEndsMinutes', { count: Math.max(1, minutes) });
 }
 // While an outage is live (#259) the card says "No internet" and the time
-// lost will be added back ("+ lost time"). Set from the dashboard.
+// lost will be added back ("+ lost time"); after it, "restored" (PhoneOutage,
+// #363). Set from the dashboard.
 let outageState = null;
 export function setOutage(outage) { outageState = outage ? outage.state : null; }
 // Whether the network confirms this device is signed in on NDAHI Wi-Fi (#352,
@@ -154,6 +155,11 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
 
 // "2 days 14 h" ("2 j 14 h"), then hours, then minutes in the last hour; and
 // "Wed 25 Nov" ("mer. 25 nov."). Home and Internet (#355) say it the same way.
+// "2 days" (or hours, then minutes): the outage card's coarse end (#363).
+const coarseLeft = (ms) => {
+  const minutes = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(minutes / 1440), hh = Math.floor(minutes / 60);
+  return d ? L(d === 1 ? 'homeUnlOneDay' : 'homeUnlDays', { count: d }) : hh ? L('homeRenewHoursShort', { count: hh }) : L('homeRenewMinutesShort', { count: minutes });
+};
 export function unlimitedLeft(ms) {
   const minutes = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(minutes / 1440), hh = Math.floor((minutes % 1440) / 60);
   return d ? [L(d === 1 ? 'homeUnlOneDay' : 'homeUnlDays', { count: d }), hh ? L('homeRenewHoursShort', { count: hh }) : ''].filter(Boolean).join(' ')
@@ -164,7 +170,7 @@ export const unlimitedDay = (at) => Number.isFinite(at) ? new Date(at).toLocaleD
 // "Personal Unlimited · 7 days", Connected or Active, "2 days 14 h left ·
 // unlimited data", a bar of the time gone, then "Ends Wed 25 Nov · 18:03" and
 // "2 of 2 device slots". Never a data-left figure.
-function unlimitedRunning(snapshot, { now, unavailable, paused, down }) {
+function unlimitedRunning(snapshot, { now, unavailable, paused, down, restored = false }) {
   const v = snapshot.bundle, ends = Date.parse(v.expiresAt), started = Date.parse(v.activatedAt), fr = currentLanguage() === 'fr';
   const gone = Number.isFinite(started) && ends > started ? Math.min(100, Math.max(0, (now - started) / (ends - started) * 100)) : 0;
   const hours = Number(v.plan?.validityHours), days = hours / 24;
@@ -183,10 +189,10 @@ function unlimitedRunning(snapshot, { now, unavailable, paused, down }) {
   const week = Number.isFinite(v.usedThisWeek) ? compactBytes(v.usedThisWeek) : L('homeValueUnavailable');
   const tiles = [v.slots ? [L('homeUnlSlotsShort', { used: v.slots.used, total: v.slots.total }), L('homeUnlSlotsUsed')] : null, [week, L('homeUnlWeek')],
     [Number.isFinite(ends) ? dateOf(ends) : L('homeValueUnavailable'), L('homeUnlValidityEnds')]].filter(Boolean);
-  return `<div class="home-unl"><div class="home-card__top home-unl__top"><div class="home-unl__name"><p class="home-unl__kicker nd-narrow-only">${h([v.plan?.name || '', length].filter(Boolean).join(' · '))}</p><p class="home-unl__eyebrow nd-wide-only">${h(L('activeBundle'))}</p><h2 class="home-unl__plan nd-wide-only">${h(v.plan?.name || '')}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''} home-unl__pill" data-bundle-status role="status">${h(pill)}</p></div>
-    <div class="home-unl__row"><p class="home-unl__figure"><span data-time-left>${h(left)}</span> <span class="home-unl__unit">${h(L('homeUnlLeft'))}</span>${down ? ` <span class="home-unl__unit">${h(L('homeOutageLost'))}</span>` : ''}</p><p class="home-unl__ends nd-wide-only">${h(endsLine)}</p></div>
+  return `<div class="home-unl"><div class="home-card__top home-unl__top"><div class="home-unl__name"><p class="home-unl__kicker nd-narrow-only">${h([v.plan?.name || '', down || restored ? '' : length].filter(Boolean).join(' · '))}</p><p class="home-unl__eyebrow nd-wide-only">${h(L('activeBundle'))}</p><h2 class="home-unl__plan nd-wide-only">${h(v.plan?.name || '')}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''} home-unl__pill${down ? ' home-unl__pill--off' : ''}" data-bundle-status role="status">${h(pill)}</p></div>
+    <div class="home-unl__row"><p class="home-unl__figure"><span data-time-left>${h(left)}</span> <span class="home-unl__unit">${h(L('homeUnlLeft'))}</span></p><p class="home-unl__ends nd-wide-only">${h(endsLine)}</p></div>
     <progress class="home-unl__meter" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>
-    <div class="home-unl__legend nd-narrow-only"><span>${h(endsLine)}</span>${v.slots ? `<span data-device-slots-used>${h(L('homeUnlSlots', { used: v.slots.used, total: v.slots.total }))}</span>` : ''}</div>
+    <div class="home-unl__legend nd-narrow-only"><span>${h(down ? L('homeUnlEndsInLost', { left: coarseLeft(ends - now) }) : restored ? L('homeUnlEndsIn', { left: unlimitedLeft(ends - now) }) : endsLine)}</span>${v.slots ? `<span data-device-slots-used>${h(L('homeUnlSlots', { used: v.slots.used, total: v.slots.total }))}</span>` : ''}</div>
     <div class="home-unl__tiles nd-wide-only">${tiles.map(([value, label]) => `<div class="home-unl__tile"><p>${h(value)}</p><p>${h(label)}</p></div>`).join('')}</div>
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(fresh ? L(fresh) : '')}</p>${provisioning}</div>`;
 }
@@ -203,7 +209,8 @@ export function activeBundleContent(snapshot, { now = Date.now(), unavailable = 
   }
   const awaiting = v.status === 'active' && Number.isFinite(Date.parse(v.expiresAt)) && Date.parse(v.expiresAt) <= now;
   const down = outageState === 'down' && v.status === 'active' && !awaiting;
-  if (isUnlimited(v) && v.status === 'active' && !awaiting && snapshot.activeId) return unlimitedRunning(snapshot, { now, unavailable, paused, down });
+  const restored = outageState === 'restored' && v.status === 'active' && !awaiting;
+  if (isUnlimited(v) && v.status === 'active' && !awaiting && snapshot.activeId) return unlimitedRunning(snapshot, { now, unavailable, paused, down, restored });
   const [statusKey, tone] = awaiting ? ['homeStatusConfirming', 'warning'] : down ? ['homeOutagePill', ''] : STATUS[v.status] || ['unavailable', ''];
   const known = Number.isFinite(v.usedBytes), limited = Number.isFinite(v.quotaBytes);
   const percent = limited && known && v.quotaBytes > 0 ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : null;

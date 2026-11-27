@@ -364,7 +364,11 @@ async function load() {
     if (confirmed) {$("#dashboardMessage").innerHTML = '<div class="success">Email linked. Email updates are enabled. Your other portal sessions were signed out.</div>';$("#editProfile summary")?.focus();}
     else $("#confirmEmail")?.scrollIntoView({ block: "center" });
   } });
-  const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken });
+  // The drawn list (#362, canvas PhoneNotifications; owner 27 Nov). v1 and the admin keep the full inbox.
+  const nl = currentLanguage(), notificationLabels = Object.fromEntries(["title", "markAll", "back", "foot", "empty", "now", "minutes", "hours", "yesterday", "unread", "retry"]
+    .map((key) => [key, t("notif" + key[0].toUpperCase() + key.slice(1), nl)]));
+  const notifications = mountNotifications({ apiUrl: api, path: "/api/account/notifications", csrf: () => csrfToken,
+    drawn: { labels: notificationLabels, settingsHref: "/dashboard#account", homeHref: "/dashboard#home", lang: nl } });
   // Security history lives in Notifications (Security, All); Signed-in devices has no button for it (canvas: PhoneSessions, #413).
   if (active) mountInstallCard($("#installApp"));
   loadHomeShop();

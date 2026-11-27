@@ -157,7 +157,8 @@ try {
       const pending = (await h.f.store.snapshot()).wifiPairingRequests[0];
       await main.goto(h.portal + "/dashboard"); await main.getByRole("button", { name: /^Notifications/ }).click();
       const item = main.locator('[data-notification-id="device:' + pending.id + '"]');
-      const open = item.getByRole("link", { name: "Review", exact: true });
+      // v2's drawn notification row is itself the link (#362); v1 has "Review" in the row.
+      const open = uiV2 ? item : item.getByRole("link", { name: "Review", exact: true });
       assert.equal(await open.getAttribute("href"), "/pair-review.html?request=" + pending.id);
       await open.click(); await main.getByRole("button", { name: APPROVE, exact: true }).waitFor();
       assert.equal((await h.f.store.snapshot()).routerCommands.filter(c => c.action === "connect_wifi_device").length, 0);

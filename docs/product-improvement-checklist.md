@@ -2252,6 +2252,23 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - the first bundle is given at collection, unstarted, in the buyer's account (Home WISP starts on its router's first connection); a refund before it starts takes it back; a bundle in a kit is archived, never removed;
     - stored in the existing events table (`store_kit`), no migration.
   - **Not yet:** merged, deployed, the admin and shop screens (#347, #373, batch 19), installation (#425) and Pay in 3 (#426).
+### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
+
+- [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).
+  - **Implemented and tested** (PR #549, not merged yet):
+    - during an outage a running Unlimited bundle's card reads the plan's name alone, "No internet" in grey, "2 days 14 h left · unlimited data" and "Ends in 2 days + lost time"; after it's fixed, "Ends in 2 days 14 h" beside "We added 3 hours…"; the hero's "Network down · [area]" sits as drawn;
+    - Home no longer shows "This device's Wi-Fi"; the panel stays mounted out of sight so its automatic identity check keeps Connected and Network online current. Its buttons (Disconnect this device, identify an installed app) are no longer reachable on Home;
+    - fixed-data bundles keep their outage card.
+  - **Not yet:** merged, deployed, or a real outage seen on a phone.
+### Notifications for Unlimited (#362, batch 18, 27 November 2026)
+
+- [-] **CUS-362 — Notifications, redesigned for Unlimited (batch 18)** ([#362](https://github.com/ImaJin14/Ndahi-Connect/issues/362)). Owner decision: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/362#issuecomment-7220081254).
+  - **Implemented and tested** (PR #548, not merged yet):
+    - in the portal (v2), Notifications is the drawn list: back, "Notifications", "Mark all read", then the newest 25 items (tile, title, text, "12 min ago" / "Yesterday" / "5 Nov", unread dot); tapping an item marks it read and opens where it points; "Choose which notifications you get" opens Account;
+    - the View and Category filters, dates, Archive and paging leave the portal's panel; the full settings form stays reachable from Account → Notification settings; v1 and the admin keep the full inbox;
+    - server: "Bundle ends tomorrow" (or today) with "[plan] ends tomorrow at 18:03. You can buy your next bundle once it ends.", opening Internet;
+    - the panel's labels in English and French (the items' own text is still English, as before).
+  - **Not yet:** merged, deployed, or seen on a real phone.
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 

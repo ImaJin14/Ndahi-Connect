@@ -38,7 +38,7 @@ try {
   }
   await scenario('ordinary PIN sign-in defaults to Home and survives reload/app restart/history without claiming Wi-Fi', async page => {
     await pin(page); await page.waitForURL(portal + '/dashboard'); await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
-    await page.locator('#currentWifi [data-current-state="unknown"]').waitFor();
+    await page.locator('#currentWifi [data-current-state="unknown"]').waitFor({ state: "attached" });
     await page.reload(); await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
     await page.locator('[data-portal-tab="account"]').click(); await page.goBack(); await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
     await page.goto('about:blank'); await page.goto(portal + '/dashboard'); await page.locator('[data-portal-tab="home"][aria-current="page"]').waitFor();
@@ -64,7 +64,7 @@ try {
   });
   await scenario('mobile data account sign-in reaches Dashboard without buying or connecting Wi-Fi', async page => {
     inside = false; const before = f.calls.length; await pin(page); await page.waitForURL(portal + '/dashboard'); assert.equal(f.calls.length, before);
-    await page.locator('#currentWifi [data-current-state="unknown"]').waitFor();
+    await page.locator('#currentWifi [data-current-state="unknown"]').waitFor({ state: "attached" });
   });
   await scenario('a real passkey sign-in defaults to Dashboard', async (page, context) => {
     assert.equal((await context.request.post(api + '/api/account/login/pin', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10' }, data: { phone: '670050001', pin: '2468' } })).status(), 200);
@@ -89,7 +89,7 @@ try {
     const identified = await context.request.post(api + '/api/account/device-management/current/identify', { headers: { origin: portal, 'cf-connecting-ip': '203.0.113.10', 'x-csrf-token': account.csrfToken }, data: { mac: mainMac, address: '10.20.0.1' } }); assert.equal(identified.status(), 200);
     const before = f.calls.length;
     await page.goto(portal + '/hotspot?mac=' + encodeURIComponent(mainMac) + '&address=10.20.0.1&next=https%3A%2F%2Fevil.test'); await page.waitForURL(portal + '/dashboard');
-    await page.locator('#currentWifi [data-current-state="connected"]').waitFor(); assert.equal(f.calls.length, before);
+    await page.locator('#currentWifi [data-current-state="connected"]').waitFor({ state: "attached" }); assert.equal(f.calls.length, before);
   });
   await scenario('secondary voucher entry cannot skip main-device approval or create an account session', async (page, context) => {
     await page.goto(portal + '/login?next=%2Fdashboard&mac=' + encodeURIComponent('AA:BB:CC:DD:EE:03') + '&address=10.20.0.30');
