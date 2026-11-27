@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, useVoucherSignIn, uiV2 } from "./portal-tabs.mjs";
+import { openManageDevices, useVoucherSignIn, uiV2, fillPairingRequest, pairingSubmitName, waitForOwnerApproval } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createStaticServer } from "../static-server.mjs";
@@ -121,9 +121,10 @@ try {
   await useVoucherSignIn(guest); await guest.locator('#login [name="code"]').fill(voucher.code);
   await guest.locator("#loginSubmit").click();
   const requested = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 201);
+  // The sign-in page's own gate still asks with the number and voucher just entered.
   await guest.getByRole("button", { name: "Request access", exact: true }).click();
   const firstGuestKey = (await requested).request().postDataJSON().key;
-  await guest.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
+  await waitForOwnerApproval(guest);
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const row = owner.locator("[data-request]").filter({ hasText: "ending EF:02" });
   const code = await row.getByLabel("Matching request code", { exact: true }).textContent();
@@ -158,9 +159,8 @@ try {
   await owner.getByText("This browser controls connection approvals.", { exact: false }).waitFor();
   const rejoiningGuest = guest.waitForResponse((r) => r.url().endsWith("/api/wifi/pairing/request") && r.status() === 202);
   await guest.goto(portal + "/pair?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.92#key=" + firstGuestKey);
-  await guest.getByLabel("Account phone number", { exact: true }).fill(phone);
-  await guest.getByLabel("Active voucher code", { exact: true }).fill(voucher.code);
-  await guest.getByRole("button", { name: "Request access", exact: true }).click();
+  await fillPairingRequest(guest, { owner, phone, code: voucher.code });
+  await guest.getByRole("button", { name: pairingSubmitName, exact: true }).click();
   const guestRejoin = await rejoiningGuest;
   assert.notEqual(guestRejoin.request().postDataJSON().key, firstGuestKey);
   assert.equal(f.calls.length, 3);
@@ -174,10 +174,9 @@ try {
 
   const third = await newPage();
   await third.goto(portal + "/pair?mac=AA%3ABB%3ACC%3ADD%3AEF%3A03&address=10.20.0.93");
-  await third.getByLabel("Account phone number", { exact: true }).fill(phone);
-  await third.getByLabel("Active voucher code", { exact: true }).fill(voucher.code);
-  await third.getByRole("button", { name: "Request access", exact: true }).click();
-  await third.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
+  await fillPairingRequest(third, { owner, phone, code: voucher.code });
+  await third.getByRole("button", { name: pairingSubmitName, exact: true }).click();
+  await waitForOwnerApproval(third);
   assert.equal(f.calls.length, 4, "an unknown MAC must still require main-device approval");
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const thirdRow = owner.locator("[data-request]").filter({ hasText: "ending EF:03" });

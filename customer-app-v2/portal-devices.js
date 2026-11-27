@@ -20,18 +20,50 @@ export function devicesTip({ hotspot, active }) {
 }
 
 // A button, not a disclosure: journeys address the section's one summary.
+// "Add another device" shows a pairing code for the new device to type (#407;
+// owner 27 Nov): a forest card like the request reference, a countdown, and
+// New code / Close. Where the bundle doesn't share, the old help stays.
 export function devicesAdd({ hotspot, active }) {
-  return active ? `<div class="portal-devices__add"><button type="button" class="nd-btn nd-btn--block" data-devices-add aria-expanded="false" aria-controls="devicesAddHelp">${h(L("portalDevicesAdd"))}</button><p id="devicesAddHelp" hidden>${h(L(hotspot ? "portalDevicesAddHotspot" : "portalDevicesAddSignedIn"))}</p></div>` : "";
+  return active ? `<div class="portal-devices__add"><button type="button" class="nd-btn nd-btn--block" data-devices-add aria-expanded="false" aria-controls="devicesAddHelp">${h(L("portalDevicesAdd"))}</button>
+    <section class="portal-devices__pair" id="devicesAddHelp" aria-label="${h(L("portalPairCodeLabel"))}" hidden><div class="portal-devices__pair-card" data-pairing-card hidden><p class="portal-devices__pair-label">${h(L("portalPairCodeLabel"))}</p><p class="portal-devices__pair-code" data-pairing-code></p><p class="portal-devices__pair-note">${h(L("portalPairCodeNote"))}</p></div>
+    <p class="portal-devices__pair-expiry" data-pairing-expiry role="status"></p><p class="portal-devices__pair-help" data-pairing-help hidden>${h(L(hotspot ? "portalDevicesAddHotspot" : "portalDevicesAddSignedIn"))}</p>
+    <div class="portal-devices__pair-actions"><button type="button" class="nd-btn nd-btn--secondary" data-pairing-new hidden>${h(L("portalPairCodeNew"))}</button><button type="button" class="nd-btn nd-btn--secondary" data-pairing-close>${h(L("portalPairCodeClose"))}</button></div></section></div>` : "";
 }
 
-export function mountDevicesAdd() {
-  const button = document.querySelector("[data-devices-add]"), help = document.getElementById("devicesAddHelp");
-  if (!button || !help) return;
+let countdown;
+export function mountDevicesAdd(call) {
+  const button = document.querySelector("[data-devices-add]"), panel = document.getElementById("devicesAddHelp");
+  if (!button || !panel) return;
+  const $ = (selector) => panel.querySelector(selector);
+  const close = () => { clearInterval(countdown); button.setAttribute("aria-expanded", "false"); panel.hidden = true; button.focus(); };
+  async function issue() {
+    clearInterval(countdown);
+    $("[data-pairing-help]").hidden = true; $("[data-pairing-card]").hidden = true; $("[data-pairing-new]").hidden = true;
+    $("[data-pairing-expiry]").textContent = L("portalPairCodeGetting");
+    try {
+      const { code, expiresAt } = await call("/api/account/device-management/pairing/code", { method: "POST", body: "{}" });
+      $("[data-pairing-code]").textContent = code.slice(0, 3) + " " + code.slice(3);
+      $("[data-pairing-card]").hidden = false; $("[data-pairing-new]").hidden = false;
+      const tick = () => {
+        const left = Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 1000));
+        $("[data-pairing-expiry]").textContent = left ? L("portalPairCodeExpires", { time: Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0") }) : L("portalPairCodeExpired");
+        if (!left) { clearInterval(countdown); $("[data-pairing-card]").hidden = true; }
+      };
+      tick(); countdown = setInterval(tick, 1000);
+    } catch (error) {
+      // A bundle that doesn't share, or none running: the way to connect another device instead.
+      $("[data-pairing-expiry]").textContent = error?.message || "";
+      $("[data-pairing-help]").hidden = !["PAIRING_UNSUPPORTED", "NO_ACTIVE_BUNDLE"].includes(error?.code);
+    }
+  }
   button.onclick = () => {
     const open = button.getAttribute("aria-expanded") !== "true";
     button.setAttribute("aria-expanded", String(open));
-    help.hidden = !open;
+    panel.hidden = !open;
+    if (open && call) void issue(); else if (open) $("[data-pairing-help]").hidden = false; else clearInterval(countdown);
   };
+  $("[data-pairing-new]").onclick = () => void issue();
+  $("[data-pairing-close]").onclick = close;
 }
 
 // The device poll re-renders the list; keep the count in the head in step.
