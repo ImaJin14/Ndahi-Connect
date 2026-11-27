@@ -63,7 +63,7 @@ test("the phone Account is drawn with its switches, language control and router 
   assert.equal(await page.locator(".portal-account__panel--home a[href='/home-router.html']").innerText().then((s) => s.replace(/\s+/g, " ").trim()), "Home WISP router Registered");
   await page.getByRole("group", { name: "Language" }).getByRole("button", { name: "Français" }).click();
   await page.waitForFunction(() => document.documentElement.lang === "fr" && document.querySelector("[data-account-lang=fr][aria-pressed=true]"));
-  await page.getByRole("switch", { name: "Suivi des commandes de la boutique" }).waitFor();
+  await page.getByRole("switch", { name: "Suivi des commandes" }).waitFor();
   assert.equal(await page.locator(".portal-account__panel--home a[href='/home-router.html']").innerText().then((s) => s.replace(/\s+/g, " ").trim()), "Routeur Home WISP Enregistré");
   assert.deepEqual(await lowContrastText(page), []);
   assert.deepEqual(errors, []);

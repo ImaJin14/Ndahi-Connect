@@ -1721,7 +1721,7 @@ export const fr = {
   portalPinPasskeys: "PIN et clés d'accès",
   portalPrefLowData: "Alertes de données faibles",
   portalPrefEnding: "Forfait bientôt terminé",
-  portalPrefOrders: "Suivi des commandes de la boutique",
+  portalPrefOrders: "Suivi des commandes",
   portalHomeWispRouter: "Routeur Home WISP",
   portalRouterNotRegistered: "Non enregistré",
   portalRouterRegistered: "Enregistré",
