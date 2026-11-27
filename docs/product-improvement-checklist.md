@@ -1624,6 +1624,7 @@ Owner requested all unknown business details remain blank for now. Review this l
     - starting it says "Personal Unlimited started on this phone. It ends 4 Dec." with no data line;
     - a gift shorter than a day reads in hours ("5 hours"), where it used to round to "0 days";
     - the code field is drawn in bold monospace as on the board (a more general input rule had been overriding it);
+    - the page follows the customer's language choice (it was always English);
     - a fixed-data gift keeps its own terms ("5 GB · 7 days · 1 device"); English and French.
   - **Not yet:** merged, deployed, or an Unlimited gift claimed and started on a real phone.
 

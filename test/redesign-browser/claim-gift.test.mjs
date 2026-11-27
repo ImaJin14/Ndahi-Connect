@@ -134,6 +134,17 @@ test("a reserved bundle is claimed with its number and code, and staff can see a
   await page.getByRole("heading", { name: "You're online" }).waitFor();
   assert.match(await text(page.locator(".claim__done-text")), /^Personal Unlimited started on this phone\. It ends \d{1,2} [A-Z][a-z]{2}\.$/);
   await check(page, "online-unlimited");
+
+  // French: the page follows the language choice, and the gift reads in French.
+  const fr = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Africa/Douala" });
+  await fr.route("**/*", (route) => [api, portal, admin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+  await fr.addInitScript(() => { try { localStorage.setItem("ndahi-lang", "fr"); } catch {} });
+  const frPage = await fr.newPage();
+  await frPage.goto(`${portal}/claim.html`);
+  await frPage.locator("#claimHeading").waitFor();
+  assert.equal(await frPage.evaluate(() => document.documentElement.lang), "fr");
+  assert.equal(await text(frPage.locator("#claimStep")), "Étape 1 sur 3");
+  await fr.close();
   assert.deepEqual(errors, []);
   await context.close();
 

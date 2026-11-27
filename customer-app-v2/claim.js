@@ -6,9 +6,11 @@ import { speedText } from "../shared-app/bundle-speed.js";
 import { requestJson } from "./compat.js";
 import { responseError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { format } from "/shared/i18n.js";
+import { format, getPreferredLanguage } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 
+// The page follows the customer's language choice; claim.html is served as English (#365).
+document.documentElement.lang = getPreferredLanguage();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr-FR" : "en-GB");
