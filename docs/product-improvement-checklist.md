@@ -1619,7 +1619,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Claim a gift for Unlimited (#365, batch 14, 27 November 2026)
 
 - [-] **CUS-365 — Claim a gift, updated for Unlimited (batch 14)** ([#365](https://github.com/ImaJin14/Ndahi-Connect/issues/365)).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #517, not merged yet):
     - an Unlimited gift shows its own terms on the claim page: "Unlimited data · 7 days · 2 device slots. The 7 days start when you choose." (Home WISP: "Unlimited data · 30 days · household sharing."); the server now sends the voucher's access type and device slots with the gift;
     - starting it says "Personal Unlimited started on this phone. It ends 4 Dec." with no data line;
     - a gift shorter than a day reads in hours ("5 hours"), where it used to round to "0 days";
