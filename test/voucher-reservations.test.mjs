@@ -153,6 +153,6 @@ test("a friend's gift names its giver and carries their note", () => {
   const s = { customers: [{ id: "c-amina", name: "Amina Nfor" }] };
   const v = { id: "v1", quotaBytes: 5e9, deviceLimit: 3, reservation: { by: { type: "customer", id: "c-amina" }, note: "For your calls with the family ❤", expiresAt: "2027-02-11T00:00:00Z" } };
   assert.deepEqual(giftView(s, v, { id: "weekly", name: "Weekly", validityHours: 168, deviceLimit: 1 }),
-    { voucherId: "v1", plan: { id: "weekly", name: "Weekly", quotaBytes: 5e9, validityHours: 168, deviceLimit: 3 }, from: { type: "friend", name: "Amina N." }, note: "For your calls with the family ❤", claimBy: "2027-02-11T00:00:00Z" });
+    { voucherId: "v1", plan: { id: "weekly", name: "Weekly", quotaBytes: 5e9, validityHours: 168, deviceLimit: 3, accessType: null, deviceSlots: null }, from: { type: "friend", name: "Amina N." }, note: "For your calls with the family ❤", claimBy: "2027-02-11T00:00:00Z" });
   assert.equal(maskPhone("237670009910"), "6•• •• 99 10");
 });

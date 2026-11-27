@@ -6,7 +6,7 @@
 import { escapeHtml as h } from '/shared/safe-html.js';
 import { format } from '/shared/i18n.js';
 import { currentLanguage } from '/shared/ui/dom.js';
-import { bundlePurchaseContent, renewalMoment } from './active-bundle.js';
+import { bundlePurchaseContent, renewalMoment, isUnlimited } from './active-bundle.js';
 import { setHomeTitle } from './portal-nav.js';
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
@@ -32,13 +32,19 @@ function lastPayment(payments) {
   return (payments || []).filter((p) => p.status === 'paid' && p.payerPhone && METHODS[p.network]).sort((a, b) => at(b) - at(a))[0];
 }
 
-// "1 530 FCFA incl. fee": the server's total for the plan on that network (#297),
-// from the catalogue the new purchase uses. Without one, the price "+ fee".
+// "4,080 XAF incl. 2% payment fee": the server's total for the plan on that
+// network (#297), from the catalogue the new purchase uses (24 Nov board, #359).
+// A network whose fee isn't verified gets the price and the fee in the prompt.
+const xaf = (value) => `${Number(value).toLocaleString(currentLanguage() === 'fr' ? 'fr-FR' : 'en-US').replace(/[\u202f\u00a0]/g, ' ')} XAF`;
 function amount(plan, catalogue, network) {
-  const number = (value) => value.toLocaleString(currentLanguage() === 'fr' ? 'fr-FR' : 'en-GB');
   const current = (catalogue || []).find((item) => item.id === plan.id), quote = network && current?.paymentQuotes?.[network];
-  return Number.isFinite(quote?.total) ? L('homeRenewTotal', { total: number(quote.total) })
-    : L('homeRenewPriceNoFee', { price: number(Number.isFinite(current?.price) ? current.price : plan.price) });
+  return Number.isFinite(quote?.total) ? L('homeRenewTotalFee', { total: xaf(quote.total) })
+    : L('homeRenewPriceFeePrompt', { price: xaf(Number.isFinite(current?.price) ? current.price : plan.price) });
+}
+// "1, 2, 3, 4, 5 or 6": the device counts Personal Unlimited is on sale with.
+function slotCounts(plans) {
+  const counts = [...new Set((plans || []).filter((p) => p.accessType === 'personal_unlimited' && Number.isInteger(p.deviceSlots)).map((p) => p.deviceSlots))].sort((a, b) => a - b);
+  return counts.length < 2 ? counts.join('') : `${counts.slice(0, -1).join(', ')} ${L('homeRenewOr')} ${counts.at(-1)}`;
 }
 
 function buyAgain(snapshot, payments, plans) {
@@ -46,7 +52,7 @@ function buyAgain(snapshot, payments, plans) {
   if (snapshot.purchase.allowed !== true || !plan || plan.discontinued || !Number.isFinite(plan.price)) return bundlePurchaseContent(snapshot);
   const paid = lastPayment(payments), price = amount(plan, plans, paid?.network);
   const sub = paid ? L('homeRenewBuySub', { amount: price, method: L(METHODS[paid.network]), number: maskedPayer(paid.payerPhone) }) : price;
-  return `<button type="button" class="home-renew__buy" data-quick-renew="${h(plan.id)}"${paid ? ` data-renew-payer="${h(paid.id)}"` : ''}>${h(L('homeRenewBuyAgain', { plan: plan.name }))}<span>${h(sub)}</span></button>
+  return `<button type="button" class="home-renew__buy" data-quick-renew="${h(plan.id)}"${paid ? ` data-renew-payer="${h(paid.id)}"` : ''}>${h(L('homeRenewBuySame'))}<span>${h(sub)}</span></button>
     <a class="home-renew__other" href="/dashboard#bundles">${h(L('homeRenewOtherPlan'))}</a>`;
 }
 
@@ -87,11 +93,14 @@ export function showRenewal(snapshot, { payments, plans, call, now = Date.now() 
   if (tip) {
     const limit = v && v.devices && v.devices.limit;
     // "A bundle covers up to 3 devices" says nothing for a one-device bundle.
-    const [title, body] = TIPS[moment] || [];
-    tip.hidden = !moment || (moment === 'ended' && !(limit > 1));
+    // An Unlimited bundle names the slot counts on sale and Home WISP (#359).
+    const [title, body] = TIPS[moment] || [], unlimited = moment === 'ended' && isUnlimited(v), counts = unlimited ? slotCounts(plans) : '';
+    const home = unlimited && (plans || []).some((p) => p.accessType === 'home_wisp_unlimited');
+    tip.hidden = !moment || (moment === 'ended' && (unlimited ? !counts : !(limit > 1)));
     if (!tip.hidden) {
       tip.querySelector('h2').textContent = L(title);
-      tip.querySelector('p').textContent = L(body, { plan: v.plan.name, count: limit });
+      tip.querySelector('p').textContent = unlimited ? [L('homeRenewTipEndedSlots', { counts }), home ? L('homeRenewTipEndedHome') : ''].filter(Boolean).join(' ')
+        : L(body, { plan: v.plan.name, count: limit });
     }
   }
   if (more) more.hidden = !moment;

@@ -432,13 +432,49 @@ async function redeemCode(form, message) {
       const input = { phone: latestDashboard?.customer?.phone || "", ...Object.fromEntries(new FormData(form)), deviceId };
       if (!input.phone) input.phone = latestDashboard?.customer?.phone || "";
       const result = await call("/api/vouchers/redeem", { method: "POST", body: JSON.stringify(input) });
-      message.innerHTML = `<div class="success">Connected successfully. ${h(result.voucher.activeDevices)}/${h(result.voucher.deviceLimit)} slots are now in use.</div>`;
+      redeemDone(input.code, result.voucher);
       await load();
-      if (window.NDAHI_CONFIG.hotspotLoginUrl) location.href = hotspotPath();
     });
   } catch (error) { showError(message, error); }
 }
 $("#redeem").onsubmit = (event) => { event.preventDefault(); void redeemCode(event.target, $("#redeemMessage")); };
+
+// After a code works (#366, canvas: PhoneVoucher "done"): the tick, "You're
+// connected", the voucher's own terms and Start browsing, which signs this
+// device in to the Wi-Fi when the portal runs on it. Signed in, so the board's
+// save-to-account card is left out (owner).
+const redeemCodeLabel = (code) => {
+  const compact = String(code || "").toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/^NC(?=[0-9A-Z]{8}$)/, "");
+  return compact.length === 8 ? `${compact.slice(0, 4)}-${compact.slice(4)}` : String(code || "").trim().toUpperCase();
+};
+function redeemTerms(voucher, L) {
+  const plan = voucher.plan || {}, hours = Number(plan.validityHours ?? voucher.validityHours), days = hours / 24;
+  const duration = Number.isInteger(days) ? L(days === 1 ? "portalRedeemOneDay" : "portalRedeemDays", { count: days }) : L(hours === 1 ? "portalRedeemOneHour" : "portalRedeemHours", { count: hours });
+  const count = Number(voucher.deviceSlots ?? voucher.deviceLimit ?? plan.deviceLimit) || 1;
+  const devices = L(count === 1 ? "portalRedeemOneDevice" : "portalRedeemDevices", { count });
+  if (voucher.accessType === "personal_unlimited" || voucher.quotaBytes === null) return L("portalRedeemUnlimited", { duration, devices });
+  return L("portalRedeemData", { data: `${+(voucher.quotaBytes / 1e9).toFixed(1)} GB`, duration, devices });
+}
+function redeemDone(code, voucher) {
+  const lang = currentLanguage(), L = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), t(key, lang));
+  const [before, after] = L("portalRedeemDoneLine", { terms: redeemTerms(voucher, L) }).split("{code}");
+  const done = $("#redeemDone");
+  done.innerHTML = `<div class="portal-redeem__tick" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#345000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12 5 5 9-10"></path></svg></div>
+<h1 class="portal-redeem__done-title" tabindex="-1">${h(L("portalRedeemDone"))}</h1>
+<p class="portal-redeem__done-line">${h(before)}<strong>${h(redeemCodeLabel(code))}</strong>${h(after ?? "")}</p>
+<a class="nd-btn portal-redeem__browse" href="${h(window.NDAHI_CONFIG.hotspotLoginUrl ? hotspotPath() : "/dashboard#home")}">${h(L("portalRedeemBrowse"))}</a>`;
+  $("#differentCode").hidden = true;
+  done.hidden = false;
+  document.body.dataset.redeemDone = "true";
+  done.querySelector("h1").focus();
+}
+// Coming back to the voucher page shows the empty form again.
+window.addEventListener("hashchange", () => {
+  if (location.hash !== "#redeem" || $("#redeemDone").hidden) return;
+  $("#redeemDone").hidden = true; $("#redeemDone").replaceChildren();
+  $("#differentCode").hidden = false; delete document.body.dataset.redeemDone;
+  $("#redeem").reset(); $("#redeemMessage").replaceChildren();
+});
 
 $("#dashboard").onclick = async (event) => {
   const quickRenew = event.target.closest("[data-quick-renew]");

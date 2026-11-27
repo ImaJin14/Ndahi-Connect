@@ -1586,14 +1586,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Voucher page for Unlimited bundles (#344, batch 13, 26 November 2026)
 
 - [-] **ADM-344 — Voucher page, redesigned for Unlimited (batch 13)** ([#344](https://github.com/ImaJin14/Ndahi-Connect/issues/344)). Owner decisions: [#344 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/344#issuecomment-7202629546).
-  - **Implemented and tested** (PR #511, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #511):
     - an Unlimited voucher's ticket reads "Unlimited data · 7 days · 2 device slots" and "Valid until [date] if not used"; Usage shows time left with a validity bar ("4.5 of 7 days used") and "2 of 2 device slots used"; one whose time ran out reads "Used up" here and in Recent vouchers (owner); data-capped vouchers keep their own terms and usage;
     - the code shows without "NC-" ("K7PM-42XQ"), as drawn; typed either way it works (owner);
     - History says "Created in batch B-1029-01 by Owner" and "Redeemed by J. Fon on an Android phone at AP-Market · receipt emailed"; Details shows "B-1029-01 · 20 codes"; amounts read XAF, as drawn;
     - codes made in Admin from now on (batches and single vouchers) can be used for 90 days, then stop working; codes made before keep working with no date (owner); a reserved code keeps its claim window;
     - the device kind comes from the browser that redeemed the code; the access point comes from the Omada controller, read once a minute when `DEVICE_PLACES_ENABLED=true` and a live controller is saved; the on-site check is `docs/operations/device-places-onsite-test.md`;
     - Print slip, Mark as sold, Resend receipt email and Revoke voucher show in every state; one that can't act says why (owner). Resend receipt email now really sends again (it used to report a failure every time).
-  - **Not yet:** merged, deployed, a place shown from the live controller, or an admin code past 90 days refused at the HotSpot.
+  - **Not yet:** a place shown from the live controller, or an admin code past 90 days refused at the HotSpot.
 
 ### Voucher print formats and follow-up work (9 November 2026)
 
@@ -1609,12 +1609,34 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the note says codes work as soon as they're made; Print then reads "Sent to printer", with the preview link kept; English and French.
   - **Not yet:** a batch printed on the real thermal printer from the new screen.
 
+### Use a voucher for Unlimited (#366, batch 14, 27 November 2026)
+
+- [-] **CUS-366 — Use a voucher, updated for Unlimited (batch 14)** ([#366](https://github.com/ImaJin14/Ndahi-Connect/issues/366)). Owner decisions: [claim link only](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210694424), [done screen without the save card](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210892609).
+  - **Implemented and tested** (PR #518, not merged yet):
+    - the signed-in voucher page adds "Someone bought this for your number? Claim it with your number →" (to Claim a gift); "Have an account? Sign in instead" is left out, since the page is for signed-in customers (owner);
+    - after a code works: the tick, "You're connected", "Voucher K7PM-42XQ is active: unlimited data for 7 days on 1 device." from the voucher's own terms, and Start browsing, which signs this phone in to the Wi-Fi when the portal runs on it (it used to redirect straight away); no save-to-account card (owner);
+    - the page now sits on the board's 22 px margins and the code's letters are spaced as drawn;
+    - a fixed-data voucher keeps its own terms ("5 GB for 7 days on 1 device"); English and French.
+  - **Not yet:** merged, deployed, or a voucher used on a real phone on NDAHI Wi-Fi.
+
 ### Unified voucher slip design — issue #205 (9 November 2026)
 
 - Implemented: Generate Vouchers thermal slip is the shared presentation model/HTML for admin and reseller print previews, customer PDF downloads, and voucher emails. PDFs use the same branding, boxed code, QR, package/price, allowance, validity, device/Home access, activation/status and instructions. Only 58mm/80mm widths; customer downloads and email attachment default to 58mm.
 - Implemented: email embeds its QR with a CID attachment and includes the canonical thermal PDF. Purchase snapshots win over changed catalogue details. Slips exclude phone/customer/payment identifiers; email greeting and delivery address remain outside the slip. Issued versus print/download status is explicit; current expired/exhausted access is labelled without mutating or reactivating vouchers. Retry payloads remain byte-identical.
 - Tested: 74 focused model/PDF/email/provider/ownership tests and all three voucher-print browser scenarios pass, including QR decode, both PDF widths, single-page thermal pagination, privacy and role boundaries. Build/diff checks pass; final release evidence belongs in the matching PR.
 - Deployed: PR #210 merged at 216ab3f; all four Render services, exact live API/admin assets and six production smoke groups verified. Physical printer selection, printed-paper appearance, real email inbox/client rendering and real phone/router QR connection remain unverified. #206/#207 remain separate follow-ups.
+
+### Claim a gift for Unlimited (#365, batch 14, 27 November 2026)
+
+- [-] **CUS-365 — Claim a gift, updated for Unlimited (batch 14)** ([#365](https://github.com/ImaJin14/Ndahi-Connect/issues/365)).
+  - **Implemented and tested** (PR #517, not merged yet):
+    - an Unlimited gift shows its own terms on the claim page: "Unlimited data · 7 days · 2 device slots. The 7 days start when you choose." (Home WISP: "Unlimited data · 30 days · household sharing."); the server now sends the voucher's access type and device slots with the gift;
+    - starting it says "Personal Unlimited started on this phone. It ends 4 Dec." with no data line;
+    - a gift shorter than a day reads in hours ("5 hours"), where it used to round to "0 days";
+    - the code field is drawn in bold monospace as on the board (a more general input rule had been overriding it);
+    - the page follows the customer's language choice (it was always English);
+    - a fixed-data gift keeps its own terms ("5 GB · 7 days · 1 device"); English and French.
+  - **Not yet:** merged, deployed, or an Unlimited gift claimed and started on a real phone.
 
 ### Mobile voucher printing — issue #206 (9 November 2026)
 
@@ -1636,12 +1658,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Voucher slip as a colour card (#368, batch 13, 26 November 2026)
 
 - [-] **ADM-368 — The voucher slip, redesigned as the colour card (batch 13)** ([#368](https://github.com/ImaJin14/Ndahi-Connect/issues/368)). Owner decisions: [#368 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/368#issuecomment-7202630710).
-  - **Implemented and tested** (PR #512, not merged yet; built on #344):
+  - **Implemented, tested, merged and deployed** (PR #512, built on #344):
     - on screen (the batch print page and the voucher page's print preview) each slip is the drawn card: NDAHI Connect, WI-FI VOUCHER and the price; the QR beside the plan, "Unlimited · 7 days · 2 devices", the code without "NC-" and its three steps ("tap I have a voucher", as drawn); "Use before [date] · single use" and "Batch B-1105-02 · [reseller]" (owner);
     - the voucher's own PDF (the account download and the email attachment) is the same card on an A6 page, with the board's fonts bundled (DM Sans and Playfair Display, open licence; owner);
     - printing stays thermal (owner): the Print button's preview, its Download PDF (which phones open in a thermal printer's app) and printing the page itself give the 58 or 80 mm thermal slips as before;
     - one model (`shared-app/voucher-card.js`) gives the screen and the PDF the same words; a long plan name ends in an ellipsis; phones get the card without sideways scrolling.
-  - **Not yet:** merged, deployed, or a PDF printed and a slip read on paper.
+  - **Not yet:** a PDF printed and a slip read on paper.
 
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
@@ -1688,11 +1710,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Customer detail for Unlimited (#341, batch 13, 26 November 2026)
 
 - [-] **ADM-341 — Customer detail, redesigned for Unlimited (batch 13)** ([#341](https://github.com/ImaJin14/Ndahi-Connect/issues/341)). Owner decisions: [#341 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/341#issuecomment-7203772390).
-  - **Implemented and tested** (PR #513, not merged yet; built on #344):
+  - **Implemented, tested, merged and deployed** (PR #513, built on #344):
     - the head shows the number masked ("+237 6•• •• 12 45"), as drawn (owner); Overview has Time left ("2 days 14 h"), Device slots ("2 of 2 used"), Ends and Home WISP router ("None registered"); data-capped bundles keep data left and devices;
     - the board's support actions, each confirmed and audited: Send PIN reset email (the customer's own Forgot PIN link to their confirmed email, or the reason it can't; owner), Remove lost passkeys (for every customer; with none it says so), Give a voucher, Revoke current subscription and Suspend; Change number stays for owners (owner, after a correction: it's the only place to change a customer's number); Print active voucher and the support code left (the voucher's page prints; the support code is in the old admin);
     - Devices lists each Personal Unlimited slot as drawn ("Slot 1 · Android phone · ••:••:••:4F:A2:10 · online at AP-Market since 08:12" or "offline, last seen 09:40") with Revoke device (a reason, then "being removed" until the router confirms) and the customer's replacements; the last time a device was seen is kept when the router's device list drops it.
-  - **Not yet:** merged, deployed, a reset link received on a phone, or a slot revoked on the live router.
+  - **Not yet:** a reset link received on a phone, or a slot revoked on the live router.
 
 ### API optimization phase 1 — PR #290 (18 November 2026)
 
@@ -1705,11 +1727,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Home WISP routers and the reconcile pass (#340, batch 13, 26 November 2026)
 
 - [-] **ADM-340 — Home WISP routers, redesigned, with a reconcile pass (batch 13)** ([#340](https://github.com/ImaJin14/Ndahi-Connect/issues/340)). Owner decisions: [#340 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/340#issuecomment-7202632406).
-  - **Implemented and tested** (PR #514, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #514):
     - the drawn page (Admin → Network → Home WISP routers, now in every owner's and operator's menu): Reconcile now and when it last ran, the four counts, each router with its MAC masked to the last three octets, Online / Offline / Disconnected, Sharing / Sharing (idle) / Withheld / Removed with why, Revoke (a reason, confirmed, audited), recent changes and the rule; the NDAHI Home pilot import and readiness check left the new admin (owner; still in the old admin);
     - the reconcile pass (`lib/home-reconcile.mjs`): every 5 minutes, within a minute after a failed Home change and on Reconcile now, it reads the router's Home users (read only), revokes stale exceptions (ended, revoked or an older router's) and retries withheld changes, all through the Home worker's existing operations; off while Home WISP is off (owner: router work, no mock-router tests);
     - on-site plan: `docs/operations/home-wisp-reconcile-onsite-test.md`.
-  - **Not yet:** merged, deployed, Home WISP turned on, or the reconcile checked on the test HotSpot.
+  - **Not yet:** Home WISP turned on, or the reconcile checked on the test HotSpot.
 
 ### Receipt emails waiting on the customer — PR #291 (18 November 2026)
 
@@ -1720,12 +1742,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Buy a bundle on a phone (#348, batch 13, 26 November 2026)
 
 - [-] **BUY-348 — Buy a bundle on a phone, redesigned (batch 13)** ([#348](https://github.com/ImaJin14/Ndahi-Connect/issues/348)). Owner decisions: signed out [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7202633144), [stay in Buy a bundle after paying](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204422528), [Home WISP and no Wi-Fi details](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204666631).
-  - **Implemented and tested** (PR #515, not merged yet), once the Unlimited catalogue is on sale (the legacy catalogue keeps today's page):
+  - **Implemented, tested, merged and deployed** (PR #515), once the Unlimited catalogue is on sale (the legacy catalogue keeps today's page):
     - step 1: Personal Unlimited / Home WISP tabs, How long? and How many devices? (combinations not offered are disabled), the bundle's card, the rule and Continue with the price; 7 days for 2 devices first;
     - step 2, Review and pay: Pay with MTN MoMo / Orange Money, the Mobile Money number (the account's masked until used), Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote (or the fee in the operator prompt), the wallet notice and Pay Now; no name field, policy text or acknowledgement (as drawn);
     - step 3, Approve on your phone, with Check status and "Payment didn't go through?"; then Payment received while this device's Wi-Fi starts the bundle, and You're online with Go to my home, View receipt and, for Home WISP, Register my home router; without this device's Wi-Fi details the voucher page connects it, as before; signed out, PIN setup follows as before;
     - signed out exactly as drawn: no Customer login link.
-  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a bundle bought and connected on a real phone.
+  - **Not yet:** the Unlimited catalogue switched on, or a bundle bought and connected on a real phone.
 
 ### Low Mobile Money balance notice — PR #292 (18 November 2026)
 
@@ -1769,6 +1791,18 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. Run `node scripts/check-payment-fees.mjs` in the API's Render shell before setting `PAYMENT_FEE_MTN` and `PAYMENT_FEE_ORANGE`. A staging payment with a balance between the price and the total is still to be done.
 - Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
 
+### Buy for someone else, Unlimited and the 2% fee (#364, batch 14, 27 November 2026)
+
+- [-] **BUY-364 — Buy for someone else, updated for Unlimited and the Mobile Money fee (batch 14)** ([#364](https://github.com/ImaJin14/Ndahi-Connect/issues/364)). Owner decisions: [every offer as a card](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7210693173), [keep #255's wording](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7211152463).
+  - **Implemented and tested** (PR #519, not merged yet):
+    - step 2 lists every offer on sale as a card; an Unlimited card reads "Unlimited · 7 days · 2 devices" (Home WISP: "Unlimited · 30 days · household sharing", shown only while Home WISP is on); prices in XAF;
+    - over the button: Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote, the wallet notice with the total in bold, and Pay Now; a network without a verified fee shows the price and says the fee is in the operator prompt;
+    - the waiting screen says "An MTN MoMo request for 4,080 XAF (incl. 80 XAF fee) …"; failure messages use XAF;
+    - the gift's code shows without "NC-", as on the slip (#368);
+    - the page follows the customer's language choice (it was always English); English and French;
+    - fixed-data bundles keep their own card line ("5 GB · 7 days") while the legacy catalogue is on sale.
+  - **Not yet:** merged, deployed, or a gift bought with real Mobile Money for each kind of number.
+
 ### Shop checkout on phones (#397, batch 8, 26 November 2026)
 
 - [-] **CUS-397 — Shop checkout, redesigned (batch 8)** ([#397](https://github.com/ImaJin14/Ndahi-Connect/issues/397)). Owner decisions: [#397 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/397#issuecomment-7178824960).
@@ -1778,6 +1812,17 @@ Owner requested all unknown business details remain blank for now. Review this l
     - Change payment (owner, 26 Nov): a new `POST /api/account/store/cancel` asks the provider first, then cancels the account's own unpaid order and puts its device back into stock, and the form opens for a fresh request. A payment approved anyway goes to review for a refund, as a late payment on an expired order does;
     - English and French.
   - **Not yet:** a real Mobile Money checkout, Change payment and collection tried on the live portal.
+
+### Renewal moments for Unlimited (#359, batch 14, 27 November 2026)
+
+- [-] **CUS-359 — Renew on Home, updated for Unlimited and the 2% fee (batch 14)** ([#359](https://github.com/ImaJin14/Ndahi-Connect/issues/359)). Owner decisions: [running low kept for fixed-data bundles; slot counts from the catalogue](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210693595), [the push stays the phone's notification](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210893153).
+  - **Implemented and tested** (PR #520, not merged yet):
+    - an Unlimited bundle's card shows its terms ("Personal Unlimited · 7 days · 2 devices"), the time left ("19 h left · ends 18:03 tomorrow") with a bar of the time gone, and "Data is unlimited until then. Your next bundle can be bought the moment this one ends."; ended, "Ended today at 18:03" with the bar full in grey; never a data figure;
+    - "Buy the same bundle again" with "4,080 XAF incl. 2% payment fee · MTN MoMo 6•• •• 12 45" from the server's quote, or the price and the fee in the operator prompt;
+    - the ended tip lists the slot counts on sale ("Personal Unlimited comes with 1, 2, 3, 4, 5 or 6 device slots. For a home router, choose Home WISP Unlimited.");
+    - the Home bundle status now carries the bundle's access type and device slots;
+    - fixed-data bundles keep their moments, running low included (owner); the push texts already match the board; English and French.
+  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a renewal checked on a real phone.
 
 ### Order tracking on phones (#406, batch 9, 26 November 2026)
 
