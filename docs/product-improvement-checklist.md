@@ -2210,6 +2210,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - server: each router reading's increase is recorded per day (Douala time, last 8 days kept) for direct and Home router bundles, and the bundle status gives the last 7 days; it fills in from the day this ships.
   - **Not yet:** merged, deployed, or a week of real readings seen on desktop.
 
+### Internet with a running Unlimited bundle (#355, #356, batch 17, 27 November 2026)
+
+- [-] **CUS-355 — Internet, redesigned for Unlimited (batch 17)** ([#355](https://github.com/ImaJin14/Ndahi-Connect/issues/355), [#356](https://github.com/ImaJin14/Ndahi-Connect/issues/356)). Owner decisions: [no Buy for someone else on Internet](https://github.com/ImaJin14/Ndahi-Connect/issues/355#issuecomment-7216863785) ([reconfirmed knowing it was the only entry](https://github.com/ImaJin14/Ndahi-Connect/issues/355#issuecomment-7219698478)); [Saved vouchers as drawn on desktop](https://github.com/ImaJin14/Ndahi-Connect/issues/356#issuecomment-7217622287).
+  - **Implemented and tested** (PR #544, not merged yet; built on #354):
+    - phones (PhoneInternet): the card reads "Active · Personal Unlimited", "Ends Wed 25 Nov", "2 days 14 h left · unlimited data" and a bar of the time gone; "You can buy your next bundle once this one ends."; earlier bundles show amounts as "1.8 GB"; no Buy for someone else, so the portal no longer links to that flow (it still works at `/gift.html`);
+    - desktop (DesktopInternet): the card ("Active bundle" over the plan, "2 days 14 h left · unlimited data · 2 of 2 device slots", the bar and the next-bundle line) beside Got a voucher?, then Bundle history beside Saved vouchers, each row level; below 1024px they stack as the board's rows wrap;
+    - Saved vouchers on desktop is the drawn list: each code with "[plan] · not used" or "Redeemed [date]", then Open or Used. Open goes to the voucher page, which now opens any of the account's own saved codes by id (copy, Print slip with its PDF, QR). Phones keep the list with its filter and paging.
+  - **Not yet:** merged, deployed, or seen on a real phone and desktop.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").

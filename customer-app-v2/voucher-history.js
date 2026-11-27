@@ -1,13 +1,33 @@
 import { escapeHtml as h } from "/shared/safe-html.js";
 import { formatDataBalance } from "/shared/data-usage.js";
-import { voucherHistory } from "/shared/voucher-history.js";
+import { voucherHistory, savedVoucherRows } from "/shared/voucher-history.js";
+import { format } from "/shared/i18n.js";
+import { currentLanguage } from "/shared/ui/dom.js";
 
 let stopPrevious, filter = "active", page = 1;
 export function vouchersCard() {
   // Canvas (PhoneInternet, DesktopInternet): phones lead with "Enter a voucher
   // code" (its own page); desktop with a "Got a voucher?" card. The saved codes
   // keep v1's filter, paging and actions.
-  return '<section class="surface full" data-portal-view="vouchers" data-internet-group="vouchers" id="voucherHistory"><a class="nd-btn nd-btn--block portal-vouchers__enter nd-narrow-only" href="/dashboard#redeem" data-i18n="portalEnterVoucher">Enter a voucher code</a><form class="portal-vouchers__got nd-wide-only" data-quick-redeem><h2 data-i18n="portalGotVoucher">Got a voucher?</h2><label><span data-i18n="portalVoucherCode">Voucher code</span><input name="code" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required></label><button type="submit" class="nd-btn nd-btn--block" data-i18n="portalActivate">Activate</button><div role="status" aria-live="polite" data-quick-redeem-message></div></form><div class="portal-vouchers__saved"><p class="eyebrow">My vouchers</p><h2 class="portal-vouchers__h"><span class="nd-narrow-only">Your voucher codes</span><span class="nd-wide-only" data-i18n="portalSavedVouchers">Saved vouchers</span></h2><p>Keep your codes private. Your current code appears first; expired and used-up codes remain in history for downloads and support.</p><div class="voucher-history-tools"><label>Show vouchers<select data-voucher-filter aria-label="Voucher status"><option value="active">Active</option><option value="expired">Expired</option><option value="exhausted">Exhausted</option><option value="all">All</option></select></label><button type="button" data-voucher-history>View voucher history</button></div><div class="voucher-grid" data-voucher-list></div><nav class="voucher-history-tools" aria-label="Voucher history pages"><button type="button" data-voucher-previous>Previous vouchers</button><span data-voucher-page role="status" aria-live="polite"></span><button type="button" data-voucher-next>Next vouchers</button></nav><p><a href="/dashboard#bundles">Renew or choose a package</a></p></div></section>';
+  return '<section class="surface full" data-portal-view="vouchers" data-internet-group="vouchers" id="voucherHistory"><a class="nd-btn nd-btn--block portal-vouchers__enter nd-narrow-only" href="/dashboard#redeem" data-i18n="portalEnterVoucher">Enter a voucher code</a><form class="portal-vouchers__got nd-wide-only" data-quick-redeem><h2 data-i18n="portalGotVoucher">Got a voucher?</h2><label><span data-i18n="portalVoucherCode">Voucher code</span><input name="code" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required></label><button type="submit" class="nd-btn nd-btn--block" data-i18n="portalActivate">Activate</button><div role="status" aria-live="polite" data-quick-redeem-message></div></form><div class="portal-vouchers__saved"><p class="eyebrow">My vouchers</p><h2 class="portal-vouchers__h"><span class="nd-narrow-only">Your voucher codes</span><span class="nd-wide-only" data-i18n="portalSavedVouchers">Saved vouchers</span></h2><div class="portal-saved nd-wide-only" data-saved-list></div><p>Keep your codes private. Your current code appears first; expired and used-up codes remain in history for downloads and support.</p><div class="voucher-history-tools"><label>Show vouchers<select data-voucher-filter aria-label="Voucher status"><option value="active">Active</option><option value="expired">Expired</option><option value="exhausted">Exhausted</option><option value="all">All</option></select></label><button type="button" data-voucher-history>View voucher history</button></div><div class="voucher-grid" data-voucher-list></div><nav class="voucher-history-tools" aria-label="Voucher history pages"><button type="button" data-voucher-previous>Previous vouchers</button><span data-voucher-page role="status" aria-live="polite"></span><button type="button" data-voucher-next>Next vouchers</button></nav><p><a href="/dashboard#bundles">Renew or choose a package</a></p></div></section>';
+}
+// Saved vouchers on desktop (#356, canvas DesktopInternet; owner 27 Nov: as
+// drawn): a code that can still be used opens on its voucher page (copy, print,
+// QR); a used one just says so. Phones keep the list below.
+function savedList(vouchers) {
+  const lang = currentLanguage(), L = (key, values) => format(key, values || {}, lang);
+  const day = (at) => new Date(at).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
+  // "NC-QF83-ZK4M" shows as "QF83-ZK4M", as on the slip.
+  const shown = (code) => String(code).replace(/^NC-(?=[0-9A-Z]{4}-[0-9A-Z]{4}$)/, "");
+  const rows = savedVoucherRows(vouchers);
+  if (!rows.length) return `<p class="portal-saved__none">${h(L("portalSavedNone"))}</p>`;
+  return rows.map((v) => {
+    const meta = v.displayStatus === "available" ? L("portalSavedNotUsed", { plan: v.plan?.name || v.planId }) : L("portalSavedRedeemed", { date: day(v.activatedAt) });
+    const main = `<span class="portal-saved__main"><span class="portal-saved__code">${h(shown(v.code))}</span><span class="portal-saved__meta">${h(meta)}</span></span>`;
+    return v.displayStatus === "available" || v.displayStatus === "active"
+      ? `<a class="portal-saved__row" href="/voucher-ready.html?voucher=${h(encodeURIComponent(v.id))}">${main}<span class="portal-saved__open">${h(L("portalSavedOpen"))}</span></a>`
+      : `<div class="portal-saved__row">${main}<span class="portal-saved__used">${h(L("portalSavedUsed"))}</span></div>`;
+  }).join("");
 }
 function card(v, currentId) {
   return `<article class="voucher-card" data-voucher-id="${h(v.id)}"><div class="section-head"><h3>${h(v.plan?.name || v.planId)}</h3><span class="voucher-status">${v.id === currentId ? "Current active code" : h(v.displayStatus)}</span></div><label>Voucher code<input class="voucher-code" data-voucher-code readonly value="${h(v.code || "")}" aria-label="${h(v.plan?.name || v.planId)} voucher code"></label><p>Remaining: <strong>${h(formatDataBalance(v.remainingBytes === undefined ? v.quotaBytes === null ? null : Math.max(0, v.quotaBytes - v.usedBytes) : v.remainingBytes))}</strong><br>Activated: ${h(v.activatedAt ? new Date(v.activatedAt).toLocaleString() : "Not activated")}<br>Expires: ${h(v.expiresAt ? new Date(v.expiresAt).toLocaleString() : "Not activated")}</p>${v.displayStatus !== "active" ? "<p>Viewing or downloading this code does not reactivate its bundle.</p>" : ""}<div class="plan-actions"><button type="button" data-copy-voucher ${v.code ? "" : "disabled"}>Copy code</button><button type="button" class="secondary-action" data-download-voucher="${h(v.id)}" ${v.code ? "" : "disabled"}>Download PDF</button><button type="button" class="secondary-action" data-print-voucher="${h(v.id)}" ${v.code ? "" : "disabled"}>Print voucher</button><button type="button" class="secondary-action" data-show-qr="${h(v.id)}" ${v.code ? "" : "disabled"}>Show QR</button></div><p data-voucher-message role="status" aria-live="polite"></p></article>`;
@@ -15,9 +35,11 @@ function card(v, currentId) {
 export function mountVoucherHistory({ vouchers, activeId }) {
   stopPrevious?.();
   const root = document.getElementById("voucherHistory"); if (!root) return;
+  const saved = root.querySelector("[data-saved-list]");
   const select = root.querySelector("[data-voucher-filter]"), list = root.querySelector("[data-voucher-list]"), summary = root.querySelector("[data-voucher-page]"), previous = root.querySelector("[data-voucher-previous]"), next = root.querySelector("[data-voucher-next]");
-  let signature, model;
+  let signature, model, savedSignature;
   function render(force = false) {
+    if (saved) { const html = savedList(vouchers); if (html !== savedSignature) { saved.innerHTML = html; savedSignature = html; } }
     model = voucherHistory(vouchers, { filter, page, activeId }); page = model.page;
     const value = JSON.stringify([filter, page, model.total, model.currentId, model.items.map((v) => [v.id, v.displayStatus])]);
     if (!force && value === signature) return;

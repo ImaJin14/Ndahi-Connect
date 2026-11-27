@@ -112,3 +112,90 @@ body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
   #voucherHistory .portal-vouchers__h { display: none; }
 }
 #redeem .portal-redeem__code { padding: var(--nd-space-18); border: 2px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+/* A running Unlimited bundle (#355, canvas PhoneInternet; #356 from 768px):
+   the time left, a bar of the time gone and its end; never data left. */
+.portal-bundle__ends { white-space: nowrap; }
+.portal-bundle__amount--time { line-height: normal; }
+/* The time itself keeps the figure's size and colour; only the unit is small and soft. */
+.portal-bundle__amount [data-time-left], .portal-bundle__unit span { color: inherit; font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+.portal-bundle__name { min-width: 0; }
+.portal-bundle__time { display: block; width: 100%; border: 0; border-radius: 999px; overflow: hidden; appearance: none; -webkit-appearance: none; background: rgba(255, 255, 255, .16); }
+.portal-bundle__time::-webkit-progress-bar { border-radius: 999px; background: rgba(255, 255, 255, .16); }
+.portal-bundle__time::-webkit-progress-value { border-radius: 999px; background: #b9ee2e; }
+.portal-bundle__time::-moz-progress-bar { border-radius: 999px; background: #b9ee2e; }
+@media (max-width: 767.98px) {
+  .portal-bundle--time { gap: 0; border: 0; border-radius: 16px; }
+  .portal-bundle--time .portal-bundle__head { gap: 8px; }
+  .portal-bundle--time .portal-bundle__ends { color: #c8d8d0; }
+  .portal-bundle__amount--time { margin-top: 10px; font-size: 30px; letter-spacing: normal; }
+  .portal-bundle__amount--time .portal-bundle__unit { color: #c8d8d0; }
+  .portal-bundle__time { height: 8px; margin-top: 12px; }
+  .portal-internet__note { color: #3d4a44; }
+  .portal-internet__row .nd-pill { padding: 4px 10px; background: #eef0ee; color: #3d4a44; font-size: 12px; font-weight: 700; letter-spacing: normal; line-height: normal; }
+  /* PhoneInternet (#355): 18px sides like the title, the card 14px under the switch. */
+  body[data-current-tab="internet"] .portal-internet__switch, body[data-current-tab="internet"] .portal-internet__bundle { margin-left: 2px; margin-right: 2px; }
+  body[data-current-tab="internet"] .portal-internet__switch { margin-top: 2px; margin-bottom: -6px; }
+  body[data-current-tab="internet"] .portal-head__title { line-height: normal; }
+}
+/* DesktopInternet (#356): the active card beside "Got a voucher?", then Bundle
+   history beside Saved vouchers, each row's panels level as drawn. The two
+   wrappers step aside (display: contents) so their panels share one grid. */
+@media (min-width: 768px) {
+  body[data-current-tab="internet"]:not([data-portal-sub]) .portal-head { padding-top: 36px; padding-bottom: 24px; row-gap: 0; }
+  body[data-current-tab="internet"]:not([data-portal-sub]) .portal-head__eyebrow { margin: 0 0 6px; font-size: 12px; letter-spacing: .16em; line-height: normal; }
+  body[data-current-tab="internet"]:not([data-portal-sub]) .portal-head__title { font-size: 40px; line-height: normal; }
+  /* Below 1024px the board's rows wrap: card, voucher, history, saved. */
+  /* Wrapped panels of one board row sit 22px apart; the rows 24px. */
+  body[data-current-tab="internet"] .dashboard-grid { grid-template-columns: minmax(0, 1fr); column-gap: 22px; row-gap: 22px; }
+  body[data-current-tab="internet"] #managePlan > .portal-internet__table { margin-top: 2px; }
+  body[data-current-tab="internet"] #managePlan, body[data-current-tab="internet"] #voucherHistory { display: contents; }
+  body[data-current-tab="internet"] #managePlan > * { min-width: 0; order: 3; }
+  body[data-current-tab="internet"] #managePlan > .portal-bundle { order: 1; }
+  body[data-current-tab="internet"] #voucherHistory > .portal-vouchers__got { order: 2; }
+  body[data-current-tab="internet"] #voucherHistory > .portal-vouchers__saved { min-width: 0; order: 4; }
+  body[data-current-tab="internet"] #bundlesCatalogue { order: 5; }
+  .portal-bundle { gap: 18px; padding: 28px; border: 0; }
+  .portal-bundle__head { align-items: flex-start; }
+  .portal-bundle__head .nd-eyebrow { margin: 0 0 6px; font-size: 12px; line-height: normal; }
+  .portal-bundle__plan { font-size: 30px; line-height: normal; }
+  .portal-bundle__ends { color: #c8d8d0; font-size: 14px; }
+  .portal-bundle__amount--time { font-size: 42px; letter-spacing: normal; }
+  .portal-bundle__amount--time .portal-bundle__unit { color: #c8d8d0; font-size: 16px; }
+  .portal-bundle__time { height: 10px; background: rgba(255, 255, 255, .14); }
+  .portal-bundle__time::-webkit-progress-bar { background: rgba(255, 255, 255, .14); }
+  .portal-bundle__note { margin: 0; color: #c8d8d0; }
+  .portal-vouchers__got, .portal-internet__table, #voucherHistory .portal-vouchers__saved { padding: 24px; border-radius: 18px; }
+  .portal-vouchers__got { gap: 12px; margin: 0; }
+  .portal-vouchers__got input { box-sizing: border-box; height: 50px; min-height: 50px; margin-top: 12px; font-size: 18px; font-weight: 700; letter-spacing: .1em; }
+  .portal-vouchers__got button { min-height: 48px; padding: 0; border: 0; font-size: 15px; line-height: normal; }
+  .portal-internet__table table { margin-top: 0; background: none; }
+  .portal-internet__table td .nd-pill { display: inline; padding: 3px 9px; line-height: normal; }
+  .portal-vouchers__got h2, .portal-internet__card-h, #voucherHistory .portal-vouchers__h { font-size: 22px; line-height: normal; }
+  .portal-internet__card-h { margin-bottom: 8px; }
+  /* Saved vouchers as drawn (owner 27 Nov): the codes, then Open or Used; the
+     filter, paging and code cards stay on phones. */
+  #voucherHistory .portal-vouchers__saved { display: block; }
+  #voucherHistory .portal-vouchers__h { margin: 0 0 8px; }
+  #voucherHistory .portal-vouchers__saved > :not(.portal-vouchers__h):not(.portal-saved) { display: none !important; }
+  .portal-saved__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #dfe5dc; color: #10241c; text-decoration: none; }
+  .portal-saved__row:last-child { border-bottom: 0; }
+  .portal-saved__main { min-width: 0; }
+  .portal-saved__code { display: block; font: 700 15px var(--nd-font-mono); letter-spacing: .06em; }
+  .portal-saved__meta { color: #5c6963; font-size: 13px; }
+  .portal-saved__open { color: #003b2b; font-size: 14px; font-weight: 700; }
+  .portal-saved__used { padding: 3px 9px; border-radius: 999px; background: #eef0ee; color: #3d4a44; font-size: 12px; font-weight: 700; }
+  .portal-saved__none { margin: 0; color: #5c6963; font-size: 14px; }
+  .portal-internet__table th { padding: 12px 10px; font-size: 13px; font-weight: 600; }
+  .portal-internet__table td { padding: 12px 10px; font-size: 14px; white-space: nowrap; }
+}
+@media (min-width: 1024px) {
+  body[data-current-tab="internet"] .dashboard-grid { grid-template-columns: minmax(0, 1fr) 370px; row-gap: 24px; }
+  body[data-current-tab="internet"] #managePlan > .portal-internet__table { margin-top: 0; }
+  body[data-current-tab="internet"] #managePlan > * { grid-column: 1; grid-row: 2; }
+  body[data-current-tab="internet"] #managePlan > .portal-bundle { grid-row: 1; }
+  body[data-current-tab="internet"] #voucherHistory > .portal-vouchers__got { grid-column: 2; grid-row: 1; }
+  body[data-current-tab="internet"] #voucherHistory > .portal-vouchers__saved { grid-column: 2; grid-row: 2; }
+  /* Renew or switch (not drawn here) sits between the card and the history. */
+  body[data-current-tab="internet"] #managePlan.portal-internet__bundle--actions > .portal-internet__table { grid-row: 3; }
+  body[data-current-tab="internet"] #managePlan.portal-internet__bundle--actions ~ #voucherHistory > .portal-vouchers__saved { grid-row: 2 / span 2; align-self: start; }
+}

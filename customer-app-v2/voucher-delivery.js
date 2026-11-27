@@ -12,6 +12,10 @@ export function purchasedVoucher(result, paymentId) {
   return (result.vouchers || []).filter(v => ids.has(v.paymentId) && /^NC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(v.code || '') && ['available', 'active', 'expired', 'exhausted'].includes(v.status))
     .sort((a, b) => (Date.parse(b.activatedAt || b.createdAt) || 0) - (Date.parse(a.activatedAt || a.createdAt) || 0))[0] || null;
 }
+// A saved code opened from Saved vouchers (#356): any of this account's own vouchers by id.
+export function savedVoucher(result, voucherId) {
+  return (result.vouchers || []).find(v => v.id === voucherId && /^NC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(v.code || '') && ['available', 'active', 'expired', 'exhausted'].includes(v.status)) || null;
+}
 export async function downloadVoucherPdf({ api, id, fetcher = fetch, document: doc = document, urls = URL }) {
   const response = await fetcher(api + '/api/account/vouchers/' + encodeURIComponent(id) + '/download', { credentials: 'include', cache: 'no-store', headers: { accept: 'application/pdf' } });
   if (!response.ok) throw Error(response.status === 401 ? 'Sign in again to download your saved voucher.' : 'The PDF is temporarily unavailable. Your payment and saved voucher are unchanged. Try again or use Vouchers in Dashboard.');

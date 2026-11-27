@@ -152,6 +152,14 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${provisioning}`;
 }
 
+// "2 days 14 h" ("2 j 14 h"), then hours, then minutes in the last hour; and
+// "Wed 25 Nov" ("mer. 25 nov."). Home and Internet (#355) say it the same way.
+export function unlimitedLeft(ms) {
+  const minutes = Math.max(0, Math.floor(ms / 60000)), d = Math.floor(minutes / 1440), hh = Math.floor((minutes % 1440) / 60);
+  return d ? [L(d === 1 ? 'homeUnlOneDay' : 'homeUnlDays', { count: d }), hh ? L('homeRenewHoursShort', { count: hh }) : ''].filter(Boolean).join(' ')
+    : hh ? L('homeRenewHoursShort', { count: hh }) : L('homeRenewMinutesShort', { count: minutes });
+}
+export const unlimitedDay = (at) => Number.isFinite(at) ? new Date(at).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).replace(/,/g, '') : '';
 // A running Unlimited bundle (#352, canvas PhoneHome; PhoneHomeFR #353):
 // "Personal Unlimited · 7 days", Connected or Active, "2 days 14 h left ·
 // unlimited data", a bar of the time gone, then "Ends Wed 25 Nov · 18:03" and
@@ -161,11 +169,9 @@ function unlimitedRunning(snapshot, { now, unavailable, paused, down }) {
   const gone = Number.isFinite(started) && ends > started ? Math.min(100, Math.max(0, (now - started) / (ends - started) * 100)) : 0;
   const hours = Number(v.plan?.validityHours), days = hours / 24;
   const length = !(hours > 0) ? '' : hours > 24 && Number.isInteger(days) ? L('homeRenewDays', { count: days }) : L(hours === 1 ? 'homeRenewOneHour' : 'homeRenewHours', { count: hours });
-  const minutes = Math.max(0, Math.floor((ends - now) / 60000)), d = Math.floor(minutes / 1440), hh = Math.floor((minutes % 1440) / 60);
-  const left = d ? [L(d === 1 ? 'homeUnlOneDay' : 'homeUnlDays', { count: d }), hh ? L('homeRenewHoursShort', { count: hh }) : ''].filter(Boolean).join(' ')
-    : hh ? L('homeRenewHoursShort', { count: hh }) : L('homeRenewMinutesShort', { count: minutes });
+  const left = unlimitedLeft(ends - now);
   // "Wed 25 Nov · 18:03"; the French board writes "mer. 25 nov." alone.
-  const day = Number.isFinite(ends) ? new Date(ends).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).replace(/,/g, '') : '';
+  const day = unlimitedDay(ends);
   const endsLine = day ? L('homeUnlEnds', { when: fr ? day : day + ' · ' + timeOf(ends) }) : '';
   const [pill, tone] = down ? [L('homeOutagePill'), ''] : deviceConnected ? [L('homeUnlConnected'), 'success'] : [L('homeStatusActive'), 'success'];
   const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;

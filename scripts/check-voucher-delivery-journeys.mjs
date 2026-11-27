@@ -30,7 +30,7 @@ try {
   }
   // v2's saved voucher is drawn without a download (#367, owner): the code as on
   // the slip, Print slip (its page has Download PDF), and the saved list keeps its download.
-  if (uiV2) for (const width of [320, 1280]) await scenario(`saved voucher shows the code and Print slip, and history keeps it at ${width}px`, async (page) => {
+  if (uiV2) for (const width of [320, 1280]) await scenario(`saved voucher shows the code and Print slip, and saved vouchers keep it at ${width}px`, async (page) => {
     let offers = 0; page.on('download', () => offers++);
     await page.goto(portal + '/voucher-ready.html?payment=p1'); await savedVoucherReady(page);
     assert.equal(await page.locator('[data-voucher-code]').textContent(), 'AAAA-1111');
@@ -39,7 +39,11 @@ try {
     assert.equal(await page.evaluate(() => window.closeCalls), 0);
     await page.reload(); await savedVoucherReady(page); assert.equal(offers, 0, 'no automatic download');
     await page.goto(portal + '/dashboard#vouchers');
-    await page.locator('[data-voucher-id="v1"]').waitFor(); const again = page.waitForEvent('download'); await page.locator('[data-voucher-id="v1"] [data-download-voucher]').click(); await again;
+    if (width >= 768) {
+      // Desktop's Saved vouchers are drawn as a list (#356, owner 27 Nov): the code opens its voucher page.
+      const row = page.locator('[data-saved-list] a[href="/voucher-ready.html?voucher=v1"]'); await row.waitFor();
+      await row.click(); await savedVoucherReady(page); assert.equal(await page.locator('[data-voucher-code]').textContent(), 'AAAA-1111');
+    } else { await page.locator('[data-voucher-id="v1"]').waitFor(); const again = page.waitForEvent('download'); await page.locator('[data-voucher-id="v1"] [data-download-voucher]').click(); await again; }
     assert.equal((await f.store.snapshot()).payments[0].status, 'paid'); assert.equal((await f.store.snapshot()).vouchers.length, 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   }, { width });

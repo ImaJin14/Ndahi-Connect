@@ -55,3 +55,10 @@ test("v2 sign-in can return to the scan page, with only a valid device hint", ()
   // The frozen v1 portal has no such page to return to.
   assert.equal(customerDestination("/voucher-connect.html"), "/dashboard");
 });
+
+test("v2 sign-in returns to a saved voucher opened from Saved vouchers (#356), with only a valid id", () => {
+  assert.equal(v2Destination("/voucher-ready.html?voucher=v-new"), "/voucher-ready.html?voucher=v-new");
+  assert.equal(v2Destination("/voucher-ready.html?voucher=v-new&code=NC-AAAA-1111&mac=AA:BB:CC:DD:EE:FF"), "/voucher-ready.html?voucher=v-new");
+  assert.equal(v2Destination("/voucher-ready.html?voucher=%3Cscript%3E"), "/dashboard");
+  assert.equal(v2Destination("/voucher-ready.html?payment=p1&voucher=v-new"), "/voucher-ready.html?payment=p1");
+});

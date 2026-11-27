@@ -29,6 +29,10 @@ export function customerDestination(input, fallback = '/dashboard') {
       const payment = url.searchParams.get('payment');
       if (payment && !/^[A-Za-z0-9_-]{1,100}$/.test(payment)) return fallback;
       if (payment) clean.searchParams.set('payment', payment);
+      // A saved code opened from Saved vouchers (#356).
+      const voucher = url.searchParams.get('voucher');
+      if (voucher && !/^[A-Za-z0-9_-]{1,100}$/.test(voucher)) return fallback;
+      if (voucher && !payment) clean.searchParams.set('voucher', voucher);
     } else if (url.pathname === '/voucher-connect.html') {
       // A purchase started from a scan comes back to it (#412). The scan is kept
       // in this tab's session storage, never in the address.
