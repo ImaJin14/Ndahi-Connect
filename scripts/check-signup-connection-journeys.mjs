@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, useVoucherSignIn, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
+import { openManageDevices, useVoucherSignIn, uiV2, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createStaticServer } from "../static-server.mjs";
@@ -127,7 +127,8 @@ try {
   await owner.getByRole("button", { name: "Refresh requests", exact: true }).click();
   const row = owner.locator("[data-request]").filter({ hasText: "ending EF:02" });
   const code = await row.getByLabel("Matching request code", { exact: true }).textContent();
-  assert.match(code, /^\d{3} \d{3}$/);
+  // v2 shows the reference as "PR-" and 3 characters (#370); v1 keeps the 6 digits.
+  assert.match(code, uiV2 ? /^PR-[2-9A-HJKMNP-Z]{3}$/ : /^\d{3} \d{3}$/);
   assert.equal(code, await guest.getByLabel("Matching request code", { exact: true }).textContent());
   const confirmed = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/pairing/approve") && r.status() === 202);
   await row.getByRole("button", { name: "Codes match — allow device", exact: true }).click();

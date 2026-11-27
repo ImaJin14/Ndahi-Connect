@@ -2161,6 +2161,17 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 - **Deployed:** PR #325 merged as `ce1875d`. By 07:37 UTC on 21 November the portal, store and admin served `shared-app/bundle-speed.js`.
 - Limits are enforced on the router only once `ROUTER_SPEED_LIMITS=on` (see the #263 item above). Until then, a bundle's description states a limit the router doesn't yet apply, so set a bundle's speed only when the switch is going on.
 
+### Device request review, as drawn (#370, batch 15, 27 November 2026)
+
+- [-] **CUS-370 — Review Wi-Fi access, redesigned (batch 15)** ([#370](https://github.com/ImaJin14/Ndahi-Connect/issues/370)). Owner decision: [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/370#issuecomment-7212185682).
+  - **Implemented and tested** (PR #524, not merged yet):
+    - "A device wants to use your bundle", the reference card ("PR-7Q4 · Only approve if the other screen shows the same reference."), Device ("Laptop · Windows", from what its browser reported), Asked ("2 minutes ago") and, for Personal Unlimited, After approving ("2 of 2 device slots used"); Deny and Approve;
+    - then "Laptop approved — It can use your bundle now…" or "Request denied — … If you didn't expect this request, change your PIN.", with Back to devices;
+    - the reference reads "PR-" and 3 characters on both v2 screens (the request, the review and the Devices list), derived from the request's 6-digit code, which the server still checks in full; v1 keeps the 6 digits;
+    - the request records the asking device's kind; the owner's request view adds it, when it asked, and the slot count after approving (registered slots or devices online, whichever is more);
+    - English and French; the page follows the customer's language.
+  - **Not yet:** merged, deployed, or a request approved and denied between two real phones on NDAHI Wi-Fi.
+
 ### Network setup in four drawn steps (#384, batch 7, 25 November 2026)
 
 - [-] **ADM-384 — Network setup, redesigned (batch 7)** ([#384](https://github.com/ImaJin14/Ndahi-Connect/issues/384)). Owner decisions: [first](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7171756340), [second](https://github.com/ImaJin14/Ndahi-Connect/issues/384#issuecomment-7172610323).

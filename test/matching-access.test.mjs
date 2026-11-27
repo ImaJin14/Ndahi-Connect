@@ -187,3 +187,22 @@ test("pausing new approvals cancels unconfirmed matching references without rest
   assert.equal(ended.body.request.comparisonCode, undefined);
   assert.equal((await confirm(f, r)).status, 409); assert.equal(f.calls.length, 0);
 });
+
+test("the owner's review names the device, when it asked and, for Personal Unlimited, the slots after approving (#370)", async t => {
+  const f = await fixture(t), r = await start(f), id = r.body.request.id;
+  const read = async () => (await f.call(ownerRoot + "?request=" + id)).body.requests[0];
+  let row = await read();
+  assert.equal(row.deviceKind, null, "a browser that reports nothing known stays unnamed");
+  assert.ok(Number.isFinite(Date.parse(row.requestedAt)));
+  assert.equal(row.slotsAfterApproving, undefined, "a fixed-data bundle shows no slot count");
+  // A Personal Unlimited bundle: its registered slots or the devices online, whichever is more, plus this one.
+  await f.store.transaction((s) => {
+    const v = s.vouchers.find((x) => x.id === s.wifiPairingRequests.find((p) => p.id === id).voucherId);
+    Object.assign(v, { accessType: "personal_unlimited", deviceSlots: 4 });
+    s.wifiPairingRequests.find((p) => p.id === id).deviceKind = "windows";
+  });
+  row = await read();
+  const online = (await f.store.snapshot()).vouchers.find((v) => v.accessType === "personal_unlimited").wifiDevices?.length || 0;
+  assert.deepEqual(row.slotsAfterApproving, { used: Math.min(4, online + 1), total: 4 });
+  assert.equal(row.deviceKind, "windows");
+});
