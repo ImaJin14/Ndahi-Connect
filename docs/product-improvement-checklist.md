@@ -2159,7 +2159,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Desktop Account (#358, batch 16, 27 November 2026)
 
 - [-] **CUS-358 — Desktop Account, redesigned (batch 16)** ([#358](https://github.com/ImaJin14/Ndahi-Connect/issues/358)). Owner decisions: [shop order updates built as drawn; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/358#issuecomment-7214191025).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #357):
+  - **Implemented and tested** (PR #537, not merged yet; built on #535):
     - from 768px Account follows DesktopAccount: the name with number and email and Edit profile, then Security, Notifications (three switches) and Home and help as panels in the board's grid, and Sign out;
     - Home and help reads Home WISP router (registration from the API), Payment and package rules, Help & support, then Language as "English · Français" with the other language as a link; focus stays on the language link after the switch;
     - sizes, spacing, 56px rows and outlined buttons measured against the board at 1280px; English and French.
