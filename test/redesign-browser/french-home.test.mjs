@@ -72,7 +72,8 @@ test('optional French: English default, Account preference, persistent translate
   await context.route('https://www.cloudflare.com/cdn-cgi/trace?**', route => route.fulfill({ status: browserOnline ? 200 : 503, headers: { 'content-type': 'text/plain', 'access-control-allow-origin': '*' }, body: browserOnline ? 'h=www.cloudflare.com\ncolo=TST\n' : 'Mock unavailable' }));
   await context.route('**/api/account/connectivity', route => route.fulfill({ json: { version: 1, expiresAt: new Date(Date.now() + 45000).toISOString(), ...evidence } }));
   const networkStates = [
-    ['connected', 'confirmed', 'authenticated', 'signed-in', 'active', true, 'Connexion au routeur confirmée', 'Cet appareil dispose d’un accès HotSpot. Le test Internet du navigateur a réussi.'],
+    // Fully online, Home's header reads just "Réseau en ligne" (#352, PhoneHomeFR #353).
+    ['connected', 'confirmed', 'authenticated', 'signed-in', 'active', true, 'Réseau en ligne', null],
     ['internet-unconfirmed', 'confirmed', 'authenticated', 'signed-in', 'active', false, 'Connexion au routeur confirmée', 'Cet appareil dispose d’un accès HotSpot. L’accès Internet n’est pas confirmé ; ne rachetez pas de forfait pour rétablir la connexion.'],
     ['signed-out', 'confirmed', 'unknown', 'signed-out', 'none', false, 'Réseau NDAHI détecté', 'Connectez-vous pour utiliser votre accès existant ou vérifier les forfaits disponibles. L’accès Internet n’est pas encore confirmé.'],
     ['bundle-ended', 'confirmed', 'unknown', 'signed-in', 'expired', false, 'Réseau NDAHI détecté', 'Consultez les forfaits disponibles pour vous connecter. La présence sur le réseau ne donne pas accès à Internet.'],
@@ -82,7 +83,9 @@ test('optional French: English default, Account preference, persistent translate
   const metrics = [];
   for (const [name, network, hotspot, account, subscription, online, badge, message] of networkStates) {
     evidence = { network: { state: network }, hotspot: { state: hotspot }, account: { state: account }, subscription: { state: subscription }, internet: { state: 'unavailable' } }; browserOnline = online;
-    await page.reload(); await page.locator('.network-banner-message').filter({ hasText: message }).waitFor();
+    await page.reload();
+    if (message) await page.locator('.network-banner-message').filter({ hasText: message }).waitFor();
+    else { await page.locator('.network-banner-badge').filter({ hasText: badge }).waitFor(); assert.equal(await page.locator('.network-banner-message').count(), 0, name); }
     assert.equal((await page.locator('.network-banner-badge').textContent()).trim(), badge);
     assert.equal(await page.locator('.network-state-banner').getAttribute('aria-label'), 'État du réseau');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, name);

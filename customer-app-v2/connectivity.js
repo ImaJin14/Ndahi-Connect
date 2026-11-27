@@ -20,6 +20,8 @@ export function mountConnectivityBanner({ container, api }) {
     const connected = Boolean(value && value.network && value.network.state === 'confirmed' && value.hotspot && value.hotspot.state === 'authenticated');
     setDeviceConnected(connected); window.dispatchEvent(new CustomEvent('ndahi:device-connected', { detail: connected }));
     container.className = 'network-state-banner network-state-banner-' + view.status;
+    // Home's header spacing follows the banner state (no :has(), the kit's browser floor).
+    if (document.body) document.body.setAttribute('data-network-state', view.status);
     // Fully online (#352, canvas PhoneHome): just "Network online", as drawn; desktop
     // already shows it in the top bar, so the banner hides there (CSS). Every other
     // state keeps its explanation and next step.

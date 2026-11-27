@@ -307,12 +307,14 @@ async function load() {
   // During an outage (#259) the hero's network line names it instead.
   $("#portalNotices").innerHTML = `${result.outage?.state === "down" ? outageLine(result.outage) : netBannerMarkup}${purchaseNotice}`;
   setOutage(result.outage);
+  // The running Unlimited card sizes its section on desktop (#354; no :has(), the kit floor).
+  const bundleCard = activeBundleContent(result.bundleStatus);
   const bundleLinks = active ? `<div class="home-bundle__actions"><a class="nd-btn nd-btn--block" href="/dashboard#internet">${h(t("homeBundleDetails", lang))}</a><a class="nd-btn nd-btn--secondary nd-btn--block" href="/dashboard#devices"><span class="nd-narrow-only">${h(t("homeDevices", lang))}</span><span class="nd-wide-only">${h(t("homeManageDevices", lang))}</span></a></div>` : "";
   $("#dashboard").innerHTML = `<div class="dashboard-grid"><div class="home-view full" data-portal-view="home">
     ${outageBanner(result.outage)}
     <div class="full home-promo" id="homeFreeMonth" hidden></div>
     <div class="full home-promo" id="homePromo" hidden></div>
-    <section class="home-bundle" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${activeBundleContent(result.bundleStatus)}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
+    <section class="home-bundle${bundleCard.includes('class="home-unl"') ? " home-bundle--unl" : ""}" aria-label="${h(t("activeBundle", lang))}"><div id="dataBalance">${bundleCard}</div>${bundleLinks}<div class="home-renew__actions" id="renewActions"></div></section>
     <section class="full home-pending" id="pendingPayment" aria-labelledby="pendingPaymentTitle" ${pendingPayment ? "" : "hidden"}>${pendingPaymentContent(pendingPayment)}</section>
     ${wifiConnect}
     ${renewalExtras()}

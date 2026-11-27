@@ -231,10 +231,10 @@ body[data-renew-moment] #bundlePurchaseActions { display: none; }
 body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-state-banner-active { margin-top: -2px; padding: 0; border: 0; background: none; font-size: 13px; line-height: 17px; }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { color: #dce8e2; font-size: 13px; font-weight: 400; line-height: normal; }
 @media (min-width: 768px) { body[data-current-tab="home"] .network-state-banner-active { display: none !important; } }
-@media (max-width: 767.98px) { body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__notices:has(> .network-state-banner-active) { margin-top: 0; } }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head__notices { margin-top: 0; } }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-text, body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { font-size: 13px; line-height: 17px; }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-indicator { width: 8px; height: 8px; margin-top: 4.5px; background: #b9ee2e; }
-@media (max-width: 767.98px) { body[data-current-tab="home"]:not([data-portal-sub]) .portal-head:has(.network-state-banner-active) { padding-bottom: 16px; } }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head { padding-bottom: 16px; } }
 /* From 768px (canvas: Main, #354): "Active bundle" over the plan's name, the end
    date beside the time left, and three tiles on the forest card. */
 @media (min-width: 768px) {
@@ -255,9 +255,9 @@ body[data-current-tab="home"] .network-state-banner-active .network-banner-indic
   .home-unl__tile p { margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; line-height: normal; }
   .home-unl__tile p + p { margin-top: 4px; color: #c8d8d0; font-size: 13px; font-weight: 400; }
   .home-unl { margin-bottom: 0; }
-  .home-bundle:has(.home-unl) { gap: 22px; padding: 29px; }
-  .home-bundle:has(.home-unl) .home-bundle__actions { gap: 10px; }
-  .home-bundle:has(.home-unl) .home-bundle__actions .nd-btn { box-sizing: content-box; min-height: 44px; padding: 0 18px; border-radius: 9px; font-size: 14px; }
+  .home-bundle--unl { gap: 22px; padding: 29px; }
+  .home-bundle--unl .home-bundle__actions { gap: 10px; }
+  .home-bundle--unl .home-bundle__actions .nd-btn { box-sizing: content-box; min-height: 44px; padding: 0 18px; border-radius: 9px; font-size: 14px; }
   /* Main's header (#354): the date, "Welcome back." at 40px and Bundles & vouchers. */
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head { padding-top: 36px; padding-bottom: 20px; row-gap: 0; align-items: end; }
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__eyebrow { margin: 0 0 6px; font-size: 12px; letter-spacing: .16em; line-height: normal; }
