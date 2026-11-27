@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+/* Your saved voucher (#367, canvas: PhoneVoucherReady). */
+body.vready-page { margin: 0; background: var(--nd-ivory, #fbfaf5); color: var(--nd-ink, #10241c); font-family: var(--nd-font-body); }
+.vready { display: flex; flex-direction: column; min-height: 100dvh; max-width: 560px; margin: 0 auto; }
+.vready__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid var(--nd-line, #dfe5dc); }
+.vready__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: var(--nd-ink, #10241c); text-decoration: none; }
+.vready__title { font-size: 15px; font-weight: 700; }
+.vready__main { flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.vready__status { margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5; }
+.vready__status:empty, .vready__msg:empty { display: none; }
+.vready__card { padding: 20px; border-radius: 18px; background: #003b2b; color: #ffffff; text-align: center; }
+.vready__card[hidden], .vready__actions:not(:has(> :not([hidden]))), [hidden] { display: none !important; }
+.vready__eyebrow { margin: 0; color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; line-height: normal; text-transform: uppercase; }
+.vready__code { margin: 12px 0; font: 700 34px ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: .12em; line-height: normal; overflow-wrap: anywhere; }
+.vready__qr { display: block; box-sizing: content-box; width: 156px; height: 156px; margin: 0 auto; border: 8px solid #ffffff; border-radius: 12px; background: #ffffff; }
+.vready__line { margin: 12px 0 0; color: #c8d8d0; font-size: 13px; line-height: normal; }
+.vready__scan { display: inline-flex; align-items: center; min-height: 44px; margin-top: 4px; color: #b9ee2e; font-size: 14px; font-weight: 700; }
+.vready__actions { display: flex; gap: 10px; }
+.vready__btn2 { box-sizing: border-box; display: flex; flex: 1; align-items: center; justify-content: center; min-height: 48px; padding: 0 12px; border: 1px solid #b8c7bd; border-radius: 10px; background: #fffef9; color: #003b2b; font: 700 15px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.vready__retry { flex: none; }
+.vready__msg { margin: 0; color: #3d4a44; font-size: 13px; }
+.vready__note { margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; line-height: 1.5; }
+.vready__btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin-top: auto; padding: 0 16px; border: 0; border-radius: 10px; background: #b9ee2e; color: #15210c; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.vready__btn[aria-busy="true"] { opacity: .7; }
+.vready a:focus-visible, .vready button:focus-visible { outline: var(--nd-focus-width, 3px) solid var(--nd-focus-color, #4d6b00); outline-offset: 2px; }

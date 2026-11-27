@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { uiV2 } from "./portal-tabs.mjs";
+import { uiV2, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import { mkdir, readFile } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
 import { createStaticServer } from "../static-server.mjs";
@@ -543,8 +543,8 @@ try {
     await page.route("**/api/account/setup/pin", async (route) => { completions++; await route.fetch(); await route.abort("failed"); });
     await page.getByRole("button", { name: "Create PIN and continue" }).click();
     await page.waitForURL(/\/voucher-ready\.html/);
-    await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-    await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+    await savedVoucherReady(page);
+    await continueFromSavedVoucher(page);
     await page.waitForURL("**/dashboard");
     assert.equal(completions, 1);
     assert.equal((await context.cookies(api + "/api/account/setup")).some((c) => c.name === "checkout_setup"), false);

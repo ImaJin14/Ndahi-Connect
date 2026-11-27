@@ -4,6 +4,12 @@
 //   768px. Bundles and Vouchers live under Internet, Payments under Activity.
 // scripts/ui-v2-journeys.mjs sets NDAHI_UI_VARIANT=v2 for `npm run test:browser:v2`.
 export const uiV2 = process.env.NDAHI_UI_VARIANT === "v2";
+// Your saved voucher (#367, owner: exactly as drawn): v2 shows Print slip and
+// "Use it on this device now"; v1 keeps Download Voucher and "Continue to Dashboard / Wi-Fi".
+export const savedVoucherReady = (page) => (uiV2 ? page.getByRole("link", { name: "Print slip", exact: true })
+  : page.getByRole("button", { name: "Download Voucher", exact: true })).waitFor();
+export const continueFromSavedVoucher = (page) => (uiV2 ? page.getByRole("link", { name: "Use it on this device now", exact: true })
+  : page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true })).click();
 
 const V2_TABS = { bundles: "internet", vouchers: "internet", payments: "activity" };
 

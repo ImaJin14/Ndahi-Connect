@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { portalTab, uiV2, openManageDevices, useVoucherSignIn } from "./portal-tabs.mjs";
+import { portalTab, uiV2, openManageDevices, useVoucherSignIn, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import { randomInt, randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
@@ -98,7 +98,7 @@ try {
     await page.goto(portal + "/onboarding.html?action=switch&plan=monthly");
     await page.locator("#checkout").waitFor(); await page.locator('[name="acknowledge"]').check();
     await page.locator("#requestPayment").click(); await page.locator("#confirm").click();
-    await page.waitForURL(/\/voucher-ready\.html/); await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor(); await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click(); await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Monthly", { exact: true }).waitFor();
+    await page.waitForURL(/\/voucher-ready\.html/); await savedVoucherReady(page); await continueFromSavedVoucher(page); await page.waitForURL("**/dashboard"); await page.locator("#dataBalance").getByText("Monthly", { exact: true }).waitFor();
     const stored = await store.snapshot(); assert.equal(stored.payments.length, 2);
     assert.equal(stored.vouchers.find((v) => v.id === paid.body.voucher.id).status, state);
     assert.equal(stored.vouchers.filter((v) => v.status === "active").length, 1);
