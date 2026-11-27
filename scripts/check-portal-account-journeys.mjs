@@ -5,7 +5,7 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
-import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, openSecurityHistory, waitForAccount, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
+import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, openSecurityHistory, notificationLink, waitForAccount, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
@@ -398,7 +398,7 @@ try {
     const centre = page.getByRole('dialog', { name: 'Notifications', exact: true });
     await centre.getByRole('heading', { name: /Passkey sign-in/ }).waitFor();
     assert.equal((await store.snapshot()).securityEvents.filter((e) => e.type === 'customer.passkey_login.succeeded').length, 1);
-    await centre.locator('[data-notification-id]').filter({ has: page.getByRole('heading', { name: /Passkey sign-in/ }) }).getByRole('link', { name: 'Review sessions', exact: true }).click();
+    await notificationLink(centre, /Passkey sign-in/, 'Review sessions').click();
     await page.waitForURL(/#sessions$/);
     assert.equal(await page.locator('#sessionActivity').evaluate((el) => el.open), true);
   }, 320);

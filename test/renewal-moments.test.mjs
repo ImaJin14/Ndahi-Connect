@@ -19,10 +19,11 @@ const items = (s) => notificationItems(s, { type: "customer", id: "c1" }, now);
 
 test("a bundle ending within a day gets one reminder with its local time", () => {
   const tomorrow = items(state({ expiresAt: "2026-11-15T08:00:00Z" })).find((n) => n.id.startsWith("bundle-ending:"));
-  assert.deepEqual([tomorrow.title, tomorrow.body, tomorrow.url, tomorrow.pushEligible], ["Weekly ends tomorrow at 09:00",
-    "You'll be able to buy your next bundle in one tap once it ends.", "/dashboard#home", true]);
+  // As PhoneNotifications draws it (#362).
+  assert.deepEqual([tomorrow.title, tomorrow.body, tomorrow.url, tomorrow.pushEligible], ["Bundle ends tomorrow",
+    "Weekly ends tomorrow at 09:00. You can buy your next bundle once it ends.", "/dashboard#internet", true]);
   const today = items(state({ expiresAt: "2026-11-14T19:30:00Z" })).find((n) => n.id.startsWith("bundle-ending:"));
-  assert.equal(today.title, "Weekly ends today at 20:30");
+  assert.deepEqual([today.title, today.body], ["Bundle ends today", "Weekly ends today at 20:30. You can buy your next bundle once it ends."]);
   for (const expiresAt of ["2026-11-15T17:03:00Z", "2026-11-14T10:30:00Z"])
     assert.equal(items(state({ expiresAt })).some((n) => n.id.startsWith("bundle-ending:")), false, `${expiresAt}: not more than a day ahead, and the one-hour warning covers the last hour`);
   assert.equal(items(state({ expiresAt: "2026-11-15T08:00:00Z" }, { subscriptionUpdates: false })).some((n) => n.id.startsWith("bundle-ending:")), false, "the customer can turn bundle reminders off");
