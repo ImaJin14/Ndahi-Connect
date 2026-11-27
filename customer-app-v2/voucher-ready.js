@@ -8,14 +8,16 @@ import { format, getPreferredLanguage } from '/shared/i18n.js';
 import { requestJson } from './compat.js';
 import { saveReturnPath, consumeReturnPath } from './errors.js';
 import { withWifiHint, afterSignInPath } from './hotspot-path.js';
-import { purchasedVoucher } from './voucher-delivery.js';
+import { purchasedVoucher, savedVoucher } from './voucher-delivery.js';
 import { startUpdates } from './updates.js';
 // The page follows the customer's language choice (served as English).
 const lang = getPreferredLanguage();
 document.documentElement.lang = lang;
 const L = (key, values) => format(key, values || {}, lang);
 const api = window.NDAHI_CONFIG.apiUrl, $ = s => document.querySelector(s), params = new URLSearchParams(location.search);
-const requestedPayment = params.get('payment');
+const requestedPayment = params.get('payment'), requestedVoucher = params.get('voucher');
+// Opened from Saved vouchers (#356): ?voucher=<id>; after a purchase: ?payment=<id>.
+const requested = requestedVoucher ? '?voucher=' + encodeURIComponent(requestedVoucher) : requestedPayment ? '?payment=' + encodeURIComponent(requestedPayment) : '';
 const day = (at) => new Date(at).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 // "NC-QF83-ZK4M" shows as "QF83-ZK4M", as on the slip (#368); either form works.
 const shown = (code) => String(code || '').replace(/^NC-(?=[0-9A-Z]{4}-[0-9A-Z]{4}$)/, '');
@@ -45,15 +47,16 @@ async function load() {
   if (loading) return;
   loading = true; const ticket = ++generation; controller = typeof AbortController === 'function' ? new AbortController() : null; $('#retryVoucher').hidden = true;
   try {
+    if (requestedVoucher && !/^[A-Za-z0-9_-]{1,100}$/.test(requestedVoucher)) throw Error(L('vreadyNotFoundSaved'));
     if (requestedPayment && !/^[A-Za-z0-9_-]{1,100}$/.test(requestedPayment)) throw Error(L('vreadyBadLink'));
     const { response, body } = await requestJson(api + '/api/account/dashboard', { credentials: 'include', cache: 'no-store', signal: controller?.signal });
     if (ticket !== generation) return;
     if (response.status === 401) {
-      saveReturnPath(); location.replace(withWifiHint('/login?account=1&next=' + encodeURIComponent(location.pathname + (requestedPayment ? '?payment=' + encodeURIComponent(requestedPayment) : '')))); return;
+      saveReturnPath(); location.replace(withWifiHint('/login?account=1&next=' + encodeURIComponent(location.pathname + requested))); return;
     }
     if (!response.ok) throw Error(L('vreadyLoadFailed'));
-    voucher = purchasedVoucher(body, requestedPayment);
-    if (!voucher) throw Error(L('vreadyNotFound'));
+    voucher = requestedVoucher ? savedVoucher(body, requestedVoucher) : purchasedVoucher(body, requestedPayment);
+    if (!voucher) throw Error(L(requestedVoucher ? 'vreadyNotFoundSaved' : 'vreadyNotFound'));
     const code = shown(voucher.code);
     $('#voucherDetails').innerHTML = `<p class="vready__eyebrow">${h(facts(voucher))}</p><p class="vready__code" data-voucher-code>${h(code)}</p>`
       + `<img class="vready__qr" data-voucher-qr alt="${h(L('vreadyQrAlt', { code }))}" hidden><p class="vready__line" data-voucher-usage>${h(usage(voucher))}</p>`
@@ -77,7 +80,7 @@ async function load() {
 
 function labels() {
   $('#voucherTitle').textContent = L('vreadyTitle'); $('#voucherBack').setAttribute('aria-label', L('vreadyBack'));
-  $('#voucherStatus').textContent = L('vreadyChecking'); $('#copyVoucher').textContent = L('vreadyCopy'); $('#printVoucher').textContent = L('vreadyPrint');
+  $('#voucherStatus').textContent = L(requestedVoucher ? 'vreadyCheckingSaved' : 'vreadyChecking'); $('#copyVoucher').textContent = L('vreadyCopy'); $('#printVoucher').textContent = L('vreadyPrint');
   $('#retryVoucher').textContent = L('vreadyRetry'); $('#voucherNote').textContent = L('vreadyNote'); $('#continueVoucher').textContent = L('vreadyUseHere');
 }
 $('#copyVoucher').onclick = async () => {

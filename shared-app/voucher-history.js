@@ -14,3 +14,13 @@ export function voucherHistory(vouchers, { filter = "active", page = 1, pageSize
   const pages = Math.max(1, Math.ceil(matching.length / pageSize)), currentPage = Math.min(pages, Math.max(1, Number.isInteger(page) ? page : 1));
   return { items: matching.slice((currentPage - 1) * pageSize, currentPage * pageSize), total: matching.length, page: currentPage, pages, currentId: current?.id || null };
 }
+// Saved vouchers on desktop (#356, canvas DesktopInternet; owner 27 Nov): codes
+// not used yet, then the one in use, then the latest used, five in all.
+export function savedVoucherRows(vouchers, now = Date.now()) {
+  const records = (vouchers || []).filter((v) => v.code).map((v) => ({ ...v, displayStatus: displayedVoucherStatus(v, now) }));
+  const newest = (key) => (a, b) => (Date.parse(b[key] || b.createdAt) || 0) - (Date.parse(a[key] || a.createdAt) || 0);
+  const unused = records.filter((v) => v.displayStatus === "available").sort(newest("createdAt"));
+  const inUse = records.filter((v) => v.displayStatus === "active").sort(newest("activatedAt"));
+  const used = records.filter((v) => v.activatedAt && v.displayStatus !== "available" && v.displayStatus !== "active").sort(newest("activatedAt"));
+  return [...unused, ...inUse, ...used.slice(0, Math.max(0, 5 - unused.length - inUse.length))];
+}
