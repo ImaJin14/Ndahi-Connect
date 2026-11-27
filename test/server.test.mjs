@@ -83,6 +83,7 @@ test("customer CSRF inventory covers every session-authorized mutation", () => {
     "/api/account/device-management/main/options",
     "/api/account/device-management/nickname",
     "/api/account/device-management/pairing/approve",
+    "/api/account/device-management/pairing/code",
     "/api/account/device-management/pairing/decline",
     "/api/account/device-management/pairing/manual",
     "/api/account/device-management/pairing/request",

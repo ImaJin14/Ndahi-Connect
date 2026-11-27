@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+/* Use a bundle from another phone (#407, canvas: PhonePairRequest). */
+body.preq-page { margin: 0; background: var(--nd-ivory, #fbfaf5); color: var(--nd-ink, #10241c); font-family: var(--nd-font-body); }
+.preq { display: flex; flex-direction: column; min-height: 100dvh; max-width: 560px; margin: 0 auto; }
+.preq__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid var(--nd-line, #dfe5dc); }
+.preq__back { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 10px; color: var(--nd-ink, #10241c); text-decoration: none; }
+.preq__title { font-size: 15px; font-weight: 700; }
+.preq__main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 22px; }
+.preq__h1 { margin: 0; font: 600 30px/1.15 var(--nd-font-display); }
+.preq__h1:focus { outline: none; }
+.preq__lede { margin: 8px 0 0; color: #5c6963; font-size: 15px; line-height: 1.5; }
+.preq__form { display: flex; flex-direction: column; gap: 18px; }
+.preq__label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+.preq__code { box-sizing: border-box; width: 100%; min-height: 64px; padding: 0 14px; border: 1px solid #b8c7bd; border-radius: 12px; background: #ffffff; color: #10241c; font: 700 30px ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: .2em; text-align: center; }
+.preq__code::placeholder { color: #b8c7bd; }
+.preq__btn, .preq__btn2 { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; padding: 0 16px; border-radius: 10px; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.preq__btn { min-height: 52px; border: 0; background: #b9ee2e; color: #15210c; }
+.preq__btn2 { min-height: 50px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; }
+.preq__btn:disabled, .preq__btn2:disabled { opacity: .6; cursor: progress; }
+.preq__msg { margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.5; }
+.preq__msg:empty { display: none; }
+/* Waiting, approved and finishing: centred, the buttons at the foot. */
+.preq__main:has(> .preq__state:not([hidden])) { padding: 30px 22px; }
+.preq__main:has(> .preq__state:not([hidden])) > .preq__head { display: none; }
+.preq__state { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.preq__state--plain { align-items: stretch; text-align: left; }
+.preq__icon { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; }
+.preq__icon--wait { background: #e3f0ff; }
+.preq__icon--ok { background: #eaf6d5; }
+.preq__text { margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55; }
+.preq__text:empty { display: none; }
+.preq__ref { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.preq__ref .pairing-code { font: inherit; font-weight: 700; color: var(--nd-ink, #10241c); }
+.preq__qr { display: block; width: 100%; max-width: 200px; height: auto; background: #ffffff; }
+.preq__foot { display: flex; flex-direction: column; gap: 14px; align-self: stretch; margin-top: auto; }
+.preq__foot:not(:has(> :not([hidden]))) { display: none; }
+.preq__links { margin: 0; font-size: 14px; }
+.preq__links:not(:has(a:not([hidden]))) { display: none; }
+[hidden] { display: none !important; }
+.preq a:focus-visible, .preq button:focus-visible, .preq input:focus-visible { outline: var(--nd-focus-width, 3px) solid var(--nd-focus-color, #4d6b00); outline-offset: 2px; }

@@ -704,3 +704,15 @@ body[data-portal-sub] #security-passkeys > p.account-passkeys__label { margin: 4
 @media (max-width: 767.98px) {
   body[data-portal-sub="passkeys"] #security-passkeys > #addCustomerPasskey { left: 18px; right: 18px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
 }
+/* The owner's pairing code (#407; owner 27 Nov): a forest card like the request reference. */
+.portal-devices__pair { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.portal-devices__pair[hidden], .portal-devices__pair [hidden] { display: none !important; }
+.portal-devices__pair-card { padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; text-align: center; }
+.portal-devices__pair-card p { margin: 0; line-height: normal; }
+.portal-devices__pair-label { color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.portal-devices__pair-code { margin: 6px 0 4px !important; font: 700 32px ui-monospace, Menlo, monospace; letter-spacing: .14em; }
+.portal-devices__pair-note { color: #c8d8d0; font-size: 13px; }
+.portal-devices__pair-expiry, .portal-devices__pair-help { margin: 0; color: var(--nd-ink-soft); font-size: var(--nd-fs-small); line-height: 1.5; text-align: center; }
+.portal-devices__pair-expiry:empty { display: none; }
+.portal-devices__pair-actions { display: flex; gap: 10px; }
+.portal-devices__pair-actions > button { flex: 1; }

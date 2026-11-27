@@ -71,7 +71,7 @@ try {
   assert.equal(new URL(guest.url()).searchParams.get("address"), "10.20.0.40");
   await guest.reload();
   await guest.locator("#pairingStatus").filter({ hasText: "must set a main device" }).waitFor();
-  assert.equal(await guest.getByRole("link", { name: "Open Wi-Fi sign-in", exact: true }).getAttribute("href"), "https://connect.hotspot.test/login");
+  assert.equal(await guest.locator("#wifiSignIn").getAttribute("href"), "https://connect.hotspot.test/login");
   assert.equal(f.calls.length, 1, "a voucher and number alone cannot start a second router login");
   console.log("PASS additional voucher/number sign-in opens restricted access and waits when no main is selected");
 
