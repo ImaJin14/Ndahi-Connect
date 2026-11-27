@@ -2254,6 +2254,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - stored in the existing events table (`store_kit`), no migration.
   - **Since:** the admin and shop screens (#347, #373), installation (#425) and Pay in 3 (#426) shipped in batch 19 (PRs #553–#555).
 
+### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
+
+- [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).
+  - **Checked and tested** (PR #PRNUM; [audit](reviews/connect-flow-393.md)):
+    - every step of the board (join NDAHI Wi-Fi; I have an account; I have a code; scan a QR; I'm new, buy; use someone's bundle; the five recoveries) is built and walked by a passing journey; nothing differs from the board, so no code changes;
+    - the board's rules hold: a PIN or a passkey only; a scan or a pairing code never connects a device on its own; nobody can buy while a bundle is active;
+    - v2: the flow's 15 redesign browser tests, and the hotspot, billing and pending-state suites with v2 forced; v1: the same three suites. All pass, on local servers with mock payments and a mock router.
+  - **Not yet:** walked on staging or on site, with a real router and real MTN and Orange payments.
+
 ### Kit orders: installation, Pay in 3 and one order flow (#425, #426, #427, batch 19, 27 November 2026)
 
 - [-] **STORE-425/426/427 — Kit orders on the server (batch 19)** ([#425](https://github.com/ImaJin14/Ndahi-Connect/issues/425), [#426](https://github.com/ImaJin14/Ndahi-Connect/issues/426), [#427](https://github.com/ImaJin14/Ndahi-Connect/issues/427)). Owner decisions: [installations](https://github.com/ImaJin14/Ndahi-Connect/issues/425#issuecomment-7224898255), [Pay in 3: the second payment halfway, rounded up; one extension by the grace length](https://github.com/ImaJin14/Ndahi-Connect/issues/426#issuecomment-7224898851), [the phone screens #374 and #375 in this batch](https://github.com/ImaJin14/Ndahi-Connect/issues/427#issuecomment-7224901284).
