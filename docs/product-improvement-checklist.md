@@ -1612,12 +1612,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Use a voucher for Unlimited (#366, batch 14, 27 November 2026)
 
 - [-] **CUS-366 — Use a voucher, updated for Unlimited (batch 14)** ([#366](https://github.com/ImaJin14/Ndahi-Connect/issues/366)). Owner decisions: [claim link only](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210694424), [done screen without the save card](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210892609).
-  - **Implemented and tested** (PR #518, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #518):
     - the signed-in voucher page adds "Someone bought this for your number? Claim it with your number →" (to Claim a gift); "Have an account? Sign in instead" is left out, since the page is for signed-in customers (owner);
     - after a code works: the tick, "You're connected", "Voucher K7PM-42XQ is active: unlimited data for 7 days on 1 device." from the voucher's own terms, and Start browsing, which signs this phone in to the Wi-Fi when the portal runs on it (it used to redirect straight away); no save-to-account card (owner);
     - the page now sits on the board's 22 px margins and the code's letters are spaced as drawn;
     - a fixed-data voucher keeps its own terms ("5 GB for 7 days on 1 device"); English and French.
-  - **Not yet:** merged, deployed, or a voucher used on a real phone on NDAHI Wi-Fi.
+  - **Not yet:** a voucher used on a real phone on NDAHI Wi-Fi.
 
 ### Unified voucher slip design — issue #205 (9 November 2026)
 
@@ -1629,14 +1629,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Claim a gift for Unlimited (#365, batch 14, 27 November 2026)
 
 - [-] **CUS-365 — Claim a gift, updated for Unlimited (batch 14)** ([#365](https://github.com/ImaJin14/Ndahi-Connect/issues/365)).
-  - **Implemented and tested** (PR #517, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #517):
     - an Unlimited gift shows its own terms on the claim page: "Unlimited data · 7 days · 2 device slots. The 7 days start when you choose." (Home WISP: "Unlimited data · 30 days · household sharing."); the server now sends the voucher's access type and device slots with the gift;
     - starting it says "Personal Unlimited started on this phone. It ends 4 Dec." with no data line;
     - a gift shorter than a day reads in hours ("5 hours"), where it used to round to "0 days";
     - the code field is drawn in bold monospace as on the board (a more general input rule had been overriding it);
     - the page follows the customer's language choice (it was always English);
     - a fixed-data gift keeps its own terms ("5 GB · 7 days · 1 device"); English and French.
-  - **Not yet:** merged, deployed, or an Unlimited gift claimed and started on a real phone.
+  - **Not yet:** an Unlimited gift claimed and started on a real phone.
 
 ### Mobile voucher printing — issue #206 (9 November 2026)
 
@@ -1794,14 +1794,14 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Buy for someone else, Unlimited and the 2% fee (#364, batch 14, 27 November 2026)
 
 - [-] **BUY-364 — Buy for someone else, updated for Unlimited and the Mobile Money fee (batch 14)** ([#364](https://github.com/ImaJin14/Ndahi-Connect/issues/364)). Owner decisions: [every offer as a card](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7210693173), [keep #255's wording](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7211152463).
-  - **Implemented and tested** (PR #519, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #519):
     - step 2 lists every offer on sale as a card; an Unlimited card reads "Unlimited · 7 days · 2 devices" (Home WISP: "Unlimited · 30 days · household sharing", shown only while Home WISP is on); prices in XAF;
     - over the button: Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote, the wallet notice with the total in bold, and Pay Now; a network without a verified fee shows the price and says the fee is in the operator prompt;
     - the waiting screen says "An MTN MoMo request for 4,080 XAF (incl. 80 XAF fee) …"; failure messages use XAF;
     - the gift's code shows without "NC-", as on the slip (#368);
     - the page follows the customer's language choice (it was always English); English and French;
     - fixed-data bundles keep their own card line ("5 GB · 7 days") while the legacy catalogue is on sale.
-  - **Not yet:** merged, deployed, or a gift bought with real Mobile Money for each kind of number.
+  - **Not yet:** a gift bought with real Mobile Money for each kind of number.
 
 ### Shop checkout on phones (#397, batch 8, 26 November 2026)
 
@@ -1816,13 +1816,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Renewal moments for Unlimited (#359, batch 14, 27 November 2026)
 
 - [-] **CUS-359 — Renew on Home, updated for Unlimited and the 2% fee (batch 14)** ([#359](https://github.com/ImaJin14/Ndahi-Connect/issues/359)). Owner decisions: [running low kept for fixed-data bundles; slot counts from the catalogue](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210693595), [the push stays the phone's notification](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210893153).
-  - **Implemented and tested** (PR #520, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #520):
     - an Unlimited bundle's card shows its terms ("Personal Unlimited · 7 days · 2 devices"), the time left ("19 h left · ends 18:03 tomorrow") with a bar of the time gone, and "Data is unlimited until then. Your next bundle can be bought the moment this one ends."; ended, "Ended today at 18:03" with the bar full in grey; never a data figure;
     - "Buy the same bundle again" with "4,080 XAF incl. 2% payment fee · MTN MoMo 6•• •• 12 45" from the server's quote, or the price and the fee in the operator prompt;
     - the ended tip lists the slot counts on sale ("Personal Unlimited comes with 1, 2, 3, 4, 5 or 6 device slots. For a home router, choose Home WISP Unlimited.");
     - the Home bundle status now carries the bundle's access type and device slots;
     - fixed-data bundles keep their moments, running low included (owner); the push texts already match the board; English and French.
-  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a renewal checked on a real phone.
+  - **Not yet:** the Unlimited catalogue switched on, or a renewal checked on a real phone.
 
 ### Order tracking on phones (#406, batch 9, 26 November 2026)
 
@@ -1837,13 +1837,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Receipt with payment and Wi-Fi apart (#369, batch 14, 27 November 2026)
 
 - [-] **BILL-369 — The receipt, redesigned: payment vs Wi-Fi, the confirmed fee and debit, a copyable reference (batch 14)** ([#369](https://github.com/ImaJin14/Ndahi-Connect/issues/369)). Owner decisions: [short numbers, "Total paid" for a quoted fee, "Starts at first connection"](https://github.com/ImaJin14/Ndahi-Connect/issues/369#issuecomment-7210694009).
-  - **Implemented and tested** (PR #521, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #521):
     - two tiles: Payment ("Confirmed · 24 Nov, 14:32") and Wi-Fi ("Active since 14:33", "Activating…", or "Starts at first connection" for a bundle saved until it's first used); a receipt never says Wi-Fi is active before it is;
     - new receipts are numbered "NC-2411-0457" (per month, Douala time), with the NDAHI payment ID "NC-PAY-2411-0457"; the month's counter is a store setting, so two receipts at once never share a number; receipts already issued keep theirs (owner);
     - "Total debited (confirmed by MTN)" with Bundle Price, Mobile Payment Fee and Total debited when the provider reported its charge; otherwise "Total paid" with the quoted amounts (owner); amounts in XAF;
     - the bundle's own terms ("Personal Unlimited · 7 days · 2 devices", "7 days, from first connection"; a fixed-data bundle keeps "Weekly · 5 GB · 1 device"), Paid with "MTN MoMo · 6•• •• 12 45";
     - the provider reference, or the NDAHI payment ID when there is none, with Copy (the exact reference); English and French.
-  - **Not yet:** merged, deployed, or a receipt read after a real MeSomb payment (with and without the provider's fee report).
+  - **Not yet:** a receipt read after a real MeSomb payment (with and without the provider's fee report).
 
 ### Insights data recording (#262, 20 November 2026)
 
