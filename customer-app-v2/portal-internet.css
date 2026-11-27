@@ -112,3 +112,25 @@ body:not([data-portal-sub="redeem"]) #activateDevice { display: none; }
   #voucherHistory .portal-vouchers__h { display: none; }
 }
 #redeem .portal-redeem__code { padding: var(--nd-space-18); border: 2px dashed var(--nd-line-strong); border-radius: var(--nd-radius-card); background: var(--nd-paper); }
+/* A running Unlimited bundle (#355, canvas PhoneInternet; #356 from 768px):
+   the time left, a bar of the time gone and its end; never data left. */
+.portal-bundle__ends { white-space: nowrap; }
+.portal-bundle__amount--time { line-height: normal; }
+.portal-bundle__time { display: block; width: 100%; border: 0; border-radius: 999px; overflow: hidden; appearance: none; -webkit-appearance: none; background: rgba(255, 255, 255, .16); }
+.portal-bundle__time::-webkit-progress-bar { border-radius: 999px; background: rgba(255, 255, 255, .16); }
+.portal-bundle__time::-webkit-progress-value { border-radius: 999px; background: #b9ee2e; }
+.portal-bundle__time::-moz-progress-bar { border-radius: 999px; background: #b9ee2e; }
+@media (max-width: 767.98px) {
+  .portal-bundle:has(.portal-bundle__time) { gap: 0; border: 0; border-radius: 16px; }
+  .portal-bundle:has(.portal-bundle__time) .portal-bundle__head { gap: 8px; }
+  .portal-bundle:has(.portal-bundle__time) .portal-bundle__ends { color: #c8d8d0; }
+  .portal-bundle__amount--time { margin-top: 10px; font-size: 30px; letter-spacing: normal; }
+  .portal-bundle__amount--time span { color: #c8d8d0; }
+  .portal-bundle__time { height: 8px; margin-top: 12px; }
+  .portal-internet__note { color: #3d4a44; }
+  .portal-internet__row .nd-pill { padding: 4px 10px; background: #eef0ee; color: #3d4a44; font-size: 12px; font-weight: 700; letter-spacing: normal; line-height: normal; }
+  /* PhoneInternet (#355): 18px sides like the title, the card 14px under the switch. */
+  body[data-current-tab="internet"] .portal-internet__switch, body[data-current-tab="internet"] .portal-internet__bundle { margin-left: 2px; margin-right: 2px; }
+  body[data-current-tab="internet"] .portal-internet__switch { margin-top: 2px; margin-bottom: -6px; }
+  body[data-current-tab="internet"] .portal-head__title { line-height: normal; }
+}
