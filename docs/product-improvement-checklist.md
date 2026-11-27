@@ -2271,7 +2271,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Quick-start guide, ready to print (#434, batch 21, 27 November 2026)
 
 - [-] **DOC-434 — Connect, Pay & Get Online, EN and FR (batch 21)** ([#434](https://github.com/ImaJin14/Ndahi-Connect/issues/434)). Owner decisions: [WhatsApp only; ready, not released](https://github.com/ImaJin14/Ndahi-Connect/issues/434#issuecomment-7228283474).
-  - **Implemented** (PR #PRNUM):
+  - **Implemented** (PR #560):
     - the EN and FR PDFs (4 A4 pages each) carry the support contact, "WhatsApp +237 671 493 902", with no phone line;
     - `scripts/brochure-pdf.mjs` prints them from the `BrochureEN` and `BrochureFR` boards with Chromium. It fills in the contact only in the printed copy, so the board keeps its placeholders. It stops if a placeholder is left or a typeface didn't load. The fonts embed as static TrueType, as in the first edition;
     - `docs/brochure/README.md` gives the commands and the release list.
