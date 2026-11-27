@@ -6,7 +6,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { formatDataBalance } from "/shared/data-usage.js";
-import { unlimitedLeft, unlimitedDay, isUnlimited } from "./active-bundle.js";
+import { unlimitedLeft, unlimitedDay, isUnlimited, compactBytes as compact } from "./active-bundle.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr" : "en-GB");
@@ -16,7 +16,6 @@ const day = (value) => {
 };
 const left = (v) => (v.remainingBytes !== undefined ? v.remainingBytes : v.quotaBytes == null ? null : Math.max(0, v.quotaBytes - (v.usedBytes || 0)));
 // "5 GB", "0.6 GB" as the boards write used data (#355).
-const compact = (bytes) => formatDataBalance(bytes).replace(/([.,]\d*?)0+(?= )/, "$1").replace(/[.,](?= )/, "");
 
 // Phones show one group at a time; the address decides which (#bundles or #vouchers).
 export function internetSwitch() {
@@ -42,10 +41,9 @@ export function internetBundle({ result, active, current, canPurchase }) {
     ? `<div class="plan-actions portal-internet__actions">${plan.discontinued ? `<p class="error">${h(L("portalPlanDiscontinued"))}</p>` : `<a class="nd-btn nd-btn--secondary" href="/onboarding.html?action=renew&amp;plan=${h(plan.id)}">${h(L("portalRenewPlan"))}</a>`}<a class="nd-btn nd-btn--secondary" href="/onboarding.html?action=switch">${h(L("portalSwitchPlan"))}</a></div>`
     : active?.accessMode === "home" ? `<p><a class="admin-link" href="/home-router.html">${h(L("portalHomeRouterRenewal"))}</a></p>` : "";
   return `<section class="portal-internet__bundle full" data-portal-view="bundles" data-internet-group="bundles" id="managePlan" aria-labelledby="internetBundleTitle">
-  <div class="nd-card nd-card--forest nd-on-forest portal-bundle">
-    <div class="portal-bundle__head"><p class="nd-eyebrow" id="internetBundleTitle"><span class="nd-narrow-only">${h(active && plan ? `${L("portalActive")} · ${plan.name}` : plan ? plan.name : L("portalNoActiveBundle"))}</span><span class="nd-wide-only">${h(L(active ? "activeBundle" : "portalNoActiveBundle"))}</span></p>${active ? `<span class="portal-bundle__ends">${h(unlimited ? L("homeUnlEnds", { when: unlimitedDay(ends) }) : L("portalEndsOn", { date: day(active.expiresAt) }))}</span>` : ""}</div>
-    ${plan ? `<p class="portal-bundle__plan nd-wide-only">${h(plan.name)}</p>` : ""}
-    ${unlimited ? `<p class="portal-bundle__amount portal-bundle__amount--time"><span data-time-left>${h(unlimitedLeft(ends - Date.now()))}</span> <span>${h(L("homeUnlLeft"))}${slots ? `<span class="nd-wide-only"> · ${h(L("homeUnlSlots", { used: slots.used, total: slots.total }))}</span>` : ""}</span></p><progress class="nd-meter-bar portal-bundle__time" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>`
+  <div class="nd-card nd-card--forest nd-on-forest portal-bundle${unlimited ? " portal-bundle--time" : ""}">
+    <div class="portal-bundle__head"><div class="portal-bundle__name"><p class="nd-eyebrow" id="internetBundleTitle"><span class="nd-narrow-only">${h(active && plan ? `${L("portalActive")} · ${plan.name}` : plan ? plan.name : L("portalNoActiveBundle"))}</span><span class="nd-wide-only">${h(L(active ? "activeBundle" : "portalNoActiveBundle"))}</span></p>${plan ? `<p class="portal-bundle__plan nd-wide-only">${h(plan.name)}</p>` : ""}</div>${active ? `<span class="portal-bundle__ends">${h(unlimited ? L("homeUnlEnds", { when: unlimitedDay(ends) }) : L("portalEndsOn", { date: day(active.expiresAt) }))}</span>` : ""}</div>
+    ${unlimited ? `<p class="portal-bundle__amount portal-bundle__amount--time"><span data-time-left>${h(unlimitedLeft(ends - Date.now()))}</span> <span class="portal-bundle__unit">${h(L("homeUnlLeft"))}${slots ? `<span class="nd-wide-only"> · ${h(L("homeUnlSlots", { used: slots.used, total: slots.total }))}</span>` : ""}</span></p><progress class="nd-meter-bar portal-bundle__time" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>`
     : active ? `<p class="portal-bundle__amount">${h(formatDataBalance(remaining))}${quota ? ` <span>${h(L("portalOfLeft", { total: formatDataBalance(quota) }))}</span>` : ""}</p>${quota ? `<progress class="nd-meter-bar" max="100" value="${percent}" aria-label="${h(L("portalDataLeftPercent", { percent }))}">${percent}%</progress>` : ""}` : `<p class="portal-bundle__empty">${h(L("portalChooseToConnect"))}</p>`}
     ${note ? `<p class="portal-bundle__note nd-wide-only">${note}<a href="/billing-terms.html">${h(L("portalPackageRules"))}</a></p>` : ""}
   </div>

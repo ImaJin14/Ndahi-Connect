@@ -161,7 +161,10 @@ function applyView(scroll = false) {
     (subTitle || document.getElementById(sub.focus))?.focus({ preventScroll: true });
     return;
   }
-  const section = SECTIONS[hash] && document.getElementById(SECTIONS[hash]);
+  let section = SECTIONS[hash] && document.getElementById(SECTIONS[hash]);
+  // Desktop Internet lays the voucher panels into its grid (display: contents, #356),
+  // so scroll to the first panel that has a box.
+  if (section && getComputedStyle(section).display === "contents") section = [...section.children].find((child) => child.getClientRects().length) || null;
   if (section && scroll) { section.scrollIntoView({ block: "start" }); return; }
   if (scroll) {
     window.scrollTo(0, 0);
