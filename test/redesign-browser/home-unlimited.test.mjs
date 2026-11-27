@@ -92,7 +92,7 @@ test("Home shows a running Unlimited bundle as drawn, Connected only while the n
   assert.equal(await text(page.locator(".home-unl__plan")), "Personal Unlimited");
   assert.match(await text(page.locator(".home-unl__ends")), /^Ends [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d{2}:\d{2}$/);
   const tiles = await page.locator(".home-unl__tile").evaluateAll((els) => els.map((el) => el.innerText.replace(/\s+/g, " ").trim()));
-  assert.deepEqual(tiles.slice(0, 2), ["2 of 2 Device slots used", "1.80 GB Used this week"]);
+  assert.deepEqual(tiles.slice(0, 2), ["2 of 2 Device slots used", "1.8 GB Used this week"]);
   assert.match(tiles[2], /^\d{1,2} [A-Z][a-z]{2} Validity ends$/);
   assert.equal(await page.locator(".home-unl__legend").isVisible(), false, "the phone legend gives way to the tiles");
   assert.equal(await page.locator(".network-state-banner").isVisible(), false, "the top bar says Network online");
