@@ -327,7 +327,7 @@ async function load() {
     ${internetBundle({ result, active, current, canPurchase })}
     ${active?.accessMode === "home" ? "" : `<details class="portal-catalogue full" data-portal-view="bundles" data-internet-group="bundles" id="bundlesCatalogue"><summary>${h(t("portalBundlesAndPrices", currentLanguage()))}</summary>${bundleCatalogue(result)}</details>`}
     <div class="account-layout full" data-portal-view="account">
-      ${accountHub(result.customer, security, { homeLinked: active?.accessMode === "home" })}
+      ${accountHub(result.customer, security, { homeRegistered: result.homeRouter?.registered === true })}
       ${profileCard(result.customer)}
       <section class="surface full" data-portal-view="account" id="notificationSettings"><p class="eyebrow">Preferences</p><h2>Notification settings</h2><p>Manage data warnings, bundle expiry updates and delivery preferences across your devices.</p><button type="button" id="manageNotificationSettings">Manage notification settings</button></section>
       ${accountSecurityCard(result.customer, security, securitySetup)}
@@ -633,16 +633,19 @@ function mountLanguagePreference() {
 mountLanguagePreference();
 window.addEventListener("ndahi:language", async (event) => {
   const selected = event.detail === "fr" ? "fr" : "en";
-  const restoreFocus = document.activeElement?.matches('[data-account-language]');
+  // The focused language control (the desktop picker, or the phone's English | Français
+  // button, #357) keeps focus through the translated refresh.
+  const focused = document.activeElement, restoreFocus = focused?.matches('[data-account-language]') ? '[data-account-language]'
+    : focused?.matches('[data-account-lang]') ? `[data-account-lang="${focused.dataset.accountLang}"]` : null;
   applyLanguage(selected);
   try {
     await load();
-    if (restoreFocus && activePortalView() === "account") document.querySelector('[data-account-language]')?.focus();
+    if (restoreFocus && activePortalView() === "account") document.querySelector(restoreFocus)?.focus();
   } catch (error) {
     // Keep the existing view and picker usable when a translated data refresh fails.
     const message = $("#dashboardMessage");
     message.textContent = t("homeLanguageRefreshFailed", selected);
-    if (restoreFocus) document.querySelector('[data-account-language]')?.focus();
+    if (restoreFocus) document.querySelector(restoreFocus)?.focus();
   }
 });
 
