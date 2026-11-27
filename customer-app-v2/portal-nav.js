@@ -15,6 +15,8 @@ const aliases = {
   internet: "bundles", activity: "payments", devices: "home", redeem: "vouchers", managePlan: "bundles", billing: "payments",
   accountSecurity: "account", notificationSettings: "account", editProfile: "account", sessionActivity: "account", pin: "account", passkeys: "account",
   product: "shop", checkout: "shop", order: "shop", sessionActivity: "account", sessions: "account",
+  // Kits, their installation booking and payment plans (#373, #374, #375).
+  kit: "shop", booking: "shop", plan: "shop",
 };
 // Pages within a tab (canvas: PhoneDevices, PhoneEditProfile): the address
 // shows one section on its own with a back arrow to its tab. Each names the
@@ -34,6 +36,10 @@ const SUBPAGES = {
   product: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
   checkout: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
   order: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#activity" },
+  // Kits (canvas: PhoneStarterKit, PhoneInstallBooking, PhoneInstalments) draw their own bar too.
+  kit: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#shop" },
+  booking: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#activity" },
+  plan: { section: "shopPanel", focus: "shopTitle", back: "/dashboard#activity" },
   // Voucher code entry (canvas: PhoneVoucher), reached from Home and Internet.
   redeem: { section: "activateDevice", open: "differentCode", title: "portalVoucherTitle", back: "/dashboard#vouchers", backLabel: "portalBackInternet" },
 };

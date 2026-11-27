@@ -2278,6 +2278,17 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - **Payment plans:** plans running, still to be paid, late payments and % completed; each running plan, paid plan still to collect and cancellation of the last 30 days (paid %, next due, On track / N days late / Paid · to collect / Cancelled · refunded); Send reminder, "Give 7 (or 14) more days" once, and Cancel and refund (owner); the plan rules save as they change (owner);
     - English and French.
   - **Not yet:** used by staff on a real installation day.
+
+### The Home kit in the portal's Shop (#373, #374, #375, batch 19, 27 November 2026)
+
+- [-] **CUS-373/374/375 — Starter kit, installation booking and Pay in 3 on phones (batch 19)** ([#373](https://github.com/ImaJin14/Ndahi-Connect/issues/373), [#374](https://github.com/ImaJin14/Ndahi-Connect/issues/374), [#375](https://github.com/ImaJin14/Ndahi-Connect/issues/375)). Owner decisions: [kits first in Shop; no description line; paying on Checkout](https://github.com/ImaJin14/Ndahi-Connect/issues/373#issuecomment-7225360883); [Move or cancel reuses "When"](https://github.com/ImaJin14/Ndahi-Connect/issues/374#issuecomment-7225361279); [later payments on the deposit's number; Activity opens the plan](https://github.com/ImaJin14/Ndahi-Connect/issues/375#issuecomment-7225361718).
+  - **Implemented and tested** (PR #555):
+    - kits on sale head the Shop list (photo, name, kit price, stock) and open the kit page: "Starter kit · plug in and go", the kit's name, what's in it (the router, linked to the account when it's set up; the first month of its bundle; the warranty), Setup (plug in myself, included, or Install it at my place, + the installation price) and How to pay (in full, or Pay in 3 with the plan's deposit and period); today's total and the saving vs buying separately; the next step;
+    - booking: 8 days Monday to Saturday with Full and Busy, morning or afternoon with the places left, then the area with its travel fee, directions and the phone the technician calls (masked), and the summary; "Installation booked" with its reference after paying; Move or cancel (up to 24 h before) picks a new day and slot, or cancels and refunds the installation and travel;
+    - Pay in 3: the schedule from the server (today's deposit, then two dates), the fee note, what happens if a payment is late; "Your payment plan" with what's paid, each payment and when it's due, "Pay next … now" or "Pay the last …", and "Pay everything left now", charged to the deposit's number; "Fully paid — it's yours" with the collection code;
+    - paying goes through the existing Checkout with the kit's parts (kit or deposit, installation, travel), the fee and the total; Activity's row opens the plan while it runs; the reminders open it too;
+    - English and French.
+  - **Not yet:** a real kit bought, installed and paid in 3 with Mobile Money.
 ### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
 
 - [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).

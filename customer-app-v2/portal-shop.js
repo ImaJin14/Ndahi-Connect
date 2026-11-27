@@ -8,12 +8,13 @@ import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { runButton } from "/shared/pending.js";
 import * as promo from "./promo.js";
+import { setupKits, renderKits } from "./portal-kits.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
 // Places are written by staff and may end in a full stop; sentences add their own.
-const place = (value) => text(value).replace(/[\s.]+$/, "");
-const text = (value) => (value && typeof value === "object" ? value[currentLanguage()] || value.en || "" : value || "");
-const money = (value) => (value == null ? L("homePriceTbc") : `${Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM")} FCFA`);
+export const place = (value) => text(value).replace(/[\s.]+$/, "");
+export const text = (value) => (value && typeof value === "object" ? value[currentLanguage()] || value.en || "" : value || "");
+export const money = (value) => (value == null ? L("homePriceTbc") : `${Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM")} FCFA`);
 const icon = (d, size = 22) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="${d}"></path></svg>`;
 const BACK = icon("M15 18 9 12l6-6"), SHOP = "M3 9h18l-2-6H5Zm2 0v12h14V9M9 21v-7h6v7", CHECK = "m5 12 5 5 9-10";
 // The desktop trust strip's icons (canvas: Shop, #417): phone, pin, person.
@@ -24,7 +25,7 @@ const photoSrc = (image) => {
   const src = image && typeof image.src === "string" ? image.src : "";
   return src.startsWith("/api/store/photos/") ? api.replace(/\/$/, "") + src : /^data:image\/(png|jpeg|webp);base64,/.test(src) ? src : "";
 };
-const photo = (product, cls) => {
+export const photo = (product, cls) => {
   const image = product.images && product.images[0], src = photoSrc(image);
   return `<span class="${cls}">${src ? `<img src="${h(src)}" alt="${h(text(image.alt))}" loading="lazy">` : icon(SHOP, 28)}</span>`;
 };
@@ -74,6 +75,10 @@ const chipLabel = (c) => {
   return short && short !== full ? `<span class="nd-narrow-only">${h(short)}</span><span class="nd-wide-only">${h(full)}</span>` : h(full);
 };
 
+// Kits on sale head the Shop list, in the products' row style: photo, name,
+// kit price and stock (owner, 27 Nov, #373).
+const kitRows = (data) => (data.kits || []).map((k) => `<a class="portal-shop__item portal-shop__item--kit" href="/dashboard#kit/${encodeURIComponent(k.id)}">${photo({ images: k.items[0]?.image ? [k.items[0].image] : [] }, "portal-shop__thumb")}<span class="portal-shop__item-body"><span class="nd-meta">${h(L("kitShopLabel"))}</span><strong>${h(text(k.name))}</strong><span class="portal-shop__price">${h(money(k.price))}</span><span class="nd-meta portal-shop__stock${k.available > 0 ? k.available <= LOW_STOCK ? " portal-shop__stock--low" : "" : " portal-shop__out"}">${h(listStock(k))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`).join("");
+
 function list(data) {
   const cats = (data.categories || []).filter((c) => (data.products || []).some((p) => p.categoryId === c.id));
   const products = (data.products || []).filter((p) => category === "all" || p.categoryId === category);
@@ -83,7 +88,7 @@ function list(data) {
   <ul class="portal-shop__trust nd-wide-only"><li>${icon(TRUST.pay, 18)}${h(L("shopTrustPay"))}</li>${place$ ? `<li>${icon(TRUST.place, 18)}${h(L("shopTrustCollect", { place: place$ }))}</li>` : ""}<li>${icon(TRUST.signed, 18)}${h(L("shopTrustSigned"))}</li></ul>
   ${cats.length ? `<div class="nd-chips portal-shop__chips" role="group" aria-label="${h(L("shopCategory"))}">${[["all", `<span class="nd-narrow-only">${h(L("shopAll"))}</span><span class="nd-wide-only">${h(L("shopAllDevices"))}</span>`], ...cats.map((c) => [c.id, chipLabel(c)])].map(([id, label]) => `<button type="button" class="nd-chip" data-shop-category="${h(id)}" aria-pressed="${category === id}">${label}</button>`).join("")}</div>` : ""}
   ${closed ? `<p class="portal-shop__note" role="status">${h(L("shopClosed"))}</p>` : ""}
-  <div class="portal-shop__list">${products.length ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta portal-shop__stock${p.available > 0 ? p.available <= LOW_STOCK ? " portal-shop__stock--low" : "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : listStock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
+  <div class="portal-shop__list">${category === "all" ? kitRows(data) : ""}${products.length || (category === "all" && (data.kits || []).length) ? products.map((p) => { const x = promo.listExtras(p); return `<a class="portal-shop__item${x ? " portal-shop__item--promo" : ""}" href="/dashboard#product/${encodeURIComponent(p.id)}">${photo(p, "portal-shop__thumb")}<span class="portal-shop__item-body">${x ? x.badge : `<span class="nd-meta">${h(category$(data, p))}</span>`}<strong>${h(text(p.name))}</strong><span class="portal-shop__price">${h(money(p.price))}</span>${x ? x.chip : ""}<span class="nd-meta portal-shop__stock${p.available > 0 ? p.available <= LOW_STOCK ? " portal-shop__stock--low" : "" : " portal-shop__out"}${x && p.available > 0 ? " portal-promo__left" : ""}">${h(x && p.available > 0 ? x.stock : listStock(p))}</span><span class="portal-shop__desc-short nd-wide-only">${h(text(p.description))}</span><span class="portal-shop__view nd-wide-only" aria-hidden="true">${h(L("shopView"))}</span></span><span class="portal-shop__chevron" aria-hidden="true">›</span></a>`; }).join("") : `<p class="nd-meta">${h(L("shopEmpty"))}</p>`}</div>
   ${place$ ? `<p class="portal-shop__note portal-shop__pickup nd-narrow-only">${h(L("shopPickupNote", { place: place$ }))}</p>` : ""}
   <div class="portal-shop__friends nd-wide-only"><p><strong>${h(L("shopFriendsTitle"))}</strong> ${h(L("shopFriendsBody"))}</p><a class="nd-btn nd-btn--sm" href="https://store.ndahiconnect.net" target="_blank" rel="noopener">${h(L("shopFriendsLink"))}</a></div>`;
 }
@@ -120,12 +125,12 @@ function productView(data, p) {
 // for this quantity (paymentQuotes[network][quantity - 1]); without one the fee
 // is shown in the operator prompt. Paying opens the drawn "Waiting for
 // payment" and "Order placed" screens at #checkout/<id>/<quantity>/<order>.
-const METHOD_NAMES = { mtn: "MTN MoMo", orange: "Orange Money" };
+export const METHOD_NAMES = { mtn: "MTN MoMo", orange: "Orange Money" };
 const shopQuote = (p, network, quantity) => { const q = p.paymentQuotes && p.paymentQuotes[network] && p.paymentQuotes[network][quantity - 1]; return q && Number.isFinite(q.total) ? q : null; };
 // "Amina N." and "+237 6•• •• 12 45", as drawn: the details are the account's.
-const shortName = (name) => { const words = String(name || "").trim().split(/\s+/).filter(Boolean); return words.length > 1 ? `${words[0]} ${words.at(-1)[0]}.` : words[0] || ""; };
+export const shortName = (name) => { const words = String(name || "").trim().split(/\s+/).filter(Boolean); return words.length > 1 ? `${words[0]} ${words.at(-1)[0]}.` : words[0] || ""; };
 const nine = (phone) => String(phone || "").replace(/\D/g, "").replace(/^237(?=\d{9}$)/, "");
-const maskedPhone = (phone, country = true) => { const d = nine(phone); return d.length === 9 ? `${country ? "+237 " : ""}${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : phone || ""; };
+export const maskedPhone = (phone, country = true) => { const d = nine(phone); return d.length === 9 ? `${country ? "+237 " : ""}${d[0]}•• •• ${d.slice(5, 7)} ${d.slice(7)}` : phone || ""; };
 // The price without the currency, as the item line draws it.
 const amount = (value) => (value == null ? L("homePriceTbc") : Number(value).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM"));
 function costView(p, quantity, network) {
@@ -165,14 +170,14 @@ function checkoutView(data, p, quantity, who) {
 // a back arrow, the state, and its two actions at the bottom.
 const STATE_ICONS = { wait: "M5 2h14v20H5ZM10 18h4M12 7v4l2 2", done: CHECK };
 const stateBar = (title) => `<div class="portal-shop__bar portal-shop__bar--state"><h2 class="portal-shop__bar-title" id="shopTitle" tabindex="-1">${h(title)}</h2></div>`;
-function waitView(o) {
+export function waitView(o) {
   const method = METHOD_NAMES[o.network] || "Mobile Money", fee = Number.isFinite(o.total) && Number.isFinite(o.fee);
   const body = h(L(fee ? "shopWaitBody" : "shopWaitBodyNoFee", { method, amount: "\u0000", fee: fee ? money(o.fee) : "" })).replace("\u0000", `<strong>${h(money(fee ? o.total : o.amount))}</strong>`);
   return `${stateBar(L("shopWaitingTitle"))}
   <div class="portal-shop__state portal-shop__state--wait"><span class="portal-shop__state-icon" aria-hidden="true">${icon(STATE_ICONS.wait, 38)}</span><h1 class="portal-shop__state-title">${h(L("shopApproveTitle"))}</h1><p>${body}</p></div>
   <div class="portal-shop__foot portal-shop__foot--actions"><button type="button" class="nd-btn nd-btn--block" data-shop-check>${h(L("shopCheckStatus"))}</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-change>${h(L("shopChangePayment"))}</button><div id="shopCheckoutMessage" role="status" aria-live="polite"></div></div>`;
 }
-function doneView(o) {
+export function doneView(o) {
   const body = h(L("shopPlacedBody", { reference: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`);
   const saved = h(L("shopPlacedSaved", { activity: "\u0000" })).replace("\u0000", `<strong>${h(L("uiTabActivity"))}</strong>`);
   return `${stateBar(L("shopConfirmedTitle"))}
@@ -181,13 +186,13 @@ function doneView(o) {
 }
 // Which screen a placed order shows: paid, waiting, or (cancelled, failed,
 // expired or in review) its order page.
-const placedState = (o) => (o.paymentStatus === "paid" && o.status !== "review" ? "done" : o.status === "awaiting_payment" && !["failed", "expired"].includes(o.paymentStatus) ? "wait" : "order");
+export const placedState = (o) => (o.paymentStatus === "paid" && o.status !== "review" ? "done" : o.status === "awaiting_payment" && !["failed", "expired"].includes(o.paymentStatus) ? "wait" : "order");
 
 // Order tracking (canvas: PhoneOrder, #406): the item with how it was paid,
 // the collection code, the steps with when each happened and how long a ready
 // order is held, then Receipt and Get help. New orders' codes are six digits,
 // shown "739 204"; older ten-character codes show as they are.
-const codeShown = (code) => (/^\d{6}$/.test(code) ? `${code.slice(0, 3)} ${code.slice(3)}` : code);
+export const codeShown = (code) => (/^\d{6}$/.test(code) ? `${code.slice(0, 3)} ${code.slice(3)}` : code);
 const stepTime = (value) => { const t = Date.parse(value); return Number.isFinite(t) ? new Date(t).toLocaleString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Douala" }) : ""; };
 const stepDay = (value) => new Date(value).toLocaleDateString(currentLanguage() === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short", timeZone: "Africa/Douala" });
 const ORDER_TONES = { ready: "info", preparing: "warning", awaiting_payment: "warning", review: "danger" };
@@ -217,6 +222,8 @@ function orderView(o) {
 async function render() {
   if (!panel) return;
   const [route, id, extra, ...rest] = location.hash.slice(1).split("/").map((part) => decodeURIComponent(part || ""));
+  // Kits, their booking and payment plans (#373, #374, #375).
+  if (["kit", "booking", "plan"].includes(route)) return renderKits(route, [id, extra, ...rest]);
   if (!["shop", "product", "checkout", "order"].includes(route)) return;
   try {
     // A placed order on its checkout screens (#397).
@@ -363,6 +370,7 @@ export async function showHomePromo(host) {
 export function mountShop(options) {
   call = options.call; api = options.api; panel = document.getElementById("shopPanel");
   if (!panel) return;
+  setupKits({ call, api, panel, load, post, context, resetContext: () => { account = null; } });
   if (!mountShop.listening) { mountShop.listening = true; window.addEventListener("hashchange", () => { render(); }); }
   render();
 }
