@@ -230,11 +230,9 @@ export function setHomeTitle(text) {
 export function mountPortalNavigation(pending = 0, name) {
   mountThemeToggle();
   const lang = currentLanguage();
+  // "Welcome back." as drawn, without the first name (#352, owner 27 Nov).
   if (name !== undefined) {
-    const clean = String(name || "").trim();
-    const first = clean.split(/\s+/)[0];
-    document.getElementById("portalTitle").dataset.welcome = clean && !/^(customer|new customer|user|test customer)$/i.test(clean)
-      ? format("portalWelcomeName", { name: first }, lang) : t("portalWelcome", lang);
+    document.getElementById("portalTitle").dataset.welcome = t("portalHomeWelcome", lang);
   }
   const nav = document.getElementById("portalNav");
   const badges = pending ? { activity: { count: pending, label: format(pending === 1 ? "portalPendingOne" : "portalPendingOther", { count: pending }, lang) } } : {};

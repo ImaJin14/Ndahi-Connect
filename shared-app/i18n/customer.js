@@ -349,6 +349,13 @@ export const en = {
   orangeMoney: "Orange Money",
 
   // Redesigned portal shell (customer-app-v2).
+  // Home's running Unlimited card (#352, canvas PhoneHome; PhoneHomeFR #353).
+  homeUnlLeft: "left · unlimited data",
+  homeUnlOneDay: "1 day",
+  homeUnlDays: "{count} days",
+  homeUnlEnds: "Ends {when}",
+  homeUnlSlots: "{used} of {total} device slots",
+  homeUnlConnected: "Connected",
   portalHomeWelcome: "Welcome back.",
   homeDataGb: "{amount} GB",
   homeDataMb: "{amount} MB",
@@ -1702,6 +1709,12 @@ export const fr = {
   orangeMoney: "Orange Money",
 
   // Portail repensé (customer-app-v2).
+  homeUnlLeft: "restants · données illimitées",
+  homeUnlOneDay: "1 j",
+  homeUnlDays: "{count} j",
+  homeUnlEnds: "Se termine {when}",
+  homeUnlSlots: "{used} appareils sur {total}",
+  homeUnlConnected: "Connecté",
   portalHomeWelcome: "Bon retour parmi nous.",
   homeDataGb: "{amount} Go",
   homeDataMb: "{amount} Mo",

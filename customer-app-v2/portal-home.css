@@ -57,8 +57,8 @@
   /* Phones show one product. */
   .home-shop__item + .home-shop__item { display: none; }
   /* Home hero: the forest band continues from the slim header bar. */
-  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head { margin: 0 calc(-1 * var(--nd-space-16)); padding: var(--nd-space-6) var(--nd-space-18) var(--nd-space-18); background: var(--nd-forest); color: var(--nd-on-forest); }
-  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__title { color: var(--nd-on-forest); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head { margin: 0 calc(-1 * var(--nd-space-16)); padding: var(--nd-space-18) var(--nd-space-18) var(--nd-space-18); background: var(--nd-forest); color: var(--nd-on-forest); }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__title { color: var(--nd-on-forest); font-size: 28px; line-height: normal; }
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .nd-eyebrow { color: var(--nd-lime); }
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__notices > p { color: var(--nd-on-forest-soft); }
   /* The design shows a one-line network status in the hero; the banner keeps its
@@ -212,3 +212,26 @@ body[data-renew-moment] #bundlePurchaseActions { display: none; }
 @media (min-width: 768px) {
   .home-view > .home-outage { grid-column: 1; }
 }
+/* ---------- A running Unlimited bundle (#352, canvas: PhoneHome; PhoneHomeFR #353) ---------- */
+.home-unl { display: block; margin-bottom: 2px; }
+.home-unl .home-card__message:empty { display: none; }
+.home-unl .home-card__message { margin: 10px 0 0; }
+.home-unl__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-unl__kicker { margin: 0; color: #4d6b00; font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+.home-unl__pill { margin: 0; padding: 4px 10px; border-radius: 999px; background: #eaf6d5; color: #345000; font-size: 12px; font-weight: 700; line-height: normal; }
+.home-unl__figure { margin: 10px 0 0; color: var(--nd-ink); font: 700 34px/normal var(--nd-font-body); letter-spacing: -.02em; }
+.home-unl__unit { color: #5c6963; font-size: 14px; font-weight: 500; }
+.home-unl__meter { display: block; width: 100%; height: 8px; margin: 12px 0; border: 0; border-radius: 999px; background: #e7ece5; overflow: hidden; appearance: none; -webkit-appearance: none; }
+.home-unl__meter::-webkit-progress-bar { border-radius: 999px; background: #e7ece5; }
+.home-unl__meter::-webkit-progress-value { border-radius: 999px; background: #6f9500; }
+.home-unl__meter::-moz-progress-bar { border-radius: 999px; background: #6f9500; }
+.home-unl__legend { display: flex; justify-content: space-between; gap: 12px; color: #5c6963; font-size: 13px; line-height: normal; }
+/* Fully online, Home's header reads just "Network online" on phones (#352); from
+   768px the top bar already says it, so the banner hides (Main, #354). */
+body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-state-banner-active { margin-top: -2px; padding: 0; border: 0; background: none; font-size: 13px; line-height: 17px; }
+body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { color: #dce8e2; font-size: 13px; font-weight: 400; line-height: normal; }
+@media (min-width: 768px) { body[data-current-tab="home"] .network-state-banner-active { display: none !important; } }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head__notices { margin-top: 0; } }
+body[data-current-tab="home"] .network-state-banner-active .network-banner-text, body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { font-size: 13px; line-height: 17px; }
+body[data-current-tab="home"] .network-state-banner-active .network-banner-indicator { width: 8px; height: 8px; margin-top: 4.5px; background: #b9ee2e; }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head { padding-bottom: 16px; } }

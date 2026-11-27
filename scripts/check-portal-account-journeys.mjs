@@ -183,7 +183,9 @@ try {
   }
   await scenario('personal welcome, name editing and safe fallback work without changing receipts', async (page) => {
     await page.goto(`${portal}/dashboard#home`);
-    await page.getByRole('heading', { name: 'Welcome back, Portal', exact: true }).waitFor();
+    // v2 Home says "Welcome back." as drawn, without the name (#352, owner 27 Nov).
+    const welcome = (name) => uiV2 ? 'Welcome back.' : 'Welcome back, ' + name;
+    await page.getByRole('heading', { name: welcome('Portal'), exact: true }).waitFor();
     const before = (await store.snapshot()).payments;
     await openPortalView(page, 'account');
     await openEditProfile(page);
@@ -192,10 +194,10 @@ try {
     if (uiV2) await page.locator('#profileEditMessage', { hasText: 'Saved.' }).waitFor();
     else await page.getByText('Your profile was updated.', { exact: true }).waitFor();
     await openPortalView(page, 'home');
-    await page.getByRole('heading', { name: 'Welcome back, Marie', exact: true }).waitFor();
+    await page.getByRole('heading', { name: welcome('Marie'), exact: true }).waitFor();
     assert.deepEqual((await store.snapshot()).payments, before);
     await store.transaction((s) => { s.customers[0].name = '<img src=x onerror=alert(1)>'; });
-    await page.reload(); await page.getByRole('heading', { name: 'Welcome back, <img', exact: true }).waitFor();
+    await page.reload(); await page.getByRole('heading', { name: welcome('<img'), exact: true }).waitFor();
     assert.equal(await page.locator('#portalTitle img').count(), 0);
   });
   await scenario('public FAQs work without login and open the requested answer with configured support', async (page, context) => {

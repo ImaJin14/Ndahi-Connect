@@ -27,6 +27,8 @@ export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
     }catch(e){if(context.current()){failures++;draw();onSnapshot(null);}}
   }});
   const wake=()=>{clearTimeout(countdown);if(!host.isConnected)return stop();poll.wake();if(relevant()){draw();tick();}};
+  // The Unlimited card's Connected pill follows the network check (#352).
+  window.addEventListener('ndahi:device-connected',()=>{if(relevant())draw();});
   const pageHide=()=>{inPage=false;poll.pause();clearTimeout(countdown);};
   const pageShow=()=>{inPage=true;wake();};
   const stop=()=>{stopped=true;poll.stop();clearTimeout(countdown);document.removeEventListener('visibilitychange',wake);window.removeEventListener('pagehide',pageHide);window.removeEventListener('pageshow',pageShow);for(const event of ['online','offline','hashchange'])window.removeEventListener(event,wake);};
