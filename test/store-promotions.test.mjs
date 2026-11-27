@@ -98,14 +98,19 @@ test("one per phone number: the paying number, the contact number and the accoun
 
 test("the admin form refuses incomplete, unknown or overlapping offers", () => {
   const now = new Date("2026-11-20T12:00:00Z"), plans = [{ id: "unlimited", name: "Unlimited Home" }];
-  const s = { storeProducts: [{ id: "router-1" }, { id: "router-2" }], storeOrders: [], storeSettings: { promotions: [] } };
-  const input = { ...offer(), id: undefined };
+  const bundle = { id: "unlimited-30d-1", name: "Personal Unlimited", accessType: "personal_unlimited", deviceSlots: 1, validityHours: 720, price: 6000, status: "published" };
+  const s = { storeProducts: [{ id: "router-1" }, { id: "router-2" }], storeOrders: [], storeSettings: { promotions: [] }, bundles: [bundle] };
+  // New promotions give an Unlimited catalogue bundle (#345): its length is the bundle's.
+  const input = { ...offer(), id: undefined, bonus: { bundleId: bundle.id, givenAt: "collection", startWithinDays: 60 } };
   const saved = promotionInput(s, input, null, now, plans);
   assert.match(saved.id, /^promo-/);
   assert.equal(saved.version, 1);
+  assert.deepEqual(saved.bonus, { bundleId: bundle.id, validityHours: 720, startsAt: "customer_start", givenAt: "collection", startWithinDays: 60 });
+  assert.equal(promotionInput(s, { ...input, bonus: { ...input.bonus, givenAt: "payment" } }, null, now, plans).bonus.givenAt, "payment", "or as soon as payment is confirmed");
   for (const [change, message] of [[{ productIds: ["missing"] }, /existing products/], [{ salePrice: 0 }, /sale price/],
     [{ endsAt: "2026-11-26T00:00:00Z" }, /end after the start/], [{ name: { en: "x", fr: "" } }, /name/],
-    [{ bonus: { planId: "nope", validityHours: 1080, startsAt: "payment_confirmation" } }, /catalogue/]])
+    [{ bonus: { bundleId: "nope", givenAt: "collection" } }, /Unlimited catalogue/], [{ bonus: { bundleId: bundle.id, givenAt: "whenever" } }, /free bundle/],
+    [{ bonus: { planId: "unlimited", validityHours: 720, startsAt: "customer_start" } }, /Unlimited catalogue/], [{ units: 0 }, /units/]])
     assert.throws(() => promotionInput(s, { ...input, ...change }, null, now, plans), message);
   s.storeSettings.promotions.push(saved);
   assert.throws(() => promotionInput(s, { ...input, productIds: ["router-2"] }, null, now, plans), /Another offer/);
@@ -114,4 +119,8 @@ test("the admin form refuses incomplete, unknown or overlapping offers", () => {
   s.storeOrders.push({ promotion: { id: saved.id }, status: "preparing", payment: { status: "paid" } });
   assert.throws(() => promotionInput(s, { ...input, salePrice: 90000 }, saved, now, plans), /End it and create a new one/);
   assert.equal(promotionInput(s, { ...input, terms: { en: "New terms", fr: "Nouvelles conditions" } }, saved, now, plans).terms.en, "New terms");
+  // A promotion saved earlier with a plan keeps it while it's unchanged.
+  const legacy = { ...offer(), bonus: { planId: "unlimited", validityHours: 720, startsAt: "customer_start", givenAt: "collection", startWithinDays: 60 } };
+  const t = { ...s, storeOrders: [], storeSettings: { promotions: [] } };
+  assert.equal(promotionInput(t, { ...legacy, terms: { en: "Edited", fr: "Modifié" } }, legacy, now, plans).bonus.planId, "unlimited");
 });

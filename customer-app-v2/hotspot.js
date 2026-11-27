@@ -13,8 +13,25 @@ import { fetchNetworkInfo } from "./network-status.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage, localize } from "/shared/ui/dom.js";
 import { finishFacts } from "./wifi-finish.js";
+import * as promo from "./promo.js";
 
 if (!resumeVoucherScanFromWifi(wifiHint())) {
+// A live store offer shows here too, as the Promotions preview says (#345;
+// owner, 27 Nov): the portal Home's countdown banner under the lede. The page
+// works the same without it.
+void (async () => {
+  try {
+    const data = await (await fetch(window.NDAHI_CONFIG.apiUrl + "/api/store/catalogue", { cache: "no-store" })).json();
+    promo.setServerTime(data.serverTime);
+    const offer = promo.announced(data);
+    if (!offer || offer.status !== "live") return;
+    const host = document.createElement("div");
+    host.className = "portal-hotspot__promo";
+    host.innerHTML = promo.banner(data, "hotspotPromoTitle");
+    document.getElementById("hotspotLede")?.after(host);
+    promo.tick(host, () => host.remove());
+  } catch { /* no offer to show */ }
+})();
 const config = window.NDAHI_CONFIG, form = document.getElementById("hotspotLogin"),
   button = document.getElementById("connect"), message = document.getElementById("message"),
   devices = document.getElementById("wifiDevices"), params = new URLSearchParams(location.search);

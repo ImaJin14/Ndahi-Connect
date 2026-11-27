@@ -105,3 +105,21 @@ main.login-shell > .surface[data-no-bundle] { display: flex; flex-direction: col
 main.login-shell > .surface[data-no-bundle] .portal-scan__none p { margin: 0; color: var(--nd-ink-soft); font-size: 15px; line-height: 1.55; text-align: center; }
 .surface[data-no-bundle] .portal-scan__none a.button { min-height: 50px; margin: 0; padding: 0 16px; border-radius: 10px; font-size: 16px; }
 .surface[data-no-bundle] .portal-scan__none a#qrBuyBundle { min-height: 52px; margin-top: auto; }
+
+/* A live store offer on the Wi-Fi sign-in page (#345; owner, 27 Nov): the
+   portal Home's banner, as in portal-pages.css. */
+.portal-hotspot__promo { margin: 14px 0 0; }
+.portal-hotspot__promo .portal-promo { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 18px; background: #10241c; color: #ffffff; }
+.portal-hotspot__promo .portal-promo__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.portal-hotspot__promo .portal-promo__badge { display: inline-block; padding: 3px 9px; border-radius: 6px; background: #b9ee2e; color: #15210c; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.portal-hotspot__promo .portal-promo__badge--small { align-self: flex-start; background: #10241c; color: #b9ee2e; font-size: 10px; }
+.portal-hotspot__promo .portal-promo__when { color: #b9ee2e; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.portal-hotspot__promo .portal-promo__title { margin: 0; font-family: var(--nd-font-display); font-size: 24px; font-weight: 600; line-height: 1.15; color: #ffffff; }
+.portal-hotspot__promo .portal-promo__products { margin: 0; color: #d6e2da; font-size: 14px; }
+.portal-hotspot__promo .portal-promo__count { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.portal-hotspot__promo .portal-promo__cell { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 12px; background: #23382f; }
+.portal-hotspot__promo .portal-promo__cell strong { color: #b9ee2e; font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.portal-hotspot__promo .portal-promo__cell span { color: #b8c7bd; font-size: 12px; }
+.portal-hotspot__promo .portal-promo__fine { margin: 0; color: #b8c7bd; font-size: 12px; }
+.portal-hotspot__promo .portal-promo .portal-promo__go { align-self: flex-start; background: #b9ee2e; color: #15210c; }
+.portal-hotspot__promo .portal-promo__go { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; font-weight: 700; text-decoration: none; }

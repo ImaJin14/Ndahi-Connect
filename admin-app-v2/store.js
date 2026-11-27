@@ -171,6 +171,8 @@ export function mountStore(root, { call, role, csrf, heads = {}, setHead = () =>
     keepNotice = false;
     view = nextView;
     productId = param;
+    // #store/<order>: that order opens beside the list (Promotions links here, #345).
+    if (nextView === "store" && param) selectedOrder = param;
     if (!state) return run(null, load);
     render();
   }
