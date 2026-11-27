@@ -2174,6 +2174,17 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - sizes, spacing, 56px rows and outlined buttons measured against the board at 1280px; English and French.
   - **Not yet:** merged or deployed.
 
+### Scan to connect, as drawn (#371, batch 16, 27 November 2026)
+
+- [-] **CUS-371 — Scan to connect, redesigned (batch 16)** ([#371](https://github.com/ImaJin14/Ndahi-Connect/issues/371)). Owner decisions: [names instead of pronouns](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7214191703), [the first name, time left and slots before the PIN, as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7215164293).
+  - **Implemented and tested** (PR #539, not merged yet):
+    - a scanned QR shows "Checking your code…", then "Hi Amina — confirm it's you" with the bundle's card (Active · plan, the time left or an earlier bundle's data left, "Ends 25 Nov · 1 of 2 device slots used"), Your PIN, Connect, or Use passkey, and "Scanning alone never connects a device.";
+    - after the PIN: "You're online — This device now uses Amina's Personal Unlimited bundle. It shows up in Amina's Devices list." and Done; full slots go to Replace a device (#350) with this device's details;
+    - not identified on NDAHI Wi-Fi: "Join NDAHI Wi-Fi first" with the three steps, Open Wi-Fi sign-in and Check again (no PIN until Wi-Fi identifies the device);
+    - "Someone else is signed in here" names both accounts ("Kofi T.", "Amina N.") with Sign out and continue as Amina or Stay as Kofi; no active bundle (#412) is unchanged;
+    - server: the scan's answer adds the first name, the bundle's end, data left (earlier bundles) and slots (Personal Unlimited); a different signed-in account is answered with both short names; English and French.
+  - **Not yet:** merged, deployed, or a slip scanned on a real phone on NDAHI Wi-Fi.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
