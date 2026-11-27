@@ -46,7 +46,15 @@ const WORDS = {
     orderPending: "{days} days of {plan}: given when your payment is confirmed.",
     orderEnded: "The free {days} days ended with the refund.", orderExpired: "The free {days} days have ended.",
     orderReview: "The free {days} days are being checked by NDAHI. You'll be contacted.",
-    gift: "Free bundle",
+    gift: "Free bundle", deliveryGuestPaidPlain: "It's reserved for the Mobile Money number that pays as soon as the payment is confirmed. Claim it with that number and the code on your order.",
+    limitCustomer: "Limit {n} per customer", regular: "Regular price {price}", yourOrder: "Your order",
+    deliveryGuestNumber: "It's reserved for the Mobile Money number that pays ({number}). When you collect the router you get a slip with a code — claim it with that number and the code.",
+    deliveryGuestPaid: "It's reserved for the Mobile Money number that pays ({number}) as soon as the payment is confirmed. Claim it with that number and the code on your order.",
+    whoGuest: "{name} · {number} · guest", placedBody: "Order {ref} is paid. We'll let you know when it's ready to collect.",
+    timeline: "Your router and {gift}", paid: "Paid", collectRouter: "Collect your router", collectHint: "Show your collection code at {place}",
+    getGift: "Get your {gift}", getGuest: "On a slip with your router · reserved for {number}", getGuestPaid: "Reserved for {number} when your payment is confirmed",
+    startGift: "Start it when you're ready", startHint: "Within {within} days · {days} days of {data} from then",
+    track: "Track my order", keepTogether: "Create an account to keep it together",
   },
   fr: {
     upcoming: "Commence dans", endsIn: "Se termine dans", days: "jours", hours: "heures", minutes: "minutes",
@@ -83,7 +91,15 @@ const WORDS = {
     orderPending: "{days} jours de {plan} : donnés quand votre paiement est confirmé.",
     orderEnded: "Les {days} jours offerts ont pris fin avec le remboursement.", orderExpired: "Les {days} jours offerts sont terminés.",
     orderReview: "Les {days} jours offerts sont en cours de vérification par NDAHI. Vous serez contacté.",
-    gift: "Forfait offert",
+    gift: "Forfait offert", deliveryGuestPaidPlain: "Il est réservé au numéro Mobile Money qui paie dès que le paiement est confirmé. Réclamez-le avec ce numéro et le code de votre commande.",
+    limitCustomer: "Limite : {n} par client", regular: "Prix normal {price}", yourOrder: "Votre commande",
+    deliveryGuestNumber: "Il est réservé au numéro Mobile Money qui paie ({number}). Au retrait du routeur, vous recevez un bon avec un code — réclamez-le avec ce numéro et le code.",
+    deliveryGuestPaid: "Il est réservé au numéro Mobile Money qui paie ({number}) dès que le paiement est confirmé. Réclamez-le avec ce numéro et le code de votre commande.",
+    whoGuest: "{name} · {number} · invité", placedBody: "La commande {ref} est payée. Nous vous préviendrons quand elle sera prête à retirer.",
+    timeline: "Votre routeur et votre {gift}", paid: "Payé", collectRouter: "Retirez votre routeur", collectHint: "Montrez votre code de retrait à {place}",
+    getGift: "Recevez votre {gift}", getGuest: "Sur un bon avec votre routeur · réservé pour {number}", getGuestPaid: "Réservé pour {number} dès que le paiement est confirmé",
+    startGift: "Démarrez-le quand vous voulez", startHint: "Dans les {within} jours · {days} jours d'internet {data} à partir de là",
+    track: "Suivre ma commande", keepTogether: "Créer un compte pour tout garder ensemble",
   },
 };
 
@@ -150,14 +166,44 @@ export function createPromo({ lang, money, l }) {
       return {
         badge: `<span class="promo-badge promo-badge--photo">${h(l(pr.name))}</span>`,
         strip: `<div class="promo-strip"><span>${h(w("endsStrip", { day: day(lastMinute(pr.endsAt)) }))}</span><strong data-countdown-inline="${h(pr.endsAt)}"></strong></div>`,
-        stock: w("left", { n: p.available }),
+        stock: w("left", { n: pr.unitsLeft == null ? p.available : Math.min(pr.unitsLeft, p.available) }),
+        // The regular price crossed out only after real sales at it (#345).
+        regular: Number.isFinite(pr.regularPrice) ? `<s class="promo-was" aria-label="${h(w("regular", { price: money(pr.regularPrice) }))}">${h(money(pr.regularPrice).replace(/\s*FCFA$/, ""))}</s>` : "",
         bonus: b ? `<div class="promo-gift"><span class="promo-gift__icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/></svg></span>
           <div><strong>${h(w("bonusCardTitle", { length: length(b.days), data: dataWord(b), free: freeWord(b.days) }))}</strong><span>${h(w("bonusCardHint", { facts: [b.planName,
             Number.isFinite(b.worth) ? w("worth", { price: money(b.worth) }) : "", speedText(b, { lang, devices: b.deviceLimit })].filter(Boolean).join(" · ") }))}</span></div></div>` : "",
         terms: `<details class="policy promo-terms"><summary>${h(w("terms"))}</summary><p>${h(l(pr.terms))}</p></details>`,
-        button: w("dealButton", { price: money(pr.salePrice) }), limit: w("limit", { n: pr.perNumberLimit }),
+        button: w("dealButton", { price: money(pr.salePrice) }), limit: w("limit", { n: pr.perNumberLimit }), limitCustomer: w("limitCustomer", { n: pr.perNumberLimit }),
       };
     },
+    // The deal's checkout for a guest (canvas: PhonePromoBuy, guest; owner 27
+    // Nov, #411): the order with its free bundle, fee and total, then how the
+    // free bundle arrives, for the number that pays.
+    buyLines(p, count, quote, labels) {
+      const pr = p.promotion, b = pr.bonus, price = quote ? quote.price : pr.salePrice * count;
+      return `<section class="buy-order" id="checkoutCost" aria-label="${h(w("yourOrder"))}">
+        <div class="buy-ln"><span><strong>${h(l(p.name))}</strong>${count > 1 ? ` × ${count}` : ""} <span class="promo-badge promo-badge--small">${h(l(pr.name))}</span></span><span>${h(money(price))}</span></div>
+        ${b ? `<div class="buy-ln buy-ln--free"><span>${h(w("lineBonus", { length: length(b.days), data: dataWord(b), plan: b.planName }))}</span><strong>${h(w("free"))}</strong></div>` : ""}
+        <div class="buy-ln buy-ln--fee"><span>${h(quote ? labels.fee : labels.feePlain)}</span><span>${h(quote ? money(quote.fee) : labels.inPrompt)}</span></div>
+        ${quote ? `<div class="buy-ln buy-ln--total"><strong>${h(labels.total)}</strong><strong>${h(money(quote.total))}</strong></div>` : ""}</section>`;
+    },
+    buyHow(p, number, signedIn = false) {
+      const b = p.promotion.bonus;
+      if (!b) return "";
+      return `<section class="buy-how" aria-label="${h(giftWord(b.days, true))}"><strong>${h(w("howTitle", { gift: giftWord(b.days) }))}</strong><span id="buyHowText">${h(signedIn ? w("deliveryAccount") : this.howText(p, number))}</span></section>`;
+    },
+    // Before a number is typed, the words without it.
+    howText(p, number) { const b = p.promotion?.bonus; return !b ? "" : number ? w(b.givenAt === "payment" ? "deliveryGuestPaid" : "deliveryGuestNumber", { number }) : w(b.givenAt === "payment" ? "deliveryGuestPaidPlain" : "deliveryGuest"); },
+    // Order placed for a guest's deal: the router and its free bundle.
+    buyDone(o, place, number) {
+      const b = o.bonus, paid = Number.isFinite(o.total) ? o.total : o.amount;
+      const steps = [[w("paid"), money(paid), true], [w("collectRouter"), w("collectHint", { place }), false],
+        ...(b ? [[w("getGift", { gift: giftWord(b.days) }), w(b.givenAt === "payment" ? "getGuestPaid" : "getGuest", { number }), false],
+          [w("startGift"), w("startHint", { within: b.startWithinDays || 60, days: b.days, data: w("unlimitedWord") }), false]] : [])];
+      return `<section class="buy-timeline" aria-labelledby="buyTimelineTitle"><h2 id="buyTimelineTitle">${h(w("timeline", { gift: b ? giftWord(b.days) : giftWord(30) }))}</h2>
+        <ol class="buy-tl">${steps.map(([title, line, done], i) => `<li><span class="buy-dot${done ? " is-done" : ""}" aria-hidden="true"></span><strong>${h(title)}</strong>${i === 0 ? ` · ${h(line)}` : `<br><span>${h(line)}</span>`}</li>`).join("")}</ol></section>`;
+    },
+    words: (key, values) => w(key, values),
     // Checkout lines under the price (canvas: PhonePromoBuy, checkout).
     checkout(p, signedIn) {
       const b = p.promotion?.bonus;

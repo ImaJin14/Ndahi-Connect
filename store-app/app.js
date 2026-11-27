@@ -86,6 +86,7 @@ const words = {
     buyNote: "Pay with MTN MoMo or Orange Money. Collect at {place} with your order code. No account needed.",
     checkoutHow: "How would you like to check out?",
     collectAt: "Collect at {place}",
+    fromAccount: "from your account", guestWord: "guest",
     payWith: "Pay with",
     keepLink: "Keep this private link",
     keepLinkText: "You bought as a guest. This link is the only way back to this order — copy or bookmark it.",
@@ -256,6 +257,7 @@ const words = {
     buyNote: "Payez avec MTN MoMo ou Orange Money. Retirez à {place} avec votre code de commande. Aucun compte requis.",
     checkoutHow: "Comment souhaitez-vous payer ?",
     collectAt: "Retrait à {place}",
+    fromAccount: "depuis votre compte", guestWord: "invité",
     payWith: "Payer avec",
     keepLink: "Gardez ce lien privé",
     keepLinkText: "Vous avez acheté en invité. Ce lien est le seul moyen de revenir à cette commande — copiez-le ou ajoutez-le aux favoris.",
@@ -572,15 +574,20 @@ function renderProduct(id) {
     // An offer limits how many one phone number may buy (#302).
     max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)),
     pp = promo.product(p);
+  // A deal on a phone (canvas: PhonePromoBuy, #411): the badge and time left on
+  // the photo, the regular price crossed out only after real sales at it, no
+  // "sold separately" tiles or details beyond its terms, no quantity unless the
+  // offer allows more than one, and the limit under Get the deal.
+  const one = pp && max === 1;
   $("#view").innerHTML =
-    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span><a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a></div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}</div>${pp.strip}` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery" role="group" aria-label="${h(t("gallery"))}">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-pressed="${i === 0}" aria-label="${h(t("photoOf").replace("{n}", i + 1).replace("{count}", p.images.length))}"><img src="${h(photoSrc(im))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}${factTiles(p)}<div class="buy-bar"><div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div><button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button></div>${pp ? `<p class="form-help promo-limit">${h(pp.limit)}</p>` : ""}<p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p, { desktop: true })}</div><details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details></div></div>`;
+    `<div class="bar narrow"><a class="bar-back" href="#shop" aria-label="${h(t("backShop"))}">${ICON.back}</a><span class="bar-title">${h(data.settings.name)}</span>${pp ? "" : `<a class="bar-link" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("account"))}</a>`}</div>${resumeNotice()}<nav class="crumbs wide" aria-label="${h(t("breadcrumb"))}"><a href="#shop">${h(t("shop"))}</a>${cat ? ` / ${h(cat)}` : ""} / <span aria-current="page">${h(l(p.name))}</span></nav><div class="detail-grid${pp ? " is-promo" : ""}"><div class="detail-media">${pp ? `<div class="promo-visual">${visual(p)}${pp.badge}${pp.strip}</div>` : visual(p)}${(p.images || []).length > 1 ? `<div class="gallery${pp ? " wide" : ""}" role="group" aria-label="${h(t("gallery"))}">${p.images.map((im, i) => `<button type="button" class="thumb${i ? "" : " is-current"}" data-image="${i}" aria-pressed="${i === 0}" aria-label="${h(t("photoOf").replace("{n}", i + 1).replace("{count}", p.images.length))}"><img src="${h(photoSrc(im))}" alt="" loading="lazy"></button>`).join("")}</div>` : ""}</div><div class="detail-info"><p class="eyebrow">${h(cat || p.sku)}</p><h1 id="productTitle">${h(l(p.name))}</h1><p class="price-row"><span class="price">${h(money(p.price))}${pp ? pp.regular : ""}</span><span class="stock${s.low || pp ? " is-low" : ""}">${h(pp && p.available ? pp.stock : s.text)}</span></p>${pp ? pp.bonus : ""}<p class="details">${h(l(p.description))}</p>${pp ? pp.terms : ""}${pp ? "" : factTiles(p)}<div class="buy-bar">${one ? "" : `<div class="stepper"><button type="button" data-step="-1" aria-label="${h(t("fewer"))}" ${blocked ? "disabled" : ""}>−</button><output id="qty" aria-live="polite" aria-label="${h(t("quantity"))}">1</output><button type="button" data-step="1" aria-label="${h(t("more"))}" ${blocked || max === 1 ? "disabled" : ""}>+</button></div>`}<button id="buy" ${blocked ? "disabled" : ""}>${h(p.available ? (pp ? pp.button : t("buy")) : t("unavailable"))}</button>${pp ? `<p class="promo-limit">${h(pp.limitCustomer)}</p>` : ""}</div><p class="buy-note wide">${h(t("buyNote").replace("{place}", place() || data.settings.name))}</p><div class="wide">${specRows(p, { desktop: true })}</div>${pp ? "" : `<details class="specs narrow"><summary>${h(t("specsAll"))}</summary>${specRows(p)}</details>`}</div></div>`;
   document.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => {
     qty = Math.min(max, Math.max(1, qty + Number(b.dataset.step)));
     $("#qty").textContent = qty;
     document.querySelector('[data-step="-1"]').disabled = qty <= 1;
     document.querySelector('[data-step="1"]').disabled = qty >= max;
   }));
-  if (!blocked) document.querySelector('[data-step="-1"]').disabled = true;
+  if (!blocked && document.querySelector('[data-step="-1"]')) document.querySelector('[data-step="-1"]').disabled = true;
   document.querySelectorAll("[data-image]").forEach((b) => (b.onclick = () => {
     const image = p.images[Number(b.dataset.image)];
     const main = document.querySelector(".detail-media .product-visual img");
@@ -611,7 +618,8 @@ function showCheckout() {
     checkoutKey = pending.input.checkoutKey;
   } else checkoutKey = crypto.randomUUID();
   checkoutCount = Number(pending?.input?.quantity) || qty || 1;
-  if (pending || account.authenticated) checkoutDetails(pending ? pending.input : account.customer || {});
+  // A deal goes straight to its checkout, as drawn (PhonePromoBuy, #411).
+  if (pending || account.authenticated || selected.promotion) checkoutDetails(pending ? pending.input : account.customer || {});
   else checkoutChoose();
   $("#checkoutDialog").showModal();
 }
@@ -622,19 +630,49 @@ function checkoutChoose() {
   $("#checkoutGuest").onclick = () => checkoutDetails({});
   $("#checkoutTitle").focus();
 }
+// A deal's checkout (canvas: PhonePromoBuy; owner 27 Nov, #411): the order,
+// how the free bundle arrives and where to collect, as drawn, then the name
+// and number, Pay with, the wallet note and Pay Now.
+const shortName = (name) => { const words = String(name || "").trim().split(/\s+/).filter(Boolean); return words.length > 1 ? `${words[0]} ${words.at(-1)[0]}.` : words[0] || ""; };
+const buyLabels = () => ({ fee: t("feeLabel"), feePlain: t("feeLabelPlain"), inPrompt: t("feeInPrompt"), total: t("totalToPay") });
+function buyNote(p, count, network) {
+  const q = quoteOf(p, network, count), method = METHODS[network];
+  return `<p class="checkout-cost__balance buy-note" id="buyNote" role="note">${q ? h(tf("walletNote", { total: "\u0000", method })).replace("\u0000", `<strong>${h(money(q.total))}</strong>`) : h(tf("walletNoteNoFee", { price: money(p.price * count), method }))}</p>`;
+}
+const buyWho = (name, phone, guest) => [shortName(name), maskedNumber(phone), t(guest ? "guestWord" : "fromAccount")].filter(Boolean).join(" · ");
+function promoCheckoutDetails(c, guest, pending) {
+  const network = c.network === "orange" ? "orange" : "mtn", count = checkoutCount, payer = c.payerPhone || c.phone || "";
+  $("#checkoutDetail").innerHTML =
+    `<form id="checkoutForm" class="checkout-step"><div class="checkout-main buy-main"><h2 id="checkoutTitle" class="visually-hidden" tabindex="-1">${h(t("checkoutBar"))}</h2>${promo.buyLines(selected, count, quoteOf(selected, network, count), buyLabels())}${promo.buyHow(selected, maskedNumber(payer), !guest)}<div class="collect-box buy-collect"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span id="buyWho">${h(buyWho(c.name, payer, guest))}</span></div><div class="form-grid buy-fields"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="payerPhone">${h(t("payer"))} <span class="label-note">${h(t("payerNote"))}</span></label><input id="payerPhone" name="payerPhone" type="tel" required autocomplete="tel" value="${h(payer)}" placeholder="6XXXXXXXX"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><div class="pay-with__methods"><label class="method"><input type="radio" name="network" value="mtn" ${network === "mtn" ? "checked" : ""}><span>MTN MoMo</span></label><label class="method"><input type="radio" name="network" value="orange" ${network === "orange" ? "checked" : ""}><span>Orange Money</span></label></div></fieldset>${buyNote(selected, count, network)}</div><div class="checkout-foot"><button type="submit" id="payButton">${h(t("payNow"))}</button><p id="checkoutError" class="error" role="alert"></p></div></form>`;
+  const form = $("#checkoutForm");
+  // The collect box and the free bundle's words follow the name and number as typed.
+  form.oninput = (e) => {
+    if (!["name", "payerPhone"].includes(e.target.name)) return;
+    $("#buyWho").textContent = buyWho(form.elements.name.value, form.elements.payerPhone.value, guest);
+    if (guest && $("#buyHowText")) $("#buyHowText").textContent = promo.howText(selected, maskedNumber(form.elements.payerPhone.value));
+  };
+  form.querySelectorAll('input[name="network"]').forEach((radio) => {
+    radio.onchange = () => {
+      $("#checkoutCost").outerHTML = promo.buyLines(selected, count, quoteOf(selected, radio.value, count), buyLabels());
+      $("#buyNote").outerHTML = buyNote(selected, count, radio.value);
+    };
+  });
+  if (pending) form.querySelectorAll("input,select").forEach((el) => (el.disabled = true));
+}
 function checkoutDetails(c) {
   const pending = checkoutPending, guest = !(pending ? pending.account : account.authenticated);
   // Back goes to the choice for a guest, otherwise back to the product.
   sheetTitle(guest ? "guestCheckoutBar" : "checkoutBar", guest && !pending ? "backStep" : "backProduct");
   $("#checkoutDialog").dataset.step = "details";
   const network = c.network === "orange" ? "orange" : "mtn", count = checkoutCount;
-  $("#checkoutDetail").innerHTML =
+  if (selected.promotion) { sheetTitle("checkoutBar", "backProduct"); promoCheckoutDetails(c, guest, pending); }
+  else $("#checkoutDetail").innerHTML =
     `<form id="checkoutForm" class="checkout-step"><div class="checkout-main"><h2 id="checkoutTitle" class="visually-hidden" tabindex="-1">${h(t(guest ? "guestCheckoutBar" : "checkoutBar"))}</h2>${guest ? "" : `<p class="notice notice--quiet">${h(t("signed"))}</p>`}<div class="form-grid"><div><label for="name">${h(t("name"))}</label><input id="name" name="name" required maxlength="120" autocomplete="name" value="${h(c.name || "")}"></div><div><label for="payerPhone">${h(t("payer"))} <span class="label-note">${h(t("payerNote"))}</span></label><input id="payerPhone" name="payerPhone" type="tel" required autocomplete="tel" value="${h(c.payerPhone || c.phone || "")}" placeholder="6XXXXXXXX"></div><div><label for="email">${h(t("emailLabel"))} <span class="label-note">${h(t("emailNote"))}</span></label><input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="${h(c.email || "")}"></div></div><input type="hidden" id="quantity" name="quantity" value="${h(count)}"><div class="collect-box"><strong>${h(place() ? t("collectAt").replace("{place}", place()) : t("pickup"))}</strong><span>${h(t("deliveryLaterShort"))}</span></div><fieldset class="pay-with"><legend>${h(t("payWith"))}</legend><div class="pay-with__methods"><label class="method"><input type="radio" name="network" value="mtn" ${network === "mtn" ? "checked" : ""}><span>MTN MoMo</span></label><label class="method"><input type="radio" name="network" value="orange" ${network === "orange" ? "checked" : ""}><span>Orange Money</span></label></div></fieldset>${promo.checkout(selected, !guest).note}</div><div class="checkout-foot">${checkoutCost(selected, count, network)}<button type="submit" id="payButton">${h(t("payNow"))}</button><p id="checkoutError" class="error" role="alert"></p></div></form>`;
   // The breakdown and the wallet note follow the chosen network.
-  $("#checkoutForm").querySelectorAll('input[name="network"]').forEach((radio) => {
+  if (!selected.promotion) $("#checkoutForm").querySelectorAll('input[name="network"]').forEach((radio) => {
     radio.onchange = () => { $("#checkoutCost").outerHTML = checkoutCost(selected, count, radio.value); };
   });
-  if (pending) $("#checkoutForm").querySelectorAll("input,select").forEach((el) => (el.disabled = true));
+  if (pending && !selected.promotion) $("#checkoutForm").querySelectorAll("input,select").forEach((el) => (el.disabled = true));
   $("#checkoutForm").onsubmit = async (e) => {
     e.preventDefault();
     await action(e.submitter, async () => {
@@ -688,6 +726,13 @@ function checkoutDone(placed) {
   const o = placed.order;
   sheetTitle("confirmedBar");
   $("#checkoutDialog").dataset.step = "done";
+  // A deal (canvas: PhonePromoBuy): the timeline of the router and its free bundle.
+  if (o.promotion) {
+    $("#checkoutDetail").innerHTML = `<div class="checkout-main buy-done"><div class="buy-done__head"><span class="buy-done__icon" aria-hidden="true">${ICON.done}</span><h2 id="checkoutTitle" tabindex="-1">${h(t("placedTitle"))}</h2></div><p class="buy-done__text">${h(promo.words("placedBody", { ref: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`)}</p>${promo.buyDone(o, place() || data.settings.name, maskedNumber(placed.input.payerPhone))}</div><div class="checkout-foot checkout-foot--actions"><button type="button" id="trackOrder">${h(promo.words("track"))}</button>${placed.account ? "" : `<a class="button secondary" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(promo.words("keepTogether"))}</a>`}</div>`;
+    $("#checkoutTitle").focus();
+    $("#trackOrder").onclick = () => openPlacedOrder();
+    return;
+  }
   $("#checkoutDetail").innerHTML = `<div class="checkout-main checkout-state checkout-state--done"><span class="checkout-state__icon checkout-state__icon--done" aria-hidden="true">${ICON.done}</span><h2 id="checkoutTitle" tabindex="-1">${h(t("placedTitle"))}</h2><p>${h(tf("placedText", { ref: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`)}</p>${placed.account ? "" : `<div class="checkout-keep"><strong>${h(t("keepTitle"))}</strong><p>${h(t("keepText"))}</p></div><div class="checkout-account"><strong>${h(t("accountTitle"))}</strong><p>${h(t("accountText"))}</p><a class="button secondary" href="${h(data.portalUrl)}/login" target="_blank" rel="noopener">${h(t("saveToAccount"))}</a></div>`}</div><div class="checkout-foot checkout-foot--actions"><button type="button" id="trackOrder">${h(t("trackOrder"))}</button></div>`;
   $("#checkoutTitle").focus();
   $("#trackOrder").onclick = () => openPlacedOrder();

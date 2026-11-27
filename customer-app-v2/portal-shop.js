@@ -101,7 +101,22 @@ const facts$ = (p) => {
   return `<dl class="portal-shop__facts nd-narrow-only">${tiles.map(([k, v]) => `<div><dt>${h(k)}</dt><dd>${h(v)}</dd></div>`).join("")}</dl>`;
 };
 
+// The deal on a phone (canvas: PhonePromoBuy, #411): no quantity unless the
+// offer allows more than one, no "sold separately" tile or details beyond its terms.
+function promoProductView(data, p) {
+  const closed = data.settings && data.settings.open === false, image = (p.images || []).filter(photoSrc)[0];
+  const d = promo.buyProduct(p, { photo: image ? `<img src="${h(photoSrc(image))}" alt="${h(text(image.alt))}">` : `<span class="portal-buy__placeholder">${icon(SHOP, 28)}</span>`, closed });
+  const max = Math.max(1, Math.min(p.promotion.perNumberLimit, d.left || 1)), can = d.left > 0 && !closed;
+  return `${bar("/dashboard#shop", L("shopBack"), L("uiTabShop"))}
+  <div class="portal-shop__product portal-buy">${d.top}
+    <div class="portal-buy__body"><h1 class="portal-shop__name portal-buy__name">${h(text(p.name))}</h1>${d.price}${d.bonus}
+    ${text(p.description) ? `<p class="portal-buy__desc">${h(text(p.description))}</p>` : ""}${d.terms}</div>
+  <div class="portal-shop__buy portal-buy__foot">${can ? `${max > 1 ? `<div class="portal-shop__qty" role="group" aria-label="${h(L("shopQuantity"))}"><button type="button" data-shop-qty="-1" aria-label="${h(L("shopLess"))}">−</button><output id="shopQty" aria-live="polite">1</output><button type="button" data-shop-qty="1" aria-label="${h(L("shopMore"))}" data-max="${max}">+</button></div>` : ""}<a class="nd-btn portal-shop__cta portal-buy__cta" id="shopBuy" href="/dashboard#checkout/${encodeURIComponent(p.id)}/1">${h(d.button)}</a><p class="portal-buy__limit">${h(d.limit)}</p>`
+    : `<p class="portal-shop__note" role="status">${h(closed ? L("shopClosed") : L("shopOutOfStock"))}</p>`}</div>
+  </div>`;
+}
 function productView(data, p) {
+  if (p.promotion) return promoProductView(data, p);
   // An offer limits how many one phone number may buy (#302).
   const max = Math.max(1, Math.min(p.promotion ? p.promotion.perNumberLimit : 20, p.available || 1)), closed = data.settings && data.settings.open === false, x = promo.productExtras(p);
   const facts = [[L("shopSpecifications"), text(p.specifications)], [L("shopContents"), text(p.contents)], [L("shopCompatibility"), text(p.compatibility)], [L("shopSetup"), text(p.setup)], [L("shopWarranty"), text(p.warranty) || text(data.settings && data.settings.warranty)], [L("shopReturns"), text(data.settings && data.settings.returns)]].filter(([, v]) => v);
@@ -145,7 +160,34 @@ function costView(p, quantity, network) {
   </div>`;
 }
 
+// The deal's checkout (canvas: PhonePromoBuy; owner 27 Nov, #411): the order,
+// how the free bundle arrives and where to collect, as drawn, then Pay with and
+// the number, the wallet note and Pay Now.
+const promoNote = (p, quantity, network) => {
+  const q = shopQuote(p, network, quantity), price = q ? q.price : p.price * quantity;
+  const notice = h(L(q ? "deskBuyNotice" : "deskBuyNoticeNoFee", { amount: "\u0000", wallet: METHOD_NAMES[network] })).replace("\u0000", `<strong>${h(money(q ? q.total : price))}</strong>`);
+  return `<p class="portal-buy__note" id="shopNote" role="note">${notice}</p>`;
+};
+function promoCheckoutView(data, p, quantity, who) {
+  const pickup = place(data.settings && data.settings.pickup);
+  return `${bar(`/dashboard#product/${encodeURIComponent(p.id)}`, L("shopBackProduct"), L("shopCheckout"))}
+  <form class="portal-shop__checkout portal-buy__checkout" id="shopCheckout" novalidate>
+    <div class="portal-shop__checkout-main portal-buy__main">
+    ${promo.buyOrderLines(p, quantity, shopQuote(p, "mtn", quantity))}
+    ${promo.buyHow(p)}
+    <div class="portal-buy__collect"><strong>${h(pickup ? L("buyCollectAt", { place: pickup }) : L("shopCollection"))}</strong><span>${h(L("buyWhoAccount", { name: shortName(who.name), phone: maskedPhone(who.phone, false) }))}</span></div>
+    <fieldset class="portal-shop__pay"><legend>${h(L("shopPayWith"))}</legend><div class="portal-shop__methods">${["mtn", "orange"].map((value, i) => `<label class="portal-shop__method"><input type="radio" name="network" value="${value}" ${i === 0 ? "checked" : ""}><span>${METHOD_NAMES[value]}</span></label>`).join("")}</div>
+      <label class="portal-shop__field">${h(L("shopPayNumber"))}<span class="portal-shop__payer"><input name="payerPhone" type="tel" inputmode="tel" autocomplete="tel" value="${h(who.phone || "")}" required><span class="portal-shop__mask" id="shopPayerMask" aria-hidden="true"></span></span></label></fieldset>
+    ${promoNote(p, quantity, "mtn")}
+    </div>
+    <div class="portal-shop__foot portal-buy__pay">
+    <button type="submit" class="nd-btn nd-btn--block">${h(L("deskBuyPayNow"))}</button>
+    <div id="shopCheckoutMessage" role="alert"></div>
+    </div>
+  </form>`;
+}
 function checkoutView(data, p, quantity, who) {
+  if (p.promotion) return promoCheckoutView(data, p, quantity, who);
   const pickup = text(data.settings && data.settings.pickup);
   return `${bar(`/dashboard#product/${encodeURIComponent(p.id)}`, L("shopBackProduct"), L("shopCheckout"))}
   <form class="portal-shop__checkout" id="shopCheckout" novalidate>
@@ -177,7 +219,16 @@ export function waitView(o) {
   <div class="portal-shop__state portal-shop__state--wait"><span class="portal-shop__state-icon" aria-hidden="true">${icon(STATE_ICONS.wait, 38)}</span><h1 class="portal-shop__state-title">${h(L("shopApproveTitle"))}</h1><p>${body}</p></div>
   <div class="portal-shop__foot portal-shop__foot--actions"><button type="button" class="nd-btn nd-btn--block" data-shop-check>${h(L("shopCheckStatus"))}</button><button type="button" class="nd-btn nd-btn--secondary nd-btn--block" data-shop-change>${h(L("shopChangePayment"))}</button><div id="shopCheckoutMessage" role="status" aria-live="polite"></div></div>`;
 }
+// Order placed for a deal (canvas: PhonePromoBuy): the timeline of the router and its free bundle.
+function promoDoneView(o) {
+  const body = h(L("buyPlacedBody", { reference: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`);
+  return `${stateBar(L("shopConfirmedTitle"))}
+  <div class="portal-buy__done"><div class="portal-buy__done-head"><span class="portal-buy__done-icon" aria-hidden="true">${icon(CHECK, 26)}</span><h1 class="portal-shop__state-title portal-buy__h1">${h(L("shopPlacedTitle"))}</h1></div>
+  <p class="portal-buy__placed">${body}</p>${promo.buyDone(o, place(o.pickup))}</div>
+  <div class="portal-shop__foot portal-shop__foot--actions"><a class="nd-btn nd-btn--block" href="/dashboard#order/${encodeURIComponent(o.id)}">${h(L("buyTrack"))}</a></div>`;
+}
 export function doneView(o) {
+  if (o.promotion) return promoDoneView(o);
   const body = h(L("shopPlacedBody", { reference: "\u0000" })).replace("\u0000", `<strong>${h(o.reference)}</strong>`);
   const saved = h(L("shopPlacedSaved", { activity: "\u0000" })).replace("\u0000", `<strong>${h(L("uiTabActivity"))}</strong>`);
   return `${stateBar(L("shopConfirmedTitle"))}
@@ -283,7 +334,11 @@ function wireCheckout(p, quantity, who) {
   showMask();
   // The breakdown and the wallet notice follow the chosen network.
   form.querySelectorAll('input[name="network"]').forEach((radio) => { radio.onchange = () => {
-    document.getElementById("shopCost").outerHTML = costView(p, quantity, form.elements.network.value);
+    const network = form.elements.network.value;
+    if (p.promotion) {
+      document.getElementById("shopCost").outerHTML = promo.buyOrderLines(p, quantity, shopQuote(p, network, quantity));
+      document.getElementById("shopNote").outerHTML = promoNote(p, quantity, network);
+    } else document.getElementById("shopCost").outerHTML = costView(p, quantity, network);
   }; });
   form.onsubmit = async (event) => {
     event.preventDefault();

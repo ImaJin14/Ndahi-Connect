@@ -11,8 +11,9 @@ import * as customer from "./i18n/customer.js";
 import * as admin from "./i18n/admin.js";
 import * as adminKits from "./i18n/admin-kits.js";
 import * as shopKits from "./i18n/shop-kits.js";
+import * as promoBuy from "./i18n/promo-buy.js";
 
-const AREAS = [common, customer, admin, adminKits, shopKits];
+const AREAS = [common, customer, admin, adminKits, shopKits, promoBuy];
 
 export const TRANSLATIONS = {
   en: Object.assign({}, ...AREAS.map((area) => area.en)),

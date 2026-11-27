@@ -2281,6 +2281,16 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French.
   - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
 
+### The deal on phones, as drawn (#411, batch 20, 27 November 2026)
+
+- [-] **CUS-411 — PhonePromoBuy for account holders and guests (batch 20; merges from 1 Dec)** ([#411](https://github.com/ImaJin14/Ndahi-Connect/issues/411)). Owner decisions: [checkout in the drawn order with Pay with and the number; the crossed-out price](https://github.com/ImaJin14/Ndahi-Connect/issues/411#issuecomment-7226915791).
+  - **Implemented and tested** (PR #558):
+    - the deal's product page, in the portal (Shop) and the store (guests): the badge and "Ends Mon 30 Nov · 2 d 14 h left" on the photo, the price with the regular price crossed out only after real sales at it, "N left at this price" (units or stock, whichever is fewer), the free bundle, the description and Offer terms; Get the deal and "Limit 1 per customer"; no quantity for one per number, and no "sold separately" tiles;
+    - the deal's checkout: the order with its free bundle, the Mobile Payment Fee (2%) and Total to Pay; how the free bundle arrives (at collection or at payment; a guest's reserved for the number typed); "Collect at …" with who's buying; then Pay with and the number, the wallet note and Pay Now; guests go straight to it;
+    - "Order placed" with the timeline of the router and its free bundle; Track my order, and "Create an account to keep it together" for guests;
+    - English and French.
+  - **Not yet:** merged; Black Friday code paths change only from 1 Dec.
+
 ### Kits & installs in the admin (#347, batch 19, 27 November 2026)
 
 - [-] **ADM-347 — Kits & installs, as drawn (batch 19)** ([#347](https://github.com/ImaJin14/Ndahi-Connect/issues/347)). Owner decisions: [Installation settings panel](https://github.com/ImaJin14/Ndahi-Connect/issues/347#issuecomment-7224897591); [status buttons, one kit name, Couldn't install and On the way](https://github.com/ImaJin14/Ndahi-Connect/issues/347#issuecomment-7225360387).
