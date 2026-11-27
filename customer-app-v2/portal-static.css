@@ -127,8 +127,6 @@ body[data-hotspot-landing] main { padding: 0; }
 .portal-hotspot__status[data-status="offline"] .portal-hotspot__dot { background: var(--nd-danger-fg); }
 .portal-hotspot__store { display: flex; align-items: center; justify-content: space-between; gap: var(--nd-space-12); min-height: 53px; /* 52px above its 1px line, as drawn */ margin-top: auto; padding: 0 var(--nd-space-4); border-top: 1px solid var(--nd-line); color: var(--nd-forest); font-size: var(--nd-fs-body); font-weight: 700; text-decoration: none; }
 .portal-rule__list { margin: 0 0 var(--nd-space-14); padding-left: 20px; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.55; }
-.portal-rules__full { margin-top: var(--nd-space-16); border-top: 1px solid var(--nd-line); }
-.portal-rules__full .portal-rule__body h3 { margin: var(--nd-space-12) 0 4px; color: var(--nd-ink); font: 700 14px var(--nd-font-body); }
 /* Help, as drawn (PhoneHelp): title, the connection check, questions, support. */
 .portal-help > h1 + p, .portal-help__status, .portal-help__check > p, .portal-help > p:last-child { display: none; }
 .portal-help__check > #runDiagnostics { border: 0; background: var(--nd-lime); color: var(--nd-lime-ink); }
@@ -143,3 +141,15 @@ body[data-hotspot-landing] main { padding: 0; }
 #homeStatus dd { color: var(--nd-white); border-color: var(--nd-line-on-forest); }
 #homeStatus #refreshHome { border-color: var(--nd-line-on-forest); background: transparent; color: var(--nd-lime); }
 .portal-static__langs button { min-width: 40px; min-height: 32px; }
+/* Package rules as drawn (PhoneBillingTerms, #360): the bar edge to edge with
+   its line, an 18px column, rows without chevrons, and the PIN note at the
+   foot of the screen. */
+.portal-static--drawn { display: flex; flex-direction: column; min-height: 100vh; padding: 0; }
+.portal-static--drawn .portal-static__bar { gap: 8px; min-height: 0; margin: 0; padding: 10px; border-bottom: 1px solid #dfe5dc; }
+.portal-static--drawn .portal-static__back { margin-left: 0; }
+.portal-static--drawn .portal-static__main { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; padding: 18px; }
+.portal-static--drawn .portal-static__main > h1 { margin: 0; color: #10241c; font: 600 26px/normal var(--nd-font-display); }
+.portal-static--drawn .portal-static__meta { margin: 6px 0 10px; color: #5c6963; font-size: 13px; }
+.portal-static--drawn .portal-rule__chevron { display: none; }
+.portal-static--drawn .portal-rules__pin { margin: auto 0 0; }
+
