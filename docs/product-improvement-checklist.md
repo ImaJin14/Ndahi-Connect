@@ -2240,6 +2240,14 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French.
   - **Not yet:** merged, deployed, or the private-address row seen with a real phone on NDAHI Wi-Fi.
 
+### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
+
+- [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).
+  - **Implemented and tested** (PR #549, not merged yet):
+    - during an outage a running Unlimited bundle's card reads the plan's name alone, "No internet" in grey, "2 days 14 h left · unlimited data" and "Ends in 2 days + lost time"; after it's fixed, "Ends in 2 days 14 h" beside "We added 3 hours…"; the hero's "Network down · [area]" sits as drawn;
+    - Home no longer shows "This device's Wi-Fi"; the panel stays mounted out of sight so its automatic identity check keeps Connected and Network online current. Its buttons (Disconnect this device, identify an installed app) are no longer reachable on Home;
+    - fixed-data bundles keep their outage card.
+  - **Not yet:** merged, deployed, or a real outage seen on a phone.
 ### Notifications for Unlimited (#362, batch 18, 27 November 2026)
 
 - [-] **CUS-362 — Notifications, redesigned for Unlimited (batch 18)** ([#362](https://github.com/ImaJin14/Ndahi-Connect/issues/362)). Owner decision: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/362#issuecomment-7220081254).

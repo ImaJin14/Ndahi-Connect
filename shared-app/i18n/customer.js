@@ -173,6 +173,9 @@ export const en = {
   claimNextTime: "Next time, just sign in with your number and PIN. You can add a passkey in Account to sign in with your fingerprint.",
   claimHome: "Go to my home",
   // Your saved voucher (#367, canvas: PhoneVoucherReady).
+  // Outage Home (#363, canvas PhoneOutage).
+  homeUnlEndsIn: "Ends in {left}",
+  homeUnlEndsInLost: "Ends in {left} + lost time",
   // Notifications (#362, canvas PhoneNotifications).
   notifTitle: "Notifications",
   notifMarkAll: "Mark all read",
@@ -1624,6 +1627,9 @@ export const fr = {
   claimStartedUnlimited: "{plan} a démarré sur ce téléphone. Il se termine le {date}.",
   claimNextTime: "La prochaine fois, connectez-vous avec votre numéro et votre PIN. Vous pouvez ajouter une clé d’accès dans Compte pour vous connecter avec votre empreinte.",
   claimHome: "Aller à mon accueil",
+  // Outage Home (#363, canvas PhoneOutage).
+  homeUnlEndsIn: "Se termine dans {left}",
+  homeUnlEndsInLost: "Se termine dans {left} + temps perdu",
   // Notifications (#362, canvas PhoneNotifications).
   notifTitle: "Notifications",
   notifMarkAll: "Tout marquer comme lu",
