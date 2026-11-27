@@ -1,3 +1,4 @@
+import { savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../server.mjs";
@@ -100,8 +101,8 @@ try {
       assert.equal(requests[0].phone, undefined);
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+      await savedVoucherReady(page);
+      await continueFromSavedVoucher(page);
       await page.waitForURL("**/dashboard");
       assert.equal((await context.cookies()).find((cookie) => cookie.name === "customer_session").value, cookieBefore);
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
@@ -140,8 +141,8 @@ try {
       await page.getByRole("button", { name: /Request payment|^Pay [\d,]+ FCFA/ }).click();
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+      await savedVoucherReady(page);
+      await continueFromSavedVoucher(page);
       await page.waitForURL("**/dashboard");
       const state = await store.snapshot();
       assert.equal(state.vouchers[0].planId, "monthly");
@@ -197,8 +198,8 @@ try {
       assert.equal(await page.locator("#selected").textContent(), "Switch to Monthly");
       await page.getByRole("button", { name: "Simulate payment approval" }).click();
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+      await savedVoucherReady(page);
+      await continueFromSavedVoucher(page);
       await page.waitForURL("**/dashboard");
     });
     await scenario("pending payment restoration and owner polling clear completed request key", null, async (page) => {
@@ -221,8 +222,8 @@ try {
         await page.getByRole("button", { name: "Check payment status" }).click();
       }
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+      await savedVoucherReady(page);
+      await continueFromSavedVoucher(page);
       await page.waitForURL("**/dashboard");
       assert.equal(await page.evaluate(() => document.cookie.split("; ").find((part) => part.startsWith("ndahi-payment-renew-weekly=")) ?? null), null);
       await store.transaction((state) => { state.vouchers[0].usedBytes = state.vouchers[0].quotaBytes; });
@@ -248,8 +249,8 @@ try {
       const id = (await store.snapshot()).payments[0].id;
       await post(`/api/payments/${id}/confirm`, {});
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
-      await page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+      await savedVoucherReady(page);
+      await continueFromSavedVoucher(page);
       await page.waitForURL("**/dashboard");
     });
     await scenario("a terminal failure releases checkout for a new payment", null, async (page) => {

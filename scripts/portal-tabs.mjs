@@ -23,6 +23,12 @@ export const pairingSubmitName = uiV2 ? "Send request" : "Request access";
 // v2's waiting screen is ready once its reference shows (a throttled read shows the title first).
 export const waitForOwnerApproval = (page) => uiV2 ? page.getByLabel("Matching request code", { exact: true }).filter({ hasText: /^PR-/ }).waitFor()
   : page.locator("#pairingStatus").filter({ hasText: /waiting for your main device/i }).waitFor();
+// Your saved voucher (#367, owner: exactly as drawn): v2 shows Print slip and
+// "Use it on this device now"; v1 keeps Download Voucher and "Continue to Dashboard / Wi-Fi".
+export const savedVoucherReady = (page) => (uiV2 ? page.getByRole("link", { name: "Print slip", exact: true })
+  : page.getByRole("button", { name: "Download Voucher", exact: true })).waitFor();
+export const continueFromSavedVoucher = (page) => (uiV2 ? page.getByRole("link", { name: "Use it on this device now", exact: true })
+  : page.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true })).click();
 
 const V2_TABS = { bundles: "internet", vouchers: "internet", payments: "activity" };
 

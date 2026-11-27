@@ -5,7 +5,7 @@ import { createStaticServer } from '../static-server.mjs';
 import { MockEmailAdapter } from '../lib/email.mjs';
 import { totpSecret, totpCode } from '../lib/security.mjs';
 import { setDefaultResultOrder } from 'node:dns';
-import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, openSecurityHistory, waitForAccount } from "./portal-tabs.mjs";
+import { openPortalView, portalNavDesktopWidth, portalTab, portalTabBadge, uiV2, openEditProfile, openSecurityManager, openSessions, openSecurityHistory, waitForAccount, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import { lowContrastText } from './ui-checks.mjs';
 
 // Isolated services and synthetic accounts only; no live provider or router.
@@ -410,8 +410,8 @@ try {
     await page.waitForURL('**/verify.html?setup=checkout');
     await page.locator('#primary').fill('2468'); await page.locator('#confirm').fill('2468');
     await page.locator('#submitLabel').click(); await page.waitForURL(/\/voucher-ready\.html/);
-    await page.getByRole('button', { name: 'Download Voucher', exact: true }).waitFor();
-    await page.getByRole('link', { name: 'Continue to Dashboard / Wi-Fi', exact: true }).click(); await page.waitForURL('**/dashboard');
+    await savedVoucherReady(page);
+    await continueFromSavedVoucher(page); await page.waitForURL('**/dashboard');
     await openPortalView(page, 'account'); await openEditProfile(page); await page.locator('#profileEdit').waitFor();
     const before = (await store.snapshot()).customers.find((c) => c.phone === '670050188');
     assert.equal(before.email, ''); assert.equal(before.emailVerificationRequired, true);
