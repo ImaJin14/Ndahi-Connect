@@ -12,6 +12,8 @@ import { currentLanguage } from '/shared/ui/dom.js';
 const L = (key, values) => format(key, values || {}, currentLanguage());
 // Preserve the established English hooks while formatting French values without
 // changing the underlying API evidence or byte units (decimal, like v1).
+// "1.8 GB", as the boards write small totals (#354, #355): trailing zeros dropped.
+export const compactBytes = (bytes) => fmt(bytes).replace(/([.,]\d*?)0+(?= )/, '$1').replace(/[.,](?= )/, '');
 export function fmt(bytes) {
   if (currentLanguage() !== 'fr') return formatDataBalance(bytes);
   if (bytes === null) return L('homeDataUnlimited');
@@ -169,10 +171,17 @@ function unlimitedRunning(snapshot, { now, unavailable, paused, down }) {
   const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
   const fresh = unavailable ? 'homeFreshUnavailable' : paused ? 'homeFreshPaused' : evidenceExpired ? 'homeFreshExpired' : '';
   const provisioning = v.provisioning === 'dead_letter' ? `<p class="nd-error" role="alert">${h(L('homeProvisionFailed'))}</p>` : v.provisioning === 'pending' ? `<p class="nd-meta">${h(L('homeProvisionPending'))}</p>` : '';
-  return `<div class="home-unl"><div class="home-card__top home-unl__top"><p class="home-unl__kicker">${h([v.plan?.name || '', length].filter(Boolean).join(' · '))}</p><p class="nd-pill${tone ? ' nd-pill--' + tone : ''} home-unl__pill" data-bundle-status role="status">${h(pill)}</p></div>
-    <p class="home-unl__figure"><span data-time-left>${h(left)}</span> <span class="home-unl__unit">${h(L('homeUnlLeft'))}</span>${down ? ` <span class="home-unl__unit">${h(L('homeOutageLost'))}</span>` : ''}</p>
+  // From 768px (Main, #354): "Active bundle" over the plan's name, the end date
+  // beside the time left, and three tiles: slots used, used this week (recorded
+  // daily, owner 27 Nov) and the day validity ends.
+  const week = Number.isFinite(v.usedThisWeek) ? compactBytes(v.usedThisWeek) : L('homeValueUnavailable');
+  const tiles = [v.slots ? [L('homeUnlSlotsShort', { used: v.slots.used, total: v.slots.total }), L('homeUnlSlotsUsed')] : null, [week, L('homeUnlWeek')],
+    [Number.isFinite(ends) ? dateOf(ends) : L('homeValueUnavailable'), L('homeUnlValidityEnds')]].filter(Boolean);
+  return `<div class="home-unl"><div class="home-card__top home-unl__top"><div class="home-unl__name"><p class="home-unl__kicker nd-narrow-only">${h([v.plan?.name || '', length].filter(Boolean).join(' · '))}</p><p class="home-unl__eyebrow nd-wide-only">${h(L('activeBundle'))}</p><h2 class="home-unl__plan nd-wide-only">${h(v.plan?.name || '')}</h2></div><p class="nd-pill${tone ? ' nd-pill--' + tone : ''} home-unl__pill" data-bundle-status role="status">${h(pill)}</p></div>
+    <div class="home-unl__row"><p class="home-unl__figure"><span data-time-left>${h(left)}</span> <span class="home-unl__unit">${h(L('homeUnlLeft'))}</span>${down ? ` <span class="home-unl__unit">${h(L('homeOutageLost'))}</span>` : ''}</p><p class="home-unl__ends nd-wide-only">${h(endsLine)}</p></div>
     <progress class="home-unl__meter" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>
-    <div class="home-unl__legend"><span>${h(endsLine)}</span>${v.slots ? `<span data-device-slots-used>${h(L('homeUnlSlots', { used: v.slots.used, total: v.slots.total }))}</span>` : ''}</div>
+    <div class="home-unl__legend nd-narrow-only"><span>${h(endsLine)}</span>${v.slots ? `<span data-device-slots-used>${h(L('homeUnlSlots', { used: v.slots.used, total: v.slots.total }))}</span>` : ''}</div>
+    <div class="home-unl__tiles nd-wide-only">${tiles.map(([value, label]) => `<div class="home-unl__tile"><p>${h(value)}</p><p>${h(label)}</p></div>`).join('')}</div>
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(fresh ? L(fresh) : '')}</p>${provisioning}</div>`;
 }
 

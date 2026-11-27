@@ -235,3 +235,32 @@ body[data-current-tab="home"] .network-state-banner-active .network-banner-badge
 body[data-current-tab="home"] .network-state-banner-active .network-banner-text, body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { font-size: 13px; line-height: 17px; }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-indicator { width: 8px; height: 8px; margin-top: 4.5px; background: #b9ee2e; }
 @media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head { padding-bottom: 16px; } }
+/* From 768px (canvas: Main, #354): "Active bundle" over the plan's name, the end
+   date beside the time left, and three tiles on the forest card. */
+@media (min-width: 768px) {
+  .home-unl__eyebrow { margin: 0 0 6px; color: #b9ee2e; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .home-unl__plan { margin: 0; color: #ffffff; font: 600 30px/normal var(--nd-font-display); }
+  .home-unl__top { align-items: flex-start; }
+  .home-unl__pill { padding: 6px 12px; background: rgba(185, 238, 46, .16); color: #b9ee2e; font-size: 13px; }
+  .home-unl__row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 22px; }
+  .home-unl__figure { margin: 0; color: #ffffff; font-size: 44px; }
+  .home-unl__unit { color: #c8d8d0; font-size: 16px; }
+  .home-unl__ends { margin: 0; color: #c8d8d0; font-size: 14px; }
+  .home-unl__meter { height: 10px; margin: 14px 0 0; background: rgba(255, 255, 255, .14); }
+  .home-unl__meter::-webkit-progress-bar { background: rgba(255, 255, 255, .14); }
+  .home-unl__meter::-webkit-progress-value { background: #b9ee2e; }
+  .home-unl__meter::-moz-progress-bar { background: #b9ee2e; }
+  .home-unl__tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+  .home-unl__tile { padding: 14px; border-radius: 12px; background: rgba(255, 255, 255, .07); }
+  .home-unl__tile p { margin: 0; color: #ffffff; font-size: 20px; font-weight: 700; line-height: normal; }
+  .home-unl__tile p + p { margin-top: 4px; color: #c8d8d0; font-size: 13px; font-weight: 400; }
+  .home-unl { margin-bottom: 0; }
+  .home-bundle--unl { gap: 22px; padding: 29px; }
+  .home-bundle--unl .home-bundle__actions { gap: 10px; }
+  .home-bundle--unl .home-bundle__actions .nd-btn { box-sizing: content-box; min-height: 44px; padding: 0 18px; border-radius: 9px; font-size: 14px; }
+  /* Main's header (#354): the date, "Welcome back." at 40px and Bundles & vouchers. */
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head { padding-top: 36px; padding-bottom: 20px; row-gap: 0; align-items: end; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__eyebrow { margin: 0 0 6px; font-size: 12px; letter-spacing: .16em; line-height: normal; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__title { font-size: 40px; letter-spacing: -.01em; line-height: normal; }
+  body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__action { align-self: end; min-height: 44px; padding: 0 20px; border: 0; border-radius: 9px; font-size: 14px; }
+}

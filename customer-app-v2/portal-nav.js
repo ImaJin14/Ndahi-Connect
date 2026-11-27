@@ -63,6 +63,9 @@ function subHead(sub, lang) {
 // eyebrow and a headline. Account starts with the profile instead.
 const TITLES = { internet: "portalTitleInternet", shop: "portalTitleShop", activity: "portalTitleActivity", account: "portalTitleAccount" };
 const PHONE_TITLES = { internet: ["uiTabInternet", "portalLedeInternet"], shop: ["uiTabShop", "portalLedeShop"], activity: ["uiTabActivity", "portalLedeActivity"] };
+// Home's date as drawn (Main, #354): "Tuesday, 10 November"; French "mardi 10 novembre".
+const homeDate = (lang, now = new Date()) => lang === "fr" ? now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })
+  : now.toLocaleDateString("en-GB", { weekday: "long" }) + ", " + now.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 const EYEBROWS = { internet: "uiTabInternet", shop: "portalEyebrowShop", activity: "uiTabActivity" };
 // From 768px: a lede under the title, and the head's action button (canvas:
 // Main's "Bundles & vouchers", Shop's "My orders", #417).
@@ -141,7 +144,7 @@ function applyView(scroll = false) {
   document.querySelector("header.nd-topnav")?.classList.toggle("nd-topnav--phone-bar", tab === "home" && !SUBPAGES[hash.split("/")[0]]);
   const eyebrow = document.getElementById("portalEyebrow");
   if (eyebrow) {
-    eyebrow.textContent = tab === "home" ? new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" }) : EYEBROWS[tab] ? t(EYEBROWS[tab], lang) : "";
+    eyebrow.textContent = tab === "home" ? homeDate(lang) : EYEBROWS[tab] ? t(EYEBROWS[tab], lang) : "";
     eyebrow.hidden = !eyebrow.textContent;
   }
   const headAction = document.getElementById("portalHeadAction");

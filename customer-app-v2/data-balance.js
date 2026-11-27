@@ -9,7 +9,7 @@ export function mountDataBalance({ call, initial, onSnapshot = () => {} }) {
   let snapshot=initial,stopped=false,inPage=true,failures=0,countdown,serverTime=initial?Date.parse(initial.observedAt):Date.now(),anchor=performance.now(),expiredRequest=false;
   const relevant=()=>!stopped&&inPage&&host.isConnected&&!document.hidden&&navigator.onLine!==false&&!host.closest('[hidden]');
   const now=()=>serverTime+performance.now()-anchor;
-  const draw=(paused=false)=>{if(!stopped&&host.isConnected){host.innerHTML=activeBundleContent(snapshot,{now:now(),unavailable:failures>0,paused});host.dataset.bundleObservedAt=snapshot?snapshot.observedAt:'';}};
+  const draw=(paused=false)=>{if(!stopped&&host.isConnected){host.innerHTML=activeBundleContent(snapshot,{now:now(),unavailable:failures>0,paused});if(host.parentElement)host.parentElement.classList.toggle('home-bundle--unl',Boolean(host.querySelector('.home-unl')));host.dataset.bundleObservedAt=snapshot?snapshot.observedAt:'';}};
   const tick=()=>{
     clearTimeout(countdown);if(!relevant())return;
     const v=snapshot&&snapshot.bundle;
