@@ -2145,6 +2145,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - "This phone is connected … Your bundle still ends Wed 25 Nov at 18:03. Replacing a device never restarts or extends it.";
     - server: `POST /api/account/device-management/replace` (PIN or passkey, like removing a device) and the device list's slot rows (`slots`: total, each slot's masked address, online or last seen, removal pending, the bundle's end); English and French;
     - on-site plan: `docs/operations/device-replace-onsite-test.md`.
+    - fixed, merged and deployed (PR #551, 27 Nov): "This phone is connected" keeps naming the replaced device when the router confirms just before it (it read "the device").
   - **Not yet:** the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
 
 ### Finish Wi-Fi sign-in, tap to connect (#372, batch 16, 27 November 2026)
@@ -2222,28 +2223,28 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Package rules for Unlimited (#360, batch 18, 27 November 2026)
 
 - [-] **CUS-360 — Package rules, redesigned for Unlimited (batch 18)** ([#360](https://github.com/ImaJin14/Ndahi-Connect/issues/360)). Owner decision: [exactly as drawn, for everyone](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220082541).
-  - **Implemented and tested** (PR #546, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #546):
     - "While a bundle is active" reads "Use it until it expires. Data is unlimited. You can't buy or switch packages before then.", shown to everyone (the owner was told customers on data bundles read it too, and that "Validity starts when the payment is confirmed" differs from the Unlimited start at first connection);
     - the page follows PhoneBillingTerms: the bar edge to edge with its line, 26px title, rows without chevrons, and the PIN note at the foot of the screen;
     - the page follows the customer's language choice, with every line in English and French;
     - "Full rules" (the full v1 rules text) is removed as drawn ([owner](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220205695)).
-  - **Not yet:** merged, deployed, or seen on a real phone.
+  - **Not yet:** seen on a real phone.
 
 ### Help for Unlimited (#361, batch 18, 27 November 2026)
 
 - [-] **CUS-361 — Help, redesigned for Unlimited (batch 18)** ([#361](https://github.com/ImaJin14/Ndahi-Connect/issues/361)). Owner decisions: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220081886); [linked answers stay, hidden until linked](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220205003).
-  - **Implemented and tested** (PR #547, not merged yet; built on #360):
+  - **Implemented, tested, merged and deployed** (PR #547; built on #360):
     - the five drawn questions with the Unlimited answers (device slots, no buying before it ends, Personal bundles restrict hotspot sharing, the shop's pickup place), and "Still need help?" with Call and WhatsApp;
     - "Check my connection" answers in rows: "Joined NDAHI Wi-Fi" (or not), "Bundle active — 2 days 14 h left" (or data left, no bundle, sign in), and "Private Wi-Fi address is on — turn it off for NDAHI" when known;
     - server: the connectivity evidence adds whether this session's router-confirmed device uses a private Wi-Fi address (yes/no only; never the address; unknown until identified);
     - the answers other pages link to (`#connect`, `#scan-qr`, `#recovery`) stay hidden until linked; the other questions, the latency check and email support leave the page;
     - English and French.
-  - **Not yet:** merged, deployed, or the private-address row seen with a real phone on NDAHI Wi-Fi.
+  - **Not yet:** the private-address row seen with a real phone on NDAHI Wi-Fi.
 
 ### Kits: catalogue, admin API and kit checkout (#424, batch 18, 27 November 2026)
 
 - [-] **STORE-424 — Kits on the server (batch 18)** ([#424](https://github.com/ImaJin14/Ndahi-Connect/issues/424)); rules in `docs/redesign/decisions.md` → "Kits, installations and payment plans (23 Nov)". The screens are #347 and #373 (batch 19).
-  - **Implemented and tested** (PR #550, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #550):
     - kit records (`storeKits`): name and description in English and French, store products with quantities, a first bundle from the Unlimited catalogue, a price in whole FCFA, draft / on sale / archived, and the options Set up for the buyer's account (Home WISP only), Offer installation and Allow Pay in 3;
     - Admin API (`/api/admin/store/kits/save`, `kits/status`), audited; a kit goes on sale only when its products are published with prices and its bundle is published; the admin list shows "Bought separately", the saving, stock and sold this month;
     - the shop's catalogue lists kits on sale with each network's fee and total; "Bought separately" and the saving come from current prices and show only when the saving is real;
@@ -2251,24 +2252,24 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - a kit set up for the buyer's account adds a Set up step that staff complete before the order can be made ready;
     - the first bundle is given at collection, unstarted, in the buyer's account (Home WISP starts on its router's first connection); a refund before it starts takes it back; a bundle in a kit is archived, never removed;
     - stored in the existing events table (`store_kit`), no migration.
-  - **Not yet:** merged, deployed, the admin and shop screens (#347, #373, batch 19), installation (#425) and Pay in 3 (#426).
+  - **Not yet:** the admin and shop screens (#347, #373, batch 19), installation (#425) and Pay in 3 (#426).
 ### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
 
 - [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).
-  - **Implemented and tested** (PR #549, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #549):
     - during an outage a running Unlimited bundle's card reads the plan's name alone, "No internet" in grey, "2 days 14 h left · unlimited data" and "Ends in 2 days + lost time"; after it's fixed, "Ends in 2 days 14 h" beside "We added 3 hours…"; the hero's "Network down · [area]" sits as drawn;
     - Home no longer shows "This device's Wi-Fi"; the panel stays mounted out of sight so its automatic identity check keeps Connected and Network online current. Its buttons (Disconnect this device, identify an installed app) are no longer reachable on Home;
     - fixed-data bundles keep their outage card.
-  - **Not yet:** merged, deployed, or a real outage seen on a phone.
+  - **Not yet:** a real outage seen on a phone.
 ### Notifications for Unlimited (#362, batch 18, 27 November 2026)
 
 - [-] **CUS-362 — Notifications, redesigned for Unlimited (batch 18)** ([#362](https://github.com/ImaJin14/Ndahi-Connect/issues/362)). Owner decision: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/362#issuecomment-7220081254).
-  - **Implemented and tested** (PR #548, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #548):
     - in the portal (v2), Notifications is the drawn list: back, "Notifications", "Mark all read", then the newest 25 items (tile, title, text, "12 min ago" / "Yesterday" / "5 Nov", unread dot); tapping an item marks it read and opens where it points; "Choose which notifications you get" opens Account;
     - the View and Category filters, dates, Archive and paging leave the portal's panel; the full settings form stays reachable from Account → Notification settings; v1 and the admin keep the full inbox;
     - server: "Bundle ends tomorrow" (or today) with "[plan] ends tomorrow at 18:03. You can buy your next bundle once it ends.", opening Internet;
     - the panel's labels in English and French (the items' own text is still English, as before).
-  - **Not yet:** merged, deployed, or seen on a real phone.
+  - **Not yet:** seen on a real phone.
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
