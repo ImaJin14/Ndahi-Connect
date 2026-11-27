@@ -65,10 +65,13 @@ test("scan is account-specific limited context and does not create a login or le
     (await f.store.snapshot()).dashboardSessions.length,
     before.dashboardSessions.length,
   );
+  // Before the PIN only the first name and the bundle's card show (#371,
+  // owner 27 Nov: as drawn); never the number, the code or account records.
   assert.doesNotMatch(
     JSON.stringify(reply.body),
-    /670050001|Imajin|pinHash|customerId|NC-AAAA/,
+    /670050001|pinHash|customerId|NC-AAAA/,
   );
+  assert.deepEqual(reply.body.account, { first: "Imajin" });
   const wrong = await f.call(
     root + "/verify",
     { ...target, context: reply.body.context, pin: "0000" },
@@ -410,4 +413,36 @@ test("no active bundle shows the account as drawn, before any PIN, and nothing m
   await f.store.transaction((s) => { s.vouchers.push({ ...structuredClone(s.vouchers[0]), id: "home", status: "active", accessMode: "home", expiresAt: new Date(+f.now() + 86400000).toISOString() }); });
   assert.equal((await begin(f)).body.code, "HOME_ACCESS_SELECTED");
   assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
+});
+
+// Scan to connect (#371, canvas PhoneScanConnect): the card before the PIN
+// (first name, the bundle's end, what's left and a Personal Unlimited
+// bundle's slots), and both accounts named when someone else is signed in.
+test("the scan card names the account and its bundle, with a Personal Unlimited bundle's slots (#371)", async (t) => {
+  const f = await fixture(t);
+  let reply = await begin(f);
+  assert.deepEqual(reply.body.bundle, { expiresAt: (await f.store.snapshot()).vouchers[0].expiresAt, remainingBytes: 1e9 - 20 }, "an earlier bundle keeps its data left, no slots");
+  await f.store.transaction((s) => {
+    const v = s.vouchers[0];
+    Object.assign(v, { accessType: "personal_unlimited", deviceSlots: 2, deviceLimit: 2, quotaBytes: null });
+    s.wifiDeviceGrants ??= [];
+    s.wifiDeviceGrants.push({ id: "g1", customerId: v.customerId, voucherId: v.id, mac: "AA:BB:CC:DD:EE:01", status: "approved", routerRevision: s.networkSetup.connections.router.revision });
+  });
+  reply = await begin(f);
+  assert.equal(reply.status, 200);
+  assert.equal(reply.body.bundle.remainingBytes, null);
+  assert.deepEqual(reply.body.bundle.slots, { used: 1, total: 2 });
+});
+
+test("someone else signed in here: both accounts are named by first name and initial (#371)", async (t) => {
+  const f = await fixture(t);
+  await f.store.transaction((s) => {
+    s.customers.find((c) => c.id === "c1").name = "Amina Ndi";
+    s.customers.find((c) => c.id === "c2").name = "Kofi Tabe";
+  });
+  const wrong = await begin(f, {}, { session: "other" });
+  assert.equal(wrong.status, 409);
+  assert.equal(wrong.body.code, "DIFFERENT_ACCOUNT");
+  assert.deepEqual([wrong.body.account, wrong.body.current], [{ name: "Amina N.", first: "Amina" }, { name: "Kofi T.", first: "Kofi" }]);
+  assert.doesNotMatch(JSON.stringify(wrong.body), /670050001|670050002|Ndi|Tabe/);
 });

@@ -1,0 +1,39 @@
+/* Scan to connect (#371, canvas: PhoneScanConnect). Every state takes the
+   board's full-height column (as #412's no-bundle state does); each state's
+   children sit directly in it, the status line after them and "Scanning alone
+   never connects a device." at the foot of the PIN card. */
+body[data-scan-state] main.login-shell { padding: 0; }
+body[data-scan-state] main.login-shell > .surface { box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; min-height: calc(100dvh - 76px); margin: 0 auto; padding: 28px 22px 22px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.scan-connect__state { display: contents; }
+.scan-connect__state[hidden], .scan-connect__foot[hidden] { display: none; }
+body[data-scan-state] .surface h1 { margin: 0; color: #10241c; font: 600 28px/1.15 var(--nd-font-display); }
+body[data-scan-state] .surface p { margin: 0; }
+.scan-connect__icon { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 50%; }
+.scan-connect__icon--qr { background: #eef3e9; }
+.scan-connect__icon--wifi { align-self: center; margin-top: 10px; background: #e3f0ff; }
+.scan-connect__icon--done { margin-top: 20px; background: #eaf6d5; }
+.scan-connect__center { text-align: center; }
+body[data-scan-state="checking"] .surface, body[data-scan-state="done"] .surface { align-items: center; text-align: center; }
+body[data-scan-state="checking"] .surface { justify-content: center; }
+body[data-scan-state] .surface .scan-connect__muted { color: #5c6963; font-size: 15px; }
+body[data-scan-state] .surface .scan-connect__text { color: #3d4a44; font-size: 15px; line-height: 1.55; }
+.scan-connect__steps { margin: 0; padding: 14px 14px 14px 34px; border: 1px solid #dfe5dc; border-radius: 12px; background: #fffef9; color: #3d4a44; font-size: 15px; line-height: 1.8; }
+body[data-scan-state] .surface .scan-connect__note { padding: 12px 14px; line-height: normal; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; }
+body[data-scan-state] .surface .scan-connect__kicker { color: #4d6b00; font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+.scan-connect__card { padding: 16px; border-radius: 14px; background: #003b2b; color: #ffffff; }
+body[data-scan-state] .surface #bundleName.scan-connect__plan { min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; line-height: normal; color: #b9ee2e; font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+body[data-scan-state] .surface .scan-connect__left { margin: 6px 0 2px; line-height: normal; color: #ffffff; font-size: 22px; font-weight: 700; }
+body[data-scan-state] .surface .scan-connect__ends { line-height: normal; color: #c8d8d0; font-size: 13px; }
+body[data-scan-state] #qrConnectForm { display: flex; flex-direction: column; gap: 14px; margin: 0; }
+body[data-scan-state] .scan-connect__pin label { display: block; margin: 0 0 6px; color: #10241c; font-size: 13px; font-weight: 600; }
+body[data-scan-state] .scan-connect__pin input { box-sizing: border-box; width: 100%; min-height: 52px; margin: 0; padding: 0 14px; border: 1px solid #b8c7bd; border-radius: 10px; background: #ffffff; color: #10241c; font: 20px var(--nd-font-body); letter-spacing: .3em; }
+body[data-scan-state] .surface .scan-connect__btn, body[data-scan-state] .surface .scan-connect__btn2, body[data-scan-state] .surface a.scan-connect__btn, body[data-scan-state] .surface a.scan-connect__btn2 { box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 0; padding: 0 16px; border-radius: 10px; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+body[data-scan-state] .surface .scan-connect__btn, body[data-scan-state] .surface a.scan-connect__btn { min-height: 52px; border: 0; background: #b9ee2e; color: #15210c; }
+body[data-scan-state] .surface .scan-connect__btn2, body[data-scan-state] .surface a.scan-connect__btn2 { min-height: 50px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; }
+body[data-scan-state] .surface .scan-connect__btn2[hidden], body[data-scan-state] .surface .scan-connect__btn[hidden] { display: none; }
+body[data-scan-state] .surface .scan-connect__push, body[data-scan-state] .surface a.scan-connect__push { margin-top: auto; }
+.scan-connect__or { display: flex; align-items: center; gap: 12px; color: #5c6963; font-size: 13px; }
+.scan-connect__or[hidden] { display: none; }
+.scan-connect__or > span[aria-hidden] { flex: 1; height: 1px; background: #dfe5dc; }
+.scan-connect__message, .scan-connect__retry { order: 1; }
+body[data-scan-state] .surface .scan-connect__foot { order: 2; margin-top: auto; line-height: normal; color: #5c6963; font-size: 13px; text-align: center; }

@@ -19,9 +19,12 @@ const item = (href, label, value, extra = "") => `<a class="portal-account__item
 // with number and email, three panels side by side and a Sign out button.
 // Notification switches change the account's real preferences: low data
 // alerts are the Data / bundles category, bundle ending soon the expiry
-// warnings. English remains the default; French is an explicit preference.
+// warnings, shop order updates the Shop orders category (#357, off until
+// switched on). English remains the default; French is an explicit preference:
+// phones pick it on the drawn English | Français control (#357); from 768px the
+// Language row reads "English · Français" with the other language as a link (#358).
 const toggle = (key, label) => `<label class="portal-account__item portal-account__toggle"><span>${h(label)}</span><span class="nd-switch"><input type="checkbox" role="switch" class="nd-switch__input" data-account-pref="${key}" disabled><span class="nd-switch__track" aria-hidden="true"></span></span></label>`;
-export function accountHub(customer, security, { homeLinked = false } = {}) {
+export function accountHub(customer, security, { homeRegistered = false } = {}) {
   const name = customer.name || L("portalYourAccount");
   const passkeys = (security.passkeys || []).length, sessions = (security.sessions || []).filter((s) => !s.revokedAt && s.status !== "revoked").length;
   const phone = mask(customer.phoneE164 || customer.phone), email = customer.email || "";
@@ -37,14 +40,17 @@ export function accountHub(customer, security, { homeLinked = false } = {}) {
       </div>
     </section>
     <section class="portal-account__panel" aria-labelledby="accountNotificationsGroup"><h3 class="portal-account__group" id="accountNotificationsGroup">${h(L("portalNotificationsGroup"))}</h3>
-      <div class="portal-account__list">${toggle("usage", L("portalPrefLowData"))}${toggle("expiry", L("portalPrefEnding"))}</div>
+      <div class="portal-account__list">${toggle("usage", L("portalPrefLowData"))}${toggle("expiry", L("portalPrefEnding"))}${toggle("orders", L("portalPrefOrders"))}</div>
     </section>
-    <section class="portal-account__panel" aria-labelledby="accountHomeGroup"><h3 class="portal-account__group nd-wide-only" id="accountHomeGroup">${h(L("portalHomeAndHelp"))}</h3>
+    <section class="portal-account__panel nd-narrow-only" aria-labelledby="accountLanguageGroup"><h3 class="portal-account__group" id="accountLanguageGroup">${h(L("uiLanguage"))}</h3>
+      <div class="portal-account__languages" role="group" aria-labelledby="accountLanguageGroup">${[["en", L("uiLanguageEnglish")], ["fr", L("uiLanguageFrench")]].map(([code, label]) => `<button type="button" lang="${code}" aria-pressed="${currentLanguage() === code}" data-account-lang="${code}">${h(label)}</button>`).join("")}</div>
+    </section>
+    <section class="portal-account__panel portal-account__panel--home" aria-labelledby="accountHomeGroup"><h3 class="portal-account__group nd-wide-only" id="accountHomeGroup">${h(L("portalHomeAndHelp"))}</h3>
       <div class="portal-account__list">
-        <label class="portal-account__item portal-account__language"><span>${h(L("uiLanguage"))}</span><select class="nd-input" data-account-language><option value="en" ${currentLanguage() === "en" ? "selected" : ""}>${h(L("uiLanguageEnglish"))}</option><option value="fr" ${currentLanguage() === "fr" ? "selected" : ""}>${h(L("uiLanguageFrench"))}</option></select></label>
-        ${item("/home-router.html", L("portalHomeRouterLink"), homeLinked ? h(L("portalLinked")) : "")}
+        ${item("/home-router.html", L("portalHomeWispRouter"), h(L(homeRegistered ? "portalRouterRegistered" : "portalRouterNotRegistered")))}
         <span class="nd-wide-only">${item("/billing-terms.html", L("portalPackageRulesLink"), "")}</span>
         ${item("/help.html", L("portalHelpSupport"), "")}
+        <span class="nd-wide-only"><div class="portal-account__item portal-account__language"><span>${h(L("uiLanguage"))}</span><span class="portal-account__value">${[["en", L("uiLanguageEnglish")], ["fr", L("uiLanguageFrench")]].map(([code, label]) => currentLanguage() === code ? `<span lang="${code}">${h(label)}</span>` : `<button type="button" class="portal-account__langlink" lang="${code}" data-account-lang="${code}">${h(label)}</button>`).join(" · ")}</span></div></span>
         ${signOut("nd-narrow-only")}
       </div>
     </section>
@@ -59,8 +65,8 @@ export function accountHub(customer, security, { homeLinked = false } = {}) {
 async function mountPreferences(call) {
   const switches = [...document.querySelectorAll("[data-account-pref]")];
   if (!switches.length || !call) return;
-  const field = { usage: (p) => p.categories?.usage !== false, expiry: (p) => p.expiryWarnings === true };
-  const body = { usage: (on) => ({ categories: { usage: on } }), expiry: (on) => ({ expiryWarnings: on }) };
+  const field = { usage: (p) => p.categories?.usage !== false, expiry: (p) => p.expiryWarnings === true, orders: (p) => p.categories?.orders === true };
+  const body = { usage: (on) => ({ categories: { usage: on } }), expiry: (on) => ({ expiryWarnings: on }), orders: (on) => ({ categories: { orders: on } }) };
   try {
     const { preferences } = await call("/api/account/notifications?view=all&limit=1");
     for (const input of switches) {
@@ -79,11 +85,12 @@ async function mountPreferences(call) {
 
 export function mountAccountHub(call) {
   void mountPreferences(call);
-  const language = document.querySelector("[data-account-language]");
-  if (language) language.onchange = () => {
-    const selected = setPreferredLanguage(language.value);
+  const choose = (value) => {
+    const selected = setPreferredLanguage(value);
+    for (const button of document.querySelectorAll("[data-account-lang]")) button.setAttribute("aria-pressed", String(button.dataset.accountLang === selected));
     window.dispatchEvent(new CustomEvent("ndahi:language", { detail: selected }));
   };
+  for (const button of document.querySelectorAll("[data-account-lang]")) button.onclick = () => choose(button.dataset.accountLang);
   document.querySelectorAll("[data-account-open]").forEach((link) => {
     link.onclick = (event) => {
       const target = document.getElementById(link.dataset.accountOpen);

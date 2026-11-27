@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { pairingFixture } from "../test/helpers/wifi-pairing-fixture.mjs";
 import { createStaticServer } from "../static-server.mjs";
 import { voucherQrUrl } from "../lib/voucher-qr.mjs";
+import { uiV2 } from "./portal-tabs.mjs";
 const origin = "http://127.0.0.1:8962",
   f = await pairingFixture({
     origin,
@@ -107,6 +108,11 @@ try {
       );
       assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 1);
       await f.process();
+      // v2 (#371, canvas PhoneScanConnect): "You're online", then Done.
+      if (uiV2) {
+        await page.getByRole("heading", { name: "You're online" }).waitFor({ timeout: 15000 });
+        await page.getByRole("link", { name: "Done", exact: true }).click();
+      }
       await page.waitForURL((url) => url.pathname === "/dashboard", {
         timeout: 15000,
       });
@@ -124,14 +130,21 @@ try {
     async (page, context) => {
       await page.goto(origin + "/voucher-connect.html" + qr);
       await page.locator("#wifiGuidance").waitFor();
-      await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
-      await page.locator("#accountPin").fill("2468");
-      await page.locator("#connectWithPin").click();
-      await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("You're signed in"));
-      assert.equal(await page.locator("#wifiGuidance").isVisible(), true);
-      assert.equal(await page.locator("#connectWithPin").isDisabled(), true, "no connection until the device is identified");
+      if (uiV2) {
+        // v2 (#371, as drawn): Join NDAHI Wi-Fi first, with no PIN until Wi-Fi identifies the device.
+        await page.getByRole("heading", { name: "Join NDAHI Wi-Fi first" }).waitFor();
+        assert.equal(await page.locator("#accountPin").isVisible(), false);
+        assert.equal(await page.getByRole("button", { name: "Check again" }).isVisible(), true);
+      } else {
+        await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
+        await page.locator("#accountPin").fill("2468");
+        await page.locator("#connectWithPin").click();
+        await page.waitForFunction(() => document.querySelector("#qrMessage").textContent.includes("You're signed in"));
+        assert.equal(await page.locator("#wifiGuidance").isVisible(), true);
+        assert.equal(await page.locator("#connectWithPin").isDisabled(), true, "no connection until the device is identified");
+        assert.ok((await context.cookies(f.api + "/api/account")).some((cookie) => cookie.name === "customer_session"));
+      }
       assert.equal((await f.store.snapshot()).wifiPairingRequests.length, 0);
-      assert.ok((await context.cookies(f.api + "/api/account")).some((cookie) => cookie.name === "customer_session"));
       await page.goto(origin + "/hotspot?mac=AA:BB:CC:DD:EE:03&address=10.20.0.30");
       await page.waitForURL((url) => url.pathname === "/voucher-connect.html");
       await page.waitForFunction(() => !document.querySelector("#connectWithPin").disabled);
