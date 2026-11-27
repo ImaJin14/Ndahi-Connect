@@ -53,6 +53,7 @@ test("a Home kit with installation and Pay in 3, through the API: booked, paid i
   assert.equal((await call("/api/store/installations")).body.open, false, "closed until staff set it up");
   assert.equal((await call("/api/admin/store/installations/settings", { price: 15000, areas: [{ id: "akwa", name: "Akwa", town: "Douala", travelFee: 2000 }],
     capacity: { morning: 1, afternoon: 1 }, technicians: [{ id: "eric", name: "Eric" }] }, { role: "operator" })).status, 200);
+  assert.equal((await call("/api/admin/store/plans/rules", { depositPct: 40, days: 30, grace: 7, minPrice: 50000 }, { role: "operator" })).status, 403, "the owner sets the plan rules");
   assert.equal((await call("/api/admin/store/plans/rules", { depositPct: 40, days: 30, grace: 7, minPrice: 50000 }, { role: "owner" })).status, 200);
   let snap = (await call("/api/admin/store/kits/save", { name: { en: "Home kit", fr: "Kit maison" }, items: [{ productId: "router", quantity: 1 }], firstBundleId: "home-wisp-30d",
     price: 70000, setUp: true, installation: true, payIn3: true }, { role: "owner" })).body;
@@ -135,4 +136,29 @@ test("a Home kit with installation and Pay in 3, through the API: booked, paid i
   await commerce.run();
   o = await order(store, id2);
   assert.deepEqual([o.payment.status, o.payment.refunds.map((r) => r.amount)], ["refunded", [17000, 70000]]);
+});
+
+test("payment plans through the Admin API: anyone on the store can remind or extend; only the owner cancels and refunds", async (t) => {
+  const { store, call, commerce } = await server(t);
+  await call("/api/admin/store/plans/rules", { depositPct: 40, days: 30, grace: 7, minPrice: null }, { role: "owner" });
+  const kit = (await call("/api/admin/store/kits/save", { name: { en: "Home kit", fr: "Home kit" }, items: [{ productId: "router", quantity: 1 }], firstBundleId: "home-wisp-30d",
+    price: 70000, setUp: false, installation: false, payIn3: true }, { role: "owner" })).body.kits[0];
+  await call("/api/admin/store/kits/status", { id: kit.id, version: kit.version, status: "on_sale" }, { role: "owner" });
+  const bought = await call("/api/account/store/checkout", { kitId: kit.id, expectedPrice: 70000, expectedAmount: 28000, pay: "plan",
+    name: "Amina", phone: "670000001", payerPhone: "690000002", network: "mtn", checkoutKey: randomUUID() }, { customer: true });
+  assert.equal(bought.status, 200, JSON.stringify(bought.body));
+  const id = bought.body.order.id;
+  await call("/api/account/store/verify", { orderId: id }, { customer: true });
+  let o = await order(store, id);
+  assert.equal((await call("/api/admin/store/plans/update", { id, version: o.version, action: "remind" }, { role: "operator" })).status, 200);
+  o = await order(store, id);
+  assert.equal(o.plan.reminders.length, 1);
+  assert.equal((await call("/api/admin/store/plans/update", { id, version: o.version, action: "cancel" }, { role: "operator" })).status, 403, "refunds are the owner's");
+  assert.equal((await call("/api/admin/store/plans/update", { id, version: o.version, action: "extend" }, { role: "operator" })).status, 200);
+  o = await order(store, id);
+  assert.equal(o.plan.extension.days, 7, "by the plan's grace length");
+  assert.equal((await call("/api/admin/store/plans/update", { id, version: o.version, action: "cancel" }, { role: "owner" })).status, 200);
+  await commerce.run();
+  o = await order(store, id);
+  assert.deepEqual([o.plan.status, o.payment.status, o.stockState], ["cancelled", "refunded", "released"], "the deposit back, the kit back on sale");
 });
