@@ -2222,7 +2222,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Kits: catalogue, admin API and kit checkout (#424, batch 18, 27 November 2026)
 
 - [-] **STORE-424 — Kits on the server (batch 18)** ([#424](https://github.com/ImaJin14/Ndahi-Connect/issues/424)); rules in `docs/redesign/decisions.md` → "Kits, installations and payment plans (23 Nov)". The screens are #347 and #373 (batch 19).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #550, not merged yet):
     - kit records (`storeKits`): name and description in English and French, store products with quantities, a first bundle from the Unlimited catalogue, a price in whole FCFA, draft / on sale / archived, and the options Set up for the buyer's account (Home WISP only), Offer installation and Allow Pay in 3;
     - Admin API (`/api/admin/store/kits/save`, `kits/status`), audited; a kit goes on sale only when its products are published with prices and its bundle is published; the admin list shows "Bought separately", the saving, stock and sold this month;
     - the shop's catalogue lists kits on sale with each network's fee and total; "Bought separately" and the saving come from current prices and show only when the saving is real;
