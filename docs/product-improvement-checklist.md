@@ -2150,7 +2150,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Scan to connect, as drawn (#371, batch 16, 27 November 2026)
 
 - [-] **CUS-371 — Scan to connect, redesigned (batch 16)** ([#371](https://github.com/ImaJin14/Ndahi-Connect/issues/371)). Owner decisions: [names instead of pronouns](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7214191703), [the first name, time left and slots before the PIN, as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7215164293).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #539, not merged yet):
     - a scanned QR shows "Checking your code…", then "Hi Amina — confirm it's you" with the bundle's card (Active · plan, the time left or an earlier bundle's data left, "Ends 25 Nov · 1 of 2 device slots used"), Your PIN, Connect, or Use passkey, and "Scanning alone never connects a device.";
     - after the PIN: "You're online — This device now uses Amina's Personal Unlimited bundle. It shows up in Amina's Devices list." and Done; full slots go to Replace a device (#350) with this device's details;
     - not identified on NDAHI Wi-Fi: "Join NDAHI Wi-Fi first" with the three steps, Open Wi-Fi sign-in and Check again (no PIN until Wi-Fi identifies the device);
