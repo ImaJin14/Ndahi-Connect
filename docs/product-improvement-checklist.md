@@ -2232,7 +2232,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Help for Unlimited (#361, batch 18, 27 November 2026)
 
 - [-] **CUS-361 — Help, redesigned for Unlimited (batch 18)** ([#361](https://github.com/ImaJin14/Ndahi-Connect/issues/361)). Owner decisions: [as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220081886); [linked answers stay, hidden until linked](https://github.com/ImaJin14/Ndahi-Connect/issues/361#issuecomment-7220205003).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #360):
+  - **Implemented and tested** (PR #547, not merged yet; built on #360):
     - the five drawn questions with the Unlimited answers (device slots, no buying before it ends, Personal bundles restrict hotspot sharing, the shop's pickup place), and "Still need help?" with Call and WhatsApp;
     - "Check my connection" answers in rows: "Joined NDAHI Wi-Fi" (or not), "Bundle active — 2 days 14 h left" (or data left, no bundle, sign in), and "Private Wi-Fi address is on — turn it off for NDAHI" when known;
     - server: the connectivity evidence adds whether this session's router-confirmed device uses a private Wi-Fi address (yes/no only; never the address; unknown until identified);
