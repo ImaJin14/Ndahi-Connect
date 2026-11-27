@@ -67,7 +67,9 @@ test("kit checkout: an account, the server's price, stock from every product, an
   const reserve = (i, customerId = "c1") => reserveOrder(s, i, { now: time, secret, customerId, provider: "mesomb" });
   assert.throws(() => reserve(input(), null), /Sign in to buy a kit/);
   assert.throws(() => reserve(input({ expectedPrice: 1 })), /price changed/, "a tampered price is refused");
-  assert.throws(() => reserve(input({ installation: true })), /aren't available yet/);
+  // Installation and Pay in 3 only where the kit offers them (#427).
+  assert.throws(() => reserve(input({ setup: "install" })), /isn't offered with installation/);
+  assert.throws(() => reserve(input({ pay: "plan" })), /Pay in 3 isn't offered/);
   assert.throws(() => reserve(input({ quantity: 2 })), /one at a time/);
   const i = input(), { order } = reserve(i);
   assert.deepEqual([order.kitId, order.productId, order.quantity, order.unitPrice, order.payment.amount], ["kit-1", null, 1, 70000, 70000]);
