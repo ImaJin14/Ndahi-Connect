@@ -1612,7 +1612,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Use a voucher for Unlimited (#366, batch 14, 27 November 2026)
 
 - [-] **CUS-366 — Use a voucher, updated for Unlimited (batch 14)** ([#366](https://github.com/ImaJin14/Ndahi-Connect/issues/366)). Owner decisions: [claim link only](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210694424), [done screen without the save card](https://github.com/ImaJin14/Ndahi-Connect/issues/366#issuecomment-7210892609).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #518, not merged yet):
     - the signed-in voucher page adds "Someone bought this for your number? Claim it with your number →" (to Claim a gift); "Have an account? Sign in instead" is left out, since the page is for signed-in customers (owner);
     - after a code works: the tick, "You're connected", "Voucher K7PM-42XQ is active: unlimited data for 7 days on 1 device." from the voucher's own terms, and Start browsing, which signs this phone in to the Wi-Fi when the portal runs on it (it used to redirect straight away); no save-to-account card (owner);
     - the page now sits on the board's 22 px margins and the code's letters are spaced as drawn;
