@@ -69,5 +69,6 @@ export function mountDevicesAdd(call) {
 // The device poll re-renders the list; keep the count in the head in step.
 export function updateDevicesCount(list) {
   const count = document.getElementById("devicesCount");
+  if (document.body.dataset.deviceSlots === "true") return; // the slots view keeps its own count (#349)
   if (count && list && list.deviceLimit) count.textContent = devicesCount((list.devices || []).length, list.deviceLimit);
 }
