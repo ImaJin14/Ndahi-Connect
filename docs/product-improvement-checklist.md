@@ -1668,7 +1668,7 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Your saved voucher, as drawn (#367, batch 15, 27 November 2026)
 
 - [-] **CUS-367 — Your saved voucher, redesigned for Unlimited (batch 15)** ([#367](https://github.com/ImaJin14/Ndahi-Connect/issues/367)). Owner decision: [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/367#issuecomment-7212012909).
-  - **Implemented and tested** (PR #PRNUM, not merged yet):
+  - **Implemented and tested** (PR #523, not merged yet):
     - the forest card: "Personal Unlimited · 7 days · 2 devices" (a fixed-data voucher keeps "Weekly · 5 GB · 7 days"), the code without NC- as on the slip, its QR, "Not used yet · valid until 10 Feb 2027" (or "In use · ends …"), and "See what scanning opens →", the page its QR opens;
     - Copy code and Print slip (the slip page has Download PDF), the note, and "Use it on this device now", which resumes this device's connection as Continue did;
     - Download Voucher, the automatic download, "Continue to Dashboard / Wi-Fi", the two links, the long note and the install card are gone (owner);
