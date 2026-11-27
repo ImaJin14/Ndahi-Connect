@@ -1583,6 +1583,18 @@ Owner requested all unknown business details remain blank for now. Review this l
     - **key specs:** each product can have up to 12 label/value rows (English required, French optional), edited in Admin → Edit product → More product details; they fill the drawn rows, followed by the store's warranty and returns. Without key specs, the product's texts show as rows, as before. On phones, key specs lead "Specifications, box contents, warranty".
   - **Not yet:** the key specs entered by the owner for the four products.
 
+### Voucher page for Unlimited bundles (#344, batch 13, 26 November 2026)
+
+- [-] **ADM-344 — Voucher page, redesigned for Unlimited (batch 13)** ([#344](https://github.com/ImaJin14/Ndahi-Connect/issues/344)). Owner decisions: [#344 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/344#issuecomment-7202629546).
+  - **Implemented and tested** (PR #511, not merged yet):
+    - an Unlimited voucher's ticket reads "Unlimited data · 7 days · 2 device slots" and "Valid until [date] if not used"; Usage shows time left with a validity bar ("4.5 of 7 days used") and "2 of 2 device slots used"; one whose time ran out reads "Used up" here and in Recent vouchers (owner); data-capped vouchers keep their own terms and usage;
+    - the code shows without "NC-" ("K7PM-42XQ"), as drawn; typed either way it works (owner);
+    - History says "Created in batch B-1029-01 by Owner" and "Redeemed by J. Fon on an Android phone at AP-Market · receipt emailed"; Details shows "B-1029-01 · 20 codes"; amounts read XAF, as drawn;
+    - codes made in Admin from now on (batches and single vouchers) can be used for 90 days, then stop working; codes made before keep working with no date (owner); a reserved code keeps its claim window;
+    - the device kind comes from the browser that redeemed the code; the access point comes from the Omada controller, read once a minute when `DEVICE_PLACES_ENABLED=true` and a live controller is saved; the on-site check is `docs/operations/device-places-onsite-test.md`;
+    - Print slip, Mark as sold, Resend receipt email and Revoke voucher show in every state; one that can't act says why (owner). Resend receipt email now really sends again (it used to report a failure every time).
+  - **Not yet:** merged, deployed, a place shown from the live controller, or an admin code past 90 days refused at the HotSpot.
+
 ### Voucher print formats and follow-up work (9 November 2026)
 
 - Implemented: removed A4 voucher sheet rendering, selector, CSS and named page size (#208). Bulk and single vouchers default to the same 58mm thermal slip; 80mm remains available. Retired/unknown layout values safely fall back to 58mm.
