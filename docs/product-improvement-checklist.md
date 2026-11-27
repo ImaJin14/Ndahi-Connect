@@ -2164,7 +2164,7 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Use a bundle from another phone, with a pairing code (#407, batch 15, 27 November 2026)
 
 - [-] **CUS-407 — Use a bundle from another phone, redesigned with a pairing code (batch 15)** ([#407](https://github.com/ImaJin14/Ndahi-Connect/issues/407)). Owner decisions: [build the pairing code](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212011525), [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212186185), [waiting with the QR, they/them, the code card, the signed-in shortcut](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212468449).
-  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #370):
+  - **Implemented and tested** (PR #525, not merged yet; built on #370):
     - the owner's Devices → "Add another device" shows a pairing code on a forest card ("PAIRING CODE · 482 913 · Type it on the other device. It works once, for 10 minutes."), a countdown, New code and Close; a bundle that doesn't share keeps its old help;
     - the new device types the code and taps Send request; the code names the account, so it no longer asks for the account's number and a voucher; a device signed in to the account keeps its one-tap "Request Wi-Fi access";
     - "Waiting for approval" with the reference ("PR-7Q4") and its QR, Check again and Cancel request; then "Approved — you're online. This device shares Amina's Personal Unlimited bundle. They can remove it any time from Devices."; Done shows only if the Wi-Fi sign-in doesn't take over;
