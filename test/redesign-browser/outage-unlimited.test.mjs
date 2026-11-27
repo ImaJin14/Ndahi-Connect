@@ -53,7 +53,7 @@ test("an outage on a running Unlimited bundle reads as drawn, and Home draws no 
   let { page, errors } = await open();
   await page.locator(".home-outage--down").waitFor();
   assert.equal(await text(page.locator(".home-outage-line")), "Network down · Bamenda");
-  assert.equal(await text(page.locator(".home-unl__kicker")), "PERSONAL UNLIMITED", "the plan's name alone during an outage");
+  assert.equal(await page.locator(".home-unl__kicker").textContent(), "Personal Unlimited", "the plan's name alone during an outage");
   assert.equal(await text(page.locator(".home-unl__pill")), "No internet");
   assert.deepEqual(await page.locator(".home-unl__pill").evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color]), ["rgb(238, 240, 238)", "rgb(61, 74, 68)"]);
   assert.equal(await text(page.locator(".home-unl__figure")), "2 days 14 h left · unlimited data");
@@ -69,13 +69,14 @@ test("an outage on a running Unlimited bundle reads as drawn, and Home draws no 
   ({ page, errors } = await open());
   await page.locator(".home-outage--restored").waitFor();
   assert.match(await text(page.locator(".home-outage")), /^We're back online Sorry for the interruption\. We added 3 hours to your bundle to make up for it\./);
-  assert.equal(await text(page.locator(".home-unl__kicker")), "PERSONAL UNLIMITED");
+  assert.equal(await page.locator(".home-unl__kicker").textContent(), "Personal Unlimited");
   assert.equal(await text(page.locator(".home-unl__legend span").first()), "Ends in 2 days 14 h");
   assert.deepEqual(errors, []);
 
   // With no outage notice, Home's card is unchanged.
   await f.store.transaction((s) => { s.outages = []; });
   ({ page } = await open());
-  assert.equal(await text(page.locator(".home-unl__kicker")), "PERSONAL UNLIMITED · 7 DAYS");
+  // textContent: innerText follows the CSS uppercase only once styles have applied.
+  assert.equal(await page.locator(".home-unl__kicker").textContent(), "Personal Unlimited · 7 days");
   assert.match(await text(page.locator(".home-unl__legend span").first()), /^Ends [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d{2}:\d{2}$/);
 });
