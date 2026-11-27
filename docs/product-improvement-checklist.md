@@ -2203,6 +2203,14 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - server: the bundle status adds a Personal Unlimited bundle's slots taken; fixed-data bundles keep their card.
   - **Not yet:** merged, deployed, or seen on a real phone on NDAHI Wi-Fi.
 
+### Desktop Home with a running Unlimited bundle (#354, batch 17, 27 November 2026)
+
+- [-] **CUS-354 — Desktop Home, redesigned for Unlimited (batch 17)** ([#354](https://github.com/ImaJin14/Ndahi-Connect/issues/354)). Owner decisions: [Connected only while online; record daily usage for "Used this week"; "Welcome back." as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/354#issuecomment-7216862730).
+  - **Implemented and tested** (PR #PRNUM, not merged yet; built on #352):
+    - from 768px Home follows Main: "Tuesday, 10 November", "Welcome back." at 40px and Bundles & vouchers; the forest card with "Active bundle" over the plan's name, the pill, "2 days 14 h left · unlimited data" with "Ends Wed 25 Nov · 18:03" beside it, the time bar, and tiles "2 of 2 · Device slots used", "1.8 GB · Used this week", "25 Nov · Validity ends"; fully online the banner gives way to the top bar's "Network online";
+    - server: each router reading's increase is recorded per day (Douala time, last 8 days kept) for direct and Home router bundles, and the bundle status gives the last 7 days; it fills in from the day this ships.
+  - **Not yet:** merged, deployed, or a week of real readings seen on desktop.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").

@@ -34,8 +34,8 @@ test("Home shows a running Unlimited bundle as drawn, Connected only while the n
   const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   t.after(async () => { await browser.close(); await f.close(); await new Promise((r) => { website.close(r); website.closeAllConnections(); }); });
   const cors = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" };
-  const open = async ({ connectivity, lang = "en", ready = "[data-time-left]" }) => {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const open = async ({ connectivity, lang = "en", ready = "[data-time-left]", width = 390 }) => {
+    const context = await browser.newContext({ viewport: { width, height: 844 } });
     await context.route("**/*", (route) => {
       const u = new URL(route.request().url());
       if (u.pathname.endsWith("/api/account/connectivity")) return connectivity ? route.fulfill({ headers: cors, json: connectivity }) : route.fulfill({ status: 503, headers: cors, json: { error: "unavailable" } });
@@ -78,6 +78,25 @@ test("Home shows a running Unlimited bundle as drawn, Connected only while the n
   assert.equal(await text(page.locator(".home-unl__figure")), "2 j 14 h restants · données illimitées");
   assert.match(await text(page.locator(".home-unl__legend")), /^Se termine [a-z]{3,4}\. \d{1,2} [a-zéû]{3,5}\.? 2 appareils sur 2$/);
   assert.equal(await text(page.locator(".network-state-banner")), "Réseau en ligne");
+  assert.deepEqual(errors, []);
+
+  // Desktop (Main, #354): "Active bundle" over the plan's name, the end beside
+  // the time left, and the tiles, with the week's recorded usage.
+  await f.store.transaction((s) => { const day = (n) => new Date(Date.now() - n * 864e5).toLocaleDateString("en-CA", { timeZone: "Africa/Douala" });
+    s.vouchers.find((x) => x.id === "v1").usageDays = { [day(0)]: 1e9, [day(3)]: 8e8, [day(12)]: 5e9 }; });
+  ({ page, errors } = await open({ connectivity: online("authenticated"), width: 1280 }));
+  await page.locator(".home-unl__pill", { hasText: "Connected" }).waitFor();
+  assert.match(await text(page.locator("#portalEyebrow")), /^[A-Z]+DAY, \d{1,2} [A-Z]+$/, "the date as drawn (Tuesday, 10 November)");
+  assert.equal(await text(page.locator("#portalTitle")), "Welcome back.");
+  assert.equal(await text(page.locator(".home-unl__eyebrow")), "ACTIVE BUNDLE");
+  assert.equal(await text(page.locator(".home-unl__plan")), "Personal Unlimited");
+  assert.match(await text(page.locator(".home-unl__ends")), /^Ends [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} · \d{2}:\d{2}$/);
+  const tiles = await page.locator(".home-unl__tile").evaluateAll((els) => els.map((el) => el.innerText.replace(/\s+/g, " ").trim()));
+  assert.deepEqual(tiles.slice(0, 2), ["2 of 2 Device slots used", "1.80 GB Used this week"]);
+  assert.match(tiles[2], /^\d{1,2} [A-Z][a-z]{2} Validity ends$/);
+  assert.equal(await page.locator(".home-unl__legend").isVisible(), false, "the phone legend gives way to the tiles");
+  assert.equal(await page.locator(".network-state-banner").isVisible(), false, "the top bar says Network online");
+  assert.deepEqual(await lowContrastText(page), []);
   assert.deepEqual(errors, []);
 
   // A fixed-data bundle keeps its own card (data left), unchanged.
