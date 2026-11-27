@@ -16,9 +16,10 @@ if (login) {
 // After Finish Wi-Fi sign-in (#372, canvas: PhoneWifiConnected) the router
 // returns here with `next`. "You're online" shows only once the network
 // confirms this device is signed in; until then (or a saved tab later) the
-// fallback above stays.
-const next = new URLSearchParams(location.search).get("next");
-if (next !== null) void (async () => {
+// fallback above stays. An unsafe `next` gets only the fallback, with no
+// account request at all.
+const next = customerDestination(new URLSearchParams(location.search).get("next"), null);
+if (next) void (async () => {
   const lang = currentLanguage(), L = (key) => format(key, {}, lang);
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
@@ -29,7 +30,7 @@ if (next !== null) void (async () => {
         document.getElementById("onlineText").textContent = L(["android_phone", "iphone"].includes(deviceKind(navigator.userAgent)) ? "onlinePhone" : "onlineDevice");
         document.getElementById("onlineTip").textContent = L("onlineTip");
         const home = document.getElementById("onlineHome");
-        home.textContent = L("onlineHome"); home.href = customerDestination(next);
+        home.textContent = L("onlineHome"); home.href = next;
         document.getElementById("wifiFallback").hidden = true;
         document.getElementById("wifiOnline").hidden = false;
         document.body.setAttribute("data-wifi-online", "");
