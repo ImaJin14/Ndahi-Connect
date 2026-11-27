@@ -1769,6 +1769,18 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Not verified against MeSomb: the owner observed 600 FCFA on 30,000 (2.00%) and 102 FCFA on 5,000 (2.04%), which no single simple rule explains. Run `node scripts/check-payment-fees.mjs` in the API's Render shell before setting `PAYMENT_FEE_MTN` and `PAYMENT_FEE_ORANGE`. A staging payment with a balance between the price and the total is still to be done.
 - Not fixed here, found in passing: the decorative MTN/Orange badges over the network list on the v2 buy page fail contrast (white on orange, 2.63:1). The v2 buy and gift pages, and the public store, are English-only today, so their French fee strings are reached only when the page language is French.
 
+### Buy for someone else, Unlimited and the 2% fee (#364, batch 14, 27 November 2026)
+
+- [-] **BUY-364 — Buy for someone else, updated for Unlimited and the Mobile Money fee (batch 14)** ([#364](https://github.com/ImaJin14/Ndahi-Connect/issues/364)). Owner decisions: [every offer as a card](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7210693173), [keep #255's wording](https://github.com/ImaJin14/Ndahi-Connect/issues/364#issuecomment-7211152463).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - step 2 lists every offer on sale as a card; an Unlimited card reads "Unlimited · 7 days · 2 devices" (Home WISP: "Unlimited · 30 days · household sharing", shown only while Home WISP is on); prices in XAF;
+    - over the button: Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote, the wallet notice with the total in bold, and Pay Now; a network without a verified fee shows the price and says the fee is in the operator prompt;
+    - the waiting screen says "An MTN MoMo request for 4,080 XAF (incl. 80 XAF fee) …"; failure messages use XAF;
+    - the gift's code shows without "NC-", as on the slip (#368);
+    - the page follows the customer's language choice (it was always English); English and French;
+    - fixed-data bundles keep their own card line ("5 GB · 7 days") while the legacy catalogue is on sale.
+  - **Not yet:** merged, deployed, or a gift bought with real Mobile Money for each kind of number.
+
 ### Shop checkout on phones (#397, batch 8, 26 November 2026)
 
 - [-] **CUS-397 — Shop checkout, redesigned (batch 8)** ([#397](https://github.com/ImaJin14/Ndahi-Connect/issues/397)). Owner decisions: [#397 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/397#issuecomment-7178824960).

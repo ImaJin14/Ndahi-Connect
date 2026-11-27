@@ -5,6 +5,7 @@ import { mkdir } from "node:fs/promises";
 import { createServer, createStore } from "../../server.mjs";
 import { createStaticServer } from "../../static-server.mjs";
 import { hashSecret } from "../../lib/security.mjs";
+import { seedCatalogue } from "../../lib/catalogue.mjs";
 import { lowContrastText } from "../../scripts/ui-checks.mjs";
 
 // Buy for someone else (#255, canvas: PhoneBuyForOther): from Internet, the
@@ -60,12 +61,13 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
     await page.getByRole("heading", { name: `Pick a bundle for ${name}` }).waitFor();
     assert.equal(await page.getByRole("radio", { name: /Weekly/ }).getAttribute("aria-checked"), "true", "the buyer's own plan is chosen to start with");
     await page.getByLabel("Add a note (optional)").fill("For your calls with the family ❤");
-    assert.equal(await text(page.locator(".gift__cost")), "Bundle 1,000 + MTN MoMo fee 20 1,020 FCFA");
-    assert.equal(await text(page.locator(".gift__charged")), "Charged to your number 6•• •• 12 45 — your balance needs at least 1,020 FCFA.");
+    // The 24 Nov board: the price, the 2% fee and the total, the wallet notice and Pay Now (#364).
+    assert.equal(await text(page.locator(".gift__cost")), "Bundle Price 1,000 XAF Mobile Payment Fee (2%) 20 XAF Total to Pay 1,020 XAF");
+    assert.equal(await text(page.locator(".gift__notice")), "Ensure you have at least 1,020 XAF in your MTN MoMo wallet (includes 2% mobile payment fee). Keep your screen unlocked to enter your PIN.");
     if (label) await check(`${label}-plan`);
-    await page.getByRole("button", { name: "Pay 1,020 FCFA with MTN MoMo" }).click();
+    await page.getByRole("button", { name: "Pay Now" }).click();
     await page.getByRole("heading", { name: "Approve on your phone" }).waitFor();
-    assert.equal(await text(page.locator(".gift__text")), "An MTN MoMo request for 1,020 FCFA (incl. 20 FCFA fee) was sent to your number. This screen updates by itself.");
+    assert.equal(await text(page.locator(".gift__text")), "An MTN MoMo request for 1,020 XAF (incl. 20 XAF fee) was sent to your number. This screen updates by itself.");
     if (label) await check(`${label}-wait`);
     const payment = (await store.snapshot()).payments.find((p) => p.gift && !["paid", "failed", "expired"].includes(p.status));
     assert.ok(payment, JSON.stringify((await store.snapshot()).payments.map((p) => [p.status, p.failureReason, p.providerStatus, p.provider, p.network, p.payerPhone])));
@@ -91,8 +93,8 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
   await page.getByRole("heading", { name: "Paid — now send it" }).waitFor();
   assert.equal(await text(page.locator(".gift__text")), "Send Mama Ngum the code or show them the QR. They claim it with the code and their number 6•• •• 88 99, and the 7 days start when they choose.");
   const voucher = page.getByRole("region", { name: "Gift voucher" });
-  assert.match(await text(voucher), /^FOR MAMA NGUM · WEEKLY NC-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
-  await voucher.getByRole("img", { name: /^QR code for voucher NC-/ }).waitFor();
+  assert.match(await text(voucher), /^FOR MAMA NGUM · WEEKLY [A-Z0-9]{4}-[A-Z0-9]{4}$/, "the code as on the slip, without NC-");
+  await voucher.getByRole("img", { name: /^QR code for voucher [A-Z0-9]{4}-[A-Z0-9]{4}$/ }).waitFor();
   await page.getByRole("button", { name: "Share code" }).waitFor();
   assert.equal(await page.getByRole("link", { name: "See it in Activity" }).getAttribute("href"), "/dashboard#activity");
   await check("no-account-done");
@@ -119,4 +121,81 @@ test("a customer buys bundles for three kinds of number", { timeout: 240000 }, a
   assert.equal(s.vouchers.find((v) => v.id === "v-buyer").status, "active", "the buyer's own bundle is untouched");
   assert.deepEqual(errors, []);
   await context.close();
+});
+
+// The Unlimited catalogue (#364): every offer is a card ("Unlimited · 7 days ·
+// 2 devices"), Home WISP only while Home is on (owner), and without a verified
+// fee rule the foot shows the price and says the fee is in the operator prompt.
+test("buying for someone else lists the Unlimited offers as cards", { timeout: 180000 }, async (t) => {
+  const secret = "redesign-gift-unlimited", store = createStore({ persistent: false });
+  await store.transaction((s) => {
+    seedCatalogue(s, new Date()); s.catalogue.mode = "unlimited";
+    s.customers.push({ id: "c-buyer", name: "Amina Nfor", phone: "670001245", email: "amina@example.test", emailVerifiedAt: later(-100) });
+    s.dashboardSessions.push({ id: "sess", customerId: "c-buyer", role: "customer", tokenHash: hashSecret("buyer", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
+  });
+  const apiPort = await reservePort(), api = `http://127.0.0.1:${apiPort}`;
+  const portalServer = await listen(createStaticServer("customer", { apiUrl: api, env: { NODE_ENV: "test" } }));
+  const portal = `http://127.0.0.1:${portalServer.address().port}`;
+  const apiServer = createServer({ store, validateConfig: false, env: { NODE_ENV: "test", CUSTOMER_SESSION_SECRET: secret, SECRET_PEPPER: secret, SESSION_COOKIE_SECURE: "false", CUSTOMER_APP_URL: portal,
+    PAYMENT_MODE: "mock", EMAIL_MODE: "mock", MIKROTIK_MODE: "mock", OMADA_MODE: "mock", BILLING_WORKER_ENABLED: "false", NETWORK_QUEUE_ENABLED: "false", SECURITY_ALERTS_ENABLED: "false", LOG_LEVEL: "silent" } });
+  await new Promise((resolve) => apiServer.listen(apiPort, "127.0.0.1", resolve));
+  const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
+  const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
+  t.after(async () => { await browser.close(); await close(apiServer); await close(portalServer); });
+  const open = async ({ home = false, lang } = {}) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Africa/Douala", locale: lang === "fr" ? "fr-FR" : "en-US" });
+    await context.route("**/*", (route) => [api, portal].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+    if (home) await context.route("**/api/home/config", (route) => route.fulfill({ json: { enabled: true } }));
+    if (lang === "fr") await context.addInitScript(() => { try { localStorage.setItem("ndahi-lang", "fr"); } catch {} });
+    await context.addCookies([{ name: "customer_session", value: "buyer", url: `${api}/api/account`, httpOnly: true, sameSite: "Lax" }, { name: "ndahi_ui", value: "v2", url: portal, sameSite: "Lax" }]);
+    const page = await context.newPage(), errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`${portal}/gift.html`);
+    await page.locator("#giftPhone").fill("670008899");
+    await page.locator("#giftName").fill("Mama Ngum");
+    await page.locator(".gift__card--on").waitFor();
+    await page.locator("#giftWho button[type=submit]").click();
+    await page.locator("#giftPlan").waitFor();
+    return { context, page, errors };
+  };
+
+  // Home is off: the 19 Personal offers, each with its device count.
+  const { context, page, errors } = await open();
+  const cards = page.getByRole("radio");
+  assert.equal(await cards.count(), 19);
+  assert.equal(await text(cards.first()), "Personal Unlimited Unlimited · 5 h · 1 device 250 XAF");
+  assert.equal(await text(page.locator('[data-plan="unlimited-24h-1"]')), "Personal Unlimited Unlimited · 24 h · 1 device 500 XAF");
+  await page.locator('[data-plan="unlimited-7d-2"]').click();
+  assert.equal(await page.locator('[data-plan="unlimited-7d-2"]').getAttribute("aria-checked"), "true");
+  assert.equal(await text(page.locator('[data-plan="unlimited-7d-2"]')), "Personal Unlimited Unlimited · 7 days · 2 devices 4,000 XAF");
+  assert.equal(await page.getByText("Home WISP Unlimited").count(), 0, "Home WISP is hidden while Home is off");
+  // No verified fee: the price, the fee in the operator prompt, and the notice without a total.
+  assert.equal(await text(page.locator(".gift__cost")), "Bundle Price 4,000 XAF The Mobile Money fee will appear in the operator prompt, before you approve.");
+  assert.equal(await text(page.locator(".gift__notice")), "Ensure your MTN MoMo wallet covers 4,000 XAF plus the fee shown in the operator prompt. Keep your screen unlocked to enter your PIN.");
+  assert.deepEqual(await lowContrastText(page), []);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByRole("button", { name: "Pay Now" }).click();
+  await page.getByRole("heading", { name: "Approve on your phone" }).waitFor();
+  const payment = (await store.snapshot()).payments.find((p) => p.gift);
+  assert.equal(payment.planId, "unlimited-7d-2");
+  assert.equal((await fetch(`${api}/api/payments/${payment.id}/confirm`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status, 200);
+  await page.getByRole("button", { name: "Check status" }).click();
+  await page.getByRole("heading", { name: "Paid — now send it" }).waitFor();
+  assert.match(await text(page.getByRole("region", { name: "Gift voucher" })), /^FOR MAMA NGUM · PERSONAL UNLIMITED [A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  assert.deepEqual(errors, []);
+  await context.close();
+
+  // Home is on: Home WISP is the last card.
+  const home = await open({ home: true });
+  assert.equal(await home.page.getByRole("radio").count(), 20);
+  assert.equal(await text(home.page.getByRole("radio").last()), "Home WISP Unlimited Unlimited · 30 days · household sharing 50,000 XAF");
+  await home.context.close();
+
+  // French.
+  const fr = await open({ lang: "fr" });
+  assert.equal(await text(fr.page.locator('[data-plan="unlimited-30d-4"]')), "Personal Unlimited Illimité · 30 jours · 4 appareils 20 000 XAF");
+  await fr.page.locator('[data-plan="unlimited-30d-4"]').click();
+  assert.equal(await fr.page.getByRole("button", { name: "Payer maintenant" }).count(), 1);
+  assert.deepEqual(fr.errors, []);
+  await fr.context.close();
 });
