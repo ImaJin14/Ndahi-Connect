@@ -2077,7 +2077,7 @@ On 21 November the owner also asked for the countdown in the customer portal.
 
 ### Device slots on the Devices page (#349, batch 15, 27 November 2026)
 
-- [-] **CUS-349 — Device slots, redesigned (batch 15)** ([#349](https://github.com/ImaJin14/Ndahi-Connect/issues/349)). Owner decisions: [Remove asks for the PIN inline; Replace only on a device without a slot](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7212011980).
+- [-] **CUS-349 — Device slots, redesigned (batch 15)** ([#349](https://github.com/ImaJin14/Ndahi-Connect/issues/349)). Owner decisions: [Remove asks for the PIN inline; Replace only on a device without a slot](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7212011980), [main-device setup folded under the FAQ; "Being removed" until the router confirms](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7213908126).
   - **Implemented and tested** (PR #534, not merged yet; built on #533 and #525):
     - a running Personal Unlimited bundle's Devices page is "Device slots · 2 of 2 used": the plan, its length and device count, then one card per slot (the device, online now or last seen, its masked Wi-Fi address), an empty slot as a dashed card, "All slots are in use …" when full, and "Private Wi-Fi address on my phone?";
     - on a device without a slot, each slot has Replace and the foot is "Replace a device" (both open Replace a device, #350); on the phone holding a slot it is "This phone", Replace goes, and the foot is "Show a pairing code" (#407);
