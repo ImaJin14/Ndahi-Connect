@@ -1,0 +1,36 @@
+/* Finish Wi-Fi sign-in and You're online (#372, canvas: PhoneWifiConnected).
+   The step (body[data-wifi-finish], on /hotspot after a PIN or passkey sign-in)
+   and "You're online" (body[data-wifi-online], on /wifi-connected.html once the
+   network confirms) take the board's full-height layout; other arrivals keep
+   their card. */
+body[data-wifi-finish], body[data-wifi-online] { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; margin: 0; background: #fbfaf5; color: #10241c; }
+body[data-wifi-finish] > header, body[data-wifi-online] > header { box-sizing: border-box; display: flex; align-items: center; gap: 10px; min-height: 0; margin: 0; padding: 16px 20px; border: 0; background: #003b2b; color: #ffffff; }
+body[data-wifi-finish] > header .brand, body[data-wifi-online] > header .brand { display: flex; align-items: center; gap: 10px; margin: -3px 0; color: #ffffff; text-decoration: none; }
+body[data-wifi-finish] > header .brand-mark, body[data-wifi-online] > header .brand-mark { box-sizing: content-box; display: grid; place-items: center; width: 34px; height: 34px; margin: 0; border: 2px solid #b9ee2e; border-radius: 50%; background: none; color: #b9ee2e; font: 700 11px var(--nd-font-body); }
+body[data-wifi-finish] > header .brand strong, body[data-wifi-online] > header .brand strong { color: #ffffff !important; font: 700 19px var(--nd-font-display); letter-spacing: normal; }
+body[data-wifi-finish] > header small, body[data-wifi-online] .scan-bar__help { display: none; }
+body[data-wifi-finish] > main, body[data-wifi-online] > main { display: flex; flex: 1; flex-direction: column; width: 100%; max-width: none; margin: 0; padding: 0; }
+
+/* The step */
+body[data-wifi-finish] .wifi-finish { box-sizing: border-box; display: flex; flex: 1; flex-direction: column; gap: 16px; width: 100%; max-width: none; margin: 0; padding: 26px 22px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+body[data-wifi-finish] .wifi-finish > .eyebrow { margin: 0; color: #4d6b00; font: 700 11px var(--nd-font-body); letter-spacing: .14em; text-transform: uppercase; }
+body[data-wifi-finish] .wifi-finish h1 { margin: 0; color: #10241c; font: 600 30px/1.15 var(--nd-font-display); }
+body[data-wifi-finish] .wifi-finish .wifi-finish__lede { margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55; }
+.wifi-finish__facts { margin: 0; }
+.wifi-finish__facts[hidden] { display: none; }
+.wifi-finish__row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #dfe5dc; font: 400 14px/normal var(--nd-font-body); letter-spacing: normal; }
+.wifi-finish__row dt { color: #5c6963; }
+.wifi-finish__row dd { margin: 0; font-weight: 600; text-align: right; }
+body[data-wifi-finish] .wifi-finish #message { margin: 0; }
+body[data-wifi-finish] #connect { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin: auto 0 0; padding: 0 16px; border: 0; border-radius: 10px; background: #b9ee2e; color: #15210c; font: 700 16px var(--nd-font-body); cursor: pointer; }
+body[data-wifi-finish] .wifi-finish__back { margin: 0; }
+body[data-wifi-finish] #finishLater { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 0 16px; border: 1px solid #b8c7bd; border-radius: 10px; background: #fffef9; color: #003b2b; font: 700 16px var(--nd-font-body); text-decoration: none; }
+
+/* You're online */
+.wifi-online[hidden] { display: none; }
+.wifi-online { box-sizing: border-box; display: flex; flex: 1; flex-direction: column; align-items: center; gap: 14px; padding: 34px 22px 22px; text-align: center; }
+.wifi-online__icon { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: #eaf6d5; }
+.wifi-online h1 { margin: 0; color: #10241c; font: 600 30px/1.15 var(--nd-font-display); }
+.wifi-online__text { margin: 0; color: #3d4a44; font-size: 15px; line-height: 1.55; }
+.wifi-online__tip { box-sizing: border-box; align-self: stretch; margin: 0; padding: 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.45; text-align: left; }
+.wifi-online__home { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; margin-top: auto; padding: 0 16px; border-radius: 10px; background: #b9ee2e; color: #15210c; font: 700 16px var(--nd-font-body); text-decoration: none; }

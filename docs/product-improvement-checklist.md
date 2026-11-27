@@ -2147,6 +2147,33 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - on-site plan: `docs/operations/device-replace-onsite-test.md`.
   - **Not yet:** the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
 
+### Finish Wi-Fi sign-in, tap to connect (#372, batch 16, 27 November 2026)
+
+- [-] **CUS-372 — Finish Wi-Fi sign-in, redesigned (batch 16)** ([#372](https://github.com/ImaJin14/Ndahi-Connect/issues/372)). Owner decision: [as drawn, tap to connect](https://github.com/ImaJin14/Ndahi-Connect/issues/372#issuecomment-7214678269).
+  - **Implemented and tested** (PR #538, not merged yet):
+    - after a PIN or passkey sign-in on NDAHI Wi-Fi with a running bundle, the device sees "Finish Wi-Fi sign-in." with this device ("Android phone"), the bundle and its time left (or data left for an earlier bundle) and a Personal Unlimited bundle's device slots, then Connect this device or Not now — just view my account. Nothing connects until the tap;
+    - after connecting, "You're online" (with the private Wi-Fi address tip and Go to my home) shows on `/wifi-connected.html` only once the network confirms the device; a saved tab without that keeps the old instructions;
+    - paying, a voucher code, a renewal and pairing still connect at once, as their paths are drawn; English and French.
+  - **Not yet:** merged, deployed, or a sign-in finished on a real phone on NDAHI Wi-Fi.
+
+### Account, with shop order updates (#357, batch 16, 27 November 2026)
+
+- [-] **CUS-357 — Account, redesigned (batch 16)** ([#357](https://github.com/ImaJin14/Ndahi-Connect/issues/357)). Owner decisions: [shop order updates built as drawn, off by default; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/357#issuecomment-7214190225).
+  - **Implemented and tested** (PR #535, not merged yet):
+    - phones follow PhoneAccount: Security, Notifications with three switches (Low data alerts, Bundle ending soon, Shop order updates), Language as the English | Français control, then Home WISP router with "Not registered" / "Registered", Help & support and Sign out;
+    - shop order updates: a new "orders" notification setting, off until switched on, and one in-app/push notice per paid shop order that follows it from "Order placed" to "Order ready to collect" to "Order collected". The collection code stays on the order page. Not emailed: order emails are unchanged;
+    - server: the dashboard's `homeRouter.registered` comes from the registered Home router; notification settings accept `orders`; English and French.
+  - **Not yet:** merged, deployed, or a real order's notices seen on a phone.
+
+### Desktop Account (#358, batch 16, 27 November 2026)
+
+- [-] **CUS-358 — Desktop Account, redesigned (batch 16)** ([#358](https://github.com/ImaJin14/Ndahi-Connect/issues/358)). Owner decisions: [shop order updates built as drawn; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/358#issuecomment-7214191025).
+  - **Implemented and tested** (PR #537, not merged yet; built on #535):
+    - from 768px Account follows DesktopAccount: the name with number and email and Edit profile, then Security, Notifications (three switches) and Home and help as panels in the board's grid, and Sign out;
+    - Home and help reads Home WISP router (registration from the API), Payment and package rules, Help & support, then Language as "English · Français" with the other language as a link; focus stays on the language link after the switch;
+    - sizes, spacing, 56px rows and outlined buttons measured against the board at 1280px; English and French.
+  - **Not yet:** merged or deployed.
+
 ### Scan to connect, as drawn (#371, batch 16, 27 November 2026)
 
 - [-] **CUS-371 — Scan to connect, redesigned (batch 16)** ([#371](https://github.com/ImaJin14/Ndahi-Connect/issues/371)). Owner decisions: [names instead of pronouns](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7214191703), [the first name, time left and slots before the PIN, as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7215164293).
