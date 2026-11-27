@@ -55,7 +55,8 @@ test("installation: two customers can't take the last slot; moving and cancellin
   assert.throws(() => cancelBooking(s, a, late, "customer"), /up to 24 h before/);
   // Couldn't install: exactly the installation and travel come back; the rest can come back later.
   refundPart(a, a.installation.price + a.installation.travelFee, "Couldn't install", now);
-  assert.deepEqual([a.payment.refund.amount, a.payment.refund.partial], [17000, true]);
+  assert.deepEqual([a.payment.refund.amount, a.payment.refund.partial, a.payment.status], [17000, true, "paid"], "part of it: the order stays paid");
+  assert.match(orderView(a).collectionCode, /^\d{6}$/, "and its code still collects the kit");
   a.payment.refunds = [{ ...a.payment.refund, status: "completed" }]; delete a.payment.refund; a.payment.status = "paid";
   assert.equal(refundable(a.payment), 70000);
   assert.throws(() => refundPart(a, 70001, "too much", now), /more than the payment can return/);
