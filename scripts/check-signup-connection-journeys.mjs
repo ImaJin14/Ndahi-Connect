@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { openManageDevices, useVoucherSignIn, uiV2, fillPairingRequest, pairingSubmitName, waitForOwnerApproval } from "./portal-tabs.mjs";
+import { openManageDevices, useVoucherSignIn, uiV2, fillPairingRequest, pairingSubmitName, waitForOwnerApproval, savedVoucherReady, continueFromSavedVoucher } from "./portal-tabs.mjs";
 import http from "node:http";
 import { mkdir } from "node:fs/promises";
 import { createStaticServer } from "../static-server.mjs";
@@ -93,9 +93,9 @@ try {
   const connecting = owner.waitForResponse((r) => r.url().endsWith("/api/account/device-management/connect") && r.status() === 202);
   await owner.locator("#submitLabel").click();
   await owner.waitForURL(/\/voucher-ready\.html/);
-  await owner.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+  await savedVoucherReady(owner);
   assert.equal(f.calls.length, 0, "voucher remains retrievable before connection begins");
-  await owner.getByRole("link", { name: "Continue to Dashboard / Wi-Fi", exact: true }).click();
+  await continueFromSavedVoucher(owner);
   const connection = await connecting, queued = await connection.json();
   const firstOwnerKey = connection.request().postDataJSON().key;
   assert.equal(connection.request().postDataJSON().mac, ownerMac);

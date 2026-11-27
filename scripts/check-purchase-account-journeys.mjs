@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { useVoucherSignIn } from "./portal-tabs.mjs";
+import { useVoucherSignIn, savedVoucherReady } from "./portal-tabs.mjs";
 import http from "node:http";
 import { randomUUID } from "node:crypto";
 import { createServer, createStore } from "../server.mjs";
@@ -71,7 +71,7 @@ try {
         assert.equal(requests[0].postDataJSON().phone, undefined);
         await page.locator("#confirm").click();
         await page.waitForURL(/\/voucher-ready\.html/);
-        await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+        await savedVoucherReady(page);
         const s = await store.snapshot();
         assert.equal(s.customers.length, 1); assert.equal(s.customers[0].name, name); assert.equal(s.customers[0].email, email);
         assert.equal(s.customers[0].phone, phone); assert.equal(s.payments[0].payerPhone, "670180099");
@@ -121,7 +121,7 @@ try {
       await post(`/api/payments/${s.payments[0].id}/confirm`, {});
       await check.click();
       await page.waitForURL(/\/voucher-ready\.html/);
-      await page.getByRole("button", { name: "Download Voucher", exact: true }).waitFor();
+      await savedVoucherReady(page);
       assert.equal((await store.snapshot()).payments.length, 2);
     });
   }
