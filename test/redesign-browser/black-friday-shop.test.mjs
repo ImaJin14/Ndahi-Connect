@@ -129,17 +129,22 @@ test("shoppers see the Black Friday countdown, the offer and their free month, t
   assert.equal(await text(page.locator("#shopPanel .portal-promo__when")), "ENDS IN");
   await row.click();
   await page.locator(".portal-promo__gift").waitFor();
-  assert.match(await text(page.locator(".portal-promo__strip")), /^BLACK FRIDAY Ends Mon 30 Nov · 2 d 1[34] h left$/);
+  // As drawn (PhonePromoBuy, #411): the badge and the time left on the photo, no quantity for one per number.
+  assert.equal(await text(page.locator(".portal-buy__photo .portal-buy__badge")), "BLACK FRIDAY");
+  assert.match(await text(page.locator(".portal-buy__strip")), /^Ends Mon 30 Nov 2 d 1[34] h left$/);
+  assert.match(await text(page.locator(".portal-buy__price")), /^100,000 FCFA 6 left at this price$/);
   assert.match(await text(page.locator(".portal-promo__gift")), /^\+ 1 month Unlimited internet, free Unlimited Home · worth [\d,]+ FCFA · start it when you like$/);
   assert.equal(await text(page.locator("#shopBuy")), "Get the deal · 100,000 FCFA");
-  assert.equal(await text(page.locator(".portal-promo__limit")), "1 per phone number");
-  assert.equal(await page.locator('[data-shop-qty="1"]').getAttribute("data-max"), "1", "one per number");
-  assert.equal(await page.locator('[data-shop-qty="1"]').isDisabled(), true);
+  assert.equal(await text(page.locator(".portal-buy__limit")), "Limit 1 per customer");
+  assert.equal(await page.locator("[data-shop-qty]").count(), 0, "one per number: no quantity");
+  assert.equal(await page.getByText("Sold separately", { exact: false }).count(), 0, "the free month is included");
   await check(page, "portal-product-390");
   await page.locator("#shopBuy").click();
   await page.locator("#shopCheckout").waitFor();
-  assert.match(await text(page.locator("#shopCost")), /^Item 100,000 FCFA \+ 1 month Unlimited \(Unlimited Home\) Free /);
-  assert.equal(await text(page.locator(".portal-promo__note")), "How you get your free month It's added to your account when you collect the router. It waits there until you press Start — even if you still have a bundle running.");
+  assert.match(await text(page.locator("#shopCost")), /^TP-Link AX1500 Travel Router BLACK FRIDAY 100,000 FCFA \+ 1 month Unlimited \(Unlimited Home\) Free /);
+  assert.equal(await text(page.locator(".portal-buy__how")), "How you get your free month It's added to your account when you collect the router. It waits there until you press Start — even if you still have a bundle running.");
+  assert.match(await text(page.locator(".portal-buy__collect")), /^Collect at Bandja Street Amina N\. · 6•• •• 12 45 · from your account$/);
+  assert.match(await text(page.locator("#shopNote")), /^Ensure you have at least [\d,]+ FCFA in your MTN MoMo wallet/);
   await check(page, "portal-checkout-390");
   assert.deepEqual(errors, []);
   await context.close();
@@ -161,16 +166,20 @@ test("shoppers see the Black Friday countdown, the offer and their free month, t
   await page.goto(`${shop}/#product/ax1500`);
   await page.locator(".promo-gift").waitFor();
   assert.equal(await text(page.locator("#buy")), "Get the deal · 100,000 FCFA");
-  assert.equal(await page.locator('[data-step="1"]').isDisabled(), true, "one per number");
+  assert.equal(await page.locator("[data-step]").count(), 0, "one per number: no quantity");
+  assert.equal(await text(page.locator(".promo-limit")), "Limit 1 per customer");
   assert.equal(await page.getByText("Internet service is purchased separately", { exact: false }).count(), 0, "the free month is included");
   assert.match(await text(page.locator(".promo-gift")), /^\+ 1 month Unlimited internet, free Unlimited Home · worth [\d,]+ FCFA · start it when you like$/);
   await check(page, "store-product-390");
   await page.locator("#buy").click();
-  // Guest checkout in steps (#400): continue as guest, then the details.
-  await page.locator("#checkoutGuest").click();
+  // A deal goes straight to its checkout, as drawn (PhonePromoBuy, #411).
   await page.locator("#checkoutForm").waitFor();
   assert.match(await text(page.locator("#checkoutCost")), /\+ 1 month Unlimited \(Unlimited Home\) Free/);
-  assert.equal(await text(page.locator(".promo-note")), "How you get your free month It's reserved for the Mobile Money number that pays. When you collect the router you get a slip with a code — claim it with that number and the code.");
+  assert.equal(await text(page.locator(".buy-how")), "How you get your free month It's reserved for the Mobile Money number that pays. When you collect the router you get a slip with a code — claim it with that number and the code.");
+  await page.locator("#name").fill("Paul Tchami");
+  await page.locator("#payerPhone").fill("690558802");
+  assert.equal(await text(page.locator("#buyWho")), "Paul T. · 6•• •• 88 02 · guest");
+  assert.match(await text(page.locator(".buy-how")), /pays \(6•• •• 88 02\)\./);
   await check(page, "store-checkout-guest-390");
   await context.close();
   // A guest order, paid: nothing is given until the router is collected.

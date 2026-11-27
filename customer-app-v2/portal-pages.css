@@ -888,3 +888,65 @@ body[data-device-slots] #devicesCount { padding: 0 8px 0 0; border-radius: 0; ba
   #shopPanel .portal-kit-screen { flex: 1; margin: 0 -16px; }
   #shopPanel .portal-kit__foot { position: sticky; bottom: 0; z-index: 5; }
 }
+/* The deal on phones (canvas: PhonePromoBuy, #411): the photo with its badge
+   and time left, the price, the free bundle and terms; the checkout's order,
+   how the free bundle arrives and where to collect; and the order placed. */
+#shopPanel .portal-buy__photo { position: relative; display: grid; place-items: center; height: 220px; overflow: hidden; background: var(--nd-sage); color: var(--nd-muted); font-size: 13px; }
+#shopPanel .portal-buy__photo img { width: 100%; height: 100%; object-fit: cover; }
+#shopPanel .portal-buy__badge { display: inline-block; padding: 4px 10px; border-radius: 6px; background: var(--nd-ink); color: var(--nd-lime); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+#shopPanel .portal-buy__photo .portal-buy__badge { position: absolute; top: 14px; left: 14px; }
+#shopPanel .portal-buy__badge--small { padding: 2px 6px; font-size: 9px; vertical-align: middle; }
+#shopPanel .portal-buy__strip { position: absolute; right: 14px; bottom: 12px; left: 14px; display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 10px; background: rgba(16, 36, 28, .88); color: var(--nd-white); font-size: 13px; }
+#shopPanel .portal-buy__strip strong { color: var(--nd-lime); }
+#shopPanel .portal-buy__body { display: flex; flex-direction: column; gap: 10px; padding: 16px 0 0; }
+#shopPanel .portal-buy__name { margin: 0; color: var(--nd-ink); font: 600 26px/1.15 var(--nd-font-display); }
+#shopPanel .portal-buy__price { display: flex; justify-content: space-between; align-items: baseline; }
+#shopPanel .portal-buy__price p { display: flex; gap: 10px; align-items: baseline; margin: 0; }
+#shopPanel .portal-buy__price strong { color: var(--nd-ink); font-size: 24px; }
+#shopPanel .portal-buy__price s { color: var(--nd-muted); font-size: 15px; }
+#shopPanel .portal-buy__left { color: #8a4a00; font-size: 13px; font-weight: 700; }
+#shopPanel .portal-buy .portal-promo__gift { align-items: center; margin: 0; padding: 14px; border-radius: 14px; }
+#shopPanel .portal-buy__desc { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: 1.5; }
+#shopPanel .portal-buy__terms { border-top: 1px solid var(--nd-line); border-bottom: 0; }
+body[data-portal-sub="product"] #shopPanel .portal-buy__terms { padding-top: 0; }
+body[data-portal-sub="product"] #shopPanel .portal-buy { gap: 0; padding: 0; }
+#shopPanel .portal-buy__terms > summary { min-height: 44px; font-size: 14px; font-weight: 700; }
+#shopPanel .portal-buy__terms .portal-rule__chevron { display: none; }
+#shopPanel .portal-buy__terms p { margin: 0 0 8px; color: var(--nd-ink-soft); font-size: 13px; line-height: 1.5; }
+#shopPanel .portal-buy__foot { flex-direction: column; align-items: stretch; gap: 0; }
+#shopPanel .portal-buy__foot .portal-buy__cta { min-height: 52px; border: 0; border-radius: 10px; font-size: 16px; line-height: normal; }
+#shopPanel .portal-buy__limit { margin: 8px 0 0; color: var(--nd-muted); font-size: 12px; text-align: center; }
+#shopPanel .portal-buy__main { gap: 14px; }
+#shopPanel .portal-buy__order { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); }
+#shopPanel .portal-buy__ln { display: flex; justify-content: space-between; gap: 12px; color: var(--nd-ink); font-size: 14px; }
+#shopPanel .portal-buy__ln--free { color: var(--nd-success-fg); }
+#shopPanel .portal-buy__ln--fee { color: var(--nd-ink-soft); }
+#shopPanel .portal-buy__ln--total { padding-top: 8px; border-top: 1px solid var(--nd-line); }
+#shopPanel .portal-buy__ln--total strong:last-child { font-size: 18px; }
+#shopPanel .portal-buy__how { padding: 12px 14px; border-radius: 12px; background: var(--nd-success-bg); color: #2b4200; font-size: 14px; line-height: 1.5; }
+#shopPanel .portal-buy__how strong { display: block; }
+#shopPanel .portal-buy__collect { padding: 10px 12px; border: 2px solid var(--nd-forest); border-radius: 12px; background: var(--nd-paper); font-size: 14px; }
+#shopPanel .portal-buy__collect strong { display: block; color: var(--nd-ink); }
+#shopPanel .portal-buy__collect span { color: var(--nd-muted); }
+#shopPanel .portal-buy__note { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 13px; line-height: 1.45; }
+#shopPanel .portal-buy__done { display: flex; flex: 1; flex-direction: column; gap: 14px; padding: 22px 2px; }
+#shopPanel .portal-buy__done-head { display: flex; align-items: center; gap: 12px; }
+#shopPanel .portal-buy__done-icon { display: grid; flex: none; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--nd-success-bg); color: var(--nd-success-fg); }
+#shopPanel .portal-buy__done-icon svg { stroke-width: 2.4; }
+#shopPanel .portal-buy__h1 { margin: 0; font: 600 26px/1.15 var(--nd-font-display); }
+#shopPanel .portal-buy__placed { margin: 0; color: var(--nd-ink-soft); font-size: 15px; }
+#shopPanel .portal-buy__timeline { padding: 16px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
+#shopPanel .portal-buy__timeline h2 { margin: 0 0 12px; color: var(--nd-ink); font: 700 16px var(--nd-font-body); }
+#shopPanel .portal-buy__tl { margin: 0; padding: 0; list-style: none; }
+#shopPanel .portal-buy__tl li { position: relative; padding: 0 0 14px 26px; color: var(--nd-ink); font-size: 14px; }
+#shopPanel .portal-buy__tl li::before { content: ""; position: absolute; top: 18px; bottom: -2px; left: 6px; width: 2px; background: var(--nd-line); }
+#shopPanel .portal-buy__tl li:last-child { padding-bottom: 0; }
+#shopPanel .portal-buy__tl li:last-child::before { display: none; }
+#shopPanel .portal-buy__tl li span:not(.portal-buy__dot) { color: var(--nd-muted); font-size: 13px; }
+#shopPanel .portal-buy__dot { position: absolute; top: 3px; left: 0; box-sizing: border-box; width: 14px; height: 14px; border: 2px solid var(--nd-line-strong); border-radius: 50%; background: var(--nd-white); }
+#shopPanel .portal-buy__dot.is-done { border: 0; background: var(--nd-forest); }
+@media (max-width: 767.98px) {
+  body[data-portal-sub="product"] #shopPanel .portal-buy__photo { margin: 0 -18px; }
+  body[data-portal-sub="product"] #shopPanel .portal-buy__body { padding: 16px 2px 0; }
+  body[data-portal-sub="product"] #shopPanel .portal-buy .portal-buy__photo { margin: 0 -16px; }
+}

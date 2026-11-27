@@ -88,6 +88,43 @@ export function productExtras(p) {
   };
 }
 
+// The deal on a phone (canvas: PhonePromoBuy, #411): the photo with the badge
+// and the time left on it, the price with what's left at it, the free bundle,
+// the description and terms; Get the deal and the limit at the foot.
+export function buyProduct(p, { photo, closed }) {
+  const pr = p.promotion, x = productExtras(p);
+  const left = pr.unitsLeft == null ? p.available : Math.min(pr.unitsLeft, p.available);
+  const regular = Number.isFinite(pr.regularPrice) ? `<s aria-label="${h(L("buyRegular", { price: money(pr.regularPrice) }))}">${h(Number(pr.regularPrice).toLocaleString(currentLanguage() === "fr" ? "fr-CM" : "en-CM"))}</s>` : "";
+  return { top: `<div class="portal-buy__photo">${photo}<span class="portal-buy__badge">${h(text(pr.name))}</span><span class="portal-buy__strip"><span>${h(L("portalPromoEnds", { day: day(lastMinute(pr.endsAt)) }))}</span><strong data-countdown-inline="${h(pr.endsAt)}"></strong></span></div>`,
+    price: `<div class="portal-buy__price"><p><strong>${h(money(pr.salePrice))}</strong>${regular}</p>${left > 0 && !closed ? `<span class="portal-buy__left">${h(L("portalPromoLeft", { count: left }))}</span>` : ""}</div>`,
+    bonus: x.bonus, terms: x.terms.replace('class="portal-rule"', 'class="portal-rule portal-buy__terms"'), button: x.button,
+    limit: L("buyLimit", { count: pr.perNumberLimit }), left };
+}
+// The deal's checkout (canvas: PhonePromoBuy, owner 27 Nov): the order with
+// its free bundle, fee and total, how the free bundle arrives, where to collect.
+export function buyOrderLines(p, quantity, quote) {
+  const pr = p.promotion, b = pr.bonus, price = quote ? quote.price : pr.salePrice * quantity;
+  return `<section class="portal-buy__order" id="shopCost" aria-label="${h(L("buyOrder"))}">
+    <div class="portal-buy__ln"><span><strong>${h(text(p.name))}</strong>${quantity > 1 ? ` × ${quantity}` : ""} <span class="portal-buy__badge portal-buy__badge--small">${h(text(pr.name))}</span></span><span>${h(money(price))}</span></div>
+    ${b ? `<div class="portal-buy__ln portal-buy__ln--free"><span>${h(L("portalPromoLine", { length: length(b.days), data: dataWord(b), plan: b.planName }))}</span><strong>${h(L("portalPromoFree"))}</strong></div>` : ""}
+    <div class="portal-buy__ln portal-buy__ln--fee"><span>${h(L(quote ? "deskBuyFee" : "deskBuyFeePlain"))}</span><span>${h(quote ? money(quote.fee) : L("deskBuyFeeInPrompt"))}</span></div>
+    ${quote ? `<div class="portal-buy__ln portal-buy__ln--total"><strong>${h(L("deskBuyTotal"))}</strong><strong>${h(money(quote.total))}</strong></div>` : ""}</section>`;
+}
+export function buyHow(p) {
+  const b = p.promotion.bonus;
+  if (!b) return "";
+  return `<section class="portal-buy__how" aria-label="${h(L("buyFreeMonthLabel"))}"><strong>${h(L("portalPromoHowTitle", { gift: giftWord(b.days) }))}</strong>${h(L(b.givenAt === "payment" ? "buyDeliveryPayment" : "portalPromoDelivery"))}</section>`;
+}
+// Order placed for a deal: the timeline of the router and the free bundle.
+export function buyDone(o, place) {
+  const b = o.bonus, paid = Number.isFinite(o.total) ? o.total : o.amount;
+  const steps = [[L("buyPaid"), money(paid), true], [L("buyCollect"), L("buyCollectHint", { place }), false],
+    ...(b ? [[L("buyGet", { gift: giftWord(b.days) }), L(b.givenAt === "payment" ? "buyGetAccountPaid" : "buyGetAccount"), false],
+      [L("buyStart"), L("buyStartHint", { within: b.startWithinDays || 60, days: b.days, data: b.planName && /unlimited/i.test(b.planName) ? L("portalPromoUnlimitedWord") : dataWord({ quotaGb: null }) }), false]] : [])];
+  return `<section class="portal-buy__timeline" aria-labelledby="buyTimelineTitle"><h2 id="buyTimelineTitle">${h(L("buyTimeline", { gift: b ? giftWord(b.days) : L("portalPromoGiftBundle") }))}</h2>
+    <ol class="portal-buy__tl">${steps.map(([title, line, done], i) => `<li><span class="portal-buy__dot${done ? " is-done" : ""}" aria-hidden="true"></span><strong>${h(title)}</strong>${i === 0 ? ` · ${h(line)}` : `<br><span>${h(line)}</span>`}</li>`).join("")}</ol></section>`;
+}
+
 // The checkout line and how the free days arrive (a signed-in account).
 export function checkoutExtras(p) {
   const b = p.promotion && p.promotion.bonus;
