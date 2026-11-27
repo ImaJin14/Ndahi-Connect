@@ -41,6 +41,7 @@ import { withCorrelation } from "./lib/correlation.mjs";
 import { fileURLToPath } from "node:url";
 import { normalize } from "node:path";
 import { assertProductionConfig } from "./lib/config.mjs";
+import { devicePlacesEnabled } from "./lib/device-places.mjs";
 export {
   plans,
   blank,
@@ -146,6 +147,10 @@ export function createHandler(opts = {}) {
   // SERVICE_HEALTH_ENABLED=true; tests call the checks themselves.
   handler.serviceHealth = context.serviceHealth;
   handler.serviceHealthEnabled = env.SERVICE_HEALTH_ENABLED === "true" || (env.SERVICE_HEALTH_ENABLED !== "false" && env.NODE_ENV === "production");
+  // Where devices are (#344, #341): every minute once the owner sets
+  // DEVICE_PLACES_ENABLED=true for the on-site check.
+  handler.devicePlaces = context.devicePlaces;
+  handler.devicePlacesEnabled = devicePlacesEnabled(env);
   handler.metricsRegistry = context.performanceMetrics.registry;
   handler.monitoringEnabled = context.serviceMetrics.enabled;
   handler.logger = logger;
@@ -208,6 +213,7 @@ export const createServer = (opts) => {
     networkSetupTimer,
     monitorTimer,
     healthTimer,
+    placesTimer,
     housekeepingTimer,
     storeTimer;
   const runBilling = () =>
@@ -272,6 +278,10 @@ export const createServer = (opts) => {
       healthTimer = setInterval(() => handler.serviceHealth.run(), 60000);
       healthTimer.unref();
     }
+    if (handler.devicePlacesEnabled) {
+      placesTimer = setInterval(() => handler.devicePlaces.run(), 60000);
+      placesTimer.unref();
+    }
     if (handler.networkSetupEnabled) {
       void resumeNetworkSetup();
       networkSetupTimer = setInterval(resumeNetworkSetup, 30000);
@@ -333,6 +343,7 @@ export const createServer = (opts) => {
     clearInterval(securityAlertsTimer);
     clearInterval(monitorTimer);
     clearInterval(healthTimer);
+    clearInterval(placesTimer);
   });
   return server;
 };

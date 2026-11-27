@@ -13,7 +13,7 @@ import { formValues, sessionStore, randomId, requestJson } from "./compat.js";
 import { checkoutStore, configureCheckoutStore, migrateLegacyCheckout, savedCheckout, savedCheckoutKey } from "./checkout-store.js";
 import { paymentClock, mountPaymentTimers, ussdInstructions } from "./payment-timing.js";
 import { startUpdates } from "./updates.js";
-import { configurePairingLink } from "./wifi-pairing.js";
+import { configurePairingLink, startWifiRequest, wifiHint } from "./wifi-pairing.js";
 import { mountPrivateMacAdvisory } from "./private-mac-advisory.js";
 import { withWifiHint } from "./hotspot-path.js";
 import { mountThemeToggle } from "./portal-nav.js";
@@ -21,6 +21,8 @@ import { didntGoThroughButton, hidePaymentFailed, maskedNumber, paymentFailedOpe
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { unlimitedCatalogue, deskCatalogue, deskChoiceCard, deskNetworks, deskCost, deskNotice, deskHeader, setDeskNetwork, xaf } from "./buy-desktop.js";
+import { defaultPhonePlan, isHomePlan, phoneActivating, phoneCost, phoneDone, phoneKindPlan, phoneNetworks, phoneNotice, phonePicker,
+  phoneReviewSummary, phoneStepLabel, phoneWait, planForDevices, planForDuration } from "./buy-phone.js";
 
 mountThemeToggle();
 mountPrivateMacAdvisory();
@@ -47,14 +49,20 @@ let subscriptionAccess = { allowed: true };
 // Desktop Buy a bundle (#431, buy-desktop.js): signed-in, wide screen, Unlimited catalogue on sale.
 const deskQuery = typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 1024px)") : null;
 let deskHeaderEl = null, networkState = "unknown", deskReady = false;
-const deskFits = () => Boolean(deskQuery?.matches) && Boolean(account) && !accountAction && unlimitedCatalogue(plans);
+const deskWanted = () => Boolean(deskQuery?.matches) && Boolean(account) && !accountAction && unlimitedCatalogue(plans);
+const deskFits = () => !phoneReady && deskWanted();
 // Once set up, the layout stays until the page reloads: the checkout is part of
 // the page here and a dialog on phones. Crossing the width reloads into the
 // other layout, unless a payment is under way.
 const deskMode = () => deskReady || deskFits();
 deskQuery?.addEventListener?.("change", () => {
-  if (accessReady && !paymentInProgress && !creatingPayment && deskReady !== deskFits()) location.reload();
+  if (accessReady && !paymentInProgress && !creatingPayment && deskReady !== deskWanted()) location.reload();
 });
+// Phone Buy a bundle (#348, buy-phone.js): the Unlimited catalogue on sale,
+// any customer, signed in or not, when the desktop layout doesn't apply. The
+// steps are the body's data-buy-step: plan, pay, wait, activating, done.
+let phoneReady = false, phoneStep = "plan", phoneLastPersonal = null, phonePaidId = null;
+const phoneMode = () => phoneReady || (!deskMode() && !accountAction && unlimitedCatalogue(plans));
 // Price, Mobile Money fee and total (#297, canvas: PhoneBuyBundle). The fee and the
 // total always come from the server: each plan's paymentQuotes for the chosen
 // network, then the payment record. Without them the page says the fee is in the
@@ -65,7 +73,7 @@ const L = (key, values) => format(key, values || {}, currentLanguage()),
   quoteFor = (plan, network) => (Number.isFinite(plan?.paymentQuotes?.[network]?.total) ? plan.paymentQuotes[network] : null);
 const chosenNetwork = () => $("#purchase").elements.network.value;
 function payLabel() {
-  if (deskMode()) return L("deskBuyPayNow");
+  if (deskMode() || phoneMode()) return L("deskBuyPayNow");
   const quote = quoteFor(selected, chosenNetwork());
   return quote ? L("buyPay", { total: fcfa(quote.total) }) : L("buyPayNoFee", { price: fcfa(selected.price) });
 }
@@ -84,6 +92,7 @@ function costSection() {
 function renderCost() {
   if (!selected) return;
   if (deskMode()) return renderDeskCost();
+  if (phoneMode()) return renderPhoneCost();
   const cost = $("#checkoutCost"), network = chosenNetwork(), wallet = WALLETS[network], quote = quoteFor(selected, network);
   if (cost) cost.outerHTML = costSection();
   const note = $("#balanceNote");
@@ -196,6 +205,7 @@ function showPlanPeriod(value) {
 }
 function renderPlans() {
   if (deskMode()) return renderDesk();
+  if (phoneMode()) return renderPhone();
   const card = (plan) => {
     const blocked = !subscriptionAccess.allowed || (accountAction === "renew" && (!renewal || !renewal.eligible));
     const eligibility = !subscriptionAccess.allowed ? "Your existing bundle is protected from replacement." : blocked
@@ -540,7 +550,9 @@ async function resumeSavedCheckout(button, saved, checked) {
 function choose(id) {
   const plan = plans.find((item) => item.id === id);
   if (!plan || !purchaseAccess.allowed || !subscriptionAccess.allowed || paymentInProgress || creatingPayment || (accountAction === "renew" && !renewal?.eligible)) return false;
+  const changed = selected !== plan;
   selected = plan;
+  if (changed && phoneMode()) renderPhone();
   document.querySelectorAll(".plan").forEach((card) => card.classList.toggle("selected", card.dataset.card === id));
   document.querySelectorAll("#plans [data-plan][aria-pressed]").forEach((cell) => cell.setAttribute("aria-pressed", String(cell.dataset.plan === id)));
   return true;
@@ -556,8 +568,14 @@ function renderCheckoutReview() {
     $("#requestPayment").disabled = true;
     return;
   }
-  $("#selected").textContent = deskMode() ? L("deskBuyYourChoice") : checkoutTitle();
-  $("#checkoutSummary").innerHTML = deskMode() ? deskChoiceCard(selected) : (accountAction === "switch" && account.currentPlan?.plan ? comparison(selected) : "") + costSection();
+  $("#selected").textContent = phoneMode() ? L("phoneBuyReview") : deskMode() ? L("deskBuyYourChoice") : checkoutTitle();
+  if (phoneMode()) {
+    const form = $("#purchase");
+    form.elements.acknowledge.required = false;
+    $("#acknowledgement").hidden = true;
+    if (!account) form.elements.email.closest("label").hidden = !form.elements.email.required;
+  }
+  $("#checkoutSummary").innerHTML = phoneMode() ? phoneReviewSummary(selected) : deskMode() ? deskChoiceCard(selected) : (accountAction === "switch" && account.currentPlan?.plan ? comparison(selected) : "") + costSection();
   $("#checkoutPolicy").textContent = policy(selected) + " There is no automatic renewal. Closing this page does not cancel a submitted payment. Refund requests require support review; no automatic prorated refund applies.";
   $("#acknowledgementText").textContent = "I understand that the new package starts when payment is confirmed, provided no other bundle is active.";
   $("#purchase").elements.acknowledge.checked = false;
@@ -600,13 +618,7 @@ function renderDesk() {
   $("#requestPayment").insertAdjacentHTML("afterend", `<p class="buy-desk__rule">${h(L("deskBuyRule"))}</p>`);
   const label = [...$("#accountPayer").childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
   if (label) label.textContent = L("deskBuyNumber");
-  // The number shows masked, as drawn ("6•• •• 12 45"), until the field is used.
-  const payer = form.elements.payerPhone, wrap = document.createElement("span");
-  wrap.className = "buy-desk__payer";
-  payer.before(wrap);
-  wrap.append(payer);
-  wrap.insertAdjacentHTML("beforeend", '<span class="buy-desk__mask" id="deskPayerMask" aria-hidden="true"></span>');
-  for (const type of ["focus", "blur", "input", "change"]) payer.addEventListener(type, maskDeskPayer);
+  wrapPayer();
   $("#deskNetworks").onclick = (event) => {
     const button = event.target.closest("[data-desk-network]");
     if (!button || button.disabled) return;
@@ -624,6 +636,15 @@ function renderDesk() {
     next.click();
   };
   renderCheckoutReview();
+}
+// The account's number shows masked, as drawn ("6•• •• 12 45"), until the field is used.
+function wrapPayer() {
+  const payer = $("#purchase").elements.payerPhone, wrap = document.createElement("span");
+  wrap.className = "buy-desk__payer";
+  payer.before(wrap);
+  wrap.append(payer);
+  wrap.insertAdjacentHTML("beforeend", '<span class="buy-desk__mask" id="deskPayerMask" aria-hidden="true"></span>');
+  for (const type of ["focus", "blur", "input", "change"]) payer.addEventListener(type, maskDeskPayer);
 }
 function maskDeskPayer() {
   const payer = $("#purchase").elements.payerPhone, mask = $("#deskPayerMask");
@@ -646,6 +667,190 @@ function renderDeskCost() {
   note.hidden = false;
   if (!paymentInProgress && !creatingPayment && purchaseAccess.allowed) $("#requestPayment").textContent = payLabel();
 }
+// Phone Buy a bundle (#348, canvas: PhoneBuyBundle). The checkout form, its
+// submit and the payment checks stay the ones above; this arranges them as the
+// board's steps and draws the waiting, paid and online screens.
+function setupPhone() {
+  phoneReady = true;
+  document.body.classList.add("buy-phone");
+  document.title = `${L("phoneBuyTitle")} - NDAHI Connect`;
+  const form = $("#purchase"), back = $("a.buy-bar__back");
+  // The bar: back to Internet (or the start, signed out) on step 1, back to
+  // step 1 on Review and pay, none once the payment is sent. No login link.
+  back.setAttribute("aria-label", L("phoneBuyBack"));
+  back.insertAdjacentHTML("afterend", `<button type="button" class="buy-bar__back" id="phoneBack" aria-label="${h(L("phoneBuyBack"))}" hidden>${back.innerHTML}</button>`);
+  $("#phoneBack").onclick = closeCheckout;
+  $(".buy-bar__title").textContent = L("phoneBuyTitle");
+  $("#packagesTitle").textContent = L("phoneBuyChoose");
+  // Review and pay as drawn: Pay with, the Mobile Money number, what you'll
+  // pay, then the notice and Pay Now at the bottom. No name, policy or
+  // acknowledgement; the rule is on step 1.
+  // A page of its own here, not a dialog or a bottom sheet.
+  const checkout = $("#checkout");
+  checkout.classList.remove("modal-card");
+  for (const name of ["role", "aria-modal", "aria-describedby"]) checkout.removeAttribute(name);
+  $("#selected").tabIndex = -1;
+  form.elements.name.required = false;
+  form.elements.name.closest("label").hidden = true;
+  for (const label of [$("#accountPayer"), form.elements.phone.closest("label")]) {
+    const text = [...label.childNodes].find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+    if (text) text.textContent = L("deskBuyNumber");
+  }
+  $("#purchaseFields").insertAdjacentHTML("afterbegin", phoneNetworks(chosenNetwork()));
+  $("#accountPayer").insertAdjacentHTML("afterend", '<div id="phoneCostHost"></div>');
+  wrapPayer();
+  const foot = document.createElement("div");
+  foot.className = "buy-phone__foot buy-phone__foot--stack";
+  foot.id = "phonePayFoot";
+  form.append($("#message"), foot);
+  foot.append($("#balanceNote"), $("#requestPayment"));
+  // Pay Now sits outside the fieldset, so it follows the fieldset's state.
+  new MutationObserver(() => {
+    if ($("#purchaseFields").disabled) $("#requestPayment").disabled = true;
+    else if (!paymentInProgress && !creatingPayment) $("#requestPayment").disabled = !purchaseAccess.allowed || !subscriptionAccess.allowed || !selected;
+  }).observe($("#purchaseFields"), { attributes: true, attributeFilter: ["disabled"] });
+  $("#phoneNetworks").onclick = (event) => {
+    const button = event.target.closest("[data-phone-network]");
+    if (!button || button.disabled) return;
+    form.elements.network.value = button.dataset.phoneNetwork;
+    form.elements.network.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+  $("#checkout").insertAdjacentHTML("afterend", '<section id="phoneStage" class="buy-phone__screen" aria-labelledby="phoneStageTitle" hidden></section>');
+  setPhoneStep("plan");
+}
+function setPhoneStep(step) {
+  phoneStep = step;
+  document.body.dataset.buyStep = step;
+  $(".buy-bar__step").textContent = phoneStepLabel(step);
+  $("a.buy-bar__back").hidden = step !== "plan";
+  $("#phoneBack").hidden = step !== "pay";
+  const staged = ["wait", "activating", "done"].includes(step);
+  $("#phoneStage").hidden = !staged;
+  // Messages show on the screen in view: above Pay Now, or on the stage.
+  const message = $("#message"), slot = staged && $("#phoneStage [data-message-slot]");
+  if (slot) slot.replaceWith(message);
+  else if (!staged) $("#phonePayFoot").before(message);
+}
+function mountPhoneStage(step, html) {
+  const message = $("#message");
+  $("#phonePayFoot").before(message);
+  message.textContent = "";
+  $("#phoneStage").innerHTML = html;
+  setPhoneStep(step);
+  scrollTo(0, 0);
+  $("#phoneStageTitle")?.focus({ preventScroll: true });
+}
+function renderPhone() {
+  if (!phoneReady) setupPhone();
+  if (!selected || !plans.some((plan) => plan.id === selected.id)) selected = plans.find((plan) => plan.id === pageParams.get("plan")) || defaultPhonePlan(plans);
+  if (!selected) return;
+  if (!isHomePlan(selected)) phoneLastPersonal = selected;
+  $("a.buy-bar__back").href = account ? "/dashboard#internet" : "/";
+  const blocked = !subscriptionAccess.allowed || (accountAction === "renew" && !renewal?.eligible);
+  $("#plans").innerHTML = phonePicker(plans, selected, {
+    disabled: !accessReady || !purchaseAccess.allowed || blocked || Boolean(paymentInProgress) || creatingPayment,
+    continueLabel: accessReady && !purchaseAccess.allowed ? L("phoneBuyConnectFirst") : accessReady && blocked ? L("phoneBuyUnavailable") : "",
+  });
+  $("#plans").setAttribute("aria-busy", "false");
+}
+// A tab, a validity or a device count: the bundle it gives, then the same control keeps focus.
+function phonePick(button) {
+  if (button.disabled || paymentInProgress || creatingPayment) return;
+  const { phoneKind: kind, phoneDuration: duration, phoneDevices: devices } = button.dataset;
+  const next = kind ? phoneKindPlan(plans, kind, phoneLastPersonal) : duration ? planForDuration(plans, duration, selected.deviceSlots) : planForDevices(plans, selected, Number(devices));
+  if (!next) return;
+  selected = next;
+  renderPhone();
+  const [name, value] = kind ? ["kind", kind] : duration ? ["duration", duration] : ["devices", devices];
+  $(`#plans [data-phone-${name}="${CSS.escape(value)}"]`)?.focus();
+}
+function renderPhoneCost() {
+  maskDeskPayer();
+  const network = chosenNetwork(), quote = quoteFor(selected, network);
+  document.querySelectorAll("#phoneNetworks [data-phone-network]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.phoneNetwork === network)));
+  $("#phoneCostHost").innerHTML = phoneCost(selected, quote);
+  const note = $("#balanceNote");
+  note.querySelector("span").innerHTML = phoneNotice(selected, network, quote);
+  note.hidden = false;
+  if (!paymentInProgress && !creatingPayment && purchaseAccess.allowed) $("#requestPayment").textContent = payLabel();
+}
+// Step 3: the request was sent; polling (or the test approval) carries on as before.
+function showPhoneWait(payment, { mock = false, secure = "", phone } = {}) {
+  const number = payment.payerPhoneMasked || maskedNumber(payment.payerPhone || phone || "") || payment.payerPhone || "";
+  const extra = mock ? '<button type="button" class="buy-phone__extra" id="confirm">Simulate payment approval</button>'
+    : /^https:\/\//i.test(secure) ? `<a class="buy-phone__extra" href="${h(secure)}" target="_blank" rel="noopener">Open secure payment</a>` : "";
+  mountPhoneStage("wait", phoneWait(payment, { number, extra,
+    problem: `<button type="button" class="pay-failed-link buy-phone__problem" data-payment-failed>${h(L("phoneBuyProblem"))}</button>` }));
+  $("#phoneCheck").onclick = (event) => runButton(event.currentTarget, L("phoneBuyChecking"), async () => {
+    if (!await checkPayment(payment.id, phone)) $("#message").textContent = L("phoneBuyStillWaiting");
+  }).catch((error) => showError($("#message"), error));
+}
+// Paid: Payment received, then the Wi-Fi. Signed in, a Personal Unlimited
+// bundle starts on this device (its first connection); Home WISP starts on its
+// router, so it's online once paid. Without this device's Wi-Fi details the
+// voucher page connects it (owner, 26 Nov). Signed out, the account's PIN is set up next.
+async function phonePaid(paid) {
+  const payment = { ...(paymentInProgress?.id === paid.payment.id ? paymentInProgress : {}), ...paid.payment };
+  if (phonePaidId === payment.id) return;
+  phonePaidId = payment.id;
+  const plan = cataloguePlans.find((item) => item.id === payment.planId) || payment.plan || selected;
+  mountPhoneStage("activating", phoneActivating(payment));
+  if (!account) {
+    const saved = savedCheckout(), requestKey = payment.requestKey || saved?.requestKey;
+    let setup;
+    // A failed setup can be checked again from the message.
+    try { setup = await exchangeSetup(payment.id, requestKey); } catch (error) { phonePaidId = null; throw error; }
+    clearRequestKey();
+    sessionStore.remove("ndahi-login-challenge");
+    location.href = withWifiHint(setup.mode === "login" ? "/login?account=1&payment=confirmed&next=" + encodeURIComponent(afterPaid(payment.id)) : "/verify.html?setup=checkout");
+    return;
+  }
+  clearRequestKey();
+  if (isHomePlan(plan)) return mountPhoneStage("done", phoneDone(plan));
+  const hint = wifiHint();
+  if (!hint || (fromScan && savedVoucherScan())) {
+    sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
+    location.href = withWifiHint(afterPaid(payment.id));
+    return;
+  }
+  try {
+    const connected = await phoneConnect(hint);
+    if (connected) mountPhoneStage("done", phoneDone(plan, connected));
+  } catch (error) {
+    showError($("#message"), error, { actions: [{ label: L("phoneBuyOpenVoucher"), run: () => location.assign(withWifiHint(afterPaid(payment.id))) }] });
+  }
+}
+// This device's access request, as the Wi-Fi sign-in page makes it. A request
+// that needs the owner's proof or the main device's approval continues there.
+async function phoneConnect(hint) {
+  const wait = () => new Promise((resolve) => setTimeout(resolve, 2000));
+  const post = (path, payload) => call(path, { method: "POST", body: JSON.stringify(payload) });
+  const handover = () => { location.assign(withWifiHint("/hotspot")); return null; };
+  const input = { ...hint, key: randomId() }, deadline = Date.now() + 120000;
+  let result;
+  while (Date.now() < deadline) {
+    try {
+      result = await startWifiRequest((payload) => post("/api/account/device-management/connect", payload), input, (next) => { input.key = next; });
+      if (result.code === "HOTSPOT_PENDING") { result = null; await wait(); continue; }
+      break;
+    } catch (error) {
+      if (error.code === "DEVICE_REFRESH_REQUIRED") { await wait(); continue; }
+      if (["OWNER_VERIFICATION_REQUIRED", "SINGLE_DEVICE_SLOT_OCCUPIED", "DEVICE_APPROVAL_REQUIRED"].includes(error.code)) return handover();
+      throw error;
+    }
+  }
+  if (!result) throw new ApiError(408, L("phoneBuyNotConnected"));
+  let request = result.request;
+  if (["pending", "awaiting_code", "awaiting_confirmation"].includes(request.status)) return handover();
+  while (Date.now() < deadline && request.status === "connecting") {
+    await wait();
+    request = (await post("/api/wifi/pairing/status", { id: request.id, key: input.key })).request;
+  }
+  if (request.status !== "connected") throw new ApiError(408, request.message || L("phoneBuyNotConnected"));
+  // The first device can become the main device, as after Wi-Fi sign-in.
+  const main = request.firstDevice && request.deviceCapabilities?.mainDeviceSupported !== false;
+  return { home: main ? `/dashboard?main-device=${encodeURIComponent(hint.mac)}#home` : "/dashboard#home" };
+}
 function openCheckout(trigger) {
   checkoutTrigger = trigger;
   if (account && !paymentInProgress) fillAccountPayer();
@@ -656,6 +861,12 @@ function openCheckout(trigger) {
 function showCheckout() {
   $("#checkout").hidden = false;
   if (deskMode()) return;
+  if (phoneMode()) {
+    setPhoneStep("pay");
+    scrollTo(0, 0);
+    $("#selected").focus({ preventScroll: true });
+    return;
+  }
   document.body.classList.add("modal-open");
   $("#pageContent").inert = true;
   $("header").inert = true;
@@ -663,6 +874,8 @@ function showCheckout() {
   $("#closeCheckout").focus();
 }
 $("#plans").onclick = (event) => {
+  const pick = event.target.closest("[data-phone-kind], [data-phone-duration], [data-phone-devices]");
+  if (pick) return phonePick(pick);
   const chip = event.target.closest("button[data-plan-period]");
   if (chip) return showPlanPeriod(chip.dataset.planPeriod);
   const button = event.target.closest("button[data-plan]");
@@ -720,6 +933,14 @@ function restoreCheckoutFocus() {
 }
 function closeCheckout() {
   if (deskMode()) return;
+  // Phone: back to step 1, until a payment has been sent.
+  if (phoneMode()) {
+    if (paymentInProgress || creatingPayment) return;
+    $("#checkout").hidden = true;
+    setPhoneStep("plan");
+    $("#phoneContinue")?.focus();
+    return;
+  }
   $("#checkout").hidden = true;
   document.body.classList.remove("modal-open");
   $("#pageContent").inert = false;
@@ -735,9 +956,17 @@ function closeCheckout() {
   }
 }
 $("#closeCheckout").onclick = closeCheckout;
-$("#checkout").onclick = (event) => { if (event.target.id === "checkout") closeCheckout(); };
+$("#checkout").onclick = (event) => { if (event.target.id === "checkout" && !phoneMode()) closeCheckout(); };
+// The tabs on step 1: one tab stop, and the arrow keys move the choice.
+$("#plans").addEventListener("keydown", (event) => {
+  const tabs = [...$("#plans").querySelectorAll("[data-phone-kind]")], at = tabs.indexOf(document.activeElement);
+  const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+  if (at < 0 || !step) return;
+  event.preventDefault();
+  tabs[(at + step + tabs.length) % tabs.length].click();
+});
 document.addEventListener("keydown", (event) => {
-  if ($("#checkout").hidden || deskMode()) return;
+  if ($("#checkout").hidden || deskMode() || phoneMode()) return;
   if (event.key === "Escape") closeCheckout();
   if (event.key === "Tab") {
     const controls = [...$("#checkout").querySelectorAll('a[href], button, input, select, [tabindex="0"]')]
@@ -763,6 +992,8 @@ function releaseFailedPayment() {
   selected = plans.find((plan) => plan.id === selected?.id);
   if (accountAction === "renew" && !renewal?.eligible) selected = undefined;
   renderCheckoutReview();
+  // Phone: a closed request returns to Review and pay, ready to try again.
+  if (phoneMode() && ["wait", "activating"].includes(phoneStep)) { $("#checkout").hidden = false; setPhoneStep("pay"); }
   if ($("#viewPayment") || $("#resumeCheckout")) notice("The previous payment is no longer pending. You can choose a package again.", false);
   renderPlans();
 }
@@ -814,6 +1045,7 @@ const paymentFailedActions = {
   smallerBundle: () => {
     hidePaymentFailed();
     failedPayment = undefined;
+    if (phoneMode()) { closeCheckout(); return; }
     $("#packages").scrollIntoView({ block: "start" });
     $("#plans button[data-plan]:not([disabled])")?.focus();
   },
@@ -831,6 +1063,7 @@ async function beginAccountSecurity(paid, phone) {
   // Money received counts as paid, even when activation needs review.
   funnelStep("paid");
   if (paid.payment?.fulfillmentStatus === "needs_review") throw new ApiError(409, "Payment received. Activation needs support review; do not pay again.");
+  if (phoneMode()) return phonePaid(paid);
   if (account) {
     clearRequestKey();
     sessionStore.set("ndahi-plan-notice", "Payment confirmed. Your new package is active.");
@@ -956,7 +1189,8 @@ $("#purchase").onsubmit = async (event) => {
       if (showFailure(created.payment)) return;
       throw new ApiError(409, "This payment did not complete. You can try again.");
     }
-    $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
+    if (phoneMode()) showPhoneWait(created.payment, { mock: created.checkout.mode === "mock", secure: paymentWindow ? "" : created.checkout.url, phone: purchaseInput.payerPhone || purchaseInput.phone });
+    else $("#message").innerHTML = `<div class="success">${h(created.payment.recoveryMessage || "Payment request created.")}${created.checkout.mode === "mock"
       ? ' <button id="confirm" type="button">Simulate payment approval</button>'
       : created.checkout.url ? " Complete approval in the secure payment window." : " Approve the prompt sent to your phone."
     }${created.payment.payerPhone ? `<br>Payment number: ${h(created.payment.payerPhone)}` : ""}<br><span id="paymentStatus">Waiting for verified confirmation...</span></div>${created.checkout.url ? "" : waitingText(created.payment)}${created.checkout.url ? "" : ussdInstructions(created.payment.payerPhone || purchaseInput.phone)}${account ? '<a class="payment-return" href="/dashboard#payments">Back to payments</a>' : ""}${didntGoThrough}`;
@@ -964,7 +1198,7 @@ $("#purchase").onsubmit = async (event) => {
       const destination = new URL(created.checkout.url);
       if (destination.protocol !== "https:") throw Error("Payment URL must use HTTPS");
       if (paymentWindow) paymentWindow.location.replace(destination.href);
-      else $("#message").innerHTML += `<p><a class="button" href="${h(destination.href)}" target="_blank" rel="noopener">Open secure payment</a></p>`;
+      else if (!phoneMode()) $("#message").innerHTML += `<p><a class="button" href="${h(destination.href)}" target="_blank" rel="noopener">Open secure payment</a></p>`;
     } else paymentWindow?.close();
     const confirm = $("#confirm");
     if (confirm) confirm.onclick = async () => {

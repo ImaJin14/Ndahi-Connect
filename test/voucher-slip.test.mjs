@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { PNG } from "pngjs";
 import jsQR from "jsqr";
-import { prepareVoucherSlip, voucherPdf } from "../lib/voucher-pdf.mjs";
+import { prepareVoucherSlip, voucherPdf, voucherBatchPdf } from "../lib/voucher-pdf.mjs";
 import {
   renderVoucherSlip,
   renderThermalSlipsHtml,
@@ -72,13 +72,12 @@ test("shared slip protects identity, escapes fields, and preserves issued versus
   assert.equal(dangerous.statusLabel, "refunded");
 });
 
-test("canonical thermal PDF supports both widths and long fields on a single page with an embedded QR", async () => {
+// The print page's PDF stays the thermal slip at the chosen width: phones
+// print it on thermal printers (owner, 26 Nov: printing stays thermal).
+test("the print page's PDF stays thermal at both widths, long fields on a single page with an embedded QR", async () => {
   for (const widthMm of [58, 80]) {
-    const long = {
-      ...plan,
-      name: "Very long package name with Unicode é and details ".repeat(8),
-    };
-    const pdf = await voucherPdf({ voucher, plan: long, widthMm });
+    const long = { ...plan, name: "Very long package name with Unicode é and details ".repeat(8) };
+    const pdf = await voucherBatchPdf({ entries: [{ voucher, plan: long }], widthMm });
     const raw = pdf.toString("latin1");
     assert.equal((raw.match(/\/Type\s*\/Page\b/g) || []).length, 1);
     const box = raw.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
@@ -86,6 +85,26 @@ test("canonical thermal PDF supports both widths and long fields on a single pag
     assert.ok(Math.abs(Number(box[1]) - (widthMm * 72) / 25.4) < 0.01);
     assert.ok(Number(box[2]) + 0.01 >= (160 * 72) / 25.4);
     assert.match(raw, /\/Subtype \/Image/);
+  }
+});
+
+// The voucher's own PDF (account download and email) is the colour card as
+// drawn (canvas: VoucherSlip, #368; owner 26 Nov): one A6 page, long fields kept on it.
+test("the voucher's PDF is the colour card: one A6 page per voucher, long fields kept on it, with an embedded QR", async () => {
+  const long = {
+    ...plan,
+    name: "Very long package name with Unicode é and details ".repeat(8),
+  };
+  for (const widthMm of [58, 80]) {
+    const pdf = await voucherPdf({ voucher, plan: long, widthMm });
+    const raw = pdf.toString("latin1");
+    assert.equal((raw.match(/\/Type\s*\/Page\b/g) || []).length, 1);
+    const box = raw.match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+    assert.ok(box);
+    assert.ok(Math.abs(Number(box[1]) - 297.64) < 0.01, "A6 width");
+    assert.ok(Math.abs(Number(box[2]) - (595 * 297.64) / 420) < 0.01, "the board's proportions");
+    assert.match(raw, /\/Subtype \/Image/);
+    assert.match(raw, /DMSans|PlayfairDisplay/, "the board's fonts are embedded");
   }
 });
 

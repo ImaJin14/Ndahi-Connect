@@ -1393,13 +1393,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin vouchers with custom gifts (#343, batch 12, 26 November 2026)
 
 - [-] **ADM-343 — Vouchers, redesigned, with custom gift bundles and numbers with no account (batch 12)** ([#343](https://github.com/ImaJin14/Ndahi-Connect/issues/343)). Owner decisions: [#343 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/343#issuecomment-7197231995).
-  - **Implemented and tested** (PR #509, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #509):
     - For one customer: the search finds accounts ("6•• •• 12 45 · [PLAN 2] active") and, for a full number with no account, offers to reserve the voucher for it; the Bundle has From the catalogue and, for owners only, Custom bundle (Personal or Home WISP Unlimited, 1 hour to 365 days, 1 to 10 slots, a required reason and "They'll see: Gift from NDAHI · …"); the done state shows the code, who has it and, for a replacement, the old bundle ended;
     - a voucher staff give an account now also sends a notification ("A bundle was added to your account") and the usual voucher email (owner); a reserved voucher waits for its claim;
     - custom gifts are named as the customer sees them: "Gift from NDAHI · Unlimited · 10 days · 3 devices" or "… · Home WISP Unlimited · 10 days";
     - Recent vouchers as drawn: Code, Bundle ("Custom · 10 days · 3 devices"), For (the customer, "6•• •• 57 03 · no account yet" or the batch and reseller), Type, Status; one search that also finds a customer's name or a reserved number; actions live on each voucher's page;
     - Batch to print or sell as drawn: no More options; the result is "Batch B-… ready · N codes" with Print slips (owner).
-  - **Not yet:** merged, deployed, or a custom gift and a reserved voucher given on the live admin and claimed on a phone.
+  - **Not yet:** a custom gift and a reserved voucher given on the live admin and claimed on a phone.
 
 ## Reseller ledger and automatic account repair (7 November 2026)
 
@@ -1421,12 +1421,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin profile and security (#389, batch 12, 26 November 2026)
 
 - [-] **ADM-389 — Admin profile and security, redesigned (batch 12)** ([#389](https://github.com/ImaJin14/Ndahi-Connect/issues/389)). Owner decisions: [#389 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/389#issuecomment-7197231105).
-  - **Implemented and tested** (PR #508, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #508):
     - You: Name (each administrator sets the name staff see; no fresh verification, audited), Email (still verified), Save, and Change PIN, which opens a dialog;
     - Passkeys: each with "added 19 Aug · used today" and Remove, the one-left warning and "Add a passkey on this device"; the server now records when an admin passkey was last used, and new passkeys are named after the device;
     - Staff (owner only): active staff as "Name · role" with Remove, which opens a choice: "Remove their passkeys (lost device)" or "Remove from staff" (owner); "Invite an operator" opens today's add form (owner);
     - no install card on the page (owner): staff install the admin app from the browser menu.
-  - **Not yet:** merged, deployed, or a passkey added and a staff member managed on the live admin.
+  - **Not yet:** a passkey added and a staff member managed on the live admin.
 
 ## Customer bundle expiry message (8 November 2026)
 
@@ -1482,11 +1482,11 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Admin sign in (#383, batch 12, 26 November 2026)
 
 - [-] **ADM-383 — Admin sign in, redesigned (batch 12)** ([#383](https://github.com/ImaJin14/Ndahi-Connect/issues/383)). Build note: [#383 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/383#issuecomment-7197236628).
-  - **Implemented and tested** (PR #505, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #505):
     - Step 1 of 2 as drawn: Email (still accepts a staff username) and PIN with no Show toggle, then Continue;
     - Step 2 of 2 as drawn: "Confirm with your passkey." with the key, Use passkey, "Use a different account" as a link, and the lost-device note, which now shows on step 2 only (not when a new admin is adding a first passkey);
     - the forest bar and card measure as the board at 1280 px (the frozen v1 stylesheet no longer stretches the bar).
-  - **Not yet:** merged, deployed, or an admin sign-in with a real passkey on the live site.
+  - **Not yet:** an admin sign-in with a real passkey on the live site.
 
 ## Cash collected from November 2026 onward (8 November 2026)
 
@@ -1528,13 +1528,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Change PIN (#396, batch 12, 26 November 2026)
 
 - [-] **CUS-396 — Change PIN, redesigned (batch 12)** ([#396](https://github.com/ImaJin14/Ndahi-Connect/issues/396)). Owner decision: [#396 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/396#issuecomment-7197229439).
-  - **Implemented and tested** (PR #503, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #503):
     - the drawn page: Current PIN, New PIN, "Type the new PIN again", "4 to 6 digits. Other devices stay signed in unless you sign them out." and Save new PIN at the foot; the browser says when the two new PINs differ; English and French;
     - after saving, "PIN updated. Use it next time you sign in." with "Sign out other devices too →" to Signed-in devices;
     - the customer's other devices now stay signed in after a PIN change in the redesigned portal (owner); pending sign-in and reset requests and old backup codes still end, and the security email says the other devices stay signed in. The frozen v1 portal still signs them out, as its screen says;
     - a PIN holder confirms with the current PIN only; an account with no PIN yet sets one with its passkey (not drawn);
     - every sub-page bar now matches the boards (65 px, the back arrow 10 px in, the title after an 8 px gap).
-  - **Not yet:** merged, deployed, or a PIN changed on a real phone.
+  - **Not yet:** a PIN changed on a real phone.
 
 ## Owner-approved live initial catalogue (8 November 2026)
 
@@ -1562,12 +1562,12 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Signed-in devices (#413, batch 12, 26 November 2026)
 
 - [-] **CUS-413 — Signed-in devices, redesigned (batch 12)** ([#413](https://github.com/ImaJin14/Ndahi-Connect/issues/413)). Owner decision: [#413 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/413#issuecomment-7197230239).
-  - **Implemented and tested** (PR #504, not merged yet; built on #503):
+  - **Implemented, tested, merged and deployed** (PR #504):
     - the drawn page: the lede, this device first with a forest border and "You", the others with "Last active 2 h ago" and Sign out, and "Sign out all other devices" at the foot; English and French;
     - no town on the rows (owner): we keep the IP address and browser, not a place;
     - "Sign out all other devices" keeps this device signed in (the server gains that option; the v1 "Log out everywhere" still ends every session) and then shows "Signed out everywhere else."; no confirmation boxes, as drawn;
     - the "View security history" button is gone, as drawn: security history is in Notifications (Security, All).
-  - **Not yet:** merged, deployed, or tried with two real phones.
+  - **Not yet:** tried with two real phones.
 
 ## MoMo customer payment message (9 November 2026)
 
@@ -1582,6 +1582,18 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the drawn desktop product page: the 4:3 photo (with thumbnails when a product has several photos) beside the details, the 40 px title, the price with its pill, the words, quantity with Buy now, the pickup note and the spec rows;
     - **key specs:** each product can have up to 12 label/value rows (English required, French optional), edited in Admin → Edit product → More product details; they fill the drawn rows, followed by the store's warranty and returns. Without key specs, the product's texts show as rows, as before. On phones, key specs lead "Specifications, box contents, warranty".
   - **Not yet:** the key specs entered by the owner for the four products.
+
+### Voucher page for Unlimited bundles (#344, batch 13, 26 November 2026)
+
+- [-] **ADM-344 — Voucher page, redesigned for Unlimited (batch 13)** ([#344](https://github.com/ImaJin14/Ndahi-Connect/issues/344)). Owner decisions: [#344 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/344#issuecomment-7202629546).
+  - **Implemented and tested** (PR #511, not merged yet):
+    - an Unlimited voucher's ticket reads "Unlimited data · 7 days · 2 device slots" and "Valid until [date] if not used"; Usage shows time left with a validity bar ("4.5 of 7 days used") and "2 of 2 device slots used"; one whose time ran out reads "Used up" here and in Recent vouchers (owner); data-capped vouchers keep their own terms and usage;
+    - the code shows without "NC-" ("K7PM-42XQ"), as drawn; typed either way it works (owner);
+    - History says "Created in batch B-1029-01 by Owner" and "Redeemed by J. Fon on an Android phone at AP-Market · receipt emailed"; Details shows "B-1029-01 · 20 codes"; amounts read XAF, as drawn;
+    - codes made in Admin from now on (batches and single vouchers) can be used for 90 days, then stop working; codes made before keep working with no date (owner); a reserved code keeps its claim window;
+    - the device kind comes from the browser that redeemed the code; the access point comes from the Omada controller, read once a minute when `DEVICE_PLACES_ENABLED=true` and a live controller is saved; the on-site check is `docs/operations/device-places-onsite-test.md`;
+    - Print slip, Mark as sold, Resend receipt email and Revoke voucher show in every state; one that can't act says why (owner). Resend receipt email now really sends again (it used to report a failure every time).
+  - **Not yet:** merged, deployed, a place shown from the live controller, or an admin code past 90 days refused at the HotSpot.
 
 ### Voucher print formats and follow-up work (9 November 2026)
 
@@ -1620,6 +1632,16 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the option hints and the store link measured to the board;
     - English and French.
   - **Not yet:** the name entered by the owner, or the page opened from the RB5009's Wi-Fi sign-in on a real phone.
+
+### Voucher slip as a colour card (#368, batch 13, 26 November 2026)
+
+- [-] **ADM-368 — The voucher slip, redesigned as the colour card (batch 13)** ([#368](https://github.com/ImaJin14/Ndahi-Connect/issues/368)). Owner decisions: [#368 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/368#issuecomment-7202630710).
+  - **Implemented and tested** (PR #512, not merged yet; built on #344):
+    - on screen (the batch print page and the voucher page's print preview) each slip is the drawn card: NDAHI Connect, WI-FI VOUCHER and the price; the QR beside the plan, "Unlimited · 7 days · 2 devices", the code without "NC-" and its three steps ("tap I have a voucher", as drawn); "Use before [date] · single use" and "Batch B-1105-02 · [reseller]" (owner);
+    - the voucher's own PDF (the account download and the email attachment) is the same card on an A6 page, with the board's fonts bundled (DM Sans and Playfair Display, open licence; owner);
+    - printing stays thermal (owner): the Print button's preview, its Download PDF (which phones open in a thermal printer's app) and printing the page itself give the 58 or 80 mm thermal slips as before;
+    - one model (`shared-app/voucher-card.js`) gives the screen and the PDF the same words; a long plan name ends in an ellipsis; phones get the card without sideways scrolling.
+  - **Not yet:** merged, deployed, or a PDF printed and a slip read on paper.
 
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
@@ -1663,6 +1685,15 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: `test/phase6-sign-in.test.mjs`, updated retirement tests, `scripts/check-phase6-sign-in-journeys.mjs` (virtual authenticator), the full v2 browser suite, v1 runs of the edited journeys, `npm run check` and `npm test`.
 - Not deployed. The cutover (`scripts/authenticator-retirement.mjs --apply`) has not run on staging or production. Not tried with a real phone or security key.
 
+### Customer detail for Unlimited (#341, batch 13, 26 November 2026)
+
+- [-] **ADM-341 — Customer detail, redesigned for Unlimited (batch 13)** ([#341](https://github.com/ImaJin14/Ndahi-Connect/issues/341)). Owner decisions: [#341 comments](https://github.com/ImaJin14/Ndahi-Connect/issues/341#issuecomment-7203772390).
+  - **Implemented and tested** (PR #513, not merged yet; built on #344):
+    - the head shows the number masked ("+237 6•• •• 12 45"), as drawn (owner); Overview has Time left ("2 days 14 h"), Device slots ("2 of 2 used"), Ends and Home WISP router ("None registered"); data-capped bundles keep data left and devices;
+    - the board's support actions, each confirmed and audited: Send PIN reset email (the customer's own Forgot PIN link to their confirmed email, or the reason it can't; owner), Remove lost passkeys (for every customer; with none it says so), Give a voucher, Revoke current subscription and Suspend; Change number stays for owners (owner, after a correction: it's the only place to change a customer's number); Print active voucher and the support code left (the voucher's page prints; the support code is in the old admin);
+    - Devices lists each Personal Unlimited slot as drawn ("Slot 1 · Android phone · ••:••:••:4F:A2:10 · online at AP-Market since 08:12" or "offline, last seen 09:40") with Revoke device (a reason, then "being removed" until the router confirms) and the customer's replacements; the last time a device was seen is kept when the router's device list drops it.
+  - **Not yet:** merged, deployed, a reset link received on a phone, or a slot revoked on the live router.
+
 ### API optimization phase 1 — PR #290 (18 November 2026)
 
 - Cause measured: every request loaded, re-serialized and often copied the whole database, so cost grew with stored data; most transactions held the global lock exclusively; the Home (15 s) and checkout (3 s) polls multiplied it; the billing worker re-checked unsendable receipts on every pass. Production sample on 18 November before the change: `GET /api/plans` median 821 ms (max 5.0 s), signed-out bundle status 1,061 ms and dashboards ~1,070–1,100 ms, against a 155 ms floor for a request that never touches the database.
@@ -1685,6 +1716,16 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Implemented (owner-approved): a receipt blocked on a missing email or on transactional email being off is checked hourly instead of every 30-second billing pass, and on the next pass once the customer confirms an email or turns transactional email back on. Receipts whose delivery stopped for good, or that wait for a retry or a live lease, are no longer picked.
 - Tested: new receipt backoff tests including the real notification-settings route; security regressions (own session and CSRF required, no cross-customer release, never to an unconfirmed address); `npm test` with PostgreSQL 1,383 of 1,383 before the security test.
 - Deployed: merged as `ec7cbf2` on 18 November; CI and redesign regressions pass on `main`; live with #292 from 18:00 UTC. Not yet observed in production data.
+
+### Buy a bundle on a phone (#348, batch 13, 26 November 2026)
+
+- [-] **BUY-348 — Buy a bundle on a phone, redesigned (batch 13)** ([#348](https://github.com/ImaJin14/Ndahi-Connect/issues/348)). Owner decisions: signed out [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7202633144), [stay in Buy a bundle after paying](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204422528), [Home WISP and no Wi-Fi details](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204666631).
+  - **Implemented and tested** (PR #515, not merged yet), once the Unlimited catalogue is on sale (the legacy catalogue keeps today's page):
+    - step 1: Personal Unlimited / Home WISP tabs, How long? and How many devices? (combinations not offered are disabled), the bundle's card, the rule and Continue with the price; 7 days for 2 devices first;
+    - step 2, Review and pay: Pay with MTN MoMo / Orange Money, the Mobile Money number (the account's masked until used), Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote (or the fee in the operator prompt), the wallet notice and Pay Now; no name field, policy text or acknowledgement (as drawn);
+    - step 3, Approve on your phone, with Check status and "Payment didn't go through?"; then Payment received while this device's Wi-Fi starts the bundle, and You're online with Go to my home, View receipt and, for Home WISP, Register my home router; without this device's Wi-Fi details the voucher page connects it, as before; signed out, PIN setup follows as before;
+    - signed out exactly as drawn: no Customer login link.
+  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a bundle bought and connected on a real phone.
 
 ### Low Mobile Money balance notice — PR #292 (18 November 2026)
 

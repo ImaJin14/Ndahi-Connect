@@ -181,6 +181,14 @@ try {
   }, { adminUser: true, noSession: true });
   await scenario("audited owner support recovery uses a fresh password and resets PIN without retired factor fields", async ({ page }) => {
     await page.goto(admin + "/dashboard#" + adminCustomerPath("c1"));
+    // The new admin's Customer detail offers Send PIN reset email instead of the
+    // support code (canvas: AdminCustomerDetail, #341; owner 26 Nov); the support
+    // code stays in the old admin, where this scenario runs it.
+    if (uiV2) {
+      await page.getByRole("button", { name: "Send PIN reset email", exact: true }).waitFor();
+      assert.equal(await page.locator('[data-reset-authenticator="c1"]').count(), 0);
+      return;
+    }
     await page.locator('[data-reset-authenticator="c1"]').click();
     const recovery = page.locator("[data-authenticator-recovery]");
     await recovery.getByLabel("Support case reference", { exact: true }).fill("CASE-82-BROWSER");

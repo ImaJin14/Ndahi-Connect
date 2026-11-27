@@ -159,6 +159,36 @@ body[data-admin-view="voucher-print"] .nd-pagehead > div:first-child { flex: 1 1
 .admin-print__note { margin: 0; border: 0; line-height: normal; }
 .admin-print__tray { display: flex; flex-wrap: wrap; gap: var(--nd-space-16); padding: var(--nd-space-16); border-radius: var(--nd-radius-card-lg); background: #e7ece5; }
 .admin-print__tray:empty { display: none; }
+/* The voucher slip on screen, as drawn (canvas: VoucherSlip, #368; owner 26 Nov):
+   a 420 x 595 page with the dashed colour card. Printing stays thermal. */
+.admin-print__tray > * { flex: 1 1 100%; min-width: 0; }
+.voucher-print-cards { display: flex; flex-wrap: wrap; gap: 16px; }
+@media screen { .voucher-print-thermal { display: none; } }
+@media print { .voucher-print-cards { display: none !important; } }
+.voucher-card-page { box-sizing: border-box; width: 420px; max-width: 100%; height: 595px; padding: 18px; background: #ffffff; color: #10241c; font-family: var(--nd-font-body); }
+.voucher-card { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; overflow: hidden; border: 2px dashed #9aa8a0; border-radius: 14px; }
+.voucher-card__head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: #003b2b; color: #ffffff; }
+.voucher-card__mark { box-sizing: content-box; display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid #b9ee2e; border-radius: 50%; color: #b9ee2e; font-size: 11px; font-weight: 700; }
+.voucher-card__brand { flex: 1; }
+.voucher-card__brand strong { display: block; font-family: var(--nd-font-display); font-size: 18px; }
+.voucher-card__brand small { color: #b9ee2e; font-size: 9px; font-weight: 700; letter-spacing: 0.26em; }
+.voucher-card__price { font-size: 16px; }
+.voucher-card__body { display: flex; align-items: center; gap: 16px; padding: 16px 18px; }
+.voucher-card__qr { box-sizing: content-box; flex-shrink: 0; width: 120px; height: 120px; border: 1px solid #dfe5dc; background: #ffffff; }
+.voucher-card__plan { overflow: hidden; margin: 0; white-space: nowrap; text-overflow: ellipsis; color: #4d6b00; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.voucher-card__terms { margin: 4px 0 0; font-size: 16px; font-weight: 700; }
+.voucher-card__label { margin: 10px 0 2px; color: #5c6963; font-size: 12px; }
+.voucher-card__code { margin: 0; font: 700 26px var(--nd-font-mono); letter-spacing: 0.1em; }
+.voucher-card__steps { margin: 0 18px; padding: 12px 12px 12px 30px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.7; }
+.voucher-card__body > div { min-width: 0; }
+/* Narrower than the drawn 420 px page (phones): the card grows down instead of sideways. */
+@media (max-width: 480px) {
+  .voucher-card-page { height: auto; min-height: 0; }
+  .voucher-card__body { flex-wrap: wrap; }
+  .voucher-card__code { overflow-wrap: anywhere; }
+  .voucher-card__foot { flex-wrap: wrap; gap: 4px 12px; margin-top: 12px; }
+}
+.voucher-card__foot { display: flex; justify-content: space-between; margin-top: auto; padding: 12px 18px; border-top: 1px solid #dfe5dc; color: #5c6963; font-size: 11px; }
 /* v1 boxes its print toolbar; on the canvas the controls sit beside the title. */
 .admin-dashboard .admin-print__tools { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--nd-space-10); margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .admin-print__format { font-size: var(--nd-fs-meta); font-weight: 600; line-height: normal; }
@@ -720,7 +750,7 @@ body[data-admin-view="product"] #adminHeadActions .admin-pedit__save { min-heigh
 .admin-voucher__top { padding: var(--nd-space-22) var(--nd-space-22) var(--nd-space-18); }
 .admin-voucher__brand { display: flex; align-items: center; gap: var(--nd-space-8); }
 .admin-voucher__brand strong { font: 700 17px var(--nd-font-display); }
-.admin-voucher__mark { display: grid; place-items: center; box-sizing: border-box; width: 28px; height: 28px; border: 2px solid var(--nd-lime); border-radius: 50%; color: var(--nd-lime); font-size: 10px; font-weight: 700; }
+.admin-voucher__mark { display: grid; place-items: center; box-sizing: content-box; width: 28px; height: 28px; border: 2px solid var(--nd-lime); border-radius: 50%; color: var(--nd-lime); font-size: 10px; font-weight: 700; }
 .admin-voucher__kind { margin-left: auto; color: var(--nd-lime); font-size: var(--nd-fs-eyebrow); font-weight: 700; letter-spacing: var(--nd-tracking-eyebrow); text-transform: uppercase; }
 .admin-voucher__plan { margin: var(--nd-space-18) 0 2px; font: 600 26px var(--nd-font-display); }
 .admin-voucher__facts { margin: 0; color: var(--nd-on-forest-muted); font-size: var(--nd-fs-small); }
@@ -729,13 +759,18 @@ body[data-admin-view="product"] #adminHeadActions .admin-pedit__save { min-heigh
 .admin-voucher__tear::before { left: -26px; }
 .admin-voucher__tear::after { right: -26px; }
 .admin-voucher__bottom { display: flex; flex-direction: column; align-items: center; gap: var(--nd-space-12); padding: var(--nd-space-18) var(--nd-space-22) var(--nd-space-22); }
-.admin-voucher__qr { width: 150px; height: 150px; border: 8px solid var(--nd-white); border-radius: var(--nd-radius-control); background: var(--nd-white); }
+.admin-voucher__qr { box-sizing: content-box; width: 150px; height: 150px; border: 8px solid var(--nd-white); border-radius: var(--nd-radius-control); background: var(--nd-white); }
 .admin-voucher__ticket--dim .admin-voucher__qr { opacity: 0.35; }
 .admin-voucher__code { margin: 0; font: 700 22px var(--nd-font-mono); letter-spacing: 0.08em; }
 .admin-voucher__valid { margin: 0; color: var(--nd-on-forest-muted); font-size: var(--nd-fs-caption); }
 .admin-voucher__ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--nd-space-10); }
 .admin-voucher__go { display: flex; align-items: center; justify-content: center; gap: var(--nd-space-8); min-height: var(--nd-touch); padding: 0 var(--nd-space-14); border: 1px solid var(--nd-line-strong); border-radius: var(--nd-radius-control); background: var(--nd-paper); color: var(--nd-forest); font: 700 var(--nd-fs-small) var(--nd-font-body); text-decoration: none; cursor: pointer; }
 .admin-voucher__go:hover { border-color: var(--nd-forest); }
+/* As drawn (#344): 9px corners, and the ticket's Print slip and Copy code 46px tall. */
+.nd-admin-shell__main:has(#panel-voucher:not([hidden])) { row-gap: 20px; }
+.admin-head-title--inline .nd-pill { padding: 4px 12px; font-size: 13px; line-height: normal; }
+.admin-voucher__go { border-radius: 9px; }
+.admin-voucher__ticket-actions .admin-voucher__go { min-height: 46px; }
 .admin-voucher__go--danger { border-color: var(--nd-danger-line); color: var(--nd-danger); }
 .admin-voucher__panel { padding: var(--nd-space-22); }
 .admin-voucher__h2 { margin: 0 0 var(--nd-space-14); font: 600 20px var(--nd-font-display); }
@@ -1153,3 +1188,27 @@ body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space
 .admin-wisp__grid td a, .admin-wisp__recent a { color: var(--nd-forest); }
 .admin-wisp__grid .admin-wisp__pill { display: inline; min-height: 0; }
 #wispMessage:empty { display: none; }
+/* Customer detail's Devices for Personal Unlimited, as drawn (canvas: AdminCustomerDetail, #341). */
+.admin-slots__head { margin: 0 0 6px; color: #3d4a44; font-size: 14px; }
+.admin-slots__head strong { color: var(--nd-ink); }
+.admin-slot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--nd-line); font-size: 14px; }
+.admin-slot__mac { font-family: var(--nd-font-mono); font-size: 13px; }
+.admin-slot__revoke { flex-shrink: 0; min-height: 36px; padding: 0 16px; border: 1px solid #b8c7bd; border-radius: 9px; background: #fffef9; color: #a73535; font: 700 14px var(--nd-font-body); cursor: pointer; }
+.admin-slot__revoke:disabled { opacity: 0.6; cursor: default; }
+.admin-slots__note { margin: 10px 0 0; color: var(--nd-muted); font-size: 13px; }
+/* Customer detail as drawn (canvas: AdminCustomerDetail, #341): the head's
+   type and pill, the rows panel's padding and the support buttons. */
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminTitle { font-size: 32px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminLede { font-size: 14px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .nd-pagehead .nd-pill { padding: 3px 9px; font-size: 13px; line-height: normal; }
+#panel-customer .admin-customer__overview > .admin-rows, #panel-customer [data-customer-devices], #panel-customer [data-customer-money] { padding: 22px; }
+#panel-customer .admin-support .nd-btn { min-height: 44px; padding: 0 16px; border-radius: 9px; font-size: 14px; line-height: normal; }
+#panel-customer .admin-support [data-support-message]:empty { display: none; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .nd-pagehead { margin-top: -2px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminLede { margin-top: 2px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) #adminHeadActions { margin-bottom: 20px; }
+#panel-customer #customerSupportTitle { line-height: normal; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) { row-gap: 20px; }
+.nd-admin-shell__main:has(#panel-customer:not([hidden])) .admin-head-title { margin-top: 6px; }
+#panel-customer .admin-support > .nd-meta { margin-top: 2px; }
+#panel-customer [data-slots-message]:empty { display: none; }
