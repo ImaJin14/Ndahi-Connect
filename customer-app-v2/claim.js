@@ -6,9 +6,11 @@ import { speedText } from "../shared-app/bundle-speed.js";
 import { requestJson } from "./compat.js";
 import { responseError } from "./errors.js";
 import { escapeHtml as h } from "/shared/safe-html.js";
-import { format } from "/shared/i18n.js";
+import { format, getPreferredLanguage } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 
+// The page follows the customer's language choice; claim.html is served as English (#365).
+document.documentElement.lang = getPreferredLanguage();
 const api = window.NDAHI_CONFIG.apiUrl, $ = (selector) => document.querySelector(selector);
 const L = (key, values) => format(key, values || {}, currentLanguage());
 const locale = () => (currentLanguage() === "fr" ? "fr-FR" : "en-GB");
@@ -33,13 +35,23 @@ async function call(path, data, csrf) {
 const gift = `<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2ZM12 22V7M12 7S10.5 2 7.5 3.5 9 7 12 7ZM12 7s1.5-5 4.5-3.5S15 7 12 7Z"></path></svg>`;
 const tick = `<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"></path></svg>`;
 
-// "5 GB · 7 days · up to 3 devices. The 7 days start when you choose."
+// "5 GB · 7 days · up to 3 devices. The 7 days start when you choose." An
+// Unlimited gift (#365): "Unlimited data · 7 days · 2 device slots. …", or
+// Home WISP's "Unlimited data · 30 days · household sharing. …".
+const unlimited = (plan) => ["personal_unlimited", "home_wisp_unlimited"].includes(plan.accessType);
 function terms(plan) {
-  const days = Math.round(plan.validityHours / 24), duration = days === 1 ? L("claimOneDay") : L("claimDays", { count: days });
+  const hours = Number(plan.validityHours), days = hours / 24;
+  const duration = Number.isInteger(days) ? (days === 1 ? L("claimOneDay") : L("claimDays", { count: days })) : hours === 1 ? L("claimOneHour") : L("claimHours", { count: hours });
+  const starts = days === 1 ? L("claimStartsOne") : L("claimStarts", { duration });
+  if (unlimited(plan)) {
+    const what = plan.accessType === "home_wisp_unlimited" ? L("claimHomeSharing")
+      : plan.deviceSlots === 1 ? L("claimOneSlot") : L("claimSlots", { count: plan.deviceSlots });
+    return `${L("claimUnlimitedData")} · ${duration} · ${what}. ${starts}`;
+  }
   const data = plan.quotaBytes === null ? L("claimUnlimitedData") : `${+(plan.quotaBytes / 1e9).toFixed(1)} GB`;
   const devices = plan.deviceLimit === 1 ? L("claimOneDevice") : L("claimDevices", { count: plan.deviceLimit });
   const speed = speedText(plan, { lang: currentLanguage(), devices: plan.deviceLimit });
-  return `${data} · ${duration} · ${devices}${speed ? ` · ${speed}` : ""}. ${days === 1 ? L("claimStartsOne") : L("claimStarts", { duration })}`;
+  return `${data} · ${duration} · ${devices}${speed ? ` · ${speed}` : ""}. ${starts}`;
 }
 
 function show(step) {
@@ -82,7 +94,7 @@ function show(step) {
     const plan = state.gift.plan, ends = state.endsAt ? day(state.endsAt) : "";
     body.innerHTML = `<main class="claim__main claim__main--done"><div class="claim__badge">${tick}</div>
       <h1 class="claim__h1" id="claimHeading">${h(L("claimOnline"))}</h1>
-      <p class="claim__done-text">${h(plan.quotaBytes === null ? L("claimStartedUnlimited", { plan: plan.name, date: ends }) : L("claimStarted", { plan: plan.name, date: ends, quota: `${+(plan.quotaBytes / 1e9).toFixed(1)} GB` }))}</p>
+      <p class="claim__done-text">${h(unlimited(plan) || plan.quotaBytes === null ? L("claimStartedUnlimited", { plan: plan.name, date: ends }) : L("claimStarted", { plan: plan.name, date: ends, quota: `${+(plan.quotaBytes / 1e9).toFixed(1)} GB` }))}</p>
       <p class="claim__next">${h(L("claimNextTime"))}</p></main>
     <div class="claim__foot"><a class="claim__btn" href="/dashboard#home">${h(L("claimHome"))}</a></div>`;
   }

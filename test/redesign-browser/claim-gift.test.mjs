@@ -6,6 +6,7 @@ import { createServer, createStore } from "../../server.mjs";
 import { createStaticServer } from "../../static-server.mjs";
 import { hashSecret } from "../../lib/security.mjs";
 import { newReservation } from "../../lib/reservations.mjs";
+import { seedCatalogue } from "../../lib/catalogue.mjs";
 import { lowContrastText } from "../../scripts/ui-checks.mjs";
 
 // Claiming a reserved voucher (#254, canvas: PhoneClaimGift, PhoneLogin,
@@ -27,7 +28,11 @@ test("a reserved bundle is claimed with its number and code, and staff can see a
   await store.transaction((s) => {
     s.customers.push({ id: "c-amina", name: "Amina Nfor", phone: "670000001" });
     s.vouchers.push(voucher("v-friend", "NC-GIFT-0001", "670009910", { type: "customer", id: "c-amina" }, "For your calls with the family ❤"),
-      voucher("v-ndahi", "NC-GIFT-0002", "670005703", { type: "admin", id: "claim-owner" }));
+      voucher("v-ndahi", "NC-GIFT-0002", "670005703", { type: "admin", id: "claim-owner" }),
+      // An Unlimited gift carries its own terms (#365): Personal Unlimited, 7 days, 2 device slots.
+      { ...voucher("v-unlimited", "NC-GIFT-0003", "670009920", { type: "customer", id: "c-amina" }), planId: "unlimited-7d-2", quotaBytes: null, deviceLimit: 2,
+        accessType: "personal_unlimited", deviceSlots: 2, faceValue: 4000 });
+    seedCatalogue(s, new Date());
     s.auditLogs.unshift({ id: "a1", action: "voucher.generated", actor: "owner", meta: { voucherIds: ["v-ndahi"], quantity: 1, saleType: "gift", reservedFor: "6•• •• 57 03" }, at: ago(2) });
     s.adminUsers.push({ id: "claim-owner", username: "owner", displayName: "Owner", role: "owner", active: true, passkeys: [] });
     s.adminSessions.push({ userId: "claim-owner", role: "owner", tokenHash: hashSecret("claim-owner", secret), csrfToken: "csrf", expiresAt: "2099-01-01T00:00:00.000Z" });
@@ -111,6 +116,35 @@ test("a reserved bundle is claimed with its number and code, and staff can see a
   await page.getByRole("heading", { name: "Set up your account to claim it" }).waitFor();
   assert.match(await text(page.getByRole("region", { name: "Your bundle" })), /^A GIFT FROM NDAHI Weekly is waiting for you/);
   await check(page, "setup-ndahi");
+
+  // An Unlimited gift (#365): its device slots, then its end date with no data line.
+  await page.goto(`${portal}/claim.html?code=NC-GIFT-0003`);
+  await page.getByLabel("Your phone number").fill("670009920");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("heading", { name: "Set up your account to claim it" }).waitFor();
+  assert.equal(await text(page.getByRole("region", { name: "Your bundle" })),
+    "A GIFT FROM AMINA N. Personal Unlimited is waiting for you Unlimited data · 7 days · 2 device slots. The 7 days start when you choose.");
+  await check(page, "setup-unlimited");
+  await page.getByLabel("Your name").fill("Paul Tabi");
+  await page.getByLabel("Create a PIN").fill("2468");
+  await page.getByLabel("Repeat PIN").fill("2468");
+  await page.getByRole("button", { name: "Create account and claim" }).click();
+  await page.getByRole("heading", { name: "It's yours, Paul Tabi" }).waitFor();
+  await page.getByRole("button", { name: "Start now and connect" }).click();
+  await page.getByRole("heading", { name: "You're online" }).waitFor();
+  assert.match(await text(page.locator(".claim__done-text")), /^Personal Unlimited started on this phone\. It ends \d{1,2} [A-Z][a-z]{2}\.$/);
+  await check(page, "online-unlimited");
+
+  // French: the page follows the language choice, and the gift reads in French.
+  const fr = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "Africa/Douala" });
+  await fr.route("**/*", (route) => [api, portal, admin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort("blockedbyclient"));
+  await fr.addInitScript(() => { try { localStorage.setItem("ndahi-lang", "fr"); } catch {} });
+  const frPage = await fr.newPage();
+  await frPage.goto(`${portal}/claim.html`);
+  await frPage.locator("#claimHeading").waitFor();
+  assert.equal(await frPage.evaluate(() => document.documentElement.lang), "fr");
+  assert.equal(await text(frPage.locator("#claimStep")), "Étape 1 sur 3");
+  await fr.close();
   assert.deepEqual(errors, []);
   await context.close();
 

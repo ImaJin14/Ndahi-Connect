@@ -1616,6 +1616,18 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: 74 focused model/PDF/email/provider/ownership tests and all three voucher-print browser scenarios pass, including QR decode, both PDF widths, single-page thermal pagination, privacy and role boundaries. Build/diff checks pass; final release evidence belongs in the matching PR.
 - Deployed: PR #210 merged at 216ab3f; all four Render services, exact live API/admin assets and six production smoke groups verified. Physical printer selection, printed-paper appearance, real email inbox/client rendering and real phone/router QR connection remain unverified. #206/#207 remain separate follow-ups.
 
+### Claim a gift for Unlimited (#365, batch 14, 27 November 2026)
+
+- [-] **CUS-365 — Claim a gift, updated for Unlimited (batch 14)** ([#365](https://github.com/ImaJin14/Ndahi-Connect/issues/365)).
+  - **Implemented and tested** (PR #517, not merged yet):
+    - an Unlimited gift shows its own terms on the claim page: "Unlimited data · 7 days · 2 device slots. The 7 days start when you choose." (Home WISP: "Unlimited data · 30 days · household sharing."); the server now sends the voucher's access type and device slots with the gift;
+    - starting it says "Personal Unlimited started on this phone. It ends 4 Dec." with no data line;
+    - a gift shorter than a day reads in hours ("5 hours"), where it used to round to "0 days";
+    - the code field is drawn in bold monospace as on the board (a more general input rule had been overriding it);
+    - the page follows the customer's language choice (it was always English);
+    - a fixed-data gift keeps its own terms ("5 GB · 7 days · 1 device"); English and French.
+  - **Not yet:** merged, deployed, or an Unlimited gift claimed and started on a real phone.
+
 ### Mobile voucher printing — issue #206 (9 November 2026)
 
 - Implemented: dedicated authenticated admin/reseller/customer print page; opens synchronously from Print voucher and includes a same-tab fallback. Print is enabled only after QR images/fonts finish and invokes the native dialog directly from the tap. Explicit 58mm/80mm selection and protected single/bulk PDF download, with one slip per page.

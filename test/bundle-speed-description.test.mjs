@@ -68,7 +68,10 @@ test("a gift's claim page and the Black Friday free bundle carry the speed", () 
   const v = { id: "v1", quotaBytes: 5e9, deviceLimit: 1, reservation: { by: { type: "ndahi" }, expiresAt: "2027-01-01T00:00:00Z" } };
   assert.equal("downloadMbps" in giftView(s, v, plan).plan, false);
   assert.deepEqual(giftView(s, { ...v, speedSnapshot: { downloadMbps: 2, uploadMbps: null } }, plan).plan,
-    { id: "fast", name: "Fast", quotaBytes: 5e9, validityHours: 168, deviceLimit: 1, downloadMbps: 2, uploadMbps: null });
+    { id: "fast", name: "Fast", quotaBytes: 5e9, validityHours: 168, deviceLimit: 1, accessType: null, deviceSlots: null, downloadMbps: 2, uploadMbps: null });
+  // An Unlimited gift carries its own terms (#365).
+  assert.deepEqual(giftView(s, { ...v, quotaBytes: null, deviceLimit: 2, accessType: "personal_unlimited", deviceSlots: 2 }, plan).plan,
+    { id: "fast", name: "Fast", quotaBytes: null, validityHours: 168, deviceLimit: 2, accessType: "personal_unlimited", deviceSlots: 2 });
   const promotion = { id: "bf", name: { en: "Black Friday", fr: "Black Friday" }, terms: { en: "", fr: "" }, salePrice: 100000, startsAt: "2026-11-26T23:00:00Z",
     endsAt: "2026-11-30T22:59:00Z", perNumberLimit: 1, bonus: { planId: "unlimited", validityHours: 1080, startsAt: "payment_confirmation" } };
   const unlimited = { id: "unlimited", name: "Unlimited Home", quotaGb: null, deviceLimit: 6, fairUse: true, price: 30000 };
