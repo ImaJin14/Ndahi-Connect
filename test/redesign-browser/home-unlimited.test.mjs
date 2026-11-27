@@ -34,7 +34,7 @@ test("Home shows a running Unlimited bundle as drawn, Connected only while the n
   const browser = await chromium.launch({ headless: true, ...(process.env.PLAN_CHROME_PATH ? { executablePath: process.env.PLAN_CHROME_PATH } : {}) });
   t.after(async () => { await browser.close(); await f.close(); await new Promise((r) => { website.close(r); website.closeAllConnections(); }); });
   const cors = { "access-control-allow-origin": portal, "access-control-allow-credentials": "true" };
-  const open = async ({ connectivity, lang = "en", ready = "[data-time-left]", width = 390 }) => {
+  const open = async ({ connectivity, lang = "en", ready = ".home-unl [data-time-left]", width = 390 }) => {
     const context = await browser.newContext({ viewport: { width, height: 844 } });
     await context.route("**/*", (route) => {
       const u = new URL(route.request().url());
