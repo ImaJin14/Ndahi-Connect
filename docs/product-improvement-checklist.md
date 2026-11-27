@@ -2225,6 +2225,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
   - **Implemented and tested** (PR #PRNUM, not merged yet):
     - "While a bundle is active" reads "Use it until it expires. Data is unlimited. You can't buy or switch packages before then.", shown to everyone (the owner was told customers on data bundles read it too, and that "Validity starts when the payment is confirmed" differs from the Unlimited start at first connection);
     - the page follows PhoneBillingTerms: the bar edge to edge with its line, 26px title, rows without chevrons, and the PIN note at the foot of the screen;
+    - the page follows the customer's language choice, with every line in English and French;
     - "Full rules" (the full v1 rules text) is removed as drawn ([owner](https://github.com/ImaJin14/Ndahi-Connect/issues/360#issuecomment-7220205695)).
   - **Not yet:** merged, deployed, or seen on a real phone.
 

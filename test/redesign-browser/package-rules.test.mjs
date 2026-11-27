@@ -35,4 +35,13 @@ test("Package rules reads as drawn: Unlimited copy, the bar's line, the PIN note
   assert.deepEqual(await lowContrastText(page), []);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
+
+  // French, when the customer chose it.
+  await page.evaluate(() => localStorage.setItem("ndahi-lang", "fr"));
+  await page.reload();
+  await page.locator("html[lang=fr]").waitFor();
+  assert.equal(await page.locator("h1").textContent(), "Paiements et règles des forfaits");
+  assert.equal(await page.locator(".portal-rules__pin").textContent(), "NDAHI ne vous demandera jamais votre code PIN Mobile Money.");
+  assert.equal(await page.locator(".portal-static__back").getAttribute("aria-label"), "Retour au tableau de bord");
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 });
