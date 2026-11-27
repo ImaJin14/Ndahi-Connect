@@ -165,6 +165,14 @@ body[data-renew-moment] #bundlePurchaseActions { display: none; }
 .home-renew__note { margin: 0; color: var(--nd-neutral-fg); font-size: 14px; line-height: 1.5; }
 .home-renew__meter::-webkit-progress-value { background: #c47a00; }
 .home-renew__meter::-moz-progress-bar { background: #c47a00; }
+/* An Unlimited bundle that ended: the time bar full, in grey (#359). */
+.home-renew__meter--ended::-webkit-progress-value { background: #b8c7bd; }
+.home-renew__meter--ended::-moz-progress-bar { background: #b8c7bd; }
+/* The moment's figure is 32 px on phones, as drawn (#359). */
+@media (max-width: 767.98px) {
+  body[data-renew-moment] .home-card__figure { font-size: 32px; line-height: normal; }
+  body[data-renew-moment] .home-card__top .nd-pill { flex-shrink: 1; white-space: normal; line-height: normal; }
+}
 .home-renew__actions { display: flex; flex-direction: column; gap: 10px; }
 .home-renew__remind { display: flex; gap: 12px; align-items: center; min-height: 48px; padding: 0 12px; border-radius: 10px; background: var(--nd-sage); color: var(--nd-ink); font-size: 14px; font-weight: 600; cursor: pointer; }
 .home-renew__remind input { flex: none; width: 20px; height: 20px; min-width: 0; margin: 0; accent-color: var(--nd-forest); }

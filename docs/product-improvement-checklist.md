@@ -1813,6 +1813,17 @@ Owner requested all unknown business details remain blank for now. Review this l
     - English and French.
   - **Not yet:** a real Mobile Money checkout, Change payment and collection tried on the live portal.
 
+### Renewal moments for Unlimited (#359, batch 14, 27 November 2026)
+
+- [-] **CUS-359 — Renew on Home, updated for Unlimited and the 2% fee (batch 14)** ([#359](https://github.com/ImaJin14/Ndahi-Connect/issues/359)). Owner decisions: [running low kept for fixed-data bundles; slot counts from the catalogue](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210693595), [the push stays the phone's notification](https://github.com/ImaJin14/Ndahi-Connect/issues/359#issuecomment-7210893153).
+  - **Implemented and tested** (PR #520, not merged yet):
+    - an Unlimited bundle's card shows its terms ("Personal Unlimited · 7 days · 2 devices"), the time left ("19 h left · ends 18:03 tomorrow") with a bar of the time gone, and "Data is unlimited until then. Your next bundle can be bought the moment this one ends."; ended, "Ended today at 18:03" with the bar full in grey; never a data figure;
+    - "Buy the same bundle again" with "4,080 XAF incl. 2% payment fee · MTN MoMo 6•• •• 12 45" from the server's quote, or the price and the fee in the operator prompt;
+    - the ended tip lists the slot counts on sale ("Personal Unlimited comes with 1, 2, 3, 4, 5 or 6 device slots. For a home router, choose Home WISP Unlimited.");
+    - the Home bundle status now carries the bundle's access type and device slots;
+    - fixed-data bundles keep their moments, running low included (owner); the push texts already match the board; English and French.
+  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a renewal checked on a real phone.
+
 ### Order tracking on phones (#406, batch 9, 26 November 2026)
 
 - [-] **CUS-406 — Order tracking, redesigned (batch 9)** ([#406](https://github.com/ImaJin14/Ndahi-Connect/issues/406)). Owner decisions: [#406 comment](https://github.com/ImaJin14/Ndahi-Connect/issues/406#issuecomment-7180264893).
