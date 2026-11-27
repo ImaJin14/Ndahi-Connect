@@ -176,6 +176,18 @@ export const en = {
   // Outage Home (#363, canvas PhoneOutage).
   homeUnlEndsIn: "Ends in {left}",
   homeUnlEndsInLost: "Ends in {left} + lost time",
+  // Notifications (#362, canvas PhoneNotifications).
+  notifTitle: "Notifications",
+  notifMarkAll: "Mark all read",
+  notifBack: "Back to home",
+  notifFoot: "Choose which notifications you get",
+  notifEmpty: "No notifications yet.",
+  notifNow: "Just now",
+  notifMinutes: "{count} min ago",
+  notifHours: "{count} h ago",
+  notifYesterday: "Yesterday",
+  notifUnread: "Unread",
+  notifRetry: "It will try again shortly.",
   // Package rules (#360, canvas PhoneBillingTerms).
   rulesBar: "Payment rules",
   rulesTitle: "Payments and package rules",
@@ -1618,6 +1630,18 @@ export const fr = {
   // Outage Home (#363, canvas PhoneOutage).
   homeUnlEndsIn: "Se termine dans {left}",
   homeUnlEndsInLost: "Se termine dans {left} + temps perdu",
+  // Notifications (#362, canvas PhoneNotifications).
+  notifTitle: "Notifications",
+  notifMarkAll: "Tout marquer comme lu",
+  notifBack: "Retour à l’accueil",
+  notifFoot: "Choisir les notifications que vous recevez",
+  notifEmpty: "Aucune notification pour l’instant.",
+  notifNow: "À l’instant",
+  notifMinutes: "il y a {count} min",
+  notifHours: "il y a {count} h",
+  notifYesterday: "Hier",
+  notifUnread: "Non lu",
+  notifRetry: "Nouvel essai dans un instant.",
   // Package rules (#360, canvas PhoneBillingTerms).
   rulesBar: "Règles de paiement",
   rulesTitle: "Paiements et règles des forfaits",

@@ -2,7 +2,11 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { runButton } from "/shared/pending.js";
 
 let mounted;
-export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
+// drawn (customer portal v2 only, #362, canvas PhoneNotifications; owner 27 Nov):
+// back, "Notifications", "Mark all read", then the newest items as a plain list
+// (tile, title, text, time, unread dot) opening where they point, and "Choose
+// which notifications you get" at the foot. { labels, settingsHref, lang }.
+export function mountNotifications({ apiUrl, path, csrf, admin = false, drawn = null }) {
   if (mounted) { void mounted.refresh(); return mounted; }
   const style = document.createElement("link"); style.rel = "stylesheet"; style.href = "/shared/notifications.css"; document.head.appendChild(style);
   const bell = document.createElement("button"); bell.type = "button"; bell.className = "notification-bell";
@@ -14,10 +18,14 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   const backdrop = document.createElement("div"); backdrop.className = "notification-backdrop"; backdrop.hidden = true;
   const panel = document.createElement("section"); panel.className = "notification-panel"; panel.hidden = true;
   panel.setAttribute("role", "dialog"); panel.setAttribute("aria-modal", "true"); panel.setAttribute("aria-labelledby", "notificationTitle");
-  panel.innerHTML = '<div class="notification-heading"><h2 id="notificationTitle">Notifications</h2><button type="button" data-refresh-notifications aria-label="Refresh notifications" title="Refresh notifications">↻</button><button type="button" data-close-notifications aria-label="Close notifications">✕</button></div><p data-notification-message role="status" aria-live="polite"></p><div data-notification-body></div>';
+  const D = drawn && drawn.labels;
+  if (D) panel.classList.add("notification-panel--drawn");
+  panel.innerHTML = D
+    ? '<div class="notification-heading"><button type="button" data-close-notifications aria-label="' + h(D.back) + '"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M15 18 9 12l6-6"/></svg></button><h2 id="notificationTitle">' + h(D.title) + '</h2><button type="button" data-read-all>' + h(D.markAll) + '</button></div><p data-notification-message role="status" aria-live="polite"></p><div data-notification-body></div><a class="notification-foot" href="' + h(drawn.settingsHref) + '" data-notification-foot>' + h(D.foot) + '</a>'
+    : '<div class="notification-heading"><h2 id="notificationTitle">Notifications</h2><button type="button" data-refresh-notifications aria-label="Refresh notifications" title="Refresh notifications">↻</button><button type="button" data-close-notifications aria-label="Close notifications">✕</button></div><p data-notification-message role="status" aria-live="polite"></p><div data-notification-body></div>';
   document.body.append(backdrop, panel);
   const output = panel.querySelector("[data-notification-message]"), host = panel.querySelector("[data-notification-body]");
-  let inbox, timer, returnFocus = bell, loading = false, tab = "unread", category = "all", settings = false, editing = false, dateEditing = false, generation = 0, requestId = 0, from = "", to = "", cursor = "", previous = [];
+  let inbox, timer, returnFocus = bell, loading = false, tab = D ? "all" : "unread", category = "all", settings = false, editing = false, dateEditing = false, generation = 0, requestId = 0, from = "", to = "", cursor = "", previous = [];
   const post = (input) => { generation++; return call({ method: "POST", body: JSON.stringify(input) }); };
   async function call(options = {}) {
     const query = new URLSearchParams({ view: tab, category, from, to, limit: "25", cursor });
@@ -32,12 +40,32 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
     label.hidden = !count; label.textContent = count > 99 ? "99+" : String(count);
     bell.setAttribute("aria-label", "Notifications" + (count ? " (" + count + " unread)" : ""));
   }
+  // "12 min ago", "Yesterday", "5 Nov", as drawn.
+  function when(at) {
+    const then = new Date(at), minutes = Math.floor((Date.now() - then) / 60000), day = (d) => d.toDateString();
+    if (!Number.isFinite(minutes)) return "";
+    if (minutes < 1) return D.now;
+    if (minutes < 60) return D.minutes.replace("{count}", String(minutes));
+    if (day(then) === day(new Date())) return D.hours.replace("{count}", String(Math.floor(minutes / 60)));
+    if (day(then) === day(new Date(Date.now() - 86400000))) return D.yesterday;
+    return then.toLocaleDateString(drawn.lang === "fr" ? "fr-FR" : "en-GB", { day: "numeric", month: "short" });
+  }
+  function drawnItem(n) {
+    return '<a class="notification-item' + (n.read ? "" : " notification-unread") + '" href="' + h(n.url || drawn.homeHref || "/dashboard") + '" data-notification-review data-notification-id="' + h(n.id) + '" data-category="' + h(n.category) + '">' +
+      '<div class="notification-text"><h3>' + h(n.title) + '</h3><p>' + h(n.body) + '</p><small>' + h(when(n.updatedAt)) + '</small></div>' +
+      (n.read ? "" : '<span class="notification-dot" role="img" aria-label="' + h(D.unread) + '"></span>') + '</a>';
+  }
   function render() {
     if (!inbox || panel.hidden || editing || dateEditing) return;
     const focused = document.activeElement, hadFocus = host.contains(focused), focusName = focused && focused.name;
     const focusAttribute = ["data-notification-view", "data-notification-category", "data-notification-from", "data-notification-to", "data-apply-filters", "data-page-next", "data-page-previous", "data-open-settings", "data-read-all", "data-settings-back"].find((key) => focused && focused.hasAttribute(key));
     const items = inbox.items.filter((n) => (category === "all" || n.category === category) &&
       (tab === "archived" ? n.archived : !n.archived && (tab === "action" ? n.actionRequired : tab === "unread" ? !n.read : true)));
+    if (D && !settings) {
+      host.innerHTML = items.length ? '<div class="notification-list">' + items.map(drawnItem).join("") + '</div>' : '<p class="notification-empty">' + h(D.empty) + '</p>';
+      if (hadFocus) (host.querySelector("[data-notification-id]") || panel.querySelector("[data-close-notifications]")).focus();
+      return;
+    }
     host.innerHTML = settings ? '<form data-notification-settings><h3>Notification settings</h3><p>Security notices and items requiring action stay visible in your inbox.</p>' +
       Object.entries(inbox.preferences.categories).filter(([key]) => inbox.categories[key]).map(([key, enabled]) =>
         '<label><input type="checkbox" name="' + h(key) + '" ' + (enabled ? "checked" : "") + (key === "security" ? " disabled" : "") + '> ' + h(inbox.categories[key]) + '</label>').join("") +
@@ -83,7 +111,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
     panel.setAttribute("aria-busy", "true");
     if (!inbox) host.textContent = "Loading notifications…";
     try { const result = await call(); if (requestGeneration !== generation || currentRequest !== requestId) return; inbox = result; badge(); render(); output.textContent = ""; }
-    catch (error) { if (!panel.hidden && currentRequest === requestId) output.textContent = error.message + " Use Refresh notifications to try again."; }
+    catch (error) { if (!panel.hidden && currentRequest === requestId) output.textContent = error.message + (D ? " " + D.retry : " Use Refresh notifications to try again."); }
     finally { if (currentRequest === requestId) { loading = false; panel.setAttribute("aria-busy", "false"); } }
   }
   function close() {
@@ -116,6 +144,7 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   };
   panel.addEventListener("click", async (event) => {
     const button = event.target.closest("button"), row = event.target.closest("[data-notification-id]");
+    if (event.target.closest("[data-notification-foot]")) { close(); return; }
     if (event.target.closest("[data-notification-review]")) {
       const link = event.target.closest("[data-notification-review]"), sessions = link.hash === "#sessions";
       if (sessions && !event.ctrlKey && !event.metaKey && !event.shiftKey) event.preventDefault();
@@ -164,7 +193,8 @@ export function mountNotifications({ apiUrl, path, csrf, admin = false }) {
   window.addEventListener("pagehide", () => clearInterval(timer));
   mounted = { refresh, close, open(filters = {}) {
     const opener = document.activeElement;
-    category = filters.category || "all"; tab = filters.view || "all"; settings = filters.settings === true; editing = false; dateEditing = false;
+    // The drawn list has no filters, so it always lists everything (#362).
+    category = D ? "all" : filters.category || "all"; tab = D ? "all" : filters.view || "all"; settings = filters.settings === true; editing = false; dateEditing = false;
     from = ""; to = ""; cursor = ""; previous = []; generation++;
     if (panel.hidden) bell.click();
     returnFocus = opener;
