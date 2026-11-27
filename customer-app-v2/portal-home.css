@@ -231,7 +231,7 @@ body[data-renew-moment] #bundlePurchaseActions { display: none; }
 body[data-current-tab="home"]:not([data-portal-sub]) .portal-head .network-state-banner-active { margin-top: -2px; padding: 0; border: 0; background: none; font-size: 13px; line-height: 17px; }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { color: #dce8e2; font-size: 13px; font-weight: 400; line-height: normal; }
 @media (min-width: 768px) { body[data-current-tab="home"] .network-state-banner-active { display: none !important; } }
-@media (max-width: 767.98px) { body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__notices:has(> .network-state-banner-active) { margin-top: 0; } }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head__notices { margin-top: 0; } }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-text, body[data-current-tab="home"] .network-state-banner-active .network-banner-badge { font-size: 13px; line-height: 17px; }
 body[data-current-tab="home"] .network-state-banner-active .network-banner-indicator { width: 8px; height: 8px; margin-top: 4.5px; background: #b9ee2e; }
-@media (max-width: 767.98px) { body[data-current-tab="home"]:not([data-portal-sub]) .portal-head:has(.network-state-banner-active) { padding-bottom: 16px; } }
+@media (max-width: 767.98px) { body[data-current-tab="home"][data-network-state="active"]:not([data-portal-sub]) .portal-head { padding-bottom: 16px; } }
