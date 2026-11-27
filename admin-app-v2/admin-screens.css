@@ -1159,6 +1159,35 @@ body[data-admin-view="insights"] main.nd-admin-shell__main { gap: var(--nd-space
   .tab-panel[data-voucher-print-host="true"] .admin-voucher,
   .tab-panel[data-voucher-print-host="true"] .admin-voucher__left { display: block !important; margin: 0 !important; padding: 0 !important; }
 }
+/* Home WISP routers, as drawn (canvas: AdminHomeRouters, #340). */
+.admin-wisp { display: flex; flex-direction: column; gap: 20px; max-width: 1056px; }
+.admin-wisp__reconcile { min-height: 44px; padding: 0 16px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px var(--nd-font-body); }
+.admin-wisp__last { margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 14px; }
+.admin-wisp__last--fresh { background: #eaf6d5; color: #345000; font-weight: 700; }
+.admin-wisp__metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.admin-wisp__metric { display: flex; flex-direction: column; gap: 2px; padding: 18px; }
+.admin-wisp__metric b { display: block; color: #003b2b; font-size: 24px; }
+.admin-wisp__metric span { color: var(--nd-muted); font-size: 13px; }
+.admin-wisp__panel { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 22px; }
+.admin-wisp__recent { gap: 8px; }
+.admin-wisp__panel .nd-h2 { margin: 0; font: 600 21px var(--nd-font-display); }
+.admin-wisp__table { overflow-x: auto; }
+.admin-wisp__grid { width: 100%; border-collapse: collapse; }
+.admin-wisp__grid th, .admin-wisp__grid td { padding: 11px 10px; border-bottom: 1px solid var(--nd-line); font-size: 14px; text-align: left; white-space: nowrap; }
+.admin-wisp__grid th { color: var(--nd-muted); font-size: 13px; font-weight: 600; }
+.admin-wisp__grid td a { font-weight: 700; }
+.admin-wisp__mac { font-family: var(--nd-font-mono); font-size: 13px; }
+.admin-wisp__pill { padding: 3px 10px; font-size: 12px; line-height: normal; }
+.admin-wisp__why { color: var(--nd-muted); font-size: 12px; }
+.admin-wisp__act { text-align: right; }
+.admin-wisp__revoke { min-height: 36px; padding: 0 12px; border: 1px solid #e3b4b4; border-radius: 8px; background: #fffef9; color: #a73535; font: 700 13px var(--nd-font-body); cursor: pointer; }
+.admin-wisp__recent ul { margin: 0; padding-left: 18px; color: #3d4a44; font-size: 14px; line-height: 1.8; }
+.admin-wisp__rule { margin: 0; padding: 12px 14px; border-radius: 12px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.5; }
+.nd-admin-shell__main:has(.admin-wisp) { row-gap: 20px; }
+.admin-wisp__grid td { line-height: normal; }
+.admin-wisp__grid td a, .admin-wisp__recent a { color: var(--nd-forest); }
+.admin-wisp__grid .admin-wisp__pill { display: inline; min-height: 0; }
+#wispMessage:empty { display: none; }
 /* Customer detail's Devices for Personal Unlimited, as drawn (canvas: AdminCustomerDetail, #341). */
 .admin-slots__head { margin: 0 0 6px; color: #3d4a44; font-size: 14px; }
 .admin-slots__head strong { color: var(--nd-ink); }
