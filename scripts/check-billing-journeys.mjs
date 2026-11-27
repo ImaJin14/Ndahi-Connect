@@ -263,11 +263,15 @@ try {
     assert.doesNotMatch(await page.locator("#billing").textContent(), /mesomb/i);
     await mtnRow.getByRole("button", { name: "View receipt" }).click();
     const dialog = page.getByRole("dialog", { name: "Payment receipt" });
-    await dialog.getByText("MTN Mobile Money", { exact: true }).waitFor();
+    // v2's drawn receipt (#369): "Paid with MTN MoMo · 6•• •• 12 45" and a back chevron.
+    const v2 = process.env.NDAHI_UI_VARIANT === "v2";
+    if (v2) await dialog.getByText(/^MTN MoMo( · .+)?$/).first().waitFor();
+    else await dialog.getByText("MTN Mobile Money", { exact: true }).waitFor();
     assert.doesNotMatch(await dialog.textContent(), /mesomb/i);
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await dialog.getByRole("button", { name: v2 ? "Back to activity" : "Close" }).click();
     await orangeRow.getByRole("button", { name: "View receipt" }).click();
-    await dialog.getByText("Orange Money", { exact: true }).waitFor();
+    if (v2) await dialog.getByText(/^Orange Money( · .+)?$/).first().waitFor();
+    else await dialog.getByText("Orange Money", { exact: true }).waitFor();
   });
   await scenario("refund failure is visible without claiming completed payout", async (page) => {
     await store.transaction((s) => { s.payments[0].refund = { id: "rf", status: "failed", message: "Your provider reports that the refund failed. Contact support for review." }; });
