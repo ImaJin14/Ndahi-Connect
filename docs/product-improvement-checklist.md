@@ -1668,13 +1668,13 @@ Owner requested all unknown business details remain blank for now. Review this l
 ### Your saved voucher, as drawn (#367, batch 15, 27 November 2026)
 
 - [-] **CUS-367 — Your saved voucher, redesigned for Unlimited (batch 15)** ([#367](https://github.com/ImaJin14/Ndahi-Connect/issues/367)). Owner decision: [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/367#issuecomment-7212012909).
-  - **Implemented and tested** (PR #523, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #523):
     - the forest card: "Personal Unlimited · 7 days · 2 devices" (a fixed-data voucher keeps "Weekly · 5 GB · 7 days"), the code without NC- as on the slip, its QR, "Not used yet · valid until 10 Feb 2027" (or "In use · ends …"), and "See what scanning opens →", the page its QR opens;
     - Copy code and Print slip (the slip page has Download PDF), the note, and "Use it on this device now", which resumes this device's connection as Continue did;
     - Download Voucher, the automatic download, "Continue to Dashboard / Wi-Fi", the two links, the long note and the install card are gone (owner);
     - a Personal Unlimited voucher not yet used now opens here (it used to say no voucher was found); the page follows the customer's language; English and French;
     - journeys reach the page through new helpers in `scripts/portal-tabs.mjs`; v1 keeps its page.
-  - **Not yet:** merged, deployed, or a voucher bought, printed and used on a real phone.
+  - **Not yet:** a voucher bought, printed and used on a real phone.
 
 ### Active-voucher QR connection — issue #207 (9 November 2026)
 
@@ -2089,13 +2089,13 @@ On 21 November the owner also asked for the countdown in the customer portal.
 ### Device slots on the Devices page (#349, batch 15, 27 November 2026)
 
 - [-] **CUS-349 — Device slots, redesigned (batch 15)** ([#349](https://github.com/ImaJin14/Ndahi-Connect/issues/349)). Owner decisions: [Remove asks for the PIN inline; Replace only on a device without a slot](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7212011980), [main-device setup folded under the FAQ; "Being removed" until the router confirms](https://github.com/ImaJin14/Ndahi-Connect/issues/349#issuecomment-7213908126).
-  - **Implemented and tested** (PR #534, not merged yet; built on #533 and #525):
+  - **Implemented, tested, merged and deployed** (PR #534; built on #533 and #525):
     - a running Personal Unlimited bundle's Devices page is "Device slots · 2 of 2 used": the plan, its length and device count, then one card per slot (the device, online now or last seen, its masked Wi-Fi address), an empty slot as a dashed card, "All slots are in use …" when full, and "Private Wi-Fi address on my phone?";
     - on a device without a slot, each slot has Replace and the foot is "Replace a device" (both open Replace a device, #350); on the phone holding a slot it is "This phone", Replace goes, and the foot is "Show a pairing code" (#407);
     - Remove opens the drawn inline confirm with the PIN; the slot shows "Being removed — the slot frees once the router confirms" and stays counted until the router confirms;
     - main-device setup and connection requests aren't drawn but approvals need them: they fold into "Main device and connection requests" under the FAQ, open by themselves while no main device is set;
     - server: the device list's `slots` adds the plan's name and length and marks the slot held by this browser's device (on the current router only); other bundles keep today's Devices page; English and French.
-  - **Not yet:** merged, deployed, or checked on a real phone on NDAHI Wi-Fi (the "This phone" slot, Remove with the router confirming).
+  - **Not yet:** checked on a real phone on NDAHI Wi-Fi (the "This phone" slot, Remove with the router confirming).
 
 ### Product photos up to 30 (#321, 21 November 2026)
 
@@ -2138,14 +2138,14 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Replace a device (#350, batch 15, 27 November 2026)
 
 - [-] **CUS-350 — Replace a device, new (batch 15)** ([#350](https://github.com/ImaJin14/Ndahi-Connect/issues/350)). Owner decision: [it runs on the new device](https://github.com/ImaJin14/Ndahi-Connect/issues/350#issuecomment-7212012491).
-  - **Implemented and tested** (PR #533, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #533):
     - the device refused because every Personal Unlimited slot is full opens Replace a device (from the "all slots in use" error, or `/replace-device.html`): "Both device slots are in use", this device and its Wi-Fi address, each device with its slot, masked address and "online now" / "offline 2 h", the PIN, and "Replace HP laptop" / Cancel;
     - the steps (disconnecting it, clearing its saved sign-in, the router confirms it's off, connecting this phone); the slot frees only when the router confirms, then this phone connects with the same PIN as proof;
     - if the router can't confirm: "Replacement paused … Nothing changed" and Try again, which asks the router again (a removal still waiting is left alone);
     - "This phone is connected … Your bundle still ends Wed 25 Nov at 18:03. Replacing a device never restarts or extends it.";
     - server: `POST /api/account/device-management/replace` (PIN or passkey, like removing a device) and the device list's slot rows (`slots`: total, each slot's masked address, online or last seen, removal pending, the bundle's end); English and French;
     - on-site plan: `docs/operations/device-replace-onsite-test.md`.
-  - **Not yet:** merged, deployed, or the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
+  - **Not yet:** the on-site checks on the test HotSpot (full slots with a device offline, the old device online, the router unreachable mid-replace).
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
@@ -2175,13 +2175,13 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Device request review, as drawn (#370, batch 15, 27 November 2026)
 
 - [-] **CUS-370 — Review Wi-Fi access, redesigned (batch 15)** ([#370](https://github.com/ImaJin14/Ndahi-Connect/issues/370)). Owner decision: [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/370#issuecomment-7212185682).
-  - **Implemented and tested** (PR #524, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #524):
     - "A device wants to use your bundle", the reference card ("PR-7Q4 · Only approve if the other screen shows the same reference."), Device ("Laptop · Windows", from what its browser reported), Asked ("2 minutes ago") and, for Personal Unlimited, After approving ("2 of 2 device slots used"); Deny and Approve;
     - then "Laptop approved — It can use your bundle now…" or "Request denied — … If you didn't expect this request, change your PIN.", with Back to devices;
     - the reference reads "PR-" and 3 characters on both v2 screens (the request, the review and the Devices list), derived from the request's 6-digit code, which the server still checks in full; v1 keeps the 6 digits;
     - the request records the asking device's kind; the owner's request view adds it, when it asked, and the slot count after approving (registered slots or devices online, whichever is more);
     - English and French; the page follows the customer's language.
-  - **Not yet:** merged, deployed, or a request approved and denied between two real phones on NDAHI Wi-Fi.
+  - **Not yet:** a request approved and denied between two real phones on NDAHI Wi-Fi.
 
 ### Network setup in four drawn steps (#384, batch 7, 25 November 2026)
 
@@ -2198,13 +2198,13 @@ On 21 November the owner asked that a bundle with a speed limit say so in its de
 ### Use a bundle from another phone, with a pairing code (#407, batch 15, 27 November 2026)
 
 - [-] **CUS-407 — Use a bundle from another phone, redesigned with a pairing code (batch 15)** ([#407](https://github.com/ImaJin14/Ndahi-Connect/issues/407)). Owner decisions: [build the pairing code](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212011525), [reference "PR-" and 3 characters](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212186185), [waiting with the QR, they/them, the code card, the signed-in shortcut](https://github.com/ImaJin14/Ndahi-Connect/issues/407#issuecomment-7212468449).
-  - **Implemented and tested** (PR #525, not merged yet; built on #370):
+  - **Implemented, tested, merged and deployed** (PR #525; built on #370):
     - the owner's Devices → "Add another device" shows a pairing code on a forest card ("PAIRING CODE · 482 913 · Type it on the other device. It works once, for 10 minutes."), a countdown, New code and Close; a bundle that doesn't share keeps its old help;
     - the new device types the code and taps Send request; the code names the account, so it no longer asks for the account's number and a voucher; a device signed in to the account keeps its one-tap "Request Wi-Fi access";
     - "Waiting for approval" with the reference ("PR-7Q4") and its QR, Check again and Cancel request; then "Approved — you're online. This device shares Amina's Personal Unlimited bundle. They can remove it any time from Devices."; Done shows only if the Wi-Fi sign-in doesn't take over;
     - server: `POST /api/account/device-management/pairing/code` issues a 6-digit code (10 minutes, stored hashed, unique among codes in use, once only); a request with it always asks the owner to approve with a reference; wrong codes count against the address (5 in 15 minutes); an approved device learns the owner's first name and the plan;
     - the sign-in page's own "Request access" (number and voucher) is unchanged; English and French; the page follows the customer's language.
-  - **Not yet:** merged, deployed, or a code shown on one real phone and typed on another on NDAHI Wi-Fi.
+  - **Not yet:** a code shown on one real phone and typed on another on NDAHI Wi-Fi.
 
 ### Bundles arranged Daily, Weekly and Monthly (21 November 2026)
 
