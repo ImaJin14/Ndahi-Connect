@@ -73,7 +73,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await capture(page, `gift-success-${width}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.getByRole('link', { name: 'Print slip', exact: true }).click();
-    await page.locator('.thermal-slip').waitFor(); assert.equal(await page.locator('#voucherPrintLayout').inputValue(), 'thermal-58');
+    await page.locator('.voucher-card-page').waitFor(); assert.equal(await page.locator('#voucherPrintLayout').inputValue(), 'thermal-58');
     assert.equal(await page.getByText('A4', { exact: true }).count(), 0);
     await page.evaluate(() => { location.hash = 'voucher-create'; });
     await page.locator('#generate').waitFor({ state: 'visible' });
@@ -170,7 +170,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await submit(page).click(); await page.locator('.customer-voucher__anomaly').filter({ hasText: 'unexpected-b' }).waitFor();
     assert.equal(posts.length, 1); assert.equal(await page.getByRole('button', { name: 'Give another', exact: true }).count(), 0);
     assert.equal(await page.getByRole('link', { name: 'Print slip', exact: true }).count(), 0); await capture(page, 'unexpected-replacement-1280');
-    await page.evaluate(() => { location.hash = 'voucher-print'; }); await page.waitForFunction(() => location.hash === '#vouchers'); assert.equal(await page.locator('.thermal-slip').count(), 0);
+    await page.evaluate(() => { location.hash = 'voucher-print'; }); await page.waitForFunction(() => location.hash === '#vouchers'); assert.equal(await page.locator('.voucher-card-page').count(), 0);
   });
   for (const [field, value] of [['customerId', 'c1'], ['status', 'available'], ['saleType', 'gift'], ['planId', 'daily']]) await scenario(`unexpected returned ${field} never claims success`, async ({ page, context }) => {
     await open(page); await pick(page, 'Grace');
@@ -207,7 +207,7 @@ test('give a voucher: explicit replacement, Sold/Gift accounting, role isolation
     await submit(page).click(); await page.locator('.customer-voucher__code').waitFor(); await readFailure;
     assert.ok(failedReads > 0); assert.equal(new URL(page.url()).pathname, '/dashboard');
     await page.getByText("Active now on Grace T.'s account. It shows in their Internet tab and they get a notification and an email.", { exact: true }).waitFor();
-    await page.getByRole('link', { name: 'Print slip', exact: true }).click(); await page.locator('.thermal-slip').waitFor();
+    await page.getByRole('link', { name: 'Print slip', exact: true }).click(); await page.locator('.voucher-card-page').waitFor();
   });
   await scenario('stale search responses cannot select a different customer', async ({ page, context, posts }) => {
     await open(page);

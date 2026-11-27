@@ -1,5 +1,9 @@
 import { openVoucherPrintPreview } from "../shared-app/voucher-print-preview.js";
 import { escapeVoucherHtml as h, VOUCHER_PRINT_LAYOUTS, renderThermalSlipsHtml } from "./voucher-slip.js";
+// On screen the slips are the colour card as drawn (canvas: VoucherSlip, #368; owner
+// 26 Nov). Printing stays thermal: the Print button opens the thermal print page,
+// and printing this page prints its thermal slips (the cards are screen-only).
+import { renderVoucherCards } from "./voucher-card.js";
 export { VOUCHER_PRINT_LAYOUTS, formatValidityLabel, formatAllowanceLabel, formatPriceFcfa, formatDeviceLabel, sanitizePrintableVoucher, renderQrBlockMarkup, renderThermalSlipsHtml } from "./voucher-slip.js";
 
 export function renderVoucherPrintLayout(vouchers = [], plan = {}, layout = "thermal-58") {
@@ -55,7 +59,7 @@ export function mountGeneratedVoucherPrint({
       <button type="button" class="nd-btn" id="printVouchersNow">${h(labels.print)}</button>
     </div>`;
       container.innerHTML = `<div id="voucherPrintSurface" class="voucher-print-surface" data-active-print-layout="${h(currentLayout)}">
-      ${renderVoucherPrintLayout(vouchers, plan, currentLayout)}
+      <div class="voucher-print-cards">${renderVoucherCards(vouchers, plan)}</div><div class="voucher-print-thermal">${renderVoucherPrintLayout(vouchers, plan, currentLayout)}</div>
     </div>`;
     } else container.innerHTML = `<div class="voucher-print-toolbar" role="region" aria-label="Printable voucher layouts">
       <div class="voucher-print-controls">
@@ -70,7 +74,7 @@ export function mountGeneratedVoucherPrint({
       <p class="form-help voucher-print-privacy-note">Customer names, phone numbers, and payment details are excluded from printed slips.</p>
     </div>
     <div id="voucherPrintSurface" class="voucher-print-surface" data-active-print-layout="${h(currentLayout)}">
-      ${renderVoucherPrintLayout(vouchers, plan, currentLayout)}
+      <div class="voucher-print-cards">${renderVoucherCards(vouchers, plan)}</div><div class="voucher-print-thermal">${renderVoucherPrintLayout(vouchers, plan, currentLayout)}</div>
     </div>`;
 
     const controls = toolbar || container;

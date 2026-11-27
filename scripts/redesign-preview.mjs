@@ -154,7 +154,7 @@ export const SCREENS = [
       { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
     ["voucher", "Voucher", "PhoneVoucher", null, "/dashboard#redeem", "Redesigned", { expect: ["#activateDevice[data-sub-active]"] }],
     ["voucher-ready", "Voucher ready", "PhoneVoucherReady", null, "/voucher-ready.html?payment={paymentId}", "Redesigned", { expect: ["#voucherDetails"] }],
-    ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html#ids={voucherIds}&width=58", "Redesigned page; the slip stays the thermal POS format shared with admin printing",
+    ["voucher-slip", "Voucher slip", "VoucherSlip", null, "/voucher-print.html#ids={voucherIds}&width=58", "Redesigned (#368): the colour card on screen and in the slip PDF; printing stays the thermal POS slip",
       { expect: ["#printSurface > *", "#printNow:not([disabled])"], state: "the demo customer's active voucher, 58 mm" }],
     // The demo customer's current QR (the same one the account shows), on NDAHI Wi-Fi (mock device address).
     ["scan-connect", "Scan to connect", "PhoneScanConnect", null, "/voucher-connect.html?mac=AA%3ABB%3ACC%3ADD%3AEE%3A05&address=10.20.0.32#qr={qrToken}", "Redesigned",
