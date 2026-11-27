@@ -99,7 +99,7 @@ $("#login").onsubmit = async (event) => {
       const input = formValues(event.target);
       if (loginMode === "pin") {
         await completeSignIn(api, "/api/account/login/pin", { phone: input.phone, pin: input.pin }, input.phone);
-        location.replace(await afterSignInPath(accountOnly));
+        location.replace(await afterSignInPath(accountOnly, { finishStep: true }));
         return;
       }
       if (!accessToken) {
@@ -179,7 +179,7 @@ $("#customerPasskeyLogin").onclick = async () => {
         optionsJSON: result.options,
       });
       await completeSignIn(api, "/api/account/passkey/verify", { challengeId: result.challengeId, response: credential }, phone);
-      location.replace(await afterSignInPath(accountOnly));
+      location.replace(await afterSignInPath(accountOnly, { finishStep: true }));
     });
   } catch (error) {
     showError($("#message"), error, {
