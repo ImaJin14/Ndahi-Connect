@@ -716,3 +716,52 @@ body[data-portal-sub] #security-passkeys > p.account-passkeys__label { margin: 4
 .portal-devices__pair-expiry:empty { display: none; }
 .portal-devices__pair-actions { display: flex; gap: 10px; }
 .portal-devices__pair-actions > button { flex: 1; }
+
+/* Device slots (#349, canvas: PhoneDevices): a running Personal Unlimited bundle's slots. */
+body[data-device-slots] #wifiDeviceList, body[data-device-slots] .portal-devices__slots, body[data-device-slots] .portal-devices__tip,
+body[data-device-slots] [data-approved-devices], body[data-device-slots] [data-devices-add], body[data-device-slots] .portal-devices__intro { display: none !important; }
+.portal-slots { display: flex; flex-direction: column; gap: 10px; }
+.portal-slots__lede { margin: 0; color: #3d4a44; font-size: 14px; line-height: 1.45; }
+.portal-slots__lede strong { color: var(--nd-ink); }
+.portal-slot { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: #fffef9; }
+.portal-slot--empty { border: 1px dashed #b8c7bd; background: transparent; }
+.portal-slot__top { display: flex; align-items: center; gap: 12px; }
+.portal-slot__ic { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; background: #eef3e9; }
+.portal-slot__who { flex: 1; min-width: 0; line-height: normal; }
+.portal-slot__n { display: block; color: #5c6963; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.portal-slot__who strong { display: block; color: var(--nd-ink); font-size: 15px; }
+.portal-slot__meta { color: #5c6963; font-size: 13px; }
+.portal-slot__dot { width: 10px; height: 10px; border-radius: 50%; background: #b8c7bd; }
+.portal-slot__dot--on { background: #6f9500; }
+.portal-slot__row { display: flex; align-items: center; gap: 8px; }
+.portal-slot__mac { flex: 1; color: #5c6963; font: 12px ui-monospace, Menlo, monospace; }
+.portal-slot__sm { box-sizing: border-box; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border: 1px solid #dfe5dc; border-radius: 9px; background: #ffffff; color: #003b2b; font: 700 13px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+.portal-slot__remove { color: #a73535; }
+.portal-slot__sm--danger { border-color: #a73535; background: #a73535; color: #ffffff; }
+.portal-slot__ask { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #fbe4e4; color: #8a2a2a; font-size: 13px; line-height: 1.45; }
+.portal-slot__ask[hidden] { display: none; }
+.portal-slot__pinlabel { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.portal-slot__pin { box-sizing: border-box; min-height: 40px; padding: 0 12px; border: 1px solid #e3b4b4; border-radius: 9px; background: #ffffff; font: 16px var(--nd-font-body); letter-spacing: .3em; }
+.portal-slot__error:empty { display: none; }
+.portal-slot__asks { display: flex; justify-content: flex-end; gap: 8px; }
+.portal-slot__fill { margin: 0; color: #3d4a44; font-size: 13px; line-height: 1.45; }
+.portal-slots__full { margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 13px; line-height: 1.45; }
+.portal-slots__faq { border-top: 1px solid var(--nd-line); }
+.portal-slots__faq summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.portal-slots__faq p { margin: 0 0 8px; color: #3d4a44; font-size: 13px; line-height: 1.5; }
+.portal-slots__more { margin-top: -10px; }
+.portal-slots__more #deviceManagement { margin-bottom: 12px; }
+/* The code panel ("Show a pairing code") still opens in the add bar; closed, the bar is not drawn. */
+body[data-device-slots] .portal-devices__add:has(> .portal-devices__pair[hidden]) { display: none; }
+.portal-slots__foot { padding: 12px 16px 18px; margin: 0 -16px; border-top: 1px solid var(--nd-line); background: #fffef9; }
+.portal-slots__btn { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; padding: 0 16px; border: 0; border-radius: 10px; background: #b9ee2e; color: #15210c; font: 700 16px var(--nd-font-body); text-decoration: none; cursor: pointer; }
+/* The slots page's bar, as drawn: 65 px, the title and a plain count (#349). */
+body[data-device-slots] .portal-devices__head { box-sizing: border-box; min-height: 65px; margin: 0 -16px; padding: 10px; gap: 8px; border-bottom: 1px solid var(--nd-line); }
+body[data-device-slots] .portal-devices__head .portal-devices__back { margin-left: 0; }
+body[data-device-slots] .portal-devices__head h2 { font: 700 15px var(--nd-font-body); line-height: normal; }
+body[data-device-slots] #devicesCount { padding: 0 8px 0 0; border-radius: 0; background: none; color: #5c6963; font-size: 13px; font-weight: 400; line-height: normal; }
+.portal-slot__row a.portal-slot__sm { box-sizing: content-box; }
+@media (max-width: 767.98px) {
+  body[data-device-slots] .portal-slots { margin-top: 2px; padding-bottom: 96px; }
+  body[data-device-slots] .portal-slots__foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0; }
+}

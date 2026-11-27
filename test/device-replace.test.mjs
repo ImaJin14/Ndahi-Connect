@@ -28,6 +28,22 @@ test("the device list shows a Personal Unlimited bundle's slots", async (t) => {
   assert.equal(list.slots.rows[1].lastSeenAt, "2030-01-01T10:00:00Z");
 });
 
+// Device slots (#349): the page names the plan and its length, and marks the
+// slot held by this browser's device (only on the current router).
+test("the slots carry the plan's name and length and mark this browser's device", async (t) => {
+  const f = await personal(t);
+  await f.store.transaction((s) => { s.vouchers.find((x) => x.id === "v1").customTerms = { name: "Personal Unlimited", validityHours: 168, accessType: "personal_unlimited", deviceLimit: 2 }; });
+  let slots = (await f.call("/api/account/device-management")).body.slots;
+  assert.equal(slots.plan, "Personal Unlimited"); assert.equal(slots.validityHours, 168);
+  assert.deepEqual(slots.rows.map((r) => r.current), [false, false], "no Wi-Fi device seen by this session");
+  await f.store.transaction((s) => { s.dashboardSessions.find((x) => x.id === "main").currentWifi = { mac: "AA:BB:CC:DD:EE:02", routerRevision: routerRevision(s) }; });
+  slots = (await f.call("/api/account/device-management")).body.slots;
+  assert.deepEqual(slots.rows.map((r) => [r.id, r.current]), [["g1", false], ["g2", true]]);
+  assert.deepEqual((await f.call("/api/account/device-management", undefined, { session: "secondary" })).body.slots.rows.map((r) => r.current), [false, false], "another browser of the account");
+  await f.store.transaction((s) => { s.dashboardSessions.find((x) => x.id === "main").currentWifi.routerRevision = "router-0"; });
+  assert.deepEqual((await f.call("/api/account/device-management")).body.slots.rows.map((r) => r.current), [false, false], "a previous router's sighting");
+});
+
 test("replacing needs the PIN, frees the slot only once the router confirms, and retries a failed removal", async (t) => {
   const f = await personal(t);
   const wrong = await f.call("/api/account/device-management/replace", { approvalId: "g2", pin: "0000" });
