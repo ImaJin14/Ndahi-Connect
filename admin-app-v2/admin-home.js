@@ -13,6 +13,7 @@ import { escapeHtml as h } from "/shared/safe-html.js";
 import { format } from "/shared/i18n.js";
 import { currentLanguage } from "/shared/ui/dom.js";
 import { setAdminBadges } from "/navigation.js";
+import { servicesBadge } from "/store-services.js";
 import { fcfa, maskPhone, paymentFor, paymentMethod, paymentStatus } from "/payments.js";
 
 const L = (key, values) => format(key, values || {}, currentLanguage());
@@ -49,6 +50,8 @@ export async function loadHomeAttention(x, storeSnapshot, contacts) {
     const orders = $("#homeOrdersMetric");
     if (orders) orders.textContent = String(preparing);
     badges.store = preparing;
+    // Kits & installs: today's installation jobs still to do (#347).
+    badges.services = servicesBadge(store);
     if (preparing) item("/dashboard#store", preparing === 1 ? L("adminAttentionOrdersOne") : L("adminAttentionOrders", { count: preparing }), "info");
     store.products.filter((p) => p.status === "published" && p.available <= 3)
       .forEach((p) => item("/dashboard#products", L("adminAttentionStock", { name: named(p.name), count: p.available }), "neutral"));

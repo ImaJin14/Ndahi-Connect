@@ -2267,6 +2267,17 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - one order flow (`/api/store/kits/quote`, checkout with setup, installation and pay choices): one total with its parts (kit or deposit, installation, travel) on the order, the receipt and its PDF; the admin's next step for each order (wait for the plan, Set up, install, hand over); plan metrics (running, still to pay, late, % completed);
     - stored on the existing store orders and settings, no migration.
   - **Not yet:** the admin and phone screens (#347, #373, #374, #375); a real Mobile Money payment plan and a real installation visit.
+
+### Kits & installs in the admin (#347, batch 19, 27 November 2026)
+
+- [-] **ADM-347 — Kits & installs, as drawn (batch 19)** ([#347](https://github.com/ImaJin14/Ndahi-Connect/issues/347)). Owner decisions: [Installation settings panel](https://github.com/ImaJin14/Ndahi-Connect/issues/347#issuecomment-7224897591); [status buttons, one kit name, Couldn't install and On the way](https://github.com/ImaJin14/Ndahi-Connect/issues/347#issuecomment-7225360387).
+  - **Implemented and tested** (PR #554):
+    - a "Kits & installs" item in the side menu (Sales, between Promotions and Cash) for owners and operators, with today's installation jobs still to do as its count; the page head "Store · Kits, installations and payment plans." with the Kits, Installations and Payment plans tabs (#services, #services/installs, #services/plans);
+    - **Kits:** the kits on sale and drafts (name, pill, "AX1500 + Home WISP Unlimited first month · price · N sold this month") beside "Edit <kit>": one name for both languages, the router with its stock, the first bundle from the Unlimited catalogue, the price with "Bought separately … · saving shown …" as it's typed, Set up, Offer installation and Allow Pay in 3; Save kit, then "Put on sale", or "Back to draft" and "Archive";
+    - **Installations:** today and the next four working days with their job counts; each day's jobs (slot, customer linking to their account, masked phone, area and directions, kit and router, technician, status); on the visit day a booked job's button is "On the way", then "Done…" opens the signal and photo with "Mark installed" (hands the kit over and gives its first bundle) or "Couldn't install" (asks why; refunds the installation and travel); "View report" after; the Installation settings panel (price, morning and afternoon places, areas with travel fees, technicians);
+    - **Payment plans:** plans running, still to be paid, late payments and % completed; each running plan, paid plan still to collect and cancellation of the last 30 days (paid %, next due, On track / N days late / Paid · to collect / Cancelled · refunded); Send reminder, "Give 7 (or 14) more days" once, and Cancel and refund (owner); the plan rules save as they change (owner);
+    - English and French.
+  - **Not yet:** used by staff on a real installation day.
 ### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
 
 - [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).

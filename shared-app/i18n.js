@@ -9,8 +9,9 @@
 import * as common from "./i18n/common.js";
 import * as customer from "./i18n/customer.js";
 import * as admin from "./i18n/admin.js";
+import * as adminKits from "./i18n/admin-kits.js";
 
-const AREAS = [common, customer, admin];
+const AREAS = [common, customer, admin, adminKits];
 
 export const TRANSLATIONS = {
   en: Object.assign({}, ...AREAS.map((area) => area.en)),
