@@ -2150,49 +2150,48 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Finish Wi-Fi sign-in, tap to connect (#372, batch 16, 27 November 2026)
 
 - [-] **CUS-372 — Finish Wi-Fi sign-in, redesigned (batch 16)** ([#372](https://github.com/ImaJin14/Ndahi-Connect/issues/372)). Owner decision: [as drawn, tap to connect](https://github.com/ImaJin14/Ndahi-Connect/issues/372#issuecomment-7214678269).
-  - **Implemented and tested** (PR #538, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #538):
     - after a PIN or passkey sign-in on NDAHI Wi-Fi with a running bundle, the device sees "Finish Wi-Fi sign-in." with this device ("Android phone"), the bundle and its time left (or data left for an earlier bundle) and a Personal Unlimited bundle's device slots, then Connect this device or Not now — just view my account. Nothing connects until the tap;
     - after connecting, "You're online" (with the private Wi-Fi address tip and Go to my home) shows on `/wifi-connected.html` only once the network confirms the device; a saved tab without that keeps the old instructions;
     - paying, a voucher code, a renewal and pairing still connect at once, as their paths are drawn; English and French.
-  - **Not yet:** merged, deployed, or a sign-in finished on a real phone on NDAHI Wi-Fi.
+  - **Not yet:** a sign-in finished on a real phone on NDAHI Wi-Fi.
 
 ### Account, with shop order updates (#357, batch 16, 27 November 2026)
 
 - [-] **CUS-357 — Account, redesigned (batch 16)** ([#357](https://github.com/ImaJin14/Ndahi-Connect/issues/357)). Owner decisions: [shop order updates built as drawn, off by default; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/357#issuecomment-7214190225).
-  - **Implemented and tested** (PR #535, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #535):
     - phones follow PhoneAccount: Security, Notifications with three switches (Low data alerts, Bundle ending soon, Shop order updates), Language as the English | Français control, then Home WISP router with "Not registered" / "Registered", Help & support and Sign out;
     - shop order updates: a new "orders" notification setting, off until switched on, and one in-app/push notice per paid shop order that follows it from "Order placed" to "Order ready to collect" to "Order collected". The collection code stays on the order page. Not emailed: order emails are unchanged;
     - server: the dashboard's `homeRouter.registered` comes from the registered Home router; notification settings accept `orders`; English and French.
-  - **Not yet:** merged, deployed, or a real order's notices seen on a phone.
+  - **Not yet:** a real order's notices seen on a phone.
 
 ### Desktop Account (#358, batch 16, 27 November 2026)
 
 - [-] **CUS-358 — Desktop Account, redesigned (batch 16)** ([#358](https://github.com/ImaJin14/Ndahi-Connect/issues/358)). Owner decisions: [shop order updates built as drawn; the Rewards row ships with Rewards (#528)](https://github.com/ImaJin14/Ndahi-Connect/issues/358#issuecomment-7214191025).
-  - **Implemented and tested** (PR #537, not merged yet; built on #535):
+  - **Implemented, tested, merged and deployed** (PR #537; built on #535):
     - from 768px Account follows DesktopAccount: the name with number and email and Edit profile, then Security, Notifications (three switches) and Home and help as panels in the board's grid, and Sign out;
     - Home and help reads Home WISP router (registration from the API), Payment and package rules, Help & support, then Language as "English · Français" with the other language as a link; focus stays on the language link after the switch;
     - sizes, spacing, 56px rows and outlined buttons measured against the board at 1280px; English and French.
-  - **Not yet:** merged or deployed.
 
 ### Scan to connect, as drawn (#371, batch 16, 27 November 2026)
 
 - [-] **CUS-371 — Scan to connect, redesigned (batch 16)** ([#371](https://github.com/ImaJin14/Ndahi-Connect/issues/371)). Owner decisions: [names instead of pronouns](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7214191703), [the first name, time left and slots before the PIN, as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/371#issuecomment-7215164293).
-  - **Implemented and tested** (PR #539, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #539):
     - a scanned QR shows "Checking your code…", then "Hi Amina — confirm it's you" with the bundle's card (Active · plan, the time left or an earlier bundle's data left, "Ends 25 Nov · 1 of 2 device slots used"), Your PIN, Connect, or Use passkey, and "Scanning alone never connects a device.";
     - after the PIN: "You're online — This device now uses Amina's Personal Unlimited bundle. It shows up in Amina's Devices list." and Done; full slots go to Replace a device (#350) with this device's details;
     - not identified on NDAHI Wi-Fi: "Join NDAHI Wi-Fi first" with the three steps, Open Wi-Fi sign-in and Check again (no PIN until Wi-Fi identifies the device);
     - "Someone else is signed in here" names both accounts ("Kofi T.", "Amina N.") with Sign out and continue as Amina or Stay as Kofi; no active bundle (#412) is unchanged;
     - server: the scan's answer adds the first name, the bundle's end, data left (earlier bundles) and slots (Personal Unlimited); a different signed-in account is answered with both short names; English and French.
-  - **Not yet:** merged, deployed, or a slip scanned on a real phone on NDAHI Wi-Fi.
+  - **Not yet:** a slip scanned on a real phone on NDAHI Wi-Fi.
 
 ### Home WISP router, as drawn (#351, batch 16, 27 November 2026)
 
 - [-] **CUS-351 — Home WISP router page, redesigned (batch 16)** ([#351](https://github.com/ImaJin14/Ndahi-Connect/issues/351)). Owner decisions: [extend the Home API](https://github.com/ImaJin14/Ndahi-Connect/issues/351#issuecomment-7214192390), [no end date until registered; find my router while replacing](https://github.com/ImaJin14/Ndahi-Connect/issues/351#issuecomment-7215726060).
-  - **Implemented and tested** (PR #540, not merged yet):
+  - **Implemented, tested, merged and deployed** (PR #540):
     - for a Home WISP Unlimited bundle, Account → Home WISP router follows PhoneHomeRouter: "Register your home router" with the three steps and I've done this — find my router; "Router found" with the router's masked upstream address, "Seen just now" and its access point; the PIN and Register this router or That's not my router; then the status card, Online or "Sharing paused" with "We keep retrying automatically — last try 2 min ago. You don't need to pay again.", Replace this router and Get help. No device or router count;
     - server: `POST /api/account/home/detect` reads the router this local sign-in came through (read only, nothing registered) with its access point when device places are on; the Home view adds the Home WISP bundle's state and the last automatic try; English and French;
     - earlier NDAHI Home bundles keep today's page.
-  - **Not yet:** merged, deployed, or tests 14 and 15 of `docs/operations/home-wisp-test-plan.md` on the test HotSpot.
+  - **Not yet:** tests 14 and 15 of `docs/operations/home-wisp-test-plan.md` on the test HotSpot.
 
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
