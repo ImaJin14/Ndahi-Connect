@@ -1789,6 +1789,17 @@ Owner requested all unknown business details remain blank for now. Review this l
     - the order's view gives the paid, ready and collected times; English and French.
   - **Not yet:** a real order collected with a 6-digit code at the shop.
 
+### Receipt with payment and Wi-Fi apart (#369, batch 14, 27 November 2026)
+
+- [-] **BILL-369 — The receipt, redesigned: payment vs Wi-Fi, the confirmed fee and debit, a copyable reference (batch 14)** ([#369](https://github.com/ImaJin14/Ndahi-Connect/issues/369)). Owner decisions: [short numbers, "Total paid" for a quoted fee, "Starts at first connection"](https://github.com/ImaJin14/Ndahi-Connect/issues/369#issuecomment-7210694009).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - two tiles: Payment ("Confirmed · 24 Nov, 14:32") and Wi-Fi ("Active since 14:33", "Activating…", or "Starts at first connection" for a bundle saved until it's first used); a receipt never says Wi-Fi is active before it is;
+    - new receipts are numbered "NC-2411-0457" (per month, Douala time), with the NDAHI payment ID "NC-PAY-2411-0457"; the month's counter is a store setting, so two receipts at once never share a number; receipts already issued keep theirs (owner);
+    - "Total debited (confirmed by MTN)" with Bundle Price, Mobile Payment Fee and Total debited when the provider reported its charge; otherwise "Total paid" with the quoted amounts (owner); amounts in XAF;
+    - the bundle's own terms ("Personal Unlimited · 7 days · 2 devices", "7 days, from first connection"; a fixed-data bundle keeps "Weekly · 5 GB · 1 device"), Paid with "MTN MoMo · 6•• •• 12 45";
+    - the provider reference, or the NDAHI payment ID when there is none, with Copy (the exact reference); English and French.
+  - **Not yet:** merged, deployed, or a receipt read after a real MeSomb payment (with and without the provider's fee report).
+
 ### Insights data recording (#262, 20 November 2026)
 
 - **Implemented** (PR #308, merged as `69f665a`):

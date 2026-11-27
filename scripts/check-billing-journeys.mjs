@@ -155,7 +155,8 @@ try {
     await receiptButton.click();
     const dialog = page.getByRole("dialog", { name: "Payment receipt" });
     await dialog.waitFor();
-    await dialog.getByText("Weekly", { exact: true }).waitFor();
+    // v2's drawn receipt (#369) names the bundle with its own terms: "Weekly · 5 GB · 1 device".
+    await dialog.getByText(/^Weekly( · .+)?$/).first().waitFor();
     assert.equal(await page.evaluate(() => document.activeElement?.id), "receiptClose");
     assert.equal(page.context().pages().length, 1, "receipts stay in the dashboard instead of opening a tab");
     const download = page.waitForEvent("download");
@@ -222,7 +223,9 @@ try {
   await scenario("receipt preview escapes provider data and rejects an HTML download", async (page) => {
     await page.route("**/api/account/payments/*/receipt?format=json", async (route) => {
       const response = await route.fetch(), result = await response.json();
+      // v1 shows the customer's name and v2 the bundle's (#369): both must stay text.
       result.receipt.customerName = '<img src="x" onerror="window.receiptInjected=true">';
+      result.receipt.plan = { ...result.receipt.plan, name: '<img src="x" onerror="window.receiptInjected=true">' };
       await route.fulfill({ response, json: result });
     });
     await page.route("**/api/account/payments/*/receipt", (route) => route.fulfill({
