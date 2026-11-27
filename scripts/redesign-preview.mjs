@@ -125,7 +125,8 @@ export const SCREENS = [
     ["login", "Sign in", "PhoneLogin", null, "/login", "Redesigned look; phone + voucher code + PIN until Phase 6", { signedOut: true, expect: ["#login"] }],
     ["forgot-pin", "Forgot PIN", "PhoneForgotPin", null, "/forgot-pin", "Redesigned", { signedOut: true, expect: ["#resetRequest"] }],
     ["hotspot", "Hotspot", "PhoneHotspot", null, "/hotspot?mac=AA%3ABB%3ACC%3ADD%3AEE%3A03&address=10.20.0.30", "Redesigned", { signedOut: true, hotspot: true, expect: ["#hotspotLandingTitle"] }],
-    ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned", { signedOut: true, expect: ["#packagesTitle"] }],
+    ["buy-bundle", "Buy bundle", "PhoneBuyBundle", null, "/onboarding.html", "Redesigned (#348): the bundle picker, Review and pay, and the payment's progress", { signedOut: true, expect: ["#packagesTitle"],
+      blocked: "The preview sells the legacy catalogue (the Unlimited switch stays off), so this shows today's buy page; test/redesign-browser/phone-buy-bundle.test.mjs captures the picker, Review and pay, the waiting, paid and online steps, Home WISP, signed out, no-fee and French at 390 px" }],
     // A returning guest whose saved checkout did not go through, one per state
     // (the canvas's `reason` prop; #409). The cookie is the one the page saves.
     ...[["low-balance", "lowBalance", "checkoutLowBalance", "insufficient funds"], ["expired", "expired", "checkoutExpired", "the request expired"],

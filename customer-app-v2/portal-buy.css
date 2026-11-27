@@ -226,3 +226,134 @@ body.buy-desk #checkout #balanceNote { display: block; margin: 0; padding: 10px 
 body.buy-desk #checkout #balanceNote[hidden] { display: none; }
 body.buy-desk #checkout #requestPayment, body.buy-desk #checkout #requestPayment:hover { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: var(--nd-radius-control); background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 var(--nd-fs-control) var(--nd-font-body); transform: none; box-shadow: none; }
 body.buy-desk #checkout .buy-desk__rule { margin: 0; color: var(--nd-muted); font-size: var(--nd-fs-caption); font-weight: 400; }
+
+/* Phone Buy a bundle (#348, canvas: PhoneBuyBundle): the Unlimited catalogue
+   on sale, signed in or not, when the desktop layout doesn't apply. The bar,
+   then one step at a time (body[data-buy-step]: plan, pay, wait, activating,
+   done), each with its actions on a bottom bar. Values from the artboard. */
+body.buy-phone { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; margin: 0; background: var(--nd-ivory); color: var(--nd-ink); font-family: var(--nd-font-body); }
+body.buy-phone > footer, body.buy-phone .help-link, body.buy-phone #entryConnectivity, body.buy-phone > header .header-actions,
+body.buy-phone #packagesDescription, body.buy-phone .section-head .trust, body.buy-phone #planNotice:empty { display: none !important; }
+body.buy-phone > header { box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 8px; min-height: 0; margin: 0; padding: 10px; border-bottom: 1px solid var(--nd-line); background: transparent; color: var(--nd-ink); }
+body.buy-phone .buy-bar__back, body.buy-phone .buy-bar__back:hover { box-sizing: border-box; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--nd-ink); box-shadow: none; transform: none; cursor: pointer; }
+body.buy-phone .buy-bar__back[hidden] { display: none; }
+body.buy-phone .buy-bar__title { flex: 1; padding-left: 6px; font: 700 15px var(--nd-font-body); }
+body.buy-phone .buy-bar__step { margin: 0; padding-right: 8px; color: var(--nd-muted); font-size: 13px; line-height: normal; }
+/* One step in view: step 1 is the page, step 2 the checkout, then the stage. */
+body.buy-phone main#pageContent { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; width: 100%; max-width: none; margin: 0; padding: 0; }
+body.buy-phone[data-buy-step="pay"] main#pageContent, body.buy-phone[data-buy-step="wait"] main#pageContent, body.buy-phone[data-buy-step="activating"] main#pageContent, body.buy-phone[data-buy-step="done"] main#pageContent,
+body.buy-phone #phoneStage[hidden] { display: none; }
+body.buy-phone:is([data-buy-step="wait"], [data-buy-step="activating"], [data-buy-step="done"]) #checkout { display: none !important; }
+body.buy-phone #packages { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: none; margin: 0; padding: 16px 18px 0; }
+body.buy-phone #packages > * { margin: 0; }
+body.buy-phone #packages .section-head { display: block; margin: 0; padding: 0; }
+body.buy-phone #packages #packagesTitle, body.buy-phone #checkout #selected, .buy-phone__h1 { margin: 0; color: var(--nd-ink); font: 600 28px/1.15 var(--nd-font-display); letter-spacing: normal; }
+body.buy-phone #checkout #selected:focus, .buy-phone__h1:focus { outline: none; }
+
+/* Step 1: tabs, How long?, How many devices?, the bundle, the rule, Continue. */
+body.buy-phone #plans.grid { flex: 1; display: flex !important; flex-direction: column; gap: 14px !important; width: auto; max-width: none; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+body.buy-phone button.buy-phone__tab, body.buy-phone button.buy-phone__chip, body.buy-phone button.buy-phone__device, body.buy-phone button.buy-phone__method { box-sizing: border-box; width: auto; margin: 0; padding: 1px 6px; color: var(--nd-ink); line-height: normal; letter-spacing: normal; text-transform: none; box-shadow: none; transform: none; transition: none; cursor: pointer; }
+.buy-phone__tabs { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9; }
+body.buy-phone button.buy-phone__tab { flex: 1; min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: var(--nd-ink-soft); font: 700 13px var(--nd-font-body); }
+body.buy-phone button.buy-phone__tab[aria-selected="true"] { background: var(--nd-white); color: var(--nd-forest); box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+.buy-phone__choices { display: flex; flex-direction: column; gap: 12px; }
+.buy-phone__set { min-width: 0; margin: 0; padding: 0; border: 0; }
+.buy-phone__legend { margin: 0 0 8px; padding: 0; color: var(--nd-ink); font-size: 14px; font-weight: 700; }
+.buy-phone__durations { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.buy-phone__devices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+body.buy-phone button.buy-phone__chip, body.buy-phone button.buy-phone__device { border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); }
+body.buy-phone button.buy-phone__chip { min-height: 46px; font: 600 14px var(--nd-font-body); }
+body.buy-phone button.buy-phone__device { min-height: 52px; font: 600 13px var(--nd-font-body); }
+body.buy-phone button.buy-phone__chip[aria-pressed="true"], body.buy-phone button.buy-phone__device[aria-pressed="true"], body.buy-phone button.buy-phone__method[aria-pressed="true"] { border: 2px solid var(--nd-forest); background: var(--nd-sage-strong); }
+.buy-phone__device strong { display: block; font-size: 14px; }
+.buy-phone__device span { font-size: 12px; }
+body.buy-phone button.buy-phone__device--none, body.buy-phone button.buy-phone__device--none:disabled { border: 1px dashed var(--nd-line); background: transparent; color: #8a948f; opacity: 1; cursor: not-allowed; }
+.buy-phone__card { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 16px; background: var(--nd-forest); color: var(--nd-white); }
+.buy-phone__card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.buy-phone__card-head strong { font-size: 15px; }
+.buy-phone__card-head .buy-phone__card-price { color: var(--nd-lime); font-size: 22px; white-space: nowrap; }
+.buy-phone__perks { margin: 0; padding-left: 18px; color: #dce8e2; font-size: 13px; line-height: 1.55; }
+.buy-phone__perks li { margin: 0; }
+.buy-phone__rule { margin: 0; color: var(--nd-muted); font-size: 13px; }
+.buy-phone__rule a { color: var(--nd-forest); font-weight: 700; }
+/* The bottom bar of each step. */
+.buy-phone__foot { position: sticky; bottom: 0; z-index: 2; box-sizing: border-box; margin: auto -18px 0; padding: 12px 16px 18px; border-top: 1px solid var(--nd-line); background: var(--nd-paper); }
+.buy-phone__foot--stack { display: flex; flex-direction: column; gap: 10px; }
+body.buy-phone .buy-phone__btn, body.buy-phone .buy-phone__btn:hover, body.buy-phone #phonePayFoot #requestPayment, body.buy-phone #phonePayFoot #requestPayment:hover { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: 10px; background: var(--nd-lime); color: var(--nd-lime-ink); font: 700 16px var(--nd-font-body); line-height: normal; letter-spacing: normal; text-decoration: none; box-shadow: none; transform: none; cursor: pointer; }
+body.buy-phone .buy-phone__btn--secondary, body.buy-phone .buy-phone__btn--secondary:hover { border: 1px solid var(--nd-line-strong); background: var(--nd-paper); color: var(--nd-forest); }
+body.buy-phone .buy-phone__btn:disabled, body.buy-phone #phonePayFoot #requestPayment:disabled { background: var(--nd-neutral-bg); color: var(--nd-neutral-fg); cursor: not-allowed; }
+
+/* Step 2: Review and pay. */
+body.buy-phone #checkout:not([hidden]) { position: static; inset: auto; z-index: auto; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; width: 100%; height: auto; margin: 0; padding: 0; background: none; overflow: visible; }
+body.buy-phone #checkout > .card { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: none; max-height: none; margin: 0; padding: 16px 18px 0; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+body.buy-phone #checkout > .card > :not(#selected):not(#checkoutSummary):not(#purchase) { display: none; }
+body.buy-phone #checkout #checkoutSummary { margin: -6px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
+body.buy-phone #checkoutSummary .buy-phone__summary { margin: 0; color: var(--nd-ink-soft); font-size: 14px; line-height: normal; }
+body.buy-phone #checkoutSummary .buy-phone__summary strong { color: var(--nd-ink-soft); font-size: 14px; }
+body.buy-phone #checkoutSummary .buy-phone__summary span { color: var(--nd-muted); font-size: 14px; }
+body.buy-phone #purchase { flex: 1; display: flex; flex-direction: column; margin: 0; }
+body.buy-phone #purchaseFields { display: flex; flex-direction: column; gap: 14px; min-width: 0; margin: 0; padding: 0; border: 0; }
+body.buy-phone #purchaseFields > .form-row { display: block; margin: 0; }
+body.buy-phone #purchaseFields label[hidden], body.buy-phone #purchaseFields .form-row[hidden], body.buy-phone #accountContact, body.buy-phone #purchaseFields label:has(> select[name="network"]),
+body.buy-phone #paymentNetworkHint, body.buy-phone #purchaseFields small, body.buy-phone #balanceNote svg { display: none; }
+.buy-phone__methods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+body.buy-phone button.buy-phone__method { min-height: 50px; border: 1px solid var(--nd-line-strong); border-radius: 12px; background: var(--nd-paper); font: 600 15px var(--nd-font-body); }
+body.buy-phone #purchase label:has(> input[name="phone"]), body.buy-phone #purchase #accountPayer { display: block; margin: 0; color: var(--nd-ink); font: 600 13px var(--nd-font-body); }
+body.buy-phone #purchase .form-row label:has(> input[name="phone"]) { margin: 0; }
+body.buy-phone #purchase input[name="phone"], body.buy-phone #purchase input[name="payerPhone"], body.buy-phone #purchase input[name="email"] { box-sizing: border-box; display: block; width: 100%; min-height: 48px; margin: 6px 0 0; padding: 0 14px; border: 1px solid var(--nd-line-strong); border-radius: 10px; background: var(--nd-white); color: var(--nd-ink); font: 400 16px var(--nd-font-body); }
+body.buy-phone #accountPayer .buy-desk__payer { position: relative; display: block; margin: 6px 0 0; }
+body.buy-phone #accountPayer .buy-desk__payer input { margin: 0; }
+body.buy-phone #accountPayer input.buy-desk__payer--masked { color: transparent; }
+body.buy-phone .buy-desk__mask { font-size: 16px; }
+.buy-phone__cost { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); }
+.buy-phone__qrow { display: flex; justify-content: space-between; gap: 12px; color: var(--nd-ink-soft); font-size: 14px; }
+.buy-phone__qrow > :last-child { color: var(--nd-ink); }
+.buy-phone__total { display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--nd-line); color: var(--nd-ink); font-size: 16px; }
+.buy-phone__total strong:last-child { font-size: 18px; }
+.buy-phone__fee-note { margin: 0; padding-top: 8px; border-top: 1px solid var(--nd-line); color: var(--nd-ink-soft); font-size: 13px; line-height: 1.45; }
+body.buy-phone #purchase > #message:not(:empty) { margin: 14px 0 0; }
+body.buy-phone #phonePayFoot #balanceNote { display: block; margin: 0; padding: 10px 12px; border: 0; border-radius: 10px; background: var(--nd-warning-bg); color: var(--nd-warning-fg); font-size: 13px; font-weight: 400; line-height: 1.45; }
+body.buy-phone #phonePayFoot #balanceNote[hidden] { display: none; }
+
+/* Step 3 and after: Approve on your phone, Payment received, You're online. */
+.buy-phone__screen { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; }
+.buy-phone__stage { box-sizing: border-box; flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 30px 22px; }
+.buy-phone__stage--center { align-items: center; text-align: center; }
+.buy-phone__stage--paid { padding: 26px 22px; }
+.buy-phone__screen > .buy-phone__foot { margin: 0; }
+.buy-phone__icon { display: grid; place-items: center; flex: none; width: 84px; height: 84px; border-radius: 50%; }
+.buy-phone__icon--wait { background: var(--nd-warning-bg); }
+.buy-phone__icon--wait svg { color: var(--nd-warning-fg); }
+.buy-phone__icon--done { background: var(--nd-success-bg); }
+.buy-phone__icon--done svg { color: var(--nd-success-fg); }
+.buy-phone__line { margin: 0; color: var(--nd-ink-soft); font-size: 15px; line-height: 1.55; }
+.buy-phone__steps { align-self: stretch; margin: 4px 0 0; padding: 14px 14px 14px 34px; border: 1px solid var(--nd-line); border-radius: 12px; background: var(--nd-paper); color: var(--nd-ink-soft); font-size: 14px; line-height: 1.7; text-align: left; }
+.buy-phone__steps li { margin: 0; }
+body.buy-phone .buy-phone__extra { align-self: center; min-height: 32px; padding: 0 12px; border: 1px solid var(--nd-line-strong); border-radius: 8px; background: var(--nd-paper); color: var(--nd-forest); font: 700 13px var(--nd-font-body); box-shadow: none; transform: none; }
+body.buy-phone .buy-phone__foot .buy-phone__problem { align-self: center; display: flex; align-items: center; min-height: 32px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--nd-forest); font: 700 13px var(--nd-font-body); text-decoration: underline; box-shadow: none; transform: none; }
+.buy-phone__progress { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.buy-phone__progress li { display: flex; gap: 12px; align-items: flex-start; margin: 0; padding: 14px; border-radius: 12px; }
+.buy-phone__progress li > span:last-child { font-size: 16px; }
+.buy-phone__progress strong { display: block; }
+.buy-phone__progress li > span:last-child > span { font-size: 13px; }
+.buy-phone__done-item { background: var(--nd-success-bg); }
+.buy-phone__done-item strong { color: var(--nd-success-fg); }
+.buy-phone__done-item > span:last-child > span { color: var(--nd-ink-soft); }
+.buy-phone__busy-item { border: 1px solid var(--nd-line); background: var(--nd-paper); }
+.buy-phone__busy-item > span:last-child > span { color: var(--nd-muted); }
+.buy-phone__tick { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--nd-success-fg); color: var(--nd-white); font-weight: 700; }
+.buy-phone__spinner { box-sizing: border-box; flex: 0 0 26px; height: 26px; border: 3px solid var(--nd-lime); border-top-color: var(--nd-forest); border-radius: 50%; animation: buy-phone-spin 1s linear infinite; }
+@keyframes buy-phone-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .buy-phone__spinner { animation: none; } }
+.buy-phone__ref { margin: 0; color: var(--nd-muted); font-size: 13px; }
+.buy-phone__ref strong { color: var(--nd-ink); font-family: ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+.buy-phone__active { align-self: stretch; padding: 14px; border-radius: 12px; background: var(--nd-forest); color: var(--nd-white); text-align: left; }
+.buy-phone__active p { margin: 0; }
+.buy-phone__active p:first-child { color: var(--nd-lime); font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.buy-phone__active p + p { margin-top: 6px; font-size: 17px; font-weight: 700; }
+.buy-phone__stage [data-message-slot]:empty, .buy-phone__stage #message:empty { display: none; }
+/* Wider screens (signed out, or before the desktop layout applies): the phone column, centred. */
+@media (min-width: 600px) {
+  body.buy-phone #packages, body.buy-phone #checkout > .card, .buy-phone__stage { width: 100%; max-width: 480px; margin-left: auto; margin-right: auto; }
+  body.buy-phone .buy-phone__screen > .buy-phone__foot { padding-left: calc(50% - 224px); padding-right: calc(50% - 224px); }
+}

@@ -1708,6 +1708,16 @@ Owner requested all unknown business details remain blank for now. Review this l
 - Tested: new receipt backoff tests including the real notification-settings route; security regressions (own session and CSRF required, no cross-customer release, never to an unconfirmed address); `npm test` with PostgreSQL 1,383 of 1,383 before the security test.
 - Deployed: merged as `ec7cbf2` on 18 November; CI and redesign regressions pass on `main`; live with #292 from 18:00 UTC. Not yet observed in production data.
 
+### Buy a bundle on a phone (#348, batch 13, 26 November 2026)
+
+- [-] **BUY-348 — Buy a bundle on a phone, redesigned (batch 13)** ([#348](https://github.com/ImaJin14/Ndahi-Connect/issues/348)). Owner decisions: signed out [exactly as drawn](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7202633144), [stay in Buy a bundle after paying](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204422528), [Home WISP and no Wi-Fi details](https://github.com/ImaJin14/Ndahi-Connect/issues/348#issuecomment-7204666631).
+  - **Implemented and tested** (PR #515, not merged yet), once the Unlimited catalogue is on sale (the legacy catalogue keeps today's page):
+    - step 1: Personal Unlimited / Home WISP tabs, How long? and How many devices? (combinations not offered are disabled), the bundle's card, the rule and Continue with the price; 7 days for 2 devices first;
+    - step 2, Review and pay: Pay with MTN MoMo / Orange Money, the Mobile Money number (the account's masked until used), Bundle Price, Mobile Payment Fee (2%) and Total to Pay from the server's quote (or the fee in the operator prompt), the wallet notice and Pay Now; no name field, policy text or acknowledgement (as drawn);
+    - step 3, Approve on your phone, with Check status and "Payment didn't go through?"; then Payment received while this device's Wi-Fi starts the bundle, and You're online with Go to my home, View receipt and, for Home WISP, Register my home router; without this device's Wi-Fi details the voucher page connects it, as before; signed out, PIN setup follows as before;
+    - signed out exactly as drawn: no Customer login link.
+  - **Not yet:** merged, deployed, the Unlimited catalogue switched on, or a bundle bought and connected on a real phone.
+
 ### Low Mobile Money balance notice — PR #292 (18 November 2026)
 
 - Constraint: no provider lets NDAHI read a payer's balance before the request (MeSomb's and MTN's balance endpoints report the merchant's own account).

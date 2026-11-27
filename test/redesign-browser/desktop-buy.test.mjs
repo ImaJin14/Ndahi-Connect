@@ -84,8 +84,10 @@ test("desktop customers pick any Unlimited bundle from one table and pay beside 
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow: ${label}`);
     await page.screenshot({ path: `${screenshots}/${label}.png`, fullPage: true });
   };
+  // The phone layout: today's list for the legacy catalogue, the phone
+  // picker (PhoneBuyBundle, #348) for the Unlimited one.
   const phoneLayout = async (page, label) => {
-    await page.locator("#plans .plan").first().waitFor();
+    await page.locator("#plans .plan, #plans #phoneContinue").first().waitFor();
     assert.equal(await page.evaluate(() => document.body.classList.contains("buy-desk")), false, label);
     assert.equal(await page.locator("#plans table").count(), 0, label);
   };
@@ -207,7 +209,7 @@ test("desktop customers pick any Unlimited bundle from one table and pay beside 
   assert.deepEqual(errors, []);
   await context.close();
 
-  // The current page stays for the legacy catalogue, phones and signed-out visitors.
+  // The phone layout stays for the legacy catalogue, phones and signed-out visitors.
   ({ context, page, errors } = await open(legacy, { path: "/onboarding.html" }));
   await phoneLayout(page, "legacy catalogue");
   assert.deepEqual(errors, []);
