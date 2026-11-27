@@ -37,6 +37,11 @@ export function homeExpiryCountdown(expiresAt, now = Date.now()) {
 // lost will be added back ("+ lost time"). Set from the dashboard.
 let outageState = null;
 export function setOutage(outage) { outageState = outage ? outage.state : null; }
+// Whether the network confirms this device is signed in on NDAHI Wi-Fi (#352,
+// owner 27 Nov): the Unlimited card's pill then reads "Connected". Set from the
+// network check; the card never claims a connection it can't see.
+let deviceConnected = false;
+export function setDeviceConnected(connected) { deviceConnected = Boolean(connected); }
 const STATUS = { active: ['homeStatusActive', 'success'], expired: ['homeStatusExpired', ''], exhausted: ['homeStatusExhausted', 'danger'], suspended: ['homeStatusSuspended', 'danger'] };
 const METER_TONE = { 'fuel-warning': ' nd-meter-bar--warning', 'fuel-danger': ' nd-meter-bar--danger' };
 
@@ -145,6 +150,32 @@ function momentContent(snapshot, moment, { now, unavailable, paused }) {
     <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(message)}</p>${provisioning}`;
 }
 
+// A running Unlimited bundle (#352, canvas PhoneHome; PhoneHomeFR #353):
+// "Personal Unlimited · 7 days", Connected or Active, "2 days 14 h left ·
+// unlimited data", a bar of the time gone, then "Ends Wed 25 Nov · 18:03" and
+// "2 of 2 device slots". Never a data-left figure.
+function unlimitedRunning(snapshot, { now, unavailable, paused, down }) {
+  const v = snapshot.bundle, ends = Date.parse(v.expiresAt), started = Date.parse(v.activatedAt), fr = currentLanguage() === 'fr';
+  const gone = Number.isFinite(started) && ends > started ? Math.min(100, Math.max(0, (now - started) / (ends - started) * 100)) : 0;
+  const hours = Number(v.plan?.validityHours), days = hours / 24;
+  const length = !(hours > 0) ? '' : hours > 24 && Number.isInteger(days) ? L('homeRenewDays', { count: days }) : L(hours === 1 ? 'homeRenewOneHour' : 'homeRenewHours', { count: hours });
+  const minutes = Math.max(0, Math.floor((ends - now) / 60000)), d = Math.floor(minutes / 1440), hh = Math.floor((minutes % 1440) / 60);
+  const left = d ? [L(d === 1 ? 'homeUnlOneDay' : 'homeUnlDays', { count: d }), hh ? L('homeRenewHoursShort', { count: hh }) : ''].filter(Boolean).join(' ')
+    : hh ? L('homeRenewHoursShort', { count: hh }) : L('homeRenewMinutesShort', { count: minutes });
+  // "Wed 25 Nov · 18:03"; the French board writes "mer. 25 nov." alone.
+  const day = Number.isFinite(ends) ? new Date(ends).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }).replace(/,/g, '') : '';
+  const endsLine = day ? L('homeUnlEnds', { when: fr ? day : day + ' · ' + timeOf(ends) }) : '';
+  const [pill, tone] = down ? [L('homeOutagePill'), ''] : deviceConnected ? [L('homeUnlConnected'), 'success'] : [L('homeStatusActive'), 'success'];
+  const evidenceExpired = Number.isFinite(Date.parse(snapshot.expiresAt)) && Date.parse(snapshot.expiresAt) <= now;
+  const fresh = unavailable ? 'homeFreshUnavailable' : paused ? 'homeFreshPaused' : evidenceExpired ? 'homeFreshExpired' : '';
+  const provisioning = v.provisioning === 'dead_letter' ? `<p class="nd-error" role="alert">${h(L('homeProvisionFailed'))}</p>` : v.provisioning === 'pending' ? `<p class="nd-meta">${h(L('homeProvisionPending'))}</p>` : '';
+  return `<div class="home-unl"><div class="home-card__top home-unl__top"><p class="home-unl__kicker">${h([v.plan?.name || '', length].filter(Boolean).join(' · '))}</p><p class="nd-pill${tone ? ' nd-pill--' + tone : ''} home-unl__pill" data-bundle-status role="status">${h(pill)}</p></div>
+    <p class="home-unl__figure"><span data-time-left>${h(left)}</span> <span class="home-unl__unit">${h(L('homeUnlLeft'))}</span>${down ? ` <span class="home-unl__unit">${h(L('homeOutageLost'))}</span>` : ''}</p>
+    <progress class="home-unl__meter" max="100" value="${gone.toFixed(1)}" aria-hidden="true"></progress>
+    <div class="home-unl__legend"><span>${h(endsLine)}</span>${v.slots ? `<span data-device-slots-used>${h(L('homeUnlSlots', { used: v.slots.used, total: v.slots.total }))}</span>` : ''}</div>
+    <p id="dataBalanceMessage" class="nd-meta home-card__message" role="status">${h(fresh ? L(fresh) : '')}</p>${provisioning}</div>`;
+}
+
 export function activeBundleContent(snapshot, { now = Date.now(), unavailable = false, paused = false } = {}) {
   const v = snapshot && snapshot.bundle;
   if (!v) return unavailable
@@ -157,6 +188,7 @@ export function activeBundleContent(snapshot, { now = Date.now(), unavailable = 
   }
   const awaiting = v.status === 'active' && Number.isFinite(Date.parse(v.expiresAt)) && Date.parse(v.expiresAt) <= now;
   const down = outageState === 'down' && v.status === 'active' && !awaiting;
+  if (isUnlimited(v) && v.status === 'active' && !awaiting && snapshot.activeId) return unlimitedRunning(snapshot, { now, unavailable, paused, down });
   const [statusKey, tone] = awaiting ? ['homeStatusConfirming', 'warning'] : down ? ['homeOutagePill', ''] : STATUS[v.status] || ['unavailable', ''];
   const known = Number.isFinite(v.usedBytes), limited = Number.isFinite(v.quotaBytes);
   const percent = limited && known && v.quotaBytes > 0 ? Math.min(100, v.usedBytes / v.quotaBytes * 100) : null;

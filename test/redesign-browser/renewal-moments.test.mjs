@@ -113,7 +113,7 @@ test("Home shows each renewal moment as on the canvas and acts on it", { timeout
   // An ordinary bundle: no moment.
   {
     const { context, page, errors } = await open("c-plain");
-    await page.getByRole("heading", { name: "Welcome back, Amina", level: 1 }).waitFor();
+    await page.getByRole("heading", { name: "Welcome back.", level: 1 }).waitFor();
     assert.equal(await page.locator("#renewTip").isVisible(), false);
     assert.equal(await page.locator("#renewActions > *").count(), 0);
     await page.getByRole("link", { name: "Bundle details" }).waitFor();

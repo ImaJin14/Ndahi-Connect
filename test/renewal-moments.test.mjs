@@ -41,3 +41,16 @@ test("the bundle status says when an ended bundle stopped", () => {
   assert.equal(status({ status: "exhausted", usedBytes: 5e9, expiresAt: "2026-11-15T08:00:00Z", exhaustedAt: "2026-11-14T08:30:00Z" }).endedAt, "2026-11-14T08:30:00Z");
   assert.equal(status({ usedBytes: 5e9, expiresAt: "2026-11-15T08:00:00Z" }).endedAt, null, "used up but not yet cut off: the time is not known");
 });
+
+// Home's Unlimited card (#352): a Personal Unlimited bundle's slots taken, a
+// removal still held until the router confirms; none on a fixed-data bundle.
+test("the bundle status gives a Personal Unlimited bundle's slots taken", () => {
+  const s = state({ accessType: "personal_unlimited", deviceSlots: 2, deviceLimit: 2, quotaBytes: null, expiresAt: "2026-11-16T17:03:00Z" });
+  s.networkSetup = { connections: { router: { mode: "live", revision: "r1" } } };
+  s.wifiDeviceGrants = [{ id: "g1", customerId: "c1", voucherId: "v1", mac: "AA:BB:CC:DD:EE:01", status: "approved", routerRevision: "r1" },
+    { id: "g2", customerId: "c1", voucherId: "v1", mac: "AA:BB:CC:DD:EE:02", status: "revoked", revocationCommandId: "cmd", routerRevision: "r1" },
+    { id: "g3", customerId: "c1", voucherId: "v1", mac: "AA:BB:CC:DD:EE:03", status: "revoked", revocationCommandId: "cmd3", revocationConfirmedAt: "2026-11-14T09:00:00Z", routerRevision: "r1" }];
+  assert.deepEqual(bundleStatus(s, s.customers[0], now).bundle.slots, { used: 2, total: 2 });
+  const plain = state({ expiresAt: "2026-11-16T17:03:00Z" });
+  assert.equal(bundleStatus(plain, plain.customers[0], now).bundle.slots, undefined);
+});
