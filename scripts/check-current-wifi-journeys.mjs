@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { openSecurityManager } from "./portal-tabs.mjs";
+import { openSecurityManager, uiV2 as portalV2 } from "./portal-tabs.mjs";
+// v2 Home draws no "This device's Wi-Fi" panel (owner, 27 Nov, #352/#363): it stays
+// mounted, hidden, and keeps renewing this device's identity in the background,
+// so v2 checks its state without its buttons; v1 still exercises the buttons.
+const cardSeen = { state: portalV2 ? "attached" : "visible" };
 import http from "node:http";
 import { createStaticServer } from "../static-server.mjs";
 import { pairingFixture, guestMac } from "../test/helpers/wifi-pairing-fixture.mjs";
@@ -49,7 +53,7 @@ try {
   page.setDefaultTimeout(15000); page.on("pageerror", (error) => errors.push(error.message));
   const card = page.locator("#currentWifi");
   await page.goto(portal + "/dashboard");
-  await card.locator('[data-current-state="unknown"]').waitFor();
+  await card.locator('[data-current-state="unknown"]').waitFor(cardSeen);
   assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).count(), 0);
   console.log("PASS an account login and other connected sessions do not label an unidentified browser Connected");
   assert.equal(await page.locator("#manageDevices").evaluate((d) => d.open), false);
@@ -66,15 +70,16 @@ try {
   console.log("PASS Home hides terminal activity, Manage devices deduplicates connected approvals, and Notifications retains history");
 
   await page.goto(portal + "/dashboard?mac=" + encodeURIComponent(guestMac) + "&address=10.20.0.30");
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   assert.equal(await card.getByRole("link", { name: "Connect to Wi-Fi", exact: true }).count(), 0);
-  assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).isVisible(), true);
+  assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).isVisible(), !portalV2);
+  if (portalV2) assert.equal(await card.isVisible(), false, "v2 Home draws no Wi-Fi panel");
   assert.match(await card.textContent(), /Last checked:/);
   console.log("PASS fresh router-verified current session replaces Connect with Connected and an adjacent Disconnect at 320px without storage");
 
   await page.clock.install();
   await page.goto(portal + "/dashboard");
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   const initialReads = identifications;
   const advance = async (seconds) => {
     f.advance(seconds);
@@ -92,20 +97,20 @@ try {
     window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
   });
   assert.deepEqual((await resumed).request().postDataJSON(), {}, "renewal uses the server's saved candidate without URL hints");
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   assert.equal(identifications, initialReads + 1, "overlapping resume events share a single identification");
   console.log("PASS returning after 15 minutes renews this browser through the router without URL hints or storage");
 
   const polled = identifiedResponse();
   await advance(901); await polled;
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   assert.equal(identifications, initialReads + 2);
   console.log("PASS a visible dashboard renews its expired association during normal polling");
 
   routerAvailable = false;
   const failedRead = identifiedResponse();
   await advance(901); await failedRead;
-  await card.locator('[data-current-state="unknown"]').waitFor();
+  await card.locator('[data-current-state="unknown"]').waitFor(cardSeen);
   assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).count(), 0);
   const readsAfterFailure = identifications;
   await advance(10);
@@ -117,7 +122,7 @@ try {
   routerAvailable = true;
   const retried = identifiedResponse();
   await advance(21); await retried;
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   assert.equal(identifications, readsAfterFailure + 1);
   console.log("PASS router failure clears Connected, bounds automatic retries and recovers without URL hints");
 
@@ -125,7 +130,7 @@ try {
   await f.store.transaction((s) => { s.dashboardSessions.find((a) => a.id === "main").currentWifi.verifiedAt = new Date(+f.now() - 901000).toISOString(); });
   const reloaded = identifiedResponse();
   await page.reload(); await reloaded;
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   assert.equal(f.calls.length, 0, "renewal never logs a device in or changes its approval");
   console.log("PASS a fresh dashboard load renews an expired association with no captive URL hints");
 
@@ -134,7 +139,7 @@ try {
   assert.equal(signedIn.status(), 200);
   const newSessionCheck = identifiedResponse();
   await page.reload(); await newSessionCheck;
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   console.log("PASS an actual fresh PIN sign-in restores the app cookie's candidate and freshly rechecks the router");
 
   const cdp = await context.newCDPSession(page);
@@ -154,9 +159,10 @@ try {
   await page.locator("#customerPasskeyLogin").click();
   await page.waitForURL(/\/dashboard#account$/);
   await page.goto(portal + "/dashboard#home");
-  await card.locator('[data-current-state="connected"]').waitFor();
+  await card.locator('[data-current-state="connected"]').waitFor(cardSeen);
   console.log("PASS a real WebAuthn passkey sign-in also restores the app candidate without using the credential as physical Wi-Fi identity");
 
+  if (!portalV2) {
   const installed = await browser.newContext({ viewport: { width: 320, height: 900 } });
   await installed.route("**/*", (route) => [portal, api].includes(new URL(route.request().url()).origin)
     ? route.continue({ headers: { ...route.request().headers(), "cf-connecting-ip": "203.0.113.10" } }) : route.abort("blockedbyclient"));
@@ -165,15 +171,17 @@ try {
   const installedPage = await installed.newPage();
   await installedPage.goto(portal + "/dashboard");
   const installedCard = installedPage.locator("#currentWifi");
-  await installedCard.locator('[data-current-state="unknown"]').waitFor();
+  await installedCard.locator('[data-current-state="unknown"]').waitFor(cardSeen);
   await installedCard.locator('select[name="device"]').selectOption({ label: "Unnamed device · " + guestMac });
   await installedCard.locator('input[name="confirmed"]').check();
   await installedCard.getByRole("button", { name: "Identify this device", exact: true }).click();
-  await installedCard.locator('[data-current-state="connected"]').waitFor();
-  await installedPage.reload(); await installedCard.locator('[data-current-state="connected"]').waitFor();
+  await installedCard.locator('[data-current-state="connected"]').waitFor(cardSeen);
+  await installedPage.reload(); await installedCard.locator('[data-current-state="connected"]').waitFor(cardSeen);
   await installed.close();
   console.log("PASS a separate installed-app context identifies its explicitly selected own MAC once and retains that association");
+  } else console.log("SKIP v2: installed-app identification needs the Wi-Fi panel, which v2 Home no longer draws (#363)");
 
+  if (!portalV2) {
   // Commit the disconnect, lose its HTTP reply, and let the card reconcile the
   // existing operation. It must not claim the slot is free or issue a new login.
   await page.route("**/api/account/wifi-devices/disconnect", async (route) => {
@@ -182,19 +190,20 @@ try {
     await route.abort("failed");
   }, { times: 1 });
   await card.getByRole("button", { name: "Disconnect this device", exact: true }).click();
-  await card.locator('[data-current-state="disconnecting"]').waitFor();
+  await card.locator('[data-current-state="disconnecting"]').waitFor(cardSeen);
   assert.equal(await card.getByRole("link", { name: "Connect to Wi-Fi", exact: true }).count(), 0);
   let state = await f.store.snapshot();
   assert.equal(state.vouchers[0].wifiDevices.length, 3);
   const operation = state.routerCommands.find((c) => c.action === "disconnect_wifi_device" && ["queued", "retry"].includes(c.status));
   await f.handler.routerProcessor.process(operation.id);
-  await card.locator('[data-current-state="disconnected"]').waitFor();
+  await card.locator('[data-current-state="disconnected"]').waitFor(cardSeen);
   state = await f.store.snapshot();
   assert.equal(state.wifiDeviceGrants.find((g) => g.mac === guestMac).status, "approved");
   assert.equal(f.calls.length, 0);
   const connect = new URL(await card.getByRole("link", { name: "Connect to Wi-Fi", exact: true }).getAttribute("href"), portal);
   assert.equal(connect.searchParams.get("mac"), guestMac); assert.equal(connect.searchParams.get("address"), "10.20.0.30");
   console.log("PASS lost disconnect response remains pending until router confirmation, retains saved approval and preserves reconnect identity without storage");
+  } else console.log("SKIP v2: Disconnect this device lives in the Wi-Fi panel, which v2 Home no longer draws (#363)");
 
   await f.store.transaction((s) => { s.vouchers[0].wifiDevicesAt = new Date(+f.now() - 121000).toISOString(); });
   assert.equal(await card.getByRole("button", { name: "Refresh connection status", exact: true }).count(), 0);
@@ -202,7 +211,7 @@ try {
   // window expires a stale complete reading must not claim Connected.
   f.advance(121);
   await page.reload();
-  await card.locator('[data-current-state="stale"]').waitFor();
+  await card.locator('[data-current-state="stale"]').waitFor(cardSeen);
   assert.equal(await card.getByRole("button", { name: "Disconnect this device", exact: true }).count(), 0);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   assert.deepEqual(errors, []);

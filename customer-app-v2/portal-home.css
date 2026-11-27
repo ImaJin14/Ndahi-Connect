@@ -264,3 +264,14 @@ body[data-current-tab="home"] .network-state-banner-active .network-banner-indic
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__title { font-size: 40px; letter-spacing: -.01em; line-height: normal; }
   body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__action { align-self: end; min-height: 44px; padding: 0 20px; border: 0; border-radius: 9px; font-size: 14px; }
 }
+/* Home draws no "This device's Wi-Fi" panel (owner, 27 Nov, #352/#363). It stays
+   mounted but out of sight, so its automatic identity check still keeps this
+   device's NDAHI Wi-Fi status (Connected, Network online) current. */
+#currentWifi { display: none !important; }
+/* Outage Home as drawn (PhoneOutage, #363): the hero's 13px "Network down ·
+   [area]" 4px under the title (the head's 6px gap and the notices' 8px taken
+   back), 16px above the banner, and a grey "No internet" pill. */
+body[data-current-tab="home"]:not([data-portal-sub]) .portal-head__notices > .home-outage-line { margin-top: -10px; margin-bottom: -2px; font-size: 13px; line-height: normal; }
+.home-unl__pill.home-unl__pill--off { background: #eef0ee; color: #3d4a44; }
+@media (min-width: 768px) { .home-unl__pill.home-unl__pill--off { background: rgba(255, 255, 255, .12); color: #dce8e2; } }
+

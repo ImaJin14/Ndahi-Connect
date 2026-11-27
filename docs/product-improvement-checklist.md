@@ -2219,6 +2219,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - Saved vouchers on desktop is the drawn list: each code with "[plan] · not used" or "Redeemed [date]", then Open or Used. Open goes to the voucher page, which now opens any of the account's own saved codes by id (copy, Print slip with its PDF, QR). Phones keep the list with its filter and paging.
   - **Not yet:** merged, deployed, or seen on a real phone and desktop.
 
+### Outage Home for Unlimited (#363, batch 18, 27 November 2026)
+
+- [-] **CUS-363 — Outage Home, redesigned for Unlimited (batch 18)** ([#363](https://github.com/ImaJin14/Ndahi-Connect/issues/363)). Owner decisions: [plan name only; relative end lines](https://github.com/ImaJin14/Ndahi-Connect/issues/363#issuecomment-7220083246); [no "This device's Wi-Fi" panel on Home](https://github.com/ImaJin14/Ndahi-Connect/issues/352#issuecomment-7220206452).
+  - **Implemented and tested** (PR #PRNUM, not merged yet):
+    - during an outage a running Unlimited bundle's card reads the plan's name alone, "No internet" in grey, "2 days 14 h left · unlimited data" and "Ends in 2 days + lost time"; after it's fixed, "Ends in 2 days 14 h" beside "We added 3 hours…"; the hero's "Network down · [area]" sits as drawn;
+    - Home no longer shows "This device's Wi-Fi"; the panel stays mounted out of sight so its automatic identity check keeps Connected and Network online current. Its buttons (Disconnect this device, identify an installed app) are no longer reachable on Home;
+    - fixed-data bundles keep their outage card.
+  - **Not yet:** merged, deployed, or a real outage seen on a phone.
+
 ### Bundle speed in plan descriptions (#263, 21 November 2026)
 
 On 21 November the owner asked that a bundle with a speed limit say so in its description ("a bundle with rate limit of 2mbps should clearly state it").
