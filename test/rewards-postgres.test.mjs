@@ -61,4 +61,14 @@ test("PostgreSQL: points earned, stored and redeemed once under concurrent reque
   assert.equal(balanceOf(s, c.id), 5, "spent once");
   assert.equal(s.vouchers.filter((v) => v.reward).length, 1);
   assert.equal(s.rewardsSettings.points.enabled, true, "the settings are stored");
+
+  // Referrals (#527): a friend arriving with the buyer's code is stored as a `referral` row and paid on the ledger.
+  assert.equal((await call("/api/admin/rewards/settings", { referrals: { enabled: true } }, "admin_session")).status, 200);
+  const code = (await call("/api/account/rewards", undefined, "customer_session")).body.referral.code;
+  const friend = await call("/api/purchase", { phone: "690600002", planId: "unlimited-7d-1", network: "mtn", requestKey: randomUUID(), referralCode: code });
+  assert.equal((await call(`/api/payments/${friend.body.payment.id}/confirm`, {})).status, 200);
+  const stored = await pool.query("SELECT payload FROM events WHERE kind = 'referral'");
+  assert.deepEqual(stored.rows.map((r) => [r.payload.code, r.payload.status]), [[code, "paid"]]);
+  const after = await createPostgresStore({ pool, initialState: blank }).snapshot();
+  assert.equal(balanceOf(after, c.id), 205, "5 left, and 200 for the friend");
 });

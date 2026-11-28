@@ -2268,6 +2268,18 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - the programme is off until an owner switches it on, and it can be switched on only once the Unlimited catalogue is on sale (redeemed bundles are Unlimited bundles, whose router rules wait for #450).
   - **Not yet:** the screens (#528, #530) and referrals (#527); switched on in production.
 
+### Rewards: referrals (#527, batch 22, 28 November 2026)
+
+- [-] **REW-527 — Referral codes, attribution, the welcome bonus and review, on the server (batch 22)** ([#527](https://github.com/ImaJin14/Ndahi-Connect/issues/527)). Builds on the points ledger (#526). Rules: `docs/redesign/decisions.md` → "Rewards: points and referrals (27 Nov)".
+  - **Implemented and tested** (PR #PRNUM):
+    - every account gets a code (the first name and three characters with no look-alikes, e.g. AMINA-7K2) and a link, `<portal>/r/<CODE>`; `GET /api/referrals/<code>` (public, 30 lookups per address in 10 minutes) gives the first name, the welcome points and the bundle they're enough for, never the referrer's number;
+    - a new number that checks out with a code keeps it until its first bundle payment; an existing account or the referrer's own number can't use one;
+    - the friend's first confirmed payment of at least 500 XAF pays the referrer 200 points and the friend 100, once; a smaller first bundle, the referrer's number or a Mobile Money number the referrer has paid from earn nothing; past the monthly cap (10) the friend is recorded but not paid;
+    - held for the owner's review, with no points until approved: the friend on a Wi-Fi device the referrer uses, several friends paid from one Mobile Money number, or more than 5 friends in one day; `GET /api/admin/rewards/referrals?status=held`, `POST …/referrals/:id/approve` and `/reject` (owners only, audited);
+    - a refund of the friend's first payment takes both payouts back;
+    - `GET /api/account/rewards` adds the code, the link and the friends (masked numbers, joined or pending); the owner's figures add friends joined this month and referrals held.
+  - **Not yet:** the screens (#528, #529, #530); switched on in production.
+
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).
