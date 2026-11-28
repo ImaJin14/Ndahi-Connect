@@ -2280,6 +2280,16 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - `GET /api/account/rewards` adds the code, the link and the friends (masked numbers, joined or pending); the owner's figures add friends joined this month and referrals held.
   - **Not yet:** the screens (#528, #529, #530); switched on in production.
 
+### Rewards on phones, as drawn (#528, batch 22, 28 November 2026)
+
+- [-] **REW-528 — PhoneRewards: points, Redeem, Invite friends and History, and the Account row (batch 22)** ([#528](https://github.com/ImaJin14/Ndahi-Connect/issues/528)). Builds on the points ledger (#526) and referrals (#527).
+  - **Implemented and tested** (PR #566):
+    - `/rewards.html` (canvas PhoneRewards): the points card (balance, value, next expiry), Redeem (bundles with their points prices; out of reach says how many points are still needed), Invite friends (the code, Share through the phone's share sheet, Copy link, the three steps, friends joined or pending) and History; the confirm sheet and "Bundle saved" with Start now, disabled while a bundle runs;
+    - a double tap redeems once (one key per redemption); every figure comes from `GET /api/account/rewards`;
+    - Account's Rewards row with the balance (phones, as drawn on PhoneAccount), shown once a programme is on or the account has points;
+    - English and French; measured against the board at 390 px in every drawn state.
+  - **Not yet:** switched on in production; tried on a real phone's share sheet.
+
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).

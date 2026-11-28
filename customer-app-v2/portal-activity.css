@@ -58,6 +58,8 @@ body[data-activity-filter="internet"] [data-activity-kind="orders"], body[data-a
 .portal-account .portal-account__group { margin: 6px 4px 0; color: var(--nd-muted); font: 700 12px var(--nd-font-body); letter-spacing: .1em; text-transform: uppercase; }
 .portal-account__list { display: flex; flex-direction: column; padding: 0 14px; border: 1px solid var(--nd-line); border-radius: 14px; background: var(--nd-paper); }
 .portal-account__list > .nd-wide-only { display: contents; }
+/* The Rewards row (#528) on phones; hidden until the balance is known. */
+.portal-account__list > [data-account-rewards]:not([hidden]) { display: contents; }
 .portal-account__item { box-sizing: content-box; display: flex; justify-content: space-between; align-items: center; gap: var(--nd-space-12); min-height: 50px; padding: 0; border: 0; border-bottom: 1px solid var(--nd-line); background: none; color: var(--nd-ink); font: 600 15px var(--nd-font-body); text-align: left; text-decoration: none; cursor: pointer; }
 .portal-account__list > :last-child, .portal-account__list > .nd-wide-only:last-child .portal-account__item { border-bottom: 0; }
 .portal-account__item:hover { background: none; color: var(--nd-forest); }

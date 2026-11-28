@@ -1,0 +1,83 @@
+/* Rewards (#528, canvas: PhoneRewards): the points card, three tabs (Redeem,
+   Invite friends, History) and the redeem sheets. Sizes and colours are the
+   board's. The page keeps the phone width on larger screens. */
+body.rewards-page { margin: 0; background: #fbfaf5; color: #10241c; font-family: "DM Sans", system-ui, sans-serif; }
+.rewards { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; max-width: 560px; margin: 0 auto; }
+.rewards a { color: #003b2b; }
+.rewards p, .rewards ol, .rewards h2 { margin: 0; }
+.rewards button { font-family: "DM Sans", system-ui, sans-serif; box-shadow: none; text-transform: none; letter-spacing: normal; }
+.rewards__bar { display: flex; align-items: center; gap: 8px; padding: 10px; border-bottom: 1px solid #dfe5dc; }
+.rewards__back { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; text-decoration: none; color: #10241c !important; }
+.rewards__title { font-weight: 700; font-size: 15px; }
+.rewards__main { flex: 1; margin: 0; max-width: none; padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+.rewards__card-points { padding: 16px; border-radius: 16px; background: #003b2b; color: #ffffff; }
+.rewards__kicker { color: #b9ee2e; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.rewards .rewards__balance { margin: 4px 0 2px; font-size: 34px; font-weight: 700; }
+.rewards__worth { color: #c8d8d0; font-size: 13px; }
+.rewards .rewards__expiry { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.14); color: #dce8e2; font-size: 12px; }
+
+.rewards__tabs { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #eef3e9; }
+.rewards__tabs button { flex: 1; min-height: 38px; margin: 0; padding: 1px 6px; border: 0; border-radius: 9px; font: 700 13px "DM Sans", sans-serif; cursor: pointer; background: transparent; color: #3d4a44; }
+.rewards__tabs button[aria-selected="true"] { background: #ffffff; color: #003b2b; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+.rewards__panel { display: flex; flex-direction: column; gap: 8px; }
+.rewards__panel--invite { gap: 10px; }
+.rewards__muted { color: #5c6963; font-size: 13px; }
+.rewards__small { color: #5c6963; font-size: 12px; }
+.rewards__box { background: #fffef9; border: 1px solid #dfe5dc; border-radius: 14px; }
+.rewards__offers { padding: 0 4px; }
+.rewards__offer { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #dfe5dc; }
+.rewards__offer:last-child { border-bottom: 0; }
+.rewards__offer > span { flex: 1; }
+.rewards__offer strong { display: block; font-size: 14px; }
+.rewards__offer span span { font-size: 12px; color: #5c6963; }
+.rewards .rewards__pts { min-height: 36px; margin: 0; padding: 0 12px; border-radius: 9px; border: 0; background: #003b2b; color: #ffffff; font: 700 13px "DM Sans", sans-serif; cursor: pointer; white-space: nowrap; }
+.rewards .rewards__pts[disabled] { background: #e4e9e1; color: #5c6963; cursor: not-allowed; opacity: 1; }
+
+.rewards__code-card { padding: 14px; text-align: center; }
+.rewards .rewards__code { margin: 4px 0 10px; font: 700 26px ui-monospace, Menlo, monospace; letter-spacing: .12em; }
+.rewards__code-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rewards__btn, .rewards__btn2 { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: 100%; margin: 0; padding: 0 16px; border-radius: 10px; text-decoration: none; cursor: pointer; }
+.rewards__btn { min-height: 50px; border: 0; background: #b9ee2e; color: #15210c; font: 700 16px "DM Sans", sans-serif; }
+.rewards__btn[disabled] { background: #e4e9e1; color: #5c6963; cursor: not-allowed; opacity: 1; }
+.rewards__btn2 { min-height: 48px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b !important; font: 700 15px "DM Sans", sans-serif; }
+.rewards__code-actions .rewards__btn, .rewards__code-actions .rewards__btn2 { min-height: 44px; font-size: 14px; }
+.rewards__steps { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; line-height: 1.4; }
+.rewards__steps li { display: flex; gap: 10px; }
+.rewards__n { flex: 0 0 24px; height: 24px; border-radius: 50%; background: #003b2b; color: #b9ee2e; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.rewards__list { padding: 2px 14px; }
+.rewards__row { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #dfe5dc; font-size: 14px; }
+.rewards__row strong:first-child { display: block; font-size: 14px; }
+.rewards__row > span > span { font-size: 12px; color: #5c6963; }
+.rewards__friend-pts { font-size: 13px; font-weight: 700; white-space: nowrap; color: #345000; }
+.rewards__friend-pts--pending { color: #6b3a00; }
+.rewards__amount { font-size: 15px; color: #345000; }
+.rewards__amount--minus { color: #8a2a2a; }
+.rewards__alert { padding: 12px 14px; border-radius: 12px; background: #fbe2e2; color: #8a2a2a; font-size: 14px; }
+
+.rewards__scrim { position: fixed; inset: 0; z-index: 20; background: rgba(16,36,28,.45); display: flex; align-items: flex-end; justify-content: center; }
+.rewards__sheet { width: 100%; max-width: 560px; box-sizing: border-box; background: #fffef9; border-radius: 18px 18px 0 0; padding: 20px 18px 22px; display: flex; flex-direction: column; gap: 12px; color: #10241c; font-family: "DM Sans", system-ui, sans-serif; }
+.rewards__sheet--done { padding: 22px 18px; text-align: center; align-items: center; }
+.rewards__sheet h2 { margin: 0; font-family: "Playfair Display", serif; font-weight: 600; font-size: 22px; line-height: normal; }
+.rewards__sheet p { margin: 0; }
+.rewards__chosen { padding: 12px 14px; border-radius: 12px; background: #f3f9e8; border: 2px solid #003b2b; }
+.rewards__chosen strong { display: block; }
+.rewards__chosen span { font-size: 13px; color: #3d4a44; }
+.rewards__sums { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #3d4a44; }
+.rewards__sums div { display: flex; justify-content: space-between; }
+.rewards__sums strong, .rewards__sums span + span { color: #10241c; }
+.rewards__note { padding: 10px 12px; border-radius: 10px; background: #eef3e9; color: #3d4a44; font-size: 13px; line-height: 1.45; }
+.rewards__check { width: 64px; height: 64px; border-radius: 50%; background: #eaf6d5; display: grid; place-items: center; }
+.rewards__done-line { color: #3d4a44; font-size: 14px; line-height: 1.5; }
+.rewards__sheet--done .rewards__btn, .rewards__sheet--done .rewards__btn2 { align-self: stretch; }
+.rewards__sheet .rewards__start-note { margin: -4px 0 0; color: #5c6963; font-size: 12px; }
+.rewards__sheet-error { color: #8a2a2a; font-size: 13px; }
+/* v1 styles.css lifts and recolours every button on hover: keep the board's colours. */
+.rewards button:hover, .rewards__sheet button:hover { transform: none; box-shadow: none; }
+.rewards__tabs button:hover { background: transparent; }
+.rewards__tabs button[aria-selected="true"]:hover { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.rewards .rewards__pts:hover { background: #003b2b; }
+.rewards .rewards__pts[disabled]:hover, .rewards__btn[disabled]:hover { background: #e4e9e1; }
+.rewards__btn:hover { background: #b9ee2e; }
+.rewards__btn2:hover { background: #fffef9; }
