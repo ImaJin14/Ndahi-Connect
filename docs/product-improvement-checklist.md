@@ -2290,6 +2290,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French; measured against the board at 390 px in every drawn state.
   - **Not yet:** switched on in production; tried on a real phone's share sheet.
 
+### Invited by a friend, as drawn (#529, batch 22, 28 November 2026)
+
+- [-] **REW-529 — PhoneInvite: the referral link's page (batch 22)** ([#529](https://github.com/ImaJin14/Ndahi-Connect/issues/529)). Builds on referrals (#527).
+  - **Implemented and tested** (PR #567):
+    - `/r/<code>` (canvas PhoneInvite): who invited you (first name only), the bonus and the bundle it's enough for, the code and the three steps; "This number already has an NDAHI account" when signed in; "We couldn't find this referral code" for an unknown one; Choose my first bundle (or Choose a bundle) and I already have an account;
+    - a valid code is saved on the device and Buy a bundle sends it with a new number's first checkout; the friend's first payment then pays both (browser journey);
+    - English and French; measured against the board at 390 px in all three states.
+  - **Not yet:** switched on in production; a link opened from WhatsApp on a real phone.
+
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).

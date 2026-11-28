@@ -109,7 +109,7 @@ export const SCREENS = [
     ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["details[data-payment-row] > summary", "[data-view-receipt]"], expect: ["#receiptDialog[open]", "#receiptDownload"] }],
     ["account", "Account", "PhoneAccount", "DesktopAccount", "/dashboard#account", "Redesigned", { tab: "account" }],
     ["rewards", "Rewards", "PhoneRewards", null, "/rewards.html", "Redesigned (#528)", { expect: [".rewards__card-points"] }],
-    ["invite", "Invited by a friend", "PhoneInvite", null, "/dashboard#account", NOT_BUILT(529), { tab: "account" }],
+    ["invite", "Invited by a friend", "PhoneInvite", null, "/r/AMINA-7K2", "Redesigned (#529)", { expect: ["body[data-invite-state]"] }],
     ["devices", "Devices", "PhoneDevices", null, "/dashboard#devices", "Redesigned", { expect: ["#manageDevices[data-sub-active]"] }],
     ["replace-device", "Replace a device", "PhoneReplaceDevice", null, "/dashboard#devices", NOT_BUILT(350), { expect: ["#manageDevices[data-sub-active]"] }],
     ["starter-kit", "Home starter kit", "PhoneStarterKit", null, "/dashboard#shop", NOT_BUILT(373), { tab: "shop", hash: "^#shop$", expect: [".portal-shop__item"], reject: [SHOP_ERROR] }],
