@@ -1168,6 +1168,9 @@ $("#purchase").onsubmit = async (event) => {
     let requestKey = checkoutStore.get(activeRequestKey);
     if (!requestKey) { requestKey = randomId(); checkoutStore.set(activeRequestKey, requestKey); }
     const input = { ...(action ? { network: purchaseInput.network, payerPhone: purchaseInput.payerPhone, email: purchaseInput.email } : purchaseInput), planId: selected.id, upgrade: upgradePurchase, action, requestKey };
+    // A friend's code from their invitation (/r/<code>, #529) goes with a new number's
+    // first checkout; the server keeps it only for a number new to NDAHI.
+    if (!action) { try { const referral = localStorage.getItem("ndahi-referral"); if (referral) input.referralCode = referral; } catch {} }
     // Saved before sending so a lost response can be resumed. Only the random key is kept;
     // contact details stay in this page and the API returns them on recovery.
     if (!action) checkoutStore.set(savedCheckoutKey, JSON.stringify({ requestKey, planId: selected.id }));
