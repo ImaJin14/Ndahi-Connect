@@ -217,7 +217,7 @@ export const SCREENS = [
     ["admin-product-edit", "Edit product", "AdminProductEdit", "/dashboard#products", "Redesigned", { open: ["a[href*=\"#product/\"]:not([href$=\"/new\"])"], panel: "store", menu: "products", hash: "^#product/", expect: ["#storeProductForm"] }],
     ["admin-cash", "Cash & settlements", "AdminCash", "/dashboard#cash", "Redesigned (#379): Today, 7 days or Month, and net provider settlements from saved payments", { panel: "cash", menu: "cash" }],
     ["admin-customers", "Customers", "AdminCustomers", "/dashboard#customers", "Redesigned (row selection and bulk gift or message arrive with #257)", { panel: "customers", menu: "customers" }],
-    ["admin-rewards", "Rewards", "AdminRewards", "/dashboard#customers", NOT_BUILT(530), { panel: "customers", menu: "customers" }],
+    ["admin-rewards", "Rewards", "AdminRewards", "/dashboard#rewards", "Redesigned (#530)", { panel: "rewards" }],
     ["admin-customer-detail", "Customer detail", "AdminCustomerDetail", "/dashboard#customers", "Redesigned (no Remove lost passkeys: that arrives with Phase 6 sign-in)", { open: ["a.admin-name"], panel: "customer", menu: "customers", hash: "^#customer/", expect: ["#customerDetail > *"] }],
     ["admin-vouchers-batch", "Vouchers — batch", "AdminVouchers", "/dashboard#vouchers", "Redesigned (#343): batch as drawn, then thermal print", { panel: "vouchers", menu: "vouchers", design: "mode=batch", open: ['[data-voucher-mode="batch"]'], expect: ["#generate", "#voucherQuantity"] }],
     ["admin-resellers", "Resellers", "AdminResellers", "/dashboard#resellers", "Redesigned (#390): one commission split for every reseller, the drawn ledger and cash handoff", { panel: "resellers", menu: "resellers" }],
