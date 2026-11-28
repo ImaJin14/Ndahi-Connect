@@ -2257,7 +2257,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Rewards: the points ledger (#526, batch 22, 28 November 2026)
 
 - [-] **REW-526 — Points earned on bundles and redeemed for bundles, on the server (batch 22)** ([#526](https://github.com/ImaJin14/Ndahi-Connect/issues/526)). Rules: `docs/redesign/decisions.md` → "Rewards: points and referrals (27 Nov)". Owner decisions: [merge the designs (#532) and start batch 22; a migration may add new tables](https://github.com/ImaJin14/Ndahi-Connect/issues/526#issuecomment-7233839024).
-  - **Implemented and tested** (PR #PRNUM):
+  - **Implemented and tested** (PR #564):
     - an append-only ledger (`points_ledger` rows in the existing normalized store, beside the store and kit records, so no migration was needed): earned, referral, welcome, redeemed, expired, refunded and adjusted rows; the balance is their sum and rows are never edited;
     - earning on a settled bundle payment that passed the provider checks (#432): 1 point per 100 XAF of the bundle price (never the fee), once per payment, only for payments made after the programme was switched on; nothing for gifts, custom bundles or payments held for review;
     - a completed refund takes the payment's points back; the balance stays at zero and the shortfall comes out of the next points earned;
