@@ -39,6 +39,8 @@ const VIEWS = {
   customers: { menu: "customers", panels: ["customers"], title: "adminTitleCustomers", group: "uiAdminGroupPeople" },
   // #customer/<id>; app.js puts the customer's name in the title.
   customer: { menu: "customers", panels: ["customer"], title: "adminTitleCustomer", back: { href: "/dashboard#customers", label: "adminTitleCustomersShort" } },
+  // Rewards (#530, canvas: AdminRewards): owners only, as the API. Its menu item is #531.
+  rewards: { menu: "rewards", panels: ["rewards"], title: "adminTitleRewards", group: "uiAdminGroupPeople", scope: "adminRewardsOwners", lede: "adminRewardsLede" },
   resellers: { menu: "resellers", panels: ["resellers"], title: "adminTitleResellers", group: "uiAdminGroupPeople" },
   // #voucher/<id> (canvas: AdminVoucherDetail); the code is the title.
   voucher: { menu: "vouchers", panels: ["voucher"], title: "adminTitleVoucher", back: { href: "/dashboard#vouchers", label: "adminTitleVouchersShort" } },
@@ -60,7 +62,7 @@ let mounted = false, currentRole, changed, homeRouters = false, badges = {};
 // rendered for this role; Home routers follows NDAHI Home being in use.
 function canAccess(menu, role) {
   const who = role === undefined ? currentRole : role;
-  if (menu === "setup" || menu === "insights") return who === "owner";
+  if (menu === "setup" || menu === "insights" || menu === "rewards") return who === "owner";
   if (menu === "store" || menu === "products" || menu === "promotions" || menu === "services") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "payments" || menu === "customers" || menu === "audit" || menu === "bundles") return STORE_ROLES.indexOf(who) >= 0;
   if (menu === "cash") return Boolean(document.getElementById("cashCollectedReport"));

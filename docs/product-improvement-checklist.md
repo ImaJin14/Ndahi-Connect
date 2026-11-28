@@ -2299,6 +2299,14 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - English and French; measured against the board at 390 px in all three states.
   - **Not yet:** switched on in production; a link opened from WhatsApp on a real phone.
 
+### Rewards admin, as drawn (#530, batch 22, 28 November 2026)
+
+- [-] **REW-530 — AdminRewards: settings, redeemable bundles, review and activity (batch 22)** ([#530](https://github.com/ImaJin14/Ndahi-Connect/issues/530)). Builds on the points ledger (#526) and referrals (#527).
+  - **Implemented and tested** (PR #568):
+    - `/dashboard#rewards` (canvas AdminRewards), owners only: the four figures; Points and Referrals with their switches and settings; the bundles customers can redeem (points price, 30-day redemptions, Redeemable switch); Save rewards settings (one save, audited, "Saved"); referrals to review grouped by code and reason, with Approve (points paid) and Reject (nothing paid), each card keeping its result; recent activity (one System row per expiry sweep) and Full ledger;
+    - operators are sent to Home and the API refuses them; English and French; measured against the board at 1280 px, the saved and decided states included.
+  - **Not yet:** the Rewards item in the admin menu (#531, batch 23); switched on in production.
+
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).

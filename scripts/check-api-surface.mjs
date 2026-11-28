@@ -46,6 +46,8 @@ const knownBackendMatchers = [
   // refund-reference, verify) are an `action` sent to orders/update, not paths.
   /^\/api\/admin\/store(?:\/(?:receipt|photos|products\/save|products\/delete|categories\/save|categories\/delete|settings\/save|stock\/adjust|orders\/update))?$/,
   /^\/api\/admin\/resellers\/(?:ledger|commission|remittances|adjustments)$/,
+  // Rewards (#527, #530): lib/api/admin-rewards.mjs matches a held referral's decision.
+  /^\/api\/admin\/rewards\/referrals\/[^/]+\/(?:approve|reject)$/,
   // Product photos by the SHA-256 of their bytes (lib/api/store.mjs).
   /^\/api\/store\/photos(?:\/[0-9a-f]{64})?\/?$/,
 ];

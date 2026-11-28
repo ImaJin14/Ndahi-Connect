@@ -1,0 +1,60 @@
+/* Rewards (#530, canvas: AdminRewards): figures, the Points and Referrals
+   panels with their switches, the redeemable bundles, referrals to review and
+   recent activity. Sizes and colours are the board's. */
+.admin-rewards { display: flex; flex-direction: column; gap: 20px; color: #10241c; font-family: "DM Sans", system-ui, sans-serif; }
+.admin-rewards p, .admin-rewards h2 { margin: 0; }
+.admin-rewards__saved { color: #345000; font-weight: 700; font-size: 14px; }
+.admin-rewards__saved:empty { display: none; }
+.admin-rewards__metrics { display: flex; flex-wrap: wrap; gap: 12px; }
+.admin-rewards__metric { flex: 1 1 180px; box-sizing: content-box; background: #fffef9; border: 1px solid #dfe5dc; border-radius: 14px; padding: 14px 16px; }
+.admin-rewards__metric strong { display: block; font-size: 22px; }
+.admin-rewards__metric span { font-size: 12px; color: #5c6963; }
+.admin-rewards__row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.admin-rewards__panel { background: #fffef9; border: 1px solid #dfe5dc; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; box-sizing: border-box; }
+.admin-rewards__panel--half { flex: 1 1 380px; }
+.admin-rewards__panel--wide { flex: 1 1 420px; }
+.admin-rewards__panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.admin-rewards .admin-rewards__h2 { margin: 0; font-family: "Playfair Display", serif; font-weight: 600; font-size: 22px; line-height: normal; letter-spacing: normal; color: #10241c; }
+.admin-rewards .admin-rewards__sub { margin: 4px 0 0; color: #5c6963; font-size: 14px; }
+.admin-rewards__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.admin-rewards .admin-rewards__lbl { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #10241c; }
+.admin-rewards .admin-rewards__in { box-sizing: border-box; width: 100%; min-width: 0; min-height: 42px; height: auto; margin: 0; padding: 0 12px; border-radius: 9px; border: 1px solid #b8c7bd; background: #fff; font: 14px "DM Sans", sans-serif; color: #10241c; box-shadow: none; }
+.admin-rewards .admin-rewards__hint { margin: 6px 0 0; color: #5c6963; font-size: 12px; }
+.admin-rewards .admin-rewards__note { margin: 0; }
+.admin-rewards__switch { position: relative; width: 50px; height: 30px; min-height: 0; flex-shrink: 0; margin: 0; border: 0; border-radius: 999px; cursor: pointer; padding: 0; background: #c9d3cd; box-shadow: none; }
+.admin-rewards__switch[aria-checked="true"] { background: #003b2b; }
+.admin-rewards__switch span { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #ffffff; }
+.admin-rewards__switch[aria-checked="true"] span { left: 23px; background: #b9ee2e; }
+.admin-rewards__switch:hover { background: #c9d3cd; transform: none; box-shadow: none; }
+.admin-rewards__switch[aria-checked="true"]:hover { background: #003b2b; }
+.admin-rewards__scroll { overflow-x: auto; }
+.admin-rewards__table { width: 100%; margin: 0; border-collapse: collapse; background: transparent; }
+.admin-rewards__table td, .admin-rewards__table th { text-align: left; padding: 10px 8px; border-bottom: 1px solid #dfe5dc; font-size: 14px; white-space: nowrap; vertical-align: middle; color: #10241c; }
+.admin-rewards__table th { color: #5c6963; font-weight: 600; font-size: 13px; }
+.admin-rewards__terms { font-size: 12px; color: #5c6963; }
+.admin-rewards .admin-rewards__pts { width: 100px; min-height: 36px; }
+.admin-rewards__save { min-height: 44px; margin: 0; padding: 0 18px; border: 0; border-radius: 9px; background: #b9ee2e; color: #15210c; font: 700 14px "DM Sans", sans-serif; cursor: pointer; box-shadow: none; }
+.admin-rewards__save:hover { background: #b9ee2e; transform: none; box-shadow: none; }
+.admin-rewards__flag { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 12px; background: #fff4e0; }
+.admin-rewards__flag.is-closed { background: #f6f7f2; }
+.admin-rewards__flag-text { flex: 1; }
+.admin-rewards__flag-text strong { display: block; font-size: 14px; }
+.admin-rewards__flag-text span { font-size: 13px; color: #6b3a00; }
+.admin-rewards__flag-actions { display: inline-flex; gap: 6px; }
+.admin-rewards__go2 { min-height: 34px; margin: 0; padding: 0 10px; border-radius: 8px; border: 1px solid #b8c7bd; background: #fffef9; color: #003b2b; font: 700 12px "DM Sans", sans-serif; cursor: pointer; box-shadow: none; }
+.admin-rewards__go2--no { color: #a73535; border-color: #e3b4b4; }
+.admin-rewards__go2:hover { background: #fffef9; transform: none; box-shadow: none; }
+.admin-rewards__pill { padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.admin-rewards__pill--ok { background: #eaf6d5; color: #345000; }
+.admin-rewards__pill--no { background: #fbe4e4; color: #8a2a2a; }
+.admin-rewards__activity-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.admin-rewards__activity-head a { font-size: 13px; font-weight: 700; color: #003b2b; }
+.admin-rewards__ledger td:first-child strong { font-size: 13px; }
+.admin-rewards__ledger td span { font-size: 12px; color: #5c6963; }
+.admin-rewards__ledger td:last-child { text-align: right; }
+.admin-rewards__ledger .is-plus { color: #345000; }
+.admin-rewards__ledger .is-minus { color: #8a2a2a; }
+.admin-rewards__error { color: #8a2a2a; font-size: 14px; }
+/* The board's head: the lede 4px under the title, and 20px down to the figures. */
+.admin-dashboard[data-admin-view="rewards"] .admin-lede { margin-top: 4px; }
+.admin-dashboard[data-admin-view="rewards"] main.nd-admin-shell__main { gap: 20px; }
