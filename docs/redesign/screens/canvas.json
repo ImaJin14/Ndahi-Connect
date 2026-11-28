@@ -721,6 +721,31 @@
    "w": 794,
    "x": 12800,
    "y": 0
+  },
+  "PhoneRewards.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Rewards (points \u00b7 redeem for bundles \u00b7 invite friends \u00b7 history)",
+   "w": 390,
+   "x": 13800,
+   "y": 0
+  },
+  "PhoneInvite.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Invited by a friend (referral link landing)",
+   "w": 390,
+   "x": 14240,
+   "y": 0
+  },
+  "AdminRewards.dc.html": {
+   "expand": "fill",
+   "h": 1700,
+   "is_interactive": true,
+   "title": "Rewards admin (points, referrals, redeemable bundles, review, ledger)",
+   "w": 1280,
+   "x": 14680,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -992,7 +1017,10 @@
   "AdminSide.dc.html",
   "BrochureEN.dc.html",
   "BrochureFR.dc.html",
-  "Brochure.dc.html"
+  "Brochure.dc.html",
+  "PhoneRewards.dc.html",
+  "PhoneInvite.dc.html",
+  "AdminRewards.dc.html"
  ],
  "pages": [
   {

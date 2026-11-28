@@ -225,3 +225,28 @@ This replaces the matching lines of the section above.
 - **Fixed-data plans are removed from sale.** The catalogue is unlimited only: the 19 Personal Unlimited offers and Home WISP Unlimited (50,000 XAF). Fixed-data bundles, Gig Standard included, are archived: customers who already have one keep it on its original terms until it ends ("Current customers keep their terms until their bundle ends"), and their receipts and history stay.
 - **No "up to 60 household devices" claim anywhere**, in customer or admin copy. Home WISP is described only as household sharing through a supported WISP router, with no device or router count.
 - The brochure covers the two unlimited plans only.
+
+## Rewards: points and referrals (27 Nov)
+
+Owner, 27 Nov: a points system customers redeem for bundles, and a referral system. Starting values below are the owner-approved defaults; every number is an admin setting (Rewards, owners only). Designs: `PhoneRewards`, `PhoneInvite`, `AdminRewards`, plus a Rewards row on `PhoneAccount` and in `AdminSide`.
+
+**Points**
+- Earned on **confirmed, reconciled** bundle payments only (#432): **1 point per 100 XAF of bundle price**, rounded down. Never on the Mobile Money fee.
+- No points on redeemed bundles, gifts, custom bundles, vouchers given by admins, or promotion bonuses. A refund takes back the points that payment earned (the balance can't go below zero; a shortfall is recorded and offset against future points).
+- **Value:** about 5 XAF per point. The admin sets a points price per redeemable bundle; the suggested price is bundle price ÷ 5 (24 hours · 1 device = 100 points; 7 days · 1 device = 500; Home WISP off by default).
+- **Redeeming** turns points into a bundle saved on the account, with the terms of that bundle snapshotted at redemption. It starts when the customer chooses, within 60 days; it can't start while another bundle is active ("No buying while a bundle is active" still holds). Unstarted after 60 days, it expires and its points are not returned.
+- **Expiry:** points expire 12 months after they were earned, oldest first. The customer sees the next expiry date and amount.
+- Points can't be transferred, combined with cash, or exchanged for money.
+
+**Referrals**
+- Every account has a referral code and link (`portal.ndahiconnect.net/r/<CODE>`). A new number that arrives with the code keeps it until its first purchase.
+- When that **first payment is confirmed** (at least 500 XAF of bundle price), the referrer gets **200 points** and the new customer **100 points**.
+- Only for **numbers new to NDAHI**. Paid once per new number. The friend's number, paying Mobile Money number and Wi-Fi devices must not belong to the referrer. At most **10 friends per referrer per month**.
+- Suspicious referrals (same device as the referrer, many friends paid from one Mobile Money number, a burst in one day) are **held for owner review**: no points until approved.
+
+**Records and safety**
+- Points live in an append-only ledger (earned, referral, welcome bonus, redeemed, expired, refunded, adjusted); the balance is the sum. Every entry links to its payment, referral or redemption and is audited.
+- Redemption is idempotent and checks the balance in the same transaction, so a double tap can't spend points twice.
+- Points and referrals are separate on/off switches. Turning a programme off stops new earning; existing points stay redeemable unless the owner says otherwise.
+- Insights shows the outstanding points (as an estimated XAF liability) and redemptions per month.
+- Current customers: the programme starts on the day it's switched on; no points are back-dated.

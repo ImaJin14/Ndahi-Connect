@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invited by a friend</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#003b2b}a:hover{color:#062a20}
+.btn{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:10px;background:#b9ee2e;color:#15210c;font:700 16px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.btn2{box-sizing:border-box;display:flex;align-items:center;justify-content:center;width:100%;min-height:48px;padding:0 16px;border:1px solid #b8c7bd;border-radius:10px;background:#fffef9;color:#003b2b;font:700 15px 'DM Sans',sans-serif;text-decoration:none;cursor:pointer}
+.n{flex:0 0 26px;height:26px;border-radius:50%;background:#003b2b;color:#b9ee2e;display:grid;place-items:center;font-size:13px;font-weight:700}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: 'DM Sans', system-ui, sans-serif; color: #10241c; background: #fbfaf5; overflow: hidden">
+  <div style="padding: 22px 20px 26px; background: #003b2b; color: #ffffff; display: flex; flex-direction: column; gap: 10px">
+    <span style="display: flex; align-items: center; gap: 10px"><span style="width: 36px; height: 36px; border: 2px solid #b9ee2e; border-radius: 50%; display: grid; place-items: center; color: #b9ee2e; font-weight: 700; font-size: 12px">NC</span><strong style="font-family: 'Playfair Display', serif; font-size: 18px">NDAHI Connect</strong></span>
+    <h1 style="margin: 8px 0 0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px; line-height: 1.15">{{title}}</h1>
+    <p style="margin: 0; color: #dce8e2; font-size: 15px; line-height: 1.5">{{lead}}</p>
+  </div>
+  <main style="flex: 1; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
+    <sc-if value="{{valid}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 12px; background: #f3f9e8; border: 2px solid #003b2b"><span><span style="display: block; font-size: 12px; color: #5c6963">Referral code</span><strong style="font: 700 18px ui-monospace, Menlo, monospace; letter-spacing: .1em">AMINA-7K2</strong></span><strong style="color: #345000">+100 points</strong></div>
+        <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45">
+          <li style="display: flex; gap: 12px"><span class="n">1</span><span>Connect to NDAHI Wi-Fi and choose a bundle.</span></li>
+          <li style="display: flex; gap: 12px"><span class="n">2</span><span>Pay with MTN MoMo or Orange Money from your own number. We set up your account with it.</span></li>
+          <li style="display: flex; gap: 12px"><span class="n">3</span><span>When the payment is confirmed, your 100 bonus points land in Rewards, ready to swap for bundles.</span></li>
+        </ol>
+        <p style="margin: 0; color: #5c6963; font-size: 12px">The code is saved for this number until you buy. Only for numbers new to NDAHI. Points can't be exchanged for cash.</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{notNew}}" hint-placeholder-val="{{ false }}">
+      <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff4e0; color: #6b3a00; font-size: 14px; line-height: 1.5"><strong>This number already has an NDAHI account,</strong> so the referral code can't be used. You still earn points on every bundle you buy.</p>
+    </sc-if>
+    <sc-if value="{{invalid}}" hint-placeholder-val="{{ false }}">
+      <p role="status" style="margin: 0; padding: 12px 14px; border-radius: 12px; background: #fbe4e4; color: #8a2a2a; font-size: 14px; line-height: 1.5"><strong>We couldn't find this referral code.</strong> Check it with the friend who sent it, or continue without it.</p>
+    </sc-if>
+  </main>
+  <div style="padding: 12px 16px 18px; background: #fffef9; border-top: 1px solid #dfe5dc; display: flex; flex-direction: column; gap: 10px">
+    <a class="btn" href="PhoneBuyBundle.dc.html">{{primary}}</a>
+    <a class="btn2" href="PhoneLogin.dc.html">I already have an account</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["valid","notNew","invalid"],"default":"valid"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.state ?? 'valid';
+    return {
+      valid: st === 'valid', notNew: st === 'notNew', invalid: st === 'invalid',
+      title: st === 'invalid' ? 'Welcome to NDAHI Connect' : 'Amina invited you to NDAHI Connect',
+      lead: st === 'valid' ? 'Get 100 bonus points after your first bundle — enough for a free 24-hour bundle.' : 'Prepaid community Wi-Fi. Unlimited data, paid with Mobile Money.',
+      primary: st === 'valid' ? 'Choose my first bundle' : 'Choose a bundle'
+    };
+  }
+}
+</script>
+</body>
+</html>

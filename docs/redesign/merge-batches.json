@@ -550,6 +550,43 @@
      "title": "Brochure: NDAHI Connect — Connect, Pay & Get Online (EN + FR quick-start guide)"
     }
    ]
+  },
+  {
+   "batch": 22,
+   "name": "Rewards: points and referrals",
+   "items": [
+    {
+     "issue": 526,
+     "title": "Rewards: points ledger — earn on bundles, redeem for bundles, expiry (server)"
+    },
+    {
+     "issue": 527,
+     "title": "Rewards: referral codes, attribution, welcome bonus and review (server)",
+     "base": "#526"
+    },
+    {
+     "issue": 528,
+     "title": "Redesign: PhoneRewards — Rewards (points, redeem, invite friends, history)"
+    },
+    {
+     "issue": 529,
+     "title": "Redesign: PhoneInvite — Invited by a friend (referral link landing)"
+    },
+    {
+     "issue": 530,
+     "title": "Redesign: AdminRewards — Rewards admin (settings, redeemable bundles, review, ledger)"
+    }
+   ]
+  },
+  {
+   "batch": 23,
+   "name": "Rewards: admin menu",
+   "items": [
+    {
+     "issue": 531,
+     "title": "Redesign: AdminSide — add Rewards to the admin menu (follow-up to #346)"
+    }
+   ]
   }
  ]
 }
