@@ -2268,6 +2268,15 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - stored on the existing store orders and settings, no migration.
   - **Not yet:** the admin and phone screens (#347, #373, #374, #375); a real Mobile Money payment plan and a real installation visit.
 
+### Quick-start guide, ready to print (#434, batch 21, 27 November 2026)
+
+- [-] **DOC-434 — Connect, Pay & Get Online, EN and FR (batch 21)** ([#434](https://github.com/ImaJin14/Ndahi-Connect/issues/434)). Owner decisions: [WhatsApp only; ready, not released](https://github.com/ImaJin14/Ndahi-Connect/issues/434#issuecomment-7228283474).
+  - **Implemented** (PR #560):
+    - the EN and FR PDFs (4 A4 pages each) carry the support contact, "WhatsApp +237 671 493 902", with no phone line;
+    - `scripts/brochure-pdf.mjs` prints them from the `BrochureEN` and `BrochureFR` boards with Chromium. It fills in the contact only in the printed copy, so the board keeps its placeholders. It stops if a placeholder is left or a typeface didn't load. The fonts embed as static TrueType, as in the first edition;
+    - `docs/brochure/README.md` gives the commands and the release list.
+  - **Not yet:** released. The guide goes out once the Unlimited catalogue is on sale, the guide is checked against the live portal, and the QR is scanned from a printed page on Android and iPhone. It keeps "plus the Mobile Money fee" until the 2% is verified for MTN and Orange (#432).
+
 ### Promotions, as drawn (#345, batch 20, 27 November 2026)
 
 - [-] **ADM-345 — Promotions with an Unlimited free bundle, as drawn (batch 20)** ([#345](https://github.com/ImaJin14/Ndahi-Connect/issues/345)). Owner decisions: [one product, one name, Give it, opening and starting promotions, the crossed-out price, units at this price, new customers](https://github.com/ImaJin14/Ndahi-Connect/issues/345#issuecomment-7226915423).
