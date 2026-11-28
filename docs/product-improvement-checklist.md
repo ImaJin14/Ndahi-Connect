@@ -2254,6 +2254,20 @@ Photos stored inside product rows would have added up to about 5 MB per product 
     - stored in the existing events table (`store_kit`), no migration.
   - **Since:** the admin and shop screens (#347, #373), installation (#425) and Pay in 3 (#426) shipped in batch 19 (PRs #553–#555).
 
+### Rewards: the points ledger (#526, batch 22, 28 November 2026)
+
+- [-] **REW-526 — Points earned on bundles and redeemed for bundles, on the server (batch 22)** ([#526](https://github.com/ImaJin14/Ndahi-Connect/issues/526)). Rules: `docs/redesign/decisions.md` → "Rewards: points and referrals (27 Nov)". Owner decisions: [merge the designs (#532) and start batch 22; a migration may add new tables](https://github.com/ImaJin14/Ndahi-Connect/issues/526#issuecomment-7233839024).
+  - **Implemented and tested** (PR #PRNUM):
+    - an append-only ledger (`points_ledger` rows in the existing normalized store, beside the store and kit records, so no migration was needed): earned, referral, welcome, redeemed, expired, refunded and adjusted rows; the balance is their sum and rows are never edited;
+    - earning on a settled bundle payment that passed the provider checks (#432): 1 point per 100 XAF of the bundle price (never the fee), once per payment, only for payments made after the programme was switched on; nothing for gifts, custom bundles or payments held for review;
+    - a completed refund takes the payment's points back; the balance stays at zero and the shortfall comes out of the next points earned;
+    - points expire after 12 months, oldest first (an hourly sweep and on each Rewards read); the next expiry date and amount are shown;
+    - redeeming (`POST /api/account/rewards/redeem`, idempotent, one transaction) saves the bundle on the account with its terms copied; Start now (`POST /api/account/rewards/start`) waits until the current bundle has ended; unstarted after 60 days it expires and the points stay spent; a redeemed bundle is never revenue;
+    - `GET /api/account/rewards` gives the balance, its value, the next expiry, the redeemable bundles with what each still needs, the saved bundles and the history;
+    - owners only: `GET /api/admin/rewards` (settings, figures, the redeemable bundles with their 30-day redemptions, recent activity), `GET /api/admin/rewards/ledger`, `POST /api/admin/rewards/settings` and `/offers` (audited), `POST /api/admin/rewards/adjust` (with a reason); Insights returns the outstanding points (as XAF) and redemptions per month;
+    - the programme is off until an owner switches it on, and it can be switched on only once the Unlimited catalogue is on sale (redeemed bundles are Unlimited bundles, whose router rules wait for #450).
+  - **Not yet:** the screens (#528, #530) and referrals (#527); switched on in production.
+
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).
