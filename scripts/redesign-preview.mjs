@@ -108,7 +108,7 @@ export const SCREENS = [
     ["activity", "Activity", "PhoneActivity", "DesktopActivity", "/dashboard#activity", "Redesigned", { tab: "activity" }],
     ["receipt", "Receipt", "PhoneReceipt", null, "/dashboard#activity", "Redesigned", { tab: "activity", open: ["details[data-payment-row] > summary", "[data-view-receipt]"], expect: ["#receiptDialog[open]", "#receiptDownload"] }],
     ["account", "Account", "PhoneAccount", "DesktopAccount", "/dashboard#account", "Redesigned", { tab: "account" }],
-    ["rewards", "Rewards", "PhoneRewards", null, "/dashboard#account", NOT_BUILT(528), { tab: "account" }],
+    ["rewards", "Rewards", "PhoneRewards", null, "/rewards.html", "Redesigned (#528)", { expect: [".rewards__card-points"] }],
     ["invite", "Invited by a friend", "PhoneInvite", null, "/dashboard#account", NOT_BUILT(529), { tab: "account" }],
     ["devices", "Devices", "PhoneDevices", null, "/dashboard#devices", "Redesigned", { expect: ["#manageDevices[data-sub-active]"] }],
     ["replace-device", "Replace a device", "PhoneReplaceDevice", null, "/dashboard#devices", NOT_BUILT(350), { expect: ["#manageDevices[data-sub-active]"] }],

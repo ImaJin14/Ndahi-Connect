@@ -47,6 +47,7 @@ export function accountHub(customer, security, { homeRegistered = false } = {}) 
     </section>
     <section class="portal-account__panel portal-account__panel--home" aria-labelledby="accountHomeGroup"><h3 class="portal-account__group nd-wide-only" id="accountHomeGroup">${h(L("portalHomeAndHelp"))}</h3>
       <div class="portal-account__list">
+        <span class="nd-narrow-only" data-account-rewards hidden>${item("/rewards.html", L("rwAccountRow"), '<span class="is-on" data-account-points></span>')}</span>
         ${item("/home-router.html", L("portalHomeWispRouter"), h(L(homeRegistered ? "portalRouterRegistered" : "portalRouterNotRegistered")))}
         <span class="nd-wide-only">${item("/billing-terms.html", L("portalPackageRulesLink"), "")}</span>
         ${item("/help.html", L("portalHelpSupport"), "")}
@@ -83,8 +84,23 @@ async function mountPreferences(call) {
   } catch (_) { /* Without preferences the switches stay disabled. */ }
 }
 
+// Rewards (#528, PhoneAccount): the row shows the balance once a programme is on
+// (or the account still has points), and opens Rewards.
+async function mountRewardsRow(call) {
+  const row = document.querySelector("[data-account-rewards]");
+  if (!row || !call) return;
+  try {
+    const rewards = await call("/api/account/rewards");
+    if (!rewards.programme?.points && !rewards.programme?.referrals && !(rewards.balance > 0)) return;
+    const count = Number(rewards.balance || 0), shown = count.toLocaleString(currentLanguage() === "fr" ? "fr-FR" : "en-US").replace(/[\u202f\u00a0 ]/g, "\u00a0");
+    row.querySelector("[data-account-points]").textContent = L(count === 1 ? "rwPoint" : "rwPoints", { count: shown });
+    row.hidden = false;
+  } catch { /* no row without the balance */ }
+}
+
 export function mountAccountHub(call) {
   void mountPreferences(call);
+  void mountRewardsRow(call);
   const choose = (value) => {
     const selected = setPreferredLanguage(value);
     for (const button of document.querySelectorAll("[data-account-lang]")) button.setAttribute("aria-pressed", String(button.dataset.accountLang === selected));
