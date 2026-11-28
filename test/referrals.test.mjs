@@ -168,6 +168,11 @@ test("several friends paid from one Mobile Money number, or a burst in one day, 
   for (let i = 4; i <= BURST_PER_DAY; i++) assert.equal(join(i).status, "paid");
   assert.deepEqual([join(BURST_PER_DAY + 1).status, s.referrals.at(-1).reasons], ["held", ["burst"]]);
   assert.equal(shortName("Jean-Paul Fon"), "J. Fon");
+  // Checkout's default name is no name: no "CUSTOMER-" code, no "Customer invited you".
+  const unnamed = { id: "u", name: "Customer", phone: "690000099" };
+  s.customers.push(unnamed);
+  assert.match(referralCode(s, unnamed), /^NDAHI-/);
+  assert.equal(shortName("Customer"), "");
 });
 
 test("a refund of the friend's first payment takes both payouts back", async (t) => {
