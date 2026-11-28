@@ -198,6 +198,17 @@ test("expiry takes the oldest points first and the next expiry shows the right d
   assert.equal(takeBackForPayment(s, { id: "p2" }, at("2027-03-02T00:00:00Z")), null, "once");
 });
 
+test("recent activity shows one expiry sweep as one System row with all its customers", async () => {
+  const { adminRewardsView } = await import("../lib/api/admin-rewards.mjs");
+  const s = { pointsLedger: [], vouchers: [], customers: [], bundles: [], catalogue: { mode: "unlimited" } };
+  for (let i = 0; i < 5; i++) appendRow(s, { customerId: "c" + i, kind: "earned", points: 10 }, new Date("2025-01-01T00:00:00Z"));
+  expirePoints(s, new Date("2026-02-01T00:00:00Z"));
+  for (let i = 0; i < 5; i++) appendRow(s, { customerId: "x", kind: "earned", points: 1 }, new Date(`2026-03-0${i + 1}T00:00:00Z`));
+  const activity = adminRewardsView(s, new Date("2026-03-10T00:00:00Z")).activity;
+  assert.equal(activity.length, 6);
+  assert.deepEqual([activity[5].system, activity[5].customers, activity[5].points], [true, 5, -50]);
+});
+
 test("earning rules: gifts, custom bundles and payments held for review earn nothing", () => {
   const s = { pointsLedger: [], vouchers: [], rewardsSettings: { points: { enabled: true, enabledAt: "2026-12-01T00:00:00Z" } } };
   const p = (extra) => ({ id: randomUUID(), customerId: "c1", status: "paid", amount: 2500, createdAt: "2026-12-02T00:00:00Z", ...extra });
