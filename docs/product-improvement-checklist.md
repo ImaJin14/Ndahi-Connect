@@ -2257,7 +2257,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Get connected, checked against the flow board (#393, batch 21, 27 November 2026)
 
 - [-] **CUS-393 — ConnectFlow: every way onto NDAHI Wi-Fi (batch 21)** ([#393](https://github.com/ImaJin14/Ndahi-Connect/issues/393)).
-  - **Checked and tested** (PR #562; [audit](reviews/connect-flow-393.md)):
+  - **Checked, tested and merged** (PR #562; merged 28 Nov at c2f99da5; [audit](reviews/connect-flow-393.md); documentation only, nothing to deploy):
     - every step of the board (join NDAHI Wi-Fi; I have an account; I have a code; scan a QR; I'm new, buy; use someone's bundle; the five recoveries) is built and walked by a passing journey; nothing differs from the board, so no code changes;
     - the board's rules hold: a PIN or a passkey only; a scan or a pairing code never connects a device on its own; nobody can buy while a bundle is active;
     - v2: the flow's 15 redesign browser tests, and the hotspot, billing and pending-state suites with v2 forced; v1: the same three suites. All pass, on local servers with mock payments and a mock router.
@@ -2280,7 +2280,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Quick-start guide, ready to print (#434, batch 21, 27 November 2026)
 
 - [-] **DOC-434 — Connect, Pay & Get Online, EN and FR (batch 21)** ([#434](https://github.com/ImaJin14/Ndahi-Connect/issues/434)). Owner decisions: [WhatsApp only; ready, not released](https://github.com/ImaJin14/Ndahi-Connect/issues/434#issuecomment-7228283474).
-  - **Implemented** (PR #560):
+  - **Implemented and merged** (PR #560; merged 28 Nov at 24f179a1; the PDFs and the script live in the repository, nothing to deploy):
     - the EN and FR PDFs (4 A4 pages each) carry the support contact, "WhatsApp +237 671 493 902", with no phone line;
     - `scripts/brochure-pdf.mjs` prints them from the `BrochureEN` and `BrochureFR` boards with Chromium. It fills in the contact only in the printed copy, so the board keeps its placeholders. It stops if a placeholder is left or a typeface didn't load. The fonts embed as static TrueType, as in the first edition;
     - `docs/brochure/README.md` gives the commands and the release list.
