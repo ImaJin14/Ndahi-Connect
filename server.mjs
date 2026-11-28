@@ -13,6 +13,7 @@ import { createPaymentRoutes } from "./lib/api/payments.mjs";
 import { createVoucherRoutes } from "./lib/api/vouchers.mjs";
 import { createCustomerAuthRoutes } from "./lib/api/customer-auth.mjs";
 import { createAccountRoutes } from "./lib/api/account.mjs";
+import { createRewardsRoutes } from "./lib/api/rewards.mjs";
 import { createAuthenticatorManagementRoutes } from "./lib/api/authenticator-management.mjs";
 import { createDeviceManagementRoutes } from "./lib/api/device-management.mjs";
 import { createWifiPairingRoutes } from "./lib/api/wifi-pairing.mjs";
@@ -80,6 +81,8 @@ export function createHandler(opts = {}) {
     createCustomerAuthRoutes(context),
     createAuthenticatorManagementRoutes(context),
     createHomeRoutes(context),
+    // Rewards (#526) before the account routes, which answer every other /api/account/ path.
+    createRewardsRoutes(context),
     createAccountRoutes(context),
     createDeviceManagementRoutes(context),
     createWifiPairingRoutes(context),
