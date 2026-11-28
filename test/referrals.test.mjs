@@ -74,7 +74,7 @@ test("the referrer gets 200 and the friend 100 once, after the friend's first co
   // A pending friend: checked out with the code, not paid yet.
   await f.call("/api/purchase", { phone: "690887731", planId: "unlimited-24h-1", network: "mtn", requestKey: randomUUID(), referralCode: mine.code });
   const friends = (await f.call("/api/account/rewards", undefined, { customer: "amina" })).body.referral.friends;
-  assert.deepEqual(friends.map((x) => [x.phone, x.status, x.points]), [["6•• •• 77 31", "pending", undefined], ["6•• •• 00 21", "joined", 200]]);
+  assert.deepEqual(friends.map((x) => [x.phone, x.status, x.points]), [["6•• •• 00 21", "joined", 200], ["6•• •• 77 31", "pending", undefined]], "joined first, as drawn");
   const history = (await f.call("/api/account/rewards", undefined, { customer: "amina" })).body.history;
   assert.deepEqual([history[0].kind, history[0].friend], ["referral", "6•• •• 00 21"]);
 });
