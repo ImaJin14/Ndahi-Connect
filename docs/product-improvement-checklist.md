@@ -2271,7 +2271,7 @@ Photos stored inside product rows would have added up to about 5 MB per product 
 ### Rewards: referrals (#527, batch 22, 28 November 2026)
 
 - [-] **REW-527 — Referral codes, attribution, the welcome bonus and review, on the server (batch 22)** ([#527](https://github.com/ImaJin14/Ndahi-Connect/issues/527)). Builds on the points ledger (#526). Rules: `docs/redesign/decisions.md` → "Rewards: points and referrals (27 Nov)".
-  - **Implemented and tested** (PR #PRNUM):
+  - **Implemented and tested** (PR #565):
     - every account gets a code (the first name and three characters with no look-alikes, e.g. AMINA-7K2) and a link, `<portal>/r/<CODE>`; `GET /api/referrals/<code>` (public, 30 lookups per address in 10 minutes) gives the first name, the welcome points and the bundle they're enough for, never the referrer's number;
     - a new number that checks out with a code keeps it until its first bundle payment; an existing account or the referrer's own number can't use one;
     - the friend's first confirmed payment of at least 500 XAF pays the referrer 200 points and the friend 100, once; a smaller first bundle, the referrer's number or a Mobile Money number the referrer has paid from earn nothing; past the monthly cap (10) the friend is recorded but not paid;
